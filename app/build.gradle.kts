@@ -13,8 +13,26 @@ android {
         applicationId = "com.paperscrape.livewallpaper"
         minSdk = 26 // Android 8.0 - required for adaptive icons & modern WallpaperService features
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        // versionCode is the single source of truth for the GitHub Release tag/title created by
+        // CI (.github/workflows/android-build.yml reads this value directly) — bump it every
+        // time you ship a new vN so the release name in GitHub matches the version delivered.
+        versionCode = 8
+        versionName = "8.0"
+    }
+
+    signingConfigs {
+        // Pinned to a debug keystore committed at the repo root (holds no real security value —
+        // it's the standard, publicly-known debug alias/passwords — but MUST stay identical
+        // across builds). Without this, Gradle would auto-generate a fresh, randomly-keyed
+        // ~/.android/debug.keystore on every machine/CI run, so each build gets signed with a
+        // different certificate — Android then refuses to install an "update" over a build
+        // signed with a different key ("App not installed" error).
+        getByName("debug") {
+            storeFile = rootProject.file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
@@ -29,6 +47,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

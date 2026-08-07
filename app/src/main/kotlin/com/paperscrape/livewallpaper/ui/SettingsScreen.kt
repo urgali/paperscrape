@@ -1,6 +1,6 @@
 package com.paperscrape.livewallpaper.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,12 +10,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +31,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -67,13 +67,25 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState()) // BUGFIX: without this, content taller
+                // than the screen (e.g. "Touch effects" and everything below it) was simply
+                // unreachable -- there was no way to scroll down to it.
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             LivePreview(theme = ThemeCatalog.byId(effectiveThemeId))
 
+            // Placed right under the preview -- always reachable without scrolling, so applying
+            // the wallpaper never requires digging through the rest of the settings first.
+            Button(
+                onClick = onApplyWallpaper,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("📱 Set as wallpaper")
+            }
+
             SectionTitle("Theme")
-            ThemeRow(
+            ThemeGallery(
                 selectedId = settings.themeId,
                 onSelect = { theme -> scope.launch { prefs.setTheme(theme.id) } },
             )
@@ -170,13 +182,6 @@ fun SettingsScreen(
                 )
             }
 
-            Button(
-                onClick = onApplyWallpaper,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Set as wallpaper")
-            }
-
             Text(
                 "PaperScrape is an open-source live wallpaper inspired by classic \"paper cutout\" animated backgrounds. Source code on GitHub.",
                 style = MaterialTheme.typography.bodySmall,
@@ -193,7 +198,7 @@ private fun SectionTitle(text: String) {
 
 @Composable
 private fun LivePreview(theme: SceneTheme) {
-    // A lightweight static preview swatch (top sky color -> hill color) so the user gets
+    // A lightweight static preview (sky gradient + hill silhouette + sun) so the user gets
     // instant visual feedback without spinning up the real WallpaperService renderer here.
     Card(
         modifier = Modifier
@@ -201,65 +206,125 @@ private fun LivePreview(theme: SceneTheme) {
             .aspectRatio(16f / 9f),
         shape = RoundedCornerShape(16.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(theme.skyDay[0]))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(Color(theme.hillColorsDay.last()))
-            )
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .align(Alignment.TopEnd)
-                    .padding(12.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(theme.sunColor))
+        ThemeScenePreview(theme = theme, modifier = Modifier.fillMaxSize())
+    }
+}
+
+/**
+ * Draws a small but honest preview of a theme's *actual* look: sky gradient, layered hill
+ * silhouette (using the theme's real day colors, darkest/nearest layer last), and the sun —
+ * instead of a flat color swatch that hides what the theme really looks like once applied.
+ */
+@Composable
+private fun ThemeScenePreview(theme: SceneTheme, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val skyTop = Color(theme.skyDay[0])
+        val skyBottom = Color(theme.skyDay.getOrElse(1) { theme.skyDay[0] })
+        drawRect(brush = Brush.verticalGradient(listOf(skyTop, skyBottom)))
+
+        drawCircle(
+            color = Color(theme.sunColor),
+            radius = size.minDimension * 0.09f,
+            center = Offset(size.width * 0.80f, size.height * 0.22f),
+        )
+
+        val hillColors = theme.hillColorsDay
+        val layerCount = hillColors.size
+        for (i in 0 until layerCount) {
+            val topFraction = 0.45f + i * 0.16f
+            val top = size.height * topFraction
+            drawRect(
+                color = Color(hillColors[i]),
+                topLeft = Offset(0f, top),
+                size = androidx.compose.ui.geometry.Size(size.width, size.height - top),
             )
         }
     }
 }
 
+/** Emoji hints for what each theme's scene actually contains -- a cheap, asset-free way to show
+ * more about a theme's content than color alone can. Keyed by themeId; UI-only concern, so it
+ * deliberately lives here rather than on the [SceneTheme] data model. */
+private val THEME_ICON_HINTS: Map<String, String> = mapOf(
+    "sunset" to "🌅🐕",
+    "autumn" to "🍂🐕",
+    "winter" to "❄️⛄",
+    "desert" to "🏜️🐕",
+    "christmas" to "🎄🎁",
+    "new_year" to "🎆🎈",
+    "beach" to "🌴⛱️",
+    "city" to "🏙️🚗",
+    "tundra" to "🐧⛄",
+    "easter" to "🐰🥚",
+)
+
+private fun iconHintFor(themeId: String): String = THEME_ICON_HINTS[themeId] ?: "🎨"
+
+/**
+ * A proper gallery of theme previews (2 per row) so the user can see roughly what each theme
+ * actually looks like -- sky colors, hill colors, and a couple of signature objects via emoji --
+ * before applying it, rather than judging from a small flat color swatch.
+ *
+ * Built as plain Row/Column chunks rather than LazyVerticalGrid: the theme list is short (10
+ * items) and this avoids nested-scroll conflicts with the screen's own vertical scroll.
+ */
 @Composable
-private fun ThemeRow(selectedId: String, onSelect: (SceneTheme) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        items(ThemeCatalog.ALL) { theme ->
-            ThemeSwatch(theme = theme, selected = theme.id == selectedId, onClick = { onSelect(theme) })
+private fun ThemeGallery(selectedId: String, onSelect: (SceneTheme) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ThemeCatalog.ALL.chunked(2).forEach { rowThemes ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                rowThemes.forEach { theme ->
+                    ThemeGalleryCard(
+                        theme = theme,
+                        selected = theme.id == selectedId,
+                        onClick = { onSelect(theme) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (rowThemes.size == 1) {
+                    Box(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ThemeSwatch(theme: SceneTheme, selected: Boolean, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
+private fun ThemeGalleryCard(
+    theme: SceneTheme,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.clickable(onClick = onClick)) {
         Box(
             modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(theme.skyDay[0]))
+                .fillMaxWidth()
+                .aspectRatio(4f / 3f)
+                .clip(RoundedCornerShape(14.dp))
                 .border(
-                    width = if (selected) 3.dp else 0.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(12.dp),
+                    width = if (selected) 3.dp else 1.dp,
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                    shape = RoundedCornerShape(14.dp),
                 )
         ) {
-            Box(
+            ThemeScenePreview(theme = theme, modifier = Modifier.fillMaxSize())
+            Text(
+                iconHintFor(theme.id),
+                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(24.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(Color(theme.hillColorsDay.last()))
+                    .align(Alignment.BottomStart)
+                    .padding(6.dp),
             )
         }
-        Text(theme.displayName, style = MaterialTheme.typography.labelSmall)
+        Text(
+            theme.displayName,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 

@@ -12,9 +12,15 @@ captures/
 .cxx/
 local.properties
 
-# Keystores - never commit signing keys
+# Keystores - never commit *release* signing keys
 *.jks
 *.keystore
+# EXCEPTION: debug.keystore is deliberately committed and tracked. It holds no real security
+# value (standard public debug alias "androiddebugkey", password "android" — the same Android's
+# own tooling uses by default) and exists solely so every build (local or CI) is signed with the
+# same certificate, so app updates between versions actually work. Never apply this exception to
+# a release/production keystore.
+!debug.keystore
 
 # Logs
 *.log

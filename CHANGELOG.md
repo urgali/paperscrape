@@ -6,7 +6,34 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
-## v7 — in progress
+## v8 — in progress
+
+- **Fixed app updates failing with "app not installed"**: every CI run was
+  signing the debug APK with a fresh, randomly-generated debug certificate
+  (GitHub Actions runners start clean each time), so upgrading from one
+  version to the next meant installing over a build signed with a
+  *different* key — Android refuses that. Fixed by committing a fixed
+  `debug.keystore` at the repo root (standard, publicly-known debug
+  credentials — holds no real security value, this is not a
+  release-signing key) and wiring it into `app/build.gradle.kts`'s debug
+  `signingConfig`, so every build (CI or local) is signed identically and
+  upgrades work.
+- **Added a prominent "Set as wallpaper" button** right under the live
+  preview at the top of the settings screen — reachable immediately,
+  without scrolling, instead of only being available via the phone's
+  system wallpaper picker.
+- **Fixed broken scrolling in the settings screen**: the main layout was
+  missing a scroll modifier entirely, so anything taller than one screen
+  (Touch effects, Parallax strength, and everything below) was simply
+  unreachable. Added `verticalScroll` to the root column.
+- **Replaced the theme picker with a real gallery**: instead of small flat
+  color swatches, each theme now shows an actual mini scene preview (sky
+  gradient, layered hills in the theme's real colors, the sun) plus emoji
+  hints for its signature objects (🎄🎁 for Christmas, 🐰🥚 for Easter,
+  etc.) — laid out as 2-per-row cards so you can actually see what a
+  theme looks like before applying it.
+
+## v7
 
 - **Fixed CI build failure introduced by v5's own security fix**: the
   `gradle wrapper --gradle-version 8.9` step (which regenerates the
@@ -16,6 +43,13 @@ summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
   has a checksum it wasn't explicitly told to reproduce, rather than
   silently dropping or mismatching it. Fixed by passing
   `--gradle-distribution-sha256-sum` with the same value to the CI command.
+- **Release naming now tracks `versionCode`, not the Actions run number**:
+  the GitHub Release created on every successful push is now tagged/titled
+  `vN` from `app/build.gradle.kts`'s `versionCode` (bumped to 7) instead of
+  the unrelated Actions run counter — so the release name always matches
+  the version delivered in chat. If the same `versionCode` is pushed again
+  (e.g. a quick follow-up fix before bumping it), the existing release for
+  that tag is replaced rather than failing the build.
 
 ## v6
 

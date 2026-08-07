@@ -20,6 +20,7 @@ their way around in a few minutes.
 | Add a settings option | `prefs/WallpaperPrefs.kt` (new field) + `ui/SettingsScreen.kt` (new control) |
 | Change refresh rate / battery usage | `engine/PaperWallpaperService.kt` → `FRAME_INTERVAL_MS` constant |
 | Add/change a date-based seasonal rule (e.g. Halloween week) | `engine/SeasonalThemeRules.kt` → add a `Window` entry |
+| Ship a new version | Bump `versionCode` in `app/build.gradle.kts` first — CI reads it directly to name the GitHub Release (`vN`), so it must match the version you're actually shipping |
 
 ## Ideas for future contributions
 
