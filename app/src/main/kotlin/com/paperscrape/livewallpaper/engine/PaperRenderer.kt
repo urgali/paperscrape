@@ -57,14 +57,17 @@ class PaperRenderer(
 
     private var objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor))
     private var objectRendererThemeId = theme.id
+    private var objectRendererGeneration = CustomThemeRegistry.generation()
     private val layerGeometries = HashMap<Int, LayerGeometry>()
     private val fireworkEffect = FireworkEffect()
     private val santaSleighEffect = SantaSleighEffect()
 
     private fun syncObjectRendererWithTheme() {
-        if (objectRendererThemeId != theme.id) {
+        val currentGeneration = CustomThemeRegistry.generation()
+        if (objectRendererThemeId != theme.id || objectRendererGeneration != currentGeneration) {
             objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor))
             objectRendererThemeId = theme.id
+            objectRendererGeneration = currentGeneration
         }
     }
 

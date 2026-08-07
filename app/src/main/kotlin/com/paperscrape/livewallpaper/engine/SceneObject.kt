@@ -62,7 +62,16 @@ object SceneObjectCatalog {
         if (RandomSceneGenerator.isRandomThemeId(themeId)) {
             return RandomSceneGenerator.generateLayout(themeId, accentColor)
         }
-        return when (themeId) {
+        CustomThemeRegistry.overrideLayoutFor(themeId)?.let { return it }
+        val builtinLayout = builtinLayoutFor(themeId, accentColor)
+        if (builtinLayout != null) return builtinLayout
+        CustomThemeRegistry.customEntry(themeId)?.let { return it.layout }
+        return SceneObjectLayout(staticObjects = emptyList(), cars = emptyList())
+    }
+
+    /** Returns null (rather than an empty layout) for unknown ids, so [layoutFor] can tell the
+     * difference between "not a built-in id" and "a built-in id with an intentionally empty scene". */
+    private fun builtinLayoutFor(themeId: String, accentColor: Int): SceneObjectLayout? = when (themeId) {
         "sunset" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.22f),
@@ -189,7 +198,6 @@ object SceneObjectCatalog {
             cars = emptyList(),
         )
 
-        else -> SceneObjectLayout(staticObjects = emptyList(), cars = emptyList())
-    }
+        else -> null
     }
 }

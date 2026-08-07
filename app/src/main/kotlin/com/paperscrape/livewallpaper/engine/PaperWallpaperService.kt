@@ -11,6 +11,7 @@ import android.service.wallpaper.WallpaperService
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import androidx.core.content.ContextCompat
+import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import kotlinx.coroutines.CoroutineScope
@@ -80,6 +81,15 @@ class PaperWallpaperService : WallpaperService() {
             super.onCreate(surfaceHolder)
             setTouchEventsEnabled(true)
             prefs = WallpaperPrefs(applicationContext)
+            val customThemeStore = CustomThemeStore(applicationContext)
+            scope.launch {
+                customThemeStore.dataFlow.collect { data ->
+                    CustomThemeRegistry.update(data)
+                    // An override/reset/delete can change what the *current* themeId resolves
+                    // to even though themeId itself didn't change -- re-apply and redraw.
+                    if (applyEffectiveTheme()) drawFrame()
+                }
+            }
             scope.launch {
                 prefs.settingsFlow.collect { newSettings ->
                     settings = newSettings

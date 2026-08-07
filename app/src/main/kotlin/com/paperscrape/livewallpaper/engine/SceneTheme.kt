@@ -197,6 +197,16 @@ object ThemeCatalog {
         if (id != null && RandomSceneGenerator.isRandomThemeId(id)) {
             return RandomSceneGenerator.generateTheme(id)
         }
-        return ALL.firstOrNull { it.id == id } ?: SUNSET
+        if (id != null) {
+            // A user-saved replacement for a built-in theme takes priority over the hardcoded
+            // default; "Reset to default" is just removing that override (see CustomThemeStore).
+            CustomThemeRegistry.overrideThemeFor(id)?.let { return it }
+        }
+        ALL.firstOrNull { it.id == id }?.let { return it }
+        if (id != null) {
+            // Fully independent custom theme (id looks like "custom:<token>").
+            CustomThemeRegistry.customEntry(id)?.let { return it.theme }
+        }
+        return SUNSET
     }
 }

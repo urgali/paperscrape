@@ -7,23 +7,37 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
+import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.PaperWallpaperService
+import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.ui.theme.PaperScrapeTheme
+import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
 
     private lateinit var prefs: WallpaperPrefs
+    private lateinit var customThemeStore: CustomThemeStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         prefs = WallpaperPrefs(applicationContext)
+        customThemeStore = CustomThemeStore(applicationContext)
+
+        // Keeps the synchronous CustomThemeRegistry warm for this process too -- needed because
+        // theme previews in the settings UI resolve through the same ThemeCatalog.byId /
+        // SceneObjectCatalog.layoutFor functions the live wallpaper engine uses.
+        lifecycleScope.launch {
+            customThemeStore.dataFlow.collect { data -> CustomThemeRegistry.update(data) }
+        }
 
         setContent {
             PaperScrapeTheme {
                 SettingsScreen(
                     prefs = prefs,
+                    customThemeStore = customThemeStore,
                     onApplyWallpaper = { launchSetWallpaperFlow() },
                     onRequestLocationPermission = { onGranted -> requestLocationPermission(onGranted) },
                 )

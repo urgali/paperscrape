@@ -6,6 +6,38 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v9 — in progress
+
+- **Custom themes**: new "Manage Themes" screen (roadmap item #2, still with
+  color values inherited from the current look rather than a full
+  color-picker editor — see note below) —
+  - **Save the current look as a new theme**, with your own name.
+  - **Replace any built-in theme with the current look** ("Replace with
+    current"), overriding it everywhere (live wallpaper, previews) while
+    keeping its original name and slot in the gallery.
+  - **Reset to default** on any customized built-in theme, one tap, fully
+    reversible — removes the override and instantly restores the original.
+  - **Rename** and **delete** for your own independent custom themes.
+  - New files: `engine/CustomThemeData.kt` (data model + hand-rolled JSON
+    (de)serialization via `org.json`, already built into Android -- no new
+    dependency), `prefs/CustomThemeStore.kt` (DataStore persistence),
+    `engine/CustomThemeRegistry.kt` (synchronous in-memory cache, since the
+    render thread calls `ThemeCatalog.byId`/`SceneObjectCatalog.layoutFor`
+    synchronously and can't suspend on a DataStore read).
+  - Fixed a cache-invalidation bug this surfaced: `PaperRenderer`'s object-
+    layout cache was keyed only on `theme.id`, but overriding/resetting a
+    built-in theme changes what that *same* id resolves to without the id
+    changing -- added a generation counter to `CustomThemeRegistry` that
+    the cache now also checks.
+  - Not yet a full color-picker editor: "custom" currently means "a saved
+    snapshot of a look you already reached" (via Randomize, or a future
+    picker), not hand-picking individual colors in a dedicated UI. Full
+    per-color editing is still a follow-up.
+- **Gallery overhaul**: theme previews now render an actual mini scene (sky
+  gradient, real hill colors, sun) plus emoji hints for signature objects,
+  instead of a flat color swatch — both in the inline gallery and the new
+  Manage Themes screen.
+
 ## v8 — in progress
 
 - **Fixed app updates failing with "app not installed"**: every CI run was
