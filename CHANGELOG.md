@@ -6,7 +6,18 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
-## v6 — in progress
+## v7 — in progress
+
+- **Fixed CI build failure introduced by v5's own security fix**: the
+  `gradle wrapper --gradle-version 8.9` step (which regenerates the
+  wrapper since `gradle-wrapper.jar` isn't committed) started failing
+  after v5 added `distributionSha256Sum` to `gradle-wrapper.properties`.
+  Gradle's `wrapper` task refuses to run when the properties file already
+  has a checksum it wasn't explicitly told to reproduce, rather than
+  silently dropping or mismatching it. Fixed by passing
+  `--gradle-distribution-sha256-sum` with the same value to the CI command.
+
+## v6
 
 - **Automatic theme by date/period** (opt-in setting, roadmap item #1):
   new `SeasonalThemeRules.kt` resolves the current date to a themeId —

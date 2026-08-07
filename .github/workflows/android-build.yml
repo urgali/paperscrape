@@ -38,7 +38,10 @@ jobs:
         # NOTE: still required -- gradlew/gradlew.bat/gradle-wrapper.jar are not committed to
         # this repo (no network access was available to fetch/verify a real wrapper jar when
         # this project was generated). See CHANGELOG "outstanding" notes.
-        run: gradle wrapper --gradle-version 8.9
+        # The --gradle-distribution-sha256-sum must match gradle-wrapper.properties' own
+        # distributionSha256Sum, or the `wrapper` task refuses to run (it won't silently
+        # overwrite/drop an existing checksum it wasn't told to reproduce).
+        run: gradle wrapper --gradle-version 8.9 --gradle-distribution-sha256-sum d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
