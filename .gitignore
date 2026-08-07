@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+app/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# Keystores - never commit signing keys
+*.jks
+*.keystore
+
+# Logs
+*.log
