@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="256dp"
+    android:height="256dp"
+    android:viewportWidth="256"
+    android:viewportHeight="256">
+    <!-- sky -->
+    <path android:fillColor="#FFD9A0" android:pathData="M0,0h256v256h-256z" />
+    <path android:fillColor="#FFF3D6" android:pathData="M190,60 m-30,0 a30,30 0,1 1,60 0 a30,30 0,1 1,-60 0" />
+    <!-- far hills -->
+    <path android:fillColor="#F2A65A" android:fillAlpha="0.9"
+        android:pathData="M-10,150 C40,110 70,175 120,140 C170,105 200,160 266,125 V266 H-10 Z" />
+    <!-- mid hills -->
+    <path android:fillColor="#D9812F"
+        android:pathData="M-10,185 C50,155 90,205 140,175 C190,145 220,195 266,165 V266 H-10 Z" />
+    <!-- near hills -->
+    <path android:fillColor="#B5651D"
+        android:pathData="M-10,225 C60,195 100,235 150,210 C200,185 230,220 266,205 V266 H-10 Z" />
+</vector>

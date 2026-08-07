@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">PaperScrape</string>
+    <string name="wallpaper_description">Un paesaggio di carta ritagliata che scorre sullo schermo, con sole e luna che seguono l\'ora del giorno.</string>
+
+    <string name="settings_title">Impostazioni PaperScrape</string>
+    <string name="settings_theme_section">Tema</string>
+    <string name="settings_behavior_section">Comportamento</string>
+    <string name="settings_time_sync">Segui l\'ora reale</string>
+    <string name="settings_time_sync_desc">Sole e luna si muovono in base all\'orario del dispositivo (o alla posizione, se attivata)</string>
+    <string name="settings_use_location">Usa la posizione per alba/tramonto</string>
+    <string name="settings_use_location_desc">Calcola l\'orario preciso di alba e tramonto in base alla tua zona</string>
+    <string name="settings_fixed_time">Ora fissa del paesaggio</string>
+    <string name="settings_touch_effects">Effetti al tocco</string>
+    <string name="settings_touch_effects_desc">Tocca cani, pinguini, regali, auto o lo sfondo per far volare uccellini di carta</string>
+    <string name="settings_parallax_strength">Intensità parallasse</string>
+    <string name="settings_apply_button">Imposta come sfondo</string>
+    <string name="settings_preview_title">Anteprima</string>
+    <string name="settings_about">Informazioni</string>
+    <string name="settings_about_body">PaperScrape è un live wallpaper open source ispirato ai classici sfondi animati \"in carta ritagliata\". Codice sorgente disponibile su GitHub.</string>
+</resources>

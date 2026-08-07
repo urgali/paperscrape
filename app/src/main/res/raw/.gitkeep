@@ -1,0 +1,6 @@
+Cartella pronta per future risorse audio reali (es. bark.ogg, meow.ogg, honk.ogg).
+Attualmente i suoni sono generati al volo con android.media.ToneGenerator
+(vedi engine/ReactionSoundPlayer.kt) per restare 100% autocontenuti e compilabili
+senza dover reperire/licenziare file audio. Quando aggiungerai suoni reali:
+1. Metti qui i file (formati supportati: ogg, mp3, wav)
+2. Sostituisci ToneGenerator con SoundPool in ReactionSoundPlayer.kt (vedi TODO nel file)

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- sun -->
+    <path android:fillColor="#FFF3D6" android:pathData="M54,34 m-14,0 a14,14 0,1 1,28 0 a14,14 0,1 1,-28 0" />
+    <!-- paper hills, layered -->
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.85"
+        android:pathData="M-4,78 C20,60 36,92 54,74 C72,56 90,84 112,66 V112 H-4 Z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M-4,92 C24,78 40,100 58,86 C76,72 92,96 112,84 V112 H-4 Z" />
+</vector>
