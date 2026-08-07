@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -53,13 +55,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
+import com.paperscrape.livewallpaper.engine.HouseBuildingConfig
 import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.SeasonalThemeRules
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
-import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
@@ -77,6 +80,7 @@ fun SettingsScreen(
     val customThemeData by customThemeStore.dataFlow.collectAsState(initial = CustomThemeData())
     val scope = rememberCoroutineScope()
     var showThemeManager by remember { mutableStateOf(false) }
+    var showHousesBuildings by remember { mutableStateOf(false) }
 
     val effectiveThemeId = if (settings.autoThemeByDate) {
         SeasonalThemeRules.themeForDate() ?: settings.themeId
@@ -112,6 +116,12 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("🖼️ Manage themes (${ThemeCatalog.ALL.size + customThemeData.customThemes.size})")
+            }
+            OutlinedButton(
+                onClick = { showHousesBuildings = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("🏘️ Houses & buildings")
             }
 
             Column {
@@ -239,6 +249,25 @@ fun SettingsScreen(
             },
             onRenameCustom = { id, newName -> scope.launch { customThemeStore.renameCustomTheme(id, newName) } },
             onDeleteCustom = { id -> scope.launch { customThemeStore.deleteCustomTheme(id) } },
+        )
+    }
+
+    if (showHousesBuildings) {
+        HousesBuildingsDialog(
+            config = settings.houseBuildingConfig,
+            onDismiss = { showHousesBuildings = false },
+            onShowHousesChange = { scope.launch { prefs.setShowHouses(it) } },
+            onShowBuildingsChange = { scope.launch { prefs.setShowBuildings(it) } },
+            onDensityChange = { scope.launch { prefs.setHouseBuildingDensity(it) } },
+            onHouseColorDay1Change = { scope.launch { prefs.setHouseColorDay1(it) } },
+            onHouseColorNight1Change = { scope.launch { prefs.setHouseColorNight1(it) } },
+            onHouseColorDay2Change = { scope.launch { prefs.setHouseColorDay2(it) } },
+            onHouseColorNight2Change = { scope.launch { prefs.setHouseColorNight2(it) } },
+            onBuildingColorDay1Change = { scope.launch { prefs.setBuildingColorDay1(it) } },
+            onBuildingColorNight1Change = { scope.launch { prefs.setBuildingColorNight1(it) } },
+            onBuildingColorDay2Change = { scope.launch { prefs.setBuildingColorDay2(it) } },
+            onBuildingColorNight2Change = { scope.launch { prefs.setBuildingColorNight2(it) } },
+            onResetToDefaults = { scope.launch { prefs.resetHouseBuildingConfig() } },
         )
     }
 }
@@ -633,4 +662,246 @@ private fun ManagedThemeCard(
             modifier = Modifier.padding(top = 4.dp),
         )
     }
+}
+
+// --- Houses & buildings ---------------------------------------------------------------------
+
+private data class ColorEditTarget(val label: String, val color: Int, val onChange: (Int) -> Unit)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HousesBuildingsDialog(
+    config: HouseBuildingConfig,
+    onDismiss: () -> Unit,
+    onShowHousesChange: (Boolean) -> Unit,
+    onShowBuildingsChange: (Boolean) -> Unit,
+    onDensityChange: (Float) -> Unit,
+    onHouseColorDay1Change: (Int) -> Unit,
+    onHouseColorNight1Change: (Int) -> Unit,
+    onHouseColorDay2Change: (Int) -> Unit,
+    onHouseColorNight2Change: (Int) -> Unit,
+    onBuildingColorDay1Change: (Int) -> Unit,
+    onBuildingColorNight1Change: (Int) -> Unit,
+    onBuildingColorDay2Change: (Int) -> Unit,
+    onBuildingColorNight2Change: (Int) -> Unit,
+    onResetToDefaults: () -> Unit,
+) {
+    var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Houses & Buildings") },
+                        navigationIcon = {
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.Default.Close, contentDescription = "Close")
+                            }
+                        },
+                    )
+                }
+            ) { padding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        "These settings apply across every theme that includes houses or buildings, not just the current one.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    SettingSwitchRow(
+                        title = "Show houses",
+                        subtitle = "Houses appear in the themes that have them",
+                        checked = config.showHouses,
+                        onCheckedChange = onShowHousesChange,
+                    )
+                    SettingSwitchRow(
+                        title = "Show buildings",
+                        subtitle = "Commercial buildings/skyscrapers appear in the themes that have them",
+                        checked = config.showBuildings,
+                        onCheckedChange = onShowBuildingsChange,
+                    )
+
+                    Column {
+                        Text("Density: ${(config.density * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "How many of a theme's house/building spots are actually filled",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Slider(value = config.density, onValueChange = onDensityChange, valueRange = 0f..1f)
+                    }
+
+                    SectionTitle("House colors")
+                    Text(
+                        "Each house randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    ColorSwatchRow("Day Color 1", config.houseColorDay1) {
+                        editingTarget = ColorEditTarget("House — Day Color 1", config.houseColorDay1, onHouseColorDay1Change)
+                    }
+                    ColorSwatchRow("Night Color 1", config.houseColorNight1) {
+                        editingTarget = ColorEditTarget("House — Night Color 1", config.houseColorNight1, onHouseColorNight1Change)
+                    }
+                    ColorSwatchRow("Day Color 2", config.houseColorDay2) {
+                        editingTarget = ColorEditTarget("House — Day Color 2", config.houseColorDay2, onHouseColorDay2Change)
+                    }
+                    ColorSwatchRow("Night Color 2", config.houseColorNight2) {
+                        editingTarget = ColorEditTarget("House — Night Color 2", config.houseColorNight2, onHouseColorNight2Change)
+                    }
+
+                    SectionTitle("Building colors")
+                    Text(
+                        "Each building randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    ColorSwatchRow("Day Color 1", config.buildingColorDay1) {
+                        editingTarget = ColorEditTarget("Building — Day Color 1", config.buildingColorDay1, onBuildingColorDay1Change)
+                    }
+                    ColorSwatchRow("Night Color 1", config.buildingColorNight1) {
+                        editingTarget = ColorEditTarget("Building — Night Color 1", config.buildingColorNight1, onBuildingColorNight1Change)
+                    }
+                    ColorSwatchRow("Day Color 2", config.buildingColorDay2) {
+                        editingTarget = ColorEditTarget("Building — Day Color 2", config.buildingColorDay2, onBuildingColorDay2Change)
+                    }
+                    ColorSwatchRow("Night Color 2", config.buildingColorNight2) {
+                        editingTarget = ColorEditTarget("Building — Night Color 2", config.buildingColorNight2, onBuildingColorNight2Change)
+                    }
+
+                    OutlinedButton(onClick = onResetToDefaults, modifier = Modifier.fillMaxWidth()) {
+                        Text("↺ Reset colors to defaults")
+                    }
+                }
+            }
+        }
+    }
+
+    editingTarget?.let { target ->
+        ColorPickerDialog(
+            title = target.label,
+            initialColor = target.color,
+            onConfirm = { color ->
+                target.onChange(color)
+                editingTarget = null
+            },
+            onDismiss = { editingTarget = null },
+        )
+    }
+}
+
+@Composable
+private fun ColorSwatchRow(label: String, color: Int, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(color))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
+        )
+    }
+}
+
+private fun colorToHex(color: Int): String = String.format("#%06X", color and 0x00FFFFFF)
+
+private fun parseHexColor(text: String): Int? {
+    val cleaned = text.trim().removePrefix("#")
+    if (cleaned.length != 6) return null
+    return try {
+        val rgb = cleaned.toLong(16).toInt()
+        (0xFF shl 24) or rgb
+    } catch (e: NumberFormatException) {
+        null
+    }
+}
+
+/**
+ * A simple HSV color editor: preview swatch, Hue/Saturation/Brightness sliders, and an editable
+ * hex field kept in sync both ways -- moving a slider updates the hex text, and typing a valid
+ * hex value updates the sliders.
+ */
+@Composable
+private fun ColorPickerDialog(
+    title: String,
+    initialColor: Int,
+    onConfirm: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val initialHsv = remember(initialColor) {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(initialColor, hsv)
+        hsv
+    }
+    var hue by remember { mutableStateOf(initialHsv[0]) }
+    var saturation by remember { mutableStateOf(initialHsv[1]) }
+    var brightness by remember { mutableStateOf(initialHsv[2]) }
+    var hexInput by remember { mutableStateOf(colorToHex(initialColor)) }
+
+    fun updateFromHsv(h: Float, s: Float, v: Float) {
+        hue = h
+        saturation = s
+        brightness = v
+        hexInput = colorToHex(android.graphics.Color.HSVToColor(floatArrayOf(h, s, v)))
+    }
+
+    val currentColor = android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, brightness))
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(currentColor))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
+                )
+                Text("Hue", style = MaterialTheme.typography.labelSmall)
+                Slider(value = hue, onValueChange = { updateFromHsv(it, saturation, brightness) }, valueRange = 0f..360f)
+                Text("Saturation", style = MaterialTheme.typography.labelSmall)
+                Slider(value = saturation, onValueChange = { updateFromHsv(hue, it, brightness) }, valueRange = 0f..1f)
+                Text("Brightness", style = MaterialTheme.typography.labelSmall)
+                Slider(value = brightness, onValueChange = { updateFromHsv(hue, saturation, it) }, valueRange = 0f..1f)
+                OutlinedTextField(
+                    value = hexInput,
+                    onValueChange = { text ->
+                        hexInput = text
+                        parseHexColor(text)?.let { parsed ->
+                            val hsv = FloatArray(3)
+                            android.graphics.Color.colorToHSV(parsed, hsv)
+                            hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]
+                        }
+                    },
+                    label = { Text("Hex") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(currentColor) }) { Text("Apply") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }

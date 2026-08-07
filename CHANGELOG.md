@@ -6,6 +6,38 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v10 — in progress
+
+- **Configurable houses & buildings**, applied globally across every theme:
+  - Independent "show houses" / "show buildings" toggles.
+  - A single **density slider (0-100%)** that thins each theme's candidate
+    house/building slots in a stable, non-flickering way (based on each
+    object's fixed position, never `Random()`), so moving the slider adds
+    or removes the same specific houses each time rather than reshuffling.
+  - **4 editable colors each** for houses and buildings (Day 1, Night 1,
+    Day 2, Night 2). Each individual house/building instance is
+    deterministically assigned variant 1 or 2 and blends between its
+    variant's day/night color exactly like the rest of the scene — houses
+    at night don't all suddenly look identical or flicker between colors.
+  - New reusable **HSV color picker** (hue/saturation/brightness sliders +
+    two-way-synced hex field) for editing any of the 8 colors.
+  - New "Houses & Buildings" screen hosting all of the above, plus a
+    "Reset colors to defaults" button.
+- **More house/building candidate slots** added to most themes (Sunset,
+  Autumn, Winter, Desert, Christmas, Easter, Beach, and Tundra now have
+  multiple house slots; New Year's Eve and Big City have more skyscraper
+  slots, City reaching 8 at 100% density) — needed so the density slider
+  has an actual range to work with, since most themes previously only
+  defined 1 house.
+- New files: `engine/HouseBuildingConfig.kt` (config model + stable
+  per-instance density/color-variant helpers).
+- Fixed a bug introduced while wiring this up: `SceneObjectRenderer`'s
+  `drawRoad()` still referenced the constructor's `layout` parameter after
+  it stopped being a stored property (needed so `layout.staticObjects`
+  could be filtered by the new config before becoming the renderer's
+  runtime object list) — switched to reading lane positions from
+  `carRuntimes` instead.
+
 ## v9 — in progress
 
 - **Custom themes**: new "Manage Themes" screen (roadmap item #2, still with

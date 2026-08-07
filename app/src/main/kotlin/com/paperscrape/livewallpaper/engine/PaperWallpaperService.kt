@@ -95,6 +95,7 @@ class PaperWallpaperService : WallpaperService() {
                     settings = newSettings
                     val themeChanged = applyEffectiveTheme()
                     renderer?.parallaxStrength = newSettings.parallaxStrength
+                    renderer?.houseBuildingConfig = newSettings.houseBuildingConfig
                     if (newSettings.useLocationForSunTimes) {
                         maybeStartLocationUpdates()
                     } else {
@@ -110,6 +111,7 @@ class PaperWallpaperService : WallpaperService() {
             super.onSurfaceCreated(holder)
             renderer = PaperRenderer(holder.surfaceFrame.width(), holder.surfaceFrame.height()).apply {
                 parallaxStrength = settings.parallaxStrength
+                houseBuildingConfig = settings.houseBuildingConfig
             }
             applyEffectiveTheme()
         }

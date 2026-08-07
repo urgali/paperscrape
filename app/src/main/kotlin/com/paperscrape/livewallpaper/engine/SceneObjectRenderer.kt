@@ -29,9 +29,14 @@ private class CarRuntime(val spec: CarObject) {
     var honking = 0f
 }
 
-class SceneObjectRenderer(private val layout: SceneObjectLayout) {
+class SceneObjectRenderer(
+    layout: SceneObjectLayout,
+    private val houseBuildingConfig: HouseBuildingConfig = HouseBuildingConfig.DEFAULT,
+) {
 
-    private val staticRuntimes = layout.staticObjects.map { StaticRuntime(it) }
+    private val staticRuntimes = layout.staticObjects
+        .filter { spec -> houseBuildingConfig.keepCandidate(spec) }
+        .map { StaticRuntime(it) }
     private val carRuntimes = layout.cars.map { CarRuntime(it) }
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
@@ -48,8 +53,6 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
     // so any color theme reads correctly; only the house window glow uses a warm/cool blend.
     private val dogColor = 0xFFC9834A.toInt()
     private val dogSpotColor = 0xFFEFE0CE.toInt()
-    private val houseWallColor = 0xFFF3E6D0.toInt()
-    private val houseRoofColor = 0xFF9C4B3C.toInt()
     private val treeTrunkColor = 0xFF7A4B2E.toInt()
 
     // Seasonal / festive object colors (step 2)
@@ -61,7 +64,6 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
     private val palmLeafColor = 0xFF3F9E6B.toInt()
     private val parasolColors = intArrayOf(0xFFFF7043.toInt(), 0xFFF7FAFC.toInt())
     private val parasolPoleColor = 0xFFEFE0CE.toInt()
-    private val skyscraperColor = 0xFF454B57.toInt()
     private val skyscraperWindowLit = 0xFFFFE79A.toInt()
     private val skyscraperWindowDark = 0xFF2E323C.toInt()
     private val penguinBodyColor = 0xFF2B2B33.toInt()
@@ -159,9 +161,9 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
      * "road" the cars drive on, not to any particular hill layer).
      */
     private fun drawRoad(canvas: Canvas, dayBlend: Float, screenWidth: Float, screenHeight: Float) {
-        if (layout.cars.isEmpty()) return
+        if (carRuntimes.isEmpty()) return
 
-        val laneYs = layout.cars.map { it.laneYFraction * screenHeight }
+        val laneYs = carRuntimes.map { it.spec.laneYFraction * screenHeight }
         val top = laneYs.min() - 10f
         val bottom = laneYs.max() + 24f
 
@@ -211,7 +213,7 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
 
         when (r.spec.type) {
             SceneObjectType.DOG -> drawDog(canvas, r, elapsed)
-            SceneObjectType.HOUSE -> drawHouse(canvas, dayBlend)
+            SceneObjectType.HOUSE -> drawHouse(canvas, r, dayBlend)
             SceneObjectType.TREE -> drawTree(canvas, r, elapsed, reactionEase)
             SceneObjectType.SNOWMAN -> drawSnowman(canvas, r, elapsed, reactionEase)
             SceneObjectType.GIFT -> drawGift(canvas, r)
@@ -250,10 +252,13 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
         canvas.drawCircle(-6f, -22f, 6f, fillPaint)
     }
 
-    private fun drawHouse(canvas: Canvas, dayBlend: Float) {
-        fillPaint.color = houseWallColor
+    private fun drawHouse(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
+        val wallColor = houseBuildingConfig.houseColorFor(r.spec, dayBlend)
+        fillPaint.color = wallColor
         canvas.drawRect(RectF(-36f, -46f, 36f, 0f), fillPaint)
-        fillPaint.color = houseRoofColor
+        // Roof is a darkened version of the wall color, so any user-picked house color still
+        // reads as coherent instead of clashing with a fixed, unrelated roof tone.
+        fillPaint.color = ColorUtils.blendARGB(wallColor, 0xFF1A1410.toInt(), 0.45f)
         path.reset(); path.moveTo(-44f, -46f); path.lineTo(0f, -78f); path.lineTo(44f, -46f); path.close()
         canvas.drawPath(path, fillPaint)
         fillPaint.color = treeTrunkColor
@@ -369,7 +374,7 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
     private fun drawSkyscraper(canvas: Canvas, r: StaticRuntime, dayBlend: Float, elapsed: Float) {
         val height = 130f * r.spec.scale
         val width = 46f
-        fillPaint.color = skyscraperColor
+        fillPaint.color = houseBuildingConfig.buildingColorFor(r.spec, dayBlend)
         canvas.drawRect(RectF(-width / 2f, -height, width / 2f, 0f), fillPaint)
 
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)

@@ -75,6 +75,9 @@ object SceneObjectCatalog {
         "sunset" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.22f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.42f, scale = 0.85f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.60f, scale = 0.9f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.85f, scale = 0.75f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.08f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.55f, scale = 0.85f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.38f),
@@ -89,6 +92,9 @@ object SceneObjectCatalog {
         "autumn" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.40f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.15f, scale = 0.8f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.58f, scale = 0.9f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.90f, scale = 0.7f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.12f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.62f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.78f, scale = 0.8f),
@@ -102,6 +108,9 @@ object SceneObjectCatalog {
         "winter" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.30f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.50f, scale = 0.85f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.68f, scale = 1.0f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.92f, scale = 0.7f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.10f, scale = 0.9f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.85f, scale = 0.75f),
                 StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.55f),
@@ -113,6 +122,9 @@ object SceneObjectCatalog {
 
         "desert" -> SceneObjectLayout(
             staticObjects = listOf(
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.10f, scale = 0.9f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.35f, scale = 0.8f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.75f, scale = 0.85f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.20f, scale = 0.7f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.60f, scale = 0.6f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.45f),
@@ -125,6 +137,9 @@ object SceneObjectCatalog {
         "christmas" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.26f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.10f, scale = 0.8f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.42f, scale = 0.9f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.72f, scale = 0.75f),
                 StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.12f),
                 StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.82f, scale = 0.85f),
                 StaticSceneObject(SceneObjectType.GIFT, layer = 2, tileFractionX = 0.45f),
@@ -140,6 +155,9 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.15f, scale = 1.1f),
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.35f, scale = 0.85f),
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.60f, scale = 1.3f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.05f, scale = 0.9f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.48f, scale = 1.0f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.85f, scale = 0.95f),
                 StaticSceneObject(SceneObjectType.BALLOON, layer = 2, tileFractionX = 0.25f),
                 StaticSceneObject(SceneObjectType.BALLOON, layer = 2, tileFractionX = 0.72f, scale = 0.8f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.50f),
@@ -151,6 +169,8 @@ object SceneObjectCatalog {
 
         "beach" -> SceneObjectLayout(
             staticObjects = listOf(
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.05f, scale = 0.85f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.92f, scale = 0.8f),
                 StaticSceneObject(SceneObjectType.PALM_TREE, layer = 1, tileFractionX = 0.15f),
                 StaticSceneObject(SceneObjectType.PALM_TREE, layer = 2, tileFractionX = 0.70f, scale = 0.9f),
                 StaticSceneObject(SceneObjectType.PARASOL, layer = 2, tileFractionX = 0.35f),
@@ -166,6 +186,10 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.30f, scale = 0.9f),
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.55f, scale = 1.1f),
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.80f, scale = 0.8f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.20f, scale = 1.0f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.42f, scale = 0.85f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.68f, scale = 1.15f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.90f, scale = 0.9f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.40f),
             ),
             cars = listOf(
@@ -177,6 +201,8 @@ object SceneObjectCatalog {
 
         "tundra" -> SceneObjectLayout(
             staticObjects = listOf(
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.65f, scale = 0.8f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.15f, scale = 0.7f),
                 StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.20f),
                 StaticSceneObject(SceneObjectType.PENGUIN, layer = 2, tileFractionX = 0.45f),
                 StaticSceneObject(SceneObjectType.PENGUIN, layer = 2, tileFractionX = 0.55f, scale = 0.8f),
@@ -188,6 +214,8 @@ object SceneObjectCatalog {
         "easter" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.24f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.48f, scale = 0.8f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.90f, scale = 0.85f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.62f, scale = 0.85f),
                 StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.15f),
                 StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.35f, scale = 0.75f),
