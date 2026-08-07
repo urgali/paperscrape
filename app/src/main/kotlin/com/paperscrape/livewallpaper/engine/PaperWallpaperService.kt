@@ -54,8 +54,27 @@ class PaperWallpaperService : WallpaperService() {
         private var sunriseHour = 6f
         private var sunsetHour = 20f
         private var hasFixLocation = false
+        private var lastAppliedThemeId = "sunset"
 
         private val drawRunnable = Runnable { drawFrame() }
+
+        /**
+         * Resolves which themeId should actually be rendered right now: the user's manual pick,
+         * or — if "automatic theme by date" is on and a seasonal window currently applies — the
+         * seasonal one instead. Returns true if the resolved id changed since the last call, so
+         * the caller knows whether an out-of-cycle redraw is worth forcing.
+         */
+        private fun applyEffectiveTheme(): Boolean {
+            val effectiveId = if (settings.autoThemeByDate) {
+                SeasonalThemeRules.themeForDate() ?: settings.themeId
+            } else {
+                settings.themeId
+            }
+            val changed = effectiveId != lastAppliedThemeId
+            renderer?.theme = ThemeCatalog.byId(effectiveId)
+            lastAppliedThemeId = effectiveId
+            return changed
+        }
 
         override fun onCreate(surfaceHolder: SurfaceHolder) {
             super.onCreate(surfaceHolder)
@@ -63,9 +82,8 @@ class PaperWallpaperService : WallpaperService() {
             prefs = WallpaperPrefs(applicationContext)
             scope.launch {
                 prefs.settingsFlow.collect { newSettings ->
-                    val themeChanged = newSettings.themeId != settings.themeId
                     settings = newSettings
-                    renderer?.theme = ThemeCatalog.byId(newSettings.themeId)
+                    val themeChanged = applyEffectiveTheme()
                     renderer?.parallaxStrength = newSettings.parallaxStrength
                     if (newSettings.useLocationForSunTimes) {
                         maybeStartLocationUpdates()
@@ -81,9 +99,9 @@ class PaperWallpaperService : WallpaperService() {
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
             renderer = PaperRenderer(holder.surfaceFrame.width(), holder.surfaceFrame.height()).apply {
-                theme = ThemeCatalog.byId(settings.themeId)
                 parallaxStrength = settings.parallaxStrength
             }
+            applyEffectiveTheme()
         }
 
         override fun onSurfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -94,6 +112,10 @@ class PaperWallpaperService : WallpaperService() {
         override fun onVisibilityChanged(visible: Boolean) {
             this.visible = visible
             if (visible) {
+                // Re-check the date every time the wallpaper becomes visible again (e.g. after
+                // the screen was off overnight) so a day boundary crossed while inactive is
+                // picked up promptly instead of waiting for the next settings change.
+                applyEffectiveTheme()
                 lastFrameNanos = System.nanoTime()
                 handler.post(drawRunnable)
             } else {

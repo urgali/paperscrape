@@ -69,6 +69,12 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
     private val penguinBeakColor = 0xFFF2A65A.toInt()
     private val balloonColors = intArrayOf(0xFFC1443B.toInt(), 0xFFF2C230.toInt(), 0xFF3D5A9E.toInt(), 0xFF3F9E6B.toInt())
 
+    // Easter theme colors
+    private val easterEggColors = intArrayOf(0xFFE87FA0.toInt(), 0xFFF2C230.toInt(), 0xFF7EC8E3.toInt(), 0xFFB39DDB.toInt())
+    private val easterEggPatternColor = 0xFFFFFFFF.toInt()
+    private val bunnyBodyColor = 0xFFF3EAE0.toInt()
+    private val bunnyInnerEarColor = 0xFFEFA8B8.toInt()
+
     // Road (drawn under any cars the theme has)
     private val roadColorDay = 0xFF5B5650.toInt()
     private val roadColorNight = 0xFF29271F.toInt()
@@ -214,6 +220,8 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
             SceneObjectType.SKYSCRAPER -> drawSkyscraper(canvas, r, dayBlend, elapsed)
             SceneObjectType.PENGUIN -> drawPenguin(canvas, r, elapsed)
             SceneObjectType.BALLOON -> drawBalloon(canvas, r, elapsed)
+            SceneObjectType.EASTER_EGG -> drawEasterEgg(canvas, r)
+            SceneObjectType.BUNNY -> drawBunny(canvas, r, elapsed)
             SceneObjectType.CAR -> Unit // cars are drawn separately via drawCar()
         }
         canvas.restore()
@@ -396,6 +404,43 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
         canvas.drawRect(RectF(-10f, 0f, -3f, 4f), fillPaint)
         canvas.drawRect(RectF(3f, 0f, 10f, 4f), fillPaint)
         canvas.restore()
+    }
+
+    private fun drawEasterEgg(canvas: Canvas, r: StaticRuntime) {
+        val colorIndex = (kotlin.math.abs(r.spec.tileFractionX * 1000).toInt()) % easterEggColors.size
+        fillPaint.color = easterEggColors[colorIndex]
+        canvas.drawOval(RectF(-16f, -40f, 16f, 0f), fillPaint)
+        // simple decorative stripe pattern
+        fillPaint.color = easterEggPatternColor
+        canvas.drawOval(RectF(-16f, -26f, 16f, -18f), fillPaint)
+        canvas.drawCircle(-8f, -10f, 4f, fillPaint)
+        canvas.drawCircle(8f, -10f, 4f, fillPaint)
+    }
+
+    private fun drawBunny(canvas: Canvas, r: StaticRuntime, elapsed: Float) {
+        val earWiggle = sin(elapsed * 3f + r.idleSeed) * 6f
+        fillPaint.color = bunnyBodyColor
+        canvas.drawOval(RectF(-18f, -26f, 18f, 0f), fillPaint) // body
+        canvas.drawCircle(14f, -30f, 12f, fillPaint) // head
+        // ears
+        canvas.save()
+        canvas.translate(10f, -40f)
+        canvas.rotate(-8f + earWiggle * 0.3f)
+        canvas.drawOval(RectF(-4f, -22f, 4f, 0f), fillPaint)
+        fillPaint.color = bunnyInnerEarColor
+        canvas.drawOval(RectF(-2f, -18f, 2f, -3f), fillPaint)
+        canvas.restore()
+        fillPaint.color = bunnyBodyColor
+        canvas.save()
+        canvas.translate(18f, -40f)
+        canvas.rotate(8f - earWiggle * 0.3f)
+        canvas.drawOval(RectF(-4f, -22f, 4f, 0f), fillPaint)
+        fillPaint.color = bunnyInnerEarColor
+        canvas.drawOval(RectF(-2f, -18f, 2f, -3f), fillPaint)
+        canvas.restore()
+        // tail
+        fillPaint.color = 0xFFFFFFFF.toInt()
+        canvas.drawCircle(-16f, -6f, 5f, fillPaint)
     }
 
     private fun drawBalloon(canvas: Canvas, r: StaticRuntime, elapsed: Float) {

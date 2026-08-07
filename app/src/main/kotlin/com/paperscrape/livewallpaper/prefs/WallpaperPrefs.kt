@@ -19,6 +19,7 @@ data class WallpaperSettings(
     val fixedHour: Float = 18f, // used only when syncWithRealTime == false
     val touchEffectsEnabled: Boolean = true,
     val parallaxStrength: Float = 1f, // 0.5 .. 2.0
+    val autoThemeByDate: Boolean = false, // opt-in: overrides themeId during known seasonal windows
 )
 
 class WallpaperPrefs(private val context: Context) {
@@ -30,6 +31,7 @@ class WallpaperPrefs(private val context: Context) {
         val FIXED_HOUR = floatPreferencesKey("fixed_hour")
         val TOUCH_EFFECTS = booleanPreferencesKey("touch_effects")
         val PARALLAX_STRENGTH = floatPreferencesKey("parallax_strength")
+        val AUTO_THEME_BY_DATE = booleanPreferencesKey("auto_theme_by_date")
     }
 
     val settingsFlow: Flow<WallpaperSettings> = context.dataStore.data.map { prefs ->
@@ -40,6 +42,7 @@ class WallpaperPrefs(private val context: Context) {
             fixedHour = prefs[Keys.FIXED_HOUR] ?: 18f,
             touchEffectsEnabled = prefs[Keys.TOUCH_EFFECTS] ?: true,
             parallaxStrength = prefs[Keys.PARALLAX_STRENGTH] ?: 1f,
+            autoThemeByDate = prefs[Keys.AUTO_THEME_BY_DATE] ?: false,
         )
     }
 
@@ -58,4 +61,7 @@ class WallpaperPrefs(private val context: Context) {
 
     suspend fun setParallaxStrength(strength: Float) =
         context.dataStore.edit { it[Keys.PARALLAX_STRENGTH] = strength }
+
+    suspend fun setAutoThemeByDate(enabled: Boolean) =
+        context.dataStore.edit { it[Keys.AUTO_THEME_BY_DATE] = enabled }
 }

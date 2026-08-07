@@ -6,7 +6,33 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
-## v5 — in progress
+## v6 — in progress
+
+- **Automatic theme by date/period** (opt-in setting, roadmap item #1):
+  new `SeasonalThemeRules.kt` resolves the current date to a themeId —
+  Christmas (Dec 18 – Jan 6), New Year's Eve (Dec 30 – Jan 1, takes
+  priority over the Christmas window), Easter (± 3 days around Easter
+  Sunday, calculated with the standard Computus algorithm — not a fixed
+  date), and summer/Beach (Jun 21 – Sep 21). Falls back to the user's
+  manually selected theme when no window matches. Re-evaluated on every
+  settings change and whenever the wallpaper becomes visible again (so a
+  day boundary crossed overnight is picked up promptly). Designed from the
+  start to resolve through a plain `themeId` string, so the future custom
+  theme editor can plug in without any changes here.
+- **New Easter theme**: pastel spring palette, plus two new object types
+  (`EASTER_EGG`, decorative; `BUNNY`, tappable) added to the shared object
+  system — also available in the Randomize pool.
+- Settings screen shows a live "today's automatic theme" indicator when
+  the feature is on, and the preview card reflects the effective
+  (possibly auto-overridden) theme rather than only the manual pick.
+- Renamed the remaining Italian Kotlin identifiers (`NATALE` →
+  `CHRISTMAS`, `CAPODANNO` → `NEW_YEAR`, `SPIAGGIA` → `BEACH`, `CITTA` →
+  `CITY`) that were missed in v5's string/ID translation pass — only the
+  `val` constant names, not user-facing text, so this has no visible
+  effect but keeps the codebase's identifiers consistent with the rest of
+  v5.
+
+## v5
 
 - **Security & hardening remediation** (reviewed against an external
   security assessment, cross-checked line by line against the real code

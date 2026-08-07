@@ -99,7 +99,7 @@ object ThemeCatalog {
         accentColor = 0xFFE0A23D.toInt(),
     )
 
-    val NATALE = SceneTheme(
+    val CHRISTMAS = SceneTheme(
         id = "christmas",
         displayName = "Christmas",
         skyNight = intArrayOf(0xFF0A1330.toInt(), 0xFF152048.toInt()),
@@ -115,7 +115,7 @@ object ThemeCatalog {
         hasSantaSleigh = true,
     )
 
-    val CAPODANNO = SceneTheme(
+    val NEW_YEAR = SceneTheme(
         id = "new_year",
         displayName = "New Year's Eve",
         skyNight = intArrayOf(0xFF0B0B1F.toInt(), 0xFF181832.toInt()),
@@ -131,7 +131,7 @@ object ThemeCatalog {
         hasFireworks = true,
     )
 
-    val SPIAGGIA = SceneTheme(
+    val BEACH = SceneTheme(
         id = "beach",
         displayName = "Beach",
         skyNight = intArrayOf(0xFF0E2A3D.toInt(), 0xFF184057.toInt()),
@@ -146,7 +146,7 @@ object ThemeCatalog {
         accentColor = 0xFFFF7043.toInt(),
     )
 
-    val CITTA = SceneTheme(
+    val CITY = SceneTheme(
         id = "city",
         displayName = "Big City",
         skyNight = intArrayOf(0xFF15161F.toInt(), 0xFF23253A.toInt()),
@@ -176,7 +176,22 @@ object ThemeCatalog {
         accentColor = 0xFF6FA8DC.toInt(),
     )
 
-    val ALL: List<SceneTheme> = listOf(SUNSET, AUTUMN, WINTER, DESERT, NATALE, CAPODANNO, SPIAGGIA, CITTA, TUNDRA)
+    val EASTER = SceneTheme(
+        id = "easter",
+        displayName = "Easter",
+        skyNight = intArrayOf(0xFF241B3D.toInt(), 0xFF362A54.toInt()),
+        skyDawn = intArrayOf(0xFFFAD1E6.toInt(), 0xFFFCEAF2.toInt()),
+        skyDay = intArrayOf(0xFFAEE0F2.toInt(), 0xFFF3FBEF.toInt()),
+        skyDusk = intArrayOf(0xFFE3A9D8.toInt(), 0xFFF7D9C4.toInt()),
+        hillColorsDay = intArrayOf(0xFFB8E0A0.toInt(), 0xFF9BD088.toInt(), 0xFF7EBE6F.toInt()),
+        hillColorsNight = intArrayOf(0xFF3A4A38.toInt(), 0xFF2C3A2B.toInt(), 0xFF1F291E.toInt()),
+        sunColor = 0xFFFFF3C4.toInt(),
+        moonColor = 0xFFEFE6FF.toInt(),
+        starColor = 0xFFFFFFFF.toInt(),
+        accentColor = 0xFFE87FA0.toInt(), // spring pink for the touch bird
+    )
+
+    val ALL: List<SceneTheme> = listOf(SUNSET, AUTUMN, WINTER, DESERT, CHRISTMAS, NEW_YEAR, BEACH, CITY, TUNDRA, EASTER)
 
     fun byId(id: String?): SceneTheme {
         if (id != null && RandomSceneGenerator.isRandomThemeId(id)) {

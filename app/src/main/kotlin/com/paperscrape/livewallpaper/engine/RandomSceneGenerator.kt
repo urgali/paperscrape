@@ -78,6 +78,7 @@ object RandomSceneGenerator {
         SceneObjectType.HOUSE, SceneObjectType.TREE, SceneObjectType.DOG,
         SceneObjectType.SNOWMAN, SceneObjectType.GIFT, SceneObjectType.PALM_TREE, SceneObjectType.PARASOL,
         SceneObjectType.SKYSCRAPER, SceneObjectType.PENGUIN, SceneObjectType.BALLOON,
+        SceneObjectType.BUNNY, SceneObjectType.EASTER_EGG,
     )
 
     fun generateLayout(themeId: String, accentColor: Int): SceneObjectLayout {

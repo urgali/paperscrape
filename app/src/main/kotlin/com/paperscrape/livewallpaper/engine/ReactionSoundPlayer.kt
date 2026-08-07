@@ -33,6 +33,7 @@ class ReactionSoundPlayer {
         val gen = generator() ?: return
         val tone = when (type) {
             SceneObjectType.DOG -> ToneGenerator.TONE_PROP_BEEP // short low "bark"-ish blip
+            SceneObjectType.BUNNY -> ToneGenerator.TONE_PROP_BEEP // reuse the low blip, bunnies don't have a distinct sound
             SceneObjectType.PENGUIN -> ToneGenerator.TONE_PROP_BEEP2 // short higher "squawk"-ish blip
             SceneObjectType.CAR -> ToneGenerator.TONE_CDMA_PIP // brief "honk"
             SceneObjectType.GIFT -> ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD // brighter "unwrap" chime

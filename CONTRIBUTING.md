@@ -19,16 +19,15 @@ their way around in a few minutes.
 | Change sunrise/sunset logic | `engine/SunPositionCalculator.kt` |
 | Add a settings option | `prefs/WallpaperPrefs.kt` (new field) + `ui/SettingsScreen.kt` (new control) |
 | Change refresh rate / battery usage | `engine/PaperWallpaperService.kt` → `FRAME_INTERVAL_MS` constant |
+| Add/change a date-based seasonal rule (e.g. Halloween week) | `engine/SeasonalThemeRules.kt` → add a `Window` entry |
 
 ## Ideas for future contributions
 
 Priority order aligned with the README (see also the planning note there on
-how the "theme editor" item should connect to the "automatic theme by date"
-item):
+how the custom theme editor should connect to the date-based automation):
 
-- [ ] **Automatic theme switching by date/period** (Christmas, Easter, summer, ...)
 - [ ] Live weather (requires an external API key, e.g. Open-Meteo which is free and keyless)
-- [ ] Custom theme editor (color picker) with multiple saves — must be referenceable from the date-based automation above
+- [ ] Custom theme editor (color picker) with multiple saves — must be referenceable from `SeasonalThemeRules`
 - [ ] Screenshot/sharing of the current scene
 - [ ] Home screen widget for quickly switching themes
 - [ ] Snow/rain support as an additional particle layer

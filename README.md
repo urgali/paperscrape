@@ -39,13 +39,18 @@ lightweight and compatible with any device).
   ground.
 - Optional sync with **real location** to calculate precise sunrise/sunset
   times (location permission requested only if enabled).
-- **9 themes/scenes included** — Sunset, Autumn, Winter, Desert,
+- **10 themes/scenes included** — Sunset, Autumn, Winter, Desert,
   **Christmas**, **New Year's Eve** (with fireworks at midnight), **Beach**,
-  **Big City** (skyscrapers and 3-lane traffic), and **Tundra** — each with
-  its own combination of colors *and* dedicated objects (not just different
-  palettes: Christmas has snowmen and gifts, Beach has palm trees and
-  umbrellas, Big City has skyscrapers with windows that light up at night,
-  etc.). Adding a new one takes just a few lines in two files.
+  **Big City** (skyscrapers and 3-lane traffic), **Tundra**, and **Easter**
+  (pastel colors, painted eggs, bunnies) — each with its own combination of
+  colors *and* dedicated objects (not just different palettes: Christmas has
+  snowmen and gifts, Beach has palm trees and umbrellas, Big City has
+  skyscrapers with windows that light up at night, etc.). Adding a new one
+  takes just a few lines in two files.
+- **Automatic theme by date** (opt-in setting): switches to Christmas, New
+  Year's Eve, Easter, or Beach automatically during their season, based on
+  configurable date rules — falls back to your manually selected theme
+  outside of any seasonal window.
 - Settings screen in Jetpack Compose with a live preview of themes.
 - All preferences persisted with Jetpack **DataStore**.
 
@@ -74,13 +79,14 @@ and update `ReactionSoundPlayer.kt` (instructions in the file's own TODO).
 | **Beach** | Swaying palm trees, colorful wedge-slice beach umbrellas |
 | **Big City** | Skyscrapers with windows that light up randomly at night, 3-lane traffic |
 | **Tundra** | Snowman, penguins (tappable, with their own sound) |
+| **Easter** | Pastel colors, painted eggs, bunnies (tappable) |
 | **🎲 Random** | Combination generated on the fly: harmonious colors + 3-6 objects picked at random from the full pool |
 
 ### Objects and interactions
 
 | Object | Tappable | Behavior |
 |---|---|---|
-| Dog | ✅ | Wags its tail in a loop; hops and barks on tap |
+| Dog / Bunny | ✅ | Idles in a loop; hops with a sound on tap |
 | Penguin | ✅ | Waddles while walking; hops with a high-pitched sound on tap |
 | Gift | ✅ | Hops with a chime on tap |
 | Tree / Palm tree | ✅ | Sways gently; the sway amplifies briefly (with sound) on tap |
@@ -90,14 +96,16 @@ and update `ReactionSoundPlayer.kt` (instructions in the file's own TODO).
 | Skyscraper | ❌ | Windows randomly turn on/off at night |
 | Beach umbrella | ❌ | Gentle vertical bob |
 | Balloon | ❌ | Floats up and down |
+| Easter egg | ❌ | Decorative, static |
 | Free background | — | Tapping makes a paper bird fly |
 
 ### Settings
 
 | Setting | What it does |
 |---|---|
-| Theme | Choose among the 9 fixed themes (see table above) |
+| Theme | Choose among the 10 fixed themes (see table above) |
 | 🎲 Generate random theme | Creates a new color/object combination; the seed is saved, so it survives a restart until you generate another one |
+| Automatic theme by date | Opt-in — overrides your manual pick during Christmas, New Year's Eve, Easter, or summer (Beach); falls back to your manual pick otherwise |
 | Follow real time | Sun/moon follow the device's clock instead of a fixed hour |
 | Use location for sunrise/sunset | Calculates precise sunrise/sunset times based on lat/lon (requires location permission) |
 | Touch effects | Toggles object reactions and the paper bird effect |
@@ -114,6 +122,7 @@ PaperScrape/
 │   │   ├── SceneTheme.kt              # Theme data model + built-in theme catalog
 │   │   ├── SceneObject.kt             # Scene object data model (cars/dogs/houses/trees) per theme
 │   │   ├── RandomSceneGenerator.kt    # Procedural generator powering "Randomize"
+│   │   ├── SeasonalThemeRules.kt      # Date-based rules for "automatic theme by date"
 │   │   ├── SceneObjectRenderer.kt     # Draws and animates scene objects, handles touch hit-testing
 │   │   ├── ReactionSoundPlayer.kt     # Touch reaction sounds (bark/squawk/honk via ToneGenerator)
 │   │   ├── FireworkEffect.kt          # Automatic fireworks (New Year's Eve theme, at night)
@@ -209,34 +218,39 @@ entirely original code/assets (see legal note below).
 - Animated, interactive objects (cars, dogs, houses, trees) with touch
   reaction and sound
 - Seasonal/festive themes as distinct scenes (Christmas, New Year's Eve,
-  Beach, Big City, Tundra, plus Sunset/Autumn/Winter/Desert) with dedicated
-  objects, not just a different color palette
+  Beach, Big City, Tundra, Easter, plus Sunset/Autumn/Winter/Desert) with
+  dedicated objects, not just a different color palette
 - Randomize function: generates infinite combinations of colors
   (harmonious, not purely random) and objects on the fly — not just a
-  choice among the 9 fixed themes
+  choice among the 10 fixed themes
 - Themed special event: Santa's sleigh flying across the sky at random
   intervals dropping gifts (Christmas theme)
+- **Automatic theme switching by date/period**, opt-in: Christmas theme
+  during Christmas week, Easter theme around Easter Sunday (calculated with
+  the standard Computus algorithm, not a fixed date), New Year's Eve theme
+  for the turn of the year, Beach theme during summer — falls back to the
+  user's manually selected theme outside of any of these windows. Already
+  designed to reference any `themeId` generically (built-in, Randomize-
+  generated, or — once it exists — custom-saved), not a fixed list, so item
+  3 below can plug in without changes here.
 
 ### What's missing for 1:1 parity with the original app
 
 | # | Missing feature | Notes |
 |---|---|---|
-| 1 | **Automatic theme switching by date/period** | E.g. Christmas theme during Christmas week, Easter theme during Easter week, summer theme (Beach) during summer months, etc. — configurable rules/priority |
-| 2 | **Live weather** influencing the scene | Needs a weather API (e.g. Open-Meteo, free and keyless) |
-| 3 | **Custom theme editor** with color picker | Saving multiple custom themes, not just the last one generated by Randomize — see the planning note below |
-| 4 | **Screenshot/sharing** of the current scene | Capture the wallpaper's canvas and export it as an image |
-| 5 | **Home screen widget** for quick theme switching | Requires an `AppWidgetProvider` + dedicated layout |
+| 1 | **Live weather** influencing the scene | Needs a weather API (e.g. Open-Meteo, free and keyless) |
+| 2 | **Custom theme editor** with color picker | Saving multiple custom themes, not just the last one generated by Randomize — see the planning note below |
+| 3 | **Screenshot/sharing** of the current scene | Capture the wallpaper's canvas and export it as an image |
+| 4 | **Home screen widget** for quick theme switching | Requires an `AppWidgetProvider` + dedicated layout |
 
-**Planning note — item 3 × item 1:** once the custom theme editor arrives,
-the date/period automation (item 1) will need to be able to pick **from**
-the user's custom saved themes too, not just the 9 built-in ones. In
-practice, the "date → theme" rule system should be designed to reference
-any `themeId` (built-in, Randomize-generated, or custom-saved), not a fixed
-list — so the user could, for example, assign their own hand-made Christmas
-theme instead of the default one. Item 1 will be implemented with this
-constraint already in mind, even though item 3 doesn't exist yet.
+**Planning note — item 2 × automatic theme by date:** now that the
+date-based automation exists, the upcoming custom theme editor should let
+its saved themes be picked by that same automation (see how it already
+resolves through a generic `themeId`, above) — so the user could, for
+example, assign their own hand-made Christmas theme instead of the default
+one. Item 2 will be implemented with this constraint already in mind.
 
-No other structural blocker is known beyond these 5 items: the rendering
+No other structural blocker is known beyond these 4 items: the rendering
 engine, theme/object system, and settings are already extensible enough to
 absorb them without rewrites. If you want to follow ongoing work or suggest
 a different order, open an issue or check `CONTRIBUTING.md`.

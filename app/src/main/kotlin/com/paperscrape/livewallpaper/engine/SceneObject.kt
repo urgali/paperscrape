@@ -5,6 +5,8 @@ enum class SceneObjectType {
     CAR, DOG, HOUSE, TREE,
     // Seasonal / festive additions (step 2)
     SNOWMAN, GIFT, PALM_TREE, PARASOL, SKYSCRAPER, PENGUIN, BALLOON,
+    // Easter theme additions (auto-theme-by-date feature)
+    EASTER_EGG, BUNNY,
 }
 
 /**
@@ -30,6 +32,7 @@ private val TAPPABLE_TYPES = setOf(
     SceneObjectType.TREE,
     SceneObjectType.SNOWMAN,
     SceneObjectType.PALM_TREE,
+    SceneObjectType.BUNNY,
 )
 
 /**
@@ -169,6 +172,19 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.PENGUIN, layer = 2, tileFractionX = 0.45f),
                 StaticSceneObject(SceneObjectType.PENGUIN, layer = 2, tileFractionX = 0.55f, scale = 0.8f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.75f, scale = 0.6f),
+            ),
+            cars = emptyList(),
+        )
+
+        "easter" -> SceneObjectLayout(
+            staticObjects = listOf(
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.24f),
+                StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.62f, scale = 0.85f),
+                StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.15f),
+                StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.35f, scale = 0.75f),
+                StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.58f, scale = 0.9f),
+                StaticSceneObject(SceneObjectType.BUNNY, layer = 2, tileFractionX = 0.45f),
+                StaticSceneObject(SceneObjectType.BUNNY, layer = 2, tileFractionX = 0.80f, scale = 0.85f),
             ),
             cars = emptyList(),
         )

@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneTheme
+import com.paperscrape.livewallpaper.engine.SeasonalThemeRules
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
@@ -53,6 +54,12 @@ fun SettingsScreen(
     val settings by prefs.settingsFlow.collectAsState(initial = WallpaperSettings())
     val scope = rememberCoroutineScope()
 
+    val effectiveThemeId = if (settings.autoThemeByDate) {
+        SeasonalThemeRules.themeForDate() ?: settings.themeId
+    } else {
+        settings.themeId
+    }
+
     Scaffold(
         topBar = { TopAppBar(title = { Text("PaperScrape") }) }
     ) { padding ->
@@ -63,7 +70,7 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            LivePreview(theme = ThemeCatalog.byId(settings.themeId))
+            LivePreview(theme = ThemeCatalog.byId(effectiveThemeId))
 
             SectionTitle("Theme")
             ThemeRow(
@@ -81,6 +88,29 @@ fun SettingsScreen(
                 if (RandomSceneGenerator.isRandomThemeId(settings.themeId)) {
                     Text(
                         "Random theme active — tap again to generate another one",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
+
+            Column {
+                SettingSwitchRow(
+                    title = "Automatic theme by date",
+                    subtitle = "Switches to Christmas, New Year's Eve, Easter, or Beach automatically during their season, overriding your manual pick",
+                    checked = settings.autoThemeByDate,
+                    onCheckedChange = { scope.launch { prefs.setAutoThemeByDate(it) } },
+                )
+                if (settings.autoThemeByDate) {
+                    val label = SeasonalThemeRules.labelForDate()
+                    val statusText = if (label != null) {
+                        "Today's automatic theme: $label"
+                    } else {
+                        "No seasonal window active right now — showing your manually selected theme"
+                    }
+                    Text(
+                        statusText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
