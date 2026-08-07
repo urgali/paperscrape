@@ -27,6 +27,9 @@ private val TAPPABLE_TYPES = setOf(
     SceneObjectType.DOG,
     SceneObjectType.PENGUIN,
     SceneObjectType.GIFT,
+    SceneObjectType.TREE,
+    SceneObjectType.SNOWMAN,
+    SceneObjectType.PALM_TREE,
 )
 
 /**
@@ -107,7 +110,7 @@ object SceneObjectCatalog {
             ),
         )
 
-        "natale" -> SceneObjectLayout(
+        "christmas" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.HOUSE, layer = 1, tileFractionX = 0.26f),
                 StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.12f),
@@ -120,7 +123,7 @@ object SceneObjectCatalog {
             cars = emptyList(),
         )
 
-        "capodanno" -> SceneObjectLayout(
+        "new_year" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.15f, scale = 1.1f),
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.35f, scale = 0.85f),
@@ -134,7 +137,7 @@ object SceneObjectCatalog {
             ),
         )
 
-        "spiaggia" -> SceneObjectLayout(
+        "beach" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.PALM_TREE, layer = 1, tileFractionX = 0.15f),
                 StaticSceneObject(SceneObjectType.PALM_TREE, layer = 2, tileFractionX = 0.70f, scale = 0.9f),
@@ -145,7 +148,7 @@ object SceneObjectCatalog {
             cars = emptyList(),
         )
 
-        "citta" -> SceneObjectLayout(
+        "city" -> SceneObjectLayout(
             staticObjects = listOf(
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.10f, scale = 1.2f),
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.30f, scale = 0.9f),

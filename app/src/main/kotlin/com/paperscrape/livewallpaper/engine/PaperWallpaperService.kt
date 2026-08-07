@@ -67,7 +67,12 @@ class PaperWallpaperService : WallpaperService() {
                     settings = newSettings
                     renderer?.theme = ThemeCatalog.byId(newSettings.themeId)
                     renderer?.parallaxStrength = newSettings.parallaxStrength
-                    if (newSettings.useLocationForSunTimes) maybeStartLocationUpdates()
+                    if (newSettings.useLocationForSunTimes) {
+                        maybeStartLocationUpdates()
+                    } else {
+                        stopLocationUpdates()
+                        hasFixLocation = false
+                    }
                     if (themeChanged) drawFrame()
                 }
             }
@@ -105,6 +110,11 @@ class PaperWallpaperService : WallpaperService() {
             yPixelOffset: Int,
         ) {
             renderer?.homeScreenOffset = xOffset
+            // Redraw right away instead of waiting for the next scheduled ~33ms tick: the
+            // launcher fires this callback continuously while the user drags between home
+            // screens, so rendering immediately keeps the parallax glued to the finger instead
+            // of trailing behind by up to one frame (perceived as stutter during the swipe).
+            if (visible) drawFrame()
         }
 
         override fun onTouchEvent(event: MotionEvent) {

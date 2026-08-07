@@ -36,6 +36,8 @@ class ReactionSoundPlayer {
             SceneObjectType.PENGUIN -> ToneGenerator.TONE_PROP_BEEP2 // short higher "squawk"-ish blip
             SceneObjectType.CAR -> ToneGenerator.TONE_CDMA_PIP // brief "honk"
             SceneObjectType.GIFT -> ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD // brighter "unwrap" chime
+            SceneObjectType.TREE, SceneObjectType.SNOWMAN, SceneObjectType.PALM_TREE ->
+                ToneGenerator.TONE_PROP_ACK // soft, short "rustle"-ish blip
             else -> return
         }
         gen.startTone(tone, 140)

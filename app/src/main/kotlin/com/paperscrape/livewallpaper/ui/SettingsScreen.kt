@@ -65,7 +65,7 @@ fun SettingsScreen(
         ) {
             LivePreview(theme = ThemeCatalog.byId(settings.themeId))
 
-            SectionTitle("Tema")
+            SectionTitle("Theme")
             ThemeRow(
                 selectedId = settings.themeId,
                 onSelect = { theme -> scope.launch { prefs.setTheme(theme.id) } },
@@ -76,11 +76,11 @@ fun SettingsScreen(
                     onClick = { scope.launch { prefs.setTheme(RandomSceneGenerator.newThemeId()) } },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("🎲 Genera tema casuale")
+                    Text("🎲 Generate random theme")
                 }
                 if (RandomSceneGenerator.isRandomThemeId(settings.themeId)) {
                     Text(
-                        "Tema casuale attivo — premi di nuovo per generarne un altro",
+                        "Random theme active — tap again to generate another one",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
@@ -88,18 +88,18 @@ fun SettingsScreen(
                 }
             }
 
-            SectionTitle("Comportamento")
+            SectionTitle("Behavior")
 
             SettingSwitchRow(
-                title = "Segui l'ora reale",
-                subtitle = "Sole e luna si muovono secondo l'orario del dispositivo",
+                title = "Follow real time",
+                subtitle = "The sun and moon move according to your device's clock",
                 checked = settings.syncWithRealTime,
                 onCheckedChange = { scope.launch { prefs.setSyncWithRealTime(it) } },
             )
 
             if (!settings.syncWithRealTime) {
                 Column {
-                    Text("Ora fissa: ${settings.fixedHour.toInt()}:00", style = MaterialTheme.typography.bodyMedium)
+                    Text("Fixed time: ${settings.fixedHour.toInt()}:00", style = MaterialTheme.typography.bodyMedium)
                     Slider(
                         value = settings.fixedHour,
                         onValueChange = { scope.launch { prefs.setFixedHour(it) } },
@@ -109,8 +109,8 @@ fun SettingsScreen(
                 }
             } else {
                 SettingSwitchRow(
-                    title = "Usa la posizione per alba/tramonto",
-                    subtitle = "Calcola l'orario preciso in base alla tua zona",
+                    title = "Use location for sunrise/sunset",
+                    subtitle = "Calculate precise times based on your area",
                     checked = settings.useLocationForSunTimes,
                     onCheckedChange = { enabled ->
                         if (enabled) {
@@ -125,14 +125,14 @@ fun SettingsScreen(
             }
 
             SettingSwitchRow(
-                title = "Effetti al tocco",
-                subtitle = "Tocca cani, pinguini, regali o auto per farli reagire (con suono); tocca lo sfondo per far volare uccellini di carta",
+                title = "Touch effects",
+                subtitle = "Tap dogs, penguins, gifts, or cars to make them react (with sound); tap the background to make a paper bird fly",
                 checked = settings.touchEffectsEnabled,
                 onCheckedChange = { scope.launch { prefs.setTouchEffects(it) } },
             )
 
             Column {
-                Text("Intensità parallasse", style = MaterialTheme.typography.bodyMedium)
+                Text("Parallax strength", style = MaterialTheme.typography.bodyMedium)
                 Slider(
                     value = settings.parallaxStrength,
                     onValueChange = { scope.launch { prefs.setParallaxStrength(it) } },
@@ -144,11 +144,11 @@ fun SettingsScreen(
                 onClick = onApplyWallpaper,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Imposta come sfondo")
+                Text("Set as wallpaper")
             }
 
             Text(
-                "PaperScrape è un live wallpaper open source ispirato ai classici sfondi \"in carta ritagliata\". Codice sorgente su GitHub.",
+                "PaperScrape is an open-source live wallpaper inspired by classic \"paper cutout\" animated backgrounds. Source code on GitHub.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

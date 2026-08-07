@@ -41,7 +41,7 @@ object ThemeCatalog {
 
     val SUNSET = SceneTheme(
         id = "sunset",
-        displayName = "Tramonto",
+        displayName = "Sunset",
         skyNight = intArrayOf(0xFF0B0E2E.toInt(), 0xFF1B1B3A.toInt()),
         skyDawn = intArrayOf(0xFFFF9E7D.toInt(), 0xFFFFD59E.toInt()),
         skyDay = intArrayOf(0xFF6EC6FF.toInt(), 0xFFCDEFFF.toInt()),
@@ -56,7 +56,7 @@ object ThemeCatalog {
 
     val AUTUMN = SceneTheme(
         id = "autumn",
-        displayName = "Autunno",
+        displayName = "Autumn",
         skyNight = intArrayOf(0xFF15181F.toInt(), 0xFF23222E.toInt()),
         skyDawn = intArrayOf(0xFFE5A45A.toInt(), 0xFFF6D9A8.toInt()),
         skyDay = intArrayOf(0xFF9FC2D9.toInt(), 0xFFE6E2C8.toInt()),
@@ -71,7 +71,7 @@ object ThemeCatalog {
 
     val WINTER = SceneTheme(
         id = "winter",
-        displayName = "Inverno",
+        displayName = "Winter",
         skyNight = intArrayOf(0xFF0B1A2A.toInt(), 0xFF15263B.toInt()),
         skyDawn = intArrayOf(0xFFA9C7E0.toInt(), 0xFFE7EEF5.toInt()),
         skyDay = intArrayOf(0xFF8FC3E8.toInt(), 0xFFEAF6FF.toInt()),
@@ -86,7 +86,7 @@ object ThemeCatalog {
 
     val DESERT = SceneTheme(
         id = "desert",
-        displayName = "Deserto",
+        displayName = "Desert",
         skyNight = intArrayOf(0xFF1A1230.toInt(), 0xFF2B1F45.toInt()),
         skyDawn = intArrayOf(0xFFF3B562.toInt(), 0xFFFCE0A8.toInt()),
         skyDay = intArrayOf(0xFF8FD6E8.toInt(), 0xFFFDF3D6.toInt()),
@@ -100,8 +100,8 @@ object ThemeCatalog {
     )
 
     val NATALE = SceneTheme(
-        id = "natale",
-        displayName = "Natale",
+        id = "christmas",
+        displayName = "Christmas",
         skyNight = intArrayOf(0xFF0A1330.toInt(), 0xFF152048.toInt()),
         skyDawn = intArrayOf(0xFFAFC2E0.toInt(), 0xFFE9F0FA.toInt()),
         skyDay = intArrayOf(0xFF8FBCE8.toInt(), 0xFFEAF4FF.toInt()),
@@ -116,8 +116,8 @@ object ThemeCatalog {
     )
 
     val CAPODANNO = SceneTheme(
-        id = "capodanno",
-        displayName = "Capodanno",
+        id = "new_year",
+        displayName = "New Year's Eve",
         skyNight = intArrayOf(0xFF0B0B1F.toInt(), 0xFF181832.toInt()),
         skyDawn = intArrayOf(0xFF3A3A66.toInt(), 0xFF6B6B9E.toInt()),
         skyDay = intArrayOf(0xFF6E86C7.toInt(), 0xFFB9C6E8.toInt()),
@@ -132,8 +132,8 @@ object ThemeCatalog {
     )
 
     val SPIAGGIA = SceneTheme(
-        id = "spiaggia",
-        displayName = "Spiaggia",
+        id = "beach",
+        displayName = "Beach",
         skyNight = intArrayOf(0xFF0E2A3D.toInt(), 0xFF184057.toInt()),
         skyDawn = intArrayOf(0xFFFFB98F.toInt(), 0xFFFFE3C4.toInt()),
         skyDay = intArrayOf(0xFF4FC3E8.toInt(), 0xFFE0F7FA.toInt()),
@@ -147,8 +147,8 @@ object ThemeCatalog {
     )
 
     val CITTA = SceneTheme(
-        id = "citta",
-        displayName = "Grande città",
+        id = "city",
+        displayName = "Big City",
         skyNight = intArrayOf(0xFF15161F.toInt(), 0xFF23253A.toInt()),
         skyDawn = intArrayOf(0xFFB08FA0.toInt(), 0xFFE8C9C4.toInt()),
         skyDay = intArrayOf(0xFF7C93B0.toInt(), 0xFFCBD6E0.toInt()),

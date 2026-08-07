@@ -1,54 +1,54 @@
-# Contribuire a PaperScrape
+# Contributing to PaperScrape
 
-Grazie per l'interesse! Il progetto è volutamente piccolo e leggibile: qualunque
-sviluppatore Android con basi di Kotlin dovrebbe potersi orientare in pochi minuti.
+Thanks for your interest! The project is deliberately small and readable:
+any Android developer with basic Kotlin knowledge should be able to find
+their way around in a few minutes.
 
-## Dove mettere le mani
+## Where to make changes
 
-| Voglio... | File da modificare |
+| I want to... | File to edit |
 |---|---|
-| Aggiungere un nuovo tema colore | `engine/SceneTheme.kt` → aggiungi un `SceneTheme` a `ThemeCatalog.ALL` |
-| Cambiare la forma delle colline | `engine/PaperRenderer.kt` → `buildHillPath()` |
-| Aggiungere/spostare oggetti in un tema (auto, cani, case, alberi, oggetti stagionali) | `engine/SceneObject.kt` → `SceneObjectCatalog.layoutFor()` |
-| Aggiungere un nuovo tipo di oggetto animato | `engine/SceneObject.kt` (nuovo `SceneObjectType` + spec) + `engine/SceneObjectRenderer.kt` (disegno + eventuale hit-test) |
-| Cambiare il suono di reazione al tocco | `engine/ReactionSoundPlayer.kt` |
-| Modificare l'algoritmo del tema/oggetti casuali ("Randomize") | `engine/RandomSceneGenerator.kt` |
-| Aggiungere un nuovo effetto al tocco sullo sfondo libero | `engine/PaperBird.kt` (o crea una nuova classe "particle" sullo stesso modello) |
-| Aggiungere un effetto automatico legato al tema (tipo fuochi d'artificio o slitta di Babbo Natale) | `engine/FireworkEffect.kt` o `engine/SantaSleighEffect.kt` come modello + attiva/disattiva da `SceneTheme` e `PaperRenderer.draw()` |
-| Cambiare la logica alba/tramonto | `engine/SunPositionCalculator.kt` |
-| Aggiungere un'opzione nelle impostazioni | `prefs/WallpaperPrefs.kt` (nuovo campo) + `ui/SettingsScreen.kt` (nuovo controllo) |
-| Cambiare frequenza di refresh / battery usage | `engine/PaperWallpaperService.kt` → costante `FRAME_INTERVAL_MS` |
+| Add a new color theme | `engine/SceneTheme.kt` → add a `SceneTheme` to `ThemeCatalog.ALL` |
+| Change the shape of the hills | `engine/PaperRenderer.kt` → `buildBaseHillPath()` |
+| Add/move objects in a theme (cars, dogs, houses, trees, seasonal objects) | `engine/SceneObject.kt` → `SceneObjectCatalog.layoutFor()` |
+| Add a new animated object type | `engine/SceneObject.kt` (new `SceneObjectType` + spec) + `engine/SceneObjectRenderer.kt` (drawing + optional hit-test) |
+| Change the touch reaction sound | `engine/ReactionSoundPlayer.kt` |
+| Tweak the random theme/object algorithm ("Randomize") | `engine/RandomSceneGenerator.kt` |
+| Add a new touch effect on the free background | `engine/PaperBird.kt` (or create a new "particle" class on the same model) |
+| Add a theme-linked automatic effect (like fireworks or Santa's sleigh) | `engine/FireworkEffect.kt` or `engine/SantaSleighEffect.kt` as a model + enable/disable from `SceneTheme` and `PaperRenderer.draw()` |
+| Change sunrise/sunset logic | `engine/SunPositionCalculator.kt` |
+| Add a settings option | `prefs/WallpaperPrefs.kt` (new field) + `ui/SettingsScreen.kt` (new control) |
+| Change refresh rate / battery usage | `engine/PaperWallpaperService.kt` → `FRAME_INTERVAL_MS` constant |
 
-## Idee per contributi futuri
+## Ideas for future contributions
 
-Ordine di priorità allineato al README (vedi anche la nota di pianificazione
-lì su come il punto "editor temi" dovrà collegarsi al punto "tema automatico
-per data"):
+Priority order aligned with the README (see also the planning note there on
+how the "theme editor" item should connect to the "automatic theme by date"
+item):
 
-- [ ] **Cambio tema automatico per data/periodo** (Natale, Pasqua, estate, ...)
-- [ ] Meteo live (richiede una API key esterna, es. Open-Meteo che è gratuita e senza chiave)
-- [ ] Editor temi personalizzato (color picker) con salvataggio multiplo — deve poter essere referenziato dall'automatismo data-based sopra
-- [ ] Screenshot/condivisione della scena corrente
-- [ ] Widget home screen per cambiare tema rapidamente
-- [ ] Supporto neve/pioggia come layer di particelle aggiuntivo
-- [ ] Localizzazione stringhe in inglese (attualmente solo italiano)
+- [ ] **Automatic theme switching by date/period** (Christmas, Easter, summer, ...)
+- [ ] Live weather (requires an external API key, e.g. Open-Meteo which is free and keyless)
+- [ ] Custom theme editor (color picker) with multiple saves — must be referenceable from the date-based automation above
+- [ ] Screenshot/sharing of the current scene
+- [ ] Home screen widget for quickly switching themes
+- [ ] Snow/rain support as an additional particle layer
 
-## Convenzioni di codice
+## Code conventions
 
-- Kotlin idiomatico, niente `!!` se evitabile.
-- Ogni nuovo tema deve fornire *tutti* i campi di `SceneTheme` (giorno/notte per cielo e colline).
-- Le preferenze passano sempre da `WallpaperPrefs` (DataStore), mai `SharedPreferences` dirette.
-- Mantieni il render loop a Canvas 2D puro: niente dipendenze OpenGL/Vulkan, per restare
-  leggero e compatibile con tutti i dispositivi Android 8+.
+- Idiomatic Kotlin, no `!!` when avoidable.
+- Every new theme must provide *all* fields of `SceneTheme` (day/night for sky and hills).
+- Preferences always go through `WallpaperPrefs` (DataStore), never direct `SharedPreferences`.
+- Keep the render loop pure 2D Canvas: no OpenGL/Vulkan dependencies, to stay
+  lightweight and compatible with all Android 8+ devices.
 
-## Test rapido senza device fisico
+## Quick testing without a physical device
 
-Usa l'emulatore Android Studio (API 34+ consigliata) e imposta il wallpaper dalle
-Impostazioni dell'emulatore → Sfondo, oppure lancia direttamente `SettingsActivity`
-e premi "Imposta come sfondo".
+Use the Android Studio emulator (API 34+ recommended) and set the wallpaper
+from the emulator's Settings → Wallpaper, or launch `SettingsActivity`
+directly and press "Set as wallpaper".
 
-## Pull request
+## Pull requests
 
-1. Fork + branch descrittivo (`feature/tema-neve`, `fix/parallax-jump`, ...)
-2. Verifica che `./gradlew lint assembleDebug` passi
-3. Apri la PR spiegando *cosa* cambia e *perché*
+1. Fork + descriptive branch (`feature/snow-theme`, `fix/parallax-jump`, ...)
+2. Verify that `./gradlew lint assembleDebug` passes
+3. Open the PR explaining *what* changes and *why*

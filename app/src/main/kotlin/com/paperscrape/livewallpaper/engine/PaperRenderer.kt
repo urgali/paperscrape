@@ -43,7 +43,17 @@ class PaperRenderer(
     private data class Star(val x: Float, val y: Float, val radius: Float, val phase: Float)
 
     private var stars: List<Star> = emptyList()
-    private val hillPath = Path()
+
+    // Cached, unshifted hill silhouettes — one per layer, rebuilt only when the theme or screen
+    // size changes (see rebuildHillPathsIfNeeded). Parallax is then applied purely via
+    // canvas.translate() at draw time, which is essentially free, instead of recomputing every
+    // control point with fresh Random() calls on every single frame. That per-frame rebuild was
+    // the main source of stutter during home-screen swipes, when CPU is already busy with the
+    // launcher's own transition animation.
+    private val baseHillPaths = arrayOfNulls<Path>(3)
+    private var cachedPathsThemeId: String? = null
+    private var cachedPathsWidth = -1
+    private var cachedPathsHeight = -1
 
     private var objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor))
     private var objectRendererThemeId = theme.id
@@ -90,6 +100,7 @@ class PaperRenderer(
     fun draw(canvas: Canvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: Float, deltaSeconds: Float) {
         if (stars.isEmpty()) regenerateStars()
         syncObjectRendererWithTheme()
+        rebuildHillPathsIfNeeded()
         drawSky(canvas, dayPhase)
         drawStars(canvas, dayPhase, elapsedSeconds)
         drawCelestialBody(canvas, dayPhase)
@@ -169,6 +180,21 @@ class PaperRenderer(
         canvas.drawCircle(cx, cy, radius, celestialPaint)
     }
 
+    private fun rebuildHillPathsIfNeeded() {
+        if (cachedPathsThemeId == theme.id && cachedPathsWidth == screenWidth && cachedPathsHeight == screenHeight) {
+            return
+        }
+        for (layer in 0 until layerCount) {
+            val layerTop = screenHeight * yOffsets[layer]
+            val layerHeight = screenHeight * heightFractions[layer]
+            val path = baseHillPaths[layer] ?: Path().also { baseHillPaths[layer] = it }
+            buildBaseHillPath(path, layer, layerTop, layerHeight)
+        }
+        cachedPathsThemeId = theme.id
+        cachedPathsWidth = screenWidth
+        cachedPathsHeight = screenHeight
+    }
+
     private fun drawHillLayers(canvas: Canvas, dayPhase: SunPositionCalculator.DayPhase) {
         val hillColors = theme.hillColorsDay
         val hillColorsNight = theme.hillColorsNight
@@ -195,35 +221,36 @@ class PaperRenderer(
                 groundY = layerTop + layerHeight * 0.40f,
             )
 
-            buildHillPath(hillPath, layer, shiftX, layerTop, layerHeight)
+            val path = baseHillPaths[layer] ?: continue
 
             // Soft drop shadow: draw a slightly-offset darker copy underneath for a "cut paper" feel.
             canvas.save()
-            canvas.translate(0f, 6f)
+            canvas.translate(wrappedShift, 6f)
             shadowPaint.alpha = 30
-            canvas.drawPath(hillPath, shadowPaint)
+            canvas.drawPath(path, shadowPaint)
             canvas.restore()
 
+            canvas.save()
+            canvas.translate(wrappedShift, 0f)
             hillPaint.color = color
-            canvas.drawPath(hillPath, hillPaint)
+            canvas.drawPath(path, hillPaint)
+            canvas.restore()
         }
     }
 
     /**
      * Builds a smooth, seeded "hill skyline" path for one layer, wide enough to cover two
-     * screen-widths so it can be shifted by [shiftX] (parallax) without ever showing a gap.
+     * screen-widths, anchored at the wrappedShift=0 reference position. Parallax scrolling is
+     * applied later via canvas.translate() rather than baked into the path coordinates, so this
+     * only needs to run once per theme/size change instead of every frame.
      */
-    private fun buildHillPath(path: Path, layer: Int, shiftX: Float, top: Float, height: Float) {
+    private fun buildBaseHillPath(path: Path, layer: Int, top: Float, height: Float) {
         path.reset()
         val rnd = Random(layerSeed(layer))
         val width = screenWidth * 2f
         val segments = 6
         val segmentWidth = width / segments
-
-        // Wrap shiftX into [-width, 0) so the tiled path always covers the visible screen.
-        var wrappedShift = shiftX % width
-        if (wrappedShift > 0f) wrappedShift -= width
-        val startX = wrappedShift - screenWidth * 0.5f
+        val startX = -screenWidth * 0.5f
 
         path.moveTo(startX, top + height)
         path.lineTo(startX, top + height * (0.55f + rnd.nextFloat() * 0.2f))

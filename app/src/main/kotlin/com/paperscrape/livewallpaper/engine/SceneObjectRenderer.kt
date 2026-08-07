@@ -69,6 +69,12 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
     private val penguinBeakColor = 0xFFF2A65A.toInt()
     private val balloonColors = intArrayOf(0xFFC1443B.toInt(), 0xFFF2C230.toInt(), 0xFF3D5A9E.toInt(), 0xFF3F9E6B.toInt())
 
+    // Road (drawn under any cars the theme has)
+    private val roadColorDay = 0xFF5B5650.toInt()
+    private val roadColorNight = 0xFF29271F.toInt()
+    private val roadEdgeColor = 0xFF3D3A33.toInt()
+    private val roadLineColor = 0xFFF3E6D0.toInt()
+
     fun update(deltaSeconds: Float) {
         for (r in staticRuntimes) {
             if (r.reactionTimer > 0f) r.reactionTimer = (r.reactionTimer - deltaSeconds).coerceAtLeast(0f)
@@ -133,9 +139,45 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
             drawStaticObject(canvas, r, x + geom.tileWidth, y, dayBlend, elapsedSeconds)
         }
 
+        drawRoad(canvas, dayBlend, screenWidth, screenHeight)
+
         for (c in carRuntimes) {
             if (c.progress < -0.05f || c.progress > 1.05f) continue
             drawCar(canvas, c, screenWidth, screenHeight)
+        }
+    }
+
+    /**
+     * A simple two-lane road band spanning the full screen width at the cars' lane height.
+     * Like the cars themselves, it's independent of home-screen parallax (it belongs to the
+     * "road" the cars drive on, not to any particular hill layer).
+     */
+    private fun drawRoad(canvas: Canvas, dayBlend: Float, screenWidth: Float, screenHeight: Float) {
+        if (layout.cars.isEmpty()) return
+
+        val laneYs = layout.cars.map { it.laneYFraction * screenHeight }
+        val top = laneYs.min() - 10f
+        val bottom = laneYs.max() + 24f
+
+        fillPaint.color = ColorUtils.blendARGB(roadColorNight, roadColorDay, dayBlend.coerceIn(0f, 1f))
+        canvas.drawRect(0f, top, screenWidth, bottom, fillPaint)
+
+        strokePaint.style = Paint.Style.STROKE
+        strokePaint.color = roadEdgeColor
+        strokePaint.strokeWidth = 2f
+        canvas.drawLine(0f, top, screenWidth, top, strokePaint)
+        canvas.drawLine(0f, bottom, screenWidth, bottom, strokePaint)
+
+        // Dashed center line separating the two lanes.
+        val midY = (top + bottom) / 2f
+        strokePaint.color = roadLineColor
+        strokePaint.strokeWidth = 4f
+        val dashLen = 26f
+        val gapLen = 20f
+        var x = 0f
+        while (x < screenWidth) {
+            canvas.drawLine(x, midY, (x + dashLen).coerceAtMost(screenWidth), midY, strokePaint)
+            x += dashLen + gapLen
         }
     }
 
@@ -144,17 +186,30 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
         canvas.save()
         canvas.translate(x, y)
         canvas.scale(r.spec.scale, r.spec.scale)
-        val bounce = if (r.reactionTimer > 0f) {
-            sin(((0.6f - r.reactionTimer) / 0.6f).coerceIn(0f, 1f) * Math.PI.toFloat()) * 18f
+
+        // Reaction "ease" is shared by both reaction styles: a smooth 0->1->0 bump over the
+        // 0.6s window right after a tap.
+        val reactionEase = if (r.reactionTimer > 0f) {
+            sin(((0.6f - r.reactionTimer) / 0.6f).coerceIn(0f, 1f) * Math.PI.toFloat())
         } else 0f
-        canvas.translate(0f, -bounce)
+
+        // Swaying objects (trees, snowman) react by amplifying their own ambient wobble/sway
+        // instead of hopping — a snowman "jumping" would look wrong, so the boost is passed
+        // into their draw functions instead of a generic vertical translate.
+        val isSwayReactor = r.spec.type == SceneObjectType.TREE ||
+            r.spec.type == SceneObjectType.SNOWMAN ||
+            r.spec.type == SceneObjectType.PALM_TREE
+        if (!isSwayReactor) {
+            canvas.translate(0f, -reactionEase * 18f)
+        }
+
         when (r.spec.type) {
             SceneObjectType.DOG -> drawDog(canvas, r, elapsed)
             SceneObjectType.HOUSE -> drawHouse(canvas, dayBlend)
-            SceneObjectType.TREE -> drawTree(canvas, r, elapsed)
-            SceneObjectType.SNOWMAN -> drawSnowman(canvas, r, elapsed)
+            SceneObjectType.TREE -> drawTree(canvas, r, elapsed, reactionEase)
+            SceneObjectType.SNOWMAN -> drawSnowman(canvas, r, elapsed, reactionEase)
             SceneObjectType.GIFT -> drawGift(canvas, r)
-            SceneObjectType.PALM_TREE -> drawPalmTree(canvas, r, elapsed)
+            SceneObjectType.PALM_TREE -> drawPalmTree(canvas, r, elapsed, reactionEase)
             SceneObjectType.PARASOL -> drawParasol(canvas, r, elapsed)
             SceneObjectType.SKYSCRAPER -> drawSkyscraper(canvas, r, dayBlend, elapsed)
             SceneObjectType.PENGUIN -> drawPenguin(canvas, r, elapsed)
@@ -201,8 +256,8 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
         canvas.drawRect(RectF(16f, -40f, 30f, -28f), fillPaint)
     }
 
-    private fun drawTree(canvas: Canvas, r: StaticRuntime, elapsed: Float) {
-        val sway = sin(elapsed * 1.1f + r.idleSeed) * 4f
+    private fun drawTree(canvas: Canvas, r: StaticRuntime, elapsed: Float, reactionBoost: Float = 0f) {
+        val sway = sin(elapsed * 1.1f + r.idleSeed) * (4f + reactionBoost * 16f)
         fillPaint.color = treeTrunkColor
         canvas.drawRect(RectF(-5f, -38f, 5f, 0f), fillPaint)
         fillPaint.color = 0xFF8AA25C.toInt()
@@ -215,8 +270,8 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
         canvas.restore()
     }
 
-    private fun drawSnowman(canvas: Canvas, r: StaticRuntime, elapsed: Float) {
-        val wobble = sin(elapsed * 1.4f + r.idleSeed) * 2f
+    private fun drawSnowman(canvas: Canvas, r: StaticRuntime, elapsed: Float, reactionBoost: Float = 0f) {
+        val wobble = sin(elapsed * 1.4f + r.idleSeed) * (2f + reactionBoost * 12f)
         canvas.save()
         canvas.rotate(wobble)
         fillPaint.color = snowColor
@@ -257,8 +312,8 @@ class SceneObjectRenderer(private val layout: SceneObjectLayout) {
         canvas.drawPath(path, fillPaint)
     }
 
-    private fun drawPalmTree(canvas: Canvas, r: StaticRuntime, elapsed: Float) {
-        val sway = sin(elapsed * 0.9f + r.idleSeed) * 6f
+    private fun drawPalmTree(canvas: Canvas, r: StaticRuntime, elapsed: Float, reactionBoost: Float = 0f) {
+        val sway = sin(elapsed * 0.9f + r.idleSeed) * (6f + reactionBoost * 18f)
         fillPaint.color = palmTrunkColor
         path.reset()
         path.moveTo(-6f, 0f)

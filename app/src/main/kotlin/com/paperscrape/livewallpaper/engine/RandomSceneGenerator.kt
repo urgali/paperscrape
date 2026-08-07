@@ -59,7 +59,7 @@ object RandomSceneGenerator {
 
         return SceneTheme(
             id = themeId,
-            displayName = "Casuale",
+            displayName = "Random",
             skyNight = skyNight,
             skyDawn = skyDawn,
             skyDay = skyDay,

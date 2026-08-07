@@ -1,247 +1,256 @@
 # PaperScrape 🗻📄
 
-Live wallpaper Android open source con un paesaggio "in carta ritagliata" a più
-strati con effetto parallasse, sole e luna che seguono l'ora del giorno (reale o
-impostata a mano), temi colore intercambiabili ed effetti al tocco.
+Open-source Android live wallpaper with a layered "paper cutout" landscape,
+parallax scrolling, a sun and moon that follow the time of day (real or set
+manually), interchangeable color themes, and touch effects.
 
-Progetto scritto **da zero**, ispirato al concept dei classici live wallpaper
-"paper cutout" con paesaggio animato, ma con codice, nome e asset completamente
-originali — vedi la nota legale in fondo al file.
+Written **from scratch**, inspired by the general concept of classic
+"paper cutout" animated live wallpapers, but with fully original code, name,
+and assets — see the legal note at the bottom of this file.
 
 Target: **Android 16 (API 36)**, `minSdk 26` (Android 8.0+), Kotlin + Jetpack
-Compose per le impostazioni, `Canvas` 2D puro per il rendering (nessuna
-dipendenza OpenGL: leggero e compatibile con qualunque device).
+Compose for settings, pure 2D `Canvas` rendering (no OpenGL dependency:
+lightweight and compatible with any device).
 
-> 📌 Ogni release ha una voce in [CHANGELOG.md](CHANGELOG.md) — utile per
-> capire cosa contiene ogni commit/tag (`v1`, `v2`, `v3`, ...).
+> 📌 Every release has an entry in [CHANGELOG.md](CHANGELOG.md) — useful for
+> understanding what each commit/tag (`v1`, `v2`, `v3`, ...) contains.
 
 ---
 
-## ✨ Funzionalità
+## ✨ Features
 
-- Sfondo animato a **3 strati di colline di carta** con parallasse indipendente,
-  che si muove seguendo lo scroll della home screen.
-- **Ciclo giorno/notte**: il sole (o la luna, di notte) si muove lungo un arco nel
-  cielo, e i colori di cielo/colline sfumano gradualmente tra alba, giorno,
-  tramonto e notte.
-- **Oggetti animati nella scena**, diversi per ogni tema: case con finestre che
-  si illuminano di notte, alberi che ondeggiano, cani che scodinzolano in loop,
-  auto che attraversano lo schermo su una propria corsia, e — nei temi
-  stagionali — pupazzi di neve, regali, palme, ombrelloni, grattacieli,
-  pinguini e palloncini fluttuanti.
-- **Interazione al tocco su cani/pinguini/regali/auto**: toccarli fa partire
-  un'animazione di reazione (balzo) più un suono breve differenziato
-  (bark/squawk/honk/chime, generati al volo — vedi nota sui suoni più sotto).
-  Toccare lo sfondo libero fa invece volare un uccellino di carta.
-- **Fuochi d'artificio automatici** di notte nel tema Capodanno.
-- **Babbo Natale in slitta** (tema Natale): ogni tanto (a intervalli casuali)
-  attraversa il cielo trainato da due renne, lanciando regali che cadono verso
-  terra.
-- Sincronizzazione opzionale con **posizione reale** per calcolare alba/tramonto
-  precisi (permesso di localizzazione richiesto solo se attivata).
-- **9 temi/scene inclusi** — Tramonto, Autunno, Inverno, Deserto, **Natale**,
-  **Capodanno** (con fuochi d'artificio a mezzanotte), **Spiaggia**, **Grande
-  città** (grattacieli e traffico a 3 corsie) e **Tundra** — ciascuno con la
-  propria combinazione di colori *e* oggetti dedicati (non solo palette
-  diverse: Natale ha pupazzi di neve e regali, Spiaggia ha palme e ombrelloni,
-  Grande città ha grattacieli con finestre che si accendono di notte, ecc.).
-  Aggiungerne uno nuovo richiede poche righe in due file.
-- Schermata impostazioni in Jetpack Compose con anteprima live dei temi.
-- Tutte le preferenze persistite con Jetpack **DataStore**.
+- Animated background with **3 layers of paper hills** with independent
+  parallax, moving in sync with home-screen scrolling.
+- **Day/night cycle**: the sun (or moon, at night) moves along an arc across
+  the sky, and sky/hill colors blend gradually between dawn, day, dusk, and
+  night.
+- **Animated objects in the scene**, different per theme: houses with windows
+  that light up at night, swaying trees, dogs that wag their tails in a loop,
+  cars that cross the screen on their own lane, and — in seasonal themes —
+  snowmen, gifts, palm trees, beach umbrellas, skyscrapers, penguins, and
+  floating balloons.
+- **Touch interaction on dogs/penguins/gifts/cars**: tapping them triggers a
+  reaction animation (a hop) plus a short, differentiated sound
+  (bark/squawk/honk/chime, generated on the fly — see the sound note below).
+  Tapping the free background instead makes a paper bird fly.
+- **Automatic fireworks** at night in the New Year's Eve theme.
+- **Santa's sleigh** (Christmas theme): every so often (at random intervals)
+  it crosses the sky pulled by two reindeer, dropping gifts that fall to the
+  ground.
+- Optional sync with **real location** to calculate precise sunrise/sunset
+  times (location permission requested only if enabled).
+- **9 themes/scenes included** — Sunset, Autumn, Winter, Desert,
+  **Christmas**, **New Year's Eve** (with fireworks at midnight), **Beach**,
+  **Big City** (skyscrapers and 3-lane traffic), and **Tundra** — each with
+  its own combination of colors *and* dedicated objects (not just different
+  palettes: Christmas has snowmen and gifts, Beach has palm trees and
+  umbrellas, Big City has skyscrapers with windows that light up at night,
+  etc.). Adding a new one takes just a few lines in two files.
+- Settings screen in Jetpack Compose with a live preview of themes.
+- All preferences persisted with Jetpack **DataStore**.
 
-### 🔊 Nota sui suoni
+### 🔊 A note on sound
 
-I suoni di reazione (bark/squawk/honk/chime) sono generati con
-`android.media.ToneGenerator`, integrato in Android — nessun file audio
-esterno necessario, quindi il progetto resta compilabile subito senza dover
-reperire/licenziare asset audio. Sono bip brevi e riconoscibili, non
-registrazioni realistiche. La cartella `app/src/main/res/raw/` è già pronta
-per quando vorrai sostituirli con suoni veri: basta aggiungere i file lì e
-aggiornare `ReactionSoundPlayer.kt` (istruzioni nel TODO del file stesso).
+Reaction sounds (bark/squawk/honk/chime) are generated with
+`android.media.ToneGenerator`, built into Android — no external audio file
+needed, so the project stays compilable right away without having to
+source/license audio assets. They're short, recognizable beeps, not
+realistic recordings. The `app/src/main/res/raw/` folder is already set up
+for when you want to replace them with real sounds: just add the files there
+and update `ReactionSoundPlayer.kt` (instructions in the file's own TODO).
 
 ## 📚 Wiki
 
-### Temi disponibili
+### Available themes
 
-| Tema | Elementi caratteristici |
+| Theme | Distinctive elements |
 |---|---|
-| **Tramonto** | Casa, cani, auto su 2 corsie |
-| **Autunno** | Casa, alberi, cane, auto |
-| **Inverno** | Casa, alberi, pupazzo di neve, auto |
-| **Deserto** | Alberi, cane, auto |
-| **Natale** | Casa, pupazzi di neve, regali, albero, **Babbo Natale in slitta trainata da renne** che sorvola il cielo a intervalli casuali lanciando regali |
-| **Capodanno** | Grattacieli, palloncini, **fuochi d'artificio automatici a mezzanotte** (effetto particellare) |
-| **Spiaggia** | Palme che ondeggiano, ombrelloni a spicchi colorati |
-| **Grande città** | Grattacieli con finestre che si illuminano casualmente di notte, traffico su 3 corsie |
-| **Tundra** | Pupazzo di neve, pinguini (tappabili, con suono proprio) |
-| **🎲 Casuale** | Combinazione generata al volo: colori armonici + 3-6 oggetti scelti a caso dal pool completo |
+| **Sunset** | House, dogs, cars on 2 lanes |
+| **Autumn** | House, trees, dog, car |
+| **Winter** | House, trees, snowman, car |
+| **Desert** | Trees, dog, car |
+| **Christmas** | House, snowmen, gifts, tree, **Santa's sleigh pulled by reindeer** flying across the sky at random intervals dropping gifts |
+| **New Year's Eve** | Skyscrapers, balloons, **automatic fireworks at midnight** (particle effect) |
+| **Beach** | Swaying palm trees, colorful wedge-slice beach umbrellas |
+| **Big City** | Skyscrapers with windows that light up randomly at night, 3-lane traffic |
+| **Tundra** | Snowman, penguins (tappable, with their own sound) |
+| **🎲 Random** | Combination generated on the fly: harmonious colors + 3-6 objects picked at random from the full pool |
 
-### Oggetti e interazioni
+### Objects and interactions
 
-| Oggetto | Tappabile | Comportamento |
+| Object | Tappable | Behavior |
 |---|---|---|
-| Cane | ✅ | Scodinzola in loop; al tocco balza ed emette un bark |
-| Pinguino | ✅ | Ondeggia camminando; al tocco balza con un verso acuto |
-| Regalo | ✅ | Al tocco balza con un chime |
-| Auto | ✅ (clacson) | Attraversa lo schermo in loop sulla propria corsia, indipendente dal parallasse delle colline |
-| Casa | ❌ | Finestre che si illuminano gradualmente di notte |
-| Albero / Palma | ❌ | Ondeggia leggermente |
-| Pupazzo di neve | ❌ | Leggero dondolio |
-| Grattacielo | ❌ | Finestre che si accendono/spengono casualmente di notte |
-| Ombrellone | ❌ | Leggero bob verticale |
-| Palloncino | ❌ | Fluttua su e giù |
-| Sfondo libero | — | Al tocco fa volare un uccellino di carta |
+| Dog | ✅ | Wags its tail in a loop; hops and barks on tap |
+| Penguin | ✅ | Waddles while walking; hops with a high-pitched sound on tap |
+| Gift | ✅ | Hops with a chime on tap |
+| Tree / Palm tree | ✅ | Sways gently; the sway amplifies briefly (with sound) on tap |
+| Snowman | ✅ | Gentle wobble; the wobble amplifies briefly (with sound) on tap |
+| Car | ✅ (honk) | Loops across the screen on its own dedicated **two-lane road**, independent of hill parallax |
+| House | ❌ | Windows gradually light up at night |
+| Skyscraper | ❌ | Windows randomly turn on/off at night |
+| Beach umbrella | ❌ | Gentle vertical bob |
+| Balloon | ❌ | Floats up and down |
+| Free background | — | Tapping makes a paper bird fly |
 
-### Impostazioni
+### Settings
 
-| Impostazione | Cosa fa |
+| Setting | What it does |
 |---|---|
-| Tema | Sceglie tra i 9 temi fissi (vedi tabella sopra) |
-| 🎲 Genera tema casuale | Crea una nuova combinazione colori/oggetti; il seed è salvato, quindi sopravvive al riavvio finché non generi un altro |
-| Segui l'ora reale | Sole/luna seguono l'orologio del dispositivo invece di un orario fisso |
-| Usa la posizione per alba/tramonto | Calcola l'orario preciso di alba/tramonto in base a lat/lon (richiede permesso di localizzazione) |
-| Effetti al tocco | Attiva/disattiva le reazioni di oggetti e uccellino di carta |
-| Intensità parallasse | Da 0.5x a 2x, quanto le colline si spostano scorrendo la home |
+| Theme | Choose among the 9 fixed themes (see table above) |
+| 🎲 Generate random theme | Creates a new color/object combination; the seed is saved, so it survives a restart until you generate another one |
+| Follow real time | Sun/moon follow the device's clock instead of a fixed hour |
+| Use location for sunrise/sunset | Calculates precise sunrise/sunset times based on lat/lon (requires location permission) |
+| Touch effects | Toggles object reactions and the paper bird effect |
+| Parallax strength | From 0.5x to 2x, how much the hills shift as the home screen scrolls |
 
-## 📁 Struttura del progetto
+## 📁 Project structure
 
 ```
 PaperScrape/
 ├── app/src/main/kotlin/com/paperscrape/livewallpaper/
 │   ├── engine/
-│   │   ├── PaperWallpaperService.kt   # WallpaperService + Engine: loop di rendering, touch, posizione
-│   │   ├── PaperRenderer.kt           # Disegna cielo, stelle, sole/luna, strati di colline
-│   │   ├── SceneTheme.kt              # Modello dati tema + catalogo temi built-in
-│   │   ├── SceneObject.kt             # Modello dati oggetti di scena (auto/cani/case/alberi) per tema
-│   │   ├── RandomSceneGenerator.kt    # Generatore procedurale per la funzione "Randomize"
-│   │   ├── SceneObjectRenderer.kt     # Disegna e anima gli oggetti di scena, gestisce l'hit-test al tocco
-│   │   ├── ReactionSoundPlayer.kt     # Suoni di reazione al tocco (bark/squawk/honk via ToneGenerator)
-│   │   ├── FireworkEffect.kt          # Fuochi d'artificio automatici (tema Capodanno, di notte)
-│   │   ├── SantaSleighEffect.kt       # Babbo Natale in slitta (tema Natale, a intervalli casuali)
-│   │   ├── SunPositionCalculator.kt   # Calcolo posizione sole/luna e alba/tramonto
-│   │   └── PaperBird.kt               # Particella "uccellino di carta" per il tocco sullo sfondo libero
+│   │   ├── PaperWallpaperService.kt   # WallpaperService + Engine: render loop, touch, location
+│   │   ├── PaperRenderer.kt           # Draws sky, stars, sun/moon, hill layers
+│   │   ├── SceneTheme.kt              # Theme data model + built-in theme catalog
+│   │   ├── SceneObject.kt             # Scene object data model (cars/dogs/houses/trees) per theme
+│   │   ├── RandomSceneGenerator.kt    # Procedural generator powering "Randomize"
+│   │   ├── SceneObjectRenderer.kt     # Draws and animates scene objects, handles touch hit-testing
+│   │   ├── ReactionSoundPlayer.kt     # Touch reaction sounds (bark/squawk/honk via ToneGenerator)
+│   │   ├── FireworkEffect.kt          # Automatic fireworks (New Year's Eve theme, at night)
+│   │   ├── SantaSleighEffect.kt       # Santa's sleigh (Christmas theme, at random intervals)
+│   │   ├── SunPositionCalculator.kt   # Sun/moon position and sunrise/sunset calculation
+│   │   └── PaperBird.kt               # "Paper bird" particle for tapping the free background
 │   ├── prefs/
-│   │   └── WallpaperPrefs.kt          # Preferenze utente (DataStore)
+│   │   └── WallpaperPrefs.kt          # User preferences (DataStore)
 │   └── ui/
-│       ├── SettingsActivity.kt        # Activity che ospita la schermata Compose
-│       ├── SettingsScreen.kt          # UI impostazioni (temi, switch, slider)
-│       └── theme/PaperScrapeTheme.kt   # Tema Material3 dell'app
+│       ├── SettingsActivity.kt        # Activity hosting the Compose screen
+│       ├── SettingsScreen.kt          # Settings UI (themes, switches, sliders)
+│       └── theme/PaperScrapeTheme.kt  # App's Material3 theme
 ├── app/src/main/res/
-│   ├── xml/wallpaper.xml              # Metadata del live wallpaper
-│   ├── drawable/                      # Icone vettoriali + thumbnail wallpaper
-│   └── values/                        # Stringhe, colori, temi
-├── .github/workflows/android-build.yml # CI: build automatica APK debug ad ogni push
-├── CONTRIBUTING.md                    # Guida rapida per estendere il progetto
+│   ├── xml/wallpaper.xml              # Live wallpaper metadata
+│   ├── drawable/                      # Vector icons + wallpaper thumbnail
+│   └── values/                        # Strings, colors, themes
+├── .github/workflows/android-build.yml # CI: automatic debug APK build + GitHub Release on every push
+├── CONTRIBUTING.md                    # Quick guide for extending the project
 └── LICENSE                            # MIT
 ```
 
-## 🛠️ Come compilarlo
+## 🛠️ How to build it
 
-### Opzione A — Android Studio (consigliata)
+### Option A — Android Studio (recommended)
 
-1. Installa [Android Studio](https://developer.android.com/studio) (Ladybug o più recente).
-2. `File → Open` e seleziona la cartella `PaperScrape/`.
-3. Android Studio genera automaticamente il Gradle Wrapper (`gradlew`) al primo
-   sync — non serve fare nulla di manuale.
-4. Assicurati di avere installato **Android SDK Platform 36** dal SDK Manager
-   (`Tools → SDK Manager`). Se non è ancora disponibile sul tuo Studio, imposta
-   temporaneamente `compileSdk`/`targetSdk` a 35 in `app/build.gradle.kts`.
-5. Premi ▶️ Run per installare su un device/emulatore, oppure `Build → Build
+1. Install [Android Studio](https://developer.android.com/studio) (Ladybug or newer).
+2. `File → Open` and select the `PaperScrape/` folder.
+3. Android Studio automatically generates the Gradle Wrapper (`gradlew`) on
+   the first sync — nothing manual needed.
+4. Make sure you have **Android SDK Platform 36** installed via the SDK
+   Manager (`Tools → SDK Manager`). If it's not yet available in your
+   Studio version, temporarily set `compileSdk`/`targetSdk` to 35 in
+   `app/build.gradle.kts`.
+5. Press ▶️ Run to install on a device/emulator, or `Build → Build
    Bundle(s)/APK(s) → Build APK(s)`.
 
-### Opzione B — riga di comando
+### Option B — command line
 
 ```bash
-# Se non hai ancora un gradlew nel repo (non è incluso il jar binario del wrapper):
+# If you don't have a gradlew in the repo yet (the wrapper's binary jar isn't included):
 gradle wrapper --gradle-version 8.9
 
 ./gradlew assembleDebug
-# APK generato in: app/build/outputs/apk/debug/app-debug.apk
+# APK generated at: app/build/outputs/apk/debug/app-debug.apk
 ```
 
-> Nota: il repository non include il binario `gradle-wrapper.jar` (file binario,
-> non adatto a un semplice file di testo). Aprendo il progetto in Android Studio
-> viene rigenerato automaticamente; da riga di comando basta il comando `gradle
-> wrapper` sopra, una tantum.
+> Note: the repository does not include the `gradle-wrapper.jar` binary (a
+> binary file, not suited to a plain-text diff). Opening the project in
+> Android Studio regenerates it automatically; from the command line, just
+> run the `gradle wrapper` command above once.
 
-### Come impostarlo come sfondo
+### How to set it as your wallpaper
 
-Dopo l'installazione, apri l'app **PaperScrape** dal launcher → scegli un tema →
-"Imposta come sfondo". In alternativa: `Impostazioni di sistema → Sfondo → Sfondi
-animati → PaperScrape`.
+After installing, open the **PaperScrape** app from your launcher → pick a
+theme → "Set as wallpaper". Alternatively: `System Settings → Wallpaper →
+Live Wallpapers → PaperScrape`.
 
-## 🧠 Architettura in breve
+## 🧠 Architecture in brief
 
-- `PaperWallpaperService.Engine` è il cuore: gestisce il ciclo di vita del
-  wallpaper, un loop a **~30 fps** via `Handler.postDelayed`, gli eventi touch e
-  l'offset di scroll della home screen (`onOffsetsChanged`).
-- `PaperRenderer` è **stateless tra un frame e l'altro** (tranne il campo
-  stelle, generato una volta per dimensione schermo) e disegna tutto con
-  `Canvas`/`Path`/`LinearGradient`/`RadialGradient` — nessuna libreria grafica
-  esterna.
-- `SunPositionCalculator` calcola una fase del giorno normalizzata (0–1) e la
-  posizione x/y di sole o luna lungo un arco; se l'utente attiva la
-  localizzazione, usa una formula NOAA semplificata per alba/tramonto reali.
-- Le preferenze (`WallpaperPrefs`) sono un `Flow` osservato sia dalla UI Compose
-  sia dal motore di rendering: cambiare tema nelle impostazioni si riflette
-  live sullo sfondo, senza riavviare nulla.
+- `PaperWallpaperService.Engine` is the core: it manages the wallpaper's
+  lifecycle, a **~30 fps** loop via `Handler.postDelayed`, touch events, and
+  the home-screen scroll offset (`onOffsetsChanged`).
+- `PaperRenderer` is **stateless between frames** (except for the star
+  field, generated once per screen size) and draws everything with
+  `Canvas`/`Path`/`LinearGradient`/`RadialGradient` — no external graphics
+  library.
+- `SunPositionCalculator` computes a normalized day phase (0–1) and the x/y
+  position of the sun or moon along an arc; if the user enables location,
+  it uses a simplified NOAA formula for real sunrise/sunset times.
+- Preferences (`WallpaperPrefs`) are a `Flow` observed both by the Compose
+  UI and the rendering engine: changing a theme in settings reflects live
+  on the wallpaper, with nothing needing a restart.
 
-## 🎯 Roadmap verso un'esperienza completa
+## 🔒 Security
 
-Obiettivo del progetto: costruire un live wallpaper "paper cutout" completo e
-ricco di funzionalità, con codice/asset interamente originali (vedi nota legale
-sotto).
+This project has gone through a security/hardening review — see
+`CHANGELOG.md` for the full list of what was checked and fixed (location
+updates properly stopped when disabled, Gradle wrapper checksum
+verification, least-privilege CI permissions with SHA-pinned actions,
+`allowBackup` disabled). The app requests **no `INTERNET` permission** and
+makes no network calls of any kind.
 
-### Fatto ✅
+## 🎯 Roadmap toward a complete experience
 
-- Paesaggio a strati di carta con parallasse
-- Ciclo giorno/notte automatico + alba/tramonto da posizione reale
-- Temi colore multipli
-- Oggetti animati e interattivi (auto, cani, case, alberi) con reazione al
-  tocco e suono
-- Temi stagionali/festivi come scene distinte (Natale, Capodanno, Spiaggia,
-  Grande città, Tundra, oltre a Tramonto/Autunno/Inverno/Deserto) con oggetti
-  dedicati, non solo palette colore diversa
-- Funzione Randomize: genera al volo combinazioni infinite di colori
-  (armonici, non casuali a caso) e oggetti — non solo una scelta tra i 9 temi
-  fissi
-- Evento speciale a tema: Babbo Natale in slitta che sorvola il cielo a
-  intervalli casuali lanciando regali (tema Natale)
+Project goal: build a full-featured "paper cutout" live wallpaper with
+entirely original code/assets (see legal note below).
 
-### Cosa manca per una parità 1:1 con l'app originale
+### Done ✅
 
-| # | Funzionalità mancante | Note |
+- Layered paper landscape with parallax
+- Automatic day/night cycle + sunrise/sunset from real location
+- Multiple color themes
+- Animated, interactive objects (cars, dogs, houses, trees) with touch
+  reaction and sound
+- Seasonal/festive themes as distinct scenes (Christmas, New Year's Eve,
+  Beach, Big City, Tundra, plus Sunset/Autumn/Winter/Desert) with dedicated
+  objects, not just a different color palette
+- Randomize function: generates infinite combinations of colors
+  (harmonious, not purely random) and objects on the fly — not just a
+  choice among the 9 fixed themes
+- Themed special event: Santa's sleigh flying across the sky at random
+  intervals dropping gifts (Christmas theme)
+
+### What's missing for 1:1 parity with the original app
+
+| # | Missing feature | Notes |
 |---|---|---|
-| 1 | **Cambio tema automatico per data/periodo** | Es. tema Natale nella settimana di Natale, tema Pasqua nella settimana di Pasqua, tema estivo (Spiaggia) nei mesi estivi, ecc. — regola/priorità configurabili |
-| 2 | **Meteo live** che influenza la scena | Serve un'API meteo (es. Open-Meteo, gratuita e senza chiave) |
-| 3 | **Editor temi personalizzato** con color picker | Salvataggio di più temi custom, non solo l'ultimo generato da Randomize — vedi nota di pianificazione sotto |
-| 4 | **Screenshot/condivisione** della scena corrente | Cattura il canvas del wallpaper e lo esporta come immagine |
-| 5 | **Widget home screen** per cambio rapido di tema | Richiede un `AppWidgetProvider` + layout dedicato |
+| 1 | **Automatic theme switching by date/period** | E.g. Christmas theme during Christmas week, Easter theme during Easter week, summer theme (Beach) during summer months, etc. — configurable rules/priority |
+| 2 | **Live weather** influencing the scene | Needs a weather API (e.g. Open-Meteo, free and keyless) |
+| 3 | **Custom theme editor** with color picker | Saving multiple custom themes, not just the last one generated by Randomize — see the planning note below |
+| 4 | **Screenshot/sharing** of the current scene | Capture the wallpaper's canvas and export it as an image |
+| 5 | **Home screen widget** for quick theme switching | Requires an `AppWidgetProvider` + dedicated layout |
 
-**Nota di pianificazione — punto 3 × punto 1:** quando arriverà l'editor
-temi personalizzato, l'automatismo per data/periodo (punto 1) dovrà poter
-scegliere **anche** tra i temi custom salvati dall'utente, non solo tra i 9
-temi built-in. In pratica il sistema di regole "data → tema" andrà pensato
-per referenziare un `themeId` qualsiasi (built-in, generato da Randomize, o
-custom salvato), non una lista fissa — così l'utente potrà, ad esempio,
-associare un proprio tema natalizio fatto a mano invece di quello di
-default. Il punto 1 verrà quindi implementato con questo vincolo già in
-mente, anche se il punto 3 non esiste ancora.
+**Planning note — item 3 × item 1:** once the custom theme editor arrives,
+the date/period automation (item 1) will need to be able to pick **from**
+the user's custom saved themes too, not just the 9 built-in ones. In
+practice, the "date → theme" rule system should be designed to reference
+any `themeId` (built-in, Randomize-generated, or custom-saved), not a fixed
+list — so the user could, for example, assign their own hand-made Christmas
+theme instead of the default one. Item 1 will be implemented with this
+constraint already in mind, even though item 3 doesn't exist yet.
 
-Nessun altro blocco strutturale noto oltre a questi 5 punti: il motore di
-rendering, il sistema temi/oggetti e le impostazioni sono già estensibili
-abbastanza da assorbirli senza riscritture. Se vuoi seguire i lavori in corso
-o proporre un ordine diverso, apri una issue o guarda `CONTRIBUTING.md`.
+No other structural blocker is known beyond these 5 items: the rendering
+engine, theme/object system, and settings are already extensible enough to
+absorb them without rewrites. If you want to follow ongoing work or suggest
+a different order, open an issue or check `CONTRIBUTING.md`.
 
-## ⚖️ Nota legale
+## ⚖️ Legal note
 
-Questo progetto **non è un fork né una decompilazione di alcun prodotto di
-terzi**: è un'implementazione originale, scritta da zero, che si limita a
-condividere un concept generale diffuso tra i live wallpaper "paper cutout"
-(paesaggio di carta animato con ciclo giorno/notte). Nome, package, icone e
-codice sono originali e distribuiti sotto licenza MIT.
+This project is **not a fork or a decompilation of any third-party
+product**: it is an original implementation, written from scratch, that
+merely shares a general concept common among "paper cutout" live
+wallpapers (an animated paper landscape with a day/night cycle). Name,
+package, icons, and code are original and distributed under the MIT
+license.
 
-## 📄 Licenza
+## 📄 License
 
-MIT — vedi [LICENSE](LICENSE). Fanne quello che vuoi, incluso rinominarlo,
-modificarlo e pubblicarlo con il tuo nome.
+MIT — see [LICENSE](LICENSE). Do whatever you want with it, including
+renaming it, modifying it, and publishing it under your own name.
