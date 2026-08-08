@@ -35,6 +35,7 @@ class SantaSleighEffect {
         color = 0xFF3D2B1F.toInt()
     }
     private val path = Path()
+    private val layerPaint = Paint()
 
     private val reindeerColor = 0xFF7A4B2E.toInt()
     private val antlerColor = 0xFF5A3A22.toInt()
@@ -100,6 +101,17 @@ class SantaSleighEffect {
         return if (reverse) screenWidth - raw else raw
     }
 
+    /** Fades in over the first ~8% of the flight and back out over the last ~8%, instead of the
+     * group just vanishing the instant it crosses off-canvas. */
+    private fun edgeFadeAlpha(progress: Float): Float {
+        val fadeZone = 0.08f
+        return when {
+            progress < fadeZone -> (progress / fadeZone).coerceIn(0f, 1f)
+            progress > 1f - fadeZone -> ((1f - progress) / fadeZone).coerceIn(0f, 1f)
+            else -> 1f
+        }
+    }
+
     fun draw(canvas: Canvas, elapsedSeconds: Float, screenWidth: Float) {
         for (g in fallingGifts) {
             val fade = (1f - (g.age / 2.5f)).coerceIn(0f, 1f)
@@ -116,14 +128,25 @@ class SantaSleighEffect {
         val x = currentX(screenWidth)
         val dir = if (reverse) -1f else 1f
         val bob = sin(elapsedSeconds * 3f) * 4f
+        val fadeAlpha = edgeFadeAlpha(flightProgress)
+        if (fadeAlpha <= 0.01f) return // fully faded out, nothing to draw
 
         canvas.save()
         canvas.translate(x, flightY + bob)
         canvas.scale(dir * 2f, 2f)
-        drawReindeer(canvas, offsetX = -150f, elapsedSeconds)
-        drawReindeer(canvas, offsetX = -95f, elapsedSeconds)
+        // Generous bounds covering the whole reindeer+sleigh+santa illustration in local
+        // (pre-scale) coordinates, so the alpha layer never clips any part of it.
+        layerPaint.alpha = (fadeAlpha * 255).toInt().coerceIn(0, 255)
+        canvas.saveLayer(RectF(-400f, -200f, 400f, 200f), layerPaint)
+        // Reindeer are placed *ahead* of the sleigh (positive local x) so the whole group reads
+        // as "reindeer pulling the sleigh" rather than "Santa dragging the reindeer" -- the
+        // scale(dir, ...) mirror above already handles flipping this correctly for whichever
+        // direction the sleigh is actually flying.
+        drawReindeer(canvas, offsetX = 150f, elapsedSeconds)
+        drawReindeer(canvas, offsetX = 95f, elapsedSeconds)
         drawSleighAndSanta(canvas)
-        canvas.restore()
+        canvas.restore() // matches saveLayer
+        canvas.restore() // matches save
     }
 
     private fun drawReindeer(canvas: Canvas, offsetX: Float, elapsedSeconds: Float) {

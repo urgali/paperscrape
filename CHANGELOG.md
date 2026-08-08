@@ -6,6 +6,20 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v18 — in progress
+
+- **Fixed Santa's sleigh appearing to drag the reindeer instead of being
+  pulled by them**: the reindeer were drawn at a *negative* local x-offset
+  relative to the sleigh, which put the sleigh ahead of them in the
+  direction of travel — visually, Santa looked like he was towing the
+  reindeer behind him. Flipped the offsets so the reindeer lead and the
+  sleigh trails behind, in both flight directions.
+- **Fixed the sleigh vanishing abruptly at the edges of its flight**
+  instead of fading out: added a ~8%-of-flight fade-in/fade-out window
+  (via a `Canvas.saveLayer` alpha group covering the whole reindeer+
+  sleigh+Santa illustration) so it now eases in and out gracefully rather
+  than hard-cutting the moment it crosses off-canvas.
+
 ## v17 — in progress
 
 - **README disclaimer** added at the very top, as requested verbatim.
