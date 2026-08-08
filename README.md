@@ -60,16 +60,29 @@ lightweight and compatible with any device).
 - **Custom themes**: save your current look as a new theme, replace any
   built-in theme with it, and reset any customized built-in back to
   default with one tap — all from the "Manage Themes" screen.
+- **Every theme offers the same maximum customization range**: exactly 10
+  candidate slots for each of the 6 customizable categories (houses,
+  buildings, dogs, cars, umbrellas, trees), generated the same way in
+  every theme — whether a theme ends up looking like a quiet village or a
+  packed city is entirely your choice via the density sliders, never
+  baked into the theme itself. Only each theme's non-editable "flavor"
+  decorations (snowmen, gifts, balloons, penguins, bunnies, Easter eggs)
+  stay theme-specific.
 - **Configurable scene objects, live per theme**: a density slider (0-100%),
   a visibility toggle, and 4 editable colors (touch-and-drag palette + hex
-  field), independently for 6 object categories — houses, buildings, dogs,
-  cars, umbrellas, and trees. Edits apply immediately to whichever theme
-  you're currently on and don't leak into any other theme; switch themes
-  and each one keeps its own look. Want to keep an edit permanently? Save
-  it from "Manage Themes" (Replace with current / Save as new theme) — the
-  density/visibility/colors you picked get baked into that saved theme.
-  Every instance randomly (but stably, no flicker) picks one of the 2
-  color variants and blends into its night version as it gets dark.
+  field), independently for each of the 6 categories above. Edits apply
+  immediately to whichever theme you're currently on and don't leak into
+  any other theme; switch themes and each one keeps its own look. Want to
+  keep an edit permanently? Save it from "Manage Themes" (Replace with
+  current / Save as new theme) — the density/visibility/colors you picked
+  get baked into that saved theme. Every instance randomly (but stably, no
+  flicker) picks one of the 2 color variants and blends into its night
+  version as it gets dark. Nearer objects render larger than farther ones,
+  matching real depth perception.
+- **Buildings are a mix of commercial types** — skyscrapers, storefront
+  restaurants with a striped awning, and bars with a hanging sign — not
+  just skyscrapers, stably varied per instance and all sharing the same
+  customizable color.
 - Settings screen in Jetpack Compose with a live preview of themes.
 - All preferences persisted with Jetpack **DataStore**.
 

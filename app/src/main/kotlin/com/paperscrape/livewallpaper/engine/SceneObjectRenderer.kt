@@ -55,6 +55,17 @@ class SceneObjectRenderer(
         /** All scene elements were sized too small at 1x — this doubles houses, buildings,
          * animals, trees, cars, and the road they drive on, uniformly. */
         const val GLOBAL_OBJECT_SCALE = 2f
+
+        /**
+         * Human depth perception: nearer things look bigger, farther things look smaller. Layer
+         * 2 is the nearest hill layer (highest parallax factor, sits lowest/frontmost on
+         * screen), layer 0 is the farthest. Applied on top of each object's own `scale` (which
+         * is just size *variety within* its layer, not meant to also encode depth) so every
+         * object gets correct perspective automatically regardless of how its own scale was
+         * authored -- previously depth wasn't modeled at all, and several hand-picked scale
+         * values happened to go the wrong way (smaller on the near layer, larger on the far one).
+         */
+        private val LAYER_DEPTH_SCALE = floatArrayOf(0.65f, 0.85f, 1.15f) // far -> near
     }
 
     // Base paper colors for animals/houses — intentionally theme-agnostic "cut paper" tones
@@ -242,10 +253,15 @@ class SceneObjectRenderer(
         if (x < -200f || x > 3000f) return // cheap off-screen skip
         canvas.save()
         canvas.translate(x, y)
+        val depthScale = LAYER_DEPTH_SCALE.getOrElse(r.spec.layer) { 1f }
         // Dogs kept their original (pre-doubling) size -- doubled, they read as oddly large next
         // to everything else at typical wallpaper viewing distance. Every other static object
-        // stays at GLOBAL_OBJECT_SCALE.
-        val effectiveScale = if (r.spec.type == SceneObjectType.DOG) r.spec.scale else r.spec.scale * GLOBAL_OBJECT_SCALE
+        // stays at GLOBAL_OBJECT_SCALE. Depth scaling applies to both.
+        val effectiveScale = if (r.spec.type == SceneObjectType.DOG) {
+            r.spec.scale * depthScale
+        } else {
+            r.spec.scale * GLOBAL_OBJECT_SCALE * depthScale
+        }
         canvas.scale(effectiveScale, effectiveScale)
 
         // Reaction "ease" is shared by both reaction styles: a smooth 0->1->0 bump over the
@@ -470,6 +486,17 @@ class SceneObjectRenderer(
     }
 
     private fun drawSkyscraper(canvas: Canvas, r: StaticRuntime, dayBlend: Float, elapsed: Float) {
+        // "Buildings" are a mix of commercial building types, not just skyscrapers -- stably
+        // picked per instance (by position, never Random()) so the same building always renders
+        // the same way. All styles share the category's customizable color.
+        when (kotlin.math.abs((r.spec.tileFractionX * 5237f).toInt()) % 3) {
+            0 -> drawSkyscraperBuilding(canvas, r, dayBlend)
+            1 -> drawRestaurantBuilding(canvas, r, dayBlend)
+            else -> drawBarBuilding(canvas, r, dayBlend)
+        }
+    }
+
+    private fun drawSkyscraperBuilding(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
         val height = 130f * r.spec.scale
         val width = 46f
         fillPaint.color = customization.colorFor(r.spec, dayBlend)
@@ -490,6 +517,69 @@ class SceneObjectRenderer(
                 canvas.drawRect(RectF(wx - 4f, wy, wx + 4f, wy + 8f), fillPaint)
             }
         }
+    }
+
+    /** A low, wide storefront with a striped awning over the entrance. */
+    private fun drawRestaurantBuilding(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
+        val height = 60f * r.spec.scale
+        val width = 68f
+        val wallColor = customization.colorFor(r.spec, dayBlend)
+        fillPaint.color = wallColor
+        canvas.drawRect(RectF(-width / 2f, -height, width / 2f, 0f), fillPaint)
+
+        // Awning: alternating stripes, a warm accent regardless of the wall color.
+        val awningY = -height + 14f
+        val stripeCount = 5
+        val stripeWidth = width / stripeCount
+        for (i in 0 until stripeCount) {
+            fillPaint.color = if (i % 2 == 0) 0xFFC1443B.toInt() else 0xFFF7FAFC.toInt()
+            val sx = -width / 2f + i * stripeWidth
+            path.reset()
+            path.moveTo(sx, awningY)
+            path.lineTo(sx + stripeWidth, awningY)
+            path.lineTo(sx + stripeWidth - 4f, awningY + 10f)
+            path.lineTo(sx + 4f, awningY + 10f)
+            path.close()
+            canvas.drawPath(path, fillPaint)
+        }
+
+        // Storefront window, lit warm at night.
+        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
+        fillPaint.color = ColorUtils.blendARGB(0xFFB9CBD9.toInt(), 0xFFFFE79A.toInt(), nightGlow)
+        canvas.drawRect(RectF(-width / 2f + 8f, awningY + 14f, width / 2f - 8f, -8f), fillPaint)
+
+        // Door.
+        fillPaint.color = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
+        canvas.drawRect(RectF(-10f, -22f, 10f, 0f), fillPaint)
+    }
+
+    /** A low building with a hanging round sign and a string of small lights along the front. */
+    private fun drawBarBuilding(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
+        val height = 58f * r.spec.scale
+        val width = 52f
+        val wallColor = customization.colorFor(r.spec, dayBlend)
+        fillPaint.color = wallColor
+        canvas.drawRect(RectF(-width / 2f, -height, width / 2f, 0f), fillPaint)
+
+        // Hanging round sign, glowing warm at night.
+        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
+        fillPaint.color = ColorUtils.blendARGB(0xFF8A6A50.toInt(), 0xFFF2A65A.toInt(), nightGlow)
+        canvas.drawCircle(0f, -height - 6f, 10f, fillPaint)
+        strokePaint.style = Paint.Style.STROKE
+        strokePaint.strokeWidth = 1.5f
+        strokePaint.color = 0xFF3D2B1F.toInt()
+        canvas.drawLine(0f, -height - 16f, 0f, -height, strokePaint)
+
+        // String lights along the top edge.
+        fillPaint.color = ColorUtils.blendARGB(0xFF8A6A50.toInt(), 0xFFFFE79A.toInt(), nightGlow)
+        for (i in 0 until 4) {
+            val lx = -width / 2f + 8f + i * ((width - 16f) / 3f)
+            canvas.drawCircle(lx, -height + 6f, 2.5f, fillPaint)
+        }
+
+        // Door.
+        fillPaint.color = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
+        canvas.drawRect(RectF(-9f, -20f, 9f, 0f), fillPaint)
     }
 
     private fun drawPenguin(canvas: Canvas, r: StaticRuntime, elapsed: Float) {

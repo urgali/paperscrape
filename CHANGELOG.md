@@ -6,6 +6,37 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v22 — in progress
+
+- **Every theme now offers the same maximum customization range**: rewrote
+  `SceneObjectCatalog` around a single deterministic generator producing
+  exactly 10 candidate slots for each of the 6 customizable categories
+  (houses, buildings, dogs, cars, umbrellas, trees), used identically by
+  every theme. Previously themes had wildly different hand-authored
+  counts (Big City: 8 buildings vs. most others: 1), which meant the
+  theme itself — not the user — decided how "city-like" or "village-like"
+  a scene could get. Now that choice belongs entirely to the density
+  sliders in Scene Objects; theme identity comes only from colors and each
+  theme's non-editable flavor decorations (snowmen, gifts, balloons,
+  penguins, bunnies, Easter eggs), which are unaffected by this change.
+  Beach's "trees" category generates palm trees instead of plain trees,
+  sharing the same customization.
+- **Fixed inverted depth perspective**: nearer objects were sometimes
+  smaller than farther ones, because individual scale values had been
+  hand-picked for variety without regard to which hill layer (i.e. how
+  "close") the object was on. Added a per-layer depth-scale multiplier
+  (far = 0.65x, mid = 0.85x, near = 1.15x) applied automatically in the
+  renderer on top of each object's own scale, so perspective is now
+  correct everywhere by construction rather than depending on how each
+  of hundreds of hand-placed objects happened to be authored.
+- **Buildings are now a mix of commercial types**: the "buildings"
+  category still renders as one `SKYSCRAPER`-typed object internally (so
+  the existing color customization keeps applying uniformly), but each
+  instance stably (never randomly at runtime) picks one of three visual
+  styles — tall office tower, storefront restaurant with a striped
+  awning, or a bar with a hanging sign and string lights — instead of
+  always being a skyscraper.
+
 ## v21 — in progress
 
 - **Fixed CI compile failure from v20**: `LayerGeometry`'s `tileWidth =
