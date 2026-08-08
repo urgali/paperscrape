@@ -6,6 +6,22 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v16 — in progress
+
+- **Fixed "Manage Themes" not scrolling all the way down**: the last row of
+  theme cards (Tundra/Easter) was getting cut off, names unreadable.
+  Likely cause: full-screen `Dialog()` windows (used by both "Manage
+  Themes" and "Scene Objects") don't automatically inherit the Activity's
+  `enableEdgeToEdge()` inset handling the way the main screen's `Scaffold`
+  does. Added explicit `navigationBarsPadding()` to both dialogs' scrollable
+  content, plus a small bottom spacer as extra safety margin so the last
+  row is never flush with the screen edge.
+- **Manual "Check for updates" button** on the main settings screen, next
+  to the version number — the existing check was launch-only with no way
+  to trigger it on demand. Reuses the same `UpdateChecker` call and the
+  same "update available" dialog; if you're already up to date, it says so
+  inline instead of silently doing nothing.
+
 ## v15 — in progress
 
 - **Fixed CI compile failure from v14**: `SettingsScreen.kt`'s `snapshotEntry()`

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -116,6 +117,8 @@ fun SettingsScreen(
     // system notification, per the requirement that it must not nag the user outside the app.
     var availableUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
     var showSnoozeChoice by remember { mutableStateOf(false) }
+    var manualCheckInProgress by remember { mutableStateOf(false) }
+    var manualCheckUpToDateMessage by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         val snooze = updatePrefs.readSnoozeState()
         val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_CODE) ?: return@LaunchedEffect
@@ -269,6 +272,32 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            OutlinedButton(
+                onClick = {
+                    manualCheckUpToDateMessage = null
+                    manualCheckInProgress = true
+                    scope.launch {
+                        val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_CODE)
+                        manualCheckInProgress = false
+                        if (update != null) {
+                            availableUpdate = update
+                        } else {
+                            manualCheckUpToDateMessage = "You're up to date (v${BuildConfig.VERSION_CODE})"
+                        }
+                    }
+                },
+                enabled = !manualCheckInProgress,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (manualCheckInProgress) "Checking…" else "🔄 Check for updates")
+            }
+            manualCheckUpToDateMessage?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 
@@ -527,6 +556,7 @@ private fun ThemeManagerDialog(
                         .fillMaxSize()
                         .padding(padding)
                         .verticalScroll(rememberScrollState())
+                        .navigationBarsPadding()
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
@@ -579,6 +609,10 @@ private fun ThemeManagerDialog(
                             )
                         }
                     }
+
+                    // Extra breathing room at the very bottom so the last row of cards is never
+                    // flush with the screen edge / partially hidden behind the system nav bar.
+                    Box(modifier = Modifier.height(24.dp))
                 }
             }
         }
@@ -814,6 +848,7 @@ private fun SceneObjectsDialog(
                         .fillMaxSize()
                         .padding(padding)
                         .verticalScroll(rememberScrollState())
+                        .navigationBarsPadding()
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
@@ -886,6 +921,8 @@ private fun SceneObjectsDialog(
                     ) {
                         Text("↺ Reset everything to defaults")
                     }
+
+                    Box(modifier = Modifier.height(24.dp))
                 }
             }
         }

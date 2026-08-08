@@ -249,8 +249,11 @@ one installed. If one is found, an in-app dialog offers:
   told about *that* one right away rather than staying silent.
 
 This is deliberately **not** a background service or a system notification
-— nothing happens unless you have the app open, and the check only ever
-runs once, at launch.
+— nothing happens unless you have the app open, and the automatic check
+only ever runs once, at launch. A **"🔄 Check for updates" button** at the
+bottom of the settings screen lets you trigger the same check on demand at
+any time — if you're already on the latest version, it says so right there
+instead of doing nothing.
 
 > If you fork or rename this repository, update the `OWNER`/`REPO`
 > constants at the top of `update/UpdateChecker.kt` — they're currently set
