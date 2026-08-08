@@ -86,12 +86,19 @@ object SunPositionCalculator {
     }
 
     /**
-     * Approximate sunrise/sunset hour (local, decimal) for a given latitude/longitude and day-of-year,
-     * based on the standard NOAA/Sunrise equation simplification. Good to within a few minutes,
-     * which is more than enough for a wallpaper's lighting.
+     * Approximate sunrise/sunset hour (local civil clock, decimal) for a given
+     * latitude/longitude/day-of-year, based on the standard NOAA/Sunrise equation
+     * simplification. Good to within a few minutes, which is more than enough for a
+     * wallpaper's lighting.
+     *
+     * @param utcOffsetHours the civil clock's *current* offset from UTC, already including any
+     *   DST adjustment for the date in question (see the caller in [PaperWallpaperService], which
+     *   must use `TimeZone.getOffset(atThatMoment)`, not `TimeZone.rawOffset` -- `rawOffset` is
+     *   explicitly the *non*-DST standard offset, so during DST it under/overshoots by an hour).
      */
     fun approximateSunriseSunset(
         latitudeDeg: Double,
+        longitudeDeg: Double,
         dayOfYear: Int,
         utcOffsetHours: Double,
     ): Pair<Float, Float> {
@@ -100,12 +107,24 @@ object SunPositionCalculator {
         val decl = Math.toRadians(23.44) * sin(Math.toRadians((360.0 / 365.0) * (dayOfYear - 81)))
 
         val cosHourAngle = -tan(lat) * tan(decl)
-        // Polar day/night guard.
+        // Polar day/night guard: when |cosHourAngle| > 1 there is no real solution (the sun
+        // never crosses the horizon that day). Clamping *before* acos is intentional and already
+        // correct, not a fabricated fallback: cosHourAngle very negative (< -1) is polar
+        // day (sun always up) and clamps to -1 -> acos(-1) = pi = a full 24h day arc; very
+        // positive (> 1) is polar night (sun never rises) and clamps to +1 -> acos(1) = 0 = a
+        // zero-length day arc. Both collapse gracefully into [compute]'s existing
+        // `dayLength.coerceAtLeast(1f)` floor rather than needing separate handling here.
         val clamped = cosHourAngle.coerceIn(-1.0, 1.0)
         val hourAngle = acos(clamped) // radians
 
         val hourAngleHours = Math.toDegrees(hourAngle) / 15.0
-        val solarNoon = 12.0 - utcOffsetHours * 0.0 // local solar noon approximated as 12:00 local clock time
+        // Local solar noon, expressed in this location's *civil clock* hours: local solar time
+        // runs ahead of UTC by longitudeDeg/15 hours (east positive), and civil time runs ahead
+        // of UTC by utcOffsetHours -- so civil clock time lags solar time by exactly the
+        // difference between the two. This is what actually uses longitude and utcOffsetHours;
+        // the previous `- utcOffsetHours * 0.0` discarded the offset entirely and pinned every
+        // location to a fixed 12:00 solar noon regardless of where in its timezone it sits.
+        val solarNoon = 12.0 - longitudeDeg / 15.0 + utcOffsetHours
         val sunrise = (solarNoon - hourAngleHours).coerceIn(0.0, 23.98)
         val sunset = (solarNoon + hourAngleHours).coerceIn(0.02, 24.0)
         return sunrise.toFloat() to sunset.toFloat()

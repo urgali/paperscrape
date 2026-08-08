@@ -280,9 +280,14 @@ class PaperWallpaperService : WallpaperService() {
 
         private fun updateSunTimesFromLocation(location: Location) {
             val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-            val utcOffsetHours = TimeZone.getDefault().rawOffset / 3_600_000.0
+            // getOffset(instant) — not rawOffset — because rawOffset is explicitly the
+            // *standard* (non-DST) offset; using it directly made every sunrise/sunset an hour
+            // off during DST. getOffset(now) already includes whatever DST adjustment applies to
+            // this exact moment.
+            val utcOffsetHours = TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 3_600_000.0
             val (sunrise, sunset) = SunPositionCalculator.approximateSunriseSunset(
                 latitudeDeg = location.latitude,
+                longitudeDeg = location.longitude,
                 dayOfYear = dayOfYear,
                 utcOffsetHours = utcOffsetHours,
             )

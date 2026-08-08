@@ -16,8 +16,8 @@ android {
         // versionCode is the single source of truth for the GitHub Release tag/title created by
         // CI (.github/workflows/android-build.yml reads this value directly) — bump it every
         // time you ship a new vN so the release name in GitHub matches the version delivered.
-        versionCode = 24
-        versionName = "24.0"
+        versionCode = 26
+        versionName = "26.0"
     }
 
     signingConfigs {
@@ -33,16 +33,46 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+
+        // Real release signing, sourced *only* from environment variables -- never from a
+        // committed file or a hardcoded password, unlike the debug config above (whose password
+        // is intentionally public). Populate these locally via `export` before running
+        // `./gradlew assembleRelease`, or via the RELEASE_* GitHub Secrets consumed by the
+        // `release` CI job (see .github/workflows/android-build.yml and
+        // scripts/generate-release-keystore.sh for how to create your own keystore -- Claude
+        // deliberately did not generate one on your behalf, since a release signing key is the
+        // app's permanent identity and should only ever exist on your own machine and in your
+        // own GitHub Secrets, never pass through a third party).
+        //
+        // Left entirely absent (not just empty-stringed) when the env vars aren't set, so a
+        // local `./gradlew assembleRelease` run without them produces an *unsigned* APK that
+        // fails to install -- loud and obvious -- rather than silently falling back to something
+        // that looks shippable but isn't signed with the real key.
+        val releaseStorePath = System.getenv("PAPERSCRAPE_RELEASE_STORE_FILE")
+        if (!releaseStorePath.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(releaseStorePath)
+                storePassword = System.getenv("PAPERSCRAPE_RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("PAPERSCRAPE_RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("PAPERSCRAPE_RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Only attach real signing if the environment actually provided one (see
+            // signingConfigs above) -- see that comment for why this isn't silently skipped.
+            if (!System.getenv("PAPERSCRAPE_RELEASE_STORE_FILE").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             applicationIdSuffix = ".debug"

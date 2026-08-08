@@ -7,16 +7,62 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-# Least-privilege default: this workflow only needs to read the repository.
-# The one job that also creates a GitHub Release overrides this with its own
-# job-level `permissions: contents: write`, scoped to just that job.
+# Least-privilege default: neither job needs more than this unless explicitly overridden below.
 permissions:
   contents: read
 
 jobs:
+  # Runs on every push and PR (including from forks). Never touches GitHub Releases and never
+  # sees release-signing secrets, so a compromised dependency or a malicious PR pulled in here
+  # has nothing to exfiltrate beyond what `contents: read` already exposes.
   build:
     runs-on: ubuntu-latest
-    # Needs write access to create a GitHub Release and upload the APK to it.
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        # Pinned to the last MIT-licensed v5.x release. gradle/actions v6 bundles a proprietary
+        # caching component with its own commercial Terms of Use (see
+        # https://blog.gradle.org/github-actions-for-gradle-v6) -- staying on v5 avoids opting
+        # this repository into that without a deliberate decision to do so.
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Lint
+        run: ./gradlew lint
+
+      - name: Unit tests
+        run: ./gradlew test
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload debug APK artifact
+        # Dev/test builds only -- never published to Releases. See the `release` job for the
+        # real, signed artifact users actually install.
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: paperscrape-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+  # Only runs after `build` succeeds, and only for real pushes to main (never PRs, never forks --
+  # the `if` below guards on the event/ref). This is the only place release-signing secrets are
+  # ever exposed.
+  release:
+    needs: build
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -30,52 +76,81 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle
-        # NOTE: not yet SHA-pinned -- could not resolve a verified full commit SHA for the
-        # current v5 tag of this action. See CHANGELOG "outstanding" notes.
-        uses: gradle/actions/setup-gradle@v5
-
-      - name: Generate Gradle wrapper (if not committed)
-        # NOTE: still required -- gradlew/gradlew.bat/gradle-wrapper.jar are not committed to
-        # this repo (no network access was available to fetch/verify a real wrapper jar when
-        # this project was generated). See CHANGELOG "outstanding" notes.
-        # The --gradle-distribution-sha256-sum must match gradle-wrapper.properties' own
-        # distributionSha256Sum, or the `wrapper` task refuses to run (it won't silently
-        # overwrite/drop an existing checksum it wasn't told to reproduce).
-        run: gradle wrapper --gradle-version 8.9 --gradle-distribution-sha256-sum d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Lint
-        run: ./gradlew lint
+      - name: Check release signing secrets are configured
+        # Fail loudly and early with a clear message, rather than letting Gradle fall through to
+        # an unsigned APK (see app/build.gradle.kts: release signingConfig is only attached when
+        # PAPERSCRAPE_RELEASE_STORE_FILE is set) and produce a confusing failure several steps
+        # later. See scripts/generate-release-keystore.sh to create these secrets.
+        run: |
+          missing=()
+          [ -z "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ] && missing+=("RELEASE_KEYSTORE_BASE64")
+          [ -z "${{ secrets.RELEASE_STORE_PASSWORD }}" ] && missing+=("RELEASE_STORE_PASSWORD")
+          [ -z "${{ secrets.RELEASE_KEY_ALIAS }}" ] && missing+=("RELEASE_KEY_ALIAS")
+          [ -z "${{ secrets.RELEASE_KEY_PASSWORD }}" ] && missing+=("RELEASE_KEY_PASSWORD")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing release signing secrets: ${missing[*]}. See scripts/generate-release-keystore.sh."
+            exit 1
+          fi
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: paperscrape-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-
-      - name: Publish APK to GitHub Releases
-        # Only for real pushes to main (not PRs, not forks) -- every successful build gets a
-        # release named after the app's versionCode (the single source of truth, see
-        # app/build.gradle.kts), not the Actions run number -- so the release name always
-        # matches the vN delivered to the user, regardless of how many CI runs it took.
-        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Decode release keystore
+        # Written to a runner-local temp path that never touches the repository and is discarded
+        # when the runner is torn down at the end of the job.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          KEYSTORE_PATH="${RUNNER_TEMP}/release.keystore"
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+          echo "PAPERSCRAPE_RELEASE_STORE_FILE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        env:
+          PAPERSCRAPE_RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          PAPERSCRAPE_RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          PAPERSCRAPE_RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Generate SHA-256 checksum
+        # Published alongside the APK so anyone can verify what they downloaded matches what CI
+        # actually built, independent of GitHub's own integrity guarantees.
+        run: |
+          cd app/build/outputs/apk/release
+          sha256sum app-release.apk > app-release.apk.sha256
+          cat app-release.apk.sha256
+
+      - name: Determine release tag
+        id: tag
         run: |
           VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts)
-          TAG="v${VERSION_CODE}"
-          # If this versionCode was already released (e.g. a follow-up fix pushed before
-          # bumping versionCode), replace it rather than failing the build.
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release delete "$TAG" --yes --cleanup-tag
+          echo "tag=v${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse to overwrite an existing release
+        # versionCode/tag are meant to be immutable (see app/build.gradle.kts's own comment: bump
+        # it every time you ship). If this tag already exists, fail with a clear message instead
+        # of deleting the existing release/tag automatically -- silently replacing a published
+        # release is exactly the kind of thing that should require a deliberate, manual decision,
+        # not happen as a side effect of forgetting to bump a number.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists. Bump versionCode in app/build.gradle.kts before pushing, or delete the existing release manually if this was intentional."
+            exit 1
           fi
+
+      - name: Publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
           gh release create "$TAG" \
-            app/build/outputs/apk/debug/*.apk \
+            app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/apk/release/app-release.apk.sha256 \
             --title "PaperScrape $TAG" \
-            --notes "Automated debug APK build from commit ${{ github.sha }}." \
+            --notes "Signed release build from commit ${{ github.sha }}. Verify app-release.apk against the accompanying .sha256 file after downloading." \
             --target "${{ github.sha }}"

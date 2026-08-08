@@ -52,7 +52,15 @@ object UpdateChecker {
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             val json = JSONObject(body)
             val tagName = json.optString("tag_name", "").ifBlank { return@withContext null }
-            val releasePageUrl = json.optString("html_url", "https://github.com/$OWNER/$REPO/releases")
+            val fallbackReleasePageUrl = "https://github.com/$OWNER/$REPO/releases"
+            // html_url comes from GitHub's response body, not from us -- treat it as untrusted
+            // remote data. It's only ever used to open a browser (never fetched, never rendered
+            // in a WebView), but an unvalidated scheme/host could still be abused to trigger an
+            // unexpected app via ACTION_VIEW (e.g. a non-http(s) URI scheme). Accept it only if
+            // it's exactly what we expect a GitHub release page to look like; otherwise fall back
+            // to a URL we constructed ourselves.
+            val releasePageUrl = sanitizeGitHubUrl(json.optString("html_url", fallbackReleasePageUrl))
+                ?: fallbackReleasePageUrl
             val latestVersionCode = tagName.removePrefix("v").toIntOrNull() ?: return@withContext null
 
             if (latestVersionCode > currentVersionCode) {
@@ -67,5 +75,25 @@ object UpdateChecker {
         } finally {
             connection?.disconnect()
         }
+    }
+
+    /**
+     * Returns [url] unchanged if it's a plain `https://github.com/...` (or `www.github.com`)
+     * URL, or null otherwise. This is deliberately strict -- no subdomains, no other schemes --
+     * since the only legitimate use is opening a GitHub release page in a browser via
+     * `Intent.ACTION_VIEW`. GitHub's own API response is the input here; scoping this tightly
+     * means a compromised or malicious response (or a fork pointed at the wrong repo) can't
+     * smuggle an unexpected URI scheme into that Intent.
+     */
+    private fun sanitizeGitHubUrl(url: String): String? {
+        val uri = try {
+            java.net.URI(url)
+        } catch (_: Exception) {
+            return null
+        }
+        val host = uri.host?.lowercase() ?: return null
+        val isHttps = uri.scheme?.lowercase() == "https"
+        val isGitHubHost = host == "github.com" || host == "www.github.com"
+        return if (isHttps && isGitHubHost) url else null
     }
 }

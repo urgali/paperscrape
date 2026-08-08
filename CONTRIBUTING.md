@@ -21,6 +21,7 @@ their way around in a few minutes.
 | Change refresh rate / battery usage | `engine/PaperWallpaperService.kt` → `FRAME_INTERVAL_MS` constant |
 | Add/change a date-based seasonal rule (e.g. Halloween week) | `engine/SeasonalThemeRules.kt` → add a `Window` entry |
 | Ship a new version | Bump `versionCode` in `app/build.gradle.kts` first — CI reads it directly to name the GitHub Release (`vN`), so it must match the version you're actually shipping |
+| Set up real release signing | `scripts/generate-release-keystore.sh` (run locally, never commit the result — see the script's own comments and the "Release signing" section below) |
 
 ## Ideas for future contributions
 
@@ -46,6 +47,27 @@ how the custom theme editor should connect to the date-based automation):
 Use the Android Studio emulator (API 34+ recommended) and set the wallpaper
 from the emulator's Settings → Wallpaper, or launch `SettingsActivity`
 directly and press "Set as wallpaper".
+
+## Release signing
+
+`app/build.gradle.kts`'s `release` build type only signs with a real key when
+`PAPERSCRAPE_RELEASE_STORE_FILE` (and the matching password/alias env vars)
+are present — otherwise `assembleRelease` produces an intentionally unsigned,
+uninstallable APK, so a missing key fails loudly instead of silently.
+
+1. Generate your own keystore locally: `./scripts/generate-release-keystore.sh`
+   (never commit the resulting `.jks` — `.gitignore` already excludes it).
+2. For local builds, export the four `PAPERSCRAPE_RELEASE_*` env vars the
+   script prints, then run `./gradlew assembleRelease`.
+3. For CI to build signed releases, add these repository secrets (Settings →
+   Secrets and variables → Actions): `RELEASE_KEYSTORE_BASE64` (the keystore
+   file, base64-encoded), `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
+   `RELEASE_KEY_PASSWORD`. The `release` job in
+   `.github/workflows/android-build.yml` decodes the keystore into a
+   runner-local temp file at build time only — it's never written to the
+   repository, and these secrets are never exposed to the `build` job that
+   runs on every push/PR, only to `release`, which only runs on pushes to
+   `main`.
 
 ## Pull requests
 
