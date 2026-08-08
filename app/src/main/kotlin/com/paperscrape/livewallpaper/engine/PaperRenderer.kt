@@ -284,7 +284,7 @@ class PaperRenderer(
             layerGeometries[layer] = LayerGeometry(
                 layer = layer,
                 shiftXWrapped = objectShiftWrapped,
-                tileWidth = screenWidth,
+                tileWidth = screenWidth.toFloat(),
                 groundY = layerTop + layerHeight * 0.40f,
             )
 

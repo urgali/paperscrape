@@ -14,8 +14,8 @@ import kotlin.math.sin
  */
 data class LayerGeometry(
     val layer: Int,
-    val shiftXWrapped: Float, // same wrapped parallax shift used to draw the hill silhouette
-    val tileWidth: Float,     // 2x screen width, see PaperRenderer.buildHillPath
+    val shiftXWrapped: Float, // parallax shift, wrapped using a *screen-width* period (see PaperRenderer.drawHillLayers)
+    val tileWidth: Float,     // screen width -- objects' own tiling period, decoupled from the hill's wider one
     val groundY: Float,       // y coordinate objects should sit on for this layer
 )
 

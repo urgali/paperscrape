@@ -6,6 +6,20 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v21 — in progress
+
+- **Fixed CI compile failure from v20**: `LayerGeometry`'s `tileWidth =
+  screenWidth` assignment failed to compile — `screenWidth` is an `Int`
+  field on `PaperRenderer`, but `tileWidth` expects `Float`. This worked
+  everywhere else in the same function (`screenWidth * 2f`, `shiftX %
+  screenWidth`) because those go through arithmetic operators, which
+  Kotlin has overloads for across mixed numeric types; a *plain*
+  assignment has no such implicit widening. Fixed with an explicit
+  `screenWidth.toFloat()`. Also corrected a doc comment on
+  `LayerGeometry.tileWidth` left over from before v20 that still said
+  "2x screen width" (objects now use 1x, screen width, as their own
+  tiling period).
+
 ## v20 — in progress
 
 - **Corrected the v19 anchor-position fix, which had introduced a new bug**:
