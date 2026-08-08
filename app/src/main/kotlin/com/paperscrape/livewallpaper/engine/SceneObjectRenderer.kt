@@ -135,20 +135,16 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Wraps an object's position into [0, screenWidth) using the *screen* width as the period,
-     * not the wider `tileWidth` (2x screen width) used for the hill silhouettes. This is
-     * deliberate: hills use a wide tile so their organic shape doesn't repeat too obviously, but
-     * objects don't need that — they sit at a fixed `groundY` per layer regardless of the hill
-     * contour beneath them, so there's no visual harm in wrapping them more tightly. Using the
-     * wider tileWidth here was a real bug: roughly half of all possible `tileFractionX` values
-     * were mathematically unreachable by any of the drawn copies at common scroll positions
-     * (verified: at rest, only tileFractionX in [0.25, 0.75] ever landed on-screen), so objects
-     * placed near the edges of a theme's layout could be permanently invisible.
+     * Anchors an object using its layer's [LayerGeometry] -- `shiftXWrapped`/`tileWidth` are
+     * computed per-frame in `PaperRenderer.drawHillLayers`, using a *screen-width* period
+     * dedicated to objects (deliberately narrower than the hill silhouette's own wider tile —
+     * see the comment there for why). At rest this maps `tileFractionX` linearly and uniquely
+     * across the visible screen, so every object at every position is reachable and nothing
+     * overlaps another object that happens to sit a whole tile-period away.
      */
     private fun anchorPosition(spec: StaticSceneObject, geom: LayerGeometry): Pair<Float, Float> {
-        val raw = geom.shiftXWrapped + spec.tileFractionX * geom.tileWidth
-        var x = raw % lastScreenWidth
-        if (x < 0f) x += lastScreenWidth
+        var x = geom.shiftXWrapped + spec.tileFractionX * geom.tileWidth
+        if (x < -geom.tileWidth * 0.5f) x += geom.tileWidth
         return x to geom.groundY
     }
 
@@ -158,11 +154,10 @@ class SceneObjectRenderer(
         for (r in staticRuntimes.sortedBy { it.spec.layer }) {
             val geom = layers[r.spec.layer] ?: continue
             val (x, y) = anchorPosition(r.spec, geom)
-            // Draw neighboring screen-width copies too so objects near the wrap seam never pop
-            // in/out (x is already guaranteed within [0, screenWidth) by anchorPosition above).
+            // Draw neighboring tile copies too so objects near the wrap seam never pop in/out.
             drawStaticObject(canvas, r, x, y, dayBlend, elapsedSeconds)
-            drawStaticObject(canvas, r, x - screenWidth, y, dayBlend, elapsedSeconds)
-            drawStaticObject(canvas, r, x + screenWidth, y, dayBlend, elapsedSeconds)
+            drawStaticObject(canvas, r, x - geom.tileWidth, y, dayBlend, elapsedSeconds)
+            drawStaticObject(canvas, r, x + geom.tileWidth, y, dayBlend, elapsedSeconds)
         }
 
         drawRoad(canvas, dayBlend, screenWidth, screenHeight)

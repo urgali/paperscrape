@@ -6,6 +6,41 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v20 — in progress
+
+- **Corrected the v19 anchor-position fix, which had introduced a new bug**:
+  wrapping objects by taking `x mod screenWidth` guaranteed reachability
+  (v19's goal), but it also *folded* the wider 2-screen-wide layout space
+  down onto one screen — which means two objects originally placed a full
+  screen-width apart (e.g. tileFractionX 0.10 and 0.60 in a 2-screen-wide
+  layout) would land on the exact same on-screen pixel after folding. This
+  is why Christmas started showing "5 houses" instead of 4: the fold
+  disrupted the objects' relative left-to-right order and packed some of
+  them closer together than intended. Fixed properly this time: objects
+  now get their *own* tiling period (screen width), computed independently
+  from the hill silhouette's wider tile at the source
+  (`PaperRenderer.drawHillLayers`), instead of trying to fold the hill's
+  existing wide period after the fact. At rest, this maps every
+  `tileFractionX` linearly and uniquely across the visible screen — no
+  folding, no collisions, and (re-verified) no unreachable positions
+  either.
+- **Fixed background buildings appearing to float in the sky**: the lone
+  "background accent" skyscraper added to 8 themes (Sunset, Autumn,
+  Winter, Desert, Christmas, Beach, Tundra, Easter) sat on the farthest
+  hill layer, whose fixed ground height is the highest up the screen of
+  the three layers — visually closer to open sky than solid ground,
+  especially with nothing else nearby to anchor it. Moved to the middle
+  layer instead. Big City and New Year's Eve's original skylines (which
+  already mix near/far layers across many buildings) were left untouched,
+  since a dense skyline reads fine even with some buildings on the
+  farthest layer.
+- **Santa's sleigh stutter**: the per-paint alpha fix in v19 removed the
+  `saveLayer` call, which was the *known, provable* cause of the earlier
+  stutter — that fix stands. If choppiness is still present after this
+  update, it's a separate cause and needs fresh reporting with specifics
+  (which theme, roughly how choppy, whether other animations stutter at
+  the same time) rather than assuming it's the same root cause again.
+
 ## v19 — in progress
 
 - **Found and fixed the real cause of "houses/buildings missing despite

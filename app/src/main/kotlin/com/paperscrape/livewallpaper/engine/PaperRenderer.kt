@@ -268,10 +268,23 @@ class PaperRenderer(
             val tileWidth = screenWidth * 2f
             var wrappedShift = shiftX % tileWidth
             if (wrappedShift > 0f) wrappedShift -= tileWidth
+
+            // Objects use their own, *screen-width* tiling period here -- deliberately decoupled
+            // from the hill's wider tileWidth above. Hills want a wide period for non-repetitive
+            // organic shape variety, but objects need every tileFractionX to map to a distinct,
+            // non-overlapping on-screen position so they're all visible together at rest (not
+            // "half of them, depending on scroll position", which was the bug in the version
+            // before this one, and folding the wide hill period down to one screen -- the first
+            // attempted fix -- caused *different* tileFractionX values to collide/overlap
+            // instead, since e.g. 0.10 and 0.60 are exactly one screen-width apart in the wide
+            // period and would land on the same pixel once folded).
+            var objectShiftWrapped = shiftX % screenWidth
+            if (objectShiftWrapped > 0f) objectShiftWrapped -= screenWidth
+
             layerGeometries[layer] = LayerGeometry(
                 layer = layer,
-                shiftXWrapped = wrappedShift - screenWidth * 0.5f,
-                tileWidth = tileWidth,
+                shiftXWrapped = objectShiftWrapped,
+                tileWidth = screenWidth,
                 groundY = layerTop + layerHeight * 0.40f,
             )
 
