@@ -6,6 +6,42 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v19 — in progress
+
+- **Found and fixed the real cause of "houses/buildings missing despite
+  100% density"** — this was not (only) about frozen overrides as
+  previously suspected; it was a genuine, provable math bug. Objects were
+  wrapped for scrolling using the *hill* tile width (2x screen width), but
+  only 3 fixed copies were drawn per object. Worked out on paper (and
+  verified with an exhaustive simulation across the full range of scroll
+  positions): with that spacing, roughly **half of all possible
+  `tileFractionX` values were mathematically unreachable by any drawn
+  copy** at common scroll positions — at rest, only positions in
+  [0.25, 0.75] ever landed on-screen at all, regardless of density,
+  visibility, or theme. This explains every symptom reported: Big City's
+  buildings are spread across a wide range of positions (some always
+  landed in the visible band), while every other theme's single
+  background building sat near the tile edge (0.90+), permanently outside
+  it; Beach's houses/building were placed at the very edges for the same
+  reason. Fixed by wrapping objects using the *screen* width instead of
+  the wider hill tile width as the period — proven correct by exhaustive
+  simulation (0 unreachable positions across the full valid scroll range,
+  versus 49% before). Cars were not affected (they already use a
+  different, non-tile-based positioning system) — their absence is more
+  likely explained by a frozen override (see v17) or the sleigh's frame
+  stutter below.
+- **Santa's sleigh**:
+  - Reindeer brought much closer to the sleigh (positive offsets reduced
+    from 150/95 to 85/50) so the harness reads as an actual connection
+    instead of two disconnected halves.
+  - Removed `Canvas.saveLayer` (added in v18 for the edge fade) — it
+    allocates an offscreen buffer on every call, expensive enough to cause
+    visible stutter every frame the sleigh was on screen. Replaced with
+    per-paint alpha blending (same fade effect, no offscreen buffer).
+  - Falling gifts redesigned with a ribbon cross and bow (matching the
+    static under-the-tree gift look) instead of a single flat-colored
+    square, which read as a bomb/mine rather than a wrapped present.
+
 ## v18 — in progress
 
 - **Fixed Santa's sleigh appearing to drag the reindeer instead of being
