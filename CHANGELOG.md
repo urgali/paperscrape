@@ -6,6 +6,15 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v15 — in progress
+
+- **Fixed CI compile failure from v14**: `SettingsScreen.kt`'s `snapshotEntry()`
+  called the `keepCandidate`/`keepCar` extension functions (defined in
+  `engine/SceneCustomization.kt`) without importing them. Kotlin requires an
+  explicit import for extension functions used outside their own package —
+  unlike regular classes/objects, having other symbols from that package
+  already imported isn't enough. Added the two missing imports.
+
 ## v14 — in progress
 
 - **Fixed stale "appear in the themes that have them" copy** in Scene

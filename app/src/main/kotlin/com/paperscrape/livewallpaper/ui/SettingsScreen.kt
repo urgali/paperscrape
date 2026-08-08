@@ -84,6 +84,8 @@ import com.paperscrape.livewallpaper.engine.SceneObjectRenderer
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.SeasonalThemeRules
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
+import com.paperscrape.livewallpaper.engine.keepCandidate
+import com.paperscrape.livewallpaper.engine.keepCar
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.ObjectCategory
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
