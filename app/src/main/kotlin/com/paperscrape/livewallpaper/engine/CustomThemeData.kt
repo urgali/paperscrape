@@ -18,6 +18,10 @@ data class CustomThemeEntry(
     val name: String,
     val theme: SceneTheme,
     val layout: SceneObjectLayout,
+    /** This entry's own scene-object customization (density/visibility/colors), captured at
+     * save time. Kept per-entry rather than global so saving one theme's look never affects any
+     * other theme's appearance. */
+    val customization: SceneCustomization = SceneCustomization.DEFAULT,
 )
 
 /** Everything persisted by [com.paperscrape.livewallpaper.prefs.CustomThemeStore]. */
@@ -117,11 +121,52 @@ fun sceneObjectLayoutFromJson(json: JSONObject): SceneObjectLayout {
     return SceneObjectLayout(staticObjects = staticObjects, cars = cars)
 }
 
+fun ObjectVariantConfig.toJson(): JSONObject = JSONObject().apply {
+    put("visible", visible)
+    put("density", density.toDouble())
+    put("colorDay1", colorDay1)
+    put("colorNight1", colorNight1)
+    put("colorDay2", colorDay2)
+    put("colorNight2", colorNight2)
+}
+
+fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig): ObjectVariantConfig = ObjectVariantConfig(
+    visible = json.optBoolean("visible", default.visible),
+    density = json.optDouble("density", default.density.toDouble()).toFloat(),
+    colorDay1 = if (json.has("colorDay1")) json.getInt("colorDay1") else default.colorDay1,
+    colorNight1 = if (json.has("colorNight1")) json.getInt("colorNight1") else default.colorNight1,
+    colorDay2 = if (json.has("colorDay2")) json.getInt("colorDay2") else default.colorDay2,
+    colorNight2 = if (json.has("colorNight2")) json.getInt("colorNight2") else default.colorNight2,
+)
+
+fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
+    put("houses", houses.toJson())
+    put("buildings", buildings.toJson())
+    put("dogs", dogs.toJson())
+    put("cars", cars.toJson())
+    put("parasols", parasols.toJson())
+    put("trees", trees.toJson())
+}
+
+fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
+    val defaults = SceneCustomization.DEFAULT
+    if (json == null) return defaults
+    return SceneCustomization(
+        houses = json.optJSONObject("houses")?.let { objectVariantConfigFromJson(it, defaults.houses) } ?: defaults.houses,
+        buildings = json.optJSONObject("buildings")?.let { objectVariantConfigFromJson(it, defaults.buildings) } ?: defaults.buildings,
+        dogs = json.optJSONObject("dogs")?.let { objectVariantConfigFromJson(it, defaults.dogs) } ?: defaults.dogs,
+        cars = json.optJSONObject("cars")?.let { objectVariantConfigFromJson(it, defaults.cars) } ?: defaults.cars,
+        parasols = json.optJSONObject("parasols")?.let { objectVariantConfigFromJson(it, defaults.parasols) } ?: defaults.parasols,
+        trees = json.optJSONObject("trees")?.let { objectVariantConfigFromJson(it, defaults.trees) } ?: defaults.trees,
+    )
+}
+
 fun CustomThemeEntry.toJson(): JSONObject = JSONObject().apply {
     put("id", id)
     put("name", name)
     put("theme", theme.toJson())
     put("layout", layout.toJson())
+    put("customization", customization.toJson())
 }
 
 fun customThemeEntryFromJson(json: JSONObject): CustomThemeEntry = CustomThemeEntry(
@@ -129,6 +174,7 @@ fun customThemeEntryFromJson(json: JSONObject): CustomThemeEntry = CustomThemeEn
     name = json.getString("name"),
     theme = sceneThemeFromJson(json.getJSONObject("theme")),
     layout = sceneObjectLayoutFromJson(json.getJSONObject("layout")),
+    customization = sceneCustomizationFromJson(json.optJSONObject("customization")),
 )
 
 fun CustomThemeData.toJsonString(): String {

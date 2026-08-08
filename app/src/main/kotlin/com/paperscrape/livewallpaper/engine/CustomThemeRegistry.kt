@@ -43,4 +43,27 @@ object CustomThemeRegistry {
     fun overriddenBuiltinIds(): Set<String> = current.get().overrides.keys
 
     fun hasOverride(builtinId: String): Boolean = current.get().overrides.containsKey(builtinId)
+
+    /** The saved entry (override or standalone custom theme) for this id, if any. */
+    private fun entryFor(id: String): CustomThemeEntry? =
+        current.get().overrides[id] ?: current.get().customThemes.firstOrNull { it.id == id }
+
+    /**
+     * Resolves which [SceneCustomization] should actually apply when rendering [themeId] right
+     * now. Priority:
+     *  1. A saved theme (override or standalone custom) always uses its own baked-in
+     *     customization from when it was saved -- editing scene objects for a *different* theme
+     *     later must never change how this one already looks.
+     *  2. Otherwise, if [themeId] is the theme currently being live-edited ([pendingThemeId]
+     *     matches it), use the in-progress (not yet saved) [pendingCustomization].
+     *  3. Otherwise, the theme's untouched default look.
+     */
+    fun resolveActiveCustomization(
+        themeId: String,
+        pendingCustomization: SceneCustomization,
+        pendingThemeId: String?,
+    ): SceneCustomization {
+        entryFor(themeId)?.let { return it.customization }
+        return if (themeId == pendingThemeId) pendingCustomization else SceneCustomization.DEFAULT
+    }
 }

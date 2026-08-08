@@ -110,4 +110,21 @@ object SunPositionCalculator {
         val sunset = (solarNoon + hourAngleHours).coerceIn(0.02, 24.0)
         return sunrise.toFloat() to sunset.toFloat()
     }
+
+    private const val SYNODIC_MONTH_DAYS = 29.530588853
+    // A known new moon: 2000-01-06 18:14 UTC. Any correct reference new moon works equally well
+    // since only the *fractional position* within the ~29.53-day cycle matters here.
+    private const val REFERENCE_NEW_MOON_EPOCH_MILLIS = 947182440000L
+
+    /**
+     * Real lunar phase for the given moment, as a fraction of the ~29.53-day synodic month:
+     * 0 = new moon, 0.25 = first quarter, 0.5 = full moon, 0.75 = last quarter, cycling back to
+     * 1 = new moon again. Good to within a few hours, which is more than enough for a wallpaper.
+     */
+    fun moonPhase(epochMillis: Long = System.currentTimeMillis()): Float {
+        val daysSinceReference = (epochMillis - REFERENCE_NEW_MOON_EPOCH_MILLIS) / 86_400_000.0
+        val cycles = daysSinceReference / SYNODIC_MONTH_DAYS
+        val phase = cycles - kotlin.math.floor(cycles)
+        return phase.toFloat()
+    }
 }

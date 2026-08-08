@@ -5,6 +5,7 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RadialGradient
+import android.graphics.RectF
 import android.graphics.Shader
 import androidx.core.graphics.ColorUtils
 import kotlin.math.sin
@@ -173,7 +174,7 @@ class PaperRenderer(
         val riseHeight = screenHeight * 0.42f
         val cy = horizonY - dayPhase.celestialY * riseHeight
 
-        val radius = screenWidth * 0.055f
+        val radius = screenWidth * 0.055f * 2f // doubled -- was too small to read clearly
         val color = if (dayPhase.isSunVisible) theme.sunColor else theme.moonColor
 
         celestialPaint.shader = RadialGradient(
@@ -183,10 +184,54 @@ class PaperRenderer(
             Shader.TileMode.CLAMP
         )
         canvas.drawCircle(cx, cy, radius * 3.2f, celestialPaint)
-
         celestialPaint.shader = null
-        celestialPaint.color = color
+
+        if (dayPhase.isSunVisible) {
+            celestialPaint.color = color
+            canvas.drawCircle(cx, cy, radius, celestialPaint)
+        } else {
+            drawMoonWithPhase(canvas, cx, cy, radius, color)
+        }
+    }
+
+    /**
+     * Renders the moon disc following its real phase (new/crescent/quarter/gibbous/full) rather
+     * than a plain circle, using the classic "half-disc + variable-width terminator ellipse"
+     * technique: the ellipse's horizontal half-width is `radius * |cos(phaseAngle)|`, which
+     * naturally collapses to a hairline at the quarters (correct: exact half-moon) and to the
+     * full radius at new/full moon (correct: fully dark / fully round).
+     */
+    private fun drawMoonWithPhase(canvas: Canvas, cx: Float, cy: Float, radius: Float, litColor: Int) {
+        val phase = SunPositionCalculator.moonPhase()
+        val angle = phase * 2f * kotlin.math.PI.toFloat()
+        val cosA = kotlin.math.cos(angle)
+        val illuminated = (1f - cosA) / 2f
+        val darkColor = ColorUtils.blendARGB(litColor, 0xFF10101A.toInt(), 0.82f)
+
+        // Always-visible faint dark disc (the unlit hemisphere, like real earthshine).
+        celestialPaint.color = darkColor
         canvas.drawCircle(cx, cy, radius, celestialPaint)
+        if (illuminated <= 0.001f) return // new moon: nothing further to draw
+
+        val waxing = phase < 0.5f
+        val halfDisc = Path().apply {
+            moveTo(cx, cy - radius)
+            if (waxing) {
+                arcTo(RectF(cx - radius, cy - radius, cx + radius, cy + radius), -90f, 180f) // right half
+            } else {
+                arcTo(RectF(cx - radius, cy - radius, cx + radius, cy + radius), -90f, -180f) // left half
+            }
+            close()
+        }
+
+        val bulgeHalfWidth = radius * kotlin.math.abs(cosA)
+        val bulgeOval = RectF(cx - bulgeHalfWidth, cy - radius, cx + bulgeHalfWidth, cy + radius)
+        val isCrescent = (waxing && phase < 0.25f) || (!waxing && phase > 0.75f)
+
+        celestialPaint.color = litColor
+        canvas.drawPath(halfDisc, celestialPaint)
+        celestialPaint.color = if (isCrescent) darkColor else litColor
+        canvas.drawOval(bulgeOval, celestialPaint)
     }
 
     private fun rebuildHillPathsIfNeeded() {

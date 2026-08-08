@@ -6,6 +6,52 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v14 — in progress
+
+- **Fixed stale "appear in the themes that have them" copy** in Scene
+  Objects — and, before just rewording it, actually verified the claim: it
+  turned out only houses/buildings had candidates in every theme. Umbrellas
+  existed only in Beach; several themes were missing dogs, cars, or trees
+  entirely. Added the missing candidates across all 10 themes (programmatically
+  verified, not eyeballed) so all 6 categories are genuinely usable
+  everywhere, then updated the copy to "$title can appear in every theme".
+  Caught and fixed a duplicate-`cars`-parameter bug introduced while adding
+  car lanes to Beach/Tundra/Easter (they already had `cars = emptyList()`).
+- **Scene Objects now apply live to the current theme only**, not globally
+  to every theme — a real architecture change, not just a UI tweak:
+  - `CustomThemeEntry` now carries its own `SceneCustomization` snapshot
+    (density/visibility/colors), serialized alongside its theme/layout.
+  - `CustomThemeRegistry.resolveActiveCustomization()` is the single
+    authority for "what customization applies to theme X right now":
+    a saved theme (override or standalone custom) always uses its own
+    baked-in settings; otherwise, an in-progress live edit only applies if
+    it's tagged for that exact theme; otherwise, plain defaults.
+    Both `PaperWallpaperService` (the real wallpaper) and `SettingsScreen`
+    (previews/dialogs) go through this same resolver, so they can never
+    disagree with each other.
+  - `WallpaperPrefs`'s category setters now take a `forThemeId` and stamp
+    a `pendingCustomizationThemeId` tag in the same atomic DataStore edit,
+    so switching themes automatically stops applying an in-progress edit
+    to the theme you've moved away from — without discarding it, so
+    switching back resumes where you left off.
+  - "Manage Themes" → Replace with current / Save as new theme now
+    correctly bakes in whatever density/visibility/colors were live at
+    save time (previously this was silently ignored — a saved theme always
+    got the *unfiltered* candidate list regardless of what was on screen).
+- **Dogs reverted to their original (pre-v12) size** — doubled, they read
+  as oddly large next to everything else. Every other object stays doubled.
+- **Houses redesigned** with more visual detail: foundation strip, roof
+  overhang with ridge/shingle lines, a chimney with a cap, an arched door
+  with a doorknob and entry step, and windows with a sill and cross-mullion
+  divider — replacing the previous plain rectangle-plus-triangle.
+- **Sun and moon doubled in size** (previously read as too small).
+- **The moon now follows its real phase** (new/crescent/quarter/gibbous/
+  full) instead of always being a plain circle at night — computed from
+  the actual ~29.53-day synodic month cycle against a known reference new
+  moon, rendered with the classic half-disc-plus-terminator-ellipse
+  technique. Verified by hand against all four key phases (new, first
+  quarter, full, last quarter) before considering it correct.
+
 ## v13 — in progress
 
 - **In-app update checker**, on every app launch (never a background

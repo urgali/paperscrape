@@ -54,11 +54,16 @@ lightweight and compatible with any device).
 - **Custom themes**: save your current look as a new theme, replace any
   built-in theme with it, and reset any customized built-in back to
   default with one tap — all from the "Manage Themes" screen.
-- **Configurable scene objects**: a global density slider (0-100%) plus a
-  visibility toggle and 4 editable day/night colors, applied independently
-  to 6 object categories — houses, buildings, dogs, cars, umbrellas, and
-  trees. Every instance randomly (but stably, no flicker) picks one of the
-  2 color variants and blends into its night version as it gets dark.
+- **Configurable scene objects, live per theme**: a density slider (0-100%),
+  a visibility toggle, and 4 editable colors (touch-and-drag palette + hex
+  field), independently for 6 object categories — houses, buildings, dogs,
+  cars, umbrellas, and trees. Edits apply immediately to whichever theme
+  you're currently on and don't leak into any other theme; switch themes
+  and each one keeps its own look. Want to keep an edit permanently? Save
+  it from "Manage Themes" (Replace with current / Save as new theme) — the
+  density/visibility/colors you picked get baked into that saved theme.
+  Every instance randomly (but stably, no flicker) picks one of the 2
+  color variants and blends into its night version as it gets dark.
 - Settings screen in Jetpack Compose with a live preview of themes.
 - All preferences persisted with Jetpack **DataStore**.
 
@@ -113,7 +118,7 @@ and update `ReactionSoundPlayer.kt` (instructions in the file's own TODO).
 |---|---|
 | Theme | Choose among the 10 fixed themes (see table above) |
 | 🖼️ Manage themes | Opens the theme gallery: save the current look, replace a built-in theme with it, reset a customized one back to default, rename/delete your own custom themes |
-| 🎨 Scene objects | Global, applies across every theme: a live preview (house/tree/dog/building, day/night toggle), and for each of 6 categories (houses, buildings, dogs, cars, umbrellas, trees) — show/hide, a 0-100% density slider, and 4 editable day/night colors (touch-and-drag palette + hex field) |
+| 🎨 Scene objects | Live preview + per-theme editor: for each of 6 categories (houses, buildings, dogs, cars, umbrellas, trees) — show/hide, a 0-100% density slider, and 4 editable colors (touch-and-drag palette + hex field). Applies live to your current theme only; save it via "Manage Themes" to keep it |
 | 🎲 Generate random theme | Creates a new color/object combination; the seed is saved, so it survives a restart until you generate another one |
 | Automatic theme by date | Opt-in — overrides your manual pick during Christmas, New Year's Eve, Easter, or summer (Beach); falls back to your manual pick otherwise |
 | Follow real time | Sun/moon follow the device's clock instead of a fixed hour |

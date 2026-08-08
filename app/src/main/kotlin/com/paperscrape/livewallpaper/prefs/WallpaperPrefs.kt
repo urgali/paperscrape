@@ -24,7 +24,13 @@ data class WallpaperSettings(
     val touchEffectsEnabled: Boolean = true,
     val parallaxStrength: Float = 1f, // 0.5 .. 2.0
     val autoThemeByDate: Boolean = false, // opt-in: overrides themeId during known seasonal windows
-    val sceneCustomization: SceneCustomization = SceneCustomization.DEFAULT,
+    /** In-progress (not yet saved) scene-object edits, and which theme they belong to. Only
+     * applied when [pendingCustomizationThemeId] matches the theme actually being rendered --
+     * see [com.paperscrape.livewallpaper.engine.CustomThemeRegistry.resolveActiveCustomization].
+     * Switching to a different theme does *not* clear these (so switching back mid-edit resumes
+     * where you left off), but they simply won't apply anywhere except that one theme. */
+    val pendingCustomization: SceneCustomization = SceneCustomization.DEFAULT,
+    val pendingCustomizationThemeId: String? = null,
 )
 
 /** Object categories that can be individually customized (visibility, density, 2x day/night colors). */
@@ -40,6 +46,7 @@ class WallpaperPrefs(private val context: Context) {
         val TOUCH_EFFECTS = booleanPreferencesKey("touch_effects")
         val PARALLAX_STRENGTH = floatPreferencesKey("parallax_strength")
         val AUTO_THEME_BY_DATE = booleanPreferencesKey("auto_theme_by_date")
+        val PENDING_CUSTOMIZATION_THEME_ID = stringPreferencesKey("pending_customization_theme_id")
 
         fun visible(category: ObjectCategory) = booleanPreferencesKey("obj_${category.name}_visible")
         fun density(category: ObjectCategory) = floatPreferencesKey("obj_${category.name}_density")
@@ -69,7 +76,8 @@ class WallpaperPrefs(private val context: Context) {
             touchEffectsEnabled = prefs[Keys.TOUCH_EFFECTS] ?: true,
             parallaxStrength = prefs[Keys.PARALLAX_STRENGTH] ?: 1f,
             autoThemeByDate = prefs[Keys.AUTO_THEME_BY_DATE] ?: false,
-            sceneCustomization = SceneCustomization(
+            pendingCustomizationThemeId = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID],
+            pendingCustomization = SceneCustomization(
                 houses = readVariantConfig(prefs, ObjectCategory.HOUSES, defaults.houses),
                 buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, defaults.buildings),
                 dogs = readVariantConfig(prefs, ObjectCategory.DOGS, defaults.dogs),
@@ -99,25 +107,48 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setAutoThemeByDate(enabled: Boolean) =
         context.dataStore.edit { it[Keys.AUTO_THEME_BY_DATE] = enabled }
 
-    suspend fun setCategoryVisible(category: ObjectCategory, visible: Boolean) =
-        context.dataStore.edit { it[Keys.visible(category)] = visible }
+    // Every mutator below also stamps PENDING_CUSTOMIZATION_THEME_ID = forThemeId in the same
+    // atomic edit, so it's always unambiguous which theme the in-progress edit belongs to (see
+    // CustomThemeRegistry.resolveActiveCustomization). This is how "scene object changes apply
+    // live only to the current theme" is enforced -- other themes simply never match the tag.
 
-    suspend fun setCategoryDensity(category: ObjectCategory, density: Float) =
-        context.dataStore.edit { it[Keys.density(category)] = density }
+    suspend fun setCategoryVisible(category: ObjectCategory, visible: Boolean, forThemeId: String) =
+        context.dataStore.edit {
+            it[Keys.visible(category)] = visible
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
 
-    suspend fun setCategoryColorDay1(category: ObjectCategory, color: Int) =
-        context.dataStore.edit { it[Keys.colorDay1(category)] = color }
+    suspend fun setCategoryDensity(category: ObjectCategory, density: Float, forThemeId: String) =
+        context.dataStore.edit {
+            it[Keys.density(category)] = density
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
 
-    suspend fun setCategoryColorNight1(category: ObjectCategory, color: Int) =
-        context.dataStore.edit { it[Keys.colorNight1(category)] = color }
+    suspend fun setCategoryColorDay1(category: ObjectCategory, color: Int, forThemeId: String) =
+        context.dataStore.edit {
+            it[Keys.colorDay1(category)] = color
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
 
-    suspend fun setCategoryColorDay2(category: ObjectCategory, color: Int) =
-        context.dataStore.edit { it[Keys.colorDay2(category)] = color }
+    suspend fun setCategoryColorNight1(category: ObjectCategory, color: Int, forThemeId: String) =
+        context.dataStore.edit {
+            it[Keys.colorNight1(category)] = color
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
 
-    suspend fun setCategoryColorNight2(category: ObjectCategory, color: Int) =
-        context.dataStore.edit { it[Keys.colorNight2(category)] = color }
+    suspend fun setCategoryColorDay2(category: ObjectCategory, color: Int, forThemeId: String) =
+        context.dataStore.edit {
+            it[Keys.colorDay2(category)] = color
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
 
-    /** Resets one category's visibility/density/colors back to defaults. */
+    suspend fun setCategoryColorNight2(category: ObjectCategory, color: Int, forThemeId: String) =
+        context.dataStore.edit {
+            it[Keys.colorNight2(category)] = color
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /** Resets one category's visibility/density/colors back to defaults (keeps the pending-theme tag). */
     suspend fun resetCategory(category: ObjectCategory) = context.dataStore.edit { prefs ->
         prefs.remove(Keys.visible(category))
         prefs.remove(Keys.density(category))
@@ -127,7 +158,7 @@ class WallpaperPrefs(private val context: Context) {
         prefs.remove(Keys.colorNight2(category))
     }
 
-    /** Resets every object category back to defaults in one go. */
+    /** Resets every object category back to defaults and clears the pending-edit tag entirely. */
     suspend fun resetAllCategories() = context.dataStore.edit { prefs ->
         for (category in ObjectCategory.entries) {
             prefs.remove(Keys.visible(category))
@@ -137,5 +168,6 @@ class WallpaperPrefs(private val context: Context) {
             prefs.remove(Keys.colorDay2(category))
             prefs.remove(Keys.colorNight2(category))
         }
+        prefs.remove(Keys.PENDING_CUSTOMIZATION_THEME_ID)
     }
 }

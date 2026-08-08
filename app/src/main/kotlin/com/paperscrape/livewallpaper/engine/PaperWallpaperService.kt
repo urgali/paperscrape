@@ -56,14 +56,19 @@ class PaperWallpaperService : WallpaperService() {
         private var sunsetHour = 20f
         private var hasFixLocation = false
         private var lastAppliedThemeId = "sunset"
+        private var lastAppliedCustomization: SceneCustomization = SceneCustomization.DEFAULT
 
         private val drawRunnable = Runnable { drawFrame() }
 
         /**
          * Resolves which themeId should actually be rendered right now: the user's manual pick,
          * or — if "automatic theme by date" is on and a seasonal window currently applies — the
-         * seasonal one instead. Returns true if the resolved id changed since the last call, so
-         * the caller knows whether an out-of-cycle redraw is worth forcing.
+         * seasonal one instead. Also resolves that theme's scene-object customization (a saved
+         * theme's own baked-in settings, or the in-progress live edit if it's tagged for this
+         * exact theme, or plain defaults otherwise — see
+         * [CustomThemeRegistry.resolveActiveCustomization]). Returns true if anything actually
+         * rendered changed since the last call, so the caller knows whether an out-of-cycle
+         * redraw is worth forcing.
          */
         private fun applyEffectiveTheme(): Boolean {
             val effectiveId = if (settings.autoThemeByDate) {
@@ -71,9 +76,16 @@ class PaperWallpaperService : WallpaperService() {
             } else {
                 settings.themeId
             }
-            val changed = effectiveId != lastAppliedThemeId
+            val resolvedCustomization = CustomThemeRegistry.resolveActiveCustomization(
+                themeId = effectiveId,
+                pendingCustomization = settings.pendingCustomization,
+                pendingThemeId = settings.pendingCustomizationThemeId,
+            )
+            val changed = effectiveId != lastAppliedThemeId || resolvedCustomization != lastAppliedCustomization
             renderer?.theme = ThemeCatalog.byId(effectiveId)
+            renderer?.sceneCustomization = resolvedCustomization
             lastAppliedThemeId = effectiveId
+            lastAppliedCustomization = resolvedCustomization
             return changed
         }
 
@@ -92,18 +104,16 @@ class PaperWallpaperService : WallpaperService() {
             }
             scope.launch {
                 prefs.settingsFlow.collect { newSettings ->
-                    val configChanged = newSettings.sceneCustomization != settings.sceneCustomization
                     settings = newSettings
-                    val themeChanged = applyEffectiveTheme()
+                    val changed = applyEffectiveTheme()
                     renderer?.parallaxStrength = newSettings.parallaxStrength
-                    renderer?.sceneCustomization = newSettings.sceneCustomization
                     if (newSettings.useLocationForSunTimes) {
                         maybeStartLocationUpdates()
                     } else {
                         stopLocationUpdates()
                         hasFixLocation = false
                     }
-                    if (themeChanged || configChanged) drawFrame()
+                    if (changed) drawFrame()
                 }
             }
         }
@@ -112,7 +122,6 @@ class PaperWallpaperService : WallpaperService() {
             super.onSurfaceCreated(holder)
             renderer = PaperRenderer(holder.surfaceFrame.width(), holder.surfaceFrame.height()).apply {
                 parallaxStrength = settings.parallaxStrength
-                sceneCustomization = settings.sceneCustomization
             }
             applyEffectiveTheme()
         }

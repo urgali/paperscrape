@@ -74,6 +74,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
+import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneCustomization
@@ -279,18 +280,27 @@ fun SettingsScreen(
             onSaveCurrentAsNew = { name ->
                 scope.launch {
                     val id = CustomThemeStore.newCustomThemeId()
-                    customThemeStore.upsertCustomTheme(snapshotEntry(id, name, effectiveThemeId))
+                    customThemeStore.upsertCustomTheme(
+                        snapshotEntry(id, name, effectiveThemeId, settings.pendingCustomization, settings.pendingCustomizationThemeId),
+                    )
                 }
             },
             onReplaceBuiltinWithCurrent = { builtinId ->
                 scope.launch {
                     val name = ThemeCatalog.byId(builtinId).displayName
-                    customThemeStore.setOverride(builtinId, snapshotEntry(builtinId, name, effectiveThemeId))
+                    customThemeStore.setOverride(
+                        builtinId,
+                        snapshotEntry(builtinId, name, effectiveThemeId, settings.pendingCustomization, settings.pendingCustomizationThemeId),
+                    )
                 }
             },
             onResetBuiltin = { builtinId -> scope.launch { customThemeStore.clearOverride(builtinId) } },
             onReplaceCustomWithCurrent = { id, name ->
-                scope.launch { customThemeStore.upsertCustomTheme(snapshotEntry(id, name, effectiveThemeId)) }
+                scope.launch {
+                    customThemeStore.upsertCustomTheme(
+                        snapshotEntry(id, name, effectiveThemeId, settings.pendingCustomization, settings.pendingCustomizationThemeId),
+                    )
+                }
             },
             onRenameCustom = { id, newName -> scope.launch { customThemeStore.renameCustomTheme(id, newName) } },
             onDeleteCustom = { id -> scope.launch { customThemeStore.deleteCustomTheme(id) } },
@@ -299,7 +309,12 @@ fun SettingsScreen(
 
     if (showSceneObjects) {
         SceneObjectsDialog(
-            customization = settings.sceneCustomization,
+            customization = CustomThemeRegistry.resolveActiveCustomization(
+                themeId = effectiveThemeId,
+                pendingCustomization = settings.pendingCustomization,
+                pendingThemeId = settings.pendingCustomizationThemeId,
+            ),
+            forThemeId = effectiveThemeId,
             prefs = prefs,
             scope = scope,
             onDismiss = { showSceneObjects = false },
@@ -355,10 +370,28 @@ fun SettingsScreen(
 
 /** Snapshots whatever theme+layout [sourceThemeId] currently resolves to, relabeled as
  * [targetId]/[targetName] -- the basis for both "save as new theme" and "replace with current". */
-private fun snapshotEntry(targetId: String, targetName: String, sourceThemeId: String): CustomThemeEntry {
+private fun snapshotEntry(
+    targetId: String,
+    targetName: String,
+    sourceThemeId: String,
+    pendingCustomization: SceneCustomization,
+    pendingCustomizationThemeId: String?,
+): CustomThemeEntry {
     val theme = ThemeCatalog.byId(sourceThemeId).copy(id = targetId, displayName = targetName)
-    val layout = SceneObjectCatalog.layoutFor(sourceThemeId, theme.accentColor)
-    return CustomThemeEntry(id = targetId, name = targetName, theme = theme, layout = layout)
+    val rawLayout = SceneObjectCatalog.layoutFor(sourceThemeId, theme.accentColor)
+    // Bake in whatever's currently live for sourceThemeId (density/visibility filtering + the
+    // exact colors), so "what you see is what you save" -- the saved theme keeps looking like
+    // this even if you later edit scene objects for some other theme.
+    val activeCustomization = CustomThemeRegistry.resolveActiveCustomization(
+        themeId = sourceThemeId,
+        pendingCustomization = pendingCustomization,
+        pendingThemeId = pendingCustomizationThemeId,
+    )
+    val layout = SceneObjectLayout(
+        staticObjects = rawLayout.staticObjects.filter { activeCustomization.keepCandidate(it) },
+        cars = rawLayout.cars.filter { activeCustomization.keepCar(it) },
+    )
+    return CustomThemeEntry(id = targetId, name = targetName, theme = theme, layout = layout, customization = activeCustomization)
 }
 
 @Composable
@@ -753,6 +786,7 @@ private data class ColorEditTarget(val label: String, val color: Int, val onChan
 @Composable
 private fun SceneObjectsDialog(
     customization: SceneCustomization,
+    forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
     onDismiss: () -> Unit,
@@ -784,7 +818,7 @@ private fun SceneObjectsDialog(
                     SceneObjectLivePreview(customization = customization, modifier = Modifier.fillMaxWidth())
 
                     Text(
-                        "These settings apply across every theme that includes each object type, not just the current one.",
+                        "These settings apply live to your current theme only — switch themes and they follow the one you're on. Want to keep this look? Save it from \"Manage Themes\" (Replace with current / Save as new theme).",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -793,6 +827,7 @@ private fun SceneObjectsDialog(
                         title = "Houses",
                         config = customization.houses,
                         category = ObjectCategory.HOUSES,
+                        forThemeId = forThemeId,
                         prefs = prefs,
                         scope = scope,
                         onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
@@ -801,6 +836,7 @@ private fun SceneObjectsDialog(
                         title = "Buildings",
                         config = customization.buildings,
                         category = ObjectCategory.BUILDINGS,
+                        forThemeId = forThemeId,
                         prefs = prefs,
                         scope = scope,
                         onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
@@ -809,6 +845,7 @@ private fun SceneObjectsDialog(
                         title = "Dogs",
                         config = customization.dogs,
                         category = ObjectCategory.DOGS,
+                        forThemeId = forThemeId,
                         prefs = prefs,
                         scope = scope,
                         onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
@@ -817,6 +854,7 @@ private fun SceneObjectsDialog(
                         title = "Cars",
                         config = customization.cars,
                         category = ObjectCategory.CARS,
+                        forThemeId = forThemeId,
                         prefs = prefs,
                         scope = scope,
                         onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
@@ -825,6 +863,7 @@ private fun SceneObjectsDialog(
                         title = "Umbrellas",
                         config = customization.parasols,
                         category = ObjectCategory.PARASOLS,
+                        forThemeId = forThemeId,
                         prefs = prefs,
                         scope = scope,
                         onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
@@ -833,6 +872,7 @@ private fun SceneObjectsDialog(
                         title = "Trees",
                         config = customization.trees,
                         category = ObjectCategory.TREES,
+                        forThemeId = forThemeId,
                         prefs = prefs,
                         scope = scope,
                         onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
@@ -867,6 +907,7 @@ private fun ObjectCategorySection(
     title: String,
     config: ObjectVariantConfig,
     category: ObjectCategory,
+    forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
@@ -876,16 +917,16 @@ private fun ObjectCategorySection(
 
         SettingSwitchRow(
             title = "Show $title",
-            subtitle = "$title appear in the themes that have them",
+            subtitle = "$title can appear in every theme",
             checked = config.visible,
-            onCheckedChange = { scope.launch { prefs.setCategoryVisible(category, it) } },
+            onCheckedChange = { scope.launch { prefs.setCategoryVisible(category, it, forThemeId) } },
         )
 
         Column {
             Text("Density: ${(config.density * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
             Slider(
                 value = config.density,
-                onValueChange = { scope.launch { prefs.setCategoryDensity(category, it) } },
+                onValueChange = { scope.launch { prefs.setCategoryDensity(category, it, forThemeId) } },
                 valueRange = 0f..1f,
             )
         }
@@ -896,16 +937,16 @@ private fun ObjectCategorySection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         ColorSwatchRow("Day Color 1", config.colorDay1) {
-            onEditColor("$title — Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c) } }
+            onEditColor("$title — Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c, forThemeId) } }
         }
         ColorSwatchRow("Night Color 1", config.colorNight1) {
-            onEditColor("$title — Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c) } }
+            onEditColor("$title — Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c, forThemeId) } }
         }
         ColorSwatchRow("Day Color 2", config.colorDay2) {
-            onEditColor("$title — Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c) } }
+            onEditColor("$title — Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c, forThemeId) } }
         }
         ColorSwatchRow("Night Color 2", config.colorNight2) {
-            onEditColor("$title — Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c) } }
+            onEditColor("$title — Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c, forThemeId) } }
         }
 
         OutlinedButton(

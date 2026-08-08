@@ -234,7 +234,11 @@ class SceneObjectRenderer(
         if (x < -200f || x > 3000f) return // cheap off-screen skip
         canvas.save()
         canvas.translate(x, y)
-        canvas.scale(r.spec.scale * GLOBAL_OBJECT_SCALE, r.spec.scale * GLOBAL_OBJECT_SCALE)
+        // Dogs kept their original (pre-doubling) size -- doubled, they read as oddly large next
+        // to everything else at typical wallpaper viewing distance. Every other static object
+        // stays at GLOBAL_OBJECT_SCALE.
+        val effectiveScale = if (r.spec.type == SceneObjectType.DOG) r.spec.scale else r.spec.scale * GLOBAL_OBJECT_SCALE
+        canvas.scale(effectiveScale, effectiveScale)
 
         // Reaction "ease" is shared by both reaction styles: a smooth 0->1->0 bump over the
         // 0.6s window right after a tap.
@@ -295,19 +299,64 @@ class SceneObjectRenderer(
 
     private fun drawHouse(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
         val wallColor = customization.colorFor(r.spec, dayBlend)
+        val roofColor = ColorUtils.blendARGB(wallColor, 0xFF1A1410.toInt(), 0.45f)
+        val trimColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
+
+        // Foundation strip so the house doesn't look like it's floating above the ground.
+        fillPaint.color = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.3f)
+        canvas.drawRect(RectF(-38f, -4f, 38f, 2f), fillPaint)
+
+        // Main wall body.
         fillPaint.color = wallColor
         canvas.drawRect(RectF(-36f, -46f, 36f, 0f), fillPaint)
-        // Roof is a darkened version of the wall color, so any user-picked house color still
-        // reads as coherent instead of clashing with a fixed, unrelated roof tone.
-        fillPaint.color = ColorUtils.blendARGB(wallColor, 0xFF1A1410.toInt(), 0.45f)
-        path.reset(); path.moveTo(-44f, -46f); path.lineTo(0f, -78f); path.lineTo(44f, -46f); path.close()
+
+        // Roof, with a slight overhang past the walls for a proper eave.
+        fillPaint.color = roofColor
+        path.reset(); path.moveTo(-46f, -46f); path.lineTo(0f, -80f); path.lineTo(46f, -46f); path.close()
         canvas.drawPath(path, fillPaint)
-        fillPaint.color = treeTrunkColor
-        canvas.drawRect(RectF(-8f, -26f, 8f, 0f), fillPaint)
+
+        // Ridge + shingle-course texture lines.
+        strokePaint.style = Paint.Style.STROKE
+        strokePaint.strokeWidth = 1.5f
+        strokePaint.color = ColorUtils.blendARGB(roofColor, 0xFF000000.toInt(), 0.35f)
+        canvas.drawLine(-34f, -50f, 34f, -50f, strokePaint)
+        canvas.drawLine(-22f, -58f, 22f, -58f, strokePaint)
+
+        // Chimney with a cap.
+        val chimneyColor = ColorUtils.blendARGB(roofColor, 0xFF3A2A20.toInt(), 0.4f)
+        fillPaint.color = chimneyColor
+        canvas.drawRect(RectF(18f, -74f, 30f, -54f), fillPaint)
+        fillPaint.color = ColorUtils.blendARGB(chimneyColor, 0xFF000000.toInt(), 0.25f)
+        canvas.drawRect(RectF(16f, -76f, 32f, -72f), fillPaint)
+
+        // Door: gently arched top, a doorknob, and a small entry step.
+        fillPaint.color = trimColor
+        path.reset()
+        path.moveTo(-9f, 0f)
+        path.lineTo(-9f, -22f)
+        path.quadTo(-9f, -28f, 0f, -28f)
+        path.quadTo(9f, -28f, 9f, -22f)
+        path.lineTo(9f, 0f)
+        path.close()
+        canvas.drawPath(path, fillPaint)
+        fillPaint.color = 0xFFF2C230.toInt()
+        canvas.drawCircle(5.5f, -12f, 1.6f, fillPaint)
+        fillPaint.color = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
+        canvas.drawRect(RectF(-12f, 0f, 12f, 3f), fillPaint)
+
+        // Windows: a sill plus a cross-mullion divider, lit warm at night.
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
-        fillPaint.color = ColorUtils.blendARGB(0xFFB9CBD9.toInt(), 0xFFFFE79A.toInt(), nightGlow)
-        canvas.drawRect(RectF(-30f, -40f, -16f, -28f), fillPaint)
-        canvas.drawRect(RectF(16f, -40f, 30f, -28f), fillPaint)
+        val windowColor = ColorUtils.blendARGB(0xFFB9CBD9.toInt(), 0xFFFFE79A.toInt(), nightGlow)
+        for (wx in floatArrayOf(-23f, 23f)) {
+            fillPaint.color = windowColor
+            canvas.drawRect(RectF(wx - 7f, -40f, wx + 7f, -28f), fillPaint)
+            fillPaint.color = trimColor
+            canvas.drawRect(RectF(wx - 8f, -28f, wx + 8f, -26f), fillPaint)
+            strokePaint.color = trimColor
+            strokePaint.strokeWidth = 1.3f
+            canvas.drawLine(wx, -40f, wx, -28f, strokePaint)
+            canvas.drawLine(wx - 7f, -34f, wx + 7f, -34f, strokePaint)
+        }
     }
 
     private fun drawTree(canvas: Canvas, r: StaticRuntime, elapsed: Float, reactionBoost: Float = 0f, dayBlend: Float = 1f) {
