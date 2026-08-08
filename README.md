@@ -1,5 +1,11 @@
 # PaperScrape 🗻📄
 
+> ⚠️ **Disclaimer**
+>
+> Hello! I'm not a software dev, just a humble networker; I really like
+> android and this kind of wallpaper so i just asked AI to build it; this is
+> ENTIRELY AI, I don't know what I'm doing :) ..have fun!
+
 Open-source Android live wallpaper with a layered "paper cutout" landscape,
 parallax scrolling, a sun and moon that follow the time of day (real or set
 manually), interchangeable color themes, and touch effects.
@@ -117,7 +123,7 @@ and update `ReactionSoundPlayer.kt` (instructions in the file's own TODO).
 | Setting | What it does |
 |---|---|
 | Theme | Choose among the 10 fixed themes (see table above) |
-| 🖼️ Manage themes | Opens the theme gallery: save the current look, replace a built-in theme with it, reset a customized one back to default, rename/delete your own custom themes |
+| 🖼️ Manage themes | Opens the theme gallery: save the current look, replace a built-in theme with it, reset a customized one back to default (or all of them at once — useful if a theme seems to be missing objects an app update added), rename/delete your own custom themes |
 | 🎨 Scene objects | Live preview + per-theme editor: for each of 6 categories (houses, buildings, dogs, cars, umbrellas, trees) — show/hide, a 0-100% density slider, and 4 editable colors (touch-and-drag palette + hex field). Applies live to your current theme only; save it via "Manage Themes" to keep it |
 | 🎲 Generate random theme | Creates a new color/object combination; the seed is saved, so it survives a restart until you generate another one |
 | Automatic theme by date | Opt-in — overrides your manual pick during Christmas, New Year's Eve, Easter, or summer (Beach); falls back to your manual pick otherwise |

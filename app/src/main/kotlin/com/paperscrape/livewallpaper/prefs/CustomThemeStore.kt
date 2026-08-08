@@ -51,6 +51,15 @@ class CustomThemeStore(private val context: Context) {
         data.copy(overrides = data.overrides - builtinId)
     }
 
+    /**
+     * Clears *every* built-in override at once. Useful because an override permanently freezes
+     * a snapshot of a theme's objects from whenever it was saved — if a later app update adds
+     * more houses/buildings/cars/etc. to that theme's built-in definition, an overridden theme
+     * never sees them (it keeps rendering its old, frozen layout forever). This is the one-tap
+     * way to guarantee every built-in theme is showing its current, up-to-date definition.
+     */
+    suspend fun clearAllOverrides() = update { data -> data.copy(overrides = emptyMap()) }
+
     /** Saves a brand-new independent custom theme (or replaces one with the same id). */
     suspend fun upsertCustomTheme(entry: CustomThemeEntry) = update { data ->
         val withoutExisting = data.customThemes.filterNot { it.id == entry.id }

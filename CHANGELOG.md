@@ -6,6 +6,31 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v17 — in progress
+
+- **README disclaimer** added at the very top, as requested verbatim.
+- **More bottom clearance in "Manage Themes"/"Scene Objects"**: increased
+  the bottom safety spacer from 24dp to 56dp — the last row of theme cards
+  was sitting close enough to the screen edge that curved-corner phones
+  could visually clip the leading character of the theme name.
+- **Diagnosed and addressed: Christmas showing far fewer objects than
+  defined** (user reported 2/4 houses, 0/1 buildings, 0/1 cars despite
+  everything set to visible/100%). Verified the actual source definitions
+  are correct and healthy across *every* theme (counts checked
+  programmatically, not eyeballed) and that the density-filter math is
+  airtight at 100% (mathematically guaranteed to keep every candidate).
+  The most likely explanation: a **frozen override** — "Replace with
+  current" permanently snapshots a theme's objects at save time, so a
+  theme customized (even accidentally, during earlier testing) before a
+  later app update added more objects to it keeps rendering the old,
+  smaller object set forever, no matter what the live Scene Objects
+  sliders say. This is a structural risk for *any* theme that's ever been
+  overridden, not a Christmas-specific bug. Added a one-tap fix: **"Reset
+  all customized themes to default"** in Manage Themes (only shown when at
+  least one override exists), so every theme can be restored to its
+  current, up-to-date built-in definition at once instead of having to
+  check each one individually.
+
 ## v16 — in progress
 
 - **Fixed "Manage Themes" not scrolling all the way down**: the last row of

@@ -326,6 +326,7 @@ fun SettingsScreen(
                 }
             },
             onResetBuiltin = { builtinId -> scope.launch { customThemeStore.clearOverride(builtinId) } },
+            onResetAllOverrides = { scope.launch { customThemeStore.clearAllOverrides() } },
             onReplaceCustomWithCurrent = { id, name ->
                 scope.launch {
                     customThemeStore.upsertCustomTheme(
@@ -528,6 +529,7 @@ private fun ThemeManagerDialog(
     onSaveCurrentAsNew: (name: String) -> Unit,
     onReplaceBuiltinWithCurrent: (builtinId: String) -> Unit,
     onResetBuiltin: (builtinId: String) -> Unit,
+    onResetAllOverrides: () -> Unit,
     onReplaceCustomWithCurrent: (id: String, name: String) -> Unit,
     onRenameCustom: (id: String, newName: String) -> Unit,
     onDeleteCustom: (id: String) -> Unit,
@@ -536,6 +538,7 @@ private fun ThemeManagerDialog(
     var renameTarget by remember { mutableStateOf<CustomThemeEntry?>(null) }
     var confirmReset by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf<CustomThemeEntry?>(null) }
+    var confirmResetAll by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize()) {
@@ -576,6 +579,20 @@ private fun ThemeManagerDialog(
                         Text("💾 Save current look as new theme")
                     }
 
+                    if (customThemeData.overrides.isNotEmpty()) {
+                        OutlinedButton(
+                            onClick = { confirmResetAll = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("↺ Reset all customized themes to default (${customThemeData.overrides.size})")
+                        }
+                        Text(
+                            "A customized theme keeps whatever it looked like when you saved it, even after app updates add new objects to that theme. If a theme seems to be missing things it should have, this fixes it.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
                     SectionTitle("Built-in themes")
                     GalleryGrid(items = ThemeCatalog.ALL) { builtin ->
                         val overrideEntry = customThemeData.overrides[builtin.id]
@@ -612,7 +629,7 @@ private fun ThemeManagerDialog(
 
                     // Extra breathing room at the very bottom so the last row of cards is never
                     // flush with the screen edge / partially hidden behind the system nav bar.
-                    Box(modifier = Modifier.height(24.dp))
+                    Box(modifier = Modifier.height(56.dp))
                 }
             }
         }
@@ -659,6 +676,20 @@ private fun ThemeManagerDialog(
             },
             dismissButton = {
                 TextButton(onClick = { confirmDelete = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (confirmResetAll) {
+        AlertDialog(
+            onDismissRequest = { confirmResetAll = false },
+            title = { Text("Reset all customized themes?") },
+            text = { Text("This removes your custom version of every overridden built-in theme (${customThemeData.overrides.size}) and restores each one's current default look. Your independent custom themes are not affected.") },
+            confirmButton = {
+                TextButton(onClick = { onResetAllOverrides(); confirmResetAll = false }) { Text("Reset all") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmResetAll = false }) { Text("Cancel") }
             },
         )
     }
@@ -922,7 +953,7 @@ private fun SceneObjectsDialog(
                         Text("↺ Reset everything to defaults")
                     }
 
-                    Box(modifier = Modifier.height(24.dp))
+                    Box(modifier = Modifier.height(56.dp))
                 }
             }
         }
