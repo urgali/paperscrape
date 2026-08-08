@@ -57,15 +57,14 @@ class SceneObjectRenderer(
         const val GLOBAL_OBJECT_SCALE = 2f
 
         /**
-         * Human depth perception: nearer things look bigger, farther things look smaller. Layer
-         * 2 is the nearest hill layer (highest parallax factor, sits lowest/frontmost on
-         * screen), layer 0 is the farthest. Applied on top of each object's own `scale` (which
-         * is just size *variety within* its layer, not meant to also encode depth) so every
-         * object gets correct perspective automatically regardless of how its own scale was
-         * authored -- previously depth wasn't modeled at all, and several hand-picked scale
-         * values happened to go the wrong way (smaller on the near layer, larger on the far one).
+         * Human depth perception: nearer things look bigger, farther things look smaller. Index
+         * 0 is the farthest placement row, 8 the nearest (see [PaperRenderer.ROWS_PER_LAYER] —
+         * each of the 3 visual hill layers is subdivided into 3 placement rows, giving 9 total).
+         * Applied on top of each object's own `scale` (which is just size *variety within* its
+         * row, not meant to also encode depth) so every object gets correct perspective
+         * automatically regardless of how its own scale was authored.
          */
-        private val LAYER_DEPTH_SCALE = floatArrayOf(0.65f, 0.85f, 1.15f) // far -> near
+        private val LAYER_DEPTH_SCALE = floatArrayOf(0.55f, 0.64f, 0.74f, 0.83f, 0.93f, 1.02f, 1.11f, 1.21f, 1.30f) // far -> near
     }
 
     // Base paper colors for animals/houses — intentionally theme-agnostic "cut paper" tones

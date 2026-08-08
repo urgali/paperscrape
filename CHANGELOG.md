@@ -6,6 +6,34 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v23 — in progress
+
+- **Replaced the 3 shared placement lines with 9**, to fix houses/buildings
+  overlapping once density was pushed up (an inherent problem of cramming
+  up to 10 candidates per category onto just 2-3 shared Y positions).
+  Each of the 3 visual hill layers is now subdivided into 3 distinct
+  placement rows (own Y position, own depth scale), giving objects 9 total
+  rows to spread across instead of 3 — the hill silhouette itself is
+  unchanged, still 3 visual bands; only how objects are distributed within
+  them changed. Buildings and houses were given non-overlapping row bands
+  (buildings: rows 3-5, houses: rows 5-7) so a dense city and a full
+  neighborhood no longer collide even at 100% density each.
+- **This was a breaking change to what `layer` means** (0-2 before, 0-8
+  now), so every existing hardcoded placement needed remapping: all
+  "flavor" decorations (snowmen, gifts, balloons, penguins, bunnies,
+  Easter eggs) moved from layer 2 to row 8 (the equivalent nearest
+  position), and the Randomize generator's random layer pick now spans
+  the full 0-8 range instead of being stuck on the old 0-2.
+- **Fixed the "third row flying again" regression**: this was buildings
+  using rows in the farthest hill band again (reintroduced when the v22
+  uniform generator gave buildings layers [0,1] for skyline depth variety).
+  Buildings now stay within rows 3-5 (the middle hill layer only),
+  avoiding the farthest band's floaty-looking ground height entirely.
+- Hill/mountain *count and color* customization (letting the user add/
+  remove hill layers and recolor them, matching the reference screenshots)
+  is intentionally not part of this update — noted as the next step, not
+  bundled in here to keep this change reviewable on its own.
+
 ## v22 — in progress
 
 - **Every theme now offers the same maximum customization range**: rewrote

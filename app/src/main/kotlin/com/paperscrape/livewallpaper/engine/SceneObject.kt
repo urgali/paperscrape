@@ -21,7 +21,7 @@ enum class SceneObjectType {
  */
 data class StaticSceneObject(
     val type: SceneObjectType,
-    val layer: Int, // which hill layer (0 = far, 2 = near) it's anchored to
+    val layer: Int, // which placement row, 0..8 (0 = farthest, 8 = nearest) it's anchored to
     val tileFractionX: Float,
     val scale: Float = 1f,
     val tappable: Boolean = type in TAPPABLE_TYPES,
@@ -129,7 +129,14 @@ object SceneObjectCatalog {
     /** The uniform 6-category candidate set shared by every theme. [treeType] lets themes like
      * Beach use palm trees instead of plain trees for their "trees" category slots while still
      * sharing the same density/color customization (both map to the same category, see
-     * [SceneCustomization]'s `configFor`). */
+     * [SceneCustomization]'s `configFor`).
+     *
+     * Row assignments (0=farthest, 8=nearest, 9 total -- see [PaperRenderer.ROWS_PER_LAYER]):
+     * buildings and houses get their own non-overlapping bands so a dense city and a full
+     * neighborhood don't collide even at 100% density each; rows 0-2 (the farthest hill layer)
+     * are avoided for anything solid-looking, since that band sits close enough to the sky to
+     * read as floating rather than grounded.
+     */
     private fun uniformCandidates(
         themeId: String,
         accentColor: Int,
@@ -137,11 +144,11 @@ object SceneObjectCatalog {
     ): SceneObjectLayout {
         val seed = themeId.hashCode()
         val staticObjects =
-            generateStaticCandidates(SceneObjectType.HOUSE, seed + 1, intArrayOf(1, 2), baseScale = 0.85f, scaleJitter = 0.35f) +
-                generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, intArrayOf(0, 1), baseScale = 0.9f, scaleJitter = 0.5f) +
-                generateStaticCandidates(SceneObjectType.DOG, seed + 3, intArrayOf(2), baseScale = 0.85f, scaleJitter = 0.25f) +
-                generateStaticCandidates(SceneObjectType.PARASOL, seed + 4, intArrayOf(2), baseScale = 0.8f, scaleJitter = 0.25f) +
-                generateStaticCandidates(treeType, seed + 5, intArrayOf(1, 2), baseScale = 0.85f, scaleJitter = 0.35f)
+            generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, intArrayOf(3, 4, 5), baseScale = 0.9f, scaleJitter = 0.5f) +
+                generateStaticCandidates(SceneObjectType.HOUSE, seed + 1, intArrayOf(5, 6, 7), baseScale = 0.85f, scaleJitter = 0.35f) +
+                generateStaticCandidates(treeType, seed + 5, intArrayOf(4, 5, 6, 7, 8), baseScale = 0.85f, scaleJitter = 0.35f) +
+                generateStaticCandidates(SceneObjectType.PARASOL, seed + 4, intArrayOf(7, 8), baseScale = 0.8f, scaleJitter = 0.25f) +
+                generateStaticCandidates(SceneObjectType.DOG, seed + 3, intArrayOf(8), baseScale = 0.85f, scaleJitter = 0.25f)
         val cars = generateCarCandidates(seed + 6, accentColor)
         return SceneObjectLayout(staticObjects = staticObjects, cars = cars)
     }
@@ -157,21 +164,21 @@ object SceneObjectCatalog {
         "autumn" -> uniformCandidates(themeId, accentColor)
 
         "winter" -> uniformCandidates(themeId, accentColor) + listOf(
-            StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.55f),
+            StaticSceneObject(SceneObjectType.SNOWMAN, layer = 8, tileFractionX = 0.55f),
         )
 
         "desert" -> uniformCandidates(themeId, accentColor)
 
         "christmas" -> uniformCandidates(themeId, accentColor) + listOf(
-            StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.12f),
-            StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.82f, scale = 0.85f),
-            StaticSceneObject(SceneObjectType.GIFT, layer = 2, tileFractionX = 0.45f),
-            StaticSceneObject(SceneObjectType.GIFT, layer = 2, tileFractionX = 0.52f, scale = 0.75f),
+            StaticSceneObject(SceneObjectType.SNOWMAN, layer = 8, tileFractionX = 0.12f),
+            StaticSceneObject(SceneObjectType.SNOWMAN, layer = 8, tileFractionX = 0.82f, scale = 0.85f),
+            StaticSceneObject(SceneObjectType.GIFT, layer = 8, tileFractionX = 0.45f),
+            StaticSceneObject(SceneObjectType.GIFT, layer = 8, tileFractionX = 0.52f, scale = 0.75f),
         )
 
         "new_year" -> uniformCandidates(themeId, accentColor) + listOf(
-            StaticSceneObject(SceneObjectType.BALLOON, layer = 2, tileFractionX = 0.25f),
-            StaticSceneObject(SceneObjectType.BALLOON, layer = 2, tileFractionX = 0.72f, scale = 0.8f),
+            StaticSceneObject(SceneObjectType.BALLOON, layer = 8, tileFractionX = 0.25f),
+            StaticSceneObject(SceneObjectType.BALLOON, layer = 8, tileFractionX = 0.72f, scale = 0.8f),
         )
 
         "beach" -> uniformCandidates(themeId, accentColor, treeType = SceneObjectType.PALM_TREE)
@@ -179,17 +186,17 @@ object SceneObjectCatalog {
         "city" -> uniformCandidates(themeId, accentColor)
 
         "tundra" -> uniformCandidates(themeId, accentColor) + listOf(
-            StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.20f),
-            StaticSceneObject(SceneObjectType.PENGUIN, layer = 2, tileFractionX = 0.45f),
-            StaticSceneObject(SceneObjectType.PENGUIN, layer = 2, tileFractionX = 0.55f, scale = 0.8f),
+            StaticSceneObject(SceneObjectType.SNOWMAN, layer = 8, tileFractionX = 0.20f),
+            StaticSceneObject(SceneObjectType.PENGUIN, layer = 8, tileFractionX = 0.45f),
+            StaticSceneObject(SceneObjectType.PENGUIN, layer = 8, tileFractionX = 0.55f, scale = 0.8f),
         )
 
         "easter" -> uniformCandidates(themeId, accentColor) + listOf(
-            StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.15f),
-            StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.35f, scale = 0.75f),
-            StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.58f, scale = 0.9f),
-            StaticSceneObject(SceneObjectType.BUNNY, layer = 2, tileFractionX = 0.45f),
-            StaticSceneObject(SceneObjectType.BUNNY, layer = 2, tileFractionX = 0.80f, scale = 0.85f),
+            StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 8, tileFractionX = 0.15f),
+            StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 8, tileFractionX = 0.35f, scale = 0.75f),
+            StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 8, tileFractionX = 0.58f, scale = 0.9f),
+            StaticSceneObject(SceneObjectType.BUNNY, layer = 8, tileFractionX = 0.45f),
+            StaticSceneObject(SceneObjectType.BUNNY, layer = 8, tileFractionX = 0.80f, scale = 0.85f),
         )
 
         else -> null

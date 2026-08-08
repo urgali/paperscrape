@@ -91,7 +91,7 @@ object RandomSceneGenerator {
         val staticObjects = (0 until objectCount).map {
             StaticSceneObject(
                 type = OBJECT_POOL.random(rnd),
-                layer = rnd.nextInt(0, 3),
+                layer = rnd.nextInt(0, PaperRenderer.TOTAL_ROWS),
                 tileFractionX = rnd.nextFloat(),
                 scale = 0.7f + rnd.nextFloat() * 0.6f,
             )

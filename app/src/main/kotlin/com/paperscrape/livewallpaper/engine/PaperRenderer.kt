@@ -85,6 +85,16 @@ class PaperRenderer(
     private val heightFractions = floatArrayOf(0.34f, 0.30f, 0.27f)
     private val yOffsets = floatArrayOf(0.50f, 0.60f, 0.70f) // top of each layer, as fraction of height
 
+    companion object {
+        /** Each of the 3 visual hill layers is subdivided into this many distinct object
+         * "placement rows" (own Y position + own depth scale), giving objects far more room to
+         * spread out than just 3 shared lines -- without changing the hill silhouette itself,
+         * which still only has 3 visual bands. See [SceneObjectCatalog]'s row assignments and
+         * [SceneObjectRenderer.LAYER_DEPTH_SCALE]. */
+        const val ROWS_PER_LAYER = 3
+        const val TOTAL_ROWS = 3 * ROWS_PER_LAYER
+    }
+
     // Deterministic per-layer "noise" seed so the silhouette shape is stable across frames
     // but different per layer/theme.
     private fun layerSeed(layer: Int): Long = (theme.id.hashCode().toLong() * 31 + layer)
@@ -281,12 +291,23 @@ class PaperRenderer(
             var objectShiftWrapped = shiftX % screenWidth
             if (objectShiftWrapped > 0f) objectShiftWrapped -= screenWidth
 
-            layerGeometries[layer] = LayerGeometry(
-                layer = layer,
-                shiftXWrapped = objectShiftWrapped,
-                tileWidth = screenWidth.toFloat(),
-                groundY = layerTop + layerHeight * 0.40f,
-            )
+            // Subdivide this hill layer's vertical band into ROWS_PER_LAYER distinct placement
+            // rows, each a separate entry in layerGeometries (keyed by a *row* index 0..8, not
+            // the parent layer 0..2) so objects have far more room to spread vertically than
+            // just 3 shared lines, while still scrolling at their parent layer's parallax speed.
+            for (rowInLayer in 0 until ROWS_PER_LAYER) {
+                val rowIndex = layer * ROWS_PER_LAYER + rowInLayer
+                // Spread rows across roughly the middle 60% of the layer's band (too close to
+                // the top looks sky-adjacent/floaty, too close to the bottom gets cut off by the
+                // next nearer layer drawn on top of it).
+                val rowFraction = 0.20f + rowInLayer * (0.60f / (ROWS_PER_LAYER - 1).coerceAtLeast(1))
+                layerGeometries[rowIndex] = LayerGeometry(
+                    layer = rowIndex,
+                    shiftXWrapped = objectShiftWrapped,
+                    tileWidth = screenWidth.toFloat(),
+                    groundY = layerTop + layerHeight * rowFraction,
+                )
+            }
 
             val path = baseHillPaths[layer] ?: continue
 
