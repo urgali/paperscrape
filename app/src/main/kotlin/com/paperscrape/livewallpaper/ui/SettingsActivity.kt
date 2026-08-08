@@ -13,18 +13,21 @@ import com.paperscrape.livewallpaper.engine.PaperWallpaperService
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.ui.theme.PaperScrapeTheme
+import com.paperscrape.livewallpaper.update.UpdatePrefs
 import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
 
     private lateinit var prefs: WallpaperPrefs
     private lateinit var customThemeStore: CustomThemeStore
+    private lateinit var updatePrefs: UpdatePrefs
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         prefs = WallpaperPrefs(applicationContext)
         customThemeStore = CustomThemeStore(applicationContext)
+        updatePrefs = UpdatePrefs(applicationContext)
 
         // Keeps the synchronous CustomThemeRegistry warm for this process too -- needed because
         // theme previews in the settings UI resolve through the same ThemeCatalog.byId /
@@ -38,6 +41,7 @@ class SettingsActivity : ComponentActivity() {
                 SettingsScreen(
                     prefs = prefs,
                     customThemeStore = customThemeStore,
+                    updatePrefs = updatePrefs,
                     onApplyWallpaper = { launchSetWallpaperFlow() },
                     onRequestLocationPermission = { onGranted -> requestLocationPermission(onGranted) },
                 )

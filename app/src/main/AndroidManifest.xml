@@ -4,6 +4,11 @@
     <!-- Optional: only used if the user enables "sync sunrise/sunset with my location" -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Only used by the in-app update checker (ui.SettingsActivity), once per app launch, to
+         fetch the latest release tag from the public GitHub Releases API. No other network
+         calls exist anywhere in the app or the live wallpaper engine itself. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature android:name="android.software.live_wallpaper" android:required="true" />
 
     <application

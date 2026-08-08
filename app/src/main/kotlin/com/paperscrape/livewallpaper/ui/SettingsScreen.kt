@@ -1,5 +1,7 @@
 package com.paperscrape.livewallpaper.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,11 +65,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
@@ -82,6 +87,9 @@ import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.ObjectCategory
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.update.UpdateChecker
+import com.paperscrape.livewallpaper.update.UpdateInfo
+import com.paperscrape.livewallpaper.update.UpdatePrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -90,6 +98,7 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     prefs: WallpaperPrefs,
     customThemeStore: CustomThemeStore,
+    updatePrefs: UpdatePrefs,
     onApplyWallpaper: () -> Unit,
     onRequestLocationPermission: (onResult: (Boolean) -> Unit) -> Unit,
 ) {
@@ -98,6 +107,20 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     var showThemeManager by remember { mutableStateOf(false) }
     var showSceneObjects by remember { mutableStateOf(false) }
+
+    // Checked once per app launch (LaunchedEffect(Unit) runs exactly once for this composition),
+    // never as a background/recurring check -- this is deliberately an in-app-only prompt, not a
+    // system notification, per the requirement that it must not nag the user outside the app.
+    var availableUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
+    var showSnoozeChoice by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val snooze = updatePrefs.readSnoozeState()
+        val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_CODE) ?: return@LaunchedEffect
+        val isSnoozedForThisVersion = snooze.versionTag == update.tagName && System.currentTimeMillis() < snooze.untilMillis
+        if (!isSnoozedForThisVersion) {
+            availableUpdate = update
+        }
+    }
 
     val effectiveThemeId = if (settings.autoThemeByDate) {
         SeasonalThemeRules.themeForDate() ?: settings.themeId
@@ -239,7 +262,7 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "Version v${com.paperscrape.livewallpaper.BuildConfig.VERSION_CODE} (${com.paperscrape.livewallpaper.BuildConfig.VERSION_NAME})",
+                "Version v${BuildConfig.VERSION_CODE} (${BuildConfig.VERSION_NAME})",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -281,6 +304,52 @@ fun SettingsScreen(
             scope = scope,
             onDismiss = { showSceneObjects = false },
         )
+    }
+
+    availableUpdate?.let { update ->
+        val context = LocalContext.current
+        if (!showSnoozeChoice) {
+            AlertDialog(
+                onDismissRequest = { /* not dismissible by tapping outside -- must pick an option */ },
+                title = { Text("Update available") },
+                text = { Text("${update.tagName} is available (you have v${BuildConfig.VERSION_CODE}).") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.releasePageUrl)))
+                            availableUpdate = null
+                        },
+                    ) { Text("Update now") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSnoozeChoice = true }) { Text("Remind me later") }
+                },
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { showSnoozeChoice = false },
+                title = { Text("Remind me...") },
+                text = { Text("When should PaperScrape ask again about ${update.tagName}?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            scope.launch { updatePrefs.snoozeForOneMonth(update.tagName) }
+                            showSnoozeChoice = false
+                            availableUpdate = null
+                        },
+                    ) { Text("In a month") }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            scope.launch { updatePrefs.snoozeUntilNextLaunch() }
+                            showSnoozeChoice = false
+                            availableUpdate = null
+                        },
+                    ) { Text("Next app launch") }
+                },
+            )
+        }
     }
 }
 

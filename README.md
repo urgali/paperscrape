@@ -145,6 +145,9 @@ PaperScrape/
 │   ├── prefs/
 │   │   ├── WallpaperPrefs.kt          # User preferences (DataStore)
 │   │   └── CustomThemeStore.kt        # Custom theme / built-in override persistence (DataStore)
+│   ├── update/
+│   │   ├── UpdateChecker.kt           # GitHub Releases API check (network, once per app launch)
+│   │   └── UpdatePrefs.kt             # "Remind me later" snooze persistence (DataStore)
 │   └── ui/
 │       ├── SettingsActivity.kt        # Activity hosting the Compose screen
 │       ├── SettingsScreen.kt          # Settings UI (themes, switches, sliders, Manage Themes)
@@ -216,8 +219,37 @@ This project has gone through a security/hardening review — see
 `CHANGELOG.md` for the full list of what was checked and fixed (location
 updates properly stopped when disabled, Gradle wrapper checksum
 verification, least-privilege CI permissions with SHA-pinned actions,
-`allowBackup` disabled). The app requests **no `INTERNET` permission** and
-makes no network calls of any kind.
+`allowBackup` disabled).
+
+**Network access**: the app requests `INTERNET` for exactly one purpose —
+the in-app update checker (see below) makes a single HTTPS `GET` request to
+the public GitHub Releases API once per app launch, to check the latest
+release tag. No other network calls exist anywhere in the app or in the
+live wallpaper engine itself; the wallpaper rendering, all themes, and all
+settings work entirely offline. The update check sends nothing about you —
+it's an unauthenticated, anonymous request to a public API endpoint.
+
+### 🔄 Update checker
+
+On every app launch, PaperScrape checks GitHub for a newer release than the
+one installed. If one is found, an in-app dialog offers:
+
+- **Update now** — opens the release page in your browser to download the
+  new APK (PaperScrape does not silently download or install anything
+  itself — you stay in control of the install step, same as the very first
+  install).
+- **Remind me later** — asks whether to ask again at the **next app
+  launch**, or **in a month**. Snoozing is tied to that specific version:
+  if an even newer release shows up during the snooze period, you'll be
+  told about *that* one right away rather than staying silent.
+
+This is deliberately **not** a background service or a system notification
+— nothing happens unless you have the app open, and the check only ever
+runs once, at launch.
+
+> If you fork or rename this repository, update the `OWNER`/`REPO`
+> constants at the top of `update/UpdateChecker.kt` — they're currently set
+> to the original repo and won't find releases anywhere else.
 
 ## 🎯 Roadmap toward a complete experience
 

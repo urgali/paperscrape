@@ -16,8 +16,8 @@ android {
         // versionCode is the single source of truth for the GitHub Release tag/title created by
         // CI (.github/workflows/android-build.yml reads this value directly) — bump it every
         // time you ship a new vN so the release name in GitHub matches the version delivered.
-        versionCode = 12
-        versionName = "12.0"
+        versionCode = 13
+        versionName = "13.0"
     }
 
     signingConfigs {

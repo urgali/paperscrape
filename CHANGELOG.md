@@ -6,6 +6,32 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v13 — in progress
+
+- **In-app update checker**, on every app launch (never a background
+  service, never a system notification):
+  - `update/UpdateChecker.kt` makes a single HTTPS request to the public
+    GitHub Releases API (`/repos/{owner}/{repo}/releases/latest`), compares
+    the returned tag (e.g. `v13`) against `BuildConfig.VERSION_CODE`, and
+    fails silently on any network/parsing error — a broken connection must
+    never crash or interrupt app startup.
+  - If a newer version is found, an in-app dialog offers **"Update now"**
+    (opens the GitHub release page in the browser — the app does not
+    silently download or install anything itself, keeping the user in
+    control of the install step) or **"Remind me later"**, which opens a
+    second choice: **"Next app launch"** (no-op — the check already runs
+    every launch by design) or **"In a month"** (persisted via
+    `update/UpdatePrefs.kt`, tied to that specific version so a newer
+    release during the snooze period still prompts immediately).
+  - Requires the `INTERNET` permission — previously the README stated the
+    app made *no* network calls at all; that claim is now updated to be
+    accurate rather than left stale. This is still the *only* network
+    access anywhere in the app: the wallpaper engine itself remains fully
+    offline.
+  - **Repo-specific**: `UpdateChecker`'s `OWNER`/`REPO` constants are set to
+    the original repository. Update them if you fork or rename it, or the
+    checker will silently find nothing (404s fail the same as no internet).
+
 ## v12 — in progress
 
 - **App version shown in-app**: a "Version vN (x.y)" row at the bottom of
