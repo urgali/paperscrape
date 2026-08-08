@@ -31,13 +31,15 @@ private class CarRuntime(val spec: CarObject) {
 
 class SceneObjectRenderer(
     layout: SceneObjectLayout,
-    private val houseBuildingConfig: HouseBuildingConfig = HouseBuildingConfig.DEFAULT,
+    private val customization: SceneCustomization = SceneCustomization.DEFAULT,
 ) {
 
     private val staticRuntimes = layout.staticObjects
-        .filter { spec -> houseBuildingConfig.keepCandidate(spec) }
+        .filter { spec -> customization.keepCandidate(spec) }
         .map { StaticRuntime(it) }
-    private val carRuntimes = layout.cars.map { CarRuntime(it) }
+    private val carRuntimes = layout.cars
+        .filter { spec -> customization.keepCar(spec) }
+        .map { CarRuntime(it) }
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -49,9 +51,14 @@ class SceneObjectRenderer(
     private var lastScreenWidth = 0f
     private var lastScreenHeight = 0f
 
+    companion object {
+        /** All scene elements were sized too small at 1x — this doubles houses, buildings,
+         * animals, trees, cars, and the road they drive on, uniformly. */
+        const val GLOBAL_OBJECT_SCALE = 2f
+    }
+
     // Base paper colors for animals/houses — intentionally theme-agnostic "cut paper" tones
     // so any color theme reads correctly; only the house window glow uses a warm/cool blend.
-    private val dogColor = 0xFFC9834A.toInt()
     private val dogSpotColor = 0xFFEFE0CE.toInt()
     private val treeTrunkColor = 0xFF7A4B2E.toInt()
 
@@ -61,8 +68,6 @@ class SceneObjectRenderer(
     private val giftColors = intArrayOf(0xFFC1443B.toInt(), 0xFF3F7A5C.toInt(), 0xFF3D5A9E.toInt())
     private val ribbonColor = 0xFFF2C230.toInt()
     private val palmTrunkColor = 0xFF9C7A4A.toInt()
-    private val palmLeafColor = 0xFF3F9E6B.toInt()
-    private val parasolColors = intArrayOf(0xFFFF7043.toInt(), 0xFFF7FAFC.toInt())
     private val parasolPoleColor = 0xFFEFE0CE.toInt()
     private val skyscraperWindowLit = 0xFFFFE79A.toInt()
     private val skyscraperWindowDark = 0xFF2E323C.toInt()
@@ -151,27 +156,42 @@ class SceneObjectRenderer(
 
         for (c in carRuntimes) {
             if (c.progress < -0.05f || c.progress > 1.05f) continue
-            drawCar(canvas, c, screenWidth, screenHeight)
+            drawCar(canvas, c, screenWidth, screenHeight, dayBlend)
         }
     }
 
     /**
-     * Draws one house and one building side by side, colored from this renderer's current
-     * [houseBuildingConfig] -- independent of the normal layered-scene/parallax machinery, so
-     * the "Houses & Buildings" settings screen can show an immediate, faithful (same drawing
-     * code as the real wallpaper) live preview without needing a full scene around it.
+     * Draws a compact row of sample objects (house, building, dog, tree) colored from this
+     * renderer's current [customization] -- independent of the normal layered-scene/parallax
+     * machinery, so the settings screen can show an immediate, faithful (same drawing code as
+     * the real wallpaper) live preview without needing a full scene around it. Cars and parasols
+     * are left out of this compact preview (their drawing code depends on lane/road-position and
+     * multi-wedge geometry that doesn't suit a small static row) — their colors are still fully
+     * live on the actual wallpaper.
      */
     fun drawPreviewPair(canvas: Canvas, screenWidth: Float, screenHeight: Float, dayBlend: Float) {
         val houseRuntime = StaticRuntime(StaticSceneObject(SceneObjectType.HOUSE, layer = 0, tileFractionX = 0f))
         val buildingRuntime = StaticRuntime(StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 1f))
+        val dogRuntime = StaticRuntime(StaticSceneObject(SceneObjectType.DOG, layer = 0, tileFractionX = 0.5f, scale = 0.7f))
+        val treeRuntime = StaticRuntime(StaticSceneObject(SceneObjectType.TREE, layer = 0, tileFractionX = 0.25f, scale = 0.6f))
 
         canvas.save()
-        canvas.translate(screenWidth * 0.28f, screenHeight * 0.88f)
+        canvas.translate(screenWidth * 0.20f, screenHeight * 0.88f)
         drawHouse(canvas, houseRuntime, dayBlend)
         canvas.restore()
 
         canvas.save()
-        canvas.translate(screenWidth * 0.72f, screenHeight * 0.96f)
+        canvas.translate(screenWidth * 0.45f, screenHeight * 0.94f)
+        drawTree(canvas, treeRuntime, elapsed = 0f, dayBlend = dayBlend)
+        canvas.restore()
+
+        canvas.save()
+        canvas.translate(screenWidth * 0.65f, screenHeight * 0.98f)
+        drawDog(canvas, dogRuntime, elapsed = 0f, dayBlend = dayBlend)
+        canvas.restore()
+
+        canvas.save()
+        canvas.translate(screenWidth * 0.85f, screenHeight * 0.96f)
         drawSkyscraper(canvas, buildingRuntime, dayBlend, 0f)
         canvas.restore()
     }
@@ -185,24 +205,24 @@ class SceneObjectRenderer(
         if (carRuntimes.isEmpty()) return
 
         val laneYs = carRuntimes.map { it.spec.laneYFraction * screenHeight }
-        val top = laneYs.min() - 10f
-        val bottom = laneYs.max() + 24f
+        val top = laneYs.min() - 10f * GLOBAL_OBJECT_SCALE
+        val bottom = laneYs.max() + 24f * GLOBAL_OBJECT_SCALE
 
         fillPaint.color = ColorUtils.blendARGB(roadColorNight, roadColorDay, dayBlend.coerceIn(0f, 1f))
         canvas.drawRect(0f, top, screenWidth, bottom, fillPaint)
 
         strokePaint.style = Paint.Style.STROKE
         strokePaint.color = roadEdgeColor
-        strokePaint.strokeWidth = 2f
+        strokePaint.strokeWidth = 2f * GLOBAL_OBJECT_SCALE
         canvas.drawLine(0f, top, screenWidth, top, strokePaint)
         canvas.drawLine(0f, bottom, screenWidth, bottom, strokePaint)
 
         // Dashed center line separating the two lanes.
         val midY = (top + bottom) / 2f
         strokePaint.color = roadLineColor
-        strokePaint.strokeWidth = 4f
-        val dashLen = 26f
-        val gapLen = 20f
+        strokePaint.strokeWidth = 4f * GLOBAL_OBJECT_SCALE
+        val dashLen = 26f * GLOBAL_OBJECT_SCALE
+        val gapLen = 20f * GLOBAL_OBJECT_SCALE
         var x = 0f
         while (x < screenWidth) {
             canvas.drawLine(x, midY, (x + dashLen).coerceAtMost(screenWidth), midY, strokePaint)
@@ -214,7 +234,7 @@ class SceneObjectRenderer(
         if (x < -200f || x > 3000f) return // cheap off-screen skip
         canvas.save()
         canvas.translate(x, y)
-        canvas.scale(r.spec.scale, r.spec.scale)
+        canvas.scale(r.spec.scale * GLOBAL_OBJECT_SCALE, r.spec.scale * GLOBAL_OBJECT_SCALE)
 
         // Reaction "ease" is shared by both reaction styles: a smooth 0->1->0 bump over the
         // 0.6s window right after a tap.
@@ -233,13 +253,13 @@ class SceneObjectRenderer(
         }
 
         when (r.spec.type) {
-            SceneObjectType.DOG -> drawDog(canvas, r, elapsed)
+            SceneObjectType.DOG -> drawDog(canvas, r, elapsed, dayBlend)
             SceneObjectType.HOUSE -> drawHouse(canvas, r, dayBlend)
-            SceneObjectType.TREE -> drawTree(canvas, r, elapsed, reactionEase)
+            SceneObjectType.TREE -> drawTree(canvas, r, elapsed, reactionEase, dayBlend)
             SceneObjectType.SNOWMAN -> drawSnowman(canvas, r, elapsed, reactionEase)
             SceneObjectType.GIFT -> drawGift(canvas, r)
-            SceneObjectType.PALM_TREE -> drawPalmTree(canvas, r, elapsed, reactionEase)
-            SceneObjectType.PARASOL -> drawParasol(canvas, r, elapsed)
+            SceneObjectType.PALM_TREE -> drawPalmTree(canvas, r, elapsed, reactionEase, dayBlend)
+            SceneObjectType.PARASOL -> drawParasol(canvas, r, elapsed, dayBlend)
             SceneObjectType.SKYSCRAPER -> drawSkyscraper(canvas, r, dayBlend, elapsed)
             SceneObjectType.PENGUIN -> drawPenguin(canvas, r, elapsed)
             SceneObjectType.BALLOON -> drawBalloon(canvas, r, elapsed)
@@ -250,9 +270,9 @@ class SceneObjectRenderer(
         canvas.restore()
     }
 
-    private fun drawDog(canvas: Canvas, r: StaticRuntime, elapsed: Float) {
+    private fun drawDog(canvas: Canvas, r: StaticRuntime, elapsed: Float, dayBlend: Float) {
         val wag = sin(elapsed * 5f + r.idleSeed) * 10f
-        fillPaint.color = dogColor
+        fillPaint.color = customization.colorFor(r.spec, dayBlend)
         canvas.drawOval(RectF(-30f, -34f, 30f, -4f), fillPaint)
         canvas.drawCircle(26f, -30f, 14f, fillPaint)
         path.reset(); path.moveTo(32f, -42f); path.lineTo(40f, -50f); path.lineTo(26f, -44f); path.close()
@@ -265,7 +285,7 @@ class SceneObjectRenderer(
         path.quadTo(-42f + wag, -30f, -40f + wag, -14f)
         strokePaint.style = Paint.Style.STROKE
         strokePaint.strokeWidth = 6f
-        strokePaint.color = dogColor
+        strokePaint.color = customization.colorFor(r.spec, dayBlend)
         canvas.drawPath(path, strokePaint)
         strokePaint.strokeWidth = 2.5f
         strokePaint.color = 0x33000000
@@ -274,7 +294,7 @@ class SceneObjectRenderer(
     }
 
     private fun drawHouse(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
-        val wallColor = houseBuildingConfig.houseColorFor(r.spec, dayBlend)
+        val wallColor = customization.colorFor(r.spec, dayBlend)
         fillPaint.color = wallColor
         canvas.drawRect(RectF(-36f, -46f, 36f, 0f), fillPaint)
         // Roof is a darkened version of the wall color, so any user-picked house color still
@@ -290,11 +310,11 @@ class SceneObjectRenderer(
         canvas.drawRect(RectF(16f, -40f, 30f, -28f), fillPaint)
     }
 
-    private fun drawTree(canvas: Canvas, r: StaticRuntime, elapsed: Float, reactionBoost: Float = 0f) {
+    private fun drawTree(canvas: Canvas, r: StaticRuntime, elapsed: Float, reactionBoost: Float = 0f, dayBlend: Float = 1f) {
         val sway = sin(elapsed * 1.1f + r.idleSeed) * (4f + reactionBoost * 16f)
         fillPaint.color = treeTrunkColor
         canvas.drawRect(RectF(-5f, -38f, 5f, 0f), fillPaint)
-        fillPaint.color = 0xFF8AA25C.toInt()
+        fillPaint.color = customization.colorFor(r.spec, dayBlend)
         canvas.save()
         canvas.translate(0f, -40f)
         canvas.rotate(sway)
@@ -346,7 +366,7 @@ class SceneObjectRenderer(
         canvas.drawPath(path, fillPaint)
     }
 
-    private fun drawPalmTree(canvas: Canvas, r: StaticRuntime, elapsed: Float, reactionBoost: Float = 0f) {
+    private fun drawPalmTree(canvas: Canvas, r: StaticRuntime, elapsed: Float, reactionBoost: Float = 0f, dayBlend: Float = 1f) {
         val sway = sin(elapsed * 0.9f + r.idleSeed) * (6f + reactionBoost * 18f)
         fillPaint.color = palmTrunkColor
         path.reset()
@@ -357,7 +377,7 @@ class SceneObjectRenderer(
         path.close()
         canvas.drawPath(path, fillPaint)
 
-        fillPaint.color = palmLeafColor
+        fillPaint.color = customization.colorFor(r.spec, dayBlend)
         canvas.save()
         canvas.translate(4f + sway, -62f)
         for (i in 0 until 5) {
@@ -374,7 +394,7 @@ class SceneObjectRenderer(
         canvas.restore()
     }
 
-    private fun drawParasol(canvas: Canvas, r: StaticRuntime, elapsed: Float) {
+    private fun drawParasol(canvas: Canvas, r: StaticRuntime, elapsed: Float, dayBlend: Float) {
         val bob = sin(elapsed * 1.6f + r.idleSeed) * 1.5f
         fillPaint.color = parasolPoleColor
         canvas.drawRect(RectF(-2.5f, -50f, 2.5f, 0f), fillPaint)
@@ -382,7 +402,7 @@ class SceneObjectRenderer(
         canvas.translate(0f, -50f + bob)
         val sweep = 36
         for (i in 0 until 5) {
-            fillPaint.color = parasolColors[i % parasolColors.size]
+            fillPaint.color = customization.parasolStripeColor(i, dayBlend)
             path.reset()
             path.moveTo(0f, 0f)
             path.arcTo(RectF(-34f, -34f, 34f, 34f), (180f + i * sweep).toFloat(), sweep.toFloat())
@@ -395,7 +415,7 @@ class SceneObjectRenderer(
     private fun drawSkyscraper(canvas: Canvas, r: StaticRuntime, dayBlend: Float, elapsed: Float) {
         val height = 130f * r.spec.scale
         val width = 46f
-        fillPaint.color = houseBuildingConfig.buildingColorFor(r.spec, dayBlend)
+        fillPaint.color = customization.colorFor(r.spec, dayBlend)
         canvas.drawRect(RectF(-width / 2f, -height, width / 2f, 0f), fillPaint)
 
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
@@ -486,7 +506,7 @@ class SceneObjectRenderer(
         canvas.restore()
     }
 
-    private fun drawCar(canvas: Canvas, c: CarRuntime, screenWidth: Float, screenHeight: Float) {
+    private fun drawCar(canvas: Canvas, c: CarRuntime, screenWidth: Float, screenHeight: Float, dayBlend: Float) {
         val margin = 120f
         val travel = screenWidth + margin * 2f
         val rawX = c.progress * travel - margin
@@ -496,9 +516,9 @@ class SceneObjectRenderer(
 
         canvas.save()
         canvas.translate(x, y)
-        canvas.scale(dir, 1f)
+        canvas.scale(dir * GLOBAL_OBJECT_SCALE, GLOBAL_OBJECT_SCALE)
 
-        fillPaint.color = if (c.honking > 0f) 0xFFFFF3B0.toInt() else c.spec.color
+        fillPaint.color = if (c.honking > 0f) 0xFFFFF3B0.toInt() else customization.colorFor(c.spec, dayBlend)
         val body = RectF(-34f, -22f, 34f, 0f)
         canvas.drawRoundRect(body, 6f, 6f, fillPaint)
         path.reset()

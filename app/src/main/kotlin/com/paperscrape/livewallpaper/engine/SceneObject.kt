@@ -82,6 +82,7 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.55f, scale = 0.85f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.38f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.68f, scale = 0.85f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.95f, scale = 0.55f),
             ),
             cars = listOf(
                 CarObject(laneYFraction = 0.895f, speedFraction = 0.09f, startDelaySeconds = 0f, color = accentColor),
@@ -99,6 +100,7 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.62f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.78f, scale = 0.8f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.30f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.05f, scale = 0.5f),
             ),
             cars = listOf(
                 CarObject(laneYFraction = 0.9f, speedFraction = 0.08f, startDelaySeconds = 2f, color = accentColor),
@@ -114,6 +116,7 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.10f, scale = 0.9f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.85f, scale = 0.75f),
                 StaticSceneObject(SceneObjectType.SNOWMAN, layer = 2, tileFractionX = 0.55f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.08f, scale = 0.55f),
             ),
             cars = listOf(
                 CarObject(laneYFraction = 0.9f, speedFraction = 0.06f, startDelaySeconds = 1f, color = accentColor),
@@ -128,6 +131,7 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.TREE, layer = 2, tileFractionX = 0.20f, scale = 0.7f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.60f, scale = 0.6f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.45f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.90f, scale = 0.5f),
             ),
             cars = listOf(
                 CarObject(laneYFraction = 0.9f, speedFraction = 0.11f, startDelaySeconds = 0f, color = accentColor),
@@ -146,6 +150,7 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.GIFT, layer = 2, tileFractionX = 0.52f, scale = 0.75f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.65f, scale = 0.9f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.30f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.95f, scale = 0.5f),
             ),
             cars = emptyList(),
         )
@@ -161,6 +166,8 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.BALLOON, layer = 2, tileFractionX = 0.25f),
                 StaticSceneObject(SceneObjectType.BALLOON, layer = 2, tileFractionX = 0.72f, scale = 0.8f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.50f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.30f, scale = 0.75f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.78f, scale = 0.7f),
             ),
             cars = listOf(
                 CarObject(laneYFraction = 0.9f, speedFraction = 0.10f, startDelaySeconds = 1.5f, color = accentColor),
@@ -176,6 +183,7 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.PARASOL, layer = 2, tileFractionX = 0.35f),
                 StaticSceneObject(SceneObjectType.PARASOL, layer = 2, tileFractionX = 0.50f, scale = 0.85f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.85f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.98f, scale = 0.5f),
             ),
             cars = emptyList(),
         )
@@ -191,6 +199,8 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.68f, scale = 1.15f),
                 StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 1, tileFractionX = 0.90f, scale = 0.9f),
                 StaticSceneObject(SceneObjectType.DOG, layer = 2, tileFractionX = 0.40f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.06f, scale = 0.75f),
+                StaticSceneObject(SceneObjectType.HOUSE, layer = 2, tileFractionX = 0.96f, scale = 0.7f),
             ),
             cars = listOf(
                 CarObject(laneYFraction = 0.895f, speedFraction = 0.14f, startDelaySeconds = 0f, color = accentColor),
@@ -207,6 +217,7 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.PENGUIN, layer = 2, tileFractionX = 0.45f),
                 StaticSceneObject(SceneObjectType.PENGUIN, layer = 2, tileFractionX = 0.55f, scale = 0.8f),
                 StaticSceneObject(SceneObjectType.TREE, layer = 1, tileFractionX = 0.75f, scale = 0.6f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.92f, scale = 0.5f),
             ),
             cars = emptyList(),
         )
@@ -222,6 +233,7 @@ object SceneObjectCatalog {
                 StaticSceneObject(SceneObjectType.EASTER_EGG, layer = 2, tileFractionX = 0.58f, scale = 0.9f),
                 StaticSceneObject(SceneObjectType.BUNNY, layer = 2, tileFractionX = 0.45f),
                 StaticSceneObject(SceneObjectType.BUNNY, layer = 2, tileFractionX = 0.80f, scale = 0.85f),
+                StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 0.05f, scale = 0.5f),
             ),
             cars = emptyList(),
         )

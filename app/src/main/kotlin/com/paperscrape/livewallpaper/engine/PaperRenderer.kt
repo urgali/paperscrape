@@ -30,7 +30,7 @@ class PaperRenderer(
     var theme: SceneTheme = ThemeCatalog.SUNSET
     var homeScreenOffset: Float = 0f // 0..1 across all home screen pages
     var parallaxStrength: Float = 1f
-    var houseBuildingConfig: HouseBuildingConfig = HouseBuildingConfig.DEFAULT
+    var sceneCustomization: SceneCustomization = SceneCustomization.DEFAULT
 
     private val skyPaint = Paint()
     private val celestialPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -56,10 +56,10 @@ class PaperRenderer(
     private var cachedPathsWidth = -1
     private var cachedPathsHeight = -1
 
-    private var objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor), houseBuildingConfig)
+    private var objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor), sceneCustomization)
     private var objectRendererThemeId = theme.id
     private var objectRendererGeneration = CustomThemeRegistry.generation()
-    private var objectRendererConfig = houseBuildingConfig
+    private var objectRendererConfig = sceneCustomization
     private val layerGeometries = HashMap<Int, LayerGeometry>()
     private val fireworkEffect = FireworkEffect()
     private val santaSleighEffect = SantaSleighEffect()
@@ -68,12 +68,12 @@ class PaperRenderer(
         val currentGeneration = CustomThemeRegistry.generation()
         if (objectRendererThemeId != theme.id ||
             objectRendererGeneration != currentGeneration ||
-            objectRendererConfig != houseBuildingConfig
+            objectRendererConfig != sceneCustomization
         ) {
-            objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor), houseBuildingConfig)
+            objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor), sceneCustomization)
             objectRendererThemeId = theme.id
             objectRendererGeneration = currentGeneration
-            objectRendererConfig = houseBuildingConfig
+            objectRendererConfig = sceneCustomization
         }
     }
 

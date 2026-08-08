@@ -1,13 +1,15 @@
 package com.paperscrape.livewallpaper.prefs
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.paperscrape.livewallpaper.engine.HouseBuildingConfig
+import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
+import com.paperscrape.livewallpaper.engine.SceneCustomization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -22,8 +24,11 @@ data class WallpaperSettings(
     val touchEffectsEnabled: Boolean = true,
     val parallaxStrength: Float = 1f, // 0.5 .. 2.0
     val autoThemeByDate: Boolean = false, // opt-in: overrides themeId during known seasonal windows
-    val houseBuildingConfig: HouseBuildingConfig = HouseBuildingConfig.DEFAULT,
+    val sceneCustomization: SceneCustomization = SceneCustomization.DEFAULT,
 )
+
+/** Object categories that can be individually customized (visibility, density, 2x day/night colors). */
+enum class ObjectCategory { HOUSES, BUILDINGS, DOGS, CARS, PARASOLS, TREES }
 
 class WallpaperPrefs(private val context: Context) {
 
@@ -36,21 +41,26 @@ class WallpaperPrefs(private val context: Context) {
         val PARALLAX_STRENGTH = floatPreferencesKey("parallax_strength")
         val AUTO_THEME_BY_DATE = booleanPreferencesKey("auto_theme_by_date")
 
-        val SHOW_HOUSES = booleanPreferencesKey("show_houses")
-        val SHOW_BUILDINGS = booleanPreferencesKey("show_buildings")
-        val HOUSE_BUILDING_DENSITY = floatPreferencesKey("house_building_density")
-        val HOUSE_COLOR_DAY_1 = intPreferencesKey("house_color_day_1")
-        val HOUSE_COLOR_NIGHT_1 = intPreferencesKey("house_color_night_1")
-        val HOUSE_COLOR_DAY_2 = intPreferencesKey("house_color_day_2")
-        val HOUSE_COLOR_NIGHT_2 = intPreferencesKey("house_color_night_2")
-        val BUILDING_COLOR_DAY_1 = intPreferencesKey("building_color_day_1")
-        val BUILDING_COLOR_NIGHT_1 = intPreferencesKey("building_color_night_1")
-        val BUILDING_COLOR_DAY_2 = intPreferencesKey("building_color_day_2")
-        val BUILDING_COLOR_NIGHT_2 = intPreferencesKey("building_color_night_2")
+        fun visible(category: ObjectCategory) = booleanPreferencesKey("obj_${category.name}_visible")
+        fun density(category: ObjectCategory) = floatPreferencesKey("obj_${category.name}_density")
+        fun colorDay1(category: ObjectCategory) = intPreferencesKey("obj_${category.name}_color_day_1")
+        fun colorNight1(category: ObjectCategory) = intPreferencesKey("obj_${category.name}_color_night_1")
+        fun colorDay2(category: ObjectCategory) = intPreferencesKey("obj_${category.name}_color_day_2")
+        fun colorNight2(category: ObjectCategory) = intPreferencesKey("obj_${category.name}_color_night_2")
     }
 
+    private fun readVariantConfig(prefs: Preferences, category: ObjectCategory, default: ObjectVariantConfig): ObjectVariantConfig =
+        ObjectVariantConfig(
+            visible = prefs[Keys.visible(category)] ?: default.visible,
+            density = prefs[Keys.density(category)] ?: default.density,
+            colorDay1 = prefs[Keys.colorDay1(category)] ?: default.colorDay1,
+            colorNight1 = prefs[Keys.colorNight1(category)] ?: default.colorNight1,
+            colorDay2 = prefs[Keys.colorDay2(category)] ?: default.colorDay2,
+            colorNight2 = prefs[Keys.colorNight2(category)] ?: default.colorNight2,
+        )
+
     val settingsFlow: Flow<WallpaperSettings> = context.dataStore.data.map { prefs ->
-        val defaults = HouseBuildingConfig.DEFAULT
+        val defaults = SceneCustomization.DEFAULT
         WallpaperSettings(
             themeId = prefs[Keys.THEME_ID] ?: "sunset",
             syncWithRealTime = prefs[Keys.SYNC_REAL_TIME] ?: true,
@@ -59,18 +69,13 @@ class WallpaperPrefs(private val context: Context) {
             touchEffectsEnabled = prefs[Keys.TOUCH_EFFECTS] ?: true,
             parallaxStrength = prefs[Keys.PARALLAX_STRENGTH] ?: 1f,
             autoThemeByDate = prefs[Keys.AUTO_THEME_BY_DATE] ?: false,
-            houseBuildingConfig = HouseBuildingConfig(
-                showHouses = prefs[Keys.SHOW_HOUSES] ?: defaults.showHouses,
-                showBuildings = prefs[Keys.SHOW_BUILDINGS] ?: defaults.showBuildings,
-                density = prefs[Keys.HOUSE_BUILDING_DENSITY] ?: defaults.density,
-                houseColorDay1 = prefs[Keys.HOUSE_COLOR_DAY_1] ?: defaults.houseColorDay1,
-                houseColorNight1 = prefs[Keys.HOUSE_COLOR_NIGHT_1] ?: defaults.houseColorNight1,
-                houseColorDay2 = prefs[Keys.HOUSE_COLOR_DAY_2] ?: defaults.houseColorDay2,
-                houseColorNight2 = prefs[Keys.HOUSE_COLOR_NIGHT_2] ?: defaults.houseColorNight2,
-                buildingColorDay1 = prefs[Keys.BUILDING_COLOR_DAY_1] ?: defaults.buildingColorDay1,
-                buildingColorNight1 = prefs[Keys.BUILDING_COLOR_NIGHT_1] ?: defaults.buildingColorNight1,
-                buildingColorDay2 = prefs[Keys.BUILDING_COLOR_DAY_2] ?: defaults.buildingColorDay2,
-                buildingColorNight2 = prefs[Keys.BUILDING_COLOR_NIGHT_2] ?: defaults.buildingColorNight2,
+            sceneCustomization = SceneCustomization(
+                houses = readVariantConfig(prefs, ObjectCategory.HOUSES, defaults.houses),
+                buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, defaults.buildings),
+                dogs = readVariantConfig(prefs, ObjectCategory.DOGS, defaults.dogs),
+                cars = readVariantConfig(prefs, ObjectCategory.CARS, defaults.cars),
+                parasols = readVariantConfig(prefs, ObjectCategory.PARASOLS, defaults.parasols),
+                trees = readVariantConfig(prefs, ObjectCategory.TREES, defaults.trees),
             ),
         )
     }
@@ -94,36 +99,43 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setAutoThemeByDate(enabled: Boolean) =
         context.dataStore.edit { it[Keys.AUTO_THEME_BY_DATE] = enabled }
 
-    suspend fun setShowHouses(enabled: Boolean) =
-        context.dataStore.edit { it[Keys.SHOW_HOUSES] = enabled }
+    suspend fun setCategoryVisible(category: ObjectCategory, visible: Boolean) =
+        context.dataStore.edit { it[Keys.visible(category)] = visible }
 
-    suspend fun setShowBuildings(enabled: Boolean) =
-        context.dataStore.edit { it[Keys.SHOW_BUILDINGS] = enabled }
+    suspend fun setCategoryDensity(category: ObjectCategory, density: Float) =
+        context.dataStore.edit { it[Keys.density(category)] = density }
 
-    suspend fun setHouseBuildingDensity(density: Float) =
-        context.dataStore.edit { it[Keys.HOUSE_BUILDING_DENSITY] = density }
+    suspend fun setCategoryColorDay1(category: ObjectCategory, color: Int) =
+        context.dataStore.edit { it[Keys.colorDay1(category)] = color }
 
-    suspend fun setHouseColorDay1(color: Int) = context.dataStore.edit { it[Keys.HOUSE_COLOR_DAY_1] = color }
-    suspend fun setHouseColorNight1(color: Int) = context.dataStore.edit { it[Keys.HOUSE_COLOR_NIGHT_1] = color }
-    suspend fun setHouseColorDay2(color: Int) = context.dataStore.edit { it[Keys.HOUSE_COLOR_DAY_2] = color }
-    suspend fun setHouseColorNight2(color: Int) = context.dataStore.edit { it[Keys.HOUSE_COLOR_NIGHT_2] = color }
-    suspend fun setBuildingColorDay1(color: Int) = context.dataStore.edit { it[Keys.BUILDING_COLOR_DAY_1] = color }
-    suspend fun setBuildingColorNight1(color: Int) = context.dataStore.edit { it[Keys.BUILDING_COLOR_NIGHT_1] = color }
-    suspend fun setBuildingColorDay2(color: Int) = context.dataStore.edit { it[Keys.BUILDING_COLOR_DAY_2] = color }
-    suspend fun setBuildingColorNight2(color: Int) = context.dataStore.edit { it[Keys.BUILDING_COLOR_NIGHT_2] = color }
+    suspend fun setCategoryColorNight1(category: ObjectCategory, color: Int) =
+        context.dataStore.edit { it[Keys.colorNight1(category)] = color }
 
-    /** Resets all house/building settings (visibility, density, colors) back to defaults. */
-    suspend fun resetHouseBuildingConfig() = context.dataStore.edit { prefs ->
-        prefs.remove(Keys.SHOW_HOUSES)
-        prefs.remove(Keys.SHOW_BUILDINGS)
-        prefs.remove(Keys.HOUSE_BUILDING_DENSITY)
-        prefs.remove(Keys.HOUSE_COLOR_DAY_1)
-        prefs.remove(Keys.HOUSE_COLOR_NIGHT_1)
-        prefs.remove(Keys.HOUSE_COLOR_DAY_2)
-        prefs.remove(Keys.HOUSE_COLOR_NIGHT_2)
-        prefs.remove(Keys.BUILDING_COLOR_DAY_1)
-        prefs.remove(Keys.BUILDING_COLOR_NIGHT_1)
-        prefs.remove(Keys.BUILDING_COLOR_DAY_2)
-        prefs.remove(Keys.BUILDING_COLOR_NIGHT_2)
+    suspend fun setCategoryColorDay2(category: ObjectCategory, color: Int) =
+        context.dataStore.edit { it[Keys.colorDay2(category)] = color }
+
+    suspend fun setCategoryColorNight2(category: ObjectCategory, color: Int) =
+        context.dataStore.edit { it[Keys.colorNight2(category)] = color }
+
+    /** Resets one category's visibility/density/colors back to defaults. */
+    suspend fun resetCategory(category: ObjectCategory) = context.dataStore.edit { prefs ->
+        prefs.remove(Keys.visible(category))
+        prefs.remove(Keys.density(category))
+        prefs.remove(Keys.colorDay1(category))
+        prefs.remove(Keys.colorNight1(category))
+        prefs.remove(Keys.colorDay2(category))
+        prefs.remove(Keys.colorNight2(category))
+    }
+
+    /** Resets every object category back to defaults in one go. */
+    suspend fun resetAllCategories() = context.dataStore.edit { prefs ->
+        for (category in ObjectCategory.entries) {
+            prefs.remove(Keys.visible(category))
+            prefs.remove(Keys.density(category))
+            prefs.remove(Keys.colorDay1(category))
+            prefs.remove(Keys.colorNight1(category))
+            prefs.remove(Keys.colorDay2(category))
+            prefs.remove(Keys.colorNight2(category))
+        }
     }
 }

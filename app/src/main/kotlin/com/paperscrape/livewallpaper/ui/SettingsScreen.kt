@@ -33,6 +33,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,8 +69,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
-import com.paperscrape.livewallpaper.engine.HouseBuildingConfig
+import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
+import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneObjectLayout
 import com.paperscrape.livewallpaper.engine.SceneObjectRenderer
@@ -77,8 +79,10 @@ import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.SeasonalThemeRules
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
+import com.paperscrape.livewallpaper.prefs.ObjectCategory
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,7 +97,7 @@ fun SettingsScreen(
     val customThemeData by customThemeStore.dataFlow.collectAsState(initial = CustomThemeData())
     val scope = rememberCoroutineScope()
     var showThemeManager by remember { mutableStateOf(false) }
-    var showHousesBuildings by remember { mutableStateOf(false) }
+    var showSceneObjects by remember { mutableStateOf(false) }
 
     val effectiveThemeId = if (settings.autoThemeByDate) {
         SeasonalThemeRules.themeForDate() ?: settings.themeId
@@ -131,10 +135,10 @@ fun SettingsScreen(
                 Text("🖼️ Manage themes (${ThemeCatalog.ALL.size + customThemeData.customThemes.size})")
             }
             OutlinedButton(
-                onClick = { showHousesBuildings = true },
+                onClick = { showSceneObjects = true },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("🏘️ Houses & buildings")
+                Text("🎨 Scene objects (houses, cars, dogs, trees...)")
             }
 
             Column {
@@ -234,6 +238,11 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text(
+                "Version v${com.paperscrape.livewallpaper.BuildConfig.VERSION_CODE} (${com.paperscrape.livewallpaper.BuildConfig.VERSION_NAME})",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 
@@ -265,22 +274,12 @@ fun SettingsScreen(
         )
     }
 
-    if (showHousesBuildings) {
-        HousesBuildingsDialog(
-            config = settings.houseBuildingConfig,
-            onDismiss = { showHousesBuildings = false },
-            onShowHousesChange = { scope.launch { prefs.setShowHouses(it) } },
-            onShowBuildingsChange = { scope.launch { prefs.setShowBuildings(it) } },
-            onDensityChange = { scope.launch { prefs.setHouseBuildingDensity(it) } },
-            onHouseColorDay1Change = { scope.launch { prefs.setHouseColorDay1(it) } },
-            onHouseColorNight1Change = { scope.launch { prefs.setHouseColorNight1(it) } },
-            onHouseColorDay2Change = { scope.launch { prefs.setHouseColorDay2(it) } },
-            onHouseColorNight2Change = { scope.launch { prefs.setHouseColorNight2(it) } },
-            onBuildingColorDay1Change = { scope.launch { prefs.setBuildingColorDay1(it) } },
-            onBuildingColorNight1Change = { scope.launch { prefs.setBuildingColorNight1(it) } },
-            onBuildingColorDay2Change = { scope.launch { prefs.setBuildingColorDay2(it) } },
-            onBuildingColorNight2Change = { scope.launch { prefs.setBuildingColorNight2(it) } },
-            onResetToDefaults = { scope.launch { prefs.resetHouseBuildingConfig() } },
+    if (showSceneObjects) {
+        SceneObjectsDialog(
+            customization = settings.sceneCustomization,
+            prefs = prefs,
+            scope = scope,
+            onDismiss = { showSceneObjects = false },
         )
     }
 }
@@ -683,21 +682,11 @@ private data class ColorEditTarget(val label: String, val color: Int, val onChan
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HousesBuildingsDialog(
-    config: HouseBuildingConfig,
+private fun SceneObjectsDialog(
+    customization: SceneCustomization,
+    prefs: WallpaperPrefs,
+    scope: CoroutineScope,
     onDismiss: () -> Unit,
-    onShowHousesChange: (Boolean) -> Unit,
-    onShowBuildingsChange: (Boolean) -> Unit,
-    onDensityChange: (Float) -> Unit,
-    onHouseColorDay1Change: (Int) -> Unit,
-    onHouseColorNight1Change: (Int) -> Unit,
-    onHouseColorDay2Change: (Int) -> Unit,
-    onHouseColorNight2Change: (Int) -> Unit,
-    onBuildingColorDay1Change: (Int) -> Unit,
-    onBuildingColorNight1Change: (Int) -> Unit,
-    onBuildingColorDay2Change: (Int) -> Unit,
-    onBuildingColorNight2Change: (Int) -> Unit,
-    onResetToDefaults: () -> Unit,
 ) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
 
@@ -706,7 +695,7 @@ private fun HousesBuildingsDialog(
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text("Houses & Buildings") },
+                        title = { Text("Scene Objects") },
                         navigationIcon = {
                             IconButton(onClick = onDismiss) {
                                 Icon(Icons.Default.Close, contentDescription = "Close")
@@ -721,79 +710,70 @@ private fun HousesBuildingsDialog(
                         .padding(padding)
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    HouseBuildingLivePreview(config = config, modifier = Modifier.fillMaxWidth())
+                    SceneObjectLivePreview(customization = customization, modifier = Modifier.fillMaxWidth())
 
                     Text(
-                        "These settings apply across every theme that includes houses or buildings, not just the current one.",
+                        "These settings apply across every theme that includes each object type, not just the current one.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
-                    SettingSwitchRow(
-                        title = "Show houses",
-                        subtitle = "Houses appear in the themes that have them",
-                        checked = config.showHouses,
-                        onCheckedChange = onShowHousesChange,
+                    ObjectCategorySection(
+                        title = "Houses",
+                        config = customization.houses,
+                        category = ObjectCategory.HOUSES,
+                        prefs = prefs,
+                        scope = scope,
+                        onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
                     )
-                    SettingSwitchRow(
-                        title = "Show buildings",
-                        subtitle = "Commercial buildings/skyscrapers appear in the themes that have them",
-                        checked = config.showBuildings,
-                        onCheckedChange = onShowBuildingsChange,
+                    ObjectCategorySection(
+                        title = "Buildings",
+                        config = customization.buildings,
+                        category = ObjectCategory.BUILDINGS,
+                        prefs = prefs,
+                        scope = scope,
+                        onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+                    )
+                    ObjectCategorySection(
+                        title = "Dogs",
+                        config = customization.dogs,
+                        category = ObjectCategory.DOGS,
+                        prefs = prefs,
+                        scope = scope,
+                        onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+                    )
+                    ObjectCategorySection(
+                        title = "Cars",
+                        config = customization.cars,
+                        category = ObjectCategory.CARS,
+                        prefs = prefs,
+                        scope = scope,
+                        onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+                    )
+                    ObjectCategorySection(
+                        title = "Umbrellas",
+                        config = customization.parasols,
+                        category = ObjectCategory.PARASOLS,
+                        prefs = prefs,
+                        scope = scope,
+                        onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+                    )
+                    ObjectCategorySection(
+                        title = "Trees",
+                        config = customization.trees,
+                        category = ObjectCategory.TREES,
+                        prefs = prefs,
+                        scope = scope,
+                        onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
                     )
 
-                    Column {
-                        Text("Density: ${(config.density * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "How many of a theme's house/building spots are actually filled",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Slider(value = config.density, onValueChange = onDensityChange, valueRange = 0f..1f)
-                    }
-
-                    SectionTitle("House colors")
-                    Text(
-                        "Each house randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    ColorSwatchRow("Day Color 1", config.houseColorDay1) {
-                        editingTarget = ColorEditTarget("House — Day Color 1", config.houseColorDay1, onHouseColorDay1Change)
-                    }
-                    ColorSwatchRow("Night Color 1", config.houseColorNight1) {
-                        editingTarget = ColorEditTarget("House — Night Color 1", config.houseColorNight1, onHouseColorNight1Change)
-                    }
-                    ColorSwatchRow("Day Color 2", config.houseColorDay2) {
-                        editingTarget = ColorEditTarget("House — Day Color 2", config.houseColorDay2, onHouseColorDay2Change)
-                    }
-                    ColorSwatchRow("Night Color 2", config.houseColorNight2) {
-                        editingTarget = ColorEditTarget("House — Night Color 2", config.houseColorNight2, onHouseColorNight2Change)
-                    }
-
-                    SectionTitle("Building colors")
-                    Text(
-                        "Each building randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    ColorSwatchRow("Day Color 1", config.buildingColorDay1) {
-                        editingTarget = ColorEditTarget("Building — Day Color 1", config.buildingColorDay1, onBuildingColorDay1Change)
-                    }
-                    ColorSwatchRow("Night Color 1", config.buildingColorNight1) {
-                        editingTarget = ColorEditTarget("Building — Night Color 1", config.buildingColorNight1, onBuildingColorNight1Change)
-                    }
-                    ColorSwatchRow("Day Color 2", config.buildingColorDay2) {
-                        editingTarget = ColorEditTarget("Building — Day Color 2", config.buildingColorDay2, onBuildingColorDay2Change)
-                    }
-                    ColorSwatchRow("Night Color 2", config.buildingColorNight2) {
-                        editingTarget = ColorEditTarget("Building — Night Color 2", config.buildingColorNight2, onBuildingColorNight2Change)
-                    }
-
-                    OutlinedButton(onClick = onResetToDefaults, modifier = Modifier.fillMaxWidth()) {
-                        Text("↺ Reset colors to defaults")
+                    OutlinedButton(
+                        onClick = { scope.launch { prefs.resetAllCategories() } },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("↺ Reset everything to defaults")
                     }
                 }
             }
@@ -810,6 +790,63 @@ private fun HousesBuildingsDialog(
             },
             onDismiss = { editingTarget = null },
         )
+    }
+}
+
+@Composable
+private fun ObjectCategorySection(
+    title: String,
+    config: ObjectVariantConfig,
+    category: ObjectCategory,
+    prefs: WallpaperPrefs,
+    scope: CoroutineScope,
+    onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionTitle(title)
+
+        SettingSwitchRow(
+            title = "Show $title",
+            subtitle = "$title appear in the themes that have them",
+            checked = config.visible,
+            onCheckedChange = { scope.launch { prefs.setCategoryVisible(category, it) } },
+        )
+
+        Column {
+            Text("Density: ${(config.density * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+            Slider(
+                value = config.density,
+                onValueChange = { scope.launch { prefs.setCategoryDensity(category, it) } },
+                valueRange = 0f..1f,
+            )
+        }
+
+        Text(
+            "Each one randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        ColorSwatchRow("Day Color 1", config.colorDay1) {
+            onEditColor("$title — Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c) } }
+        }
+        ColorSwatchRow("Night Color 1", config.colorNight1) {
+            onEditColor("$title — Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c) } }
+        }
+        ColorSwatchRow("Day Color 2", config.colorDay2) {
+            onEditColor("$title — Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c) } }
+        }
+        ColorSwatchRow("Night Color 2", config.colorNight2) {
+            onEditColor("$title — Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c) } }
+        }
+
+        OutlinedButton(
+            onClick = { scope.launch { prefs.resetCategory(category) } },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("↺ Reset $title to default")
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -1037,16 +1074,16 @@ private fun HueStrip(hue: Float, onChange: (Float) -> Unit, modifier: Modifier =
 }
 
 /**
- * Renders one house + one building using the exact same drawing code as the real wallpaper, so
- * changes made in the Houses & Buildings screen are visible immediately, right there, instead of
- * only on the actual applied wallpaper. Includes a day/night toggle since colors blend between
- * the two.
+ * Renders a compact row of sample objects (house, tree, dog, building) using the exact same
+ * drawing code as the real wallpaper, so changes made in the Scene Objects screen are visible
+ * immediately, right there, instead of only on the actual applied wallpaper. Includes a
+ * day/night toggle since colors blend between the two.
  */
 @Composable
-private fun HouseBuildingLivePreview(config: HouseBuildingConfig, modifier: Modifier = Modifier) {
+private fun SceneObjectLivePreview(customization: SceneCustomization, modifier: Modifier = Modifier) {
     var previewIsDay by remember { mutableStateOf(true) }
-    val previewRenderer = remember(config) {
-        SceneObjectRenderer(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), config)
+    val previewRenderer = remember(customization) {
+        SceneObjectRenderer(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), customization)
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {

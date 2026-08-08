@@ -54,11 +54,11 @@ lightweight and compatible with any device).
 - **Custom themes**: save your current look as a new theme, replace any
   built-in theme with it, and reset any customized built-in back to
   default with one tap — all from the "Manage Themes" screen.
-- **Configurable houses & buildings**: a global density slider (0-100%)
-  plus independent "show houses"/"show buildings" toggles, and 4 editable
-  day/night colors each for houses and buildings — every instance randomly
-  (but stably, no flicker) picks one of the 2 color variants and blends
-  into its night version as it gets dark.
+- **Configurable scene objects**: a global density slider (0-100%) plus a
+  visibility toggle and 4 editable day/night colors, applied independently
+  to 6 object categories — houses, buildings, dogs, cars, umbrellas, and
+  trees. Every instance randomly (but stably, no flicker) picks one of the
+  2 color variants and blends into its night version as it gets dark.
 - Settings screen in Jetpack Compose with a live preview of themes.
 - All preferences persisted with Jetpack **DataStore**.
 
@@ -113,7 +113,7 @@ and update `ReactionSoundPlayer.kt` (instructions in the file's own TODO).
 |---|---|
 | Theme | Choose among the 10 fixed themes (see table above) |
 | 🖼️ Manage themes | Opens the theme gallery: save the current look, replace a built-in theme with it, reset a customized one back to default, rename/delete your own custom themes |
-| 🏘️ Houses & buildings | Global, applies across every theme: a live preview (one house + one building, day/night toggle), show/hide houses and buildings independently, a 0-100% density slider, and 4 editable day/night colors each (touch-and-drag palette + hex field) for houses and buildings |
+| 🎨 Scene objects | Global, applies across every theme: a live preview (house/tree/dog/building, day/night toggle), and for each of 6 categories (houses, buildings, dogs, cars, umbrellas, trees) — show/hide, a 0-100% density slider, and 4 editable day/night colors (touch-and-drag palette + hex field) |
 | 🎲 Generate random theme | Creates a new color/object combination; the seed is saved, so it survives a restart until you generate another one |
 | Automatic theme by date | Opt-in — overrides your manual pick during Christmas, New Year's Eve, Easter, or summer (Beach); falls back to your manual pick otherwise |
 | Follow real time | Sun/moon follow the device's clock instead of a fixed hour |
@@ -141,7 +141,7 @@ PaperScrape/
 │   │   ├── PaperBird.kt               # "Paper bird" particle for tapping the free background
 │   │   ├── CustomThemeData.kt         # Custom theme data model + JSON (de)serialization
 │   │   ├── CustomThemeRegistry.kt     # Synchronous in-memory cache of custom themes/overrides
-│   │   └── HouseBuildingConfig.kt     # Global house/building density, visibility, colors
+│   │   └── SceneCustomization.kt      # Global per-category density, visibility, colors (6 categories)
 │   ├── prefs/
 │   │   ├── WallpaperPrefs.kt          # User preferences (DataStore)
 │   │   └── CustomThemeStore.kt        # Custom theme / built-in override persistence (DataStore)

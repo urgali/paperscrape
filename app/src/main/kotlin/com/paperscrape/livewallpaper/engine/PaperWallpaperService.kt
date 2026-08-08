@@ -92,11 +92,11 @@ class PaperWallpaperService : WallpaperService() {
             }
             scope.launch {
                 prefs.settingsFlow.collect { newSettings ->
-                    val configChanged = newSettings.houseBuildingConfig != settings.houseBuildingConfig
+                    val configChanged = newSettings.sceneCustomization != settings.sceneCustomization
                     settings = newSettings
                     val themeChanged = applyEffectiveTheme()
                     renderer?.parallaxStrength = newSettings.parallaxStrength
-                    renderer?.houseBuildingConfig = newSettings.houseBuildingConfig
+                    renderer?.sceneCustomization = newSettings.sceneCustomization
                     if (newSettings.useLocationForSunTimes) {
                         maybeStartLocationUpdates()
                     } else {
@@ -112,7 +112,7 @@ class PaperWallpaperService : WallpaperService() {
             super.onSurfaceCreated(holder)
             renderer = PaperRenderer(holder.surfaceFrame.width(), holder.surfaceFrame.height()).apply {
                 parallaxStrength = settings.parallaxStrength
-                houseBuildingConfig = settings.houseBuildingConfig
+                sceneCustomization = settings.sceneCustomization
             }
             applyEffectiveTheme()
         }

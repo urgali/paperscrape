@@ -6,6 +6,45 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v12 — in progress
+
+- **App version shown in-app**: a "Version vN (x.y)" row at the bottom of
+  Settings, read from `BuildConfig.VERSION_CODE`/`VERSION_NAME` (required
+  enabling `buildFeatures.buildConfig = true`, off by default since AGP 8).
+- **Every theme now has both house and building candidate slots**: 8 themes
+  previously had no buildings at all and 2 had no houses at all — added a
+  small background building/house to each so "show houses"/"show
+  buildings" and the density slider always have something to work with,
+  regardless of theme. Verified programmatically (all 10 themes checked)
+  rather than just by eye.
+- **Generalized the density+colors customization system from
+  houses/buildings to 4 more categories**: dogs, cars, umbrellas, and
+  trees now get the same treatment — a visibility toggle, a 0-100% density
+  slider, and 4 editable day/night colors each (2 variants, deterministically
+  assigned per instance, blending day→night like the rest of the scene).
+  - Rewrote `HouseBuildingConfig.kt` into `SceneCustomization.kt`:
+    `SceneCustomization` now holds one `ObjectVariantConfig` per category
+    instead of hand-duplicated fields, with generic `keepCandidate()` /
+    `colorFor()` helpers shared across all 6 categories.
+  - `WallpaperPrefs` rewritten with per-category DataStore keys generated
+    from the `ObjectCategory` enum, instead of 44 hand-written fields.
+  - The "Houses & Buildings" screen became "Scene Objects": one collapsible
+    section per category, all built from a single reusable
+    `ObjectCategorySection` composable instead of six copy-pasted blocks.
+  - The live preview (added in v11) now shows a house, tree, dog, and
+    building together instead of just the first two.
+  - Parasols are a special case: their 5 wedges alternate between the 2
+    configured colors per-wedge (not one color per whole umbrella like
+    every other category), via a dedicated `parasolStripeColor()` helper.
+- **Doubled the size of every scene element that was too small**: houses,
+  buildings, dogs, trees, and cars (via a single `GLOBAL_OBJECT_SCALE = 2f`
+  multiplier applied at their `canvas.scale()` call), the road they drive
+  on (margins, stroke widths, and dash sizes doubled to match the now-
+  bigger cars), and Santa's sleigh + the gifts it drops. Left the paper-bird
+  touch effect and firework bursts at their original size — these are
+  short-lived touch/particle effects, not persistent scene content, so
+  they weren't part of what "too small" was describing.
+
 ## v11 — in progress
 
 - **Touch-and-drag color picker**: replaced the three linear Hue/Saturation/

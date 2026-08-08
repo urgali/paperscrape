@@ -108,7 +108,7 @@ class SantaSleighEffect {
             canvas.save()
             canvas.translate(g.x, g.y)
             canvas.rotate(g.age * 90f)
-            canvas.drawRect(RectF(-6f, -6f, 6f, 6f), fillPaint)
+            canvas.drawRect(RectF(-12f, -12f, 12f, 12f), fillPaint)
             canvas.restore()
         }
 
@@ -119,7 +119,7 @@ class SantaSleighEffect {
 
         canvas.save()
         canvas.translate(x, flightY + bob)
-        canvas.scale(dir, 1f)
+        canvas.scale(dir * 2f, 2f)
         drawReindeer(canvas, offsetX = -150f, elapsedSeconds)
         drawReindeer(canvas, offsetX = -95f, elapsedSeconds)
         drawSleighAndSanta(canvas)
