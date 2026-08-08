@@ -4,17 +4,24 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -51,6 +58,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -60,6 +71,8 @@ import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.HouseBuildingConfig
 import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
+import com.paperscrape.livewallpaper.engine.SceneObjectLayout
+import com.paperscrape.livewallpaper.engine.SceneObjectRenderer
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.SeasonalThemeRules
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
@@ -710,6 +723,8 @@ private fun HousesBuildingsDialog(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    HouseBuildingLivePreview(config = config, modifier = Modifier.fillMaxWidth())
+
                     Text(
                         "These settings apply across every theme that includes houses or buildings, not just the current one.",
                         style = MaterialTheme.typography.bodySmall,
@@ -832,9 +847,9 @@ private fun parseHexColor(text: String): Int? {
 }
 
 /**
- * A simple HSV color editor: preview swatch, Hue/Saturation/Brightness sliders, and an editable
- * hex field kept in sync both ways -- moving a slider updates the hex text, and typing a valid
- * hex value updates the sliders.
+ * Touch-and-drag HSV color editor: a saturation/brightness square you drag your finger across
+ * (classic palette-picker UX), a hue strip below it, and an editable hex field kept in sync both
+ * ways -- dragging updates the hex text, and typing a valid hex value updates the picker.
  */
 @Composable
 private fun ColorPickerDialog(
@@ -866,21 +881,27 @@ private fun ColorPickerDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(40.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color(currentColor))
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
                 )
-                Text("Hue", style = MaterialTheme.typography.labelSmall)
-                Slider(value = hue, onValueChange = { updateFromHsv(it, saturation, brightness) }, valueRange = 0f..360f)
-                Text("Saturation", style = MaterialTheme.typography.labelSmall)
-                Slider(value = saturation, onValueChange = { updateFromHsv(hue, it, brightness) }, valueRange = 0f..1f)
-                Text("Brightness", style = MaterialTheme.typography.labelSmall)
-                Slider(value = brightness, onValueChange = { updateFromHsv(hue, saturation, it) }, valueRange = 0f..1f)
+                SaturationBrightnessSquare(
+                    hue = hue,
+                    saturation = saturation,
+                    brightness = brightness,
+                    onChange = { s, v -> updateFromHsv(hue, s, v) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                HueStrip(
+                    hue = hue,
+                    onChange = { h -> updateFromHsv(h, saturation, brightness) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 OutlinedTextField(
                     value = hexInput,
                     onValueChange = { text ->
@@ -904,4 +925,152 @@ private fun ColorPickerDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+/**
+ * The classic "drag your finger across the palette" square: horizontal axis is saturation
+ * (white -> full hue color), vertical axis is brightness (bright at top, black at bottom).
+ * Responds to both a direct tap (jump straight to that color) and dragging.
+ */
+@Composable
+private fun SaturationBrightnessSquare(
+    hue: Float,
+    saturation: Float,
+    brightness: Float,
+    onChange: (saturation: Float, brightness: Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val hueColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f)))
+    val density = LocalDensity.current
+
+    BoxWithConstraints(
+        modifier = modifier
+            .aspectRatio(1.4f)
+            .clip(RoundedCornerShape(12.dp)),
+    ) {
+        val widthPx = with(density) { maxWidth.toPx() }
+        val heightPx = with(density) { maxHeight.toPx() }
+
+        fun reportFromOffset(offset: Offset) {
+            val s = (offset.x / widthPx).coerceIn(0f, 1f)
+            val v = 1f - (offset.y / heightPx).coerceIn(0f, 1f)
+            onChange(s, v)
+        }
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(hue) {
+                    detectDragGestures(
+                        onDragStart = { offset -> reportFromOffset(offset) },
+                        onDrag = { change, _ -> change.consume(); reportFromOffset(change.position) },
+                    )
+                }
+                .pointerInput(hue) {
+                    detectTapGestures { offset -> reportFromOffset(offset) }
+                },
+        ) {
+            drawRect(brush = Brush.horizontalGradient(listOf(Color.White, hueColor)))
+            drawRect(brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+        }
+
+        val indicatorSize = 22.dp
+        val indicatorX = with(density) { (saturation * widthPx).toDp() } - indicatorSize / 2
+        val indicatorY = with(density) { ((1f - brightness) * heightPx).toDp() } - indicatorSize / 2
+        Box(
+            modifier = Modifier
+                .offset(x = indicatorX, y = indicatorY)
+                .size(indicatorSize)
+                .clip(CircleShape)
+                .border(3.dp, Color.White, CircleShape)
+                .border(1.dp, Color.Black.copy(alpha = 0.25f), CircleShape),
+        )
+    }
+}
+
+/** A draggable rainbow strip for picking the hue (0-360°). */
+@Composable
+private fun HueStrip(hue: Float, onChange: (Float) -> Unit, modifier: Modifier = Modifier) {
+    val hueColors = remember {
+        (0..360 step 30).map { Color(android.graphics.Color.HSVToColor(floatArrayOf(it.toFloat(), 1f, 1f))) }
+    }
+    val density = LocalDensity.current
+
+    BoxWithConstraints(
+        modifier = modifier
+            .height(28.dp)
+            .clip(RoundedCornerShape(14.dp)),
+    ) {
+        val widthPx = with(density) { maxWidth.toPx() }
+
+        fun reportFromX(x: Float) {
+            onChange((x / widthPx).coerceIn(0f, 1f) * 360f)
+        }
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = { offset -> reportFromX(offset.x) },
+                        onDrag = { change, _ -> change.consume(); reportFromX(change.position.x) },
+                    )
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures { offset -> reportFromX(offset.x) }
+                },
+        ) {
+            drawRect(brush = Brush.horizontalGradient(hueColors))
+        }
+
+        val thumbWidth = 4.dp
+        val thumbX = with(density) { (hue / 360f * widthPx).toDp() } - thumbWidth / 2
+        Box(
+            modifier = Modifier
+                .offset(x = thumbX)
+                .width(thumbWidth)
+                .fillMaxHeight()
+                .background(Color.White)
+                .border(1.dp, Color.Black.copy(alpha = 0.3f)),
+        )
+    }
+}
+
+/**
+ * Renders one house + one building using the exact same drawing code as the real wallpaper, so
+ * changes made in the Houses & Buildings screen are visible immediately, right there, instead of
+ * only on the actual applied wallpaper. Includes a day/night toggle since colors blend between
+ * the two.
+ */
+@Composable
+private fun HouseBuildingLivePreview(config: HouseBuildingConfig, modifier: Modifier = Modifier) {
+    var previewIsDay by remember { mutableStateOf(true) }
+    val previewRenderer = remember(config) {
+        SceneObjectRenderer(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), config)
+    }
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (previewIsDay) Color(0xFFAEE0F2) else Color(0xFF14152B)),
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawIntoCanvas { canvas ->
+                    previewRenderer.drawPreviewPair(
+                        canvas.nativeCanvas,
+                        size.width,
+                        size.height,
+                        dayBlend = if (previewIsDay) 1f else 0f,
+                    )
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { previewIsDay = true }) { Text(if (previewIsDay) "☀️ Day" else "Day") }
+            OutlinedButton(onClick = { previewIsDay = false }) { Text(if (!previewIsDay) "🌙 Night" else "Night") }
+        }
+    }
 }

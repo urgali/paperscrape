@@ -156,6 +156,27 @@ class SceneObjectRenderer(
     }
 
     /**
+     * Draws one house and one building side by side, colored from this renderer's current
+     * [houseBuildingConfig] -- independent of the normal layered-scene/parallax machinery, so
+     * the "Houses & Buildings" settings screen can show an immediate, faithful (same drawing
+     * code as the real wallpaper) live preview without needing a full scene around it.
+     */
+    fun drawPreviewPair(canvas: Canvas, screenWidth: Float, screenHeight: Float, dayBlend: Float) {
+        val houseRuntime = StaticRuntime(StaticSceneObject(SceneObjectType.HOUSE, layer = 0, tileFractionX = 0f))
+        val buildingRuntime = StaticRuntime(StaticSceneObject(SceneObjectType.SKYSCRAPER, layer = 0, tileFractionX = 1f))
+
+        canvas.save()
+        canvas.translate(screenWidth * 0.28f, screenHeight * 0.88f)
+        drawHouse(canvas, houseRuntime, dayBlend)
+        canvas.restore()
+
+        canvas.save()
+        canvas.translate(screenWidth * 0.72f, screenHeight * 0.96f)
+        drawSkyscraper(canvas, buildingRuntime, dayBlend, 0f)
+        canvas.restore()
+    }
+
+    /**
      * A simple two-lane road band spanning the full screen width at the cars' lane height.
      * Like the cars themselves, it's independent of home-screen parallax (it belongs to the
      * "road" the cars drive on, not to any particular hill layer).

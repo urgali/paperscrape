@@ -6,6 +6,33 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v11 — in progress
+
+- **Touch-and-drag color picker**: replaced the three linear Hue/Saturation/
+  Brightness sliders with the classic "drag your finger across the
+  palette" UX — a saturation/brightness square (drag or tap to jump) plus
+  a draggable hue strip, hex field still there for precise/typed input.
+  Used for all 8 house/building colors.
+- **Fixed house/building color changes not visibly taking effect**: found
+  two real gaps while investigating —
+  1. `PaperWallpaperService` only forced an immediate redraw when the
+     *theme* changed, not when `HouseBuildingConfig` changed on its own
+     (e.g. just picking a new house color). The engine would technically
+     pick up the new colors on its next scheduled frame, but there was no
+     guaranteed *immediate* redraw the way theme changes already got.
+     Fixed: config changes now force an immediate redraw too.
+  2. More importantly: **none of the in-app previews ever drew houses or
+     buildings at all** (`ThemeScenePreview` only ever drew sky/hills/sun),
+     so changing a color produced no visible feedback anywhere inside the
+     app itself — you'd have had to back out to the actual home screen to
+     see anything. Fixed by adding a real live preview (one house + one
+     building, drawn with the exact same code the wallpaper uses, via a
+     new `SceneObjectRenderer.drawPreviewPair()`) directly at the top of
+     the Houses & Buildings screen, with a day/night toggle since colors
+     blend between the two.
+- "Reset to defaults" remains exactly as before — confirmed still fully
+  wired end to end while making the above changes.
+
 ## v10 — in progress
 
 - **Configurable houses & buildings**, applied globally across every theme:

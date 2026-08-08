@@ -113,7 +113,7 @@ and update `ReactionSoundPlayer.kt` (instructions in the file's own TODO).
 |---|---|
 | Theme | Choose among the 10 fixed themes (see table above) |
 | 🖼️ Manage themes | Opens the theme gallery: save the current look, replace a built-in theme with it, reset a customized one back to default, rename/delete your own custom themes |
-| 🏘️ Houses & buildings | Global, applies across every theme: show/hide houses and buildings independently, a 0-100% density slider, and 4 editable day/night colors each for houses and buildings |
+| 🏘️ Houses & buildings | Global, applies across every theme: a live preview (one house + one building, day/night toggle), show/hide houses and buildings independently, a 0-100% density slider, and 4 editable day/night colors each (touch-and-drag palette + hex field) for houses and buildings |
 | 🎲 Generate random theme | Creates a new color/object combination; the seed is saved, so it survives a restart until you generate another one |
 | Automatic theme by date | Opt-in — overrides your manual pick during Christmas, New Year's Eve, Easter, or summer (Beach); falls back to your manual pick otherwise |
 | Follow real time | Sun/moon follow the device's clock instead of a fixed hour |

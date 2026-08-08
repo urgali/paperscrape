@@ -92,6 +92,7 @@ class PaperWallpaperService : WallpaperService() {
             }
             scope.launch {
                 prefs.settingsFlow.collect { newSettings ->
+                    val configChanged = newSettings.houseBuildingConfig != settings.houseBuildingConfig
                     settings = newSettings
                     val themeChanged = applyEffectiveTheme()
                     renderer?.parallaxStrength = newSettings.parallaxStrength
@@ -102,7 +103,7 @@ class PaperWallpaperService : WallpaperService() {
                         stopLocationUpdates()
                         hasFixLocation = false
                     }
-                    if (themeChanged) drawFrame()
+                    if (themeChanged || configChanged) drawFrame()
                 }
             }
         }
