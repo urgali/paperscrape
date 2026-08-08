@@ -6,6 +6,46 @@ delivered file is named `PaperScrape_vN.zip` and this changelog entry
 summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
 `v3`, ...) contains without having to diff by hand.
 
+## v24 — in progress
+
+Root-cause fix for the three recurring visual bugs (flying buildings,
+house/building overlap, undersized skyscrapers) that earlier versions
+patched around symptomatically without finding the underlying mechanism.
+All three had a concrete, provable cause — none of this was tuned by
+trial and error:
+
+- **Flying buildings, for real this time.** The actual cause was a
+  mismatch between two independent systems that were never cross-checked
+  against each other: `buildBaseHillPath()`'s random hill silhouette can
+  place its visible top edge anywhere from 15% to 75% down a layer's
+  band, but object placement rows were anchored at fixed fractions
+  (0.20/0.50/0.80) that assumed the hill top rarely went below ~30%.
+  Any row above ~75% could, and regularly did, end up sitting in open
+  sky whenever that segment of hill happened to roll a low peak — worse
+  the higher (farther/smaller) the row. `PaperRenderer` now derives its
+  row-placement band (`HILL_SAFE_ROW_MIN`/`MAX` = 0.78-0.95) directly
+  from `buildBaseHillPath`'s own random bounds, so a row is
+  mathematically guaranteed to always land on solid paper, not just
+  "usually".
+- **House/building overlap.** v23's "non-overlapping" bands (buildings
+  3-5, houses 5-7) still shared row 5 — the actual off-by-one that kept
+  producing collisions. Buildings now live exclusively on rows 0-2 (the
+  full farthest hill layer, reading as a skyline behind the
+  neighborhood) and houses exclusively on rows 4-6, with row 3 left
+  empty as a hard buffer so the two candidate clouds can never land on
+  the same row.
+- **Skyscrapers smaller than houses.** `drawSkyscraperBuilding` (and
+  the restaurant/bar building variants sharing the SKYSCRAPER type) were
+  multiplying by `r.spec.scale` a second time on top of the
+  `canvas.scale()` already applied by the caller — squaring its effect
+  instead of applying it once, like every other object type. A
+  low-scale roll (common: the category's scale range is 0.65-1.15)
+  shrank the building far more than intended, often below a house's
+  size. Fixed to apply scale exactly once; the skyscraper's base height
+  was also raised (130f -> 210f) to compensate for its new farther,
+  smaller-depth-scale row band, so it reads as clearly taller on
+  average, not just when the dice cooperate.
+
 ## v23 — in progress
 
 - **Replaced the 3 shared placement lines with 9**, to fix houses/buildings

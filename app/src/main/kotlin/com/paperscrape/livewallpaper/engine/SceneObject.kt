@@ -132,10 +132,15 @@ object SceneObjectCatalog {
      * [SceneCustomization]'s `configFor`).
      *
      * Row assignments (0=farthest, 8=nearest, 9 total -- see [PaperRenderer.ROWS_PER_LAYER]):
-     * buildings and houses get their own non-overlapping bands so a dense city and a full
-     * neighborhood don't collide even at 100% density each; rows 0-2 (the farthest hill layer)
-     * are avoided for anything solid-looking, since that band sits close enough to the sky to
-     * read as floating rather than grounded.
+     * buildings and houses get their own fully disjoint bands -- SKYSCRAPER exclusively on rows
+     * 0-2 (the whole farthest hill layer, reading as a city skyline sitting behind the
+     * neighborhood) and HOUSE exclusively on rows 4-6, with row 3 deliberately left unassigned
+     * as a buffer so the two categories' candidate clouds never share a row (sharing a row was
+     * the actual cause of houses and buildings visually clipping through each other -- two
+     * independently-randomized categories at the identical depth/Y with no consistent
+     * front/behind relationship). Rows 0-2 no longer read as "floating", since object rows are
+     * now confined to each layer's guaranteed-solid band -- see
+     * [PaperRenderer.HILL_SAFE_ROW_MIN].
      */
     private fun uniformCandidates(
         themeId: String,
@@ -144,8 +149,8 @@ object SceneObjectCatalog {
     ): SceneObjectLayout {
         val seed = themeId.hashCode()
         val staticObjects =
-            generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, intArrayOf(3, 4, 5), baseScale = 0.9f, scaleJitter = 0.5f) +
-                generateStaticCandidates(SceneObjectType.HOUSE, seed + 1, intArrayOf(5, 6, 7), baseScale = 0.85f, scaleJitter = 0.35f) +
+            generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, intArrayOf(0, 1, 2), baseScale = 0.9f, scaleJitter = 0.5f) +
+                generateStaticCandidates(SceneObjectType.HOUSE, seed + 1, intArrayOf(4, 5, 6), baseScale = 0.85f, scaleJitter = 0.35f) +
                 generateStaticCandidates(treeType, seed + 5, intArrayOf(4, 5, 6, 7, 8), baseScale = 0.85f, scaleJitter = 0.35f) +
                 generateStaticCandidates(SceneObjectType.PARASOL, seed + 4, intArrayOf(7, 8), baseScale = 0.8f, scaleJitter = 0.25f) +
                 generateStaticCandidates(SceneObjectType.DOG, seed + 3, intArrayOf(8), baseScale = 0.85f, scaleJitter = 0.25f)

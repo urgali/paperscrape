@@ -93,6 +93,31 @@ class PaperRenderer(
          * [SceneObjectRenderer.LAYER_DEPTH_SCALE]. */
         const val ROWS_PER_LAYER = 3
         const val TOTAL_ROWS = 3 * ROWS_PER_LAYER
+
+        /**
+         * Lower bound (as a fraction of a layer's own height, 0=layer top, 1=layer bottom) for
+         * where a static object's placement row is allowed to sit, expressed so that it is
+         * *always* inside the hill's solid paper silhouette no matter how [buildBaseHillPath]'s
+         * randomness shakes out.
+         *
+         * [buildBaseHillPath] draws each layer's top edge using two independent random
+         * fractions: the segment peaks range over `0.15..0.70` and the left/right starting
+         * edges range over `0.55..0.75`. The curve's Y is always bounded between whichever
+         * control points define it, so the *highest* (smallest-fraction) the visible paper can
+         * ever start is 0.15, and the *lowest guaranteed-always-covered* fraction -- i.e. the
+         * point below which paper is solid regardless of which random values were rolled -- is
+         * the max of those ranges: 0.75. Anything placed above that line can, on an unlucky
+         * roll, land in open sky instead of on the hill ("flying buildings"). 0.78 keeps a small
+         * safety margin past that theoretical worst case.
+         *
+         * If [buildBaseHillPath]'s random ranges ever change, this constant (and
+         * [HILL_SAFE_ROW_MAX]) must be re-derived from the new ranges the same way.
+         */
+        private const val HILL_SAFE_ROW_MIN = 0.78f
+
+        /** Upper bound for the same placement band -- stays short of the very bottom edge (1.0)
+         * so objects don't sit flush against the next nearer layer's own seam. */
+        private const val HILL_SAFE_ROW_MAX = 0.95f
     }
 
     // Deterministic per-layer "noise" seed so the silhouette shape is stable across frames
@@ -297,10 +322,13 @@ class PaperRenderer(
             // just 3 shared lines, while still scrolling at their parent layer's parallax speed.
             for (rowInLayer in 0 until ROWS_PER_LAYER) {
                 val rowIndex = layer * ROWS_PER_LAYER + rowInLayer
-                // Spread rows across roughly the middle 60% of the layer's band (too close to
-                // the top looks sky-adjacent/floaty, too close to the bottom gets cut off by the
-                // next nearer layer drawn on top of it).
-                val rowFraction = 0.20f + rowInLayer * (0.60f / (ROWS_PER_LAYER - 1).coerceAtLeast(1))
+                // Rows must stay within the hill silhouette's *guaranteed-solid* zone, or an
+                // object anchored there will render above the actual paper terrain at whatever
+                // X position happens to be a "valley" that frame -- i.e. it floats. See
+                // HILL_SAFE_ROW_MIN's doc for the derivation of this bound from
+                // buildBaseHillPath's own random range; the two must always agree.
+                val rowFraction = HILL_SAFE_ROW_MIN +
+                    rowInLayer * ((HILL_SAFE_ROW_MAX - HILL_SAFE_ROW_MIN) / (ROWS_PER_LAYER - 1).coerceAtLeast(1))
                 layerGeometries[rowIndex] = LayerGeometry(
                     layer = rowIndex,
                     shiftXWrapped = objectShiftWrapped,

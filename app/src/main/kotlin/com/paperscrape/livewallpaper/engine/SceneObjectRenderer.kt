@@ -496,8 +496,16 @@ class SceneObjectRenderer(
     }
 
     private fun drawSkyscraperBuilding(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
-        val height = 130f * r.spec.scale
-        val width = 46f
+        // Local size is fixed -- r.spec.scale (and the row's depth scale) are already fully
+        // applied once via the canvas.scale() in drawStaticObject. Multiplying by r.spec.scale
+        // again here squared its effect (scale applied twice), which is what made skyscrapers
+        // shrink far more aggressively than every other object type for the same scale roll,
+        // often ending up smaller than a house. 210f (vs. the old 130f) also compensates for
+        // SKYSCRAPER now living on the farthest placement rows (see SceneObjectCatalog), whose
+        // depth scale alone would otherwise make it read smaller than a nearer house despite
+        // being a taller structure.
+        val height = 210f
+        val width = 54f
         fillPaint.color = customization.colorFor(r.spec, dayBlend)
         canvas.drawRect(RectF(-width / 2f, -height, width / 2f, 0f), fillPaint)
 
@@ -520,7 +528,9 @@ class SceneObjectRenderer(
 
     /** A low, wide storefront with a striped awning over the entrance. */
     private fun drawRestaurantBuilding(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
-        val height = 60f * r.spec.scale
+        // See the comment in drawSkyscraperBuilding: r.spec.scale must not be applied a second
+        // time here, it's already baked into the canvas.scale() the caller applied.
+        val height = 60f
         val width = 68f
         val wallColor = customization.colorFor(r.spec, dayBlend)
         fillPaint.color = wallColor
@@ -554,7 +564,9 @@ class SceneObjectRenderer(
 
     /** A low building with a hanging round sign and a string of small lights along the front. */
     private fun drawBarBuilding(canvas: Canvas, r: StaticRuntime, dayBlend: Float) {
-        val height = 58f * r.spec.scale
+        // See the comment in drawSkyscraperBuilding: r.spec.scale must not be applied a second
+        // time here, it's already baked into the canvas.scale() the caller applied.
+        val height = 58f
         val width = 52f
         val wallColor = customization.colorFor(r.spec, dayBlend)
         fillPaint.color = wallColor
