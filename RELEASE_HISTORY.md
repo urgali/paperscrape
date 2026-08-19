@@ -19,9 +19,106 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.1 — D-7 closed: rasteriser fidelity, measured rather than asserted
+
+**Stable / latest.** `versionCode = 5`, `versionName = "2.1"`. Tag `v2.1`.
+
+Offline tooling and documentation only. **No Kotlin, no asset, no resource, no Gradle
+plugin and no manifest change**, so nothing about the running wallpaper differs from
+v2.0. The version exists because the project's recorded state changed, not because its
+behaviour did.
+
+### The three failing tests were never D-7
+
+They had been carried since v76.8 as the price of D-7 — "the shipped PNGs came from the
+V2 library's own rasteriser, and the pinned toolchain antialiases differently". That
+description fitted the deferral, but not the failures.
+
+`tests/test_fidelity.py` still asserted the **pre-V2** sprite library.
+`house_shared_planter` was pinned as a white full-canvas rounded rectangle at 78x18
+radius 6; the V2 artwork is a `#C98F5A` box occupying only the lower part of its viewBox
+with three foliage circles over it. Measured against the assertion that gives **113
+solid/empty conflicts and a maximum RGB difference of 176** — a different picture, not a
+different antialiasing decision. `road_line` was pinned at 52x8 radius 3.9 and ships at
+54x9 radius 4.5, so it failed on size before any pixel was compared.
+
+The count stayed at three across the redesign, which is why the mislabel survived: the
+number in the verification block never moved, so nothing prompted anyone to re-read what
+was behind it. `reports/geometry-fit.json` carried the same staleness — it still named
+`house_large_planter` and `house_small_planter`, both removed in Phase 3.4.
+
+### What replaced them
+
+The assertions were re-derived against `house_large_trim`, which really is a full-canvas
+rounded rectangle in the V2 set, so `fit` determines it completely: one free parameter,
+swept exhaustively. It is pinned in both directions — the radius recovered from the
+shipped pixels reproduces the sprite, the grid values either side of it do not. The IoU
+case moved to the sprites that genuinely score under the reporting floor while
+reproducing exactly: `bunny_innerear` (0.9905), `pumpkin_stem` (0.9934) and
+`penguin_feet` (0.9955), all small enough that their antialiased band is a large share
+of their area, which is the point the metric was there to make.
+
+### D-7, bounded
+
+With the mislabel removed, the residual divergence could be measured. Across all 118
+sprites, comparing each shipped PNG against a fresh render of its committed SVG source
+with the pinned toolchain:
+
+- **no pixel is solid in one rendering and empty in the other** — no sprite's shape
+  differs from its source;
+- **no single pixel's coverage moves by as much as half** — worst case 121 of 255, on
+  one pixel of `rainbow_arc`'s shallowest stroke edge.
+
+Everything the two rasterisers disagree about is therefore the resolution of a boundary
+pixel. Both bounds are pinned by `ShippedAgainstSourceTest`, so the claim fails loudly
+if it ever stops being true rather than decaying into prose. **The 108-sprite re-render
+that was thought to be the price of closing D-7 was never required**; it would only have
+made three unrelated assertions pass.
+
+### Verification
+
+```
+Release identifier:            v2.1
+Verification level:            1
+Reason for the level:          offline tooling and documentation only; no Kotlin,
+                               asset, resource, Gradle or manifest change.
+Tests run:                     no Kotlin change -- last run 357 tests, 0 failures
+Lint run:                      no -- same reason; last run 41 warnings, 0 errors
+Python tooling suite:          yes -- 83 tests, 0 failures (was 79 with 3 failures)
+Rasteriser probe:              yes -- fingerprint matches the pin, toolchain unmoved
+Asset validate:                yes -- 0 failures, 118 entries, 118 with an SVG source
+Fidelity compare:              yes -- 16 PIXEL_IDENTICAL, 14 EDGE_EQUIVALENT,
+                               88 DIVERGENT; reports regenerated
+New tests shown to fail:       yes -- AI_PROJECT_RULES 12.11 applied to each of the
+                               rewritten and added tests
+APK build run:                 no
+ZIP verification:              yes
+Git tag created:               no
+Maintainer-side verification required: none -- nothing user-visible changed
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **The fidelity criterion is tuned for single-layer silhouettes.** It reads the
+  antialiased boundary out of the alpha channel only. The V2 library is layered
+  paper-cutout artwork, so where two opaque shapes meet, the antialiased band lives in
+  RGB at full alpha and the three gating conditions cannot see it. That is why 88
+  sprites still report `DIVERGENT` despite the shape bounds above, and why
+  `paperscrape-assets compare` exits non-zero. Recorded, not fixed: correcting it is a
+  redesign of the criterion, not part of closing D-7.
+- `tools/assets/README.md` and `CLAUDE.md` still quote an older sprite count (111 PNGs,
+  22 of 108 with sources). The current figure is 118, every one with an SVG source.
+- **Nothing in this release was seen rendering**, and nothing needed to be: no code the
+  wallpaper executes was touched.
+- D-10 remains open and was not touched.
+
+
 ## v2.0 — the complete built-in theme review
 
-**Stable / latest.** `versionCode = 4`, `versionName = "2.0"`. Tag `v2.0`.
+`versionCode = 4`, `versionName = "2.0"`. Tag `v2.0`.
 
 Every built-in theme's defaults reviewed and corrected. No renderer redesign, no
 asset work: this is configuration, plus one architectural split that the
@@ -1055,13 +1152,13 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v2.0 — Stable / latest** (`versionCode = 4`, `versionName = "2.0"`) |
-| **Latest stable** | v2.0 |
+| **Version** | **v2.1 — Stable / latest** (`versionCode = 5`, `versionName = "2.1"`) |
+| **Latest stable** | v2.1 |
 | **Date** | 2026-08-19 |
-| **Build status** | ⚠️ `testDebugUnitTest` **357 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **79 tests, 3 failures, all D-7 fidelity**; asset `validate` **0 failures across 118 sprites**. **`assembleDebug` was not run and no APK was produced** — Level 2 |
+| **Build status** | ⚠️ `testDebugUnitTest` **357 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **83 tests, 0 failures** (D-7 closed); asset `validate` **0 failures across 118 sprites**. **`assembleDebug` was not run and no APK was produced** — Level 1: v2.1 touched only offline tooling, documentation and the two version fields |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
-| **Sprite memory** | **118 PNGs** — five roof snow caps added in v76.12; the decoded total was last measured at 15.76 MB across 113 — re-measured at v76.6 with the asset pipeline running again. The previously recorded 15.03 MB predates that and was not re-derived; treat this figure as the measured one |
-| **Tests** | 357 Kotlin unit tests, 79 Python tooling tests |
+| **Sprite memory** | **118 PNGs, 16.28 MB decoded, 3.08 MB of it croppable padding** — re-measured at v2.1 by `paperscrape-assets inventory`. Earlier figures (15.76 MB across 113 at v76.6, and 15.03 MB before that) predate the five roof snow caps added in v76.12 |
+| **Tests** | 357 Kotlin unit tests, 83 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

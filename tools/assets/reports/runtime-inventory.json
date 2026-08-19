@@ -76,6 +76,30 @@
     {
       "content_bbox": [
         6,
+        6,
+        264,
+        36
+      ],
+      "content_height": 30,
+      "content_width": 258,
+      "decoded_bytes": 38880,
+      "distinct_colour_count": 21,
+      "file_bytes": 534,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 36,
+      "mode": "RGBA",
+      "name": "bar_roof_snow",
+      "on_grid": true,
+      "opaque_rgb_count": 3,
+      "sha256": "4840968335df0571431848f356074f5ede787fe90c260106c259bbea8bad9d21",
+      "transparent_padding_bytes": 7920,
+      "transparent_padding_fraction": 0.2037037037037037,
+      "width": 270
+    },
+    {
+      "content_bbox": [
+        6,
         0,
         114,
         108
@@ -555,6 +579,30 @@
     },
     {
       "content_bbox": [
+        77,
+        0,
+        373,
+        117
+      ],
+      "content_height": 117,
+      "content_width": 296,
+      "decoded_bytes": 291600,
+      "distinct_colour_count": 43,
+      "file_bytes": 2855,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 162,
+      "mode": "RGBA",
+      "name": "house_large_roof_snow",
+      "on_grid": true,
+      "opaque_rgb_count": 14,
+      "sha256": "0372234281e233c8a322eb893c6f43586551eb489251887cb1edf5c3820388b5",
+      "transparent_padding_bytes": 153072,
+      "transparent_padding_fraction": 0.5249382716049382,
+      "width": 450
+    },
+    {
+      "content_bbox": [
         0,
         0,
         450,
@@ -719,6 +767,30 @@
       "sha256": "400c580070261cf585daa58f2d8c27a297a2a45acd20fb1f326ad3d9d54d8da9",
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
+      "width": 240
+    },
+    {
+      "content_bbox": [
+        40,
+        0,
+        200,
+        99
+      ],
+      "content_height": 99,
+      "content_width": 160,
+      "decoded_bytes": 126720,
+      "distinct_colour_count": 46,
+      "file_bytes": 2160,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 132,
+      "mode": "RGBA",
+      "name": "house_small_roof_snow",
+      "on_grid": true,
+      "opaque_rgb_count": 16,
+      "sha256": "f4e43a6ad8cd7c11b9b14f41142895085c4b353df3a65b6963da6016ca796629",
+      "transparent_padding_bytes": 63360,
+      "transparent_padding_fraction": 0.5,
       "width": 240
     },
     {
@@ -2139,6 +2211,30 @@
     },
     {
       "content_bbox": [
+        6,
+        6,
+        294,
+        36
+      ],
+      "content_height": 30,
+      "content_width": 288,
+      "decoded_bytes": 43200,
+      "distinct_colour_count": 22,
+      "file_bytes": 606,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 36,
+      "mode": "RGBA",
+      "name": "restaurant_roof_snow",
+      "on_grid": true,
+      "opaque_rgb_count": 3,
+      "sha256": "d4473b198622a7fec14be388176e356b95b2049dc0c1bf95c57bd453f9cdc101",
+      "transparent_padding_bytes": 8640,
+      "transparent_padding_fraction": 0.2,
+      "width": 300
+    },
+    {
+      "content_bbox": [
         3,
         0,
         105,
@@ -2403,6 +2499,30 @@
     },
     {
       "content_bbox": [
+        6,
+        10,
+        174,
+        36
+      ],
+      "content_height": 26,
+      "content_width": 168,
+      "decoded_bytes": 25920,
+      "distinct_colour_count": 21,
+      "file_bytes": 479,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 36,
+      "mode": "RGBA",
+      "name": "skyscraper_roof_snow",
+      "on_grid": true,
+      "opaque_rgb_count": 3,
+      "sha256": "60e23adac56a371d94b35fbc7b9a826904ba5116d84e2bca7e68f81ddf669c2f",
+      "transparent_padding_bytes": 8448,
+      "transparent_padding_fraction": 0.32592592592592595,
+      "width": 180
+    },
+    {
+      "content_bbox": [
         0,
         0,
         180,
@@ -2483,16 +2603,16 @@
       "content_height": 222,
       "content_width": 114,
       "decoded_bytes": 108000,
-      "distinct_colour_count": 86,
-      "file_bytes": 5382,
+      "distinct_colour_count": 79,
+      "file_bytes": 5054,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 225,
       "mode": "RGBA",
       "name": "snowman_body",
       "on_grid": true,
-      "opaque_rgb_count": 44,
-      "sha256": "1cc0731a6324708ad8d404e975be6550ee6a03475b1a9c1f992fcd605956b80e",
+      "opaque_rgb_count": 37,
+      "sha256": "2eabfdb542cd96e69a20becb3150ec3f81b5b83f1eb573ed2f64ae1143959669",
       "transparent_padding_bytes": 6768,
       "transparent_padding_fraction": 0.06266666666666666,
       "width": 120

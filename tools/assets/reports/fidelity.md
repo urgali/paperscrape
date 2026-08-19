@@ -15,7 +15,7 @@ absolute threshold asks small sprites for more precision than large ones.
 
 | Verdict | Sprites |
 |---|---|
-| `PIXEL_IDENTICAL` | 11 |
+| `PIXEL_IDENTICAL` | 16 |
 | `EDGE_EQUIVALENT` | 14 |
 | `DIVERGENT` | 88 |
 
@@ -125,15 +125,20 @@ absolute threshold asks small sprites for more precision than large ones.
 | `skyscraper_canopy` | 330x24 | 0.999554 | 0.1119 | 26 | 76 / 7920 | 0 | yes | 0 | 0,0,0,0 | `EDGE_EQUIVALENT` |
 | `sun_glow` | 396x396 | 0.997331 | 0.1115 | 60 | 88399 / 156816 | 0 | yes | 0 | 0,0,0,0 | `EDGE_EQUIVALENT` |
 | `tree_trunk` | 54x132 | 0.999737 | 0.0369 | 30 | 28 / 7128 | 0 | yes | 0 | 0,0,0,0 | `EDGE_EQUIVALENT` |
+| `bar_roof_snow` | 270x36 | 1.000000 | 0.0000 | 0 | 0 / 9720 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `bird_body` | 90x42 | 1.000000 | 0.0000 | 0 | 0 / 3780 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `dolphin_body` | 360x225 | 1.000000 | 0.0000 | 0 | 0 / 81000 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `firetruck_body` | 300x162 | 1.000000 | 0.0000 | 0 | 0 / 48600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `house_large_roof_snow` | 450x162 | 1.000000 | 0.0000 | 0 | 0 / 72900 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `house_small_roof_snow` | 240x132 | 1.000000 | 0.0000 | 0 | 0 / 31680 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `moon_crescent` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `moon_gibbous` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `restaurant_roof_snow` | 300x36 | 1.000000 | 0.0000 | 0 | 0 / 10800 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `road_asphalt` | 402x102 | 1.000000 | 0.0000 | 0 | 0 / 41004 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `road_curb` | 402x18 | 1.000000 | 0.0000 | 0 | 0 / 7236 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `santa_sleigh_scene` | 624x168 | 1.000000 | 0.0000 | 0 | 0 / 104832 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `santa_sleigh_trot` | 624x168 | 1.000000 | 0.0000 | 0 | 0 / 104832 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `skyscraper_roof_snow` | 180x36 | 1.000000 | 0.0000 | 0 | 0 / 6480 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `snowman_body` | 120x225 | 1.000000 | 0.0000 | 0 | 0 / 27000 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `tree_canopy_snowcap` | 234x126 | 1.000000 | 0.0000 | 0 | 0 / 29484 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 

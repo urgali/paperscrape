@@ -125,6 +125,47 @@
       "verdict": "DIVERGENT"
     },
     {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        6,
+        6,
+        264,
+        36
+      ],
+      "candidate_padding_fraction": 0.20370370370370372,
+      "candidate_size": [
+        270,
+        36
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "bar_roof_snow",
+      "reference_bbox": [
+        6,
+        6,
+        264,
+        36
+      ],
+      "reference_padding_fraction": 0.20370370370370372,
+      "reference_size": [
+        270,
+        36
+      ],
+      "size_match": true,
+      "total_pixels": 9720,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
       "alpha_iou": 0.9995469618978234,
       "bbox_delta": [
         0,
@@ -617,6 +658,47 @@
       "verdict": "DIVERGENT"
     },
     {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        3,
+        12,
+        297,
+        159
+      ],
+      "candidate_padding_fraction": 0.1107407407407407,
+      "candidate_size": [
+        300,
+        162
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "firetruck_body",
+      "reference_bbox": [
+        3,
+        12,
+        297,
+        159
+      ],
+      "reference_padding_fraction": 0.1107407407407407,
+      "reference_size": [
+        300,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 48600,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
       "alpha_iou": 0.999359937509202,
       "bbox_delta": [
         0,
@@ -658,45 +740,45 @@
       "verdict": "DIVERGENT"
     },
     {
-      "alpha_iou": 1.0,
+      "alpha_iou": 0.9824425582604354,
       "bbox_delta": [
         0,
         0,
         0,
         0
       ],
-      "boundary_confined": true,
+      "boundary_confined": false,
       "candidate_bbox": [
-        3,
-        12,
-        297,
-        159
+        9,
+        9,
+        231,
+        231
       ],
-      "candidate_padding_fraction": 0.1107407407407407,
+      "candidate_padding_fraction": 0.14437500000000003,
       "candidate_size": [
-        300,
-        162
+        240,
+        240
       ],
-      "differing_pixels": 0,
+      "differing_pixels": 2116,
       "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "firetruck_body",
+      "max_alpha_diff": 63,
+      "max_rgb_diff_where_opaque": 15,
+      "mean_alpha_diff": 0.5957118055555556,
+      "name": "firework",
       "reference_bbox": [
-        3,
-        12,
-        297,
-        159
+        9,
+        9,
+        231,
+        231
       ],
-      "reference_padding_fraction": 0.1107407407407407,
+      "reference_padding_fraction": 0.14437500000000003,
       "reference_size": [
-        300,
-        162
+        240,
+        240
       ],
       "size_match": true,
-      "total_pixels": 48600,
-      "verdict": "PIXEL_IDENTICAL"
+      "total_pixels": 57600,
+      "verdict": "DIVERGENT"
     },
     {
       "alpha_iou": 0.9999308583535117,
@@ -902,6 +984,47 @@
       "size_match": true,
       "total_pixels": 67500,
       "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        77,
+        0,
+        373,
+        117
+      ],
+      "candidate_padding_fraction": 0.5249382716049382,
+      "candidate_size": [
+        450,
+        162
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "house_large_roof_snow",
+      "reference_bbox": [
+        77,
+        0,
+        373,
+        117
+      ],
+      "reference_padding_fraction": 0.5249382716049382,
+      "reference_size": [
+        450,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 72900,
+      "verdict": "PIXEL_IDENTICAL"
     },
     {
       "alpha_iou": 0.9997046035462223,
@@ -1191,6 +1314,47 @@
       "verdict": "DIVERGENT"
     },
     {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        40,
+        0,
+        200,
+        99
+      ],
+      "candidate_padding_fraction": 0.5,
+      "candidate_size": [
+        240,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "house_small_roof_snow",
+      "reference_bbox": [
+        40,
+        0,
+        200,
+        99
+      ],
+      "reference_padding_fraction": 0.5,
+      "reference_size": [
+        240,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 31680,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
       "alpha_iou": 0.9995843403674322,
       "bbox_delta": [
         0,
@@ -1311,6 +1475,88 @@
       ],
       "size_match": true,
       "total_pixels": 4356,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9997612734973796,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        0,
+        0,
+        66,
+        66
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        66,
+        66
+      ],
+      "differing_pixels": 375,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 22,
+      "max_rgb_diff_where_opaque": 26,
+      "mean_alpha_diff": 0.06060606060606061,
+      "name": "house_window_lit",
+      "reference_bbox": [
+        0,
+        0,
+        66,
+        66
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        66,
+        66
+      ],
+      "size_match": true,
+      "total_pixels": 4356,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9973987162163886,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        6,
+        0,
+        96,
+        252
+      ],
+      "candidate_padding_fraction": 0.11764705882352944,
+      "candidate_size": [
+        102,
+        252
+      ],
+      "differing_pixels": 526,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 55,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.19810146280734517,
+      "name": "lightning_bolt",
+      "reference_bbox": [
+        6,
+        0,
+        96,
+        252
+      ],
+      "reference_padding_fraction": 0.11764705882352944,
+      "reference_size": [
+        102,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 25704,
       "verdict": "DIVERGENT"
     },
     {
@@ -1765,6 +2011,1482 @@
       "verdict": "EDGE_EQUIVALENT"
     },
     {
+      "alpha_iou": 0.998646429136198,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        24,
+        15,
+        171,
+        162
+      ],
+      "candidate_padding_fraction": 0.25895061728395063,
+      "candidate_size": [
+        180,
+        162
+      ],
+      "differing_pixels": 641,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 45,
+      "max_rgb_diff_where_opaque": 21,
+      "mean_alpha_diff": 0.16262002743484225,
+      "name": "person_boy_summer_head_window",
+      "reference_bbox": [
+        24,
+        15,
+        171,
+        162
+      ],
+      "reference_padding_fraction": 0.25895061728395063,
+      "reference_size": [
+        180,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 29160,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9982810897623908,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        27,
+        66,
+        114,
+        252
+      ],
+      "candidate_padding_fraction": 0.5022148394241417,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 725,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 36,
+      "max_rgb_diff_where_opaque": 18,
+      "mean_alpha_diff": 0.13070628768303186,
+      "name": "person_boy_summer_walk0",
+      "reference_bbox": [
+        26,
+        66,
+        114,
+        252
+      ],
+      "reference_padding_fraction": 0.4964931709117756,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.998311490706587,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        24,
+        69,
+        114,
+        252
+      ],
+      "candidate_padding_fraction": 0.4933554817275747,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 752,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 39,
+      "max_rgb_diff_where_opaque": 18,
+      "mean_alpha_diff": 0.1256921373200443,
+      "name": "person_boy_summer_walk1",
+      "reference_bbox": [
+        23,
+        69,
+        114,
+        252
+      ],
+      "reference_padding_fraction": 0.4877260981912145,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.997228622489676,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        12,
+        66,
+        117,
+        252
+      ],
+      "candidate_padding_fraction": 0.39922480620155043,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 883,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 51,
+      "max_rgb_diff_where_opaque": 26,
+      "mean_alpha_diff": 0.2110865017841762,
+      "name": "person_boy_summer_walk2",
+      "reference_bbox": [
+        12,
+        66,
+        117,
+        252
+      ],
+      "reference_padding_fraction": 0.39922480620155043,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.998604881185714,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        12,
+        162,
+        162
+      ],
+      "candidate_padding_fraction": 0.2592592592592593,
+      "candidate_size": [
+        180,
+        162
+      ],
+      "differing_pixels": 1550,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 47,
+      "max_rgb_diff_where_opaque": 31,
+      "mean_alpha_diff": 0.2129286694101509,
+      "name": "person_boy_winter_head_window",
+      "reference_bbox": [
+        18,
+        12,
+        162,
+        162
+      ],
+      "reference_padding_fraction": 0.2592592592592593,
+      "reference_size": [
+        180,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 29160,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9977940497679934,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        24,
+        45,
+        111,
+        252
+      ],
+      "candidate_padding_fraction": 0.4460132890365448,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1015,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 67,
+      "max_rgb_diff_where_opaque": 44,
+      "mean_alpha_diff": 0.22566752799310938,
+      "name": "person_boy_winter_walk0",
+      "reference_bbox": [
+        24,
+        45,
+        111,
+        252
+      ],
+      "reference_padding_fraction": 0.4460132890365448,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9977664086701509,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        24,
+        48,
+        111,
+        252
+      ],
+      "candidate_padding_fraction": 0.4540420819490587,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1053,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 67,
+      "max_rgb_diff_where_opaque": 44,
+      "mean_alpha_diff": 0.22468315491571306,
+      "name": "person_boy_winter_walk1",
+      "reference_bbox": [
+        23,
+        48,
+        111,
+        252
+      ],
+      "reference_padding_fraction": 0.44776670358065707,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9971281789750781,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        11,
+        45,
+        118,
+        252
+      ],
+      "candidate_padding_fraction": 0.3186600221483943,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1206,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 67,
+      "max_rgb_diff_where_opaque": 44,
+      "mean_alpha_diff": 0.2944813584348468,
+      "name": "person_boy_winter_walk2",
+      "reference_bbox": [
+        11,
+        45,
+        118,
+        252
+      ],
+      "reference_padding_fraction": 0.3186600221483943,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9975526884843402,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        18,
+        165,
+        162
+      ],
+      "candidate_padding_fraction": 0.274074074074074,
+      "candidate_size": [
+        180,
+        162
+      ],
+      "differing_pixels": 1140,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 47,
+      "max_rgb_diff_where_opaque": 27,
+      "mean_alpha_diff": 0.3490740740740741,
+      "name": "person_girl_summer_head_window",
+      "reference_bbox": [
+        17,
+        18,
+        165,
+        162
+      ],
+      "reference_padding_fraction": 0.2691358024691358,
+      "reference_size": [
+        180,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 29160,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9968586623512937,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        66,
+        117,
+        252
+      ],
+      "candidate_padding_fraction": 0.4335548172757475,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 986,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 52,
+      "max_rgb_diff_where_opaque": 29,
+      "mean_alpha_diff": 0.27002583979328165,
+      "name": "person_girl_summer_walk0",
+      "reference_bbox": [
+        17,
+        66,
+        117,
+        252
+      ],
+      "reference_padding_fraction": 0.4278331487633813,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9967538351145527,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        69,
+        117,
+        252
+      ],
+      "candidate_padding_fraction": 0.44269102990033227,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1055,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 54,
+      "max_rgb_diff_where_opaque": 29,
+      "mean_alpha_diff": 0.27331733727082563,
+      "name": "person_girl_summer_walk1",
+      "reference_bbox": [
+        17,
+        69,
+        117,
+        252
+      ],
+      "reference_padding_fraction": 0.43706164636397193,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9960504670933426,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        9,
+        66,
+        120,
+        252
+      ],
+      "candidate_padding_fraction": 0.36489479512735323,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1222,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 52,
+      "max_rgb_diff_where_opaque": 29,
+      "mean_alpha_diff": 0.3376707272056109,
+      "name": "person_girl_summer_walk2",
+      "reference_bbox": [
+        9,
+        66,
+        120,
+        252
+      ],
+      "reference_padding_fraction": 0.36489479512735323,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9983915332071659,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        12,
+        165,
+        162
+      ],
+      "candidate_padding_fraction": 0.24382716049382713,
+      "candidate_size": [
+        180,
+        162
+      ],
+      "differing_pixels": 799,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 43,
+      "max_rgb_diff_where_opaque": 33,
+      "mean_alpha_diff": 0.2602194787379973,
+      "name": "person_girl_winter_head_window",
+      "reference_bbox": [
+        17,
+        12,
+        165,
+        162
+      ],
+      "reference_padding_fraction": 0.23868312757201648,
+      "reference_size": [
+        180,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 29160,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9968201694333437,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        13,
+        57,
+        119,
+        252
+      ],
+      "candidate_padding_fraction": 0.36415651531930604,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1180,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 62,
+      "max_rgb_diff_where_opaque": 30,
+      "mean_alpha_diff": 0.32684262335425124,
+      "name": "person_girl_winter_walk0",
+      "reference_bbox": [
+        13,
+        57,
+        119,
+        252
+      ],
+      "reference_padding_fraction": 0.36415651531930604,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9966788780287205,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        13,
+        60,
+        119,
+        252
+      ],
+      "candidate_padding_fraction": 0.3739387227759321,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1228,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 62,
+      "max_rgb_diff_where_opaque": 29,
+      "mean_alpha_diff": 0.33637873754152825,
+      "name": "person_girl_winter_walk1",
+      "reference_bbox": [
+        13,
+        60,
+        119,
+        252
+      ],
+      "reference_padding_fraction": 0.3739387227759321,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9961796300976012,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        11,
+        57,
+        119,
+        252
+      ],
+      "candidate_padding_fraction": 0.3521594684385382,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1368,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 62,
+      "max_rgb_diff_where_opaque": 30,
+      "mean_alpha_diff": 0.394364464131906,
+      "name": "person_girl_winter_walk2",
+      "reference_bbox": [
+        11,
+        57,
+        119,
+        252
+      ],
+      "reference_padding_fraction": 0.3521594684385382,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9987004355297143,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        30,
+        21,
+        141,
+        162
+      ],
+      "candidate_padding_fraction": 0.4350227420402859,
+      "candidate_size": [
+        171,
+        162
+      ],
+      "differing_pixels": 609,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 46,
+      "max_rgb_diff_where_opaque": 30,
+      "mean_alpha_diff": 0.1562703053931124,
+      "name": "person_man_summer_head_car",
+      "reference_bbox": [
+        30,
+        21,
+        141,
+        162
+      ],
+      "reference_padding_fraction": 0.4350227420402859,
+      "reference_size": [
+        171,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 27702,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9988979361066137,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        9,
+        162,
+        162
+      ],
+      "candidate_padding_fraction": 0.24444444444444446,
+      "candidate_size": [
+        180,
+        162
+      ],
+      "differing_pixels": 654,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 46,
+      "max_rgb_diff_where_opaque": 30,
+      "mean_alpha_diff": 0.15795610425240056,
+      "name": "person_man_summer_head_window",
+      "reference_bbox": [
+        18,
+        9,
+        162,
+        162
+      ],
+      "reference_padding_fraction": 0.24444444444444446,
+      "reference_size": [
+        180,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 29160,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9983534426872812,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        21,
+        12,
+        111,
+        252
+      ],
+      "candidate_padding_fraction": 0.33554817275747506,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 872,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 42,
+      "max_rgb_diff_where_opaque": 25,
+      "mean_alpha_diff": 0.17915590008613264,
+      "name": "person_man_summer_walk0",
+      "reference_bbox": [
+        20,
+        12,
+        111,
+        252
+      ],
+      "reference_padding_fraction": 0.3281653746770026,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9983987436695607,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        15,
+        114,
+        252
+      ],
+      "candidate_padding_fraction": 0.30011074197120713,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 945,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 49,
+      "max_rgb_diff_where_opaque": 25,
+      "mean_alpha_diff": 0.1708810139042697,
+      "name": "person_man_summer_walk1",
+      "reference_bbox": [
+        17,
+        15,
+        114,
+        252
+      ],
+      "reference_padding_fraction": 0.29282022886674053,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9978978362190926,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        3,
+        12,
+        126,
+        252
+      ],
+      "candidate_padding_fraction": 0.09191583610188259,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1115,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 44,
+      "max_rgb_diff_where_opaque": 32,
+      "mean_alpha_diff": 0.22511381813707396,
+      "name": "person_man_summer_walk2",
+      "reference_bbox": [
+        3,
+        12,
+        126,
+        252
+      ],
+      "reference_padding_fraction": 0.09191583610188259,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9987627439374167,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        24,
+        18,
+        144,
+        162
+      ],
+      "candidate_padding_fraction": 0.3762183235867447,
+      "candidate_size": [
+        171,
+        162
+      ],
+      "differing_pixels": 575,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 43,
+      "max_rgb_diff_where_opaque": 25,
+      "mean_alpha_diff": 0.15634250234640099,
+      "name": "person_man_winter_head_car",
+      "reference_bbox": [
+        24,
+        18,
+        144,
+        162
+      ],
+      "reference_padding_fraction": 0.3762183235867447,
+      "reference_size": [
+        171,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 27702,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9987897942785997,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        12,
+        6,
+        168,
+        162
+      ],
+      "candidate_padding_fraction": 0.16543209876543208,
+      "candidate_size": [
+        180,
+        162
+      ],
+      "differing_pixels": 721,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 48,
+      "max_rgb_diff_where_opaque": 21,
+      "mean_alpha_diff": 0.1834705075445816,
+      "name": "person_man_winter_head_window",
+      "reference_bbox": [
+        12,
+        6,
+        168,
+        162
+      ],
+      "reference_padding_fraction": 0.16543209876543208,
+      "reference_size": [
+        180,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 29160,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.997991223137457,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        9,
+        114,
+        252
+      ],
+      "candidate_padding_fraction": 0.28239202657807305,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 936,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 96,
+      "max_rgb_diff_where_opaque": 25,
+      "mean_alpha_diff": 0.2517534145441122,
+      "name": "person_man_winter_walk0",
+      "reference_bbox": [
+        18,
+        9,
+        114,
+        252
+      ],
+      "reference_padding_fraction": 0.28239202657807305,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.998019513013864,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        12,
+        114,
+        252
+      ],
+      "candidate_padding_fraction": 0.29125138427464003,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 989,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 96,
+      "max_rgb_diff_where_opaque": 25,
+      "mean_alpha_diff": 0.24464747139165743,
+      "name": "person_man_winter_walk1",
+      "reference_bbox": [
+        17,
+        12,
+        114,
+        252
+      ],
+      "reference_padding_fraction": 0.28386858619416755,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9973684443347828,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        5,
+        9,
+        124,
+        252
+      ],
+      "candidate_padding_fraction": 0.11046511627906974,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1187,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 96,
+      "max_rgb_diff_where_opaque": 25,
+      "mean_alpha_diff": 0.329395841023748,
+      "name": "person_man_winter_walk2",
+      "reference_bbox": [
+        5,
+        9,
+        124,
+        252
+      ],
+      "reference_padding_fraction": 0.11046511627906974,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9987697038009443,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        30,
+        21,
+        141,
+        162
+      ],
+      "candidate_padding_fraction": 0.4350227420402859,
+      "candidate_size": [
+        171,
+        162
+      ],
+      "differing_pixels": 615,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 46,
+      "max_rgb_diff_where_opaque": 33,
+      "mean_alpha_diff": 0.150277958270161,
+      "name": "person_woman_summer_head_car",
+      "reference_bbox": [
+        30,
+        21,
+        141,
+        162
+      ],
+      "reference_padding_fraction": 0.4350227420402859,
+      "reference_size": [
+        171,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 27702,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9989008347032196,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        9,
+        162,
+        162
+      ],
+      "candidate_padding_fraction": 0.24444444444444446,
+      "candidate_size": [
+        180,
+        162
+      ],
+      "differing_pixels": 676,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 49,
+      "max_rgb_diff_where_opaque": 26,
+      "mean_alpha_diff": 0.15819615912208504,
+      "name": "person_woman_summer_head_window",
+      "reference_bbox": [
+        18,
+        9,
+        162,
+        162
+      ],
+      "reference_padding_fraction": 0.24444444444444446,
+      "reference_size": [
+        180,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 29160,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9985624970114281,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        21,
+        12,
+        108,
+        252
+      ],
+      "candidate_padding_fraction": 0.35769656699889263,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 921,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 43,
+      "max_rgb_diff_where_opaque": 28,
+      "mean_alpha_diff": 0.14796357819613634,
+      "name": "person_woman_summer_walk0",
+      "reference_bbox": [
+        21,
+        12,
+        108,
+        252
+      ],
+      "reference_padding_fraction": 0.35769656699889263,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9985561148231333,
+      "bbox_delta": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        21,
+        15,
+        111,
+        252
+      ],
+      "candidate_padding_fraction": 0.3438538205980066,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1023,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 43,
+      "max_rgb_diff_where_opaque": 28,
+      "mean_alpha_diff": 0.14519502891595915,
+      "name": "person_woman_summer_walk1",
+      "reference_bbox": [
+        20,
+        15,
+        111,
+        252
+      ],
+      "reference_padding_fraction": 0.33656330749354,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9979561698895638,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        6,
+        12,
+        123,
+        252
+      ],
+      "candidate_padding_fraction": 0.1362126245847176,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1200,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 50,
+      "max_rgb_diff_where_opaque": 28,
+      "mean_alpha_diff": 0.20810262089331857,
+      "name": "person_woman_summer_walk2",
+      "reference_bbox": [
+        6,
+        12,
+        123,
+        252
+      ],
+      "reference_padding_fraction": 0.1362126245847176,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.998924561507262,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        24,
+        18,
+        144,
+        162
+      ],
+      "candidate_padding_fraction": 0.3762183235867447,
+      "candidate_size": [
+        171,
+        162
+      ],
+      "differing_pixels": 671,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 43,
+      "max_rgb_diff_where_opaque": 33,
+      "mean_alpha_diff": 0.1385098548841239,
+      "name": "person_woman_winter_head_car",
+      "reference_bbox": [
+        24,
+        18,
+        144,
+        162
+      ],
+      "reference_padding_fraction": 0.3762183235867447,
+      "reference_size": [
+        171,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 27702,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9988415429994079,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        12,
+        0,
+        168,
+        162
+      ],
+      "candidate_padding_fraction": 0.1333333333333333,
+      "candidate_size": [
+        180,
+        162
+      ],
+      "differing_pixels": 689,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 56,
+      "max_rgb_diff_where_opaque": 34,
+      "mean_alpha_diff": 0.1727366255144033,
+      "name": "person_woman_winter_head_window",
+      "reference_bbox": [
+        12,
+        0,
+        168,
+        162
+      ],
+      "reference_padding_fraction": 0.1333333333333333,
+      "reference_size": [
+        180,
+        162
+      ],
+      "size_match": true,
+      "total_pixels": 29160,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9982129091388467,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        0,
+        114,
+        252
+      ],
+      "candidate_padding_fraction": 0.2558139534883721,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1084,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 62,
+      "max_rgb_diff_where_opaque": 28,
+      "mean_alpha_diff": 0.21893072474467823,
+      "name": "person_woman_winter_walk0",
+      "reference_bbox": [
+        18,
+        0,
+        114,
+        252
+      ],
+      "reference_padding_fraction": 0.2558139534883721,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9980407281234068,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        18,
+        1,
+        114,
+        252
+      ],
+      "candidate_padding_fraction": 0.2587670727205611,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1175,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 62,
+      "max_rgb_diff_where_opaque": 30,
+      "mean_alpha_diff": 0.237849144825889,
+      "name": "person_woman_winter_walk1",
+      "reference_bbox": [
+        18,
+        1,
+        114,
+        252
+      ],
+      "reference_padding_fraction": 0.2587670727205611,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.997506388914254,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        8,
+        0,
+        121,
+        252
+      ],
+      "candidate_padding_fraction": 0.12403100775193798,
+      "candidate_size": [
+        129,
+        252
+      ],
+      "differing_pixels": 1335,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 62,
+      "max_rgb_diff_where_opaque": 28,
+      "mean_alpha_diff": 0.3082933431770641,
+      "name": "person_woman_winter_walk2",
+      "reference_bbox": [
+        8,
+        0,
+        121,
+        252
+      ],
+      "reference_padding_fraction": 0.12403100775193798,
+      "reference_size": [
+        129,
+        252
+      ],
+      "size_match": true,
+      "total_pixels": 32508,
+      "verdict": "DIVERGENT"
+    },
+    {
       "alpha_iou": 0.994341616930645,
       "bbox_delta": [
         0,
@@ -1929,6 +3651,47 @@
       "verdict": "EDGE_EQUIVALENT"
     },
     {
+      "alpha_iou": 0.9962022682552937,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        3,
+        15,
+        597,
+        312
+      ],
+      "candidate_padding_fraction": 0.0575961538461538,
+      "candidate_size": [
+        600,
+        312
+      ],
+      "differing_pixels": 5175,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 121,
+      "max_rgb_diff_where_opaque": 5,
+      "mean_alpha_diff": 0.603701923076923,
+      "name": "rainbow_arc",
+      "reference_bbox": [
+        3,
+        15,
+        597,
+        312
+      ],
+      "reference_padding_fraction": 0.0575961538461538,
+      "reference_size": [
+        600,
+        312
+      ],
+      "size_match": true,
+      "total_pixels": 187200,
+      "verdict": "DIVERGENT"
+    },
+    {
       "alpha_iou": 0.9987030570144254,
       "bbox_delta": [
         0,
@@ -2009,6 +3772,47 @@
       "size_match": true,
       "total_pixels": 4536,
       "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        6,
+        6,
+        294,
+        36
+      ],
+      "candidate_padding_fraction": 0.19999999999999996,
+      "candidate_size": [
+        300,
+        36
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "restaurant_roof_snow",
+      "reference_bbox": [
+        6,
+        6,
+        294,
+        36
+      ],
+      "reference_padding_fraction": 0.19999999999999996,
+      "reference_size": [
+        300,
+        36
+      ],
+      "size_match": true,
+      "total_pixels": 10800,
+      "verdict": "PIXEL_IDENTICAL"
     },
     {
       "alpha_iou": 0.9995178905806495,
@@ -2462,6 +4266,47 @@
       "verdict": "EDGE_EQUIVALENT"
     },
     {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        6,
+        10,
+        174,
+        36
+      ],
+      "candidate_padding_fraction": 0.32592592592592595,
+      "candidate_size": [
+        180,
+        36
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "skyscraper_roof_snow",
+      "reference_bbox": [
+        6,
+        10,
+        174,
+        36
+      ],
+      "reference_padding_fraction": 0.32592592592592595,
+      "reference_size": [
+        180,
+        36
+      ],
+      "size_match": true,
+      "total_pixels": 6480,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
       "alpha_iou": 0.9998655894727914,
       "bbox_delta": [
         0,
@@ -2528,6 +4373,47 @@
       "max_rgb_diff_where_opaque": 3,
       "mean_alpha_diff": 0.001045267489711934,
       "name": "skyscraper_wall",
+      "reference_bbox": [
+        0,
+        0,
+        270,
+        450
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        270,
+        450
+      ],
+      "size_match": true,
+      "total_pixels": 121500,
+      "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 0.9999959003928457,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": false,
+      "candidate_bbox": [
+        0,
+        0,
+        270,
+        450
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        270,
+        450
+      ],
+      "differing_pixels": 626,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 21,
+      "max_rgb_diff_where_opaque": 24,
+      "mean_alpha_diff": 0.001045267489711934,
+      "name": "skyscraper_wall_lit",
       "reference_bbox": [
         0,
         0,
@@ -2913,88 +4799,6 @@
       "verdict": "PIXEL_IDENTICAL"
     },
     {
-      "alpha_iou": 0.9997612734973796,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        0,
-        0,
-        66,
-        66
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        66,
-        66
-      ],
-      "differing_pixels": 375,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 22,
-      "max_rgb_diff_where_opaque": 26,
-      "mean_alpha_diff": 0.06060606060606061,
-      "name": "house_window_lit",
-      "reference_bbox": [
-        0,
-        0,
-        66,
-        66
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        66,
-        66
-      ],
-      "size_match": true,
-      "total_pixels": 4356,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9999959003928457,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        0,
-        0,
-        270,
-        450
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        270,
-        450
-      ],
-      "differing_pixels": 626,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 21,
-      "max_rgb_diff_where_opaque": 24,
-      "mean_alpha_diff": 0.001045267489711934,
-      "name": "skyscraper_wall_lit",
-      "reference_bbox": [
-        0,
-        0,
-        270,
-        450
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        270,
-        450
-      ],
-      "size_match": true,
-      "total_pixels": 121500,
-      "verdict": "DIVERGENT"
-    },
-    {
       "alpha_iou": 0.9997372716611024,
       "bbox_delta": [
         0,
@@ -3034,1605 +4838,6 @@
       "size_match": true,
       "total_pixels": 7128,
       "verdict": "EDGE_EQUIVALENT"
-    },
-    {
-      "alpha_iou": 0.9962022682552937,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        3,
-        15,
-        597,
-        312
-      ],
-      "candidate_padding_fraction": 0.0575961538461538,
-      "candidate_size": [
-        600,
-        312
-      ],
-      "differing_pixels": 5175,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 121,
-      "max_rgb_diff_where_opaque": 5,
-      "mean_alpha_diff": 0.603701923076923,
-      "name": "rainbow_arc",
-      "reference_bbox": [
-        3,
-        15,
-        597,
-        312
-      ],
-      "reference_padding_fraction": 0.0575961538461538,
-      "reference_size": [
-        600,
-        312
-      ],
-      "size_match": true,
-      "total_pixels": 187200,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9973987162163886,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        6,
-        0,
-        96,
-        252
-      ],
-      "candidate_padding_fraction": 0.11764705882352944,
-      "candidate_size": [
-        102,
-        252
-      ],
-      "differing_pixels": 526,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 55,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.19810146280734517,
-      "name": "lightning_bolt",
-      "reference_bbox": [
-        6,
-        0,
-        96,
-        252
-      ],
-      "reference_padding_fraction": 0.11764705882352944,
-      "reference_size": [
-        102,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 25704,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9824425582604354,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        9,
-        9,
-        231,
-        231
-      ],
-      "candidate_padding_fraction": 0.14437500000000003,
-      "candidate_size": [
-        240,
-        240
-      ],
-      "differing_pixels": 2116,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 63,
-      "max_rgb_diff_where_opaque": 15,
-      "mean_alpha_diff": 0.5957118055555556,
-      "name": "firework",
-      "reference_bbox": [
-        9,
-        9,
-        231,
-        231
-      ],
-      "reference_padding_fraction": 0.14437500000000003,
-      "reference_size": [
-        240,
-        240
-      ],
-      "size_match": true,
-      "total_pixels": 57600,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9983534426872812,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        21,
-        12,
-        111,
-        252
-      ],
-      "candidate_padding_fraction": 0.33554817275747506,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 872,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 42,
-      "max_rgb_diff_where_opaque": 25,
-      "mean_alpha_diff": 0.17915590008613264,
-      "name": "person_man_summer_walk0",
-      "reference_bbox": [
-        20,
-        12,
-        111,
-        252
-      ],
-      "reference_padding_fraction": 0.3281653746770026,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9983987436695607,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        15,
-        114,
-        252
-      ],
-      "candidate_padding_fraction": 0.30011074197120713,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 945,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 49,
-      "max_rgb_diff_where_opaque": 25,
-      "mean_alpha_diff": 0.1708810139042697,
-      "name": "person_man_summer_walk1",
-      "reference_bbox": [
-        17,
-        15,
-        114,
-        252
-      ],
-      "reference_padding_fraction": 0.29282022886674053,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9978978362190926,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        3,
-        12,
-        126,
-        252
-      ],
-      "candidate_padding_fraction": 0.09191583610188259,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1115,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 44,
-      "max_rgb_diff_where_opaque": 32,
-      "mean_alpha_diff": 0.22511381813707396,
-      "name": "person_man_summer_walk2",
-      "reference_bbox": [
-        3,
-        12,
-        126,
-        252
-      ],
-      "reference_padding_fraction": 0.09191583610188259,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9988979361066137,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        9,
-        162,
-        162
-      ],
-      "candidate_padding_fraction": 0.24444444444444446,
-      "candidate_size": [
-        180,
-        162
-      ],
-      "differing_pixels": 654,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 46,
-      "max_rgb_diff_where_opaque": 30,
-      "mean_alpha_diff": 0.15795610425240056,
-      "name": "person_man_summer_head_window",
-      "reference_bbox": [
-        18,
-        9,
-        162,
-        162
-      ],
-      "reference_padding_fraction": 0.24444444444444446,
-      "reference_size": [
-        180,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 29160,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9987004355297143,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        30,
-        21,
-        141,
-        162
-      ],
-      "candidate_padding_fraction": 0.4350227420402859,
-      "candidate_size": [
-        171,
-        162
-      ],
-      "differing_pixels": 609,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 46,
-      "max_rgb_diff_where_opaque": 30,
-      "mean_alpha_diff": 0.1562703053931124,
-      "name": "person_man_summer_head_car",
-      "reference_bbox": [
-        30,
-        21,
-        141,
-        162
-      ],
-      "reference_padding_fraction": 0.4350227420402859,
-      "reference_size": [
-        171,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 27702,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.997991223137457,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        9,
-        114,
-        252
-      ],
-      "candidate_padding_fraction": 0.28239202657807305,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 936,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 96,
-      "max_rgb_diff_where_opaque": 25,
-      "mean_alpha_diff": 0.2517534145441122,
-      "name": "person_man_winter_walk0",
-      "reference_bbox": [
-        18,
-        9,
-        114,
-        252
-      ],
-      "reference_padding_fraction": 0.28239202657807305,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.998019513013864,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        12,
-        114,
-        252
-      ],
-      "candidate_padding_fraction": 0.29125138427464003,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 989,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 96,
-      "max_rgb_diff_where_opaque": 25,
-      "mean_alpha_diff": 0.24464747139165743,
-      "name": "person_man_winter_walk1",
-      "reference_bbox": [
-        17,
-        12,
-        114,
-        252
-      ],
-      "reference_padding_fraction": 0.28386858619416755,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9973684443347828,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        5,
-        9,
-        124,
-        252
-      ],
-      "candidate_padding_fraction": 0.11046511627906974,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1187,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 96,
-      "max_rgb_diff_where_opaque": 25,
-      "mean_alpha_diff": 0.329395841023748,
-      "name": "person_man_winter_walk2",
-      "reference_bbox": [
-        5,
-        9,
-        124,
-        252
-      ],
-      "reference_padding_fraction": 0.11046511627906974,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9987897942785997,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        12,
-        6,
-        168,
-        162
-      ],
-      "candidate_padding_fraction": 0.16543209876543208,
-      "candidate_size": [
-        180,
-        162
-      ],
-      "differing_pixels": 721,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 48,
-      "max_rgb_diff_where_opaque": 21,
-      "mean_alpha_diff": 0.1834705075445816,
-      "name": "person_man_winter_head_window",
-      "reference_bbox": [
-        12,
-        6,
-        168,
-        162
-      ],
-      "reference_padding_fraction": 0.16543209876543208,
-      "reference_size": [
-        180,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 29160,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9987627439374167,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        24,
-        18,
-        144,
-        162
-      ],
-      "candidate_padding_fraction": 0.3762183235867447,
-      "candidate_size": [
-        171,
-        162
-      ],
-      "differing_pixels": 575,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 43,
-      "max_rgb_diff_where_opaque": 25,
-      "mean_alpha_diff": 0.15634250234640099,
-      "name": "person_man_winter_head_car",
-      "reference_bbox": [
-        24,
-        18,
-        144,
-        162
-      ],
-      "reference_padding_fraction": 0.3762183235867447,
-      "reference_size": [
-        171,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 27702,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9985624970114281,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        21,
-        12,
-        108,
-        252
-      ],
-      "candidate_padding_fraction": 0.35769656699889263,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 921,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 43,
-      "max_rgb_diff_where_opaque": 28,
-      "mean_alpha_diff": 0.14796357819613634,
-      "name": "person_woman_summer_walk0",
-      "reference_bbox": [
-        21,
-        12,
-        108,
-        252
-      ],
-      "reference_padding_fraction": 0.35769656699889263,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9985561148231333,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        21,
-        15,
-        111,
-        252
-      ],
-      "candidate_padding_fraction": 0.3438538205980066,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1023,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 43,
-      "max_rgb_diff_where_opaque": 28,
-      "mean_alpha_diff": 0.14519502891595915,
-      "name": "person_woman_summer_walk1",
-      "reference_bbox": [
-        20,
-        15,
-        111,
-        252
-      ],
-      "reference_padding_fraction": 0.33656330749354,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9979561698895638,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        6,
-        12,
-        123,
-        252
-      ],
-      "candidate_padding_fraction": 0.1362126245847176,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1200,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 50,
-      "max_rgb_diff_where_opaque": 28,
-      "mean_alpha_diff": 0.20810262089331857,
-      "name": "person_woman_summer_walk2",
-      "reference_bbox": [
-        6,
-        12,
-        123,
-        252
-      ],
-      "reference_padding_fraction": 0.1362126245847176,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9989008347032196,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        9,
-        162,
-        162
-      ],
-      "candidate_padding_fraction": 0.24444444444444446,
-      "candidate_size": [
-        180,
-        162
-      ],
-      "differing_pixels": 676,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 49,
-      "max_rgb_diff_where_opaque": 26,
-      "mean_alpha_diff": 0.15819615912208504,
-      "name": "person_woman_summer_head_window",
-      "reference_bbox": [
-        18,
-        9,
-        162,
-        162
-      ],
-      "reference_padding_fraction": 0.24444444444444446,
-      "reference_size": [
-        180,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 29160,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9987697038009443,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        30,
-        21,
-        141,
-        162
-      ],
-      "candidate_padding_fraction": 0.4350227420402859,
-      "candidate_size": [
-        171,
-        162
-      ],
-      "differing_pixels": 615,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 46,
-      "max_rgb_diff_where_opaque": 33,
-      "mean_alpha_diff": 0.150277958270161,
-      "name": "person_woman_summer_head_car",
-      "reference_bbox": [
-        30,
-        21,
-        141,
-        162
-      ],
-      "reference_padding_fraction": 0.4350227420402859,
-      "reference_size": [
-        171,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 27702,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9982129091388467,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        0,
-        114,
-        252
-      ],
-      "candidate_padding_fraction": 0.2558139534883721,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1084,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 62,
-      "max_rgb_diff_where_opaque": 28,
-      "mean_alpha_diff": 0.21893072474467823,
-      "name": "person_woman_winter_walk0",
-      "reference_bbox": [
-        18,
-        0,
-        114,
-        252
-      ],
-      "reference_padding_fraction": 0.2558139534883721,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9980407281234068,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        1,
-        114,
-        252
-      ],
-      "candidate_padding_fraction": 0.2587670727205611,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1175,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 62,
-      "max_rgb_diff_where_opaque": 30,
-      "mean_alpha_diff": 0.237849144825889,
-      "name": "person_woman_winter_walk1",
-      "reference_bbox": [
-        18,
-        1,
-        114,
-        252
-      ],
-      "reference_padding_fraction": 0.2587670727205611,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.997506388914254,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        8,
-        0,
-        121,
-        252
-      ],
-      "candidate_padding_fraction": 0.12403100775193798,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1335,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 62,
-      "max_rgb_diff_where_opaque": 28,
-      "mean_alpha_diff": 0.3082933431770641,
-      "name": "person_woman_winter_walk2",
-      "reference_bbox": [
-        8,
-        0,
-        121,
-        252
-      ],
-      "reference_padding_fraction": 0.12403100775193798,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9988415429994079,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        12,
-        0,
-        168,
-        162
-      ],
-      "candidate_padding_fraction": 0.1333333333333333,
-      "candidate_size": [
-        180,
-        162
-      ],
-      "differing_pixels": 689,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 56,
-      "max_rgb_diff_where_opaque": 34,
-      "mean_alpha_diff": 0.1727366255144033,
-      "name": "person_woman_winter_head_window",
-      "reference_bbox": [
-        12,
-        0,
-        168,
-        162
-      ],
-      "reference_padding_fraction": 0.1333333333333333,
-      "reference_size": [
-        180,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 29160,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.998924561507262,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        24,
-        18,
-        144,
-        162
-      ],
-      "candidate_padding_fraction": 0.3762183235867447,
-      "candidate_size": [
-        171,
-        162
-      ],
-      "differing_pixels": 671,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 43,
-      "max_rgb_diff_where_opaque": 33,
-      "mean_alpha_diff": 0.1385098548841239,
-      "name": "person_woman_winter_head_car",
-      "reference_bbox": [
-        24,
-        18,
-        144,
-        162
-      ],
-      "reference_padding_fraction": 0.3762183235867447,
-      "reference_size": [
-        171,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 27702,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9982810897623908,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        27,
-        66,
-        114,
-        252
-      ],
-      "candidate_padding_fraction": 0.5022148394241417,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 725,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 36,
-      "max_rgb_diff_where_opaque": 18,
-      "mean_alpha_diff": 0.13070628768303186,
-      "name": "person_boy_summer_walk0",
-      "reference_bbox": [
-        26,
-        66,
-        114,
-        252
-      ],
-      "reference_padding_fraction": 0.4964931709117756,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.998311490706587,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        24,
-        69,
-        114,
-        252
-      ],
-      "candidate_padding_fraction": 0.4933554817275747,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 752,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 39,
-      "max_rgb_diff_where_opaque": 18,
-      "mean_alpha_diff": 0.1256921373200443,
-      "name": "person_boy_summer_walk1",
-      "reference_bbox": [
-        23,
-        69,
-        114,
-        252
-      ],
-      "reference_padding_fraction": 0.4877260981912145,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.997228622489676,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        12,
-        66,
-        117,
-        252
-      ],
-      "candidate_padding_fraction": 0.39922480620155043,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 883,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 51,
-      "max_rgb_diff_where_opaque": 26,
-      "mean_alpha_diff": 0.2110865017841762,
-      "name": "person_boy_summer_walk2",
-      "reference_bbox": [
-        12,
-        66,
-        117,
-        252
-      ],
-      "reference_padding_fraction": 0.39922480620155043,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.998646429136198,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        24,
-        15,
-        171,
-        162
-      ],
-      "candidate_padding_fraction": 0.25895061728395063,
-      "candidate_size": [
-        180,
-        162
-      ],
-      "differing_pixels": 641,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 45,
-      "max_rgb_diff_where_opaque": 21,
-      "mean_alpha_diff": 0.16262002743484225,
-      "name": "person_boy_summer_head_window",
-      "reference_bbox": [
-        24,
-        15,
-        171,
-        162
-      ],
-      "reference_padding_fraction": 0.25895061728395063,
-      "reference_size": [
-        180,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 29160,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9977940497679934,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        24,
-        45,
-        111,
-        252
-      ],
-      "candidate_padding_fraction": 0.4460132890365448,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1015,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 67,
-      "max_rgb_diff_where_opaque": 44,
-      "mean_alpha_diff": 0.22566752799310938,
-      "name": "person_boy_winter_walk0",
-      "reference_bbox": [
-        24,
-        45,
-        111,
-        252
-      ],
-      "reference_padding_fraction": 0.4460132890365448,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9977664086701509,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        24,
-        48,
-        111,
-        252
-      ],
-      "candidate_padding_fraction": 0.4540420819490587,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1053,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 67,
-      "max_rgb_diff_where_opaque": 44,
-      "mean_alpha_diff": 0.22468315491571306,
-      "name": "person_boy_winter_walk1",
-      "reference_bbox": [
-        23,
-        48,
-        111,
-        252
-      ],
-      "reference_padding_fraction": 0.44776670358065707,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9971281789750781,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        11,
-        45,
-        118,
-        252
-      ],
-      "candidate_padding_fraction": 0.3186600221483943,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1206,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 67,
-      "max_rgb_diff_where_opaque": 44,
-      "mean_alpha_diff": 0.2944813584348468,
-      "name": "person_boy_winter_walk2",
-      "reference_bbox": [
-        11,
-        45,
-        118,
-        252
-      ],
-      "reference_padding_fraction": 0.3186600221483943,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.998604881185714,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        12,
-        162,
-        162
-      ],
-      "candidate_padding_fraction": 0.2592592592592593,
-      "candidate_size": [
-        180,
-        162
-      ],
-      "differing_pixels": 1550,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 47,
-      "max_rgb_diff_where_opaque": 31,
-      "mean_alpha_diff": 0.2129286694101509,
-      "name": "person_boy_winter_head_window",
-      "reference_bbox": [
-        18,
-        12,
-        162,
-        162
-      ],
-      "reference_padding_fraction": 0.2592592592592593,
-      "reference_size": [
-        180,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 29160,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9968586623512937,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        66,
-        117,
-        252
-      ],
-      "candidate_padding_fraction": 0.4335548172757475,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 986,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 52,
-      "max_rgb_diff_where_opaque": 29,
-      "mean_alpha_diff": 0.27002583979328165,
-      "name": "person_girl_summer_walk0",
-      "reference_bbox": [
-        17,
-        66,
-        117,
-        252
-      ],
-      "reference_padding_fraction": 0.4278331487633813,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9967538351145527,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        69,
-        117,
-        252
-      ],
-      "candidate_padding_fraction": 0.44269102990033227,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1055,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 54,
-      "max_rgb_diff_where_opaque": 29,
-      "mean_alpha_diff": 0.27331733727082563,
-      "name": "person_girl_summer_walk1",
-      "reference_bbox": [
-        17,
-        69,
-        117,
-        252
-      ],
-      "reference_padding_fraction": 0.43706164636397193,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9960504670933426,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        9,
-        66,
-        120,
-        252
-      ],
-      "candidate_padding_fraction": 0.36489479512735323,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1222,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 52,
-      "max_rgb_diff_where_opaque": 29,
-      "mean_alpha_diff": 0.3376707272056109,
-      "name": "person_girl_summer_walk2",
-      "reference_bbox": [
-        9,
-        66,
-        120,
-        252
-      ],
-      "reference_padding_fraction": 0.36489479512735323,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9975526884843402,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        18,
-        165,
-        162
-      ],
-      "candidate_padding_fraction": 0.274074074074074,
-      "candidate_size": [
-        180,
-        162
-      ],
-      "differing_pixels": 1140,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 47,
-      "max_rgb_diff_where_opaque": 27,
-      "mean_alpha_diff": 0.3490740740740741,
-      "name": "person_girl_summer_head_window",
-      "reference_bbox": [
-        17,
-        18,
-        165,
-        162
-      ],
-      "reference_padding_fraction": 0.2691358024691358,
-      "reference_size": [
-        180,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 29160,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9968201694333437,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        13,
-        57,
-        119,
-        252
-      ],
-      "candidate_padding_fraction": 0.36415651531930604,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1180,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 62,
-      "max_rgb_diff_where_opaque": 30,
-      "mean_alpha_diff": 0.32684262335425124,
-      "name": "person_girl_winter_walk0",
-      "reference_bbox": [
-        13,
-        57,
-        119,
-        252
-      ],
-      "reference_padding_fraction": 0.36415651531930604,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9966788780287205,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        13,
-        60,
-        119,
-        252
-      ],
-      "candidate_padding_fraction": 0.3739387227759321,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1228,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 62,
-      "max_rgb_diff_where_opaque": 29,
-      "mean_alpha_diff": 0.33637873754152825,
-      "name": "person_girl_winter_walk1",
-      "reference_bbox": [
-        13,
-        60,
-        119,
-        252
-      ],
-      "reference_padding_fraction": 0.3739387227759321,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9961796300976012,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        11,
-        57,
-        119,
-        252
-      ],
-      "candidate_padding_fraction": 0.3521594684385382,
-      "candidate_size": [
-        129,
-        252
-      ],
-      "differing_pixels": 1368,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 62,
-      "max_rgb_diff_where_opaque": 30,
-      "mean_alpha_diff": 0.394364464131906,
-      "name": "person_girl_winter_walk2",
-      "reference_bbox": [
-        11,
-        57,
-        119,
-        252
-      ],
-      "reference_padding_fraction": 0.3521594684385382,
-      "reference_size": [
-        129,
-        252
-      ],
-      "size_match": true,
-      "total_pixels": 32508,
-      "verdict": "DIVERGENT"
-    },
-    {
-      "alpha_iou": 0.9983915332071659,
-      "bbox_delta": [
-        1,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": false,
-      "candidate_bbox": [
-        18,
-        12,
-        165,
-        162
-      ],
-      "candidate_padding_fraction": 0.24382716049382713,
-      "candidate_size": [
-        180,
-        162
-      ],
-      "differing_pixels": 799,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 43,
-      "max_rgb_diff_where_opaque": 33,
-      "mean_alpha_diff": 0.2602194787379973,
-      "name": "person_girl_winter_head_window",
-      "reference_bbox": [
-        17,
-        12,
-        165,
-        162
-      ],
-      "reference_padding_fraction": 0.23868312757201648,
-      "reference_size": [
-        180,
-        162
-      ],
-      "size_match": true,
-      "total_pixels": 29160,
-      "verdict": "DIVERGENT"
     }
   ]
 }

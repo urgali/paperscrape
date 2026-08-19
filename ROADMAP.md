@@ -10,14 +10,15 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.0 Stable — the complete built-in theme review.**
+**v2.1 Stable — D-7 closed; offline tooling and documentation only.**
 
-`versionCode = 4`, `versionName = "2.0"`. v1.0 and v1.1 preceded it and were both
-verified on a Pixel 9.
+`versionCode = 5`, `versionName = "2.1"`. Nothing the wallpaper executes differs from
+v2.0, whose theme defaults still have not been seen on a device. v1.0 and v1.1
+preceded them and were both verified on a Pixel 9.
 
 Last measured: 357 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
-asset `validate` clean across 118 sprites, offline tooling 79 tests with 3 known
-failures (D-7).
+asset `validate` clean across 118 sprites, offline tooling 83 tests with no
+failures.
 
 `assembleDebug` has not been run since v75 and no APK is produced locally — CI
 builds the release APK. Compilation is proven by `testDebugUnitTest`, which compiles
@@ -25,8 +26,8 @@ the whole `debug` source set; resource linking, dexing and packaging are not.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4 — 3 is unused because no v1.2 was released, and the counter has no obligation
-to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
+v2.0 → 4, v2.1 → 5 — 3 is unused because no v1.2 was released, and the counter has no
+obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
 ---
@@ -56,7 +57,6 @@ Genuinely open, genuinely not worth doing yet.
 
 | ID | Item | Why deferred |
 |---|---|---|
-| **D-7** | The shipped PNGs came from the V2 library's own rasteriser; the pinned toolchain renders antialiased edges slightly differently. | Invisible at runtime. Closing it means re-rendering 108 sprites in one change, which needs its own decision and its own device look. Costs three fidelity tests in the offline tooling. |
 | **D-10** | 40 sprites carry croppable transparent padding, a few MB of decoded memory. | `normalize --apply` refuses: cropping a `PART_LOCAL` sprite moves its content relative to the local zero its parent composes against, so the crop rule and the anchor model have to be reconciled first. Design work, not a mechanical pass, and every origin it touches needs compensating in the same change. |
 | **B5** | The renderer, wallpaper engine, preferences layer and Compose UI cannot be unit tested without being decoupled from `Canvas`/`Context`. | The reason engine fixes are verified on a device rather than by a test. Decoupling is a large refactor with no user-visible result; it earns its place only if engine bugs start recurring. |
 | **D1** | The README states the project is not a decompilation of any third-party product; some source comments imply otherwise. | Deferred by the maintainer. Recorded, no action. |
@@ -68,6 +68,28 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.1 Stable** — D-7 closed; offline tooling and documentation only, nothing user-visible.
+- **D-7 — rasteriser fidelity, closed.** The three failing fidelity tests were not
+  a rasteriser matter at all: they still asserted the **pre-V2** sprite library.
+  `house_shared_planter` was pinned as a white full-canvas rounded rectangle at
+  78x18 radius 6, but the V2 artwork is a `#C98F5A` box occupying only the lower
+  part of its viewBox with three foliage circles over it — 113 solid/empty
+  conflicts and a max RGB difference of 176, a different picture rather than a
+  different antialiasing decision. `road_line` was pinned at 52x8 radius 3.9 and
+  ships at 54x9 radius 4.5, so it failed on size before anything was measured.
+  The count stayed at three across the redesign, which is why the mislabel
+  survived. The assertions were re-derived against `house_large_trim`, which
+  really is a full-canvas rounded rectangle in the V2 set, and against the
+  sprites that genuinely score under the IoU reporting floor while reproducing
+  exactly. `reports/geometry-fit.json` carried the same staleness — it still
+  named `house_large_planter` and `house_small_planter`, removed in Phase 3.4 —
+  and was regenerated. The residual rasteriser divergence is now measured rather
+  than asserted: across all 118 sprites there is **no solid/empty conflict
+  anywhere**, so no sprite's shape differs from its source, and no single pixel's
+  coverage moves by as much as half (worst case 121/255, one pixel of
+  `rainbow_arc`). Both bounds are pinned by `ShippedAgainstSourceTest`. The
+  108-sprite re-render that was thought to be the price of closing this was never
+  required; it would only have made three unrelated assertions pass.
 - **v2.0 Stable** — complete review of every built-in theme; winter and Christmas split into independent flags.
 - **v1.1 Stable** — semver release tags, and an update checker that can read them.
 - **v1.0 Stable** — first public release.

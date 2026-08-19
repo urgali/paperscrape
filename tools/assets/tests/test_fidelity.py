@@ -28,9 +28,11 @@ from PIL import Image
 TOOL_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TOOL_ROOT))
 
-from paperscrape_assets import fidelity, fit, raster  # noqa: E402
+from paperscrape_assets import fidelity, fit, inventory, raster, registry  # noqa: E402
 
 RUNTIME = TOOL_ROOT.parent.parent / "app/src/main/res/drawable-nodpi"
+SVG_DIR = TOOL_ROOT / "sources/svg"
+REGISTRY_PATH = TOOL_ROOT / "sources/sprites.json"
 
 
 def solid_square(size: int = 32, inset: int = 8, alpha: int = 255) -> np.ndarray:
@@ -45,8 +47,13 @@ def runtime_pixels(name: str) -> np.ndarray:
         return np.array(image.convert("RGBA"))
 
 
-def render_rounded_rect(width: int, height: int, radius: float) -> np.ndarray:
-    return raster.render_svg(fit.rounded_rect_svg(width, height, radius)).pixels
+def source_pixels(name: str) -> np.ndarray:
+    """The sprite as the pinned toolchain renders its committed SVG source."""
+    return raster.render_svg_file(SVG_DIR / f"{name}.svg").pixels
+
+
+def render_rounded_rect(width: int, height: int, radius: float, fill: str = "#ffffff") -> np.ndarray:
+    return raster.render_svg(fit.rounded_rect_svg(width, height, radius, fill=fill)).pixels
 
 
 class VerdictTest(unittest.TestCase):
@@ -102,45 +109,112 @@ class VerdictTest(unittest.TestCase):
 class RecoveredGeometryTest(unittest.TestCase):
     """The criterion applied to the real sprites, including the near misses.
 
-    `house_shared_planter` is one of the sprites whose 0.999 IoU gate failed
-    while its geometry was in fact recovered. It is pinned here in both
-    directions: the fitted radius passes, and the neighbouring grid value does
-    not.
+    `house_large_trim` is a full-canvas rounded rectangle in the shipped library,
+    so `fit` determines it completely: one free parameter, swept exhaustively.
+    It is pinned in both directions -- the recovered radius reproduces the sprite,
+    the neighbouring grid values do not.
+
+    These cases named `house_shared_planter` and `road_line` at a 78x18 radius 6
+    and a 52x8 radius 3.9 until the V2 redesign. Both sprites were plain rounded
+    rectangles when the assertions were written; V2 replaced the planter with a
+    box carrying three foliage circles and re-authored `road_line` at 54x9, and
+    the assertions were never re-derived against the artwork that actually ships.
+    They are not a rasteriser matter: a white rectangle compared against a
+    coloured three-element drawing is a different picture, not a different
+    antialiasing decision.
     """
 
-    def test_fitted_radius_reproduces_the_shipped_planter(self):
-        reference = runtime_pixels("house_shared_planter")
+    #: The trim's radius, in pixels, as its committed source declares it: `rx="3"`
+    #: in a viewBox authored at `SPRITE_PIXELS_PER_UNIT` pixels per scene unit.
+    TRIM_RADIUS = 3 * inventory.SPRITE_PIXELS_PER_UNIT
+
+    def test_the_shipped_trims_radius_is_recovered_from_its_pixels(self):
+        fitted = fit.fit_rounded_rect("house_large_trim", runtime_pixels("house_large_trim"))
+        self.assertEqual((450, 18), (fitted.width, fitted.height))
+        self.assertEqual(float(self.TRIM_RADIUS), fitted.snapped_radius)
+        self.assertLess(abs(fitted.best_radius - self.TRIM_RADIUS), 0.5)
+
+    def test_fitted_radius_reproduces_the_shipped_trim(self):
+        reference = runtime_pixels("house_large_trim")
         result = fidelity.compare(
-            "house_shared_planter", reference, render_rounded_rect(78, 18, 6)
+            "house_large_trim", reference, render_rounded_rect(450, 18, self.TRIM_RADIUS)
         )
         self.assertEqual("EDGE_EQUIVALENT", result.verdict)
         self.assertEqual(0, result.interior_alpha_mismatch)
 
-    def test_wrong_radius_does_not_reproduce_the_shipped_planter(self):
-        reference = runtime_pixels("house_shared_planter")
-        for radius in (3, 9):
+    def test_wrong_radius_does_not_reproduce_the_shipped_trim(self):
+        reference = runtime_pixels("house_large_trim")
+        step = inventory.SPRITE_PIXELS_PER_UNIT
+        for radius in (self.TRIM_RADIUS - step, self.TRIM_RADIUS + step):
             with self.subTest(radius=radius):
                 result = fidelity.compare(
-                    "house_shared_planter", reference, render_rounded_rect(78, 18, radius)
+                    "house_large_trim", reference, render_rounded_rect(450, 18, radius)
                 )
                 self.assertEqual("DIVERGENT", result.verdict)
 
     def test_low_iou_alone_does_not_reject_a_recovered_shape(self):
-        """The sprites the IoU gate rejected still score below it.
+        """Small sprites score far below the reporting floor and are still right.
 
-        There were three until Phase 3.4: `house_small_planter` was a second copy
-        of `house_shared_planter`, so it scored identically and is now gone.
+        Each of these reproduces its shipped PNG with no solid/empty conflict, an
+        exact fill and every differing pixel on the reference's own antialiased
+        edge, while scoring under `IOU_REPORTING_FLOOR`. That is the failure mode
+        of an area ratio applied to a boundary phenomenon, not of the
+        reconstruction: `bunny_innerear` is 48x48 and `penguin_feet` is 60x12, so
+        their antialiased band is a large share of their area, and a single
+        absolute IoU threshold would ask them for precision it never asks of a
+        270x450 wall.
         """
-        for name, size, radius in (
-            ("house_shared_planter", (78, 18), 6),
-            ("road_line", (52, 8), 3.9),
-        ):
+        for name in ("bunny_innerear", "pumpkin_stem", "penguin_feet"):
             with self.subTest(name=name):
-                result = fidelity.compare(
-                    name, runtime_pixels(name), render_rounded_rect(*size, radius)
-                )
+                result = fidelity.compare(name, runtime_pixels(name), source_pixels(name))
                 self.assertLess(result.alpha_iou, fidelity.IOU_REPORTING_FLOOR)
                 self.assertEqual("EDGE_EQUIVALENT", result.verdict)
+
+
+class ShippedAgainstSourceTest(unittest.TestCase):
+    """What the pinned toolchain does and does not reproduce, across the set.
+
+    The shipped PNGs were rendered by the V2 library's own rasteriser, and the
+    pinned one resolves partially covered pixels differently. That is defect D-7,
+    and this class is what bounds it rather than leaving it as an adjective.
+
+    The bound that matters is a *shape* bound, and it is criterion-independent:
+    no sprite has a pixel that is solid in one rendering and empty in the other,
+    and no single pixel's coverage moves by as much as half. Everything the two
+    rasterisers disagree about is therefore the resolution of a boundary pixel,
+    which is invisible once the sprite is blitted. A geometry difference -- a
+    displaced shape, a wrong radius, a re-authored drawing -- cannot satisfy
+    either condition, which is what makes them worth asserting.
+    """
+
+    #: Half of 255, rounded down: a disagreement this large would mean the two
+    #: rasterisers do not agree about which side of a pixel's centre an edge falls
+    #: on, which is a geometry difference rather than a coverage one. The measured
+    #: worst case across the set is 121, on a single pixel of `rainbow_arc`'s
+    #: shallowest stroke edge.
+    MAX_COVERAGE_DELTA = 127
+
+    @classmethod
+    def setUpClass(cls):
+        cls.results = [
+            fidelity.compare(spec.name, runtime_pixels(spec.name), source_pixels(spec.name))
+            for spec in registry.load(REGISTRY_PATH)
+            if spec.has_svg_source
+        ]
+
+    def test_every_sprite_with_a_source_is_covered(self):
+        self.assertEqual(118, len(self.results))
+
+    def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
+        for result in self.results:
+            with self.subTest(name=result.name):
+                self.assertTrue(result.size_match)
+                self.assertEqual(0, result.interior_alpha_mismatch)
+
+    def test_no_pixels_coverage_moves_by_half(self):
+        for result in self.results:
+            with self.subTest(name=result.name):
+                self.assertLessEqual(result.max_alpha_diff, self.MAX_COVERAGE_DELTA)
 
 
 class RasteriserTest(unittest.TestCase):

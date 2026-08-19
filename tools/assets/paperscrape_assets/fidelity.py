@@ -38,11 +38,12 @@ Three conditions, all of them scale-free:
 ``alpha_iou`` is still measured and reported, but it does **not** gate. An area
 ratio is the wrong instrument here because the antialiased boundary is a fixed
 share of the *perimeter* while the denominator is the *area*: on a 270x450
-sprite the boundary is a rounding error, and on a 78x18 one it is a large
+sprite the boundary is a rounding error, and on a 60x12 one it is a large
 fraction of the shape. A single absolute IoU threshold therefore asks small
 sprites to be far more precise than large ones for no reason connected to how
-either looks. Three sprites -- both house planters and `road_line` -- failed a
-0.999 IoU gate at 0.9988 with zero solid/empty conflicts and every differing
+either looks. `bunny_innerear` (0.9905), `pumpkin_stem` (0.9934) and
+`penguin_feet` (0.9955) all score under a 0.999 gate while reproducing their
+shipped PNGs with zero solid/empty conflicts, an exact fill and every differing
 pixel on their own antialiased edge, which is the failure mode of the metric
 rather than of the reconstruction.
 

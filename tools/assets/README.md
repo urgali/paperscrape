@@ -235,12 +235,29 @@ sprites are recorded as gaps.
 
 `alpha_iou` is reported but does **not** gate. An antialiased boundary is a fixed
 share of a shape's *perimeter* while IoU divides by its *area*, so one absolute
-threshold demands far more precision from a 78×18 sprite than from a 270×450 one.
+threshold demands far more precision from a 60×12 sprite than from a 270×450 one.
 See `fidelity.py` for the three conditions that do gate.
 
 Run the tests before trusting a verdict. They pin the near misses in both
 directions — a one-pixel displacement, a radius one grid unit off, a fill colour
 off by one — because a criterion that cannot fail asserts nothing.
+
+### What the pinned rasteriser does and does not reproduce
+
+The shipped PNGs came from the V2 library's own rasteriser, and the pinned one
+resolves partially covered pixels differently. `ShippedAgainstSourceTest` bounds
+that difference instead of describing it: across all 118 sprites there is no
+pixel that is solid in one rendering and empty in the other, so **no sprite's
+shape differs from its source**, and no single pixel's coverage moves by as much
+as half (worst case 121/255, one pixel on `rainbow_arc`'s shallowest stroke
+edge). Everything the two rasterisers disagree about is therefore the resolution
+of a boundary pixel. That was defect D-7, and it is closed.
+
+Most sprites still report `DIVERGENT` against their sources. The V2 library is
+layered paper-cutout artwork, so where two opaque shapes meet, the antialiased
+band lives in RGB at full alpha rather than in the alpha channel, and the three
+gating conditions only look at alpha. The verdict counts should be read with that
+in mind; the shape bounds above are what the closure of D-7 rests on.
 
 ## Padding and grid normalisation
 
