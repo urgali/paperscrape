@@ -5,8 +5,11 @@ describes the **current** implementation, including its known weaknesses.
 Planned work belongs in `ROADMAP.md`; visual and design decisions belong in
 `DESIGN_NOTES.md`.
 
-Last verified against: **v75** (`versionCode = 75`), by reading the source and
-running a full `assembleDebug` + `lintDebug` + `test` build.
+Last fully verified against **v75**, by reading the source and running a complete
+`assembleDebug` + `lintDebug` + `test` build. Sections touched after that — the depth
+model, the sprite blitting conventions and the ground geometry — were updated as the
+work landed and are current as of **v1.0 Stable** (`versionCode = 1`). Anything not
+listed there has not been re-read against the source since v75.
 
 ---
 

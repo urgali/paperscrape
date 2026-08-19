@@ -3,8 +3,8 @@ name: Android CI
 on:
   push:
     branches: [ "main" ]
-    # Releases are cut by pushing a tag, never by merging. `vNN` publishes a stable release;
-    # `vNN.N` publishes a beta/pre-release. Merging to main only builds and tests.
+    # Releases are cut by pushing a tag, never by merging. `vMAJOR.MINOR` publishes a stable
+    # release, and the tag must equal `versionName`. Merging to main only builds and tests.
     tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
@@ -105,49 +105,42 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Validate and classify the release tag
-        # The tag is the release identifier. It is NOT derived from versionCode any more: deriving
-        # it meant only integer tags were expressible, and it meant a forgotten bump silently
-        # tried to republish an existing version.
+      - name: Validate the release tag against versionName
+        # The tag is the release identifier and it must equal `versionName`.
         #
-        #   vNN    -> stable release,        published normally
-        #   vNN.N  -> beta / pre-release,    published with prerelease=true
+        #   vMAJOR.MINOR  ->  stable release, published as latest
         #
-        # `NN` must equal the current versionCode either way: a beta sits on top of the Android
-        # version it was built from, so `v73.4` must be built from `versionCode = 73`. That check
-        # is what keeps the two numbering schemes semantically coherent instead of merely
-        # coexisting.
+        # `versionName` is what a user sees and what a tag names; `versionCode` is Android's own
+        # monotonic install counter and is deliberately *not* checked here. The two answer
+        # different questions -- "which release is this" and "is this newer than what is
+        # installed" -- and tying them together is what the previous rule got wrong: it required
+        # `MAJOR == versionCode`, which made only integer tags expressible and forced the install
+        # counter to carry release semantics it has no business carrying.
+        #
+        # No beta form is recognised yet. A tag that is not `vMAJOR.MINOR` fails, on purpose:
+        # inventing a pre-release syntax before it is needed would mean guessing at it.
         id: tag
         run: |
           TAG="${GITHUB_REF_NAME}"
+          VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)
           VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts)
 
-          if [[ "$TAG" =~ ^v([0-9]+)$ ]]; then
-            KIND="stable"
-            MAJOR="${BASH_REMATCH[1]}"
-            PRERELEASE="false"
-            TITLE_SUFFIX="Stable"
-          elif [[ "$TAG" =~ ^v([0-9]+)\.([0-9]+)$ ]]; then
-            KIND="beta"
-            MAJOR="${BASH_REMATCH[1]}"
-            BETA="${BASH_REMATCH[2]}"
-            PRERELEASE="true"
-            TITLE_SUFFIX="Beta"
-            if [ "$BETA" -eq 0 ]; then
-              echo "::error::Tag $TAG is not valid. Beta numbering starts at .1; vNN.0 would be ambiguous with the stable vNN."
-              exit 1
-            fi
-          else
-            echo "::error::Tag $TAG is not a recognised release identifier. Use vNN for a stable release or vNN.N for a beta."
+          if [[ ! "$TAG" =~ ^v([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Tag $TAG is not a recognised release identifier. Use vMAJOR.MINOR, for example v1.1."
             exit 1
           fi
 
-          if [ "$MAJOR" != "$VERSION_CODE" ]; then
-            echo "::error::Tag $TAG does not match versionCode $VERSION_CODE in app/build.gradle.kts. A stable vNN must equal versionCode; a beta vNN.N must sit on the versionCode it was built from."
+          TAG_VERSION="${TAG#v}"
+          if [ "$TAG_VERSION" != "$VERSION_NAME" ]; then
+            echo "::error::Tag $TAG does not match versionName \"$VERSION_NAME\" in app/build.gradle.kts. The tag names the release, so the two must agree -- bump versionName (and versionCode) before tagging."
             exit 1
           fi
 
-          echo "Publishing $TAG as a $KIND release (prerelease=$PRERELEASE), versionCode $VERSION_CODE."
+          KIND="stable"
+          PRERELEASE="false"
+          TITLE_SUFFIX="Stable"
+
+          echo "Publishing $TAG as a $KIND release (prerelease=$PRERELEASE), versionName $VERSION_NAME, versionCode $VERSION_CODE."
           {
             echo "tag=$TAG"
             echo "kind=$KIND"
@@ -243,14 +236,13 @@ jobs:
           NOTES_FILE="release-notes/${TAG}.md"
           COMPOSED="${RUNNER_TEMP}/release-notes.md"
           : > "$COMPOSED"
+          # No tag currently classifies as a beta -- the tag step only recognises stable
+          # vMAJOR.MINOR. Kept so that adding a beta form later needs no change here.
           if [ "$KIND" = "beta" ]; then
             {
               echo "> **Beta / pre-release.** Built from the same signing key as the stable"
               echo "> releases, so it installs over one and can be replaced by one, but it has not"
               echo "> had the testing a stable release gets."
-              echo ""
-              echo "> The in-app updater does not offer betas: install this manually, and you will"
-              echo "> still be offered the next stable release when it appears."
               echo ""
             } >> "$COMPOSED"
           fi
@@ -267,11 +259,12 @@ jobs:
           echo "file=$COMPOSED" >> "$GITHUB_OUTPUT"
 
       - name: Publish release
-        # A beta is published with prerelease=true and explicitly not marked latest, so anything
-        # reading /releases/latest -- including anyone linking to it -- keeps seeing the newest
-        # stable build. Betas are signed with the same release key as stable builds on purpose:
-        # a differently-signed APK could not be installed over a stable one, which would strand
-        # testers.
+        # Every release is currently stable and published as latest, so anything reading
+        # /releases/latest -- including anyone linking to it -- always sees the newest build. The
+        # prerelease branch below is kept rather than deleted: when a beta form is added to the
+        # tag step it will set prerelease=true and this needs no further change, and a
+        # pre-release must be signed with the same release key as a stable build or it could not
+        # be installed over one.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}

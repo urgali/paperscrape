@@ -9,7 +9,9 @@ does today. Sections marked **[TO BE ESTABLISHED]** are gaps: no rule exists
 yet, and one must be agreed before the related work proceeds. Nothing in this
 document is invented to fill a heading.
 
-Last verified against **v74**.
+Last fully verified against **v74**. Sections rewritten since — §5 proportions,
+perspective and scaling, §6 positioning and alignment, and the snow, decoration and
+density rules — are current as of **v1.0 Stable**.
 
 ---
 

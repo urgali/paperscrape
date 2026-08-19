@@ -146,7 +146,7 @@ fun SettingsScreen(
     LaunchedEffect(settings.automaticUpdateCheckEnabled) {
         if (!settings.automaticUpdateCheckEnabled) return@LaunchedEffect
         val snooze = updatePrefs.readSnoozeState()
-        val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_CODE) ?: return@LaunchedEffect
+        val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME) ?: return@LaunchedEffect
         val isSnoozedForThisVersion = snooze.versionTag == update.tagName && System.currentTimeMillis() < snooze.untilMillis
         if (!isSnoozedForThisVersion) {
             availableUpdate = update
@@ -382,7 +382,9 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "Version v${BuildConfig.VERSION_CODE} (${BuildConfig.VERSION_NAME})",
+                // The release, then the install counter in brackets. It read "v1 (1.0)" under the
+                // semver scheme, which names the release with the wrong number.
+                "Version v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -397,12 +399,12 @@ fun SettingsScreen(
                     manualCheckUpToDateMessage = null
                     manualCheckInProgress = true
                     scope.launch {
-                        val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_CODE)
+                        val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
                         manualCheckInProgress = false
                         if (update != null) {
                             availableUpdate = update
                         } else {
-                            manualCheckUpToDateMessage = "You're up to date (v${BuildConfig.VERSION_CODE})"
+                            manualCheckUpToDateMessage = "You're up to date (v${BuildConfig.VERSION_NAME})"
                         }
                     }
                 },
@@ -511,7 +513,7 @@ fun SettingsScreen(
                 title = { Text("Update available") },
                 text = {
                     Column {
-                        Text("${update.tagName} is available (you have v${BuildConfig.VERSION_CODE}).")
+                        Text("${update.tagName} is available (you have v${BuildConfig.VERSION_NAME}).")
                         val notes = update.releaseNotes
                         if (!notes.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(12.dp))

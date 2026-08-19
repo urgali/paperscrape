@@ -19,8 +19,8 @@ their way around in a few minutes.
 | Add a settings option | `prefs/WallpaperPrefs.kt` (new field) + `ui/SettingsScreen.kt` (new control) |
 | Change refresh rate / battery usage | `engine/PaperWallpaperService.kt` → `FRAME_INTERVAL_MS` constant |
 | Add/change a date-based seasonal rule (e.g. Halloween week) | `engine/SeasonalThemeRules.kt` → add a `Window` entry |
-| Ship a new version | Bump `versionCode` in `app/build.gradle.kts` first — CI reads it directly to name the GitHub Release (`vN`), so it must match the version you're actually shipping. Also add `release-notes/vN.md` (see below) — without it, the release still ships fine, just with a generic placeholder note instead of a real "what's new" |
-| Write release notes | `release-notes/vN.md`, plain language, no code/file references — this is what regular users see both on the GitHub release page and right inside the app's own update dialog (`UpdateChecker` reads the same GitHub release body). Keep `CHANGELOG.md` for the technical/dev-facing history; these are two different audiences, don't merge them |
+| Ship a new version | Bump **both** numbers in `app/build.gradle.kts` first: `versionName` to the new `MAJOR.MINOR`, and `versionCode` up by one. CI checks the tag against `versionName` and fails the release if they disagree. Also add `release-notes/vMAJOR.MINOR.md` (see below) — without it the release still ships, just with a generic placeholder instead of a real "what's new" |
+| Write release notes | `release-notes/vMAJOR.MINOR.md`, plain language, no code/file references — this is what regular users see both on the GitHub release page and right inside the app's own update dialog (`UpdateChecker` reads the same GitHub release body). Keep `CHANGELOG.md` for the technical/dev-facing history; these are two different audiences, don't merge them |
 | Set up real release signing | `scripts/generate-release-keystore.sh` (run locally, never commit the result — see the script's own comments and the "Release signing" section below) |
 
 ## Ideas for future contributions

@@ -6,7 +6,7 @@ is known to be broken or limited.
 
 **Relationship to the other files:**
 `CHANGELOG.md` is the full technical log, one long entry per version.
-`release-notes/vNN.md` is the user-facing text published to the GitHub Release
+`release-notes/vMAJOR.MINOR.md` is the user-facing text published to the GitHub Release
 and shown in the in-app update dialog. **This file is the engineering-facing
 summary** — the one to read when picking up the project after a gap.
 
@@ -36,11 +36,13 @@ to anyone installing it; v1.0 is where the version a user sees starts.
 code.** Android refuses to install a lower `versionCode` over a higher one, so a
 device carrying any earlier internal build must uninstall before installing this —
 and uninstalling clears its DataStore, which is where saved settings and custom
-themes live. And CI's own tag check requires a stable tag `vNN` to equal
-`versionCode`, so the stable tag for this release is **`v1`**; `v1.0` is the dotted
-form the workflow classifies as a pre-release. The ZIP is named `PaperScrape_v1.0.zip`
-because that is what was asked for; the tag is a separate decision and none was
-created.
+themes live.
+
+**On the tag.** When this release was prepared, CI still required a stable tag's major
+number to equal `versionCode`, which would have made the tag `v1` rather than `v1.0`.
+That rule was replaced immediately afterwards: tags are now `vMAJOR.MINOR` and are
+checked against `versionName`, so the tag for this release is **`v1.0`**. No tag was
+created in either session.
 
 `AI_PROJECT_RULES.md` §11.2 says never to change the Android version merely because
 the project release identifier advanced. This change is the explicit exception the
@@ -83,6 +85,15 @@ Release identifier verified unique: yes
 ```
 
 `assembleDebug intentionally skipped under normal verification policy.`
+
+### Changed after v1.0 was cut
+
+The release tag scheme moved to semver — `vMAJOR.MINOR`, checked against `versionName`
+— immediately after this release, and `UpdateChecker` was reading a tag as a bare
+integer. Under the new scheme it would have parsed nothing and reported "no update"
+forever. It now compares `MAJOR.MINOR` and ignores any other tag shape, which also
+makes the pre-release history's integer tags invisible rather than readable as
+absurdly high versions. Not part of v1.0's shipped APK; it ships with v1.1.
 
 ### Known limitations carried into v1.0
 
@@ -954,10 +965,10 @@ Release identifier verified unique: yes
 | **Version** | **v1.0 — Stable / latest** (`versionCode = 1`, `versionName = "1.0"`) |
 | **Latest stable** | v1.0 |
 | **Date** | 2026-08-19 |
-| **Build status** | ⚠️ `testDebugUnitTest` **330 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **79 tests, 3 failures, all D-7 fidelity**; asset `validate` **0 failures across 118 sprites** — all measured at v76.12, whose code this is. **`assembleDebug` was not run and no APK was produced** — Level 2 |
+| **Build status** | ⚠️ `testDebugUnitTest` **337 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **79 tests, 3 failures, all D-7 fidelity**; asset `validate` **0 failures across 118 sprites**. **`assembleDebug` was not run and no APK was produced** — Level 2 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
 | **Sprite memory** | **118 PNGs** — five roof snow caps added in v76.12; the decoded total was last measured at 15.76 MB across 113 — re-measured at v76.6 with the asset pipeline running again. The previously recorded 15.03 MB predates that and was not re-derived; treat this figure as the measured one |
-| **Tests** | 330 Kotlin unit tests, 79 Python tooling tests |
+| **Tests** | 337 Kotlin unit tests, 79 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

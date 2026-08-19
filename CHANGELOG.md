@@ -1,10 +1,11 @@
 # Changelog
 
-Each version here corresponds to a zip delivered in chat and a commit on the
-user's GitHub repository. From here on every output is versioned: the
-delivered file is named `PaperScrape_vN.zip` and this changelog entry
-summarizes its contents, so it's always clear what each commit (`v1`, `v2`,
-`v3`, ...) contains without having to diff by hand.
+**Historical.** This is the full technical log of the project's pre-release
+development, when `vN` numbered internal builds delivered as ZIPs rather than
+releases. That sequence ended at v76.12, which was published as **v1.0 Stable** with
+`versionCode` reset to 1. Nothing here describes a current version.
+
+For what shipped and why, read `RELEASE_HISTORY.md`; for what is next, `ROADMAP.md`.
 
 ## v73 — Material aesthetic pass: houses, vehicles, buildings, seasonal objects, and two new
 features (walking people, Santa's sleigh)

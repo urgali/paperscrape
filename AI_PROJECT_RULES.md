@@ -383,66 +383,64 @@ release keystore.
 
 ## 11. Versioning and releases
 
-### 11.A Two different version numbers
+### 11.A Two numbers, two jobs
 
-11.1. **The project release identifier and the Android app version are separate
-things and must not be conflated.**
+11.1. **`versionName` names the release; `versionCode` counts installs.** They are
+not the same number and must not be tied together.
 
-- **Project release identifier** — names a unit of work delivered to the
-  maintainer: `v73.1`, `v73.2`, `v73.3`, … It labels the release ZIP, the
-  `RELEASE_HISTORY.md` entry, and the Git tag and GitHub release *if and when*
-  either is created.
-- **Android app version** — `versionCode` / `versionName` in
-  `app/build.gradle.kts`. It identifies a build installed on a device.
+- **`versionName`** — what a user sees, and what a Git tag names. Semver
+  `MAJOR.MINOR`: `1.0`, `1.1`, `2.0`.
+- **`versionCode`** — Android's own monotonic install counter. It increments by
+  exactly one per release and carries no release semantics: `1.0` → 1, `1.1` → 2,
+  `1.2` → 3, `2.0` → 4.
 
-11.2. **Never change `versionCode` or `versionName` merely because the project
-release identifier advanced.** A project release may sit on an unchanged Android
-version indefinitely. Change the Android version only when the task explicitly
-calls for it, or when it is technically necessary.
+Tying them together is what the previous rule got wrong. It required the tag's major
+number to equal `versionCode`, which made only integer tags expressible and forced
+the install counter to answer a question — "which release is this" — that belongs to
+`versionName`.
 
-### 11.B Choosing the next identifier
+11.2. **Change the Android version only when a release actually ships.** A working
+session, a beta ZIP or a documentation pass does not advance it. When a release does
+ship, both numbers move: `versionName` to the new semver, `versionCode` up by one.
 
-11.3. **Never infer the next identifier from conversation memory.** The project
-may be continued from a different session or a different Claude account, so
-memory is not evidence. Before preparing any release:
+### 11.B Choosing the next version
 
-1. inspect the current Git state;
-2. inspect the existing tags;
-3. inspect the GitHub releases, if the operating context can reach them;
-4. determine the lowest identifier that is genuinely unused;
-5. use it consistently everywhere in that release.
+11.3. **Never infer the next version from conversation memory.** The project may be
+continued from a different session or a different account, so memory is not evidence.
+Before preparing any release:
 
-11.4. **Identifiers are immutable and never reused.** `v73` already exists. Do
-not reuse it, do not reuse any identifier already taken, and never overwrite an
-existing tag or release.
+1. read `versionName`/`versionCode` in `app/build.gradle.kts`;
+2. inspect the existing Git tags and GitHub releases if the context can reach them;
+3. otherwise read `RELEASE_HISTORY.md` and `release-notes/`;
+4. take the next unused semver, and `versionCode + 1`.
 
-11.5. One identifier per release, used consistently across: the release ZIP
-filename, the `RELEASE_HISTORY.md` heading, the release notes, and any Git tag
-or GitHub release created for it.
+11.4. **Versions are immutable and never reused.** Never overwrite an existing tag or
+release.
 
-### 11.C Stable and beta releases
+11.5. One version per release, used consistently across: the release ZIP filename, the
+`RELEASE_HISTORY.md` heading, `release-notes/vMAJOR.MINOR.md`, `versionName`, and the
+Git tag.
 
-11.6. **Both shapes are real Git tags and real GitHub Releases.** The tag *is*
-the release identifier; CI no longer derives it from `versionCode`.
+### 11.C Tags and releases
+
+11.6. **The tag is `vMAJOR.MINOR` and must equal `versionName`.** CI reads
+`versionName` out of `app/build.gradle.kts` and fails the release if the tag disagrees.
 
 | Tag shape | Meaning | GitHub |
 |---|---|---|
-| `vNN` — `v73`, `v74` | Stable Android release | published normally, marked latest |
-| `vNN.N` — `v73.1`, `v73.2`, `v74.1` | Beta / development pre-release | published with `prerelease=true`, **not** marked latest |
+| `vMAJOR.MINOR` — `v1.0`, `v1.1`, `v2.0` | Stable release | published, marked latest |
 
-11.7. **`NN` must equal the current `versionCode` for both shapes.** A beta sits
-on top of the Android version it was built from, so `v73.4` must be built from
-`versionCode = 73`. CI enforces this and fails the release otherwise. This is
-what keeps the two numbering schemes coherent rather than merely coexisting.
+11.7. **There is no pre-release tag form yet.** Any tag that is not `vMAJOR.MINOR` is
+rejected. A beta syntax will be added when it is needed rather than guessed at now;
+the workflow's `prerelease` branch is left in place so adding one is a change to the
+tag step alone.
 
-Beta numbering starts at `.1`; `vNN.0` is rejected as ambiguous with `vNN`.
+11.8. **Releases are cut by pushing a tag, never by merging.** Merging to `main` builds
+and tests only.
 
-11.8. **Releases are cut by pushing a tag, never by merging.** Merging to `main`
-builds and tests only. Pushing `vNN` or `vNN.N` runs the release job.
-
-11.9. **Betas are signed with the same release key as stable builds.** A
-differently-signed APK cannot be installed over a stable one, which would strand
-testers on whichever they installed first.
+11.9. **Every published APK is signed with the same release key.** A differently-signed
+APK cannot be installed over an existing one, which would strand whoever installed the
+other.
 
 11.10. **The in-app updater does not offer betas, and must not be changed to.**
 `UpdateChecker` parses a release's version with
@@ -497,7 +495,7 @@ Every change is delivered at one of three levels. State the level and the reason
 for it in the release report (12.E).
 
 **Level 1 — Documentation-only.** The change touches only non-executable
-documentation (`ROADMAP.md`, `ROADMAP_OLD.md`, `RELEASE_HISTORY.md`,
+documentation (`ROADMAP.md`, `RELEASE_HISTORY.md`,
 `ARCHITECTURE.md`, `DESIGN_NOTES.md`, `AI_PROJECT_RULES.md`, `CLAUDE.md`,
 `README.md` and similar).
 
@@ -645,8 +643,10 @@ approval before any modification.
 - `DESIGN_NOTES.md` — when a visual or design decision is made
 - `RELEASE_HISTORY.md` — for every release
 - `CLAUDE.md` — local environment and working notes, never committed
-- `ROADMAP_OLD.md` — archived original roadmap; historical reference only,
-  never edited and never used to decide what to work on
+
+`ROADMAP_OLD.md` was deleted at the v1.0 cleanup. It held the original
+pre-release plan, which had been superseded phase by phase and was no longer
+consulted; `RELEASE_HISTORY.md` carries the reasoning that still matters.
 
 
 14.2. **When a new decision changes an existing rule, edit the existing rule.**
