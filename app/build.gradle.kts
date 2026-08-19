@@ -26,8 +26,8 @@ android {
         // installing this — which clears its saved settings and custom themes. And CI's tag check
         // requires a stable tag `vNN` to equal versionCode, so the stable tag for this release is
         // `v1`; `v1.0` is the dotted form the workflow treats as a pre-release.
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
