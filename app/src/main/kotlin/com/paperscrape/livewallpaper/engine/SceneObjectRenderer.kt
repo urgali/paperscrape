@@ -1142,7 +1142,9 @@ class SceneObjectRenderer(
         // (-41,-80)..(41,-6) once blitted at this origin, so its centre is (0,-43) and its half
         // extents are 41 x 37. The radii below are inset from those for the crown's five lobes,
         // which pull the silhouette in near the top and bottom, and for the light's own radius.
-        if (customization.winterColorsEnabled) {
+        // The Christmas layer, not the winter one. These hung off `winterColorsEnabled`, which
+        // made a plain snowy January impossible: every winter tree came with fairy lights.
+        if (customization.christmasDecorationsEnabled) {
             drawChristmasLights(canvas, r, elapsed, centerY = -43f, radiusX = 30f, radiusY = 26f)
         }
         canvas.restore()
@@ -1344,8 +1346,12 @@ class SceneObjectRenderer(
         // The fronds are fixed art in V2 and no longer follow the tree colour or Fall Colors --
         // see this class's own note on the retired accent constants, and `DESIGN_NOTES.md`.
         drawSprite(canvas, R.drawable.palmtree_fronds, -20f, -90.33f)
+        // Frost is the season; the lights are the decoration. Two flags, tested separately, so a
+        // frosted palm without lights and a lit palm without frost are both expressible.
         if (customization.winterColorsEnabled) {
             drawSprite(canvas, R.drawable.palmtree_fronds_frost, -20f, -90.33f)
+        }
+        if (customization.christmasDecorationsEnabled) {
             // Same derivation as the leafy tree's, from the fan's own content: 120x120 px with
             // content at (0,0)-(120,110) is (-20,-90.33)..(20,-53.67) at this origin, centred on
             // (0,-72) with half extents 20 x 18.33. Inset further than the leafy tree's because a

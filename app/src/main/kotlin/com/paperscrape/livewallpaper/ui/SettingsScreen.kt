@@ -1841,14 +1841,14 @@ private fun SeasonalDecorationsDialog(
                             onCheckedChange = { scope.launch { prefs.setFallColorsEnabled(it, forThemeId) } },
                         )
                         SettingSwitchRow(
-                            title = "🎄 Winter/Christmas Colors",
-                            subtitle = "Trees get a dusting of snow and blinking Christmas lights",
+                            title = "❄️ Winter Colors",
+                            subtitle = "Snow settles on trees and rooftops, and people dress for the cold",
                             checked = customization.winterColorsEnabled,
                             onCheckedChange = { scope.launch { prefs.setWinterColorsEnabled(it, forThemeId) } },
                         )
                         if (customization.fallColorsEnabled || customization.winterColorsEnabled) {
                             Text(
-                                "Fall Colors and Winter/Christmas Colors are mutually exclusive — turning one on turns the other off.",
+                                "Fall Colors and Winter Colors are mutually exclusive — turning one on turns the other off. Christmas Lights are separate and work with either.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp),
@@ -1858,6 +1858,12 @@ private fun SeasonalDecorationsDialog(
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     SectionTitle("Christmas")
+                    SettingSwitchRow(
+                        title = "🎄 Christmas Lights",
+                        subtitle = "Blinking lights on the trees. Independent of Winter Colors — you can have one without the other",
+                        checked = customization.christmasDecorationsEnabled,
+                        onCheckedChange = { scope.launch { prefs.setChristmasDecorationsEnabled(it, forThemeId) } },
+                    )
                     SettingSwitchRow(
                         title = "🎅 Show Santa",
                         subtitle = "Santa's sleigh occasionally flies across the sky dropping gifts. Previously tied to the Christmas theme with no way to turn it off — now a toggle like everything else here.",
@@ -1943,8 +1949,7 @@ private fun SeasonalDecorationsDialog(
                                 )) {
                                     prefs.resetCategory(category)
                                 }
-                                prefs.setFallColorsEnabled(false, forThemeId)
-                                prefs.setWinterColorsEnabled(false, forThemeId)
+                                prefs.resetSeasonalPalettes(forThemeId)
                                 prefs.resetSanta(forThemeId)
                             }
                         },

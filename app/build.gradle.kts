@@ -13,21 +13,21 @@ android {
         applicationId = "com.paperscrape.livewallpaper"
         minSdk = 26 // Android 8.0 - required for adaptive icons & modern WallpaperService features
         targetSdk = 36
-        // versionCode is the single source of truth for the GitHub Release tag/title created by
-        // CI (.github/workflows/android-build.yml reads this value directly) — bump it every
-        // time you ship a new vN so the release name in GitHub matches the version delivered.
+        // **Two numbers doing two different jobs — see AI_PROJECT_RULES.md §11.A.**
         //
-        // **Reset to 1 for the first public release.** The numbers up to 76 were the internal
-        // build sequence of an unreleased project and carried no meaning to anyone installing it;
-        // v1.0 is where the version a user sees starts.
+        // `versionName` names the release and is what a Git tag must equal: CI reads it out of
+        // this file and fails the release if the tag disagrees. `versionCode` is Android's own
+        // install counter, checked by nothing but the installer, and only has to increase.
         //
-        // Two consequences, both deliberate. Android refuses to install a lower versionCode over
-        // a higher one, so a device carrying an earlier internal build must uninstall before
-        // installing this — which clears its saved settings and custom themes. And CI's tag check
-        // requires a stable tag `vNN` to equal versionCode, so the stable tag for this release is
-        // `v1`; `v1.0` is the dotted form the workflow treats as a pre-release.
-        versionCode = 2
-        versionName = "1.1"
+        // v1.0 → 1, v1.1 → 2, v2.0 → 4. Three is skipped because no v1.2 was ever released; the
+        // counter has no obligation to be contiguous, only monotonic, and leaving the gap is
+        // more honest than renumbering a release that does not exist.
+        //
+        // Android refuses to install a lower `versionCode` over a higher one, so anything still
+        // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
+        // and uninstalling clears the DataStore, which is where settings and custom themes live.
+        versionCode = 4
+        versionName = "2.0"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets

@@ -424,7 +424,9 @@ object SceneObjectCatalog {
         "sunset" -> uniformCandidates(themeId, accentColor)
         "autumn" -> uniformCandidates(themeId, accentColor)
         "winter" -> uniformCandidates(themeId, accentColor)
-        "desert" -> uniformCandidates(themeId, accentColor)
+        // Palms, not broadleaf woodland. The tree *type* is a property of the theme's layout, so
+        // this is the same knob Beach already uses rather than a special case in the renderer.
+        "desert" -> uniformCandidates(themeId, accentColor, treeType = SceneObjectType.PALM_TREE)
         "christmas" -> uniformCandidates(themeId, accentColor)
         "new_year" -> uniformCandidates(themeId, accentColor)
         "beach" -> uniformCandidates(themeId, accentColor, treeType = SceneObjectType.PALM_TREE)

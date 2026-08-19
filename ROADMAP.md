@@ -10,11 +10,12 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v1.0 Stable — released, installed and verified on a Pixel 9.**
+**v2.0 Stable — the complete built-in theme review.**
 
-`versionCode = 1`, `versionName = "1.0"`.
+`versionCode = 4`, `versionName = "2.0"`. v1.0 and v1.1 preceded it and were both
+verified on a Pixel 9.
 
-Last measured: 337 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
+Last measured: 357 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
 asset `validate` clean across 118 sprites, offline tooling 79 tests with 3 known
 failures (D-7).
 
@@ -23,9 +24,9 @@ builds the release APK. Compilation is proven by `testDebugUnitTest`, which comp
 the whole `debug` source set; resource linking, dexing and packaging are not.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
-Android's install counter and increments by one per release, independently. v1.0 →
-`versionName 1.0` / `versionCode 1`; v1.1 → `1.1` / `2`; and so on. No pre-release tag
-form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
+Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
+v2.0 → 4 — 3 is unused because no v1.2 was released, and the counter has no obligation
+to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
 ---
@@ -34,7 +35,7 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 
 | # | Item | Why it is here |
 |---|---|---|
-| 1 | **Device pass on v1.0's seasonal scenes** | The roof snow, the People controls, the new star field and the lake lanes all shipped in the last batch before release and have not been looked at together on a device. |
+| 1 | **Device pass on v2.0's theme defaults** | Every built-in theme's defaults were reviewed and corrected: the winter family now enables the winter presentation (roof snow, snow-capped trees, winter clothing), Autumn enables Fall Colors and pumpkins, umbrellas leave the cold themes, the tundra lake loses its yachts and dolphins, Beach stands on sand, Desert gets palms, City is built rather than settled. Winter and Christmas are now two independent flags, so a snowy scene without fairy lights and a lit scene without snow are both expressible. Winter and Christmas snow by default. A fresh install now looks materially different per theme, and v2.0 shipped without any of it having been seen rendering. |
 | 2 | **Star-field cost, if it still matters** | Most stars became single `drawCircle` points shortly before v1.0, which cut the per-frame count to roughly a third. Whether the remainder is still worth attention is a question for a device, not for a static count. |
 | 3 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
 | 4 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
@@ -67,6 +68,8 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.0 Stable** — complete review of every built-in theme; winter and Christmas split into independent flags.
+- **v1.1 Stable** — semver release tags, and an update checker that can read them.
 - **v1.0 Stable** — first public release.
 - **V2 asset redesign** — 118 sprites, every one with an SVG source.
 - **GPU renderer** — OpenGL ES 2.0 behind the `SceneCanvas` abstraction, `Canvas` kept as fallback.

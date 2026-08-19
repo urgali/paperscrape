@@ -203,6 +203,7 @@ class WallpaperPrefs(private val context: Context) {
         val RAINBOW_OPACITY = floatPreferencesKey("rainbow_opacity")
         val FALL_COLORS_ENABLED = booleanPreferencesKey("fall_colors_enabled")
         val WINTER_COLORS_ENABLED = booleanPreferencesKey("winter_colors_enabled")
+        val CHRISTMAS_DECORATIONS_ENABLED = booleanPreferencesKey("christmas_decorations_enabled")
         val SANTA_ENABLED = booleanPreferencesKey("santa_enabled")
     }
 
@@ -343,6 +344,7 @@ class WallpaperPrefs(private val context: Context) {
                 ),
                 fallColorsEnabled = prefs[Keys.FALL_COLORS_ENABLED] ?: defaults.fallColorsEnabled,
                 winterColorsEnabled = prefs[Keys.WINTER_COLORS_ENABLED] ?: defaults.winterColorsEnabled,
+                christmasDecorationsEnabled = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED] ?: defaults.christmasDecorationsEnabled,
                 santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
             ),
         )
@@ -673,6 +675,19 @@ class WallpaperPrefs(private val context: Context) {
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
+    /**
+     * The Christmas decoration layer.
+     *
+     * **Independent of both seasonal palettes, unlike them of each other.** Fall Colors and Winter
+     * Colors are two readings of the same leaves and cannot both be true; Christmas lights are
+     * hung *on top of* whatever the trees look like, so this clears nothing and nothing clears it.
+     */
+    suspend fun setChristmasDecorationsEnabled(enabled: Boolean, forThemeId: String) =
+        context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.CHRISTMAS_DECORATIONS_ENABLED] = enabled
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
     /** Mutually exclusive with [setFallColorsEnabled] -- see that function's own doc comment. */
     suspend fun setWinterColorsEnabled(enabled: Boolean, forThemeId: String) =
         context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId)
@@ -697,6 +712,23 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun resetSanta(forThemeId: String) =
         context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId)
             it.remove(Keys.SANTA_ENABLED)
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /**
+     * Clears the three seasonal presentation flags so they fall back to the theme's own defaults.
+     *
+     * **Removes them rather than setting them false.** The Seasonal Decorations screen's "reset
+     * everything to defaults" wrote `false` into Fall and Winter Colors, which was indistinguishable
+     * from a default while every theme defaulted to off — and stopped being a reset the moment
+     * Winter, Christmas, New Year and Autumn started defaulting to on. A reset has to mean "forget
+     * what I chose", not "choose off".
+     */
+    suspend fun resetSeasonalPalettes(forThemeId: String) =
+        context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId)
+            it.remove(Keys.FALL_COLORS_ENABLED)
+            it.remove(Keys.WINTER_COLORS_ENABLED)
+            it.remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
@@ -787,6 +819,7 @@ class WallpaperPrefs(private val context: Context) {
         // switch is precisely what [ensureFreshPendingTheme] below now prevents.
         remove(Keys.FALL_COLORS_ENABLED)
         remove(Keys.WINTER_COLORS_ENABLED)
+        remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
         remove(Keys.SANTA_ENABLED)
     }
 

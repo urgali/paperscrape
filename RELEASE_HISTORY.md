@@ -19,6 +19,99 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.0 — the complete built-in theme review
+
+**Stable / latest.** `versionCode = 4`, `versionName = "2.0"`. Tag `v2.0`.
+
+Every built-in theme's defaults reviewed and corrected. No renderer redesign, no
+asset work: this is configuration, plus one architectural split that the
+configuration needed in order to be expressible.
+
+### The flag that was never switched on
+
+`winterColorsEnabled` drives tree snow caps, roof snow and winter clothing — three of
+the things that make a winter scene — and defaulted to **off for every theme**,
+including Winter, Christmas and Tundra. `fallColorsEnabled` did the same for Autumn.
+The features worked; nothing ever turned them on. So the winter themes shipped with
+green summer trees, bare roofs and people in short sleeves standing on snow, and the
+roof snow added two releases earlier was invisible in the only themes it was drawn
+for.
+
+### Winter and Christmas are now two flags
+
+The lights hung off the winter flag, which made the two words synonyms: a plain snowy
+January was impossible, and Christmas cost a full winter presentation whether or not
+one was wanted. `christmasDecorationsEnabled` is now its own flag. Neither implies the
+other and all four combinations are reachable.
+
+**Scope, and the part that is a judgement.** The new flag governs the Christmas
+dressing that has no category of its own — currently the tree lights, and whatever is
+added later. **Santa and the presents keep their own switches**, because they already
+had them and folding them in would give one thing two controls that can disagree. A
+theme's defaults set all three together; a user can still take any of them separately.
+Stated here because the instruction listed Santa and presents under the Christmas flag,
+and this is a deliberate departure from that reading.
+
+### Per-theme corrections
+
+| Theme | What was wrong |
+|---|---|
+| Winter | no winter presentation; beach umbrellas in the snow; no falling snow |
+| Christmas | the same, plus lights inseparable from the season |
+| New Year | not in winter at all, despite the date; umbrellas at a night party |
+| Tundra | no winter presentation; **sailboats and dolphins in the Arctic**, inherited from the generic lake default the theme's own override did not name; a forest where trees stop |
+| Autumn | autumn sky over midsummer foliage; no pumpkins; umbrellas |
+| Beach | **the ground drew in the sea's own colour** — `hillColorsDay[0]` is the water tone, and only entry 0 is read since the scene dropped to one hill layer, so the two sand tones behind it were unreachable |
+| Desert | broadleaf woodland in a desert |
+| City | as many cottages as offices |
+
+Winter and Christmas now snow by default — a deliberate exception to the opt-in
+weather rule, on the grounds that a theme called Winter whose weather is off hides its
+own subject in a menu.
+
+### A reset that had stopped resetting
+
+The Seasonal Decorations screen's "reset everything to defaults" wrote `false` into
+the seasonal flags. That was indistinguishable from a default while every theme
+defaulted to off, and stopped being a reset the moment four themes started defaulting
+to on. `resetSeasonalPalettes()` removes the keys instead, so they fall back to the
+theme's own defaults.
+
+### Migration
+
+**None required.** Defaults apply only where the user has never set the preference;
+`readVariantConfig` reads the stored value and falls back to the default only when
+absent. Custom themes persist a whole `SceneCustomization` and are untouched. The new
+JSON field is absent from older payloads and falls back to the theme's default — a
+missing field is not a changed one.
+
+### Verification
+
+```
+Release identifier:            v2.0
+Verification level:            2
+Tests run:                     yes -- 357 Kotlin unit tests, 0 failures
+Lint run:                      yes -- 41 warnings, 0 errors, 0 fatal (unchanged baseline)
+APK build run:                 no
+ZIP verification:              yes
+Git tag created:               no
+Maintainer-side verification required: the four winter themes, Autumn, Beach's ground,
+                               Desert's palms and the City's density
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing in this release was seen rendering.** No device, no emulator, no OpenGL.
+  Every change is a default, which means none of it is visible until someone installs
+  the app fresh — there is no running build that would have shown it.
+- The falling snow now on by default in Winter and Christmas, and the absence of
+  lights in Winter, are the two changes most worth looking at first.
+- D-7 and D-10 remain open and were not touched.
+
+
 ## v1.0 — first stable release
 
 **Stable / latest.** `versionCode = 1`, `versionName = "1.0"`.
@@ -962,13 +1055,13 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v1.0 — Stable / latest** (`versionCode = 1`, `versionName = "1.0"`) |
-| **Latest stable** | v1.0 |
+| **Version** | **v2.0 — Stable / latest** (`versionCode = 4`, `versionName = "2.0"`) |
+| **Latest stable** | v2.0 |
 | **Date** | 2026-08-19 |
-| **Build status** | ⚠️ `testDebugUnitTest` **337 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **79 tests, 3 failures, all D-7 fidelity**; asset `validate` **0 failures across 118 sprites**. **`assembleDebug` was not run and no APK was produced** — Level 2 |
+| **Build status** | ⚠️ `testDebugUnitTest` **357 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **79 tests, 3 failures, all D-7 fidelity**; asset `validate` **0 failures across 118 sprites**. **`assembleDebug` was not run and no APK was produced** — Level 2 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
 | **Sprite memory** | **118 PNGs** — five roof snow caps added in v76.12; the decoded total was last measured at 15.76 MB across 113 — re-measured at v76.6 with the asset pipeline running again. The previously recorded 15.03 MB predates that and was not re-derived; treat this figure as the measured one |
-| **Tests** | 337 Kotlin unit tests, 79 Python tooling tests |
+| **Tests** | 357 Kotlin unit tests, 79 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

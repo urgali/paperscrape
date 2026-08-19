@@ -522,6 +522,44 @@ the road by construction, asserted in `SceneSpaceTest`.
 A building's style is chosen by **depth**, not by a position hash: a tower
 belongs on the skyline and a shop front among the houses.
 
+### A theme's identity lives in its defaults, not in the renderer **[OBSERVED]**
+
+A built-in theme is a set of default values for the same categories every other
+theme has. Nothing about a theme is special-cased in drawing code, and nothing
+should be: "no umbrellas at Christmas" is `parasols.visible = false` in that
+theme's defaults, not a branch in `drawParasol`.
+
+Two consequences worth stating, because both were violated before v1.2.
+
+**A season and a festival are two different statements.** `winterColorsEnabled`
+says snow has settled and people have dressed for it; `christmasDecorationsEnabled`
+says lights have gone up. They were one flag, which made a plain snowy January
+impossible — every winter tree came with fairy lights — and made Christmas cost a
+full winter presentation whether or not one was wanted. Neither implies the other,
+and all four combinations are reachable. Anything Christmas added later attaches to
+the Christmas flag, so the meaning of the winter flag never has to change again.
+
+Santa and the presents keep their own switches rather than folding into the
+Christmas flag: they already had them, and one thing with two controls that can
+disagree is worse than two things with one each. A theme's defaults set all three
+together; a user can still take any of them separately.
+
+**A presentation flag with no default is a feature nobody sees.**
+`winterColorsEnabled` drives tree snow caps, roof snow and winter clothing — three
+of the things that make a winter scene — and defaulted to off for every theme,
+including Winter, Christmas and Tundra. `fallColorsEnabled` did the same for
+Autumn. The features worked; they were simply never switched on by anything.
+
+**An inherited default is still a decision.** The Tundra lake set its colour,
+height and visibility and inherited `sailboatsVisible`/`dolphinsVisible` from the
+generic default, which is `true` — a yachting scene and a pod of dolphins in the
+Arctic. When a theme overrides part of a config block, the fields it does not
+name are choices it is making silently.
+
+`BuiltInThemeCoherenceTest` pins the matrix, because every one of these is a
+*default*: invisible until someone installs the app fresh, with no running build
+that fails.
+
 ### Density controls never touch geometry **[OBSERVED]**
 
 A density or visibility control decides **how many** members of a category

@@ -197,6 +197,24 @@ data class SceneCustomization(
     // Off by default, like every other opt-in seasonal decoration in this class.
     val fallColorsEnabled: Boolean = false,
     val winterColorsEnabled: Boolean = false,
+    /**
+     * The Christmas decoration layer: lights on the trees, and whatever is added to it later.
+     *
+     * **Separate from [winterColorsEnabled], and deliberately so.** Christmas lights used to hang
+     * off the winter flag, which made the two words synonyms: a plain snowy January scene could
+     * not exist without fairy lights on every tree, and a Christmas scene could not exist without
+     * committing to a full winter presentation. They are different statements — one is a season,
+     * the other is a fortnight of decorations inside it — and every combination of the two is a
+     * scene somebody might want.
+     *
+     * Neither flag implies the other. Turning this on does not turn winter on.
+     *
+     * **Scope.** This governs the Christmas dressing that has no category of its own. Santa
+     * ([santaEnabled]) and the presents ([gifts]) keep their own switches, because they already
+     * had them and folding them in here would give one thing two controls that disagree. A theme's
+     * defaults set all three together; a user can still take any of them separately.
+     */
+    val christmasDecorationsEnabled: Boolean = false,
     // Previously hardcoded per-theme via SceneTheme.hasSantaSleigh with no user control at all --
     // aa asked for an actual toggle. Kept as a per-theme customization (not a global setting)
     // specifically so it fits the same defaultCustomizationFor() pattern every other per-theme
@@ -520,39 +538,97 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
     )
     return when (themeId) {
         "winter" -> base.copy(
+            // **The winter presentation itself.** It was off, which left the winter themes with
+            // green summer trees, bare roofs and people in shorts standing on snow. The three
+            // things it drives -- tree snow caps, roof snow, winter clothing -- are exactly what
+            // makes a winter scene a winter scene, and none of them had a switch of their own.
+            winterColorsEnabled = true,
+            // **Winter is not Christmas.** This theme is the plain season: snow, cold, no fairy
+            // lights and no presents. It is the combination the two flags were split apart to
+            // make expressible.
+            christmasDecorationsEnabled = false,
+            // A shade umbrella has no business standing in snow.
+            parasols = base.parasols.copy(visible = false),
             snowmen = base.snowmen.copy(visible = true, density = 0.3f),
             mountainsFront = base.mountainsFront.copy(colorDay = 0xFFF7FAFC.toInt(), colorNight = 0xFFC9D6E8.toInt()),
             mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
-            // Precipitation itself stays off by default (same opt-in philosophy as the lake) --
-            // only the *type* is pre-set to Snow, so turning it on for the first time here starts
-            // from the obviously-correct choice instead of Rain.
-            precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
+            // **It snows, rather than merely having snowed.** Precipitation is opt-in everywhere
+            // else, on the same reasoning as the lake, and the two snow themes are the exception:
+            // a theme called Winter whose weather is off is a theme whose central subject the
+            // user has to go and find in a menu.
+            precipitation = base.precipitation.copy(visible = true, type = PrecipitationType.SNOW, intensity = 0.45f),
         )
         "christmas" -> base.copy(
+            winterColorsEnabled = true,
+            christmasDecorationsEnabled = true,
+            parasols = base.parasols.copy(visible = false),
             snowmen = base.snowmen.copy(visible = true, density = 0.5f),
             gifts = base.gifts.copy(visible = true, density = 0.4f),
             mountainsFront = base.mountainsFront.copy(colorDay = 0xFFF7FAFC.toInt(), colorNight = 0xFFC9D6E8.toInt()),
             mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
+            // The same exception as Winter's -- see that block.
+            precipitation = base.precipitation.copy(visible = true, type = PrecipitationType.SNOW, intensity = 0.45f),
+        )
+        // **Winter, but not Christmas, and not a second Christmas theme either.** New Year sits
+        // in the same season, so it gets the same snow-laden trees, roof snow and winter
+        // clothing -- but the tree lights, the presents and Santa belong to the fortnight that
+        // has just ended and stay in Christmas. What makes this theme itself is the night:
+        // fireworks, balloons, a dusk-purple ground, and no shade umbrellas at a party after dark.
+        "new_year" -> base.copy(
+            winterColorsEnabled = true,
+            christmasDecorationsEnabled = false,
+            parasols = base.parasols.copy(visible = false),
+            balloons = base.balloons.copy(visible = true, density = 0.4f),
             precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
         )
-        "new_year" -> base.copy(balloons = base.balloons.copy(visible = true, density = 0.4f))
         "tundra" -> base.copy(
+            winterColorsEnabled = true,
+            christmasDecorationsEnabled = false,
+            parasols = base.parasols.copy(visible = false),
+            // Tundra is where trees stop. Not removed outright -- with the winter presentation on
+            // they read as snow-laden conifers, and a treeless plain is emptier than it is
+            // evocative -- but thinned to a scattering rather than the woodland every other theme
+            // gets.
+            trees = base.trees.copy(density = 0.2f),
             snowmen = base.snowmen.copy(visible = true, density = 0.3f),
             penguins = base.penguins.copy(visible = true, density = 0.4f),
             mountainsFront = base.mountainsFront.copy(colorDay = 0xFFF7FAFC.toInt(), colorNight = 0xFFC9D6E8.toInt()),
             mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
-            lake = base.lake.copy(visible = true, colorDay = 0xFFBFE3EE.toInt(), colorNight = 0xFF2A4550.toInt(), height = 0.25f),
+            // The lake is meltwater at the edge of the ice. Sailboats and dolphins default to
+            // visible and were inherited unchanged, which put a yachting scene and a pod of
+            // dolphins in the Arctic.
+            lake = base.lake.copy(
+                visible = true, colorDay = 0xFFBFE3EE.toInt(), colorNight = 0xFF2A4550.toInt(), height = 0.25f,
+                sailboatsVisible = false, dolphinsVisible = false,
+            ),
             precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
         )
         "easter" -> base.copy(
             bunnies = base.bunnies.copy(visible = true, density = 0.3f),
             easterEggs = base.easterEggs.copy(visible = true, density = 0.5f),
         )
+        // Autumn had the palette of autumn and the vegetation of midsummer: `fallColorsEnabled`
+        // is what turns the leaves and starts them falling, and it was off. Pumpkins come with
+        // it -- they are the season's own decoration, and leaving them to be discovered in a
+        // menu meant the Autumn theme shipped without the one object that says autumn.
+        "autumn" -> base.copy(
+            fallColorsEnabled = true,
+            parasols = base.parasols.copy(visible = false),
+            pumpkins = base.pumpkins.copy(visible = true, density = 0.35f),
+        )
         // A quick, honest first pass -- not the final per-theme design polish (tracked in
         // ROADMAP_OLD.md's Phase 5 "review every built-in theme's defaults" item), just enough that a
         // fresh install's themes actually look different from each other instead of all sharing
         // the exact same lake/mountain defaults regardless of which theme is picked.
         "beach" -> base.copy(
+            // **The ground was the sea's own teal.** `SceneTheme.hillColorsDay` is a three-entry
+            // array from the days of three hill layers; the scene has drawn one layer for some
+            // time, so only entry 0 is ever read and the two sand tones behind it were dead
+            // values. Beach's entry 0 is the water colour, so the shore rendered as a green-teal
+            // field. Stated here as the sand it is meant to be, which is the same value the
+            // array's second entry already held.
+            hillsColorDay = 0xFFEFD9A3.toInt(),
+            hillsColorNight = 0xFF6E6353.toInt(),
             lake = base.lake.copy(
                 visible = true, height = 0.9f,
                 colorDay = 0xFF1E9BC4.toInt(), colorNight = 0xFF15495C.toInt(),
@@ -571,6 +647,11 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
             mountainsFront = base.mountainsFront.copy(visible = false),
             mountainsBack = base.mountainsBack.copy(visible = false),
             birds = base.birds.copy(density = 0.2f),
+            // A city theme that draws as many cottages as offices is a village with a skyline
+            // behind it. Both categories shared the generic 0.65; here they are what the theme
+            // is named after.
+            buildings = base.buildings.copy(density = 1f),
+            houses = base.houses.copy(density = 0.3f),
         )
         else -> base
     }

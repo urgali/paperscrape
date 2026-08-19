@@ -236,6 +236,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     })
     put("fallColorsEnabled", fallColorsEnabled)
     put("winterColorsEnabled", winterColorsEnabled)
+    put("christmasDecorationsEnabled", christmasDecorationsEnabled)
     put("santaEnabled", santaEnabled)
 }
 
@@ -370,6 +371,11 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         } ?: defaults.rainbow,
         fallColorsEnabled = json.optBoolean("fallColorsEnabled", defaults.fallColorsEnabled),
         winterColorsEnabled = json.optBoolean("winterColorsEnabled", defaults.winterColorsEnabled),
+        // Absent from every payload written before the winter/Christmas split, so it falls back
+        // to the theme's own default rather than needing a schema step: a missing field is not a
+        // changed one. A saved Christmas theme therefore regains its lights; a saved Winter theme
+        // correctly does not get them.
+        christmasDecorationsEnabled = json.optBoolean("christmasDecorationsEnabled", defaults.christmasDecorationsEnabled),
         santaEnabled = json.optBoolean("santaEnabled", defaults.santaEnabled),
     )
 }
