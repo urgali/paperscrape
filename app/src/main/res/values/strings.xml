@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">PaperScrape</string>
+    <string name="wallpaper_description">A layered paper-cutout landscape that scrolls across your screen, with the sun and moon following the time of day.</string>
+
+    <string name="settings_title">PaperScrape Settings</string>
+    <string name="settings_theme_section">Theme</string>
+    <string name="settings_behavior_section">Behavior</string>
+    <string name="settings_time_sync">Follow real time</string>
+    <string name="settings_time_sync_desc">The sun and moon move based on your device\'s clock (or your location, if enabled)</string>
+    <string name="settings_use_location">Use location for sunrise/sunset</string>
+    <string name="settings_use_location_desc">Calculate precise sunrise and sunset times based on your area</string>
+    <string name="settings_fixed_time">Fixed scene time</string>
+    <string name="settings_parallax_strength">Parallax strength</string>
+    <string name="settings_apply_button">Set as wallpaper</string>
+    <string name="settings_preview_title">Preview</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_body">PaperScrape is an open-source live wallpaper inspired by classic "paper cutout" animated backgrounds. Source code available on GitHub.</string>
+
+    <!-- Live Weather -->
+    <string name="live_weather_title">☔ Live Weather</string>
+    <string name="live_weather_desc">Real current conditions replace each theme\'s manual rain/snow/cloud settings automatically, refreshed hourly. While on, this theme\'s own Clouds/Precipitation screens switch to read-only.</string>
+    <string name="live_weather_needs_location">Needs one of the two location toggles above turned on first, so it knows where to check the weather for.</string>
+    <string name="live_weather_fallback_notice">Location unavailable — showing this theme\'s own weather instead.</string>
+
+    <!-- Updates -->
+    <string name="settings_auto_update_check_title">Check for updates automatically</string>
+    <string name="settings_auto_update_check_subtitle">When on, PaperScrape asks GitHub for a newer release each time you open these settings. Off by default; the button below always works.</string>
+</resources>

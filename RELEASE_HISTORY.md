@@ -1,0 +1,2690 @@
+# RELEASE_HISTORY.md
+
+Progressive record of PaperScrape releases: what changed, what was fixed, what
+assets moved, what changed architecturally, what decisions were taken, and what
+is known to be broken or limited.
+
+**Relationship to the other files:**
+`CHANGELOG.md` is the full technical log, one long entry per version.
+`release-notes/vNN.md` is the user-facing text published to the GitHub Release
+and shown in the in-app update dialog. **This file is the engineering-facing
+summary** — the one to read when picking up the project after a gap.
+
+### A note on dates
+
+Neither `CHANGELOG.md` nor the release notes record release dates, and this
+repository was received without Git history, so **no release date before v73
+can be stated accurately**. They are deliberately left blank rather than
+guessed. Dates are recorded from the next release onward.
+
+---
+
+## v1.0 — first stable release
+
+**Stable / latest.** `versionCode = 1`, `versionName = "1.0"`.
+
+The contents of v76.12, released. **No functional change: this entry records the
+version reset and what the release contains, not new work.**
+
+### The version reset
+
+`versionCode` went from 76 to 1 and `versionName` from "76.0" to "1.0". The numbers
+up to 76 were the internal build sequence of an unreleased project and meant nothing
+to anyone installing it; v1.0 is where the version a user sees starts.
+
+**Two consequences follow, and both matter to the maintainer rather than to the
+code.** Android refuses to install a lower `versionCode` over a higher one, so a
+device carrying any earlier internal build must uninstall before installing this —
+and uninstalling clears its DataStore, which is where saved settings and custom
+themes live. And CI's own tag check requires a stable tag `vNN` to equal
+`versionCode`, so the stable tag for this release is **`v1`**; `v1.0` is the dotted
+form the workflow classifies as a pre-release. The ZIP is named `PaperScrape_v1.0.zip`
+because that is what was asked for; the tag is a separate decision and none was
+created.
+
+`AI_PROJECT_RULES.md` §11.2 says never to change the Android version merely because
+the project release identifier advanced. This change is the explicit exception the
+same rule allows: it was asked for directly, and it is the point of the release.
+
+### What v1.0 contains
+
+The whole of the work recorded below, in one build:
+
+- A paper-cutout landscape rendered with OpenGL ES 2.0, with the `Canvas` backend
+  kept behind the same `SceneCanvas` abstraction for the settings preview and as a
+  fallback.
+- The V2 asset library: 118 sprites, every one with an SVG source and a committed
+  pipeline that can regenerate it, no byte-identical pair anywhere in the set.
+- One coherent scene geometry. `SceneSpace` owns the ground plane, the horizon, the
+  perspective, the road, the pavement and the size of every category, and every size
+  is derived from a declared real-world height rather than authored per sprite.
+- Ten themes plus custom themes, with per-category visibility, density and colour;
+  seasonal decorations placeable on any theme; automatic seasonal theme switching.
+- Live Weather from real conditions, with a stated fallback when no location is
+  available.
+- Sunrise and sunset from the device clock, GPS or a chosen location.
+
+### Verification
+
+```
+Release identifier:            v1.0
+Verification level:            2
+Reason for the level:          version metadata and documentation only; no source,
+                               asset, test or tooling change.
+Tests run:                     no -- nothing executable changed since v76.12's run
+                               of 330 Kotlin tests, 0 failures
+Lint run:                      no -- same reason; last run 41 warnings, 0 errors
+Python tooling suite:          no -- last run 79 tests, 3 failures, all D-7 fidelity
+Asset validate:                no -- last run 0 failures across 118 sprites
+APK build run:                 no
+ZIP verification:              yes
+Git tag created:               no
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations carried into v1.0
+
+These are open and shipped as such, not oversights:
+
+- **D-7** — the shipped PNGs came from the V2 library's own rasteriser while the
+  pinned toolchain renders antialiased edges slightly differently. Invisible at
+  runtime; it costs three fidelity tests in the offline tooling.
+- **D-10** — 40 sprites still carry croppable transparent padding. Cropping needs the
+  crop rule and the `PART_LOCAL` anchor model reconciled first, and every origin
+  compensated in the same change.
+- **B5** — the renderer, the wallpaper engine, the preferences layer and the Compose
+  UI cannot be unit tested without first being decoupled from `Canvas`/`Context`, so
+  coverage stays narrow and engine changes are verified on a device.
+- **Nothing in this release was built or seen rendering by Claude.** No device, no
+  emulator, no OpenGL. Every visual claim in this file below v76 rests on the
+  maintainer's own device passes.
+
+
+## v76.12 — polish batch 2: snow on buildings, people controls, star field, lake
+
+**Beta / pre-release, on top of stable v76. `versionCode` unchanged at 76.**
+
+### D-8: snow settles on buildings
+
+Open since v76.3. Five new sprites, each cut to the roof it lies on: the two house
+roofs, the restaurant's and bar's parapets, and the tower's setback.
+
+**A layer on the roof, never the roof tinted white.** Tinting repaints the building
+rather than covering it, and `winterColorsEnabled` is already a palette override, so
+the two would be indistinguishable — the shortcut this defect's own entry rejected.
+
+The pitched caps follow their roof's slopes exactly and crest four units above the
+ridge, which is what makes them read as resting *on* the roof rather than as part of
+it; below the ridge they stay strictly inside the outline, checked against both
+slopes at the drift's lowest point. The flat roofs get a drift standing proud of the
+parapet. The tower's is deliberately shallower: a roof that high is swept, and a deep
+cap would read as a hat.
+
+Each is two polygons, cool shadow under white — the recipe `tree_canopy_snowcap`
+already uses, and the reason they carry colour at all: they are blitted untinted, so
+an achromatic white mask would be exactly the defect `DESIGN_NOTES.md` decision 25
+exists to prevent. Every origin is derived from the sprite it covers, so redrawing
+either moves both. Drawn before the chimney and before the tower's mast, so those
+stand out of the drift.
+
+Asset `validate` stays at 0 failures across the 118 sprites.
+
+### People are a category
+
+Visibility and density, through the same generic storage every other category uses —
+no new settings system, which was the condition for doing it at all. Density thins
+the shared candidate pool through the same threshold, with its own salt, so lowering
+it removes a particular pedestrian and leaves the rest where they were instead of
+reshuffling everybody.
+
+**No colour controls, deliberately.** The walk sprites are finished art in four kinds
+across two seasons and there is nothing for a tint to reach; offering swatches that
+did nothing would be worse than offering none. Their clothing still follows Winter
+Colors, exactly as before.
+
+Saved themes written before this release simply fall back to the default, so there is
+no schema step: a missing category is not a changed one.
+
+**Passengers are now a property of the vehicle.** `CarType.carriesPassengers` is false
+for police cars and fire engines — they are crewed, not travelled in, and a child in
+the back of either reads as something being wrong. Written as a property rather than
+a list of exclusions at the call site, so a service vehicle added later is excluded by
+default instead of by somebody remembering. The driver is still always an adult, and
+still by construction: the driver comes from a table holding only the man and the
+woman.
+
+### Star field
+
+Every star was the sparkle sprite under its own save/translate/rotate/scale/blit/
+restore — six canvas operations each, seventy times a frame, for a field where most
+of them are a couple of pixels across and the rotation is invisible at that size.
+
+One star in five is still a sparkle; the rest are points, one `drawCircle` each. That
+is roughly 130 operations a frame against 420. **The look is better for it rather than
+merely cheaper:** a real night sky is mostly points with a few bright stars in it, and
+seventy identical rotating sparkles read as a pattern. The sparkles that remain are
+the ones that were legible before. The point colour is the sparkle art's own cream, at
+0.55 of the radius to match its apparent weight rather than its four-tip extent.
+
+### D-5, reopened and done properly
+
+v76.11 gave boats the far half of the lake and dolphins the near half. That fixed the
+overlap by taking half the lake away from each, which is the wrong trade: the surface
+is the scene's only open space and both belong on all of it.
+
+The band is instead cut into six lanes spanning it top to bottom, with boats on the
+even lanes and dolphins on the odd. Both reach the near edge and the far edge, and two
+of them still cannot be placed on the same line. Where inside its lane a candidate
+sits is still its own noise, so nothing reads as a grid.
+
+### Verification
+
+```
+Release identifier:            v76.12
+Verification level:            2
+Tests run:                     yes -- ./gradlew testDebugUnitTest
+Lint run:                      yes -- ./gradlew lintDebug
+Asset pipeline:                render + validate; 118 sprites, 0 validate failures
+APK build run:                 no
+ZIP verification:              yes
+Maintainer-side verification required: the winter and Christmas themes, for the snow
+                               on all four building types; the night sky; the People
+                               screen; the lake
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing was seen rendering.** The snow caps were checked as composites against
+  their own roofs, which establishes the fit and nothing about how they read in a
+  scene. The star field's new look is reasoned, not observed.
+- Localisation was excluded from this batch by instruction; the app stays English-only.
+- D-7 and D-10 remain open and were not touched.
+
+
+## v76.11 — polish batch 1
+
+**Beta / pre-release, on top of stable v76. `versionCode` unchanged at 76.**
+
+Four of the batch's eight items are done. The four that are not are listed at the
+end with the reason, because three of them are bigger than the batch and one is
+not worth its risk.
+
+### Pedestrians move with the ground
+
+The reported defect: swiping between home screens scrolled the village past the
+people while they stayed almost still.
+
+Their position was a fraction of *screen* width, so the walk was the only motion
+they had — they were the one thing in the scene outside the parallax, and since
+v76.7 put them among the buildings it was the most visible place to be outside it.
+
+A pedestrian now has a position on the tiling ground exactly like a house. The walk
+advances that position and `GroundGeometry` scrolls it with everything else standing
+on the same ground, so the two motions compose instead of competing. That is also
+what makes the walk read as walking: a figure sliding against a static background is
+a figure on a treadmill.
+
+Tiled like static objects too, for the same reason — the ground repeats every
+`tileWidth`, so a pedestrian near the seam exists on both sides of it and both copies
+have to be drawn or one pops. Row, scale, speed and animation are unchanged.
+
+### Live Weather: a fallback that says so
+
+With Live Weather on and no location obtainable, the scene kept running on the
+theme's own clouds and precipitation — which is a valid scene, and exactly what it
+shows with Live Weather off. The failure was never that the scene broke; it was that
+the switch looked dead and nothing said why.
+
+The service now publishes a fallback flag through the same settings flow the settings
+screen already collects, so the notice appears and clears as the state changes, with
+no polling and no restart. Under the switch, while it is on and the fallback is
+active: *"Location unavailable — showing this theme's own weather instead."* Nothing
+is shown when a location is available and the weather is working, and nothing is
+shown when Live Weather is off.
+
+The renderer is untouched. Saying what happened is the whole fix.
+
+### Update check is opt-in
+
+It ran on every settings open — a network request the user never made, for a feature
+they may not want. It is now off by default behind a switch, and the manual "check
+now" button works whether the switch is on or not.
+
+### D-5: boats and dolphins have separate lanes
+
+They had decorrelated noise but no knowledge of each other, so nothing stopped one
+being placed on the other's lane and drifting through it. Each category now owns half
+the usable water — boats the far half, dolphins the near one, so a breach happens in
+front of the traffic rather than behind it. Neither ever used more than a slice of the
+band anyway, and two rows at different distances is what a lake with things on it
+looks like.
+
+### Not done in this batch
+
+- **D-8, snow on buildings.** Four roof shapes need a snow cap each, drawn to follow
+  their own silhouette the way `tree_canopy_snowcap` follows the crown's, plus a
+  registry entry and an anchor each. That is an artwork task with a visual approval
+  attached, not a code change, and doing it badly means white shapes floating near
+  roofs. **Still open.**
+- **Person visibility and density controls.** These need a new customisable category:
+  a config in `SceneCustomization`, preference keys, JSON round-trip, migration and a
+  settings section. The batch said to skip it if it needed a significant settings
+  addition, and it does. **Still deferred, and still behind decision D3.**
+- **Localisation.** Partial and honestly so: the strings this batch touched are in
+  `strings.xml`, which is roughly ten of about seventy. The rest is a mechanical pass
+  worth its own change, where the diff is reviewable as one thing.
+- **Star field performance.** ~1,890 Canvas calls a frame, and no simple safe fix:
+  the cheap options either change what is drawn or need a batching path the
+  `SceneCanvas` abstraction does not currently expose. The batch said to leave it in
+  the backlog if it needed a refactor. **Left in the backlog.**
+
+### Verification
+
+```
+Release identifier:            v76.11
+Verification level:            2
+Tests run:                     yes -- ./gradlew testDebugUnitTest
+Lint run:                      yes -- ./gradlew lintDebug
+APK build run:                 no
+ZIP verification:              yes
+Maintainer-side verification required: swipe between home screens and confirm the
+                               people scroll with the village; turn Live Weather on
+                               with location off and confirm the notice appears
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing was seen rendering.** The parallax and the fallback notice are both
+  reasoned from the code path.
+- The pedestrian change alters how far people travel per loop: their walk is now
+  measured against a tile of ground rather than a screen width. The two are close but
+  not equal, so their pace on screen may need one look.
+- D-7, D-8 and D-10 remain open.
+
+
+## v76.10 — Live Weather with a custom location, and the Easter pair
+
+**Beta / pre-release, on top of stable v76. `versionCode` unchanged at 76.**
+
+### Live Weather: two gates, both closed
+
+v76.9's fix was real but incomplete, and the custom-location case exposed both of
+the reasons why.
+
+**A race the custom-location path could not survive.** `settings` was assigned
+inside the block queued onto the render thread, while the custom-location branch of
+the same collector runs immediately on the collector's own coroutine — and that
+branch wakes the weather loop. The loop woke, read a `settings` the render thread
+had not updated yet, saw Live Weather still off, and went back to sleep. With GPS a
+fix arrives seconds later and wakes it again, which is why the case looked fixed;
+with a custom location **no second wake-up is ever coming**, because the coordinates
+were already known. `settings` is now published on the collector, before anything
+can observe the change, so the window does not exist.
+
+**A location change did not invalidate the cached fetch.** The loop had one reason
+to fetch — an hour since the last one. The refresh timer answers "are these
+conditions stale"; it does not answer "are these the conditions of the place we are
+actually showing", and only the second question changes when the user edits their
+custom location. Moving the location left the scene showing the old town's weather
+for the rest of the hour. The loop now also fetches when the fix differs from the
+one the last fetch was made for.
+
+The two are independent: the first made the switch appear dead, the second made a
+location edit appear ignored. Either alone would have left half the report standing.
+
+### Easter: the rabbit and the eggs
+
+Both were drawn at life size, which at the depth they stand made them a couple of
+dozen pixels the same colour as the ground behind them. They are the Easter theme's
+two subjects, and an object nobody can see is not carrying a theme.
+
+Raised through the size table, which is the only place a size may come from:
+`BUNNY` 0.55 m → **0.9 m**, `EASTER_EGG` 0.6 m → **1.0 m**. Deliberately past life
+size, and recorded as such beside the numbers. They now draw at roughly 21–28 px
+against a person's 44–54 px in the same band — a third to a half of a person, which
+reads without competing. No artwork, anchor or layering changed.
+
+### Verification
+
+```
+Release identifier:            v76.10
+Verification level:            2
+Reason for the level:          two size-table entries and a service-side propagation
+                               fix. No asset, Gradle, manifest or CI change.
+Tests run:                     yes -- ./gradlew testDebugUnitTest
+Lint run:                      yes -- ./gradlew lintDebug
+APK build run:                 no
+ZIP verification:              yes
+Maintainer-side verification required: with a custom location set, switch Live
+                               Weather on and confirm the scene changes at once;
+                               then edit the location and confirm it changes again
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing was seen rendering, and the weather fix has no unit test.** Both changes
+  are in the wallpaper Engine, which cannot be unit tested without first being
+  decoupled from `Context` — blocker B5. The reasoning is from the code path; the
+  device is the check.
+- If it still fails, the remaining suspect is unchanged from v76.9: a location fix
+  is only ever obtained when `useLocationForSunTimes` or `useCustomLocation` is on,
+  and neither is a weather setting. A user with Live Weather on and both off gets no
+  fix and therefore no weather, ever.
+- D-7 and D-10 remain open and were not touched.
+
+
+## v76.9 — D-9, B9, Live Weather; D-10 attempted and withdrawn
+
+**Beta / pre-release, on top of stable v76. `versionCode` unchanged at 76.**
+
+### Live Weather now applies the moment it is switched on
+
+v76.4 made the *preference* wake the weather loop, which is why toggling the switch
+stopped being a complete no-op. It was still not enough. The loop's condition has
+**two** inputs -- the preference and a location fix -- and only one of them woke it.
+Throwing the switch wakes the loop, it finds no fix yet (GPS takes seconds, and the
+switch is thrown from the settings screen), does nothing, and goes back to waiting
+out its full two-minute tick. That is the "nothing happens until a restart or a
+theme change" that was reported: the fetch was two minutes away, not broken.
+
+A fix arriving is exactly as much a reason to re-evaluate as the preference
+changing, so it now signals the same conflated channel.
+
+`settings`, `lastLocationFix` and `lastWeatherFetchMillis` are `@Volatile`. Each is
+written on the render thread or a location callback and read by the weather loop on
+its own coroutine, so their visibility across the two was being left to chance.
+
+### D-9: two different causes behind one symptom
+
+Three sprites were blitted one local unit above the ground line their content bottom
+implied. They did not have the same fault.
+
+- **`snowman_body` and `bunny_body` genuinely floated.** Corrected at the call site,
+  a whole drawing at a time -- the snowman's face and scarf and the bunny's ears and
+  tail move with the body, because what is wrong is where the *drawing* sits, not how
+  its pieces register against each other.
+- **`penguin_body` was correct all along.** The penguin stands on `penguin_feet`,
+  blitted separately at the ground line, so its body is *supposed* to sit above it.
+  The fault was the registry declaring the body `CONTENT_BOTTOM_CENTRE` when it is a
+  part. Reclassified `PART_LOCAL`.
+- **`bunny_body` is a part too**, for the same reason plus a deliberate horizontal
+  offset that puts its ears over its head: the ears reach further left than right, so
+  the body's content centre is not the animal's visual centre. Reclassified.
+
+`validate` now reports **0 failures**, from 3.
+
+### B9: a saved theme may not carry scene geometry
+
+The rule v76.8 established is now pinned by its own test file. Anything a theme
+persists that is really a `SceneSpace` constant is recomputed on load and never
+believed; what the theme owns -- how many cars, their colours, their types -- must
+survive untouched. The boundary is asserted in both directions, including that a
+static object's `scale` stays a variation around 1 rather than becoming a size again.
+
+### D-7: three fidelity tests, left open deliberately
+
+The shipped PNGs came from the V2 library's own rasteriser and the pinned toolchain
+renders antialiased edges differently. Nothing about it is visible at runtime.
+Closing it means re-rendering 108 sprites at once, which is its own decision with its
+own device look. **Not done, as instructed.**
+
+### D-10: attempted, and withdrawn
+
+`normalize --apply` **aborted partway**, on `bar_sign`: "PART_LOCAL no longer holds
+after normalisation -- the crop moved the content off the point the rule names." It
+had already cropped a run of PNGs before reaching that sprite, so the working tree
+was left half-normalised; the sprite set was restored from the v76.8 ZIP and
+re-verified at 113 files.
+
+That abort is the finding, and it is not a bug in the tool. Cropping a `PART_LOCAL`
+sprite moves its content relative to the local zero its parent composes against, so
+the crop and the anchor model disagree for exactly the sprites that make up most of
+the set. Reconciling them is design work on the anchor rules, not a mechanical pass,
+and every sprite it touches needs its blit origin compensated in the same change --
+with a device look, because a mistake there is a visibly misplaced sprite.
+
+**D-10 stays open and needs its own task.** It buys memory only, and half-doing it
+would have shipped a scene with sprites in the wrong places.
+
+### Verification
+
+```
+Release identifier:            v76.9
+Verification level:            2
+Reason for the level:          three blit origins, registry classifications, a
+                               service-side propagation fix and tests.
+Tests run:                     yes -- ./gradlew testDebugUnitTest
+Lint run:                      yes -- ./gradlew lintDebug
+Python tooling suite:          yes -- 79 tests, 3 failures, all D-7 fidelity
+Asset validate:                yes -- 3 failures -> 0
+Sprite set integrity:          113 PNGs restored from v76.8 and re-verified after the
+                               withdrawn normalisation
+APK build run:                 no
+ZIP verification:              yes
+Maintainer-side verification required: switch Live Weather on and confirm the scene
+                               changes without a restart; check the snowman and bunny
+                               sit on the ground
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing was seen rendering.** No device, no emulator, no OpenGL.
+- The Live Weather fix is reasoned from the code path, not observed. If it still
+  needs a restart, the next suspect is the location gate: a fix is only ever obtained
+  when `useLocationForSunTimes` or `useCustomLocation` is on, and neither is a weather
+  setting.
+- D-10 and D-7 remain open.
+
+
+## v76.8 — custom theme schema 3, and the asset resolver's blind spot
+
+**Beta / pre-release, on top of stable v76. `versionCode` unchanged at 76.**
+
+Two technical fixes from the post-Group-4 assessment. No renderer or scene logic
+was changed.
+
+### Saved themes could drag the road back over the pavement
+
+The custom theme schema was at 2, and the traffic lanes moved three times after
+it: v76.5 wrote 0.820/0.855, v76.6 0.818/0.846, v76.7 0.834/0.862. A theme saved
+*by* version 2 is stamped 2, so no migration ever runs on it again — while the
+painted road is derived from the layout's own lanes. Such a theme pulls the
+carriageway back to where it was saved, straight over the strip of ground v76.7
+gave the pedestrians. They walk on tarmac.
+
+**A schema version cannot guard this, and that is the actual lesson.** It records
+a change of *shape*, and nothing about the shape changed: the field is still a
+float and still parses. A migration step catches the payloads written before the
+bump and nothing after, so the next time a lane constant moves the defect comes
+back — which is exactly what happened between v76.5 and v76.7.
+
+Lane position, speed, direction and loop slot are **scene geometry, not theme
+data**. Nothing in the app produces a car anywhere but the canonical lanes, so a
+stored lane coordinate can only ever be a stale copy of a constant. It is now
+recomputed on **every** load, at any version, by
+`SceneObjectCatalog.canonicaliseTraffic`. What the theme keeps is what is genuinely
+its own: how many cars, their colours, their types.
+
+Schema 3 is still taken. It has no rewrite step — there is nothing left to rewrite
+— and it records that a version 2 payload may hold lane coordinates that describe
+no road the app draws.
+
+Two regression tests: one reproduces the exact v76.5 payload and asserts the
+restored road clears the pavement; one asserts that no stored lane survives a
+load at **any** schema version, which is the guard that outlives the next lane
+move.
+
+### D-4: the asset resolver had been blind since v73.11
+
+`callsites._wrapper_bindings` recognised a wrapper only when its first parameter
+was literally `Canvas`. The GPU migration changed both of `SceneObjectRenderer`'s
+wrappers to `SceneCanvas`, so all sixty of that file's blit call sites stopped
+resolving — silently, with nothing failing. The type is now a set, because the
+same substitution can happen again: what identifies a wrapper is that its first
+parameter is *the drawing surface*, whichever type currently names one.
+
+**Fixing it exposed 131 validation failures, as D-4's own note predicted.** Three
+were bugs in the validator itself, invisible while the file it checks could not be
+reached:
+
+- The anchor-to-origin comparison never converted units. An anchor is declared in
+  the sprite's pixels and a call site writes its origin in the units it blits in,
+  so every 3× oversampled sprite disagreed with itself by a factor of three.
+- `derive_anchor` had the mirrored bug, converting *to* local units and comparing
+  against a pixel declaration.
+- The anchor check was applied to `PART_LOCAL` and `DECLARED_ATTACHMENT` sprites.
+  A part sits wherever the drawing containing it puts it and a declared attachment
+  is positioned by its joint; neither is predicted by its own anchor, and forty-nine
+  sprites were reported as failing a rule they never claimed to follow.
+- `SPRITE_CENTRE` refused any sprite whose content was not also centred in its
+  bitmap. Those are two different statements: a crescent moon's content is
+  off-centre by construction and is still placed by the bitmap centre.
+
+Registry data corrected against the shipped PNGs: 15 stale `contentBox` entries
+re-measured, 24 anchors re-derived from them, and three sprites reclassified as
+`PART_LOCAL` — `house_small_door`, `restaurant_door` and `sailboat_hull` are pieces
+of a larger drawing, not sprites placed on their own anchor.
+
+`validate` goes from 131 failures to **3**, and the Python suite from 13 to 3.
+
+### What is left, and why
+
+- **Three sprites sink by one local unit.** `bunny_body`, `penguin_body` and
+  `snowman_body` are each blitted one unit above the ground line their content
+  bottom implies — consistently, across three unrelated sprites, which reads as an
+  authoring convention rather than drift. Correcting it means editing a blit origin
+  in the renderer, which this task was not allowed to do. Pinned by a test that
+  fails if any of them moves by something other than one unit.
+- **Three fidelity tests fail, and they are D-7.** The shipped PNGs came from the
+  V2 library's own rasteriser; re-rendering through the project's pinned one
+  diverges at antialiased edges. Closing them means re-rendering 108 sprites at
+  once, which is D-7's own decision.
+- **35 sprites still carry croppable padding**, 2.84 MB of the decoded total. The
+  V2 library never went through Phase 3.3's normalisation pass. Cropping shifts
+  content inside the box, so each one needs its blit origin compensated in the same
+  change — a task with a device look attached. Pinned as a count.
+
+### Verification
+
+```
+Release identifier:            v76.8
+Verification level:            2
+Reason for the level:          persisted-data handling, offline tooling and its
+                               registry data. No renderer, asset, Gradle or
+                               manifest change.
+Tests run:                     yes -- ./gradlew testDebugUnitTest
+Lint run:                      yes -- ./gradlew lintDebug
+Python tooling suite:          yes -- 78 tests, 3 failures, all D-7 fidelity
+Asset validate:                yes -- 131 failures -> 3
+APK build run:                 no
+ZIP verification:              yes
+Clean build from extracted ZIP: no
+Maintainer-side verification required: load a custom theme saved on v76.5 or v76.6
+                               and confirm the road sits where v76.7 put it
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing was seen rendering.** No device, no emulator, no OpenGL.
+- The three one-unit sinks, the three D-7 fidelity failures and the 35 padded
+  sprites are recorded above and open.
+
+
+## v76.7 — Group 4 final device tuning
+
+**Beta / pre-release, on top of stable v76. `versionCode` unchanged at 76.**
+
+The last Group 4 pass, from a second Pixel 9 verification. Dolphins, sailboats,
+mountains, the GPU renderer and the depth model are untouched, as instructed.
+
+### The pedestrian band
+
+The largest change, and the one the rest follows from. People were walking below
+the road's lower edge, where they read as standing on the tarmac and as having
+nothing to do with the village behind them.
+
+Both lanes moved down by 0.016 of screen height **keeping their spacing**, so the
+carriageway is in exactly the same place relative to its own traffic and is
+exactly as wide as it was — 145 px on a 2400 px screen. What the move opens is a
+strip of ground between the buildings and the road, and the two pavement rows now
+sit in it, at 0.795 and 0.807 against an object band that ends at 0.790 and a road
+that starts at 0.818.
+
+**People are drawn considerably smaller as a result, and that is the projection
+working rather than a regression.** They are further away now and are charged for
+it exactly as everything else is. `PERSON_METRES_TALL` carries a small reduction
+on top, 2.0 → 1.9, for the foreground row reading slightly overscaled; almost all
+of the visible change is the move.
+
+A new test asserts that a near-row pedestrian clears the far lane's cars. People
+are drawn after the vehicles, so an overlap would paint a pedestrian over a car
+standing closer to the viewer than they are.
+
+### The reference line is no longer a lane
+
+`REFERENCE_Y_FRACTION` was defined as `ROAD_LANE_NEAR_Y_FRACTION`. That made the
+metre a function of a composition element: moving the road one step down would
+have rescaled every object in the scene, because the projection's denominator
+moved with it. It is now its own constant, keeping the value the lane happened to
+have, so nothing changed size when the two were separated.
+
+This is why the road could be moved at all without re-tuning the whole table.
+
+### Tree lights
+
+They hung out of the bottom of the canopy. The cloud reached y=-2 against a
+canopy whose content stops at -6, so the lowest lights were below the leaves and
+out over the trunk, and the highest reached barely half way up a crown twice as
+tall as the cloud — neither number was derived from the artwork they were meant to
+be scattered across.
+
+The offsets are now a **unit disc**, and each caller passes its own foliage's
+measured half-extents: (0,-43) with 30 × 26 for the leafy canopy, derived from
+`tree_canopy`'s content box, and (0,-72) with 13 × 10 for the palm's frond fan,
+inset further because a fan is mostly gaps. Lights are inside the foliage by
+construction, whatever it is next redrawn to.
+
+They are also drawn **inside** each plant's sway transform now, so they lean with
+the branches instead of staying rigid while the leaves move around them.
+
+### Parasols
+
+2.3 m → 2.9 m. They had shrunk out of the composition.
+
+### Verification
+
+```
+Release identifier:            v76.7
+Verification level:            2
+Reason for the level:          scale constants and one decoration placement.
+                               No asset, Gradle, manifest or CI change.
+Tests run:                     yes -- ./gradlew testDebugUnitTest
+Lint run:                      yes -- ./gradlew lintDebug
+APK build run:                 no
+Mutation testing:              not repeated
+ZIP verification:              yes
+Clean build from extracted ZIP: no
+Maintainer-side verification required: local APK build, install and a visual pass
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing here has been seen rendering.** No device, no emulator, no OpenGL.
+  The composition was re-derived arithmetically from the four screenshots.
+- The road's lower edge now sits at 0.878 of screen height, closer to where a
+  launcher dock overlays the wallpaper. Worth a look on the device.
+- The asset pipeline's 9 test failures and `validate` disagreements, recorded at
+  v76.6, are still open and still belong to the assessment.
+
+
+## v76.6 — Group 4 final proportion and readability tuning
+
+**Beta / pre-release, on top of stable v76. `versionCode` unchanged at 76.**
+
+Closes Group 4. Tuning only: no new logic, no architectural change,
+`SceneSpace` remains the single source of truth and no parallel scale was
+introduced. Driven by four Pixel 9 screenshots.
+
+### The size table
+
+The heights in `SceneSpace.SceneVariant` are now stated as what an object should
+**read as** rather than as physical measurements. They started from real-world
+sizes and stay within sight of them, because a table anchored to something real
+is the only kind that can be argued about, but a wallpaper is looked at for a
+second at arm's length and a few entries needed to serve legibility instead.
+Every departure is recorded beside the number it changes.
+
+| | was | now | why |
+|---|---|---|---|
+| Person | 1.75 m | **2.0 m** | a readable silhouette and no more; the scene should have people in it |
+| Car | 1.55 m | **1.45 m** | the V2 car sprite is stubby (100 units long, 48 tall), so matching its height exactly read as bulky beside a person |
+| Fire engine | 3.1 m | **2.9 m** | follows the car |
+| Tower | 20 m | **17 m** | dominated the foreground it is meant to stand behind |
+| Tree | 9 m | **9.8 m** | presence beside the houses |
+| Gift | 0.6 m | **0.95 m** | read as a speck |
+| Lake metric | 15 px/m | **21 px/m** | boat and dolphin were right against each other and nearly invisible on screen; one number moves both and preserves their ratio |
+
+### The road
+
+The carriageway read as a dark band with the traffic sitting inside it with room
+to spare. Lane spacing narrowed from 0.035 to 0.028 of screen height and the
+shoulder from 0.22 of a lane half to 0.16; because the road's edges are derived
+from its lanes, that narrows the strip with them — 145 px against 220 on a
+2400 px screen, against a near-lane car 58 px tall and 121 px long.
+
+Lanes moved to 0.818 / 0.846 and the pavement rows to 0.886 / 0.906. Clearance
+above the road is 28 px, so nothing standing in the object band is covered; below
+it is 57 px. The two lanes remain separated and the traffic behaviour, direction
+and spacing are untouched.
+
+### Snowman readability
+
+A white snowman on white winter ground was separated from its background by
+nothing but antialiasing. Fixed in the **asset**, not with a runtime effect: a
+tonal rim inset into the silhouette, so the outer radii — and therefore the
+bounding box, the declared `contentBox` and every anchor measured against them —
+are unchanged.
+
+The rim is a **neutral grey**, not the cool blue-grey it wants to look like. A
+`TINTABLE` sprite has to be authored as a colourless mask, because the runtime
+multiplies it by the user's colour and multiplying one hue by another compounds
+them; `SpriteTintClassTest` caught the first attempt, which used a cool tone. The
+neutral rim is the better answer rather than merely the permitted one: it
+inherits whatever hue the user chose instead of arguing with it, and the winter
+palette is already cool.
+
+### Asset pipeline: the registry could not be loaded at all
+
+Found while regenerating the snowman. `registry.py` still declared
+`SCHEMA_VERSION = 3` and an `ANCHOR_RULES` tuple without `PART_LOCAL` or
+`DECLARED_ATTACHMENT`, while `sources/sprites.json` is at schema 4 and uses both.
+Every command that loads the registry — `render`, `validate`, `compare`,
+`normalize`, `all` — failed before doing anything.
+
+The loader already reads and validates every field the version 4 document
+carries, and both anchor rules are documented in `DESIGN_NOTES.md`; the code was
+simply stale. Corrected. **This is offline tooling; Gradle never runs it and the
+app does not depend on it.**
+
+With the tool running again, its own suite reports **9 failures out of 76** and
+`validate` reports call-site disagreements, including the pre-existing ones for
+`bird_body`, `cloud_body` and `star_sparkle` that no part of this release
+touches. Those are the tooling's accumulated backlog against the current shipped
+set, now visible rather than hidden behind a load error. **They are not Group 4
+work and were not addressed here** — they belong to the comprehensive assessment.
+
+### Verification
+
+```
+Release identifier:            v76.6
+Verification level:            2
+Reason for the level:          scale constants, one regenerated sprite, offline
+                               tooling. No Gradle, manifest or CI change.
+Tests run:                     yes -- ./gradlew testDebugUnitTest
+Lint run:                      yes -- ./gradlew lintDebug
+Asset pipeline:                probe matches the pinned toolchain hash; render,
+                               inventory, validate, compare re-run
+APK build run:                 no
+Mutation testing:              not repeated; v76.5's two checks still stand
+ZIP verification:              yes
+Clean build from extracted ZIP: no
+Maintainer-side verification required: local APK build, install and a visual pass
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing here has been seen rendering.** No device, no emulator, no OpenGL.
+  The proportions were re-derived arithmetically from the four screenshots and
+  the snowman was checked as a composited still, not on a phone.
+- The mountains' silhouette, the layering, the depth model, the traffic
+  behaviour, the GPU renderer and the Live Weather path are untouched.
+- The asset pipeline's 9 test failures and `validate` disagreements are open.
+
+
+## v76.5 — Group 4: perspective, scaling and proportions
+
+**Beta / pre-release, on top of stable v76. `versionCode` unchanged at 76.**
+
+The whole of Group 4, in one pass, at the maintainer's instruction.
+
+### What was wrong
+
+Measured on a 1080x2400 screen before this release: a person 67 px tall, a car
+96 px, a restaurant 103 px, a small house 228 px. A car was drawn taller than a
+person and a commercial building shorter than one. Three causes, all structural:
+
+1. **No single owner.** Four multiplicative factors -- `spec.scale`,
+   `GLOBAL_OBJECT_SCALE`, `depthScaleFor` and a `canvas.scale` correction inside
+   each house drawing -- spread across three classes.
+2. **The sprites are authored at incompatible internal scales.** Measured on
+   their own artwork the V2 set runs from ~13 local units per metre for a shop
+   front to ~46 for a person. No set of hand-written per-category multipliers had
+   ever corrected for that, and none could: each was expressed against its own
+   sprite's arbitrary scale, so no two were comparable.
+3. **The depth band had collapsed.** Every static object stood between 0.704 and
+   0.7505 of screen height -- 111 px -- with 1.51x between the smallest and
+   largest. Cars and pedestrians were outside the depth system entirely, at fixed
+   scales and hardcoded ground lines.
+
+### What changed
+
+**`SceneSpace` (new)** owns the ground plane, the horizon, the perspective, the
+road, the pavement, the traffic speeds and the size of every category. Pure
+Kotlin, no Android types, fully unit-tested. Four stages, each answering one
+question, and no stage may compensate for another:
+
+```
+finalScale = variantScale x sizeVariation x perspectiveScale(y) x sceneScale(height)
+```
+
+- **The size table is derived, not authored.** Each category declares the real
+  height it should read as and the local-unit height its drawing occupies; the
+  base scale falls out. A person is 1.75 m, a car 1.55 m, a cottage 5.8 m, a tree
+  9 m, a tower 20 m. Height is the governed dimension and width follows the
+  artwork, because the V2 sprites are stylised and governing width instead makes a
+  person shorter than a car again. Full table in `DESIGN_NOTES.md` §5.
+- **Perspective is proportional to the distance below the horizon**, which is
+  what a flat ground plane seen from a fixed viewpoint does. Static objects, both
+  traffic lanes and both pavement rows read the same function, so relative sizes
+  and speeds follow from ground lines rather than being kept in step by hand. The
+  far lane's speed and the far pavement's are now *derived* from the near ones.
+- **The depth range is uncapped.** `ROAD_SAFE_DEPTH_MAX` existed because the road
+  was drawn over anything lower; the object band is now above the road by
+  construction, with the margin asserted in `SceneSpaceTest`. The band is 206 px
+  and spans 2.75x.
+- **Sizes scale with screen height** against a 2400 px reference. They were
+  absolute canvas pixels while every ground line was a fraction of screen height,
+  so the composition only worked on one device.
+- **The road is derived from its lanes**, symmetric about the centre line, with
+  the shoulder expressed as a fraction of the lane spacing. The 55-unit top margin
+  is gone: it existed to keep a car cabin inside the strip, which is not what a
+  road edge is for, and Group 4 removed the reason by making the vehicles the
+  right size.
+- **A building's style comes from its depth**, not from a position hash, so towers
+  sit on the skyline and shop fronts among the houses.
+- **Re-anchoring.** Pedestrians were drawn four units into the ground; window
+  occupants were centred on their canvas rather than placed from their declared
+  `CONTENT_BOTTOM_CENTRE` anchor; the dolphin's origin was neither its canvas
+  centre nor its content centre. All are now `placement - anchor` with the anchor
+  named as a constant.
+- **The lake has its own metric** because it sits at the horizon where the ground
+  projection is zero. Its only job is keeping a 2.6 m dolphin right against a
+  6.5 m sailboat -- the animal used to be drawn longer than the boat.
+- **Custom themes migrate to schema 2.** `StaticSceneObject.scale` changed meaning
+  from an absolute size to a variation around 1, and the lanes moved. Both are
+  quiet breaks: the payload still parses and renders wrong. Saved cars are moved
+  onto the canonical lanes, given one speed per lane and spaced evenly around the
+  loop.
+
+### Car density no longer resizes the road
+
+Reported from a device against the Group 4 build, and fixed before release.
+
+`drawRoad` derived its top and bottom edges from the lane span of `carRuntimes`
+-- the car list *after* density thinning. Moving the Cars slider therefore
+changed the road's geometry: at a low setting only one lane survived, the span
+collapsed to zero and the painted strip collapsed with it; at zero the road
+disappeared entirely. The defect predates Group 4 -- the same list was read
+before -- but the old code added a fixed 55/12 local-unit margin that masked it,
+and deriving the margin from the lane spacing exposed it.
+
+The road is terrain. Its edges now come from the lane span of the theme's whole
+`SceneObjectLayout`, computed once at construction and off the frame path, and
+it is drawn whenever the theme has a road and the Cars category is switched on.
+Density is not consulted at all, so the geometry is identical at 0 %, 50 % and
+100 %. A degenerate span -- every car on one lane fraction, which is what a
+pre-v76.2 custom theme has -- falls back to the canonical lane spacing rather
+than to zero.
+
+**The other density controls were audited** for the same coupling: clouds,
+mountains, birds, precipitation, lake decorations and stars read density for
+presence or count only, and none of their bands, heights or widths depends on
+it. `lake.height` is a genuine geometry control and a separate slider.
+
+**No artwork changed.** The mountains' silhouette was not touched.
+
+### Verification
+
+```
+Release identifier:            v76.5
+Verification level:            2
+Reason for the level:          Kotlin source, tests and persisted-data migration;
+                               no Gradle, manifest, CI or asset-pipeline change.
+                               The breadth would ordinarily justify Level 3; the
+                               maintainer directed assembleDebug be skipped.
+Tests run:                     yes -- ./gradlew testDebugUnitTest
+Lint run:                      yes -- ./gradlew lintDebug
+APK build run:                 no
+Static / bytecode checks:      draw-path review of the changed call sites; the new
+                               per-frame work is arithmetic on primitives only
+Mutation testing:              yes -- two targeted mutations, both caught:
+                               widening the object band breaks the road-clearance
+                               invariant; removing the degenerate lane-spacing
+                               guard breaks the road-density regression test
+ZIP verification:              yes
+Clean build from extracted ZIP: no
+Maintainer-side verification required: local APK build, install, and a full visual
+                               pass. This is the release where that matters most.
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing in this release has been seen rendering.** Claude has no device, no
+  emulator and no OpenGL implementation. The composition was checked against a
+  mockup composited from the real sprites at the real numbers, which establishes
+  the geometry and nothing about how it looks on a phone.
+- **Visual approval was not obtained before implementation**, contrary to
+  `AI_PROJECT_RULES.md` §13, because the maintainer directed an
+  implementation-first pass.
+- Pedestrians are still outside `GroundGeometry`: they do not tile or scroll with
+  the terrain. That is Group 5.1.
+- Roof snow (D-8) still needs artwork.
+
+
+## Current version
+
+| | |
+|---|---|
+| **Version** | **v1.0 — Stable / latest** (`versionCode = 1`, `versionName = "1.0"`) |
+| **Latest stable** | v1.0 |
+| **Date** | 2026-08-19 |
+| **Build status** | ⚠️ `testDebugUnitTest` **330 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **79 tests, 3 failures, all D-7 fidelity**; asset `validate` **0 failures across 118 sprites** — all measured at v76.12, whose code this is. **`assembleDebug` was not run and no APK was produced** — Level 2 |
+| **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
+| **Sprite memory** | **118 PNGs** — five roof snow caps added in v76.12; the decoded total was last measured at 15.76 MB across 113 — re-measured at v76.6 with the asset pipeline running again. The previously recorded 15.03 MB predates that and was not re-derived; treat this figure as the measured one |
+| **Tests** | 330 Kotlin unit tests, 79 Python tooling tests |
+| **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
+
+---
+
+## v76.4 — fourth device pass: road geometry, facade placement, lake life, live weather
+
+**Date:** 2026-08-19. Beta on top of v76; `versionCode` and `versionName` unchanged.
+
+Seven fixes, one refusal.
+
+### The road was asymmetric by construction
+
+`drawRoad` reached 55 units above the highest lane and 12 below the lowest, so the
+far lane's half of the strip was two and a half times the near lane's — one lane
+read as a road and the other as a verge — and the top edge rode up over the ground
+the houses stand on. The 55 was there to keep a car's cabin inside the strip, which
+is a losing argument at the current proportions: a car is taller than its own lane
+half whatever this edge does.
+
+The strip is now symmetric: each lane owns half of it, the road extends beyond the
+outer lanes by half the lane spacing plus a small shoulder, and `midY` lands exactly
+between the lanes because it always did — it was the *edges* that were lopsided.
+Both lanes moved up slightly (0.771 / 0.803) to keep the lower edge clear of the
+pavement. **The far lane's cabins now overlap the ground above the road**, and that
+is the global proportion problem, which is Group 4.
+
+### Facades were built off-centre
+
+The large house's four windows sat at -46 and 24 on a wall running -70..70 — 15
+units of wall to one side of the pair and 33 to the other. They are centred on the
+door now, which was already at 0. The small house's window and door were 2 units
+off mirror symmetry and were squared up in the same change; the restaurant's window
+moved 3 units to match its door's offset on the other side.
+
+### Mountains were two mountains
+
+`drawSoftMountain` filled its two halves at +10 % and −8 % of the layer colour to
+fake a paper fold. Against the V2 palette that is not a fold, it is a hard vertical
+seam straight down the peak — which is precisely where a fold would not be. One
+colour per mountain; the only division left is the one the hills make by overlapping
+them, which is the division the whole scene is built on.
+
+### Dolphins were gliding, and were sharks
+
+Two separate faults. The animation drew the sprite every frame with a ±10 unit bob,
+so it slid across the surface permanently visible. It is now drawn **only while
+above the water**: `arc` is the positive half of a sine, the animal is skipped
+entirely while it is negative, and the tilt follows the arc's own slope via a new
+`SceneTime.cosAt`. No clipping is involved and none is available at the `SceneCanvas`
+seam.
+
+The artwork was the other half: pointed snout, tall triangular dorsal, no eye or
+mouth. Redrawn as a porpoise, and mirrored — lake decorations only ever drift right,
+and it was facing left.
+
+### The sailboat was two objects
+
+The sail was blitted after the hull and four units to its right, so its foot sat on
+the deck planking off to one side. Sail first, hull over it, and the sail's 70 units
+of content centred on the hull's 84: the gunwale covers the foot and the mast reads
+as stepped into the deck amidships.
+
+### Live Weather could not take effect
+
+The switch only ever reached the scene through a polling loop that ticked every two
+minutes and then refused to fetch unless an hour had passed since the last one — so
+turning it on typically did nothing until the service was restarted or a theme
+change rebuilt everything, which is exactly what was reported. The settings collector
+now clears the refresh timer and wakes the loop through a conflated `Channel`, and
+the loop waits on that channel or the tick, whichever comes first.
+
+### Cars carry passengers
+
+Every car had exactly one occupant. A car may now also carry a passenger — another
+adult, a boy or a girl — in the rear pane of the glass, on the far side of the
+pillar from the driver, so the two cannot overlap.
+
+**A child can never be drawn driving, and that is structural rather than a check.**
+The driver is selected from `personCarHeadDrawables`, which contains the man and the
+woman and nothing else; the passenger is selected from `personWindowHeadDrawables`,
+which contains all four. There is no child driving head to reuse and none was
+invented, precisely so that a later edit cannot put one in the driving seat by
+changing an index.
+
+### Refused: snow on roofs
+
+Houses, shops, bars and towers show no snow in the winter and Christmas themes. This
+is **not** a placement or a lost call: the V2 asset set has no roof snow for them.
+The trees work because they have their own `tree_canopy_snowcap`; the five building
+types have nothing equivalent. Fixing it means drawing snow caps for each roof shape,
+which is artwork with a visual approval attached, and the shortcut — tinting the
+roof masks toward white in winter — would repaint the whole roof rather than settle
+snow on it. Recorded rather than improvised.
+
+### Verification
+
+289 tests, 0 failures. `lintDebug` 41 warnings, 0 errors. `assembleDebug` was not
+run, no APK was produced, no Git tag was created.
+
+**None of these fixes has been seen on a device.** The sailboat, the dolphin and the
+facade changes were checked by compositing the real PNGs at the renderer's own local
+coordinates. The road geometry was checked arithmetically against a 2424 px screen.
+The live-weather and passenger changes have **no visual check at all** — one is a
+timing path and the other only shows on a car that happens to roll a passenger.
+
+---
+
+## v76.3 — third device pass: animation, traffic behaviour and two redrawn sprites
+
+**Date:** 2026-08-18. Beta on top of v76; `versionCode` and `versionName` unchanged.
+
+Six defects from a Pixel 9. Two are artwork, three are placement or behaviour, and
+one — the traffic — turned out to be two separate causes that had been hiding each
+other.
+
+### Traffic: two causes, not one
+
+v76.2 gave the road two lanes and tied direction to lane, and the road still looked
+congested. The lanes were not the whole problem.
+
+**Cause one: speed was per car.** `speedFraction` was rolled across 0.05–0.14, a
+factor of nearly three, so within a single crossing the fast cars in a lane caught
+the slow ones and drove through them. A lane is a queue, and a queue only holds its
+spacing if nothing in it overtakes. Speed is now a property of the lane.
+
+**Cause two: the wrap discarded phase.** `if (progress > 1.3f) progress = -0.3f`
+snapped every car back to the same point at the end of its lap, throwing away the
+head start it had over the car behind it. One lap was enough to collapse a lane
+into a pack. It now subtracts the 1.6 span instead, which preserves phase
+indefinitely.
+
+With both fixed, `startDelaySeconds` could stop being a random delay and become an
+even division of the loop: each lane has five slots and the nth car starts one
+fifth of the span behind the one ahead. That spacing is now permanent rather than
+initial.
+
+Lane separation also went from 0.0225 to 0.028 of screen height — 68 px on a
+2400 px screen against a car 78 px tall — which cost 15 px at the road's top edge
+and nothing at the bottom.
+
+One consequential side effect: the driver-head seed was derived from
+`speedFraction`, which is now shared within a lane, so every car in a lane would
+have had the same driver. It reads `startDelaySeconds` instead, which is unique per
+candidate.
+
+### Animation: the reindeer
+
+They stopped moving their legs in v73, when the sleigh, Santa and both reindeer
+became one sprite. A bitmap cannot bend, so the trot is a **second drawing**:
+`santa_sleigh_trot`, alternated at `SANTA_TROT_FRAMES_PER_SECOND`. Both frames are
+emitted from one description with a leg-phase parameter, so they cannot drift
+apart, and the two reindeer carry opposite phases within a frame so the pair never
+steps in unison.
+
+### Artwork: two sprites redrawn
+
+**`bird_body`** was a flat angular M whose wing tips pointed downward — a bat at the
+size it is drawn. It is now a gull: swept wings, a body, a head and a beak. It is
+symmetric about its own horizontal centre **on purpose**, because `drawBirds`
+animates the flap by mirroring the sprite vertically; anything above the centre line
+would spend half the cycle below it. The head points right because birds only ever
+drift right.
+
+**`santa_sleigh_scene`** got the cozier Santa the maintainer asked for: rounder coat,
+fuller beard with a rounded hem, rosy cheeks, a smile, a slouched hat with a larger
+pompom, a mitten on the reins, and a belt that stops at the coat rather than running
+across the sleigh. The sleigh's own geometry and the effect's logic are untouched;
+the content box moved by one unit vertically and the origin constant followed it.
+
+### Placement
+
+- **Snowman arms** were drawn at y=-44, which is inside the head sphere (-61..-39 on
+  the V2 body), so the twigs appeared to be stuck through his face. They start from
+  the torso at -30, where the lower sphere reaches ±15.7.
+- **Car windows.** v76.2 centred the glass on the greenhouse measured at the glass's
+  own mid-height, which is arithmetically centred and still reads wrong: the
+  greenhouse is not symmetric, so a centred glass runs its vertical rear edge into the
+  roof's rear curve and leaves no C-pillar while the raked front keeps a wide band.
+  Four units forward gives it a pillar at each end. **The glass was not reshaped.**
+
+### Verification
+
+289 tests, 0 failures. `lintDebug` 41 warnings, 0 errors. `assembleDebug` was not run, no APK was
+produced, no Git tag was created.
+
+**None of these fixes has been seen on a device.** The placement and artwork changes
+were checked by compositing the real PNGs at the renderer's own local coordinates;
+the traffic change was reasoned from the arithmetic of the loop and is the one here
+with no visual check at all, because spacing over time cannot be composited.
+
+**Known limitation carried forward:** car objects are persisted inside custom themes,
+so a custom theme saved before v76.2 keeps its old single-lane layout until it is
+regenerated. Built-in themes are generated per run and are unaffected.
+
+---
+
+## v76.2 — placement and direction cleanup after the V2 integration
+
+**Date:** 2026-08-18. Beta on top of v76; `versionCode` and `versionName` unchanged.
+
+Eight defects reported from a Pixel 9, plus four more found by inspecting the rest
+of the integrated set for the same failure modes. **No artwork changed in this
+release.** Every fix is a placement, a direction or a count — which is what a
+wholesale asset replacement leaves behind when the call sites keep numbers that
+described the previous drawings.
+
+### Direction: the V2 vehicle art faces the other way
+
+`car_body`'s long bonnet is at its **left** end and `car_window`'s raked edge is on
+the same side; the sleigh's reindeer are drawn at the left of their sprite and pull
+away from it. The shipped art faced right. The flip sign was not revisited when the
+artwork was replaced, so every car on the road and Santa above it were mirrored and
+drove backwards. `dir` is inverted in `drawCar` and in `SantaSleighEffect.draw`,
+with the evidence written at both call sites so the next art pass can re-derive it
+rather than guess.
+
+### Traffic: one lane carrying both directions
+
+`generateCarCandidates` drew `laneYFraction` from `0.79 + rnd * 0.015` and
+`reverse` from an independent coin flip. That is a 36 px band on a 2400 px screen
+against a car 78 px tall, so the entire fleet shared one lane and oncoming traffic
+drove through it; three or four candidates could stack into an apparent pile-up.
+
+Lane now comes from the candidate index, so both lanes are always populated at any
+density, and **direction follows from lane**: near lane rightward, far lane
+leftward. Two more things had to move with it, and neither is cosmetic:
+
+- `buildCarRuntimes` sorts by lane, far first. Draw order is depth order, and index
+  parity alternates lanes, so without the sort a far car would paint over the near
+  car it was passing.
+- The dashed centre line was `(top + bottom) / 2` of the painted strip. The strip is
+  not symmetric about the lanes — it reaches 55 units above the highest lane to
+  clear a cabin and 24 below the lowest — so its midpoint sat above every car on the
+  road. It is now halfway between the two lanes' own ground lines.
+
+`ROAD_BOTTOM_MARGIN_UNITS` went from 24 to 12 so the widened road keeps clear of
+the pavement at 0.83 of screen height. The road's **top** edge is unchanged, by
+choosing the far lane to be the value the old single band was centred on: nothing
+standing beside the road gets covered.
+
+### Placement: seven sprites positioned against drawings that no longer exist
+
+| Sprite | Was | Now | What it looked like |
+|---|---|---|---|
+| `car_window` | (-31,-10) | (-19,-7) | Glass overhanging the bonnet, above the roof line |
+| `police_stripe` | (-70,27) | (-34,13) | A loose bar on the road under the car; the white car unmarked |
+| `police_lightbar` | (-11,-18) | (-11,-17) | Floating one unit above the roof |
+| `taxi_checker` | (-35,23) | (-34,13) | Straddling the body's floor and the wheels |
+| `snowman_nose` | (11,-64) | (4,-52) | Level with the hat brim |
+| `snowman_scarf` | (-12,-54) | (-12,-41) | Across the middle of the face |
+| `penguin_beak` | (-6,-46) | (-6,-37) | On top of the head, above the eyes |
+| `bunny_innerear` | (6,-58) | (-4,-58) | Covering one ear, the other patch in mid-air |
+
+The snowman's twig arms, drawn in code, started at ±15 where the V2 sphere reaches
+±12 at that height, and were pulled in to ±11.
+
+Every one of these was derived by measuring the new artwork — the snowman's neck is
+its narrowest row, the bunny's ears occupy x -9.3..15.3 — and then composing the
+real sprites at the renderer's own local coordinates and looking at the result.
+
+### Count: one bird is one bird
+
+v76 read the asset package's note that `bird_body` had stopped being "a three-bird
+strip" as an instruction to place it three times, and drew a flock at a third of the
+size. **The shipped 420×65 sprite was never three birds**: it was one wide gull,
+and the historical `15/70` divisor brought its 420 px down to a 90 px wingspan. The
+V2 bird is 90 px wide, so it is blitted at its own size and reaches exactly the
+wingspan the old one did. The flock offsets are gone.
+
+### Reported, and deliberately not done
+
+**"The ambulance still renders as a white car."** There is no ambulance in this
+project. `CarType` is `PLAIN`, `POLICE`, `TAXI`, `FIRE_TRUCK`, and the white vehicle
+is the police car — which had *no visible markings at all*, because its livery
+stripe was being drawn on the road underneath it. That is the same defect as the
+white/black line reported beneath it, and fixing the stripe fixes both: the vehicle
+now carries a navy-and-cream stripe along its doors under a red-and-blue lightbar.
+**Whether the project should also have an ambulance is a content decision, not a
+defect**, and it is not taken here.
+
+**Global proportions** between people, cars, houses and trees were reported as wrong
+and are explicitly out of scope: that is Group 4.
+
+### Verification
+
+289 tests, 0 failures. `lintDebug` 41 warnings, 0 errors. `assembleDebug` was not
+run, no APK was produced, no Git tag was created.
+
+**None of this has been seen on a device.** The placement fixes were checked by
+compositing the real PNGs at the renderer's own local coordinates, and the lane
+geometry by computing the road band, the two lanes, the centre line and the
+pedestrian line against a 2424 px screen and drawing the result. Both are better
+arguments than reading the code; neither is an observation of the app.
+
+---
+
+## v76.1 — four defects found on a device against the V2 artwork
+
+**Date:** 2026-08-18. Beta on top of v76; `versionCode` and `versionName` unchanged.
+
+The maintainer ran v76 on a Pixel 9 and reported four things. Every one of them is
+in the artwork or in the single number that places it — no scene logic changed,
+and the renderer was not touched.
+
+### 1. The moon had a vertical cut down its right side
+
+**Cause: the sprite overflowed its own canvas.** `moon_crescent` closes the lit
+limb with a terminator arc, and the shipped path used `A52 34 0 0 0` — an ellipse
+whose 52-unit x-radius bulges 12 units past the disc's own 34 and 12 past the
+80-unit canvas. The rasteriser clipped it at the canvas edge, which is exactly the
+straight vertical line that showed on the device. It was not an anchor, a content
+box or a UV problem: the PNG itself already contained the cut, measurable as a
+content box reaching x=240 of 240.
+
+`moon_gibbous` had the mirror error — `A20 34 0 1 0`, a large-arc flag on an
+under-sized radius — and drew a thin crescent where a gibbous belongs, with its
+crater circle stranded outside the lit shape as a floating dot. Nobody reported
+it because the phase only comes up for part of the month.
+
+Both terminators are now arcs that stay inside the disc: `A20 34 0 0 0` for the
+crescent, `A18 34 0 0 1` for the gibbous. The four phases composite over the dark
+earthshine disc as four clean discs.
+
+### 2. Car-driver heads sat below the window
+
+**Cause: the head was placed by centring its canvas.** The call site read
+`drawSprite(driverRes, -27f, -27f)` under `scale(0.24)`, which centres a 60×60
+sprite on the anchor point — correct for the sprite that existed when it was
+written. The V2 head is 171×162 with a declared `CONTENT_BOTTOM_CENTRE` anchor, so
+centring its canvas put the bust's shoulders a third of the way down the door,
+outside the glass.
+
+The origin is now `placement − anchor`: the declared anchor is subtracted so the
+bust's content bottom-centre lands on the bottom-centre of that vehicle's glass.
+**The artwork was not touched** — re-cutting the head to compensate for a call-site
+number is the failure mode `DESIGN_NOTES.md` records against five earlier releases.
+
+The four car-head sprites declare 84 or 86 px on x; `CAR_HEAD_ANCHOR_X_UNITS` is
+the midpoint, because the 2 px spread is 0.4 px on screen after the head scale and
+`GLOBAL_OBJECT_SCALE`.
+
+### 3. Snow did not cover the treetop
+
+**Cause: the cap was cut for a different crown.** `tree_canopy_snowcap` came
+across from a canopy whose outline the V2 tree does not have. Measured against it,
+the cap's ridge sat 2 units *below* the crown's own, and its corners fell 5 units
+short of each shoulder — so a green rim showed above the snow and both shoulders
+stayed bare.
+
+Redrawn at 234×126 with its top edge repeating the crown's own upper vertices, so
+the snow reaches the ridge and both shoulders exactly, and falls away below with an
+uneven edge over a shadow band. The origin moved from `(-36,-78)` to `(-42,-82)`,
+derived from the canopy rather than guessed. The V2 look is kept; nothing reverted
+to the old design.
+
+### 4. The fire truck was a red car
+
+**Cause: it shared `car_body`.** Every vehicle type was the same low-sedan
+silhouette differing only in tint and one accessory, which is fine for a taxi and a
+police car and wrong for a fire engine. The ladder made it worse rather than
+better: at `(-60,-32)` it cleared the sedan roof entirely and hovered above the
+vehicle, which is the floating ladder visible in the device screenshots.
+
+`firetruck_body` (300×162, fixed art) is new: a flat roof at local y=−16 against
+the sedan's −11, a cab with its own window, a cream stripe over three equipment
+lockers, and a dark chassis bar the wheels sit into. `firetruck_ladder` is
+unchanged and now drawn **first**, at `(-48,-31)`, so the body's roof line paints
+over its lower rail and it reads as carried rather than hovering. The two warning
+lights are unchanged and land on the rack between the rails.
+
+### Rasterisation note
+
+The four regenerated PNGs were rendered through the project's own pipeline with
+the pinned `resvg_py`, and `paperscrape-assets probe` reports
+`matches_expected: true`. **The other 108 sprites were rendered by the V2 library's
+own tool**, so their antialiased edges carry a slightly different signature. The
+difference is confined to edge pixels and does not affect geometry, but it means
+`compare` will report the untouched sprites as differing from their sources until
+the whole set is re-rendered — a decision for whoever takes defect D-4.
+
+### Verification
+
+289 tests, 0 failures. `lintDebug` 41 warnings, 0 errors. `assembleDebug` was not
+run and no APK was produced, on instruction. No Git tag was created.
+
+**None of these four fixes has been seen on a device.** They were checked by
+composing the real sprites at the renderer's own local coordinates and looking at
+the result, which is a better argument than reading the code and still not an
+observation of the app.
+
+---
+
+## v76 — the V2 asset library
+
+**Date:** 2026-08-18. Stable, `versionCode` 76, no intervening beta.
+
+The whole runtime sprite set was redrawn from zero and replaced in one change:
+108 PNGs out, 111 in. The scene logic is unchanged; what moved is the artwork,
+the call sites that had to follow its new geometry, and the classification rules
+that had been describing intent rather than bytes.
+
+**Why this is a release and not an asset swap.** Four defects and one blocker were
+open against v75, and every one of them was really a statement about the artwork
+rather than about the code. They are all closed here by the library, not by
+patches.
+
+### What the library changed
+
+| | v75 | v76 |
+|---|---|---|
+| Files / unique contents | 108 / 102 | **111 / 111** |
+| Decoded `ARGB_8888` | 16.14 MB | **14.43 MB** |
+| Off the 3× authoring grid | 5 | **0** |
+| Sprites with a committed source | 22 | **111** |
+| Variant groups still an `IDENTICAL_GAP` | 6 of 18 | **0 of 18** |
+| Orphan drawables | 7 | 4 |
+
+Six sprites are new, and each replaces something the renderer used to draw in
+code: `tree_trunk`, `rainbow_arc`, `firework`, `lightning_bolt`,
+`house_window_lit` and `skyscraper_wall_lit`.
+
+### Closed
+
+- **B1 — the asset generators are lost.** Partially lifted in Phase 3.1, which
+  reached 22 of 108 sprites; the rest could not be recovered because a
+  best-scoring fit over free parameters is a redraw presented as a recovery. The
+  V2 library sidesteps recovery entirely by shipping sources for artwork drawn
+  from zero. **Group 4 is no longer blocked.**
+- **D-6 — the balloon basket draws white.** It was a pure-white mask blitted
+  untinted, and white is the `MULTIPLY` identity. The V2 basket is wicker brown.
+  The five other sprites the v75 re-measurement found sharing the profile are
+  resolved the same way, or no longer exist.
+- **D-2 — an Italian caption rasterised into `santa_sleigh_scene.png`.** The
+  sprite was redrawn at 624×168 and the caption is not in the new artwork —
+  read off the file rather than assumed from the redraw. The original entry's
+  caveat still applies to the new set: the heuristic that missed this caption
+  cannot certify the other 110 sprites.
+- **D2 — should the seasonal head sprites differ?** Resolved in v74.2 as "yes,
+  and the artwork does not exist". It exists now: hat, scarf, hood, raised
+  collar, cold cheeks. All 18 variant groups are `DISTINCT` and the shipped set
+  contains no byte-identical pair at all.
+
+### The tint classification, and what it costs
+
+`DESIGN_NOTES.md` decision 25 supersedes decision 23. A sprite's class is now a
+property of its bytes: tintable means a greyscale mask, fixed art means the PNG
+carries its colours, and `SpriteTintClassTest` asserts both directions across all
+111 sprites.
+
+Decision 23 had allowed a fixed-art sprite to be a mask coloured at the blit. It
+was a correct repair for artwork that did not honour its own classification — it
+is what fixed the white dolphins in v74.1 — but it left the class undecidable
+from the file, which is how the defect got in. Roughly a dozen accent constants
+existed only because of it, and all of them were deleted rather than moved: the
+penguin's beak and feet, the bunny's inner ear, the gift ribbon, the house
+planter, the skyscraper's lit and dark window, the tree trunk, and v74.1's three
+lake-decoration colours. Two survive, and both are the cases that were never
+about a sprite: the parasol pole, which is a `drawRect`, and the penguin belly,
+whose sprite is still a mask.
+
+**Five user-visible behaviours are retired as a consequence, deliberately and
+without compensation** — recorded as pending decision **D7**, which asks the
+maintainer to look at them:
+
+| Behaviour | Now |
+|---|---|
+| **Sun Color** on the disc and sunburst | Fixed art; the setting still drives the ambient radial glow |
+| The theme's star colour | Reaches nothing. `theme.starColor` stays on `SceneTheme` because custom themes persist it |
+| **Fall Colors** on palm fronds | Fixed art. Winter still applies — the frost is a separate sprite, not a tint |
+| Per-building skyscraper window lighting | Day and night are both artwork now, crossfaded on `nightGlow` |
+| Per-burst firework colour | The palette is in the sprite |
+
+None of these is to be recovered by tinting the new art. If one reads wrong on a
+device, the fix is artwork, or restoring a mask for that one sprite.
+
+### Call sites that had to follow the geometry
+
+- **`santa_sleigh_scene`** 1563×434 → 624×168. It leaves the `CANVAS_PIXELS`
+  convention: V2 re-authored it on the grid, so the manifest was right and the
+  call site moved. `130f/680f` and the `(-283, +244)` origin are retired for
+  `SANTA_SLEIGH_SCALE = 1.5f` centred on the flight point — which also fixed a
+  latent misalignment, since the old origin put the sleigh 95 px right and 130 px
+  below the point its own code spawns falling gifts from.
+- **`bird_body`** 420×65 → 90×42. One candidate now draws three birds at hoisted
+  offsets, filling the footprint the wide sprite used to. Each is blitted centred
+  on the flip axis, because the wing-flap is a vertical mirror.
+- **`palmtree_fronds`** 102×176 → 120×120 with a `DECLARED_ATTACHMENT` at
+  (60,102), which retires the hand-tuned `-87.45` origin. The trunk widened to
+  42×186 to carry it.
+- **`house_large_trim`** 12 → 18 px; its origin drops one unit so the border stays
+  centred on the wall/roof seam instead of growing into the wall.
+- **`tree_trunk`** replaces a `drawRect`. Its 44-unit height is not a discrepancy:
+  the new canopy's content bottom lands at −44 too.
+- **`star_sparkle`** keeps `SCENE_UNITS`. The manifest declares it
+  `CANVAS_PIXELS`, which is defect D-1 restated, so the call site won here — the
+  opposite resolution to the sleigh, and the reason both are recorded in the
+  registry's `notes`.
+
+### Out of the frame loop
+
+Not the goal, but a consequence worth recording: the skyscraper's ~24 `drawRect`
+calls per building per wrap-tile, the rainbow's 14 arc strokes and 14 `RectF`
+allocations, and the firework's 18 `drawCircle` calls per burst plus the
+`List<Particle>` allocated per spawn are all gone, replaced by blits.
+
+### Tests
+
+Two classes were replaced rather than repaired, because the properties they
+asserted stopped describing the asset set.
+
+- **`SpriteNormalisationTest` → `SpriteGeometryTest`.** The old rule was that no
+  sprite may carry removable transparent padding. V2 declares a `contentBox` and
+  an anchor rule per sprite and places drawings inside grid-sized canvases, so 34
+  sprites carry margin on purpose and cropping them would move them. The new test
+  asserts what is still true of the set: every canvas on the 3 px grid, a ceiling
+  on total decoded bytes, and no single sprite over an eighth of it.
+- **`LakeDecorationTintTest` → `SpriteTintClassTest`.** Generalised from three
+  sprites to all 111, in both directions. The old test's own doc comment had
+  specified exactly this migration: when artwork gains baked colours, its call
+  site goes back to an untinted blit in the same change.
+
+`SpriteVariantTest` kept its name and flipped its meaning: the six seasonal head
+pairs moved from "allowed to be identical" to "required to differ", and the
+exemption list is gone.
+
+289 tests, 0 failures. `lintDebug` 41 warnings, 0 errors — down from 50, the
+difference being `UnusedResources` 7 → 4 as three orphan drawables disappeared.
+
+### Verification limits — read this before trusting the release
+
+- **Nothing has been seen rendering.** No device, no emulator, no GL
+  implementation in the session that produced this. Every claim about what the
+  scene looks like is an argument about code and about pixels read off disk.
+- **`assembleDebug` was not run and no APK was produced**, on the maintainer's
+  explicit instruction. Compilation is proven only because `testDebugUnitTest`
+  compiles the whole `debug` source set; **resource linking, dexing and packaging
+  are unproven for this release.** The asset-pipeline change would normally put
+  this at Level 3.
+- **No Git tag was created.**
+- **The Python tooling tests were not re-run.** The registry they check was
+  rewritten wholesale, and `probe` needs a pinned rasteriser that was not
+  installed. Defect **D-4** remains open and unaddressed.
+- The new lit-window and lit-wall crossfades, the lightning bolt, the three-bird
+  flock and the recentred sleigh are all first appearances. They are the most
+  likely places for something to look wrong.
+
+---
+
+## v75 — stable: the v74.1 and v74.2 betas, verified on a device
+
+`versionCode` 74 → **75**, `versionName` "74.0" → **"75.0"**. This release
+contains **no code, asset, test or tooling change** beyond those two numbers:
+everything in it shipped in the v74.1 and v74.2 betas, whose entries below are
+the technical record. What changed is that it has now been observed.
+
+### Maintainer verification on a Pixel 9
+
+| Checked | Outcome |
+|---|---|
+| Sprite deduplication — no regression | ✅ |
+| Houses, windows, planters | ✅ |
+| Summer characters | ✅ |
+| Winter characters | ✅ |
+| Full Summer → Winter → Summer switch | ✅ |
+
+This closes the verification limit that both betas carried. The seasonal switch
+in both directions is the case that mattered: a wrong entry in
+`personWalkDrawables` or in either head table would have shown there and nowhere
+else, and the argument that deduplication is pixel-identical — the removed files
+were byte-identical to the ones that remain, so the bitmap reaching each blit is
+the same object — was an argument until this point.
+
+Phases **3.4, 3.5 and 3.6** are therefore closed by observation, and **Group 3 is
+complete**.
+
+### One defect reported and deliberately not fixed
+
+`balloon_basket` draws white. Recorded as **D-6** and excluded from v75 at the
+maintainer's instruction, so that a release whose whole point is "the betas were
+verified" does not also carry an unverified change.
+
+It is the same defect family as D-3, not a regression from it: the PNG holds one
+colour, pure white, across every opaque pixel, and its call site blits it
+untinted, so the `MULTIPLY` identity leaves it as it is.
+
+**The scope is wider than the basket**, and re-measuring the whole shipped set at
+v75 is what shows it. Five other `FIXED_ART` sprites are blitted untinted from
+artwork carrying no colour of its own:
+
+| Sprite | White | Blitted | Runtime effect |
+|---|---|---|---|
+| `balloon_basket` | 100 % | `drawSprite`, untinted | **Reported wrong** |
+| `bunny_tail` | 100 % | `drawSprite`, untinted | Plausibly correct — a white tail |
+| `car_window` | 100 % | `drawSprite`, untinted | Plausibly correct — a glare |
+| `firetruck_ladder` | 95 % | `drawSprite`, untinted | Needs judgement |
+| `house_wall` | 59 % | orphan, no call site | None |
+| `house_trim` | 57 % | orphan, no call site | None |
+
+So D-6 needs a judgement per sprite rather than a blanket tint. The repair itself
+is D-3's: a named non-user-editable constant at the blit per `DESIGN_NOTES.md`
+decision 23, plus extending `LakeDecorationTintTest`'s artwork/constant pairing to
+whichever sprites are decided to need colour.
+
+### Verification
+
+- `./gradlew testDebugUnitTest` — **287 tests, 0 failures, 0 errors**.
+- `./gradlew assembleDebug` — SUCCESS, APK **19,017,989 bytes**. `versionCode 75`
+  / `versionName 75.0` read out of the packaged APK with `aapt2 dump badging`, not
+  trusted from the build script.
+- `./gradlew lintDebug` — 50 warnings, 0 errors, 0 fatal.
+- Python tooling — 74 of 76 passing; the 2 failures are defect D-4, present since
+  v73.11.
+- No mutation testing: nothing new is testable. The change is two integers and a
+  release-notes file.
+
+### Verification limits
+
+- The CI tag check requires a `vNN` stable tag to equal `versionCode`, so **`v75`
+  is the only tag this build will publish under**. The tag was not created — the
+  maintainer creates it.
+- v74.1's three lake-decoration colours have now been seen in the scene, but were
+  never judged against a mockup. If any reads wrong, each is a single named
+  `const val`.
+- Practical CPU, battery and thermal observation of the cumulative Phase 1 and
+  Phase 2 work is still outstanding.
+
+---
+
+
+
+Delivered at **Verification Level 3**. Resource names changed, so `assembleDebug`
+is not optional here: a stale `R.drawable` reference is a compile error and a
+missing PNG is an `aapt` error, and neither is reachable from a JVM unit test.
+
+`versionCode` and `versionName` are unchanged: this is a beta on top of Android
+version 74.
+
+### The three phases are one change, because the same fact underlies all three
+
+Sixteen groups of shipped PNGs were byte-identical. That single measurement means
+two completely different things depending on the group, and telling them apart
+*is* the work:
+
+| Kind | Groups | What it means |
+|---|---|---|
+| One drawing under two names | 2 | The small and large houses' window and planter. Two resource names, one picture, two decodes, two atlas entries |
+| One drawing at two points in a cycle | 8 | `person_*_walk1` and `person_*_walk3`. The walk cycle's passing pose, shipped twice |
+| A variant that was never drawn | 6 | The summer and winter person heads. The seasonal feature is real; the artwork for it does not exist |
+
+3.4 removes the first two kinds. 3.5 declares the third. 3.6 makes the
+distinction machine-checked so it cannot be lost again — which matters because
+until now nothing in the project could see it: size, content box, anchor, scale
+and tint are all per-sprite properties, and **two copies of one picture satisfy
+every one of them.**
+
+### 3.4 — Deduplication
+
+**118 PNGs → 108.** Decoded artwork **17.20 MB → 16.14 MB**, 1.06 MB recovered,
+and ten fewer atlas entries and decodes.
+
+**House parts.** `house_small_window` ≡ `house_large_window` and
+`house_small_planter` ≡ `house_large_planter`; the two SVG sources were identical
+too, apart from the sprite's own name inside a comment. Both pairs collapse into
+`house_shared_window` and `house_shared_planter` — a neutral name rather than
+either variant's, because a small house drawing `house_large_window` reads as a
+bug. (`house_window` was unavailable: it is one of the seven orphan drawables.)
+Seven call sites in `SceneObjectRenderer` renamed. The two houses still differ
+where they actually differ — wall, roof, trim, chimney, door — and the size
+difference comes from the enclosing `canvas.scale`, not from the artwork.
+
+**Walk cycle.** `person_{man,woman,boy,girl}_{summer,winter}_walk1` ≡ `..._walk3`,
+eight groups. **Verified by looking at the frames rather than inferred from the
+hashes:** it is a four-frame cycle of two poses — frames 0 and 2 are the contacts,
+one per leading leg, and 1 and 3 are the passing pose, where the legs are together
+and a flat silhouette draws the same picture whichever leg leads. The duplication
+is intentional art, so the eight `..._walk3.png` files are removed and the frame-3
+slot in `personWalkDrawables` names `walk1`.
+
+**No runtime cost, and no new indirection.** `personWalkDrawables` is already a
+flat `IntArray` indexed by kind, season and frame — built once, no allocation, no
+string comparison. Deduplication changes *which ID sits in one slot* and nothing
+else. Frame for frame, the animation is identical.
+
+**Not done here:** the six seasonal head pairs, which are 3.5's subject and which
+3.4 was explicitly warned not to pre-empt by deleting a file whose variant is
+meant to diverge later.
+
+### 3.5 — Seasonal variants (decision D2, resolved)
+
+The frames were examined before anything was decided. **The seasonal distinction
+already works, and only for the walking sprites**: the winter set has a beanie
+instead of hair, long sleeves, a snowflake motif, and the girl wears trousers
+where the summer girl wears a skirt. It was never drawn for the **heads** — window
+occupants and car drivers — so those six pairs are byte-identical and a face at a
+window looks the same in January as in July.
+
+**D2 is resolved as a declared gap, not as artwork.** Person art has
+`source.kind = "none"` throughout: there is nothing to regenerate from, so drawing
+a winter head is asset redesign. Inventing one here would have been a redraw
+presented as a fix, which is the same trade Phase 3.1 refused under decision D12.
+
+What was built instead:
+
+- **Registry schema 2 → 3**, adding a top-level `variants` array. A group carries
+  an `id`, an `axis` (`season` is the only one so far), two or more `members`, a
+  `state` of `DISTINCT` or `IDENTICAL_GAP`, and a `reason`. Eighteen groups: the
+  six head pairs as `IDENTICAL_GAP`, and the twelve walking pairs as `DISTINCT`.
+- **The twelve working pairs are pinned as `DISTINCT`** — not decoration. A
+  regeneration that copied one season over the other now fails, and that is
+  precisely how the head sprites became identical in the first place.
+- **The runtime is unchanged and the lookup tables stay two columns wide**, so
+  drawing the six sprites is the entire fix, with no code change at either call
+  site.
+
+`IDENTICAL_GAP` is a first-class value in the same family as `UNDETERMINED` and
+`source.kind = "none"`: it records what is missing, in terms of what would close
+it.
+
+### 3.6 — Difference / regression testing
+
+`registry.load_variants` and `registry.validate_variants`, wired into
+`paperscrape-assets validate`, check **two** properties.
+
+**Every declared group against its members' bytes, in both directions.** A
+`DISTINCT` group whose members turn out identical has lost the distinction it
+names. An `IDENTICAL_GAP` group whose members have started to differ has gained
+artwork the declaration has not caught up with. The second direction is the one
+that makes the gap self-closing: drawing a winter head produces a failure saying
+so, instead of a silent success nobody records.
+
+**Any byte-identical pair that no group declares.** This is what holds 3.4: a
+duplicate outside a variant group is one drawing under two names, and it now
+fails rather than accumulating.
+
+Tests: `tools/assets/tests/test_variants.py`, 17 cases across document
+well-formedness, both failure directions, and the shipped table.
+`SpriteVariantTest` in Kotlin adds 3 more. **The Kotlin test is not the tooling
+check restated** — Gradle is the only thing CI runs, so the tooling's answer never
+gates a release, and the manifest is deliberately tooling-side, so its declaration
+cannot be imported. What is duplicated is only the narrow property that must hold
+in the APK.
+
+One coverage rule is worth naming: `test_every_seasonal_sprite_belongs_to_a_variant_group`
+asserts that any sprite whose name carries a season is in the table. Stated as a
+rule rather than a count, so a new seasonal sprite is *caught* rather than
+*counted* — a count would have to be edited by whoever reduced the coverage.
+
+### Verification
+
+- `./gradlew testDebugUnitTest` — **287 tests, 0 failures, 0 errors** (284 at
+  v74.1; +3 for `SpriteVariantTest`).
+- `./gradlew assembleDebug` — SUCCESS. Run rather than skipped: this is the only
+  check that reaches a renamed resource.
+- `./gradlew lintDebug` — **50 warnings, 0 errors, 0 fatal**, down from 60. The
+  entire drop is `IconDuplicates`, 16 → 6: Android's own duplicate-resource
+  detector now reports exactly the six declared seasonal gaps and nothing else,
+  which corroborates the deduplication from outside this project's tooling.
+- APK **19,017,989 bytes**, 40,257 smaller. `aapt2 dump resources` on the packaged
+  APK confirms `house_shared_window`/`house_shared_planter` are present and that no
+  `house_small_window`, `house_large_window`, `house_small_planter`,
+  `house_large_planter` or `*_walk3` resource remains; `aapt2 dump badging`
+  confirms `versionCode 74` / `versionName 74.0`.
+- `paperscrape-assets all` — probe fingerprint matches the pin; 108 files,
+  16.14 MB decoded, **6 duplicate groups, exactly the declared gaps**; registry
+  OK; 18 variant groups checked; normalisation OK; fidelity 11
+  `PIXEL_IDENTICAL` + 11 `EDGE_EQUIVALENT`, none divergent. All `reports/`
+  regenerated, since they named sprites that no longer exist.
+- Python tooling — **74 of 76 passing**. The 2 failures are defect D-4, confirmed
+  present in an untouched v74 extraction.
+- **Mutation testing, targeted rather than broad.** Two mutations on the one piece
+  of genuinely new logic, both killed: restoring `person_girl_winter_walk3.png`
+  killed the Kotlin duplicate assertion; altering one pixel of a winter head
+  killed the tooling's `IDENTICAL_GAP` direction. A third confirmed the
+  `DISTINCT`-collapsed direction directly against `validate_variants`. The
+  remaining new code is schema validation, whose tests are themselves the
+  negative cases.
+
+### Verification limits
+
+- **No device, no emulator, no OpenGL implementation.** `assembleDebug` proves
+  every renamed resource resolves and packages; it does not prove a house still
+  draws its window. **Nothing in this release has been seen rendered.** The
+  argument that the scene is unchanged is that the deduplicated files were
+  byte-identical, so the bitmap reaching each blit is the same object it was.
+- The walk cycle's frames 1 and 3 were judged **by eye** from a rendered
+  side-by-side sheet, not by a device.
+- v74.1's three lake-decoration colours are still unobserved.
+
+### Left open
+
+- **The six seasonal head pairs.** Declared, not closed. Closing them is asset
+  redesign against sources that do not exist.
+- **Seven orphan drawables** (`house_roof`, `house_trim`, `house_wall`,
+  `house_window`, `road_asphalt`, `road_curb`, `road_line`) — dead weight in the
+  APK, but not duplicates, so removing them is Group 7 housekeeping and was not
+  taken here.
+- **D-4** unchanged.
+
+---
+
+
+
+Delivered at **Verification Level 2**. The change touches one draw path, three
+colour constants and the asset manifest — no Gradle or build configuration, no
+manifest, no CI, no lifecycle, no asset pipeline code, and no PNG.
+`assembleDebug` intentionally skipped under normal verification policy.
+
+Android `versionCode` and `versionName` are deliberately unchanged: this is a beta
+on top of Android version 74.
+
+### The defect, and why it was not what it looked like
+
+`ROADMAP.md` D-3 recorded two candidate causes — a silent `GlTextureCache.register()`
+failure, or UV coordinates pointing at the wrong atlas region — and both were
+GPU-side. Both were wrong, and the same file already contained the evidence: the
+defect was confirmed to **predate the GPU renderer**, so a cause that only exists
+inside the GPU backend cannot explain it. That contradiction was recorded and not
+acted on for a release.
+
+A device screenshot supplied by the maintainer settled the rest. The dolphins and
+the sailboats **do** render, at the right size, in the right place, moving as
+designed — as **blank white shapes**. Correct silhouette means correct alpha, and
+correct alpha means the sampled texture region is correct. Every other sprite in
+the scene comes through the same atlas, the same UVs and the same upload path with
+its colours intact. Nothing on the GPU side was implicated at any point.
+
+### Root cause
+
+The three sprites carry **no colour of their own**. Measured off the shipped PNGs:
+
+| Sprite | Distinct colours over opaque pixels | Mean level |
+|---|---|---|
+| `dolphin_body.png` | **1** — pure white `#FFFFFF` | 255 |
+| `sailboat_hull.png` | **1** — pure white `#FFFFFF` | 255 |
+| `sailboat_sail.png` | 7 — greys 227..255 on white | 249 |
+
+That is the **tintable** authoring profile, the same one `car_body`, `tree_canopy`
+and `penguin_body` have, and the opposite of a genuine fixed-art sprite such as
+`palmtree_trunk` (283 colours) or `taxi_checker` (56).
+
+`DESIGN_NOTES.md` §3 classifies the dolphin and the sailboat as **fixed-art** —
+final colours baked into the PNG, blitted with no colour filter — and the three
+call sites were written to match: `SpriteBlitter.draw`, no tint. **The artwork
+never held up its end of that contract.** White is the `MULTIPLY` identity on both
+backends by explicit design (`CanvasSceneTarget` skips the filter for it entirely,
+`GlSceneTarget` writes it as a vertex colour that changes nothing), so an untinted
+blit of an all-white mask draws a white shape. The in-code comment asserted the
+opposite of the truth in as many words: *"colors are baked into the PNG at
+generation time"*.
+
+**Why nothing caught it.** A PNG does not record whether its greys are finished
+artwork or a mask awaiting a colour. The manifest's `tint` field is resolved
+*from the call site*, so the declaration and the code agreed with each other while
+both disagreed with the pixels. The only place the contradiction is visible is
+between the artwork and the colour it is multiplied by, and until now nothing read
+those two together.
+
+### The fix
+
+The colour is supplied at the blit instead of being baked in — exactly what
+`SceneObjectRenderer` already does for the penguin's beak, the bunny's inner ear
+and the gift ribbon (`DESIGN_NOTES.md` §7, "Fixed accent colours"):
+
+| Constant | Value | Chosen because |
+|---|---|---|
+| `PaperRenderer.DOLPHIN_COLOR` | `#8CA3B5` | Desaturated grey-blue: reads against every built-in lake palette, whose day colours run from saturated cyan (`#2FA8D8`, `#1E9BC4`) to very pale (`#BFE3EE`) |
+| `PaperRenderer.SAILBOAT_HULL_COLOR` | `#B5651D` | Paper Orange Dark, an existing brand token, from the same warm family as the `#7A4B2E` tree-trunk accent |
+| `PaperRenderer.SAILBOAT_SAIL_COLOR` | `#FFF7EC` | Paper Cream. A sail reads as white, but a large pure-white fill does not read as paper (`DESIGN_NOTES.md` §7 rule 4), and the off-tone is what lets the sprite's own 227..255 mottling survive `MULTIPLY` as shading |
+
+The three blits move from `sprites.draw` to `sprites.drawTinted`. **Origins
+`(-28,-14)`, `(-10,8)`, `(4,-36)` and `SpriteScale.SCENE_UNITS` are unchanged**,
+confirmed by re-running the project's own call-site resolver against the edited
+source. No PNG was touched, no coordinate moved, no geometry changed, and nothing
+outside `drawLakeDecorations` was modified.
+
+The decorations stay **not user-editable**. The fixed-art classification per
+category is a protected element (`DESIGN_NOTES.md` §11), so this restores the
+intended appearance without promoting the lake decorations to a recolourable
+category.
+
+`tools/assets/sources/sprites.json` moves the three from `FIXED_ART` to
+`TINTABLE`. That is not bookkeeping: `validate` fails without it, with
+*"registry declares tint FIXED_ART, PaperRenderer.kt blits it as TINTABLE"* —
+verified by making the edit and reverting it.
+
+### New test
+
+`LakeDecorationTintTest` reads the three PNGs with `ImageIO` and checks them
+against `PaperRenderer`'s own constants, in **both** directions, because neither
+half is correct alone:
+
+- every opaque pixel of each sprite is a neutral grey, so the mask carries no hue
+  that the tint would compound;
+- each mask is light enough (mean ≥ 220) for `MULTIPLY` to carry a colour at all;
+- no constant is the `MULTIPLY` identity, which would be indistinguishable from
+  the untinted blit that caused the defect;
+- each constant is fully opaque, since `GlSceneTarget` ignores a tint's alpha and
+  `CanvasSceneTarget` does not — an incidental alpha byte would make the wallpaper
+  and its own settings preview disagree;
+- no constant is so dark that the sprite reads as a silhouette against the darkest
+  built-in lake colour.
+
+If a future asset pass bakes real colours into one of these PNGs, the first two
+assertions fail and say so: that sprite's call site has to return to `draw` in the
+same change, or its finished art would be multiplied a second time.
+
+### Verification
+
+- `./gradlew testDebugUnitTest` — **284 tests, 0 failures, 0 errors** (was 279 at
+  v74; +5 for `LakeDecorationTintTest`).
+- `./gradlew lintDebug` — **60 warnings, 0 errors, 0 fatal**, unchanged from v74.
+- `paperscrape-assets validate` — **OK**, 118 entries, 24 with an SVG source, 94
+  gaps, no call-site disagreement.
+- **Mutation testing on the new test — 3 mutations, 3 killed.** `DOLPHIN_COLOR`
+  set to the identity white killed the identity assertion; `SAILBOAT_HULL_COLOR`
+  set to a dark, non-opaque value killed the opacity and legibility assertions;
+  pointing the test at `palmtree_trunk`, a genuinely coloured sprite, killed both
+  artwork assertions. Every mutation was reverted and the file re-read afterwards.
+- No allocation audit: the change replaces one blitter call with another on the
+  same object and adds three compile-time constants. Neither entry point
+  allocates, and this was already established at v74.
+
+### A pre-existing tooling defect found while verifying, and deliberately not fixed
+
+`tools/assets` reports **57 of 59 Python tests passing**. The two failures were
+confirmed to be **present in an untouched extraction of `PaperScrape_v74.zip`**,
+so they are not caused by this release.
+
+Root cause, for whoever picks it up: `callsites._wrapper_bindings` recognises a
+wrapper only when its first parameter type is literally `Canvas`, and the v73.11
+GPU migration changed `SceneObjectRenderer`'s two wrappers to take `SceneCanvas`.
+**Every one of that file's ~60 blit call sites has therefore been invisible to
+`validate` since v73.11**, silently — `bar_door` reports "declares an anchor with
+no call site", and `driverRes` disappeared from the unattributed list. The
+declarations Phase 3.2 built the resolver to check are consequently unchecked for
+that file.
+
+Left alone on purpose: it is a separate defect, outside the scope of D-3, and
+fixing it would re-expose ~60 call sites to comparison at once — findings that
+need triaging on their own rather than inside a defect fix. `PaperRenderer.kt` is
+scanned correctly, so the manifest change above was verified against real
+resolution rather than against a resolver that had stopped looking. Recorded as
+defect **D-4**.
+
+### Verification limits
+
+- **No device, no emulator, no OpenGL implementation and no profiler** in the
+  build environment. The rendered result of this change **has not been observed**.
+  The reasoning that the three sprites will now draw in colour is an argument
+  about the artwork's measured content and the documented behaviour of the
+  `MULTIPLY` identity, not an observation of a frame.
+- **The three colours have not been judged on a device, and no mockup was produced
+  before implementing them.** `AI_PROJECT_RULES.md` §13 would normally require one;
+  the maintainer directed the fix to be applied directly. They are three named
+  `const val`s, so revising any of them is a one-line change.
+- The sail is deliberately close to white, so against `tundra`'s pale lake
+  (`#BFE3EE`) its contrast is low by construction. If that reads badly, the
+  correct answer is a day/night pair, not a darker constant.
+- `assembleDebug` intentionally skipped under normal verification policy.
+- **No Git tag was created**, at the maintainer's instruction, and the release ZIP
+  carries no `.git`, so the identifier was taken from `RELEASE_HISTORY.md` and
+  `release-notes/`.
+
+### Known defects not addressed here
+
+- **Dolphins and sailboats can overlap** while drifting, visible in the same
+  screenshot. The two effects use decorrelated threshold offsets but neither knows
+  where the other is; nothing in this release changes that. Recorded as **D-5**.
+- **At default densities exactly one dolphin and one sailboat exist** (pool of 4;
+  thresholds 0.069 and 0.340 against a density of 0.30), and at the default lake
+  height the band sits almost entirely behind the hills. Both were left untouched:
+  now that the colours are right, how sparse the lake actually reads is a question
+  to answer by looking, not by arithmetic.
+- **D-2**, the Italian caption baked into `santa_sleigh_scene.png`, is unchanged.
+
+---
+
+**The first stable release drawn on the GPU.** `versionCode` 73 → **74**, `versionName`
+"73.0" → **"74.0"**. Everything accumulated across the v73.1–v73.11 betas ships here,
+with the OpenGL ES renderer as the headline.
+
+### Device result
+
+Measured by the maintainer on a Pixel 9, day and night, all scene elements at roughly
+50%: the CPU cluster carrying the wallpaper sits at **~357 MHz against ~2600 MHz** with
+the v73.10 `Canvas` renderer. No visual anomalies and no perceptible slowdown. That
+measurement is what promoted the renderer from experiment to default.
+
+### What v74 adds on top of v73.11
+
+v73.11 delivered the renderer; v74 makes it batch properly and stop duplicating itself in
+memory.
+
+**A shared texture atlas.** Sprites are packed into one 2048² texture as they are first
+drawn. Sprites over 1024 px in either dimension stay on textures of their own — the sleigh
+alone is 1563x434, and letting it take a shelf row would push out the small sprites that
+actually repeat every frame, while itself costing only one batch break because it is drawn
+once. `GlTextureCache` decides placement; callers get a handle and a UV rectangle either
+way, so a standalone texture is simply the `0..1` case.
+
+**The flat-fill white pixel is packed into the atlas first**, and that is the point of the
+whole change rather than a detail of it. A batch ends when the bound texture changes, and
+draw order *is* depth order here, so it cannot be reordered around. With flat fills and
+sprites in the same texture, a scene object's solid details no longer end the batch between
+its sprite parts — an entire house, and then the objects after it, accumulate into one.
+
+Its UV is taken from the **centre** of its atlas entry, not the corner. A 1x1 entry is one
+texel inside a transparent border; sampling at the corner sits exactly on that boundary and
+bilinear filtering would mix the transparency in, making every flat fill in the scene
+half-alpha.
+
+**Sprite pixels are pulled, not pushed.** `SceneCanvas.drawSprite` now takes a
+`SpriteSource` instead of a decoded `Bitmap`, because the two backends need pixels at
+completely different rates — the `Canvas` backend every blit, the GPU backend once per
+sprite per context. Passing a bitmap made everyone pay the more expensive of the two.
+`GlTextureCache` records each sprite's dimensions at upload, so a steady-state blit resolves
+its size from the registry and **never touches `SpriteCache`**, which was otherwise a
+synchronised lookup with an LRU touch, once per sprite per frame, to recover a width and a
+height that had not changed since the first one.
+
+**The CPU copy is released once the GPU has one.** `SpriteSource.onSpriteUploaded` drops the
+decoded bitmap through the new `SpriteCache.release` / `SpriteCacheIndex.remove`, freeing up
+to ~17 MB of heap that duplicated what the GPU already held. Re-decoding is always available
+— the same property that makes memory-pressure eviction safe — so being wrong costs one
+decode. The `Canvas` backend never reports an upload, because it holds no durable copy that
+would justify releasing one.
+
+**Fully transparent draws are skipped.** Under premultiplied blending a zero-alpha primitive
+contributes exactly nothing, and the scene fades plenty of things through zero:
+precipitation, leaves, star twinkle, the sleigh's edge fade.
+
+### Verification
+
+- `./gradlew test` — **279 tests, 0 failures, 0 errors** (was 264; +15 covering `ShelfPacker`
+  and `SpriteCacheIndex.remove`). The 59 Python tooling tests were not re-run: no asset,
+  manifest or tooling file changed.
+- `./gradlew lintDebug` — **60 warnings, 0 errors, 0 fatal**.
+- `./gradlew assembleDebug` — **SUCCESS, 0 compiler warnings**, APK **19,058,246 bytes**,
+  `versionCode 74` / `versionName 74.0` confirmed by reading the packaged binary with
+  `aapt2 dump badging` rather than the build script.
+- **Mutation testing** on `ShelfPacker` and `SpriteCacheIndex.remove`: 8 mutants, **8 killed**
+  — after one survived the first run. See below.
+- **`javap -c` allocation audit** of every steady-state method in `GlSceneTarget`,
+  `GlTextureCache`, `ShelfPacker`, `SpriteBlitter`, `SpriteCacheIndex` and `SpriteCache`: no
+  `new`, no `newarray`/`anewarray`, no `valueOf` boxing. The single hit is the
+  `IllegalStateException` on `SpriteCache.get`'s decode-failure path, which is pre-existing
+  and not on the frame path at all now that the GPU backend stops calling it.
+
+### The mutant that survived
+
+The row-break test in `ShelfPacker.place` compared the **content** width against the atlas
+width instead of the padded width. An entry that fits by content and overflows only once its
+one-pixel border is counted would have been placed with that border hanging outside the
+texture. Randomised size sweeps do not find this: it needs an entry constructed to sit
+exactly on the boundary. Recorded because the same shape of gap — a test that exercises a
+range but never the edge — is what let it through in the first place.
+
+### Verification limits
+
+- **No device, no emulator, no profiler and no OpenGL implementation** in the build
+  environment. Nothing here is a measured CPU figure; the Pixel 9 numbers above are the
+  maintainer's. **No frame produced by either backend has been observed in this environment**,
+  and `GlSceneTarget`, `GlTextureAtlas`, `GlRenderThread` and `GlTextureCache` have no
+  automated test because they need a GL context. What is covered is the pure logic they
+  depend on: `SceneTransform`, `SceneShape` and `ShelfPacker`.
+- The atlas's **bleed border, entry placement and the white pixel's centre-sampled UV are
+  unverified against a rendered frame.** They are the three things most worth a direct look.
+- `git` was available, but **the release ZIP carries no `.git`**, so the identifier was taken
+  from `release-notes/` and this file rather than from tags. `.gitignore` behaviour was
+  verified properly, by extracting the ZIP, running `git init` there and checking
+  `CLAUDE.md` against `git check-ignore` and a forced `git add -A`.
+
+### Known defect carried into this release
+
+**Dolphins and sailboats do not render** (`K5`, `ROADMAP.md` D-3). Confirmed by the
+maintainer to **predate the GPU renderer**, so neither the OpenGL backend nor the atlas
+introduced it. It was deliberately left alone in v74 rather than guessed at: the two
+candidate causes — a silent `register()` failure versus UV coordinates pointing at the wrong
+region — produce opposite symptoms, and telling them apart needs a rendered frame. Shipping
+a guess inside a release marked Stable was rejected. First task after v74.
+
+### Known limitations carried forward
+
+- The atlas **cannot reclaim space**: shelf packing wastes area against a real bin packer and
+  frees only wholesale. It also fills in first-draw order, so a scene whose sprite set exceeds
+  2048² pushes its *later* sprites — objects and people, which benefit most — out to
+  standalone textures. Neither has been observed to matter.
+- **Each engine has its own EGL context**, so the picker's preview and the live wallpaper do
+  not share textures.
+
+---
+
+## v73.11 — GPU renderer: the scene is drawn with OpenGL ES 2.0
+
+Delivered at **Verification Level 3**. The change replaces the rendering backend and
+moves drawing onto a new thread, which is a core-integration and critical-rendering
+change on two counts, so `assembleDebug` was run rather than skipped.
+
+Android `versionCode` and `versionName` are deliberately unchanged: this is a beta on
+top of Android version 73.
+
+### What changed, and what deliberately did not
+
+**The backend, and only the backend.** The scene logic is untouched: the candidate
+system, themes, seasons, people, vehicles, precipitation, clouds, animations, logical
+coordinates, the asset pipeline, the manifest, persistence and the determinism of every
+seed are all exactly as they were in v73.10. No sprite was regenerated, no coordinate
+moved, no visual decision was revisited.
+
+What replaced them is how those instructions reach the screen: a
+`Canvas`/`SurfaceHolder.lockCanvas` software rasteriser on the main looper became an
+OpenGL ES 2.0 renderer on a per-engine render thread.
+
+### The seam
+
+`SceneCanvas` is the interface both renderers now draw into. It exposes exactly the
+operation set they already used and nothing more — a transform stack, rects, lines,
+circles, ovals, stroked arcs, filled sectors, closed shapes, three named gradient forms,
+and sprite blits. An interface that admitted arbitrary `Path`s, clips or `Xfermode`s
+would be one the GPU backend could not honour, and a call site could then compile while
+producing a different picture on each backend.
+
+`Paint` is passed through rather than decomposed into arguments. Reading `color`,
+`alpha`, `style`, `strokeWidth` and `strokeCap` allocates nothing, and it left ~90 call
+sites unchanged. The exception is deliberate: a `Shader` cannot be read back off a
+`Paint`, so the sky, the hill highlight and the sun/moon glow pass their stops
+explicitly instead.
+
+Two implementations:
+
+- **`GlSceneTarget`** — the wallpaper.
+- **`CanvasSceneTarget`** — the settings screen's live preview, which draws into a
+  Compose canvas where there is no GL context, and the wallpaper itself if EGL fails.
+  This is why the `Canvas` path is kept rather than deleted.
+
+`Path` was replaced by `SceneShape`, a closed polygon that keeps its vertices: the
+`Canvas` backend builds a `Path` from them lazily, the GPU backend triangulates them.
+The parasol's `moveTo + arcTo + close` became `drawWedge`, a primitive both backends
+generate directly.
+
+### Five decisions inside the GPU backend
+
+1. **The projection is screen pixels with Y down**, not a normalised world space. Every
+   coordinate, sprite origin, depth constant and historical divisor therefore keeps its
+   existing value *and its existing meaning*. A world space would have meant rescaling
+   all of them — and a sprite whose origin is only correct together with its scale
+   convention is exactly how defect D-1 happened.
+2. **One shader program, not two.** A flat fill is a textured quad sampling a 1x1 white
+   texture, so a batch breaks only on a texture change — never because a solid shape sat
+   between two sprites. The star field and the precipitation pool each collapse to one
+   draw call.
+3. **Premultiplied alpha throughout**, with `glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA)`.
+   `BitmapFactory` decodes premultiplied and `GLUtils.texImage2D` uploads those bytes
+   unchanged; mixing the two conventions is the standard cause of dark fringes on every
+   soft sprite edge.
+4. **Tinting is the same operation as before.** The fragment shader computes
+   `vec4(tex.rgb * v_Color.rgb, tex.a) * v_Color.a`, which is what
+   `PorterDuffColorFilter(MULTIPLY)` plus `paint.alpha` produces. Baked-in shading
+   survives the tint for the same reason it did, and white is still the identity.
+5. **Transforms are applied on the CPU as vertices are emitted.** A model-matrix uniform
+   would end the batch at every `save()`, and the scene changes transform far more often
+   than it changes texture.
+
+### The threading consequence, taken with the change rather than after it
+
+A GL context belongs to one thread, so drawing had to leave the main looper. That made
+scene state cross-thread for the first time. The answer is `onRenderThread { }`: prefs,
+theme, custom-theme, weather and home-screen-offset updates are queued as runnables run
+between two frames, so the scene is still only ever touched by the thread that draws it.
+A lock around the renderer was rejected — it would put every settings write in
+contention with the frame loop.
+
+Three process-wide objects genuinely became multi-threaded, because a process can host
+two engines and therefore two render threads. `SpriteCache`, `TintFilterCache` and
+`SunPositionCalculator.currentHour24()` are now synchronised. `SpriteCache`'s lack of a
+lock had been correct *and explicitly documented as conditional* on the render loop
+running on the main looper; that premise is what this release removed, so the lock came
+with it. `currentHour24` was the subtler one: its two memo fields are only meaningful
+together, and an interleaved read could have paired one engine's minute stamp with
+another's hour and held a stale time for a full minute.
+
+### Two bugs found during implementation, both silent
+
+- **The hill highlight would have washed over the whole hill.** Filling the ridge as a
+  triangle fan from a base vertex interpolates the gradient across each triangle's full
+  height, so a highlight defined over the top 35% would have bled all the way down. The
+  shape is now filled as vertical columns **split at the gradient's lower stop**, which
+  puts a real vertex on the boundary and makes the flat region flat.
+- **`currentHour24` and the sprite caches**, above. Neither would have thrown.
+
+### Frame pacing
+
+The render loop still targets 33 ms and still subtracts its own measured cost. It
+deliberately does **not** free-run: `eglSwapBuffers` blocks on vsync, so an unpaced loop
+would draw at 60, 90 or 120 Hz and do two to four times the work for motion this slow.
+
+### Verification
+
+- `./gradlew test` — **264 tests, 0 failures, 0 errors** (was 240; +24, no test removed
+  or weakened). The 59 Python tooling tests were not re-run: no asset, manifest or
+  tooling file changed.
+- `./gradlew lintDebug` — **59 warnings, 0 errors, 0 fatal**, down from 86. The drop is
+  real rather than suppressed: `UseKtx` fell from 33 to 3 because the `Canvas` calls that
+  triggered it no longer exist in the scene renderers.
+- `./gradlew assembleDebug` — **SUCCESS, 0 compiler warnings**, APK **19,041,862 bytes**
+  (+16,384 on v73.9's 19,025,478 — the new renderer classes).
+- **Mutation testing on `SceneTransform` and `SceneShape`**, the only new pure logic:
+  8 mutants, **8 killed** — but only after three of them survived the first run and the
+  tests were fixed. See below.
+- **`javap -c` allocation audit** of every steady-state method in `GlSceneTarget`,
+  `SceneTransform`, `SceneShape`, `SpriteBlitter` and `GlTextureCache`: no `new`, no
+  `newarray`/`anewarray`, no `valueOf` boxing. The only `new` in the sprite path is the
+  `NoWhenBranchMatchedException` Kotlin emits for the unreachable arm of an exhaustive
+  `when`.
+
+### Three per-frame Shader allocations removed as a side effect
+
+The v73.10 CPU audit listed "three `LinearGradient`/`RadialGradient` allocated per frame"
+as an unapproved hotspot. Expressing gradients as stops closed it without being aimed at
+it: `javap` now reports **`drawSky` 0 allocations** (was a `LinearGradient` per frame),
+**`drawCelestialBody` 0** (was a `RadialGradient` per frame), and `drawHillLayers` down
+to the pre-existing `GroundGeometry` alone. `drawParasol` is also at 0.
+
+The other recorded hotspots are untouched and remain unapproved.
+
+### Three mutants that survived the first run
+
+Recorded because each was a real gap that a passing suite hid:
+
+- **The sign of the cross term feeding `a` in `rotate`.** From an axis-aligned state `c`
+  is zero, so *every single rotation in the scene* produces the identical result either
+  way. Only a rotation composed onto an already-rotated basis distinguishes them. Fixed
+  with a test asserting `rotate(30) + rotate(60) == rotate(90)`.
+- **Counting saves dropped by stack overflow.** The original test balanced the totals,
+  which passes whether or not the drops are counted. The distinguishing case is an
+  *interleaved* restore: without the counter, an overflowed save's restore pops a real
+  level and every draw after it in the frame is transformed by the wrong matrix.
+- **Swapping the `b` and `c` slots on `restore`.** The original test saved a state built
+  from translate and scale only, where both are zero. The saved state now carries a
+  rotation and a non-uniform scale so the two differ.
+
+### Verification limits
+
+- **No device, no emulator, no profiler, no GL implementation in this environment.**
+  Nothing here is a measured CPU improvement, and **no frame produced by either backend
+  has been observed**. What is verified is that the project compiles, packages, tests
+  green, allocates nothing new on the frame path, and that the transform arithmetic
+  matches the `Canvas` contract it has to reproduce.
+- **`GlSceneTarget`, `GlRenderThread`, `GlTextureCache` and `GlSpriteProgram` have no
+  automated test at all.** They need a GL context to do anything. Visual parity, EGL
+  lifecycle behaviour across lock/unlock and wallpaper-picker preview, and the fallback
+  path are all maintainer-side.
+- **Antialiasing is the most likely visible difference.** `Canvas` antialiases circles,
+  arcs and thin strokes analytically; GL relies on multisampling. 4x MSAA is requested at
+  EGL config time with a non-MSAA fallback, but whether the result reads the same is a
+  device question.
+- `git` itself was available this session, but **the release ZIP carries no `.git`
+  directory**, so there is no tag history to check the identifier against: v73.11 was
+  determined from `release-notes/` and this file. Confirm it against the real tags before
+  tagging. `.gitignore` behaviour *was* verified properly — the ZIP was extracted into a
+  clean directory, `git init` run there, and `git check-ignore -v CLAUDE.md` plus a forced
+  `git add -A` confirmed `CLAUDE.md` is ignored and untracked (309 tracked files, 310 in
+  the ZIP).
+
+### Known limitations carried forward
+
+- **No texture atlas**, so a scene object alternating sprites and flat parts still ends a
+  batch between them. Runs of one sprite do not.
+- **Each engine has its own EGL context**, so the picker's preview and the live wallpaper
+  do not share textures the way they share `SpriteCache`'s bitmaps.
+
+---
+
+## v73.10 — CPU audit, and the first batch of fixes from it
+
+Delivered at **Verification Level 2**. The change is Kotlin and tests only: no
+asset, no manifest, no tooling file, no resource, no Gradle or CI configuration.
+`assembleDebug` was deliberately not re-run — v73.9 established the APK at
+19,025,478 bytes from a clean extraction, and nothing here changes what the build
+consumes.
+
+Android `versionCode` and `versionName` are deliberately unchanged: this is a beta
+on top of Android version 73.
+
+### Where this came from
+
+The maintainer ran v73.9 on real hardware with every seasonal and non-seasonal
+element enabled and reported three things: the scene is fluid; the rain/snow
+stutter that was perceptible in v73.8 is gone; CPU use is still high.
+
+That produced a **static audit of the frame loop** — read of the render path,
+`javap -c` on the compiled classes, and a Python simulation of the candidate
+selection logic to get real per-frame draw counts. Its ranked hotspot list is
+recorded in `ROADMAP.md` under Current / Next Work.
+
+**What the audit is not.** It contains no measured CPU shares, because there was
+no profiler and no device in the session that produced it. Every figure in it is
+an operation count, a bytecode fact, or a simulation of code that is in the
+repository. The two candidate explanations it offers for why v73.9 removed the
+stutter — fewer destination pixels composited per blit, and a sprite cache at half
+the footprint hitting the trim threshold far less often — are both consistent with
+the observation and **cannot be told apart without a profiler**.
+
+### Batch 1: what changed
+
+Five fixes, each approved individually. Every one removes an allocation or a
+redundant state write from a path that runs every frame, and none changes what is
+drawn.
+
+1. **`drawChristmasLights`.** Built an `intArrayOf`, an `arrayOf(x to y, …)` of six
+   boxed `Pair<Float, Float>`, a mapped copy of it and a `List` wrapper on every
+   call — 14 `Float.valueOf` in the bytecode — for constant data. It runs once per
+   tree and once per palm, for every wrap-tile copy, on every frame the winter
+   palette is on. The colours and unscaled positions are now three fields, kept as
+   parallel `FloatArray`s precisely because an array of points is what produced the
+   boxing. The `lx * scale` multiplication stayed, in the same order, and now runs
+   only for the lights actually drawn.
+2. **`drawPrecipitation`.** `style`, `strokeWidth` and `strokeCap` were set inside
+   the loop, so with `isRain` fixed for the whole call they were rewritten
+   identically up to 90 times a frame. Hoisted above the loop; `alpha` and the
+   geometry stay in it. Geometry and candidate selection untouched. `precipPaint`
+   is used by nothing else, so the paint state left between frames is not
+   observable.
+3. **`drawClouds`.** Three `floatArrayOf` tier tables allocated inside the function
+   every frame, moved to the companion object as `CLOUD_TIER_PARALLAX`,
+   `CLOUD_TIER_Y_OFFSET` and `CLOUD_TIER_SIZE_MULTIPLIER`. Same values, same index
+   order.
+4. **`SunPositionCalculator.currentHour24()`.** Allocated `Calendar.getInstance(zone)`
+   *and* the `TimeZone.getDefault()` feeding it — the latter returns a defensive
+   clone — every frame, for a value that changes 1,440 times a day. Now computed
+   from the epoch with `floorDiv`/`floorMod` and memoised on the minute. The
+   bytecode confirms `TimeZone.getDefault()` sits inside the cache-miss branch, so
+   the steady path is `currentTimeMillis`, a division, a comparison and a return.
+   The zone is still re-read every minute, so a DST transition or a device
+   time-zone change is picked up as promptly as before.
+5. **`lakeTopBottomY()`.** Returned `Pair<Float, Float>?` — two boxed floats and a
+   `Pair` — and was called twice per frame, by `drawMountains` and `drawLake`. Now
+   `updateLakeBandY(): Boolean` writing two fields, whose KDoc states they are only
+   valid after a `true`.
+
+### What was deliberately not touched
+
+The star field, every tile-copy count, cloud and mountain culling, mountain Path
+caching, the frame scheduling and `onOffsetsChanged`. The last two exist as they
+do because of an earlier perceived-stutter fix; changing them is a device
+question, not a static one. Anything altering a tile-copy count changes what is
+visible at a screen edge and needs visual approval first.
+
+### Verification
+
+- `./gradlew test` — **240 tests, 0 failures, 0 errors** (was 236; four new).
+- `./gradlew lintDebug` — 86 warnings, 0 errors, 0 fatal. Same total *and* same
+  per-id distribution as v73.9.
+- **`javap -c` on the five modified paths**: `drawChristmasLights`, `drawClouds`,
+  `drawPrecipitation`, `updateLakeBandY`, `drawLake`, `drawMountains` and `hourAt`
+  contain no `new`, no `newarray`/`anewarray`, no `valueOf` boxing and no iterator
+  allocation. `currentHour24`'s only remaining reference is the
+  `TimeZone.getDefault()` inside its cache-miss branch.
+- **Mutation testing on `hourAt`**, the only new logic with testable content —
+  three mutants, all killed: `floorDiv` → `/`, `floorMod` → `%`, and the integer
+  hour division → float.
+
+The four hoisting fixes were **not** mutation-tested, and that is a statement
+about coverage rather than a claim of it: a mutant there either changes nothing
+or breaks rendering, and no JVM test in this project observes rendering.
+
+### One test that would have lied
+
+The first version of the clock test sampled pre-epoch instants at exact minute
+boundaries. At a whole minute, truncating and flooring division agree even for
+negative values — so the `floorDiv` → `/` mutant **survived**, against arithmetic
+that would have been a full day out for every other instant before 1970. The test
+now offsets its samples by 37,123 ms and kills it. Recorded because the gap was
+invisible to a passing test suite and only mutation testing found it.
+
+The surviving test compares `hourAt` against the `Calendar` it replaced at
+tolerance **`0f`** — bit-identical, not close — across eight zones chosen for the
+cases that break naive arithmetic (a half-hour offset, a three-quarter-hour one, a
+southern-hemisphere DST schedule, a zone with no DST), a year of samples at a
+stride that is not a whole number of hours so it lands inside transitions rather
+than stepping over them, and a pre-epoch sweep.
+
+### Verification limits
+
+- **No device, no emulator, no profiler.** Nothing here is a measured CPU
+  improvement. What is verified is that specific allocations and state writes are
+  gone from specific per-frame paths, and that the tests and lint are unchanged.
+  Whether that is perceptible on hardware is the maintainer's to judge.
+- The rendering paths themselves are not covered by any automated test, so the
+  claim that the four hoisting fixes are behaviour-preserving rests on the code
+  being provably the same arithmetic, not on a test asserting it.
+- `git` was unavailable in the session, so `.gitignore` behaviour was verified by
+  extracting the ZIP into a clean directory rather than by `git check-ignore`.
+
+---
+
+## v73.9 — Phase 3.3: normalise padding and grid
+
+Delivered at **Verification Level 3**. The change touches runtime resources, the
+renderers, the asset tooling and the tests in one delivery, which is exactly the
+combination `AI_PROJECT_RULES.md` §12.B escalates: `test` + `lintDebug` +
+`assembleDebug`, plus a clean extraction and rebuild from the release ZIP.
+
+Android `versionCode` and `versionName` are deliberately unchanged: this is a beta
+on top of Android version 73.
+
+### What changed
+
+**76 of the 118 shipped PNGs were cropped to their normalised content boxes, and
+the 35 call-site origins that position them were compensated in the same change.**
+Decoded memory fell from **33.37 MB to 17.20 MB** — 16.17 MB, 48 % of everything
+the sprite set used to decode. On-disk the drawable directory went from 864 KB to
+808 KB, and the debug APK from 19,090,926 to 19,025,478 bytes; the memory saving
+is the point, and it does not show up in either of those numbers.
+
+The composed rendering is unchanged. Not "should be" — measured: **109 composites
+were built before and after, placing each shipped PNG at the origin the pre-change
+Kotlin passed and each cropped PNG at the origin the current Kotlin passes, and
+compared channel by channel. 0 differing pixels, peak channel delta 0.**
+
+### The rule
+
+A sprite's normalised content box is the union of the measured alpha bounding
+boxes of its co-registered group, rounded outward to a multiple of
+`SPRITE_PIXELS_PER_UNIT` for a `SCENE_UNITS` sprite and of 1 px for a
+`CANVAS_PIXELS` one. The sprite is cropped to it; its call site's origin is
+compensated by `trim / unit`.
+
+**Why outward and not to the measured box.** The blitter multiplies the origin by
+the same unit the compensation divided by. Crop to the measured box and a trim of
+17 px becomes a compensation of 5.667 units, which returns as 17.000002 — a
+sub-pixel origin, resampled because the blit paint carries `FILTER_BITMAP_FLAG`.
+Rounding outward keeps the compensation an exact integer and leaves up to
+`unit - 1` px of padding behind. That residue is load-bearing, not an unfinished
+job.
+
+**Why a union over a group.** 44 sprites are selected from a lookup table at draw
+time, so one origin literal positions all of them: the 32 walk frames, the 8
+window occupants, the 4 car drivers. Their content boxes differ — the mid-stride
+walk frame reaches 9 px further left than the others — so cropping each to its own
+box would need one origin per member, which does not exist and which rule 7.3
+forbids. The result would be a horizontal jitter in every walk cycle. The union is
+the box that removes the padding they all share while holding them registered
+against each other.
+
+A shared origin *value* is not a group: `tree_canopy` and `tree_canopy_snowcap`
+are both blitted at (-45,-84), but from two separate call sites with their own
+literals, so each took its own crop and its own compensation.
+
+### What was deliberately not done
+
+- **`palmtree_fronds` and `palmtree_fronds_frost`.** 102×176, and 176 is not a
+  multiple of the oversample, so the pair is already off the grid. Cropping the
+  empty rows above the fronds is clean but leaves it off the grid still, because
+  the bottom edge is the sprite's own; putting it on the grid means padding back
+  what was removed or cropping artwork. They also share the hand-tuned `-87.45f`
+  origin, which is anchor semantics. Deferred.
+- **The moon phases.** Individually 0–49 % padding; together, the union is the
+  full canvas. The group rule refuses the crop on its own, with no special case,
+  and that is what keeps the moon still as it waxes.
+- **The orphan drawables.** No call site references them, so there is no origin to
+  compensate. Whether they should exist is 7.2's question.
+- **Anchor semantics.** No `anchorRule` was added, changed or resolved; the 101
+  `UNDETERMINED` anchors are still undetermined. The 17 determined ones moved by
+  exactly the amount their origins did, so `validate`'s `origin == -anchor` check
+  still holds — it is re-derived, not carried over.
+
+### Files
+
+- `tools/assets/paperscrape_assets/normalize.py` — new: the rule, the groups, the
+  exclusions, and the plan they produce.
+- `tools/assets/paperscrape_assets/cli.py` — new `normalize` command, part of
+  `all` in check form. `--apply` is the one command permitted to write into
+  `res/drawable-nodpi`, and the docstring says why that is not an exception to
+  `render`'s prohibition: `render` produces new artwork, `normalize` removes rows
+  whose alpha is zero.
+- `tools/assets/sources/sprites.json` — `width`, `height`, `contentBox` and the
+  derived `anchor` updated for the 76 cropped sprites, edited in place so the
+  diff stays three fields per entry rather than a reformat of all 118.
+- `app/src/main/res/drawable-nodpi/*.png` — 76 files cropped.
+- `engine/SceneObjectRenderer.kt` — 27 origins compensated, 3 of them the shared
+  lookup-group literals.
+- `engine/PaperRenderer.kt` — 8 origins compensated, including
+  `SUN_GLOW_ORIGIN_UNITS` (-222 → -198) and `STAR_SPRITE_ORIGIN_UNITS` (-32 →
+  -30), each with its KDoc corrected in the same edit.
+- `app/src/test/kotlin/.../SpriteNormalisationTest.kt` — new, 1 test.
+- `app/src/test/kotlin/.../SkySpriteAnchoringTest.kt` — the star-span case
+  restated (see below).
+- `tools/assets/tests/test_normalize.py` — new, 16 tests.
+
+### Two things future work must not undo
+
+**The historical divisors.** `130f / 680f` for the sleigh and `15f / 70f` for the
+birds reproduce the old vector versions' on-screen footprints; they are *not*
+readings of a sprite's canvas. Both sprites were cropped heavily, and both
+comments now say explicitly that the divisor must not be re-derived from the PNG.
+Recomputing either would rescale the artwork — the exact shape of defect D-1.
+
+**The star-span assertion.** `SkySpriteAnchoringTest` used to assert that
+`star_sparkle` spans exactly `2 × radius`. That was a property of the sprite's
+*canvas*, which carried 6 px of transparent margin per side; the *artwork* only
+ever reached 0.9375 of that. After the crop the canvas is the artwork, so the
+equality would now be a claim about padding. It is restated as the bracket it
+always really was — the sparkle fills the star's radius without exceeding it —
+and the bracket still catches what it exists to catch, because the two authoring
+conventions are a factor of 3 apart and any window narrower than 3:1 admits only
+one of them.
+
+### Verification
+
+- `./gradlew test` — **236 tests, 0 failures, 0 errors** (was 235).
+- `./gradlew lintDebug` — 86 warnings, 0 errors, 0 fatal. Same total *and* same
+  per-id distribution as v73.8, `IconDuplicates` at 16 included: cropping 76
+  sprites changed their bytes but not which of them are identical to each other.
+- `./gradlew assembleDebug` — SUCCESS, 0 compiler warnings, APK 19,025,478 bytes.
+- **Clean extraction of the release ZIP into an empty directory, then `test` and
+  `assembleDebug` from the extract: 236 tests, 0 failures, and an APK of
+  19,025,478 bytes — byte-for-byte the same size as the in-place build.** The
+  Python tooling was also re-installed and re-run from the extract: probe
+  fingerprint matched, 59 tests passed, `validate` and `normalize` clean. A
+  repository was initialised in the extract to confirm `CLAUDE.md` matches
+  `.gitignore:44` and stays untracked.
+- 59 Python tooling tests (was 43), `paperscrape-assets all` clean, rasteriser
+  probe fingerprint unchanged, `compare` still 11 pixel-identical and 13
+  edge-equivalent.
+- **Mutation testing on the rule**, 5 mutants, all killed: rounding inward instead
+  of outward, replacing the group union with the first member's box, ignoring the
+  grid unit, ignoring the exclusion list, and cropping unreferenced sprites.
+
+### Verification limits
+
+- **No device or emulator was available.** Every equality claim above is static:
+  composites reconstructed from `SpriteBlitter`'s placement model and compared
+  numerically. That proves the buffers agree before the uniform `canvas.scale`;
+  it is not an observation of the running wallpaper, and maintainer confirmation
+  on hardware is still outstanding.
+- **The 48 lookup-selected sprites remain outside `validate`'s reach.** Their
+  origins are literals the resolver cannot attribute to a sprite, so the
+  registry check does not cover them. The 109-composite comparison does, and it
+  is the strongest check available without a device — but it is a one-off run,
+  not a standing invariant.
+- `git` was unavailable in the session, so `.gitignore` behaviour was verified by
+  extracting the ZIP into a clean directory rather than by `git check-ignore`.
+
+### Known defect recorded, not fixed
+
+**D-2: an Italian caption is rasterised into `santa_sleigh_scene.png`**, inside
+the content box and therefore drawn at runtime. Found while measuring the sprite
+for this phase. It is content rather than geometry, the sprite has no source, and
+editing it is a redraw with a visual approval attached — so it is registered and
+left alone. The crop treats it as opaque artwork like every other drawn pixel and
+keeps it. A heuristic scan for similar captions across the other 117 sprites
+returned no candidates *and failed to find this one*, so the rest are unchecked,
+not clean.
+
+---
+
+## v73.8 — Phase 3.2: the asset manifest
+
+Delivered at **Verification Level 2**: the change touches the offline asset
+tooling under `tools/assets/` and its registry, plus documentation. **Nothing
+under `app/` changed** — the tree there was diffed against the v73.7 release ZIP
+and is byte-identical, so the APK is unaffected by construction. No Gradle or
+build configuration, no `AndroidManifest.xml`, no CI, no runtime PNG, no
+rasterisation code, no lifecycle change. `assembleDebug` intentionally skipped
+under normal verification policy.
+
+Android `versionCode` and `versionName` are deliberately unchanged: this is a beta
+on top of Android version 73.
+
+The level was chosen deliberately and is worth recording, because a literal
+reading of `AI_PROJECT_RULES.md` §12.B — which lists "the asset pipeline" among
+the Level 3 triggers — would point at Level 3. The distinction applied here is the
+one the project has already used: v73.5 *created* the pipeline and was Level 3;
+v73.7 changed one data field in the registry and was Level 2. This release changes
+`registry.py`, `cli.py`'s validation path and the registry data, but not
+`raster.py`, `fit.py` or `fidelity.py`, and it produces no PNG. **The maintainer
+was asked and approved Level 2 before implementation.**
+
+### What Phase 3.2 was for
+
+`AI_PROJECT_RULES.md` §6.2 requires every asset to declare its nominal size,
+content bounding box, anchor point, scale convention, category and tint class.
+Phase 3.1 delivered four of those six. The bounding box was *measured* into
+`reports/` but never declared, and the anchor was neither.
+
+The concrete motivation is defect D-1. A sprite's pixel size, its scale convention
+and its origin are correct only together; **nothing in a PNG records which
+convention applies**; so the convention lived at the call site, the registry
+declared it separately, and nothing compared the two. When v73 replaced
+`star_sparkle.png` with a 3x redraw and left the call site alone, every check in
+the project passed.
+
+So the deliverable is not "more fields in a JSON file". It is that the registry
+stops being a document and becomes a contract something verifies.
+
+### What was implemented
+
+- **Registry schema 2.** `contentBox` is mandatory for all 118 sprites.
+  `anchorRule` is mandatory, with `anchor` in the sprite's own local units —
+  pixels divided by `SPRITE_PIXELS_PER_UNIT` for a `SCENE_UNITS` sprite, pixels
+  unchanged for `CANVAS_PIXELS`, which is the space a call site blits in. Two
+  rules are in use: `CONTENT_BOTTOM_CENTRE` (13 sprites) and `SPRITE_CENTRE` (4).
+- **`UNDETERMINED` is a first-class value**, carrying a mandatory `anchorReason`
+  and forbidden from carrying an anchor — the same shape `source.kind = "none"`
+  already had. 101 of 118.
+- **`paperscrape_assets/callsites.py`** (new) resolves sprite blit call sites from
+  the Kotlin sources.
+- **`validate` gained four comparisons**: `contentBox` against the PNG; `anchor`
+  against what its rule derives; `scale` and `tint` against the code; and, for a
+  determined anchor, the blit origin against it.
+- **Coverage is printed on success**, split per check rather than lumped into one
+  figure.
+
+### Why 101 anchors are undetermined, and why that is the result rather than a shortfall
+
+The only evidence for an anchor is the origin a call site blits the sprite at, and
+that origin is `placement - anchor`: one equation, two unknowns. It collapses to
+the anchor alone only when the sprite is an object in its own right, placed at the
+object's own position.
+
+Measured against the sources: of 54 literal call sites in `SceneObjectRenderer`,
+**13 sit exactly at the content box's bottom centre** — the root sprite of each
+composite object. The other 41 are composition placements of parts;
+`house_large_window` alone is drawn at four different origins. The `person_*`
+sprites are drawn at `(-50, -95)`, which is neither the bitmap centre nor the
+content base, consistent with their being outside the anchoring system entirely
+(`DESIGN_NOTES.md` §6).
+
+Choosing a plausible rule for those would be an invention presented as a recovery
+— the exact thing Phase 3.1's gap declarations exist to prevent. Separating
+placement from anchor at each call site is the re-anchoring work in Group 4.
+
+### The resolver refuses to guess, on purpose
+
+`callsites.py` does no dataflow analysis. A blit whose sprite argument is not a
+literal `R.drawable.<name>` (`resId`, `driverRes`, `phaseSprite`) is recorded as
+unattributed; an origin computed from the drawn object's own dimensions
+(`-width / 2f`, `-height - 50f`) resolves to nothing. Both are reported as
+**unresolved**, never folded into the pass count.
+
+This is the property the whole check depends on. A resolver that guessed would
+turn "not checked" into "checked and fine", which is the shape of failure that let
+D-1 ship.
+
+Reach: `contentBox` 118 sprites, `scale`/`tint` 64, origin-against-anchor 17.
+
+### Two findings
+
+- **`santa_sleigh_scene` is blitted through `drawTinted` with an identity white
+  tint.** The first run of the check flagged it as contradicting its `FIXED_ART`
+  declaration. It does not: white is the identity under `MULTIPLY`, and the tinted
+  entry point is used only because `draw` has no alpha argument. The resolver now
+  models this and a test pins it. Phase 3.1 had already recorded the behaviour in
+  the sprite's `notes` — but nothing enforced it, which is this release in
+  miniature. Out of scope to change; noted for whenever `draw` gains an alpha
+  parameter.
+- **Wrapper detection had to be tightened during implementation.** The first
+  version treated any private function taking a `Canvas` and containing exactly
+  one blit as a forwarding wrapper — which matched ordinary drawing functions like
+  `drawCloud` and swallowed the only call site those sprites have. A wrapper now
+  has to forward its own `Canvas, Int, Float, Float` parameters into the blit. A
+  test covers the near miss directly.
+
+### Verification
+
+- **`./gradlew test` — 235 tests, 0 failures, 0 errors.** Unchanged from v73.7, as
+  expected: no Kotlin was touched. Run before the change as a baseline and not
+  re-run after, because `app/` was proven byte-identical by diff.
+- **`./gradlew lintDebug` — 86 warnings, 0 errors, 0 fatal**, same total and same
+  per-id distribution as the v73.7 baseline. Same reasoning.
+- **`python3 -m unittest discover -s tests` in `tools/assets/` — 43 tests, 0
+  failures** (was 12; 31 new).
+- **`paperscrape_assets validate`** — clean: 118 entries, 24 with an SVG source, 94
+  gaps; 17 anchors determined, 101 undetermined; scale and tint compared for 64
+  sprites, origin for 17.
+- **`paperscrape_assets probe`** — toolchain fingerprint matches the pinned value,
+  so the Phase 3.1 fidelity figures under `reports/` remain valid.
+- **Mutation testing — 9 mutations, 9 killed, 0 survivors.** Anchor read from the
+  content top; anchor read from the canvas base rather than the content base;
+  scale convention dropped from the derivation; `units_per_pixel` forced to 1;
+  `SPRITE_CENTRE`'s centring check disabled; `contentBox` comparison removed;
+  origin/anchor comparison removed; and the two that matter most — an unresolvable
+  scale treated as agreement, and a sprite with no call site treated as agreement.
+- **No allocation audit**: no draw path exists in this change.
+
+### Tests
+
+`tools/assets/tests/test_manifest.py` is built around near misses, because a
+criterion that cannot fail asserts nothing: a bounding box off by one pixel, an
+anchor off by one unit, an anchor left in the other scale convention (D-1 in a
+single case), a swapped scale, a swapped tint. The resolver half covers what it
+must *not* read — a commented-out call, a lookup-table sprite, a computed origin —
+and `ShippedSourcesTest` pins coverage by naming the three expressions that cannot
+be reached rather than by asserting a count, since a bare number would simply be
+edited by whoever reduced the coverage.
+
+### Maintainer-side verification
+
+- **Nothing to look at on a device.** This release adds no code to `app/` and
+  modifies no runtime asset; `app/` is byte-identical to v73.7. If anything looks
+  different on screen, that is a defect in this claim, not a change in behaviour.
+- Reviewing `tools/assets/sources/sprites.json` is worthwhile — particularly
+  whether the 101 `anchorReason` texts read as honest, since they are the record a
+  future session will trust.
+- Confirm `v73.8` is unused before tagging. **No tag was created in this session,
+  at the maintainer's instruction.**
+- Practical CPU, battery and thermal observation of cumulative Phase 1 and 2 work
+  remains outstanding.
+
+### Residual risks and limitations
+
+- **The call-site resolver is syntactic and will lose reach if the sources change
+  shape.** Moving a sprite behind a constant, or an origin into a computed
+  expression, silently converts a checked sprite into an unresolved one. It is
+  reported rather than hidden, and `ShippedSourcesTest` fails if the set of
+  unreadable expressions grows — but nobody is *forced* to look at the coverage
+  line.
+- **101 anchors remain undetermined**, so for those sprites the manifest records
+  the absence rather than the value. Phase 3.3 will move content inside the canvas
+  for many of them with no anchor declaration to check the result against.
+- **`contentBox` is now a declared value that Phase 3.3 will invalidate wholesale.**
+  Intended, but it means 3.3 must update the manifest in the same change that
+  regenerates a sprite.
+- **Nothing was observed on a device**, and nothing in this release could be.
+- **No Git state could be inspected**: the release ZIP carries no `.git`, so
+  `git check-ignore`, `git ls-files` and `git tag --list` could not be run against
+  the working tree. `CLAUDE.md`'s ignored status was verified by extracting the ZIP
+  into a clean directory and initialising a repository there. `v73.8` was
+  determined from `RELEASE_HISTORY.md` and `release-notes/`, not from tags.

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="129" height="252" viewBox="0 0 43 84">
+  
+<ellipse cx="22" cy="82" rx="18" ry="2.6" fill="#2B2A33" opacity="0.16"></ellipse>
+        <polygon points="14,58 20,58 12,76 6,73" fill="#DCA97C"></polygon>
+        <polygon points="23,58 29,58 36,73 30,76" fill="#DCA97C"></polygon>
+        <rect x="1" y="72" width="11" height="6" rx="3" fill="#2B2A33" transform="rotate(-14 6 75)"></rect>
+        <rect x="31" y="72" width="11" height="6" rx="3" fill="#2B2A33" transform="rotate(14 37 75)"></rect>
+        <g transform="translate(0 0) scale(1.000000 1.000000)">
+        <rect x="19" y="26" width="6" height="5" fill="#B07C46"></rect>
+        <polygon points="10,30 34,30 32,52 12,52" fill="#4E9FB5"></polygon>
+        <polygon points="10,30 34,30 33,36 11,36" fill="#2E6A7C"></polygon>
+        <polygon points="10,31 15,31 13,50 8,49" fill="#DCA97C"></polygon>
+        <polygon points="29,31 34,31 36,49 31,50" fill="#DCA97C"></polygon>
+        <rect x="12" y="49" width="19" height="12" rx="2" fill="#EFDFC4"></rect>
+        <rect x="12" y="55" width="19" height="6" fill="#C6AC78"></rect>
+        <rect x="12" y="6" width="20" height="22" rx="6" fill="#DCA97C"></rect>
+        <circle cx="33" cy="19" r="2.2" fill="#DCA97C"></circle>
+        <path d="M11 15 L11 10 C11 6 14 4 18 4 L27 4 C31 4 33 7 33 11 L33 15 L29 12 L20 11 L15 13 Z" fill="#2B2A33"></path>
+        <circle cx="18" cy="18" r="1.4" fill="#2B2A33"></circle>
+        <circle cx="26" cy="18" r="1.4" fill="#2B2A33"></circle>
+      </g>
+</svg>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-color silhouette for Android 13+ themed icons (Settings > Wallpaper & style >
+     Themed icons). The system applies its own tint, so this uses one flat fill color and drops
+     internal detail (window/door outlines) that wouldn't read at a single flat tint anyway —
+     just the sun + house shape, matching ic_launcher_foreground's proportions and position. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF000000"
+        android:pathData="M30,27 m-10.5,0 a10.5,10.5 0,1 1,21 0 a10.5,10.5 0,1 1,-21 0" />
+    <group android:translateX="54" android:translateY="82" android:scaleX="0.6" android:scaleY="0.6">
+        <path android:fillColor="#FF000000"
+            android:pathData="M-38,-4 L38,-4 L38,2 L-38,2 Z
+                               M-36,-46 L36,-46 L36,0 L-36,0 Z
+                               M-46,-46 L0,-80 L46,-46 Z
+                               M18,-74 L30,-74 L30,-54 L18,-54 Z
+                               M16,-77 L32,-77 L32,-70 L16,-70 Z" />
+    </group>
+</vector>

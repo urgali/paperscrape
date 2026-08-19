@@ -1,0 +1,3255 @@
+{
+  "schemaVersion": 4,
+  "variants": [
+    {
+      "id": "man_walk0",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk0",
+        "person_man_winter_walk0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "man_walk1",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk1",
+        "person_man_winter_walk1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "man_walk2",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk2",
+        "person_man_winter_walk2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "man_head_window",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_window",
+        "person_man_winter_head_window"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "man_head_car",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_car",
+        "person_man_winter_head_car"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "woman_walk0",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk0",
+        "person_woman_winter_walk0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "woman_walk1",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk1",
+        "person_woman_winter_walk1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "woman_walk2",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk2",
+        "person_woman_winter_walk2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "woman_head_window",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_window",
+        "person_woman_winter_head_window"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "woman_head_car",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_car",
+        "person_woman_winter_head_car"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "boy_walk0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk0",
+        "person_boy_winter_walk0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "boy_walk1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk1",
+        "person_boy_winter_walk1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "boy_walk2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk2",
+        "person_boy_winter_walk2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "boy_head_window",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_window",
+        "person_boy_winter_head_window"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "girl_walk0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk0",
+        "person_girl_winter_walk0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "girl_walk1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk1",
+        "person_girl_winter_walk1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "girl_walk2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk2",
+        "person_girl_winter_walk2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "girl_head_window",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_window",
+        "person_girl_winter_head_window"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    }
+  ],
+  "sprites": [
+    {
+      "name": "balloon_basket",
+      "category": "decoration",
+      "width": 120,
+      "height": 72,
+      "contentBox": [
+        0,
+        0,
+        120,
+        72
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "balloon_basket.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "balloon_envelope",
+      "category": "decoration",
+      "width": 330,
+      "height": 369,
+      "contentBox": [
+        0,
+        0,
+        330,
+        369
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "balloon_envelope.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "bar_door",
+      "category": "building",
+      "width": 60,
+      "height": 84,
+      "contentBox": [
+        0,
+        0,
+        60,
+        84
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        30,
+        84
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bar_door.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "bar_roof_snow",
+      "category": "structure",
+      "width": 270,
+      "height": 36,
+      "contentBox": [
+        6,
+        6,
+        264,
+        36
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "bar_roof_snow.svg"
+      },
+      "notes": "Snow on the bar's flat roof, cut to its narrower 90 units."
+    },
+    {
+      "name": "bar_sign",
+      "category": "building",
+      "width": 120,
+      "height": 120,
+      "contentBox": [
+        6,
+        0,
+        114,
+        108
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bar_sign.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "bar_wall",
+      "category": "building",
+      "width": 270,
+      "height": 165,
+      "contentBox": [
+        0,
+        0,
+        270,
+        165
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        135,
+        165
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bar_wall.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "bird_body",
+      "category": "animal",
+      "width": 90,
+      "height": 42,
+      "contentBox": [
+        1,
+        6,
+        89,
+        27
+      ],
+      "scale": "CANVAS_PIXELS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bird_body.svg"
+      },
+      "notes": "Redrawn in v76.3. The V2 gull was a flat angular M whose wing tips pointed down, which reads as a bat at the size it is drawn; it is now a swept pair of wings with a body, a head and a beak. Symmetric about its own horizontal centre on purpose: PaperRenderer.drawBirds animates the flap by mirroring the sprite vertically, so anything above the centre line would end up below it for half the cycle. The head points right because birds only ever drift right."
+    },
+    {
+      "name": "bunny_body",
+      "category": "animal",
+      "width": 132,
+      "height": 186,
+      "contentBox": [
+        12,
+        0,
+        114,
+        183
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bunny_body.svg"
+      },
+      "notes": "Placed as a part, not on its own content bottom. The ears reach further left than right, so the body's content centre is not the animal's visual centre, and the call site deliberately offsets it by three units to put the ears over the head. Declaring CONTENT_BOTTOM_CENTRE said otherwise."
+    },
+    {
+      "name": "bunny_innerear",
+      "category": "animal",
+      "width": 48,
+      "height": 48,
+      "contentBox": [
+        0,
+        0,
+        44,
+        45
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bunny_innerear.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "bunny_tail",
+      "category": "animal",
+      "width": 30,
+      "height": 30,
+      "contentBox": [
+        0,
+        0,
+        30,
+        30
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bunny_tail.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "car_body",
+      "category": "vehicle",
+      "width": 300,
+      "height": 120,
+      "contentBox": [
+        6,
+        3,
+        297,
+        114
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "car_body.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "car_window",
+      "category": "vehicle",
+      "width": 150,
+      "height": 54,
+      "contentBox": [
+        9,
+        3,
+        147,
+        51
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "car_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "cloud_body",
+      "category": "sky",
+      "width": 876,
+      "height": 477,
+      "contentBox": [
+        48,
+        54,
+        846,
+        468
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "cloud_body.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "dolphin_body",
+      "category": "lake",
+      "width": 360,
+      "height": 225,
+      "contentBox": [
+        0,
+        36,
+        344,
+        210
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "dolphin_body.svg"
+      },
+      "notes": "Redrawn in v76.4. The V2 fish read as a shark: pointed snout, tall triangular dorsal, no visible eye or mouth. It is now a porpoise -- rounded melon, curved dorsal, pale belly, pectoral fin, eye and smile line -- and it faces right, which is the only direction lake decorations drift. PaperRenderer.drawLakeDecorations draws it only while it is above the water, so the animal breaches and dives instead of gliding across the surface."
+    },
+    {
+      "name": "easteregg_pattern",
+      "category": "decoration",
+      "width": 96,
+      "height": 60,
+      "contentBox": [
+        0,
+        3,
+        96,
+        60
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "easteregg_pattern.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "easteregg_shell",
+      "category": "decoration",
+      "width": 96,
+      "height": 120,
+      "contentBox": [
+        0,
+        0,
+        96,
+        120
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        48,
+        120
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "easteregg_shell.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "firetruck_body",
+      "category": "vehicle",
+      "width": 300,
+      "height": 162,
+      "contentBox": [
+        3,
+        12,
+        297,
+        159
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "firetruck_body.svg"
+      },
+      "notes": "New in v76.1. The fire truck shared car_body, so it had a taxi's silhouette under a red tint and read as a car with a ladder above it. This is its own body: flat roof at local y=-16 against the sedan's -11, a cab with its own window, a cream stripe over three equipment lockers, and a dark chassis the wheels sit into. Drawn by SceneObjectRenderer.drawFireTruck at (-50,-26), after firetruck_ladder so the roof line paints over its lower rail."
+    },
+    {
+      "name": "firetruck_ladder",
+      "category": "vehicle",
+      "width": 288,
+      "height": 54,
+      "contentBox": [
+        0,
+        4,
+        288,
+        45
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "firetruck_ladder.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "firework",
+      "category": "decoration",
+      "width": 240,
+      "height": 240,
+      "contentBox": [
+        9,
+        9,
+        231,
+        231
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "SPRITE_CENTRE",
+      "anchor": [
+        120,
+        120
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "firework.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "gift_box",
+      "category": "decoration",
+      "width": 120,
+      "height": 90,
+      "contentBox": [
+        0,
+        0,
+        120,
+        90
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        60,
+        90
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "gift_box.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "gift_ribbon",
+      "category": "decoration",
+      "width": 120,
+      "height": 126,
+      "contentBox": [
+        0,
+        5,
+        120,
+        126
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "gift_ribbon.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_large_chimney",
+      "category": "house",
+      "width": 39,
+      "height": 105,
+      "contentBox": [
+        0,
+        0,
+        39,
+        105
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_large_chimney.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_large_door",
+      "category": "house",
+      "width": 66,
+      "height": 135,
+      "contentBox": [
+        0,
+        0,
+        66,
+        135
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        33,
+        135
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_large_door.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_large_roof",
+      "category": "house",
+      "width": 450,
+      "height": 150,
+      "contentBox": [
+        0,
+        0,
+        450,
+        150
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_large_roof.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_large_roof_snow",
+      "category": "structure",
+      "width": 450,
+      "height": 162,
+      "contentBox": [
+        77,
+        0,
+        373,
+        117
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "house_large_roof_snow.svg"
+      },
+      "notes": "Snow on house_large_roof. Same construction as house_small_roof_snow, cut to the larger roof's slopes."
+    },
+    {
+      "name": "house_large_trim",
+      "category": "house",
+      "width": 450,
+      "height": 18,
+      "contentBox": [
+        0,
+        0,
+        450,
+        18
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_large_trim.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_large_wall",
+      "category": "house",
+      "width": 420,
+      "height": 285,
+      "contentBox": [
+        0,
+        0,
+        420,
+        285
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        210,
+        285
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_large_wall.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_shared_planter",
+      "category": "house",
+      "width": 78,
+      "height": 18,
+      "contentBox": [
+        0,
+        0,
+        78,
+        18
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_shared_planter.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_shared_window",
+      "category": "house",
+      "width": 66,
+      "height": 66,
+      "contentBox": [
+        0,
+        3,
+        66,
+        66
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_shared_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_small_chimney",
+      "category": "house",
+      "width": 36,
+      "height": 90,
+      "contentBox": [
+        0,
+        0,
+        36,
+        90
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_small_chimney.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_small_door",
+      "category": "house",
+      "width": 60,
+      "height": 114,
+      "contentBox": [
+        0,
+        0,
+        60,
+        114
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_small_door.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_small_roof",
+      "category": "house",
+      "width": 240,
+      "height": 120,
+      "contentBox": [
+        0,
+        0,
+        240,
+        120
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_small_roof.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_small_roof_snow",
+      "category": "structure",
+      "width": 240,
+      "height": 132,
+      "contentBox": [
+        40,
+        0,
+        200,
+        99
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "house_small_roof_snow.svg"
+      },
+      "notes": "Snow lying on house_small_roof, cut to that roof's own slopes and cresting four units above its ridge. Sized and anchored from the roof, so the two must be re-derived together."
+    },
+    {
+      "name": "house_small_trim",
+      "category": "house",
+      "width": 240,
+      "height": 12,
+      "contentBox": [
+        0,
+        0,
+        240,
+        12
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_small_trim.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_small_wall",
+      "category": "house",
+      "width": 210,
+      "height": 210,
+      "contentBox": [
+        0,
+        0,
+        210,
+        210
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        105,
+        210
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_small_wall.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "house_window",
+      "category": "house",
+      "width": 66,
+      "height": 66,
+      "contentBox": [
+        0,
+        0,
+        66,
+        66
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "orphan",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_window.svg"
+      },
+      "notes": "Present in the asset library but reached from no call site, so it has no scale or anchor the code can be checked against. Whether the orphans should ship at all is ROADMAP.md 5.5 and 7.2, not an asset question."
+    },
+    {
+      "name": "house_window_lit",
+      "category": "house",
+      "width": 66,
+      "height": 66,
+      "contentBox": [
+        0,
+        0,
+        66,
+        66
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "house_window_lit.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "lightning_bolt",
+      "category": "sky",
+      "width": 102,
+      "height": 252,
+      "contentBox": [
+        6,
+        0,
+        96,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "lightning_bolt.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "moon_crescent",
+      "category": "sky",
+      "width": 240,
+      "height": 240,
+      "contentBox": [
+        122,
+        18,
+        222,
+        222
+      ],
+      "scale": "CANVAS_PIXELS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "SPRITE_CENTRE",
+      "anchor": [
+        120,
+        120
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "moon_crescent.svg"
+      },
+      "notes": "Terminator arc corrected in v76.1. The shipped path closed the lit limb with `A52 34 0 0 0`, an ellipse whose 52-unit x-radius bulged 12 units past the disc and 12 past the canvas, so the crescent was clipped flat by its own 240px edge -- the vertical cut reported from the device. The arc is now `A20 34 0 0 0`, which stays inside the disc."
+    },
+    {
+      "name": "moon_full",
+      "category": "sky",
+      "width": 240,
+      "height": 240,
+      "contentBox": [
+        18,
+        18,
+        222,
+        222
+      ],
+      "scale": "CANVAS_PIXELS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "SPRITE_CENTRE",
+      "anchor": [
+        120,
+        120
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "moon_full.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "moon_gibbous",
+      "category": "sky",
+      "width": 240,
+      "height": 240,
+      "contentBox": [
+        66,
+        18,
+        222,
+        222
+      ],
+      "scale": "CANVAS_PIXELS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "SPRITE_CENTRE",
+      "anchor": [
+        120,
+        120
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "moon_gibbous.svg"
+      },
+      "notes": "Terminator arc corrected in v76.1, same defect family as moon_crescent. The shipped path used `A20 34 0 1 0`: a large-arc flag on an under-sized radius, which drew a thin crescent rather than a gibbous and left the crater circle outside the lit shape as a floating dot. Now `A18 34 0 0 1`, bulging away from the lit limb so more than half the disc is lit."
+    },
+    {
+      "name": "moon_half",
+      "category": "sky",
+      "width": 240,
+      "height": 240,
+      "contentBox": [
+        120,
+        18,
+        223,
+        222
+      ],
+      "scale": "CANVAS_PIXELS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "SPRITE_CENTRE",
+      "anchor": [
+        120,
+        120
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "moon_half.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "palmtree_fronds",
+      "category": "vegetation",
+      "width": 120,
+      "height": 120,
+      "contentBox": [
+        0,
+        0,
+        120,
+        110
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "DECLARED_ATTACHMENT",
+      "anchor": [
+        60,
+        102
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "palmtree_fronds.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "palmtree_fronds_frost",
+      "category": "vegetation",
+      "width": 120,
+      "height": 120,
+      "contentBox": [
+        0,
+        0,
+        120,
+        102
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "DECLARED_ATTACHMENT",
+      "anchor": [
+        60,
+        102
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "palmtree_fronds_frost.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "palmtree_trunk",
+      "category": "vegetation",
+      "width": 42,
+      "height": 186,
+      "contentBox": [
+        8,
+        11,
+        40,
+        186
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        24,
+        186
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "palmtree_trunk.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "penguin_beak",
+      "category": "animal",
+      "width": 36,
+      "height": 18,
+      "contentBox": [
+        0,
+        0,
+        36,
+        18
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "penguin_beak.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "penguin_belly",
+      "category": "animal",
+      "width": 54,
+      "height": 102,
+      "contentBox": [
+        0,
+        0,
+        54,
+        102
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "penguin_belly.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "penguin_body",
+      "category": "animal",
+      "width": 96,
+      "height": 138,
+      "contentBox": [
+        6,
+        3,
+        90,
+        135
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "penguin_body.svg"
+      },
+      "notes": "Placed as a part, not on its own content bottom: the penguin stands on penguin_feet, which is blitted separately at the ground line, so the body correctly sits one unit above it. Declaring CONTENT_BOTTOM_CENTRE said the body itself met the ground and made a correct composition look like defect D-9."
+    },
+    {
+      "name": "penguin_feet",
+      "category": "animal",
+      "width": 60,
+      "height": 12,
+      "contentBox": [
+        0,
+        0,
+        60,
+        12
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "penguin_feet.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_summer_head_window",
+      "category": "person",
+      "width": 180,
+      "height": 162,
+      "contentBox": [
+        24,
+        15,
+        171,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        97.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_summer_head_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_summer_walk0",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        26,
+        66,
+        114,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        70,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_summer_walk0.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_summer_walk1",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        23,
+        69,
+        114,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        68.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_summer_walk1.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_summer_walk2",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        12,
+        66,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_summer_walk2.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_winter_head_window",
+      "category": "person",
+      "width": 180,
+      "height": 162,
+      "contentBox": [
+        18,
+        12,
+        162,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        90,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_winter_head_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_winter_walk0",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        24,
+        45,
+        111,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_winter_walk0.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_winter_walk1",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        23,
+        48,
+        111,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_winter_walk1.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_winter_walk2",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        11,
+        45,
+        118,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_winter_walk2.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_summer_head_window",
+      "category": "person",
+      "width": 180,
+      "height": 162,
+      "contentBox": [
+        17,
+        18,
+        165,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        91,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_summer_head_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_summer_walk0",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        17,
+        66,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_summer_walk0.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_summer_walk1",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        17,
+        69,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_summer_walk1.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_summer_walk2",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        9,
+        66,
+        120,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_summer_walk2.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_winter_head_window",
+      "category": "person",
+      "width": 180,
+      "height": 162,
+      "contentBox": [
+        17,
+        12,
+        165,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        91,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_winter_head_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_winter_walk0",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        13,
+        57,
+        119,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        66,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_winter_walk0.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_winter_walk1",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        13,
+        60,
+        119,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        66,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_winter_walk1.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_winter_walk2",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        11,
+        57,
+        119,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        65,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_winter_walk2.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_head_car",
+      "category": "person",
+      "width": 171,
+      "height": 162,
+      "contentBox": [
+        30,
+        21,
+        141,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        85.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_summer_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_head_window",
+      "category": "person",
+      "width": 180,
+      "height": 162,
+      "contentBox": [
+        18,
+        9,
+        162,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        90,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_summer_head_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_walk0",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        20,
+        12,
+        111,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        65.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_summer_walk0.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_walk1",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        17,
+        15,
+        114,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        65.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_summer_walk1.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_walk2",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        3,
+        12,
+        126,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_summer_walk2.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_head_car",
+      "category": "person",
+      "width": 171,
+      "height": 162,
+      "contentBox": [
+        24,
+        18,
+        144,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        84,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_winter_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_head_window",
+      "category": "person",
+      "width": 180,
+      "height": 162,
+      "contentBox": [
+        12,
+        6,
+        168,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        90,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_winter_head_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_walk0",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        18,
+        9,
+        114,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        66,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_winter_walk0.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_walk1",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        17,
+        12,
+        114,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        65.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_winter_walk1.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_walk2",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        5,
+        9,
+        124,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_winter_walk2.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_head_car",
+      "category": "person",
+      "width": 171,
+      "height": 162,
+      "contentBox": [
+        30,
+        21,
+        141,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        85.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_summer_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_head_window",
+      "category": "person",
+      "width": 180,
+      "height": 162,
+      "contentBox": [
+        18,
+        9,
+        162,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        90,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_summer_head_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_walk0",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        21,
+        12,
+        108,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_summer_walk0.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_walk1",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        20,
+        15,
+        111,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        65.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_summer_walk1.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_walk2",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        6,
+        12,
+        123,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_summer_walk2.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_head_car",
+      "category": "person",
+      "width": 171,
+      "height": 162,
+      "contentBox": [
+        24,
+        18,
+        144,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        84,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_winter_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_head_window",
+      "category": "person",
+      "width": 180,
+      "height": 162,
+      "contentBox": [
+        12,
+        0,
+        168,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        90,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_winter_head_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_walk0",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        18,
+        0,
+        114,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        66,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_winter_walk0.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_walk1",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        18,
+        1,
+        114,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        66,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_winter_walk1.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_walk2",
+      "category": "person",
+      "width": 129,
+      "height": 252,
+      "contentBox": [
+        8,
+        0,
+        121,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_winter_walk2.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "police_lightbar",
+      "category": "vehicle",
+      "width": 60,
+      "height": 18,
+      "contentBox": [
+        0,
+        0,
+        60,
+        18
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "police_lightbar.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "police_stripe",
+      "category": "vehicle",
+      "width": 204,
+      "height": 39,
+      "contentBox": [
+        0,
+        0,
+        204,
+        39
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "police_stripe.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "pumpkin_body",
+      "category": "decoration",
+      "width": 114,
+      "height": 96,
+      "contentBox": [
+        0,
+        5,
+        114,
+        96
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        57,
+        96
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "pumpkin_body.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "pumpkin_stem",
+      "category": "decoration",
+      "width": 48,
+      "height": 36,
+      "contentBox": [
+        15,
+        0,
+        33,
+        36
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "pumpkin_stem.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "rainbow_arc",
+      "category": "sky",
+      "width": 600,
+      "height": 312,
+      "contentBox": [
+        3,
+        15,
+        597,
+        312
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "rainbow_arc.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "restaurant_awning",
+      "category": "building",
+      "width": 204,
+      "height": 30,
+      "contentBox": [
+        0,
+        0,
+        204,
+        30
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "restaurant_awning.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "restaurant_door",
+      "category": "building",
+      "width": 54,
+      "height": 84,
+      "contentBox": [
+        0,
+        0,
+        54,
+        84
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "restaurant_door.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "restaurant_roof_snow",
+      "category": "structure",
+      "width": 300,
+      "height": 36,
+      "contentBox": [
+        6,
+        6,
+        294,
+        36
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "restaurant_roof_snow.svg"
+      },
+      "notes": "Snow standing proud of the restaurant's flat parapet. The wall's top edge is four units down this canvas; the units above it are what make it a layer rather than a painted stripe."
+    },
+    {
+      "name": "restaurant_sign",
+      "category": "building",
+      "width": 108,
+      "height": 108,
+      "contentBox": [
+        3,
+        0,
+        105,
+        105
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "restaurant_sign.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "restaurant_wall",
+      "category": "building",
+      "width": 300,
+      "height": 180,
+      "contentBox": [
+        0,
+        0,
+        300,
+        180
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        150,
+        180
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "restaurant_wall.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "restaurant_window",
+      "category": "building",
+      "width": 90,
+      "height": 66,
+      "contentBox": [
+        0,
+        0,
+        90,
+        66
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "restaurant_window.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "road_asphalt",
+      "category": "road",
+      "width": 402,
+      "height": 102,
+      "contentBox": [
+        0,
+        0,
+        402,
+        102
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "orphan",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        201,
+        102
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "road_asphalt.svg"
+      },
+      "notes": "Present in the asset library but reached from no call site, so it has no scale or anchor the code can be checked against. Whether the orphans should ship at all is ROADMAP.md 5.5 and 7.2, not an asset question."
+    },
+    {
+      "name": "road_curb",
+      "category": "road",
+      "width": 402,
+      "height": 18,
+      "contentBox": [
+        0,
+        0,
+        402,
+        18
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "orphan",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        201,
+        18
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "road_curb.svg"
+      },
+      "notes": "Present in the asset library but reached from no call site, so it has no scale or anchor the code can be checked against. Whether the orphans should ship at all is ROADMAP.md 5.5 and 7.2, not an asset question."
+    },
+    {
+      "name": "road_line",
+      "category": "road",
+      "width": 54,
+      "height": 9,
+      "contentBox": [
+        0,
+        0,
+        54,
+        9
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "orphan",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        27,
+        9
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "road_line.svg"
+      },
+      "notes": "Present in the asset library but reached from no call site, so it has no scale or anchor the code can be checked against. Whether the orphans should ship at all is ROADMAP.md 5.5 and 7.2, not an asset question."
+    },
+    {
+      "name": "sailboat_hull",
+      "category": "lake",
+      "width": 252,
+      "height": 51,
+      "contentBox": [
+        0,
+        0,
+        252,
+        51
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "sailboat_hull.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "sailboat_sail",
+      "category": "lake",
+      "width": 240,
+      "height": 180,
+      "contentBox": [
+        18,
+        0,
+        228,
+        180
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "sailboat_sail.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "santa_sleigh_scene",
+      "category": "decoration",
+      "width": 624,
+      "height": 168,
+      "contentBox": [
+        12,
+        7,
+        610,
+        158
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        311,
+        158
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "santa_sleigh_scene.svg"
+      },
+      "notes": "Redrawn in v76.3: a cozier Santa -- rounder coat, fuller beard with a rounded hem, rosy cheeks, a smile, a slouched hat with a larger pompom, a mitten on the reins -- and the first of two leg poses. Frame two is santa_sleigh_trot. Both are emitted from one description so they cannot drift apart; only the reindeer legs differ, and the two reindeer are in opposite phases within a frame."
+    },
+    {
+      "name": "santa_sleigh_trot",
+      "category": "decoration",
+      "width": 624,
+      "height": 168,
+      "contentBox": [
+        12,
+        7,
+        610,
+        158
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        311,
+        158
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "santa_sleigh_trot.svg"
+      },
+      "notes": "New in v76.3: the second leg pose of santa_sleigh_scene. The reindeer stopped moving their legs when the group became a single sprite in v73, because a bitmap cannot bend; the trot is a second drawing alternated by PaperRenderer at SANTA_TROT_FRAMES_PER_SECOND. Identical to frame one except for the four legs of each reindeer."
+    },
+    {
+      "name": "skyscraper_canopy",
+      "category": "building",
+      "width": 330,
+      "height": 24,
+      "contentBox": [
+        0,
+        0,
+        330,
+        24
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "skyscraper_canopy.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "skyscraper_roof_snow",
+      "category": "structure",
+      "width": 180,
+      "height": 36,
+      "contentBox": [
+        6,
+        10,
+        174,
+        36
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "skyscraper_roof_snow.svg"
+      },
+      "notes": "Snow on the tower's setback roof, the only horizontal surface of it a viewer sees. Deliberately shallower than the houses': a roof this high is swept."
+    },
+    {
+      "name": "skyscraper_setback",
+      "category": "building",
+      "width": 180,
+      "height": 96,
+      "contentBox": [
+        0,
+        0,
+        180,
+        96
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "skyscraper_setback.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "skyscraper_wall",
+      "category": "building",
+      "width": 270,
+      "height": 450,
+      "contentBox": [
+        0,
+        0,
+        270,
+        450
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        135,
+        450
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "skyscraper_wall.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "skyscraper_wall_lit",
+      "category": "building",
+      "width": 270,
+      "height": 450,
+      "contentBox": [
+        0,
+        0,
+        270,
+        450
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        135,
+        450
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "skyscraper_wall_lit.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "snowman_body",
+      "category": "decoration",
+      "width": 120,
+      "height": 225,
+      "contentBox": [
+        3,
+        0,
+        117,
+        222
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        60,
+        222
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "snowman_body.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "snowman_nose",
+      "category": "decoration",
+      "width": 39,
+      "height": 12,
+      "contentBox": [
+        0,
+        0,
+        39,
+        12
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "snowman_nose.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "snowman_scarf",
+      "category": "decoration",
+      "width": 72,
+      "height": 18,
+      "contentBox": [
+        0,
+        0,
+        72,
+        18
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "snowman_scarf.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "star_sparkle",
+      "category": "sky",
+      "width": 180,
+      "height": 180,
+      "contentBox": [
+        3,
+        3,
+        177,
+        177
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "SPRITE_CENTRE",
+      "anchor": [
+        90,
+        90
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "star_sparkle.svg"
+      },
+      "notes": "The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 32, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it."
+    },
+    {
+      "name": "sun_body",
+      "category": "sky",
+      "width": 240,
+      "height": 240,
+      "contentBox": [
+        18,
+        18,
+        222,
+        222
+      ],
+      "scale": "CANVAS_PIXELS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "SPRITE_CENTRE",
+      "anchor": [
+        120,
+        120
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "sun_body.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "sun_glow",
+      "category": "sky",
+      "width": 396,
+      "height": 396,
+      "contentBox": [
+        1,
+        1,
+        395,
+        395
+      ],
+      "scale": "CANVAS_PIXELS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "SPRITE_CENTRE",
+      "anchor": [
+        198,
+        198
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "sun_glow.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "taxi_checker",
+      "category": "vehicle",
+      "width": 204,
+      "height": 27,
+      "contentBox": [
+        0,
+        0,
+        204,
+        27
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "taxi_checker.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "tree_canopy",
+      "category": "vegetation",
+      "width": 270,
+      "height": 252,
+      "contentBox": [
+        12,
+        12,
+        258,
+        234
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "tree_canopy.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "tree_canopy_snowcap",
+      "category": "vegetation",
+      "width": 234,
+      "height": 126,
+      "contentBox": [
+        3,
+        6,
+        231,
+        117
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "tree_canopy_snowcap.svg"
+      },
+      "notes": "Redrawn in v76.1 so the cap follows tree_canopy's own crown outline: its top edge repeats the crown's upper vertices, so the snow reaches both shoulders and the ridge. The shipped 216x126 cap sat inside them, leaving a green rim above the snow and bare corners either side. Sized and anchored from the canopy, so the two must be re-derived together."
+    },
+    {
+      "name": "tree_trunk",
+      "category": "vegetation",
+      "width": 54,
+      "height": 132,
+      "contentBox": [
+        12,
+        0,
+        42,
+        132
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        27,
+        132
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "tree_trunk.svg"
+      },
+      "notes": ""
+    }
+  ]
+}

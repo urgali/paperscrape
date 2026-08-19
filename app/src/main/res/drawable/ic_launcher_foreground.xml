@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sun + a little paper-cutout house with a snow-capped roof, sitting on the winter hills from
+     ic_launcher_background. The house is drawn at the exact same proportions as
+     SceneObjectRenderer.drawHouse() (just translated/scaled here), using the app's actual
+     default house colors (SceneCustomization.DEFAULT.houses.colorDay1 = #F3E6D0 and its derived
+     roof/trim/foundation tones) — this is meant to read as "the same house" a user will
+     actually see animated in the wallpaper, not a generic unrelated house silhouette. Kept
+     within the ~66dp adaptive-icon safe zone so nothing gets clipped by circular/squircle/
+     rounded-square launcher masks. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Sun, upper-left of the safe zone (clear of the house's chimney on the right) -->
+    <path android:fillColor="#33FFE8AD"
+        android:pathData="M30,27 m-15,0 a15,15 0,1 1,30 0 a15,15 0,1 1,-30 0" />
+    <path android:fillColor="#FFFFD873"
+        android:pathData="M30,27 m-10.5,0 a10.5,10.5 0,1 1,21 0 a10.5,10.5 0,1 1,-21 0" />
+
+    <group android:translateX="54" android:translateY="82" android:scaleX="0.6" android:scaleY="0.6">
+        <!-- flattened "yard" patch the house stands on, wide/tall enough to always merge
+             cleanly into the wavy near-hill fill below regardless of exactly where its curve
+             dips at this x — avoids a gap/reveal of the farther hill peeking through right at
+             the foundation line. -->
+        <path android:fillColor="#FFC9D9E6" android:pathData="M-48,-8 L48,-8 L48,50 L-48,50 Z" />
+        <!-- foundation -->
+        <path android:fillColor="#FFAAA192" android:pathData="M-38,-4 L38,-4 L38,2 L-38,2 Z" />
+        <!-- wall -->
+        <path android:fillColor="#FFF3E6D0" android:pathData="M-36,-46 L36,-46 L36,0 L-36,0 Z" />
+        <!-- roof, with the same eave overhang as the in-app house -->
+        <path android:fillColor="#FF91887A" android:pathData="M-46,-46 L0,-80 L46,-46 Z" />
+        <!-- snow dusting along the ridge -->
+        <path android:fillColor="#FFFAFCFF" android:fillAlpha="0.95"
+            android:pathData="M-27.6,-59.6 L0,-80 L27.6,-59.6 Z" />
+        <!-- chimney + cap, poking through the snow -->
+        <path android:fillColor="#FF6E6256" android:pathData="M18,-74 L30,-74 L30,-54 L18,-54 Z" />
+        <path android:fillColor="#FFFAFCFF" android:fillAlpha="0.95"
+            android:pathData="M16,-77 L32,-77 L32,-73.5 L16,-73.5 Z" />
+        <path android:fillColor="#FF524A40" android:pathData="M16,-73.5 L32,-73.5 L32,-70 L16,-70 Z" />
+        <!-- windows, warmly lit -->
+        <path android:fillColor="#FFFFE79A" android:pathData="M-30,-40 L-16,-40 L-16,-28 L-30,-28 Z" />
+        <path android:fillColor="#FF9E9687" android:pathData="M-31,-28 L-15,-28 L-15,-26 L-31,-26 Z" />
+        <path android:fillColor="#FFFFE79A" android:pathData="M16,-40 L30,-40 L30,-28 L16,-28 Z" />
+        <path android:fillColor="#FF9E9687" android:pathData="M15,-28 L31,-28 L31,-26 L15,-26 Z" />
+        <!-- door, gently arched -->
+        <path android:fillColor="#FF9E9687"
+            android:pathData="M-9,0 L-9,-22 Q-9,-28 0,-28 Q9,-28 9,-22 L9,0 Z" />
+        <path android:fillColor="#FFF2C230"
+            android:pathData="M5.5,-12 m-1.7,0 a1.7,1.7 0,1 1,3.4 0 a1.7,1.7 0,1 1,-3.4 0" />
+    </group>
+</vector>

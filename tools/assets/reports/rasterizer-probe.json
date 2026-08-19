@@ -1,0 +1,8 @@
+{
+  "matches_expected": true,
+  "numpy": "2.4.4",
+  "pillow": "12.1.1",
+  "probe_expected_sha256": "e2eb2e1004f7ca8529960f09ff65abc950dd81dffa4543f6044e5b224a3c6390",
+  "probe_sha256": "e2eb2e1004f7ca8529960f09ff65abc950dd81dffa4543f6044e5b224a3c6390",
+  "resvg_py": "0.4.0"
+}

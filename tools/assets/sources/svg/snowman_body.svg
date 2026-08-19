@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="225" viewBox="0 0 40 75">
+  <!--
+    A white snowman on white winter ground was, on a device, separated from his background by
+    nothing but antialiasing.
+
+    The separation is a tonal rim inset into the silhouette, not an outline drawn around it. Three
+    things follow from that choice.
+
+    The outer radii are unchanged (18 plus a 2-unit stroke straddling the edge still ends at 19,
+    and 12 plus 2 still ends at 13), so the sprite's bounding box, its declared contentBox and
+    every anchor measured against them are untouched.
+
+    The rim is a neutral grey, not the cool blue-grey it wants to look like. This sprite is
+    TINTABLE, and a tinted sprite has to be authored as a colourless mask: the runtime multiplies
+    it by the user's colour, and multiplying one hue by another compounds them. Neutral is also
+    the better answer rather than merely the permitted one, because the rim then inherits whatever
+    hue the user chose instead of arguing with it, and the default winter palette is already cool.
+
+    It reads as a shadow at a fold, which is what the paper-cutout language uses everywhere else,
+    rather than as a cartoon outline. The body stays white and paper-like.
+  -->
+<circle cx="20" cy="55" r="18" fill="#fcfcfc" stroke="#c8c8c8" stroke-width="2"></circle>
+        <circle cx="20" cy="26" r="12" fill="#ffffff" stroke="#c8c8c8" stroke-width="2"></circle>
+        <g fill="#d4d4d4">
+          <circle cx="15" cy="23" r="1.8"></circle>
+          <circle cx="25" cy="23" r="1.8"></circle>
+          <circle cx="20" cy="48" r="2"></circle>
+          <circle cx="20" cy="58" r="2"></circle>
+        </g>
+        <rect x="6" y="8" width="28" height="5" rx="2.5" fill="#bdbdbd"></rect>
+        <rect x="11" y="0" width="18" height="9" rx="2" fill="#bdbdbd"></rect>
+        <rect x="11" y="6" width="18" height="3" fill="#c9c9c9"></rect>
+</svg>

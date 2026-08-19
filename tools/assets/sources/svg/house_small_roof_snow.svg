@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="132" viewBox="0 0 80 44">
+  <!--
+    Snow lying on house_small_roof, cut to that roof's own slopes.
+
+    The canvas is the roof's 80x40 with four units added at the top, so the drift can crest above
+    the ridge instead of stopping level with it - that crest is what makes it read as a layer
+    resting on the roof rather than as the roof repainted white. Everything below the ridge stays
+    strictly inside the roof outline: at the cap's lowest point the left slope is at x=9.75 and the
+    right at x=70.25, and the shadow's corners sit at 13.5 and 66.5.
+
+    Two polygons, cool shadow under white, which is the recipe tree_canopy_snowcap already uses —
+    and the reason this sprite carries colour at all. It is blitted untinted, so an achromatic
+    white mask would be the tint-class defect DESIGN_NOTES decision 25 exists to prevent.
+  -->
+<polygon points="13.5,26 26,4 30,0 50,0 54,4 66.5,26 60,26 50,33 40,26 30,33 20,26" fill="#DCE7EF"></polygon>
+        <polygon points="13.5,26 26,4 30,0 50,0 54,4 66.5,26 60,21 50,28 40,21 30,28 20,21" fill="#FFFFFF"></polygon>
+</svg>

@@ -1,0 +1,19 @@
+# Pinned so that a regenerated sprite is byte-reproducible.
+#
+# resvg_py is the rasteriser. It is a self-contained Rust extension (resvg +
+# tiny-skia) with its own scan converter, so its antialiasing does not depend on
+# a system graphics library. A rasteriser whose output varies with the host's
+# libcairo would make "reproducible" mean "similar on this machine", which is
+# exactly the property this pipeline exists to remove.
+#
+# Exact pins, not ranges: a minor rasteriser release may legitimately change
+# antialiasing by a few units of alpha along an edge, and that would silently
+# invalidate every fidelity figure recorded in reports/.
+#
+# `paperscrape-assets probe` renders a fixed probe document and hashes the
+# result. Run it after any change here: if the hash moves, the toolchain moved,
+# and every previously recorded fidelity number has to be re-measured rather
+# than trusted.
+resvg_py==0.4.0
+Pillow==12.1.1
+numpy==2.4.4

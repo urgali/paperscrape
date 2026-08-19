@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="450" height="162" viewBox="0 0 150 54">
+  <!-- Snow on house_large_roof. Same construction as house_small_roof_snow: the roof's 150x50
+       canvas with four units of crest added above the ridge, and a drift edge that stays inside
+       both slopes. At the shadow's lowest points the left slope is at x=19 and the right at
+       x=131, against corners at 25.8 and 124.2. -->
+<polygon points="25.8,31 50,4 54,0 96,0 100,4 124.2,31 110,31 92,39 75,31 58,39 40,31" fill="#DCE7EF"></polygon>
+        <polygon points="25.8,31 50,4 54,0 96,0 100,4 124.2,31 110,24 92,32 75,24 58,32 40,24" fill="#FFFFFF"></polygon>
+</svg>

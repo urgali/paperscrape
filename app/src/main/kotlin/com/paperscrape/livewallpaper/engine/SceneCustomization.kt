@@ -1,0 +1,627 @@
+package com.paperscrape.livewallpaper.engine
+
+/**
+ * Reusable per-category settings: visibility, density, and 2 color variants (each with a
+ * day/night version) -- the same customization "shape" applied uniformly to every object
+ * category below rather than duplicated per type.
+ *
+ * Colors: each individual instance of the category is deterministically assigned variant 1 or 2
+ * (stable, based on its position -- see [SceneObjectRenderer]'s `variantIndexFor`), and blends
+ * between that variant's day and night color exactly like the rest of the scene does.
+ */
+data class ObjectVariantConfig(
+    val visible: Boolean,
+    /** 0f..1f — fraction of a theme's candidate slots for this category that actually render. */
+    val density: Float,
+    val colorDay1: Int,
+    val colorNight1: Int,
+    val colorDay2: Int,
+    val colorNight2: Int,
+)
+
+/** Lighter-weight sibling of [ObjectVariantConfig] for background silhouette layers (mountains)
+ * that want a single day/night color pair (like hills) rather than 2 color variants -- mountain
+ * peaks all share one consistent silhouette tone, they don't need per-instance color variety the
+ * way discrete objects like houses do. */
+data class MountainLayerConfig(
+    val visible: Boolean,
+    val density: Float,
+    val colorDay: Int,
+    val colorNight: Int,
+)
+
+/** A body of water, drawn as its own independent backdrop band (not part of the hill/object
+ * row-placement system, for the same safety reasons as [MountainLayerConfig]), plus two nested
+ * decorations (sailboats, dolphins) that appear within it. */
+data class LakeConfig(
+    val visible: Boolean,
+    val colorDay: Int,
+    val colorNight: Int,
+    /** 0f..1f — how tall a band the lake occupies. */
+    val height: Float,
+    val sailboatsVisible: Boolean,
+    val sailboatsDensity: Float,
+    val dolphinsVisible: Boolean,
+    val dolphinsDensity: Float,
+)
+
+/** One of a bird's 4 selectable colors, with a relative weight controlling how often it's picked
+ * (not a uniform 1-in-4 -- "Bird Color Frequencies" in the UI). Weights don't need to sum to
+ * anything in particular; a bird's color is picked by weighted-random draw across all 4 (see
+ * [BirdsConfig.pickColor]). */
+data class BirdColorWeight(val color: Int, val weight: Float)
+
+/** Stars: same show/hide + density shape as everything else, but no color -- stars have always
+ * used a single fixed twinkle color per theme (see [SunConfig]/[MoonConfig] for the celestial
+ * bodies, which *do* get their own color). */
+data class StarsConfig(val visible: Boolean, val density: Float)
+
+/**
+ * The sky gradient's 6 color stops. Deliberately not the same shape as the old
+ * `theme.skyDay`/`skyNight`/`skyDawn`/`skyDusk` (4 arrays of 2 colors each, blended with a
+ * "twilight bump" near the terminator) -- that model doesn't map onto anything a user could
+ * reasonably edit by hand. This is the simpler, user-facing version: a top ("High") and bottom
+ * ("Low") color for day and for night, blended continuously by [SunPositionCalculator.DayPhase]'s
+ * `dayBlend` the same way everything else in the scene already blends -- plus two *dedicated*
+ * near-horizon colors (`colorSunriseLow`/`colorSunsetLow`) that briefly show through only near
+ * their respective terminator, using the exact same twilight-weighting math the old 4-array model
+ * used, just with these single colors instead of a whole separate palette. Only the bottom needs
+ * dedicated sunrise/sunset colors -- the top of the sky doesn't change much during a
+ * sunrise/sunset in reality, the warm glow is a near-horizon phenomenon.
+ */
+data class SkyConfig(
+    val colorDayHigh: Int,
+    val colorDayLow: Int,
+    val colorNightHigh: Int,
+    val colorNightLow: Int,
+    val colorSunriseLow: Int,
+    val colorSunsetLow: Int,
+    /** 0f..1f — how high the sun/moon's arc rises (and, once built, where clouds sit). */
+    val sunCloudHeight: Float,
+)
+
+data class SunConfig(val visible: Boolean, val color: Int)
+
+data class MoonConfig(
+    val visible: Boolean,
+    val color: Int,
+    /** When false, always draws a plain full disc instead of the real astronomical phase
+     * (new/crescent/quarter/gibbous/full) -- some users may prefer a simple decorative moon over
+     * one that's occasionally a sliver or fully dark. */
+    val realisticPhases: Boolean,
+)
+
+/** Puffy clouds drifting slowly across the upper sky -- same independent-candidate-pool
+ * philosophy as mountains/birds (own parallax, own density filter, no interaction with the
+ * hill/object row-placement system). */
+data class CloudsConfig(
+    val visible: Boolean,
+    val density: Float,
+    val colorDay: Int,
+    val colorNight: Int,
+)
+
+/** Which of the two mutually-exclusive precipitation looks [PrecipitationConfig] renders --
+ * matches how real weather works (it's either raining or snowing, not both at once). */
+enum class PrecipitationType { RAIN, SNOW }
+
+/** Falling rain or snow, drawn as the closest thing in the whole scene (see
+ * [PaperRenderer.draw]'s call order) -- real precipitation reads as being right in front of the
+ * "camera", in front of even houses and cars, not part of the backdrop the way clouds/mountains
+ * are. [type] picks which of the two actually renders; both keep their own independent color pair
+ * ([rainColorDay]/`Night` vs [snowColorDay]/`Night`) so switching types doesn't force a user to
+ * re-pick colors that made sense for the other one. [thunderstorm] adds occasional lightning
+ * flashes (see [PaperRenderer.drawLightningFlash]) -- kept as its own flag rather than a third
+ * [type] value so toggling storms on/off doesn't lose the user's rain settings, though it's only
+ * meaningful while [type] is [PrecipitationType.RAIN].
+ */
+data class PrecipitationConfig(
+    val visible: Boolean,
+    val type: PrecipitationType,
+    /** 0f..1f — how many drops/flakes fall at once. */
+    val intensity: Float,
+    val rainColorDay: Int,
+    val rainColorNight: Int,
+    val snowColorDay: Int,
+    val snowColorNight: Int,
+    val thunderstorm: Boolean,
+)
+
+/** A decorative paper-cutout rainbow arc. Deliberately independent of [PrecipitationConfig] --
+ * unlike real weather (which Phase 1d's Random/Live Weather will eventually simulate), this is a
+ * manual per-theme toggle, so a user can put a rainbow on a sunny theme without needing rain
+ * turned on first, the same freedom every other decorative category in this app already has.
+ * Fades out toward night in [PaperRenderer.drawRainbow] (rainbows are a daylight phenomenon)
+ * rather than a hard on/off cut. */
+data class RainbowConfig(
+    val visible: Boolean,
+    /** 0f..1f — how vivid the bands render at full daylight. */
+    val opacity: Float,
+)
+
+/** An ambient flock of birds crossing the sky, independent of the hill/object row-placement
+ * system (birds fly, they don't stand on the ground). */
+data class BirdsConfig(    val visible: Boolean,
+    val density: Float,
+    val nightBirds: Boolean,
+    val colors: List<BirdColorWeight>,
+) {
+    /** Weighted-random pick among [colors] using [randomFraction] (caller-supplied so the same
+     * fraction can be reused deterministically for a given bird instance rather than re-rolling
+     * every frame). */
+    fun pickColor(randomFraction: Float): Int {
+        val totalWeight = colors.sumOf { it.weight.toDouble() }.toFloat()
+        if (totalWeight <= 0f) return colors.firstOrNull()?.color ?: 0xFFFFFFFF.toInt()
+        var target = randomFraction.coerceIn(0f, 1f) * totalWeight
+        for (c in colors) {
+            target -= c.weight
+            if (target <= 0f) return c.color
+        }
+        return colors.last().color
+    }
+}
+
+/**
+ * Global (theme-independent) rendering settings for every customizable object category, editable
+ * from the "Scene Objects" screen. These apply on top of whichever theme/custom theme is active:
+ * a theme's [SceneObjectLayout] defines *candidate* slots (see [SceneObjectCatalog]), and this
+ * config decides how many of them actually show up and what colors they use.
+ */
+data class SceneCustomization(
+    val houses: ObjectVariantConfig,
+    val buildings: ObjectVariantConfig,
+    val cars: ObjectVariantConfig,
+    val parasols: ObjectVariantConfig,
+    /**
+     * The pedestrians, as a category with visibility and density like any other.
+     *
+     * Only two of the six fields mean anything here: the walk sprites are finished art in four
+     * kinds across two seasons, so there is nothing for a colour to reach. Which kind and which
+     * season a given pedestrian is stays exactly as it was -- density decides how many of the four
+     * candidates render, not which ones exist.
+     */
+    val people: ObjectVariantConfig,
+    val trees: ObjectVariantConfig,
+    // Fall Colors / Winter-Christmas Colors: NOT their own placeable object category (no
+    // visibility/density/color-variant shape like the seasonal decorations below) -- they're a
+    // seasonal *palette override* applied on top of the existing `trees` category's own leaf
+    // rendering (see SceneObjectRenderer.drawTree). Deliberately toggled from the Seasonal
+    // Decorations screen, not the Trees screen under Scene Objects: aa's own framing is that the
+    // Trees show/density/color toggle is a *structural* scene-object setting (does this theme
+    // have trees at all, and what base color), while whether those trees currently look
+    // autumnal/snowy is a decoration a user can flip on for *any* theme at *any* time, exactly
+    // like turning pumpkins on for a non-Halloween theme. Mutually exclusive (a tree can't
+    // simultaneously be shedding red/orange leaves and be snow-dusted) -- enforced in
+    // WallpaperPrefs.setFallColorsEnabled/setWinterColorsEnabled by clearing the other flag in
+    // the same edit, the same pattern PrecipitationConfig.type already uses for Rain vs Snow.
+    // Off by default, like every other opt-in seasonal decoration in this class.
+    val fallColorsEnabled: Boolean = false,
+    val winterColorsEnabled: Boolean = false,
+    // Previously hardcoded per-theme via SceneTheme.hasSantaSleigh with no user control at all --
+    // aa asked for an actual toggle. Kept as a per-theme customization (not a global setting)
+    // specifically so it fits the same defaultCustomizationFor() pattern every other per-theme
+    // toggle already follows: its default seeds from theme.hasSantaSleigh (true only for the
+    // Christmas theme) so nothing changes for a user who's never touched this setting, but it can
+    // now be flipped independently per theme just like Fall Colors/Winter Colors above.
+    val santaEnabled: Boolean = false,
+    // Seasonal decorations -- opt-in extras, off by default (see SeasonalDecorations screen),
+    // placeable on any theme regardless of "traditional" season. Same ObjectVariantConfig shape
+    // as everything above, just defaulting to visible=false since these are meant to be
+    // deliberately turned on, not part of a theme's base look.
+    val snowmen: ObjectVariantConfig,
+    val gifts: ObjectVariantConfig,
+    val balloons: ObjectVariantConfig,
+    val penguins: ObjectVariantConfig,
+    val bunnies: ObjectVariantConfig,
+    val easterEggs: ObjectVariantConfig,
+    val pumpkins: ObjectVariantConfig,
+    // Not an "object" category (no visibility/density/color-variant shape) -- a single
+    // theme-scoped float for how wavy the hill silhouette is. Reuses the exact same per-theme
+    // pendingCustomization/save-to-theme machinery as everything else in this class, since it's
+    // a piece of a *theme's* look just like everything above, not a global rendering preference
+    // (see PaperRenderer.buildBaseHillPath's own doc comment for how it's applied safely).
+    val hillsVariation: Float = 1f,
+    // Same idea, two more theme-scoped plain fields for the hills' base color (day and night) --
+    // the 3 layers auto-derive their own shade from a single color (see PaperRenderer's
+    // hillLayerColor()) rather than needing 3 separate color pickers, matching how every other
+    // customizable category in this app exposes exactly one color pair, not one per depth layer.
+    val hillsColorDay: Int = 0xFFF2A65A.toInt(),
+    val hillsColorNight: Int = 0xFF2E2A55.toInt(),
+    // Mountains: two independent background silhouette layers, drawn behind the hills with a
+    // slower parallax than even the farthest hill layer -- entirely separate from the hill/object
+    // row-placement system (SceneSpace's own depth band) on purpose, to avoid any risk
+    // to that already-tuned safety geometry. Visible by default (unlike seasonal decorations --
+    // these read as a normal part of the landscape, not an opt-in extra).
+    val mountainsFront: MountainLayerConfig = MountainLayerConfig(
+        visible = true, density = 0.5f, colorDay = 0xFF4CAF7C.toInt(), colorNight = 0xFFA9C2B8.toInt(),
+    ),
+    val mountainsBack: MountainLayerConfig = MountainLayerConfig(
+        visible = true, density = 0.5f, colorDay = 0xFF3E8F68.toInt(), colorNight = 0xFF8FA69C.toInt(),
+    ),
+    // Off by default -- unlike mountains, not every theme's landscape should have a lake
+    // appearing in it unless the user actually wants one.
+    val lake: LakeConfig = LakeConfig(
+        visible = false,
+        colorDay = 0xFF2FA8D8.toInt(),
+        colorNight = 0xFF1F4A5C.toInt(),
+        height = 0.33f,
+        sailboatsVisible = true,
+        sailboatsDensity = 0.3f,
+        dolphinsVisible = true,
+        dolphinsDensity = 0.3f,
+    ),
+    // Visible by default with a modest density -- a light scattering of birds reads as a normal
+    // part of an outdoor scene, the same way houses/trees do, not an opt-in extra.
+    val birds: BirdsConfig = BirdsConfig(
+        visible = true,
+        density = 0.5f,
+        nightBirds = false,
+        colors = listOf(
+            BirdColorWeight(0xFFFFFFFF.toInt(), 0.4f),
+            BirdColorWeight(0xFF2E323C.toInt(), 0.3f),
+            BirdColorWeight(0xFFE8564F.toInt(), 0.15f),
+            BirdColorWeight(0xFF4F8FBF.toInt(), 0.15f),
+        ),
+    ),
+    val stars: StarsConfig = StarsConfig(visible = true, density = 1f),
+    // Sky/sun/moon defaults below are generic placeholders -- defaultCustomizationFor() always
+    // overrides them per-theme (derived from that theme's own existing skyDay/skyNight/sunColor/
+    // moonColor), so these only matter as a fallback for unknown/custom theme ids.
+    val sky: SkyConfig = SkyConfig(
+        colorDayHigh = 0xFF6EC6FF.toInt(),
+        colorDayLow = 0xFFCDEFFF.toInt(),
+        colorNightHigh = 0xFF0B0E2E.toInt(),
+        colorNightLow = 0xFF1B1B3A.toInt(),
+        colorSunriseLow = 0xFFFFD59E.toInt(),
+        colorSunsetLow = 0xFFFFC98B.toInt(),
+        sunCloudHeight = 0.42f,
+    ),
+    val sun: SunConfig = SunConfig(visible = true, color = 0xFFFFE3B0.toInt()),
+    val moon: MoonConfig = MoonConfig(visible = true, color = 0xFFE8ECF5.toInt(), realisticPhases = true),
+    val clouds: CloudsConfig = CloudsConfig(
+        visible = true, density = 0.4f, colorDay = 0xFFFFFFFF.toInt(), colorNight = 0xFF4A5568.toInt(),
+    ),
+    // Off by default -- like the lake, this is weather a user opts into rather than something
+    // that should permanently rain/snow on every theme out of the box.
+    val precipitation: PrecipitationConfig = PrecipitationConfig(
+        visible = false,
+        type = PrecipitationType.RAIN,
+        intensity = 0.5f,
+        rainColorDay = 0xFF7FB3E0.toInt(),
+        rainColorNight = 0xFF3F5C78.toInt(),
+        snowColorDay = 0xFFFFFFFF.toInt(),
+        snowColorNight = 0xFFB8C4D0.toInt(),
+        thunderstorm = false,
+    ),
+    val rainbow: RainbowConfig = RainbowConfig(visible = false, opacity = 0.8f),
+) {
+    companion object {
+        val DEFAULT = SceneCustomization(
+            houses = ObjectVariantConfig(
+                visible = true,
+                // aa reported the placement band feeling too crowded and asked to compare
+                // against the reference. Confirmed: houses/buildings/parasols/trees all
+                // defaulted to density=1f (every one of CANDIDATES_PER_CATEGORY's 10 slots
+                // shown), stacking across every depth band at once. Lowered to a more open
+                // 0.65 -- still user-adjustable via each category's own density slider in either
+                // direction, this only changes what a *fresh, untouched* theme looks like.
+                density = 0.65f,
+                // Matches the wall color PaperScrape always used before this became configurable.
+                colorDay1 = 0xFFF3E6D0.toInt(),
+                colorNight1 = 0xFF6B5F52.toInt(),
+                colorDay2 = 0xFFE9D6C7.toInt(),
+                colorNight2 = 0xFF5C4A45.toInt(),
+            ),
+            buildings = ObjectVariantConfig(
+                visible = true,
+                density = 0.65f, // see houses' own comment on this same default-density change
+                // Matches the wall color PaperScrape always used before this became configurable.
+                colorDay1 = 0xFF454B57.toInt(),
+                colorNight1 = 0xFF262A31.toInt(),
+                colorDay2 = 0xFF5C6A78.toInt(),
+                colorNight2 = 0xFF303842.toInt(),
+            ),
+            cars = ObjectVariantConfig(
+                visible = true,
+                density = 1f,
+                colorDay1 = 0xFFF2A65A.toInt(),
+                colorNight1 = 0xFFB5651D.toInt(),
+                colorDay2 = 0xFF6FA8DC.toInt(),
+                colorNight2 = 0xFF3D6B94.toInt(),
+            ),
+            people = ObjectVariantConfig(
+                visible = true,
+                density = 1f,
+                colorDay1 = 0, colorNight1 = 0, colorDay2 = 0, colorNight2 = 0,
+            ),
+            parasols = ObjectVariantConfig(
+                visible = true,
+                density = 0.65f, // see houses' own comment on this same default-density change
+                // Matches the fixed colors PaperScrape always used before this became configurable.
+                colorDay1 = 0xFFFF7043.toInt(),
+                colorNight1 = 0xFFB5502E.toInt(),
+                colorDay2 = 0xFFF7FAFC.toInt(),
+                colorNight2 = 0xFFAEB4B8.toInt(),
+            ),
+            trees = ObjectVariantConfig(
+                visible = true,
+                density = 0.65f, // see houses' own comment on this same default-density change
+                // Matches the fixed foliage color PaperScrape always used before this became configurable.
+                colorDay1 = 0xFF8AA25C.toInt(),
+                colorNight1 = 0xFF3F4A2A.toInt(),
+                colorDay2 = 0xFF3F9E6B.toInt(),
+                colorNight2 = 0xFF244A34.toInt(),
+            ),
+            snowmen = ObjectVariantConfig(
+                visible = false,
+                density = 0.5f,
+                // Matches the fixed snow color previously hardcoded in drawSnowman.
+                colorDay1 = 0xFFF7FAFC.toInt(),
+                colorNight1 = 0xFFAEB4B8.toInt(),
+                colorDay2 = 0xFFEAF3FA.toInt(),
+                colorNight2 = 0xFF9BA7B0.toInt(),
+            ),
+            gifts = ObjectVariantConfig(
+                visible = false,
+                density = 0.5f,
+                // Matches 2 of the fixed colors previously hardcoded in giftColors.
+                colorDay1 = 0xFFC1443B.toInt(),
+                colorNight1 = 0xFF7A2B26.toInt(),
+                colorDay2 = 0xFF4F8FBF.toInt(),
+                colorNight2 = 0xFF335E7D.toInt(),
+            ),
+            balloons = ObjectVariantConfig(
+                visible = false,
+                density = 0.5f,
+                // Matches 2 of the fixed colors previously hardcoded in balloonColors.
+                colorDay1 = 0xFFE8564F.toInt(),
+                colorNight1 = 0xFF9C3A35.toInt(),
+                colorDay2 = 0xFFF2C230.toInt(),
+                colorNight2 = 0xFFB08E1F.toInt(),
+            ),
+            penguins = ObjectVariantConfig(
+                visible = false,
+                density = 0.5f,
+                // Matches the fixed body color previously hardcoded in penguinBodyColor.
+                colorDay1 = 0xFF2E3138.toInt(),
+                colorNight1 = 0xFF1A1C20.toInt(),
+                colorDay2 = 0xFF3A3E47.toInt(),
+                colorNight2 = 0xFF23262B.toInt(),
+            ),
+            bunnies = ObjectVariantConfig(
+                visible = false,
+                density = 0.5f,
+                // Matches the fixed body color previously hardcoded in bunnyBodyColor.
+                colorDay1 = 0xFFF7EFE6.toInt(),
+                colorNight1 = 0xFFAFA79C.toInt(),
+                colorDay2 = 0xFFE8D5C4.toInt(),
+                colorNight2 = 0xFF9C8B77.toInt(),
+            ),
+            easterEggs = ObjectVariantConfig(
+                visible = false,
+                density = 0.5f,
+                // Matches 2 of the fixed colors previously hardcoded in easterEggColors.
+                colorDay1 = 0xFFE8A6C4.toInt(),
+                colorNight1 = 0xFF9C6A82.toInt(),
+                colorDay2 = 0xFFA6D8E8.toInt(),
+                colorNight2 = 0xFF6A93A0.toInt(),
+            ),
+            pumpkins = ObjectVariantConfig(
+                visible = false,
+                density = 0.5f,
+                colorDay1 = 0xFFE8802E.toInt(),
+                colorNight1 = 0xFF9C5A1F.toInt(),
+                colorDay2 = 0xFFD16A1F.toInt(),
+                colorNight2 = 0xFF8A4715.toInt(),
+            ),
+        )
+    }
+}
+
+/**
+ * Stable per-instance fraction in [0, 1), derived purely from an object's fixed position (never
+ * from Random()) so the same object always gets the same value -- both across frames (no
+ * flicker) and across [SceneObjectRenderer] rebuilds (no reshuffling when e.g. a density slider
+ * moves, only slots crossing the new threshold change).
+ */
+private fun stableFraction(spec: StaticSceneObject, salt: Float): Float {
+    val raw = spec.tileFractionX * 7919f + spec.depthFraction * 7919f * 131f + salt
+    return raw - kotlin.math.floor(raw)
+}
+
+private fun stableFraction(spec: CarObject, salt: Float): Float {
+    val raw = spec.laneYFraction * 7919f + spec.startDelaySeconds * 131f + salt
+    return raw - kotlin.math.floor(raw)
+}
+
+/** Which category config governs a given object type, or null for types with no customization. */
+private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantConfig? = when (type) {
+    SceneObjectType.HOUSE -> houses
+    SceneObjectType.SKYSCRAPER -> buildings
+    SceneObjectType.PARASOL -> parasols
+    SceneObjectType.TREE, SceneObjectType.PALM_TREE -> trees
+    SceneObjectType.SNOWMAN -> snowmen
+    SceneObjectType.GIFT -> gifts
+    SceneObjectType.BALLOON -> balloons
+    SceneObjectType.PENGUIN -> penguins
+    SceneObjectType.BUNNY -> bunnies
+    SceneObjectType.EASTER_EGG -> easterEggs
+    SceneObjectType.PUMPKIN -> pumpkins
+    else -> null
+}
+
+/** Whether this candidate slot should actually render, given the current config. Types with no
+ * customization category (e.g. CAR, which uses [keepCar] instead) are always kept. */
+fun SceneCustomization.keepCandidate(spec: StaticSceneObject): Boolean {
+    val config = configFor(spec.type) ?: return true
+    return config.visible && stableFraction(spec, salt = 0f) < config.density
+}
+
+fun SceneCustomization.keepCar(spec: CarObject): Boolean =
+    cars.visible && stableFraction(spec, salt = 0f) < cars.density
+
+/** Which of the 2 color variants (0 or 1) this instance uses. Salted differently from
+ * [keepCandidate]'s threshold so density thinning and color-variant assignment don't correlate. */
+private fun variantIndexFor(spec: StaticSceneObject): Int =
+    if (stableFraction(spec, salt = 17.3f) < 0.5f) 0 else 1
+
+private fun variantIndexFor(spec: CarObject): Int =
+    if (stableFraction(spec, salt = 17.3f) < 0.5f) 0 else 1
+
+private fun blend(config: ObjectVariantConfig, variant: Int, dayBlend: Float): Int {
+    val day = if (variant == 0) config.colorDay1 else config.colorDay2
+    val night = if (variant == 0) config.colorNight1 else config.colorNight2
+    return androidx.core.graphics.ColorUtils.blendARGB(night, day, dayBlend.coerceIn(0f, 1f))
+}
+
+fun SceneCustomization.colorFor(spec: StaticSceneObject, dayBlend: Float): Int {
+    val config = configFor(spec.type) ?: return 0xFFFFFFFF.toInt()
+    return blend(config, variantIndexFor(spec), dayBlend)
+}
+
+fun SceneCustomization.colorFor(spec: CarObject, dayBlend: Float): Int = blend(cars, variantIndexFor(spec), dayBlend)
+
+/** The parasol's 5 wedges alternate between the two configured colors (not a per-instance
+ * variant pick like other categories, since a single parasol shows both colors as stripes). */
+fun SceneCustomization.parasolStripeColor(wedgeIndex: Int, dayBlend: Float): Int =
+    blend(parasols, wedgeIndex % 2, dayBlend)
+
+/**
+ * The starting-point [SceneCustomization] for a given built-in theme -- specifically, what a
+ * user sees the *first* time they open "Scene Objects" or "Seasonal Decorations" for that theme,
+ * before they've changed anything themselves. Structural categories (houses/buildings/etc.) are
+ * the same [SceneCustomization.DEFAULT] everywhere, matching the "every theme offers the same
+ * customization range" design principle -- but seasonal decorations *should* differ: Christmas
+ * traditionally has snowmen and gifts, Easter traditionally has bunnies and eggs, and so on. This
+ * doesn't lock anything in -- the user is still free to turn any of it off, turn on something
+ * else instead, and either overwrite the built-in theme or save their own custom theme from
+ * "Manage Themes", exactly like they can with structural categories today. Themes not listed here
+ * (including custom/random ones) get the fully "everything off" [SceneCustomization.DEFAULT].
+ */
+fun defaultCustomizationFor(themeId: String): SceneCustomization {
+    // Derived from the theme's own existing (currently fixed, non-user-editable) farthest-layer
+    // hill color -- so switching a theme to "custom hills color" for the first time starts from
+    // that theme's own authored look, not an unrelated placeholder color.
+    val theme = ThemeCatalog.byId(themeId)
+    val base = SceneCustomization.DEFAULT.copy(
+        hillsColorDay = theme.hillColorsDay.firstOrNull() ?: SceneCustomization.DEFAULT.hillsColorDay,
+        hillsColorNight = theme.hillColorsNight.firstOrNull() ?: SceneCustomization.DEFAULT.hillsColorNight,
+        sky = SceneCustomization.DEFAULT.sky.copy(
+            colorDayHigh = theme.skyDay.getOrElse(0) { SceneCustomization.DEFAULT.sky.colorDayHigh },
+            colorDayLow = theme.skyDay.getOrElse(1) { theme.skyDay.getOrElse(0) { SceneCustomization.DEFAULT.sky.colorDayLow } },
+            colorNightHigh = theme.skyNight.getOrElse(0) { SceneCustomization.DEFAULT.sky.colorNightHigh },
+            colorNightLow = theme.skyNight.getOrElse(1) { theme.skyNight.getOrElse(0) { SceneCustomization.DEFAULT.sky.colorNightLow } },
+            colorSunriseLow = theme.skyDawn.getOrElse(1) { theme.skyDawn.getOrElse(0) { SceneCustomization.DEFAULT.sky.colorSunriseLow } },
+            colorSunsetLow = theme.skyDusk.getOrElse(1) { theme.skyDusk.getOrElse(0) { SceneCustomization.DEFAULT.sky.colorSunsetLow } },
+        ),
+        sun = SceneCustomization.DEFAULT.sun.copy(color = theme.sunColor),
+        moon = SceneCustomization.DEFAULT.moon.copy(color = theme.moonColor),
+        santaEnabled = theme.hasSantaSleigh,
+    )
+    return when (themeId) {
+        "winter" -> base.copy(
+            snowmen = base.snowmen.copy(visible = true, density = 0.3f),
+            mountainsFront = base.mountainsFront.copy(colorDay = 0xFFF7FAFC.toInt(), colorNight = 0xFFC9D6E8.toInt()),
+            mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
+            // Precipitation itself stays off by default (same opt-in philosophy as the lake) --
+            // only the *type* is pre-set to Snow, so turning it on for the first time here starts
+            // from the obviously-correct choice instead of Rain.
+            precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
+        )
+        "christmas" -> base.copy(
+            snowmen = base.snowmen.copy(visible = true, density = 0.5f),
+            gifts = base.gifts.copy(visible = true, density = 0.4f),
+            mountainsFront = base.mountainsFront.copy(colorDay = 0xFFF7FAFC.toInt(), colorNight = 0xFFC9D6E8.toInt()),
+            mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
+            precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
+        )
+        "new_year" -> base.copy(balloons = base.balloons.copy(visible = true, density = 0.4f))
+        "tundra" -> base.copy(
+            snowmen = base.snowmen.copy(visible = true, density = 0.3f),
+            penguins = base.penguins.copy(visible = true, density = 0.4f),
+            mountainsFront = base.mountainsFront.copy(colorDay = 0xFFF7FAFC.toInt(), colorNight = 0xFFC9D6E8.toInt()),
+            mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
+            lake = base.lake.copy(visible = true, colorDay = 0xFFBFE3EE.toInt(), colorNight = 0xFF2A4550.toInt(), height = 0.25f),
+            precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
+        )
+        "easter" -> base.copy(
+            bunnies = base.bunnies.copy(visible = true, density = 0.3f),
+            easterEggs = base.easterEggs.copy(visible = true, density = 0.5f),
+        )
+        // A quick, honest first pass -- not the final per-theme design polish (tracked in
+        // ROADMAP_OLD.md's Phase 5 "review every built-in theme's defaults" item), just enough that a
+        // fresh install's themes actually look different from each other instead of all sharing
+        // the exact same lake/mountain defaults regardless of which theme is picked.
+        "beach" -> base.copy(
+            lake = base.lake.copy(
+                visible = true, height = 0.9f,
+                colorDay = 0xFF1E9BC4.toInt(), colorNight = 0xFF15495C.toInt(),
+                sailboatsVisible = true, sailboatsDensity = 0.4f,
+                dolphinsVisible = true, dolphinsDensity = 0.3f,
+            ),
+            mountainsFront = base.mountainsFront.copy(visible = false),
+            mountainsBack = base.mountainsBack.copy(visible = false),
+        )
+        "desert" -> base.copy(
+            lake = base.lake.copy(visible = false),
+            mountainsFront = base.mountainsFront.copy(colorDay = 0xFFC98B4A.toInt(), colorNight = 0xFF6E4A2E.toInt()),
+            mountainsBack = base.mountainsBack.copy(colorDay = 0xFFD9A868.toInt(), colorNight = 0xFF8A6440.toInt()),
+        )
+        "city" -> base.copy(
+            mountainsFront = base.mountainsFront.copy(visible = false),
+            mountainsBack = base.mountainsBack.copy(visible = false),
+            birds = base.birds.copy(density = 0.2f),
+        )
+        else -> base
+    }
+}
+
+// --- Structural vs cosmetic change detection -------------------------------------------------
+
+/**
+ * Whether two configs would produce the *same set of rendered candidate slots* for static scene
+ * objects.
+ *
+ * Only [ObjectVariantConfig.visible] and [ObjectVariantConfig.density] are read by
+ * [keepCandidate], so those are the only fields that can change which objects exist. Everything
+ * else in [SceneCustomization] -- every colour, the sky/stars/clouds/precipitation/rainbow/
+ * mountain/lake/bird sections, hill variation, the seasonal palette flags -- is consumed at draw
+ * time and changes only how the existing objects look.
+ *
+ * That distinction is what lets [SceneObjectRenderer] keep its runtime state across a colour
+ * change instead of rebuilding the whole scene. Comparing whole [SceneCustomization] instances
+ * would treat a colour tweak as structural and throw away running animation state for nothing.
+ *
+ * Deliberately field-by-field rather than a hash: a hash collision here would silently fail to
+ * rebuild the scene, which is a visible bug, and the comparison must allocate nothing because it
+ * sits on a per-frame path.
+ *
+ * **Adding a new [ObjectVariantConfig] category means adding it here.**
+ * `SceneCustomizationStructureTest` fails if the count of such fields changes, so this cannot be
+ * forgotten silently.
+ */
+fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Boolean =
+    houses.structurallyEquals(other.houses) &&
+        buildings.structurallyEquals(other.buildings) &&
+        parasols.structurallyEquals(other.parasols) &&
+        people.structurallyEquals(other.people) &&
+        trees.structurallyEquals(other.trees) &&
+        snowmen.structurallyEquals(other.snowmen) &&
+        gifts.structurallyEquals(other.gifts) &&
+        balloons.structurallyEquals(other.balloons) &&
+        penguins.structurallyEquals(other.penguins) &&
+        bunnies.structurallyEquals(other.bunnies) &&
+        easterEggs.structurallyEquals(other.easterEggs) &&
+        pumpkins.structurallyEquals(other.pumpkins)
+
+/**
+ * Whether two configs would produce the same set of rendered cars. Separate from
+ * [staticStructurallyEquals] so that changing, say, house density rebuilds the static objects
+ * without resetting every car's in-flight `progress` along the road.
+ */
+fun SceneCustomization.carsStructurallyEquals(other: SceneCustomization): Boolean =
+    cars.structurallyEquals(other.cars)
+
+/** The subset of a category config that [keepCandidate]/[keepCar] actually read. */
+private fun ObjectVariantConfig.structurallyEquals(other: ObjectVariantConfig): Boolean =
+    visible == other.visible && density == other.density

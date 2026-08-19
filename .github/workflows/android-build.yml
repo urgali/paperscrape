@@ -1,0 +1,293 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+    # Releases are cut by pushing a tag, never by merging. `vNN` publishes a stable release;
+    # `vNN.N` publishes a beta/pre-release. Merging to main only builds and tests.
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# Least-privilege default: neither job needs more than this unless explicitly overridden below.
+permissions:
+  contents: read
+
+jobs:
+  # Runs on every push and PR (including from forks). Never touches GitHub Releases and never
+  # sees release-signing secrets, so a compromised dependency or a malicious PR pulled in here
+  # has nothing to exfiltrate beyond what `contents: read` already exposes.
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        # Pinned to the last MIT-licensed v5.x release. gradle/actions v6 bundles a proprietary
+        # caching component with its own commercial Terms of Use (see
+        # https://blog.gradle.org/github-actions-for-gradle-v6) -- staying on v5 avoids opting
+        # this repository into that without a deliberate decision to do so.
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Lint
+        run: ./gradlew lint
+
+      - name: Unit tests
+        run: ./gradlew test
+
+      # Without this, a failing test in CI shows only "there were failing tests" plus a path to
+      # an HTML report on a runner that no longer exists. Uploading on failure keeps the actual
+      # assertion output reachable. `if: failure()` so green runs don't pay the upload cost.
+      - name: Upload unit test report
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: unit-test-report
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload debug APK artifact
+        # Dev/test builds only -- never published to Releases. See the `release` job for the
+        # real, signed artifact users actually install.
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: paperscrape-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+  # Only runs after `build` succeeds, and only for real pushes to main (never PRs, never forks --
+  # the `if` below guards on the event/ref). This is the only place release-signing secrets are
+  # ever exposed.
+  # Only ever runs for a pushed tag. Merging to main no longer publishes anything -- shipping is
+  # now a deliberate act (push a tag) rather than a side effect of merging.
+  release:
+    needs: build
+    if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      # For actions/attest-build-provenance below: id-token mints the OIDC token used to request
+      # a short-lived Sigstore signing certificate, attestations persists the resulting signed
+      # attestation to GitHub's attestations API.
+      id-token: write
+      attestations: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Validate and classify the release tag
+        # The tag is the release identifier. It is NOT derived from versionCode any more: deriving
+        # it meant only integer tags were expressible, and it meant a forgotten bump silently
+        # tried to republish an existing version.
+        #
+        #   vNN    -> stable release,        published normally
+        #   vNN.N  -> beta / pre-release,    published with prerelease=true
+        #
+        # `NN` must equal the current versionCode either way: a beta sits on top of the Android
+        # version it was built from, so `v73.4` must be built from `versionCode = 73`. That check
+        # is what keeps the two numbering schemes semantically coherent instead of merely
+        # coexisting.
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts)
+
+          if [[ "$TAG" =~ ^v([0-9]+)$ ]]; then
+            KIND="stable"
+            MAJOR="${BASH_REMATCH[1]}"
+            PRERELEASE="false"
+            TITLE_SUFFIX="Stable"
+          elif [[ "$TAG" =~ ^v([0-9]+)\.([0-9]+)$ ]]; then
+            KIND="beta"
+            MAJOR="${BASH_REMATCH[1]}"
+            BETA="${BASH_REMATCH[2]}"
+            PRERELEASE="true"
+            TITLE_SUFFIX="Beta"
+            if [ "$BETA" -eq 0 ]; then
+              echo "::error::Tag $TAG is not valid. Beta numbering starts at .1; vNN.0 would be ambiguous with the stable vNN."
+              exit 1
+            fi
+          else
+            echo "::error::Tag $TAG is not a recognised release identifier. Use vNN for a stable release or vNN.N for a beta."
+            exit 1
+          fi
+
+          if [ "$MAJOR" != "$VERSION_CODE" ]; then
+            echo "::error::Tag $TAG does not match versionCode $VERSION_CODE in app/build.gradle.kts. A stable vNN must equal versionCode; a beta vNN.N must sit on the versionCode it was built from."
+            exit 1
+          fi
+
+          echo "Publishing $TAG as a $KIND release (prerelease=$PRERELEASE), versionCode $VERSION_CODE."
+          {
+            echo "tag=$TAG"
+            echo "kind=$KIND"
+            echo "prerelease=$PRERELEASE"
+            echo "title_suffix=$TITLE_SUFFIX"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check release signing secrets are configured
+        # Fail loudly and early with a clear message, rather than letting Gradle fall through to
+        # an unsigned APK (see app/build.gradle.kts: release signingConfig is only attached when
+        # PAPERSCRAPE_RELEASE_STORE_FILE is set) and produce a confusing failure several steps
+        # later. See scripts/generate-release-keystore.sh to create these secrets.
+        # OPENMETEO_API_KEY is intentionally NOT checked here -- it's optional (Open-Meteo's free
+        # tier works with no key at all, see app/build.gradle.kts's own comment on
+        # PAPERSCRAPE_OPENMETEO_API_KEY), so a release build without it just ships Live Weather
+        # on the keyless endpoint rather than failing the whole build.
+        run: |
+          missing=()
+          [ -z "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ] && missing+=("RELEASE_KEYSTORE_BASE64")
+          [ -z "${{ secrets.RELEASE_STORE_PASSWORD }}" ] && missing+=("RELEASE_STORE_PASSWORD")
+          [ -z "${{ secrets.RELEASE_KEY_ALIAS }}" ] && missing+=("RELEASE_KEY_ALIAS")
+          [ -z "${{ secrets.RELEASE_KEY_PASSWORD }}" ] && missing+=("RELEASE_KEY_PASSWORD")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing release signing secrets: ${missing[*]}. See scripts/generate-release-keystore.sh."
+            exit 1
+          fi
+
+      - name: Decode release keystore
+        # Written to a runner-local temp path that never touches the repository and is discarded
+        # when the runner is torn down at the end of the job.
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          KEYSTORE_PATH="${RUNNER_TEMP}/release.keystore"
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+          echo "PAPERSCRAPE_RELEASE_STORE_FILE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        env:
+          PAPERSCRAPE_RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          PAPERSCRAPE_RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          PAPERSCRAPE_RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          # Optional -- see app/build.gradle.kts's own comment. Leave the OPENMETEO_API_KEY
+          # GitHub Secret unset entirely to ship without a baked-in key (Live Weather still works
+          # via Open-Meteo's keyless free tier, or a user's own key entered in Settings).
+          PAPERSCRAPE_OPENMETEO_API_KEY: ${{ secrets.OPENMETEO_API_KEY }}
+        run: ./gradlew assembleRelease
+
+      - name: Generate SHA-256 checksum
+        # Published alongside the APK so anyone can verify what they downloaded matches what CI
+        # actually built, independent of GitHub's own integrity guarantees.
+        run: |
+          cd app/build/outputs/apk/release
+          sha256sum app-release.apk > app-release.apk.sha256
+          cat app-release.apk.sha256
+
+      - name: Generate signed build provenance attestation
+        # Goes beyond the plain SHA-256 above: this cryptographically binds the APK's exact
+        # digest to *this specific* commit, workflow run, and repository via a Sigstore-signed,
+        # publicly verifiable in-toto/SLSA attestation, published to GitHub's attestations API
+        # (free for public repos). A checksum alone only proves "this file matches what I have a
+        # hash for" -- it doesn't prove *who* produced it. Anyone can verify the download with:
+        #   gh attestation verify app-release.apk --repo ${{ github.repository }}
+        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
+        with:
+          subject-path: app/build/outputs/apk/release/app-release.apk
+
+      - name: Refuse to overwrite an existing release
+        # Git already refuses to push a duplicate tag, so reaching this with an existing release
+        # means the tag and the release have drifted apart. Fail loudly rather than replacing a
+        # published release as a side effect -- releases are immutable, stable and beta alike.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists. Pick the next unused identifier, or delete the existing release manually if this was intentional."
+            exit 1
+          fi
+
+      - name: Compose release notes
+        # Prefers a short, plain-language write-up at release-notes/<tag>.md (see
+        # CONTRIBUTING.md's "Ship a new version" row) -- this is what actually shows up on the
+        # GitHub release page AND inside the app's own update dialog (UpdateChecker reads this
+        # same release body), so it needs to read like "what's new for you", not a commit log.
+        # Falls back to a generic message if that file wasn't added for this version, and always
+        # appends a short, secondary technical footer for anyone who wants to verify the build.
+        id: notes
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          KIND: ${{ steps.tag.outputs.kind }}
+        run: |
+          NOTES_FILE="release-notes/${TAG}.md"
+          COMPOSED="${RUNNER_TEMP}/release-notes.md"
+          : > "$COMPOSED"
+          if [ "$KIND" = "beta" ]; then
+            {
+              echo "> **Beta / pre-release.** Built from the same signing key as the stable"
+              echo "> releases, so it installs over one and can be replaced by one, but it has not"
+              echo "> had the testing a stable release gets."
+              echo ""
+              echo "> The in-app updater does not offer betas: install this manually, and you will"
+              echo "> still be offered the next stable release when it appears."
+              echo ""
+            } >> "$COMPOSED"
+          fi
+          if [ -f "$NOTES_FILE" ]; then
+            cat "$NOTES_FILE" >> "$COMPOSED"
+          else
+            echo "New PaperScrape build. See the commit history for details." >> "$COMPOSED"
+          fi
+          {
+            echo ""
+            echo "---"
+            echo "🔒 Verify this build: check \`app-release.apk.sha256\`, or run \`gh attestation verify app-release.apk --repo ${{ github.repository }}\`."
+          } >> "$COMPOSED"
+          echo "file=$COMPOSED" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release
+        # A beta is published with prerelease=true and explicitly not marked latest, so anything
+        # reading /releases/latest -- including anyone linking to it -- keeps seeing the newest
+        # stable build. Betas are signed with the same release key as stable builds on purpose:
+        # a differently-signed APK could not be installed over a stable one, which would strand
+        # testers.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          PRERELEASE: ${{ steps.tag.outputs.prerelease }}
+          TITLE_SUFFIX: ${{ steps.tag.outputs.title_suffix }}
+        run: |
+          EXTRA_ARGS=()
+          if [ "$PRERELEASE" = "true" ]; then
+            EXTRA_ARGS+=(--prerelease --latest=false)
+          else
+            EXTRA_ARGS+=(--latest=true)
+          fi
+          gh release create "$TAG" \
+            app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/apk/release/app-release.apk.sha256 \
+            --title "PaperScrape $TAG — $TITLE_SUFFIX" \
+            --notes-file "${{ steps.notes.outputs.file }}" \
+            --target "${{ github.sha }}" \
+            "${EXTRA_ARGS[@]}"
