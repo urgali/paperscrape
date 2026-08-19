@@ -19,15 +19,15 @@ android {
         // this file and fails the release if the tag disagrees. `versionCode` is Android's own
         // install counter, checked by nothing but the installer, and only has to increase.
         //
-        // v1.0 → 1, v1.1 → 2, v2.0 → 4, v2.1 → 5. Three is skipped because no v1.2 was ever
-        // released; the counter has no obligation to be contiguous, only monotonic, and leaving
-        // the gap is more honest than renumbering a release that does not exist.
+        // v1.0 → 1, v1.1 → 2, v2.0 → 4, v2.1 → 5, v2.2 → 6. Three is skipped because no v1.2 was
+        // ever released; the counter has no obligation to be contiguous, only monotonic, and
+        // leaving the gap is more honest than renumbering a release that does not exist.
         //
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 5
-        versionName = "2.1"
+        versionCode = 6
+        versionName = "2.2"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets

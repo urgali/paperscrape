@@ -3,7 +3,7 @@
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.1 Stable**
+**Current version: v2.2 Stable**
 
 ---
 
@@ -162,9 +162,10 @@ tag, because the two answer different questions:
 | `v1.1` | `1.1` | 2 |
 | `v2.0` | `2.0` | 4 |
 | `v2.1` | `2.1` | 5 |
+| `v2.2` | `2.2` | 6 |
 
 Every release is published as latest. There is no pre-release tag form yet; one will
-be added when it is needed. v2.1 is the current stable release. The `versionCode`
+be added when it is needed. v2.2 is the current stable release. The `versionCode`
 counter only has to increase, not to be contiguous — 3 is unused because no v1.2 was
 ever released.
 

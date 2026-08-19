@@ -232,7 +232,7 @@ class SceneObjectRenderer(
         /** Half a walk sprite's own width, in local units, for the wrap-tile cull. */
         const val PERSON_HALF_WIDTH_UNITS = 21.5f
 
-        const val PERSON_ANCHOR_X_UNITS = -21.5f
+        const val PERSON_ANCHOR_X_UNITS = -20.5f
         const val PERSON_ANCHOR_Y_UNITS = -84f
 
         const val CAR_HEAD_X_UNITS = -8f
@@ -252,8 +252,8 @@ class SceneObjectRenderer(
          * pixel on screen -- below the point where a per-sprite table would buy anything, and
          * the same reasoning that lets a lookup group share one crop rectangle.
          */
-        const val CAR_HEAD_ANCHOR_X_UNITS = 28.5f
-        const val CAR_HEAD_ANCHOR_Y_UNITS = 54f
+        const val CAR_HEAD_ANCHOR_X_UNITS = 20.5f
+        const val CAR_HEAD_ANCHOR_Y_UNITS = 48f
 
         /**
          * Where a passenger sits, and the anchor of the head they are drawn with.
@@ -268,7 +268,7 @@ class SceneObjectRenderer(
         const val CAR_PASSENGER_X_UNITS = 17f
         const val CAR_PASSENGER_Y_UNITS = 10f
         const val CAR_PASSENGER_SCALE = 0.29f
-        const val WINDOW_HEAD_ANCHOR_X_UNITS = 30.8f
+        const val WINDOW_HEAD_ANCHOR_X_UNITS = 26.8f
         const val WINDOW_HEAD_ANCHOR_Y_UNITS = 54f
 
         /**
@@ -944,7 +944,7 @@ class SceneObjectRenderer(
         // than under it. The origin is the roof's own, less the four units of crest the cap adds
         // above the ridge -- derived from the roof, so the two move together if either is redrawn.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.house_small_roof_snow, -40f, -114f)
+            drawSprite(canvas, R.drawable.house_small_roof_snow, -27f, -114f)
         }
         drawTintedSprite(canvas, R.drawable.house_small_trim, -40f, -71f, trimColor)
         // chimney: local bbox (8,-115)-(20,-85) -- base sits on the roof slope (off-center,
@@ -962,7 +962,7 @@ class SceneObjectRenderer(
         // comes from the `canvas.scale` above, not from the artwork.
         // Window and door mirrored about the wall's own centre: a 22-unit window at -28 and a
         // 20-unit door at 8 put their centres at -17 and +18 on a wall running -35..35.
-        drawSprite(canvas, R.drawable.house_shared_window, -28f, -52f)
+        drawSprite(canvas, R.drawable.house_shared_window, -28f, -51f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -28f, -52f, litWindowAlpha(nightGlow))
         drawWindowOccupant(canvas, r, -28f, -52f, 22f, 22f)
         drawSprite(canvas, R.drawable.house_shared_planter, -30f, -29f)
@@ -988,7 +988,7 @@ class SceneObjectRenderer(
         drawTintedSprite(canvas, R.drawable.house_large_roof, -75f, -145f, roofColor)
         // See [drawSmallHouse] for why this is a layer and not a tint.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.house_large_roof_snow, -75f, -149f)
+            drawSprite(canvas, R.drawable.house_large_roof_snow, -50f, -149f)
         }
         // The V2 trim is 18px tall where the shipped one was 12, widened to the asset library's
         // 6-authoring-unit minimum for an internal border. The origin drops by one unit so the
@@ -1003,14 +1003,14 @@ class SceneObjectRenderer(
         // runs -70..70: the whole facade read as pushed to one side. A 22-unit window at -46 and
         // 24 leaves 24 either side and centres the pair on the door, which is already at 0.
         val litAlpha = litWindowAlpha(nightGlow)
-        drawSprite(canvas, R.drawable.house_shared_window, -46f, -85f)
+        drawSprite(canvas, R.drawable.house_shared_window, -46f, -84f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -46f, -85f, litAlpha)
-        drawSprite(canvas, R.drawable.house_shared_window, 24f, -85f)
+        drawSprite(canvas, R.drawable.house_shared_window, 24f, -84f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -85f, litAlpha)
         drawWindowOccupant(canvas, r, -46f, -85f, 22f, 22f)
-        drawSprite(canvas, R.drawable.house_shared_window, -46f, -45f)
+        drawSprite(canvas, R.drawable.house_shared_window, -46f, -44f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -46f, -45f, litAlpha)
-        drawSprite(canvas, R.drawable.house_shared_window, 24f, -45f)
+        drawSprite(canvas, R.drawable.house_shared_window, 24f, -44f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -45f, litAlpha)
         drawSprite(canvas, R.drawable.house_shared_planter, -48f, -22f)
         drawFlowerDots(canvas, -42f, -22f)
@@ -1115,7 +1115,7 @@ class SceneObjectRenderer(
         // at (27,132) -- 44 units tall against the rect's 38, which is not a discrepancy to
         // correct: the canopy's own content bottom lands at -44 too, so the two pieces meet
         // exactly where the library drew them to.
-        drawSprite(canvas, R.drawable.tree_trunk, -9f, -44f)
+        drawSprite(canvas, R.drawable.tree_trunk, -5f, -44f)
         val leafColor = when {
             customization.fallColorsEnabled -> fallLeafColorFor(r)
             else -> customization.colorFor(r.spec, dayBlend)
@@ -1126,7 +1126,7 @@ class SceneObjectRenderer(
         // canopy: local bbox (-45,-84)-(45,0), refreshed in the aesthetic pass to a 5-lobe
         // silhouette (was a single blob) with its attachment point at local y=0 so it sits
         // flush on the trunk regardless of sway.
-        drawTintedSprite(canvas, R.drawable.tree_canopy, -45f, -84f, leafColor)
+        drawTintedSprite(canvas, R.drawable.tree_canopy, -41f, -80f, leafColor)
         if (customization.winterColorsEnabled) {
             // The cap is cut to this canopy's own outline: its top edge repeats the crown's
             // upper vertices exactly, so the snow reaches both shoulders and the ridge instead
@@ -1135,7 +1135,7 @@ class SceneObjectRenderer(
             // above the snow and bare green corners either side of it. Redrawn at 234x126 with
             // an origin derived from the crown rather than guessed; if the canopy art changes,
             // both move together.
-            drawSprite(canvas, R.drawable.tree_canopy_snowcap, -42f, -82f)
+            drawSprite(canvas, R.drawable.tree_canopy_snowcap, -41f, -80f)
         }
         // Inside the canopy's own transform, and scattered across the canopy's own measured
         // content: `tree_canopy` is 270x252 px with content at (12,12)-(258,234), which is
@@ -1261,7 +1261,7 @@ class SceneObjectRenderer(
         // shadow on (defect D-9). The face and scarf move by the same unit, because what is
         // being corrected is where the *drawing* sits, not how its pieces register against each
         // other.
-        drawTintedSprite(canvas, R.drawable.snowman_body, -20f, -74f, snow)
+        drawTintedSprite(canvas, R.drawable.snowman_body, -19f, -74f, snow)
         // The three accessories are placed against the V2 body's own landmarks, measured off it:
         // hat brim to y=-63, head sphere -61..-39 centred on -50, neck (its narrowest row) at
         // -38, and the lower sphere widest at -20. The shipped origins were tuned for a body
@@ -1293,7 +1293,7 @@ class SceneObjectRenderer(
         val color = customization.colorFor(r.spec, dayBlend)
         drawGroundShadow(canvas, 22f)
         drawTintedSprite(canvas, R.drawable.gift_box, -20f, -30f, color)
-        drawSprite(canvas, R.drawable.gift_ribbon, -20f, -42f)
+        drawSprite(canvas, R.drawable.gift_ribbon, -20f, -41f)
     }
 
     /**
@@ -1334,7 +1334,7 @@ class SceneObjectRenderer(
         // trunk: 42x186, anchored CONTENT_BOTTOM_CENTRE at (24,186), so the origin that stands it
         // on the ground with its base centred on the pivot is (-8,-62). It was 33 wide and
         // originated at -6; V2 widened it to carry the new frond fan.
-        drawSprite(canvas, R.drawable.palmtree_trunk, -8f, -62f)
+        drawSprite(canvas, R.drawable.palmtree_trunk, -6f, -59f)
         // fronds: the attachment point is no longer measured off the artwork, it is declared.
         // The V2 fan is 120x120 with a DECLARED_ATTACHMENT at (60,102) -- (20,34) in local units
         // -- which is the point where the blades converge. The trunk's own content top sits at
@@ -1433,7 +1433,7 @@ class SceneObjectRenderer(
         // units above the roofline it is cut for, hence the offset. Drawn before the mast, so the
         // mast rises out of the drift. See [drawSmallHouse] for why this is a layer and not a tint.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.skyscraper_roof_snow, -30f, -height - 32f + 6f - 8f)
+            drawSprite(canvas, R.drawable.skyscraper_roof_snow, -28f, -height - 32f + 6f - 8f + 3f)
         }
         strokePaint.color = trimColor
         strokePaint.strokeWidth = 2f
@@ -1461,7 +1461,7 @@ class SceneObjectRenderer(
         // A flat roof, so the cap is a drift standing proud of the parapet rather than following a
         // pitch. Its canvas puts the wall's own top edge 8 units down. See [drawSmallHouse].
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.restaurant_roof_snow, -50f, -68f)
+            drawSprite(canvas, R.drawable.restaurant_roof_snow, -48f, -66f)
         }
         // awning: local bbox (-34,-46)-(34,-36), fixed red/white stripes (not tinted)
         drawSprite(canvas, R.drawable.restaurant_awning, -34f, -46f)
@@ -1477,7 +1477,7 @@ class SceneObjectRenderer(
         strokePaint.style = Paint.Style.STROKE
         canvas.drawLine(0f, -60f, 0f, -78f, strokePaint)
         strokePaint.strokeWidth = 2.5f
-        drawSprite(canvas, R.drawable.restaurant_sign, -18f, -96f)
+        drawSprite(canvas, R.drawable.restaurant_sign, -17f, -96f)
     }
 
     /**
@@ -1498,7 +1498,7 @@ class SceneObjectRenderer(
         drawTintedSprite(canvas, R.drawable.bar_wall, -45f, -55f, wallColor)
         // Same construction as the restaurant's, cut to this wall's narrower 90 units.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.bar_roof_snow, -45f, -63f)
+            drawSprite(canvas, R.drawable.bar_roof_snow, -43f, -61f)
         }
         // door
         drawTintedSprite(canvas, R.drawable.bar_door, -10f, -28f, doorColor)
@@ -1514,7 +1514,7 @@ class SceneObjectRenderer(
         fillPaint.alpha = (60 + nightGlow * 90).toInt()
         canvas.drawCircle(0f, -height - 30f, 24f, fillPaint)
         fillPaint.alpha = 255
-        drawSprite(canvas, R.drawable.bar_sign, -20f, -height - 50f)
+        drawSprite(canvas, R.drawable.bar_sign, -18f, -height - 50f)
 
         // String lights along the top edge.
         fillPaint.color = ColorUtils.blendARGB(0xFF8A6A50.toInt(), 0xFFFFE79A.toInt(), nightGlow)
@@ -1533,7 +1533,7 @@ class SceneObjectRenderer(
         canvas.save()
         canvas.rotate(waddle * 0.5f)
         val body = customization.colorFor(r.spec, dayBlend)
-        drawTintedSprite(canvas, R.drawable.penguin_body, -16f, -46f, body)
+        drawTintedSprite(canvas, R.drawable.penguin_body, -14f, -45f, body)
         drawTintedSprite(canvas, R.drawable.penguin_belly, -9f, -38f, penguinBellyColor)
         // -46 is the very top of the V2 body, above the eyes; the face sits around -37.
         drawSprite(canvas, R.drawable.penguin_beak, -6f, -37f)
@@ -1547,7 +1547,7 @@ class SceneObjectRenderer(
         val shell = customization.colorFor(r.spec, dayBlend)
         drawGroundShadow(canvas, 15f)
         drawTintedSprite(canvas, R.drawable.easteregg_shell, -16f, -40f, shell)
-        drawSprite(canvas, R.drawable.easteregg_pattern, -16f, -26f)
+        drawSprite(canvas, R.drawable.easteregg_pattern, -16f, -25f)
     }
 
     /** Body, head and both ears are one tintable sprite (`bunny_body`, drawn already-assembled so
@@ -1565,7 +1565,7 @@ class SceneObjectRenderer(
         // -61, not -62: same one-unit lift as the snowman (defect D-9). The ears and tail move
         // with it. The horizontal origin is deliberately not the content centre -- see the ear
         // note below -- and is left alone.
-        drawTintedSprite(canvas, R.drawable.bunny_body, -18f, -61f, body)
+        drawTintedSprite(canvas, R.drawable.bunny_body, -14f, -61f, body)
         // The V2 ears occupy x -9.3..15.3, so their centre is at 3 and the two-ear inner patch --
         // 14.7 units of content -- centres on it from here. At 6 it covered the right ear and
         // hung the left patch in mid-air beside the head.
@@ -1603,8 +1603,8 @@ class SceneObjectRenderer(
     private fun drawPumpkin(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
         val base = customization.colorFor(r.spec, dayBlend)
         drawGroundShadow(canvas, 16f)
-        drawTintedSprite(canvas, R.drawable.pumpkin_body, -19f, -32f, base)
-        drawSprite(canvas, R.drawable.pumpkin_stem, -3f, -42f)
+        drawTintedSprite(canvas, R.drawable.pumpkin_body, -19f, -31f, base)
+        drawSprite(canvas, R.drawable.pumpkin_stem, 2f, -42f)
     }
 
     /**
@@ -1624,8 +1624,8 @@ class SceneObjectRenderer(
      * between the ladder's rails.
      */
     private fun drawFireTruck(canvas: SceneCanvas) {
-        drawSprite(canvas, R.drawable.firetruck_ladder, -48f, -31f)
-        drawSprite(canvas, R.drawable.firetruck_body, -50f, -26f)
+        drawSprite(canvas, R.drawable.firetruck_ladder, -48f, -30f)
+        drawSprite(canvas, R.drawable.firetruck_body, -49f, -22f)
         fillPaint.color = 0xFFD6362E.toInt()
         canvas.drawRect(-16f, -22f, -6f, -16f, fillPaint)
         fillPaint.color = 0xFF2B5FCB.toInt()
@@ -1690,7 +1690,7 @@ class SceneObjectRenderer(
             }
             // A single continuous low-sedan silhouette -- chassis capsule and domed cabin merged
             // into one shape. body: local bbox (-50,-12)-(50,28); window: (-31,-10)-(19,8).
-            drawTintedSprite(canvas, R.drawable.car_body, -50f, -12f, bodyColor)
+            drawTintedSprite(canvas, R.drawable.car_body, -48f, -11f, bodyColor)
             // The glass belongs inside the greenhouse: the cabin's own roof runs from x=-3 to 20
             // at y=-11, with the A-pillar rising from (-22,2) and the C-pillar falling to (36,3).
             // At (-31,-10) the 50x18 window overhung the bonnet by nine units and stood above the
@@ -1699,7 +1699,7 @@ class SceneObjectRenderer(
             // the greenhouse is not symmetric, so a centred glass runs its vertical rear edge into
             // the roof's rear curve and leaves no C-pillar while the raked front keeps a wide
             // band. Four units forward gives the glass a pillar at each end.
-            drawSprite(canvas, R.drawable.car_window, -23f, -7f)
+            drawSprite(canvas, R.drawable.car_window, -20f, -6f)
 
             when (c.spec.type) {
                 CarType.POLICE -> {

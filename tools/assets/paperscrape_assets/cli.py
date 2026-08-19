@@ -219,11 +219,20 @@ def _rewrite_registry_geometry(
     four-field change in a whole-file diff, so each entry is edited as text
     inside its own object and nothing else in the document is touched.
 
-    `anchor` is re-derived rather than carried over. It is a *derived* field --
-    `CONTENT_BOTTOM_CENTRE` reads the content box, `SPRITE_CENTRE` reads the
-    canvas -- so a crop moves it by exactly the amount the origin is compensated
-    by, and leaving the old value would declare an anchor that no rule produces.
-    `validate` re-derives it again afterwards, so a mistake here fails there.
+    `anchor` is re-derived rather than carried over, but **only for the two rules
+    that derive it from the box**. `CONTENT_BOTTOM_CENTRE` reads the content box
+    and `SPRITE_CENTRE` reads the canvas, so a crop moves either by exactly the
+    amount the origin is compensated by, and leaving the old value would declare an
+    anchor that no rule produces. `PART_LOCAL` and `DECLARED_ATTACHMENT` are
+    *declarations* -- a part's own zero, and the joint another sprite attaches to --
+    and `derive_anchor` returns `None` for both by design.
+
+    Guarding this on `has_anchor` instead was what aborted the v76.9 normalisation
+    partway through, on `bar_sign`, with a message saying `PART_LOCAL` no longer
+    held. It held perfectly well; the applier was asking a derivation question of a
+    rule that does not answer one, and the abort was recorded as an anchor-model
+    conflict rather than as the tooling defect it was. `validate` re-derives every
+    anchor afterwards, so a mistake here still fails there.
     """
     by_name = {s.name: s for s in specs}
     text = path.read_text(encoding="utf-8")
@@ -241,10 +250,14 @@ def _rewrite_registry_geometry(
             count=1,
         )
         spec = by_name[name]
-        if spec.has_anchor:
-            anchor = registry.derive_anchor(
-                spec.anchor_rule, box, (width, height), spec.units_per_pixel
-            )
+        if spec.derives_anchor_from_box:
+            # In pixels, deliberately: `derive_anchor`'s own docstring records that
+            # passing `units_per_pixel` here produces local units and then writes
+            # them into a field the registry declares in pixels, so every
+            # `SCENE_UNITS` sprite ends up disagreeing with itself by a factor of
+            # three. This call site was making exactly that mistake, unexercised
+            # because no `--apply` run had ever completed.
+            anchor = registry.derive_anchor(spec.anchor_rule, box, (width, height))
             if anchor is None:
                 raise SystemExit(
                     f"{name}: {spec.anchor_rule} no longer holds after normalisation -- "
@@ -260,6 +273,94 @@ def _rewrite_registry_geometry(
     path.write_text(text, encoding="utf-8")
 
 
+def _resize_svg_canvas(path: Path, box: tuple[int, int, int, int]) -> None:
+    """Move a source document's canvas onto ``box`` without moving its drawing.
+
+    The drawing itself is never touched. What changes is the `viewBox`, whose
+    origin moves to the crop's top-left corner and whose extent shrinks to the
+    crop's size, both converted from pixels by the scale the `width`/`height` pair
+    already carries -- `SPRITE_PIXELS_PER_UNIT` for every V2 source. Every
+    coordinate written in the document keeps its value and its meaning, and the
+    rendered result is the same drawing with the same pixels removed that the PNG
+    crop removed.
+
+    The origin is the part that is easy to leave out. A trailing-only crop leaves
+    it at zero and the temptation is to hardcode that; a crop that removes columns
+    on the left has to shift the view by exactly those columns, or the source
+    renders the drawing where the PNG no longer has it.
+
+    Without this the PNG and its source would disagree, and
+    `ShippedAgainstSourceTest` -- the measurement D-7's closure rests on -- would
+    fail on the first sprite cropped.
+    """
+    text = path.read_text(encoding="utf-8")
+    match = re.search(
+        r'width="([\d.]+)" height="([\d.]+)" '
+        r'viewBox="([-\d.]+) ([-\d.]+) ([\d.]+) ([\d.]+)"',
+        text,
+    )
+    if match is None:
+        raise SystemExit(f"{path.name}: no width/height/viewBox triple to resize")
+    width, height, view_x, view_y, view_width, view_height = (
+        float(g) for g in match.groups()
+    )
+    scale = width / view_width
+    if height / view_height != scale:
+        raise SystemExit(f"{path.name}: width and height disagree on the viewBox scale")
+    size = (box[2] - box[0], box[3] - box[1])
+    new_view = (
+        view_x + box[0] / scale,
+        view_y + box[1] / scale,
+        size[0] / scale,
+        size[1] / scale,
+    )
+    if any(v != int(v) for v in new_view):
+        raise SystemExit(f"{path.name}: the crop is not a whole number of user units")
+    replacement = (
+        f'width="{size[0]}" height="{size[1]}" viewBox="'
+        + " ".join(str(int(v)) for v in new_view)
+        + '"'
+    )
+    text = text[: match.start()] + replacement + text[match.end() :]
+    path.write_text(text, encoding="utf-8")
+
+
+def _crop_targets(
+    targets: list[normalize.Normalisation], specs: list[registry.SpriteSpec]
+) -> int:
+    """Crop each target's PNGs to its box and keep the source and registry with them."""
+    updates: dict[str, tuple[int, int, tuple[int, int, int, int]]] = {}
+    for item in targets:
+        for name in item.members:
+            path = RUNTIME_DIR / f"{name}.png"
+            with Image.open(path) as image:
+                pixels = np.array(image.convert("RGBA"))
+                cropped = image.crop(item.box)
+            # A crop that removes an opaque pixel is a redraw, not a normalisation.
+            # Checked here rather than trusted from the plan, because this is the
+            # step that cannot be undone from the repository.
+            discarded = np.concatenate(
+                (
+                    pixels[:, item.box[2] :, 3].reshape(-1),
+                    pixels[item.box[3] :, : item.box[2], 3].reshape(-1),
+                )
+            )
+            if discarded.size and int(discarded.max()) != 0:
+                raise SystemExit(
+                    f"{name}: the crop would discard a pixel with alpha "
+                    f"{int(discarded.max())}, which is artwork rather than padding"
+                )
+            cropped.save(path, format="PNG", optimize=True)
+            with Image.open(path) as written:
+                box = written.convert("RGBA").getchannel("A").getbbox()
+                updates[name] = (written.width, written.height, tuple(box))
+            source = SVG_DIR / f"{name}.svg"
+            if source.is_file():
+                _resize_svg_canvas(source, item.box)
+    _rewrite_registry_geometry(REGISTRY_PATH, updates, specs)
+    return len(updates)
+
+
 def cmd_normalize(args: argparse.Namespace) -> int:
     specs = registry.load(REGISTRY_PATH)
     scales = {s.name: s.scale for s in specs}
@@ -267,6 +368,16 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     referenced = _referenced_names()
     plans = normalize.plan(measurements, scales, referenced)
     outstanding = normalize.pending(plans)
+    anchor_rules = {s.name: s.anchor_rule for s in specs}
+    trailing = normalize.trailing_plan(outstanding, anchor_rules)
+
+    if getattr(args, "apply_trailing", False):
+        cropped = _crop_targets(trailing, specs)
+        recovered = sum(item.recovered_bytes for item in trailing)
+        print(f"trailing-cropped {cropped} PNG(s) across {len(trailing)} target(s)")
+        print(f"decoded ARGB_8888 recovered: {recovered / 1e6:.2f} MB")
+        print("no origin compensation is due: pixel (0,0) did not move for any of them")
+        return 0
 
     if not args.apply:
         for item in outstanding:
@@ -276,6 +387,11 @@ def cmd_normalize(args: argparse.Namespace) -> int:
                 f"{item.new_size[0]}x{item.new_size[1]}  "
                 f"origin +({dx:g},{dy:g}) units  "
                 f"{len(item.members)} file(s), {item.recovered_bytes / 1e6:.2f} MB"
+            )
+        if trailing:
+            print(
+                f"\nof those, {len(trailing)} target(s) still have padding on the right or "
+                "bottom only, which `--apply-trailing` removes with no origin to compensate."
             )
         if outstanding:
             print(
@@ -291,23 +407,9 @@ def cmd_normalize(args: argparse.Namespace) -> int:
         )
         return 0
 
-    updates: dict[str, tuple[int, int, tuple[int, int, int, int]]] = {}
-    for item in outstanding:
-        for name in item.members:
-            path = RUNTIME_DIR / f"{name}.png"
-            with Image.open(path) as image:
-                mode = image.mode
-                cropped = image.crop(item.box)
-            cropped.save(path, format="PNG", optimize=True)
-            with Image.open(path) as written:
-                box = written.convert("RGBA").getchannel("A").getbbox()
-                updates[name] = (written.width, written.height, tuple(box))
-                if written.mode != mode:
-                    print(f"note {name}: PNG mode {mode} -> {written.mode}")
-    _rewrite_registry_geometry(REGISTRY_PATH, updates, specs)
-
+    cropped = _crop_targets(outstanding, specs)
     recovered = sum(item.recovered_bytes for item in outstanding)
-    print(f"normalised {len(updates)} PNG(s) across {len(outstanding)} target(s)")
+    print(f"normalised {cropped} PNG(s) across {len(outstanding)} target(s)")
     print(f"decoded ARGB_8888 recovered: {recovered / 1e6:.2f} MB")
     print("origin compensations to apply at the call sites:")
     for item in outstanding:
@@ -443,6 +545,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="crop the shipped PNGs to their normalised boxes and update the registry",
     )
+    normalise.add_argument(
+        "--apply-trailing",
+        action="store_true",
+        help="crop only the padding on the right and bottom, which needs no origin compensation",
+    )
     normalise.set_defaults(func=cmd_normalize)
 
     fit_parser = sub.add_parser("fit", help="recover rectangular geometry from a shipped PNG")
@@ -473,6 +580,7 @@ def cmd_all(args: argparse.Namespace) -> int:
     args.out = str(STAGING_DIR)
     args.staging = str(STAGING_DIR)
     args.apply = False
+    args.apply_trailing = False
     for step in (cmd_probe, cmd_inventory, cmd_validate, cmd_normalize, cmd_render, cmd_compare):
         code = step(args)
         if code:

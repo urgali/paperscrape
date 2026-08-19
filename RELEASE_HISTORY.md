@@ -19,9 +19,149 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.2 — D-10 closed: the padding, and the origins that had to move with it
+
+**Stable / latest.** `versionCode = 6`, `versionName = "2.2"`. Tag `v2.2`.
+
+67 PNGs cropped, 34 blit origins compensated, decoded artwork **16.28 MB -> 14.79 MB**
+and transparent padding **3.08 MB -> 1.59 MB**. Nothing in the scene moves, and that is
+asserted rather than asserted-to-be-obvious.
+
+### What D-10 actually was
+
+Recorded as an asset problem, it was never one. `SpriteBlitter` puts the bitmap's own
+pixel (0,0) on the origin its call site passes, so cropping padding off the left or the
+top of a sprite moves what that pixel is and the drawing lands somewhere else. A crop is
+only correct together with a compensation in the renderer, and the entry that deferred it
+described a decision about artwork.
+
+Two tooling defects sat underneath, both in `_rewrite_registry_geometry` and both
+unexercised because no `--apply` run had ever completed:
+
+* it guarded the anchor re-derivation on `has_anchor` rather than
+  `derives_anchor_from_box`, so it asked `PART_LOCAL` for a derivation that rule does not
+  have and aborted. **That is what stopped v76.9 on `bar_sign`**, and the abort was
+  recorded as a conflict between the crop rule and the anchor model. There was no
+  conflict; `derive_anchor` returns `None` for a declaration by design.
+* it passed `units_per_pixel` into `derive_anchor`, which writes local units into a field
+  the registry declares in pixels -- a factor of three on every `SCENE_UNITS` sprite. This
+  one surfaced immediately, as 20 `validate` failures, the first time a crop got far
+  enough to reach it.
+
+A third was in `normalize` itself: the box was rounded to the sprite's own unit, which is
+1 px for a `CANVAS_PIXELS` sprite, and that took `bird_body` to 88x21 -- off the grid
+`SpriteGeometryTest` requires of the whole set. The rounding grid is now
+`SPRITE_PIXELS_PER_UNIT` for every sprite; only the compensation still follows the scale
+convention.
+
+### Done in two passes, and the first one needed nothing
+
+**Trailing first.** Padding on the right and the bottom can be removed with no
+compensation at all: pixel (0,0) does not move, every drawn pixel keeps its coordinates,
+and nothing outside `GlTextureAtlas` and `CanvasSceneTarget` reads a sprite's dimensions.
+30 targets, 63 files, 0.67 MB, no Kotlin touched. `normalize --apply-trailing` is that
+rule, and it is in the tool rather than in a script because the distinction it draws is
+the useful half of the answer.
+
+**Then leading, with its compensation.** 34 targets, each origin moved by the trim in the
+same change: 27 literal call sites, and seven constants -- `PERSON_ANCHOR_X_UNITS`,
+`WINDOW_HEAD_ANCHOR_X_UNITS`, `CAR_HEAD_ANCHOR_X_UNITS`/`_Y_UNITS`,
+`SANTA_SLEIGH_ORIGIN_X_UNITS`/`_Y_UNITS`, `DOLPHIN_ORIGIN_Y_UNITS`,
+`BIRD_SPRITE_ORIGIN_Y_PX`, `LIGHTNING_BOLT_WIDTH_UNITS`.
+
+**Two constants were scale references, not origins, and moving them would have resized
+something.** `RAINBOW_SPRITE_HALF_WIDTH_UNITS` divides into `maxRadius`; lowering it from
+100 to the new canvas's 99 would have scaled the whole rainbow up by a percent, so it
+stays at 100 and the blit now uses its own `RAINBOW_SPRITE_ORIGIN_X_UNITS`/`_Y_UNITS`.
+`LIGHTNING_BOLT_HEIGHT_UNITS` is the bolt's scale reference and its height did not change;
+only the width, which exists solely to centre it, moved from 34 to 30.
+
+### Excluded, by decision rather than by omission
+
+Ten sprites, each with its reason in `normalize.EXCLUSIONS`. The eight canvas-anchored sky
+sprites -- the sun, the four moon phases, `sun_glow`, `star_sparkle`, `firework` -- are
+placed by the centre of their bitmap, and `CELESTIAL_DISC_ORIGIN_UNITS` positions the sun
+and all four phases from one number while their content boxes differ. Cropping them would
+mean splitting that constant per sprite and changing the anchor rule with it, which is an
+anchoring decision and not padding removal; `SkySpriteAnchoringTest` is the test that
+caught defect D-1 twice, and it pins what is there now. The two palm fronds keep their
+existing exclusion.
+
+### The verification that matters
+
+Before any crop, every sprite's ink was hashed as the tuple of (x, y, RGBA) over every
+pixel with non-zero alpha. Afterwards, each sprite's ink was searched for the translation
+that reproduces that hash. **All 118 matched, and every shift was exactly the trim its
+origin was compensated by** -- 3 px per local unit for a `SCENE_UNITS` sprite, 1 px for a
+`CANVAS_PIXELS` one. No pixel changed colour, and no pixel ended up anywhere other than
+where it started once the blit is applied.
+
+`santa_sleigh_*` and `bird_body` are the cases where that mattered most: both are blitted
+under a mirror (`canvas.scale(dir * SANTA_SLEIGH_SCALE, ...)`, and the bird's vertical
+wing-flap). The mirror is applied to the coordinate frame, so what has to stay put is the
+drawing's position in that frame -- which is exactly what the compensation preserves.
+
+**Three sprites lost `PIXEL_IDENTICAL`**, and it is not a shape or position difference.
+`dolphin_body`, `santa_sleigh_scene` and `santa_sleigh_trot` now differ from a fresh
+render of their sources by 30, 27 and 27 pixels, at most 32 alpha units each. The cause is
+that resvg is not invariant to the size of the pixmap it renders into: rendering the
+original document and cropping the result gives the same 30-pixel difference as rendering
+the cropped document, so the source edit is exact and the rasteriser is the variable.
+Measured directly: solid/empty conflicts 0, bounding-box delta (0,0,0,0), and the
+coverage-weighted centroid moves by 0.011 px on the dolphin and 0.001 px on the sleighs,
+with total coverage differing by 1.7 px out of 25,911 and 0.2 px out of 40,132. That is
+antialiasing on a curve, inside the envelope D-7 already measures and bounds.
+
+### Verification
+
+```
+Release identifier:            v2.2
+Verification level:            3
+Reason for the level:          shipped artwork and renderer call sites changed together.
+Tests run:                     yes -- ./gradlew testDebugUnitTest, 357 tests, 0 failures.
+                               First run in this project's recorded history: an Android
+                               SDK and a JDK with a compiler were installed for it.
+                               SpriteGeometryTest 3/3, SkySpriteAnchoringTest 7/7,
+                               SpriteTintClassTest 5/5, SpriteVariantTest 3/3,
+                               SceneSpaceTest 18/18, SceneTransformTest 19/19
+Lint run:                      yes -- ./gradlew lintDebug, 0 errors, 41 warnings
+Python tooling suite:          yes -- 89 tests, 0 failures
+Rasteriser probe:              yes -- fingerprint matches the pin, toolchain unmoved
+Asset validate:                yes -- 0 failures, 118 entries, anchors 118/118,
+                               18 variant groups distinct
+Normalisation:                 yes -- 71 targets checked, none carries removable padding,
+                               10 excluded by decision
+Ink invariance:                yes -- all 118 sprites reproduced their pre-crop ink hash
+                               under the translation their origin was compensated by
+APK build run:                 no
+ZIP verification:              yes
+Git tag created:               no
+Maintainer-side verification required: **yes, and it is the point of this release.**
+                               Install on the Pixel 9 and look at: trees, houses and
+                               their windows, the roof snow on all four building types,
+                               cars and their drivers and passengers, walking people,
+                               the bunny, the penguin, the snowman, the pumpkin, clouds,
+                               the rainbow, lightning, the dolphins, the sailboat and
+                               Santa's sleigh. Anything that moved by a few units would
+                               show as a part sitting slightly off its parent.
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing in this release was seen rendering.** The invariance argument is measured and
+  the tests are green, but no device or emulator was available here.
+- The fidelity criterion still reads the antialiased boundary out of the alpha channel
+  only, so most sprites report `DIVERGENT` against their sources despite the shape bounds
+  D-7 pins. Recorded at v2.1, unchanged.
+- `tools/assets/README.md` and `CLAUDE.md` still quote an older sprite count.
+
+
 ## v2.1 — D-7 closed: rasteriser fidelity, measured rather than asserted
 
-**Stable / latest.** `versionCode = 5`, `versionName = "2.1"`. Tag `v2.1`.
+`versionCode = 5`, `versionName = "2.1"`. Tag `v2.1`.
 
 Offline tooling and documentation only. **No Kotlin, no asset, no resource, no Gradle
 plugin and no manifest change**, so nothing about the running wallpaper differs from
@@ -1152,13 +1292,13 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v2.1 — Stable / latest** (`versionCode = 5`, `versionName = "2.1"`) |
-| **Latest stable** | v2.1 |
+| **Version** | **v2.2 — Stable / latest** (`versionCode = 6`, `versionName = "2.2"`) |
+| **Latest stable** | v2.2 |
 | **Date** | 2026-08-19 |
-| **Build status** | ⚠️ `testDebugUnitTest` **357 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **83 tests, 0 failures** (D-7 closed); asset `validate` **0 failures across 118 sprites**. **`assembleDebug` was not run and no APK was produced** — Level 1: v2.1 touched only offline tooling, documentation and the two version fields |
+| **Build status** | ⚠️ `testDebugUnitTest` **357 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 118 sprites**; `normalize` **0 targets pending, 10 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
-| **Sprite memory** | **118 PNGs, 16.28 MB decoded, 3.08 MB of it croppable padding** — re-measured at v2.1 by `paperscrape-assets inventory`. Earlier figures (15.76 MB across 113 at v76.6, and 15.03 MB before that) predate the five roof snow caps added in v76.12 |
-| **Tests** | 357 Kotlin unit tests, 83 Python tooling tests |
+| **Sprite memory** | **118 PNGs, 14.79 MB decoded, 1.59 MB of it padding** — re-measured at v2.2 after D-10's crop, which recovered 1.49 MB. The residual padding is the outward rounding to the sprite grid plus the ten sprites excluded by decision |
+| **Tests** | 357 Kotlin unit tests, 89 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

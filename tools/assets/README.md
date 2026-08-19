@@ -47,7 +47,7 @@ different tool** — re-measure rather than trust them.
 | `probe` | Fingerprints the toolchain against the pinned expectation |
 | `inventory` | Measures the shipped PNGs into `reports/runtime-inventory.{json,md}` |
 | `validate` | Checks `sources/sprites.json` against what actually ships, and against the Kotlin sources |
-| `normalize` | Reports any sprite still carrying removable transparent padding; `--apply` crops them and updates the registry |
+| `normalize` | Reports any sprite still carrying removable transparent padding; `--apply-trailing` crops the right and bottom, which needs no origin compensation; `--apply` crops all four sides, updates the registry and the SVG sources, and prints the origin compensations that must be applied in the same change |
 | `fit <name>…` | Recovers rectangular geometry from a shipped PNG; `--emit` writes the SVG |
 | `render` | Renders every SVG source into `staging/` |
 | `compare` | Measures `staging/` against the shipped PNGs into `reports/` |
@@ -242,6 +242,36 @@ Run the tests before trusting a verdict. They pin the near misses in both
 directions — a one-pixel displacement, a radius one grid unit off, a fill colour
 off by one — because a criterion that cannot fail asserts nothing.
 
+## Padding, and the origin that has to move with it
+
+**`SpriteBlitter` puts the bitmap's own pixel (0,0) on the origin its call site passes.**
+Cropping transparent rows off the left or the top of a sprite therefore changes what that
+pixel is, and the drawing lands somewhere else unless the origin moves by exactly the
+trim. That is why `--apply` prints a compensation for every target and why it is not a
+standalone asset change: the crop and the origin are one edit, and defect D-10 stayed open
+for as long as it did because it was recorded as the former.
+
+Cropping the **right and bottom** is a different matter. Pixel (0,0) does not move, every
+drawn pixel keeps its coordinates, and nothing outside `GlTextureAtlas` and
+`CanvasSceneTarget` reads a sprite's dimensions at all. `--apply-trailing` is that half,
+and it needs nothing from the renderer.
+
+Both round the retained box **outward to `SPRITE_PIXELS_PER_UNIT`, for every sprite**.
+That is the grid `SpriteGeometryTest` requires of the whole shipped set regardless of
+scale convention; only the compensation follows the convention, one unit per pixel for
+`CANVAS_PIXELS` and one per three for `SCENE_UNITS`. Rounding outward leaves up to two
+pixels of padding, and that padding is load-bearing for alignment.
+
+Both also rewrite the SVG source's `viewBox` — its origin to the crop's top-left corner
+and its extent to the crop's size — so the source keeps describing the PNG that ships.
+Nothing inside the document moves.
+
+`EXCLUSIONS` in `normalize.py` lists the sprites this rule deliberately leaves alone, each
+with its reason. It is not a backlog: a `SPRITE_CENTRE` sprite is placed by the centre of
+its canvas, so cropping it moves its anchor even though no drawn pixel moves, and the sun
+and the four moon phases share one origin constant that would have to be split per sprite
+first.
+
 ### What the pinned rasteriser does and does not reproduce
 
 The shipped PNGs came from the V2 library's own rasteriser, and the pinned one
@@ -263,17 +293,19 @@ in mind; the shape bounds above are what the closure of D-7 rests on.
 
 A sprite's **normalised content box** is the union of the measured alpha bounding
 boxes of its co-registered group, rounded outward to a multiple of
-`SPRITE_PIXELS_PER_UNIT` for a `SCENE_UNITS` sprite and of 1 px for a
-`CANVAS_PIXELS` one. `normalize --apply` crops each sprite to that box, updates
-its `width`, `height`, `contentBox` and derived `anchor` in the registry, and
-prints the origin compensation every affected call site needs.
+`SPRITE_PIXELS_PER_UNIT` — for every sprite, whichever scale convention positions
+it. `normalize --apply` crops each sprite to that box, updates its `width`,
+`height`, `contentBox` and derived `anchor` in the registry, rewrites the SVG
+source's `viewBox` to match, and prints the origin compensation every affected
+call site needs.
 
 **Apply the compensations in the same change.** `SpriteBlitter` places the
 bitmap's own pixel (0,0) at the caller's origin, so a crop without its
 compensation moves the sprite by exactly the amount that was cropped. The tool
 cannot make the Kotlin edit for you; it can only tell you the number, and
-`validate` will catch the omission only for the 17 sprites with a determined
-anchor.
+`validate` catches the omission only for the sprites whose anchor predicts an
+origin. D-10 did exactly this in v2.2: 34 targets cropped, 34 origins moved, and
+every sprite's ink hashed before and after to prove it landed where it started.
 
 Two parts of the rule look like details and are not:
 
@@ -282,7 +314,12 @@ Two parts of the rule look like details and are not:
   draw time. A trim of 17 px would give 5.667 units, which returns as 17.000002 —
   a sub-pixel origin, resampled because the blit paint carries
   `FILTER_BITMAP_FLAG`. Outward rounding keeps the compensation an exact integer
-  and leaves up to `unit - 1` px behind. That residue is deliberate.
+  and leaves up to two pixels behind. That residue is deliberate.
+- **Rounded to the sprite grid even for a raw-pixel sprite.** `unit` governs the
+  compensation, not the grid: a `CANVAS_PIXELS` sprite writes its origin in
+  pixels, but `SpriteGeometryTest` still requires its canvas to be a whole
+  multiple of `SPRITE_PIXELS_PER_UNIT`. Rounding `bird_body` to its own pixel
+  produced 88x21, off the grid on both axes.
 - **The union covers a group, not a sprite.** Sprites chosen from a lookup table
   at draw time share one origin literal, so they must share one crop. Cropping
   each walk frame to its own box would need 32 origins that do not exist, and the
@@ -292,8 +329,11 @@ Two parts of the rule look like details and are not:
 
 `EXCLUSIONS` in `normalize.py` lists the sprites left alone, each with its reason.
 An empty list there would be a claim that every sprite can be normalised, which is
-not true.
+not true: the canvas-anchored sky sprites are placed by the centre of their bitmap,
+and the sun and the four moon phases share one origin constant that would have to be
+split per sprite before any of them could be cropped.
 
-`normalize` runs in check form as part of `all`. Gradle never invokes this
-tooling, so `SpriteNormalisationTest` on the Kotlin side repeats the invariant
-where CI will actually run it.
+`normalize` runs in check form as part of `all`. Gradle never invokes this tooling,
+so `SpriteGeometryTest` on the Kotlin side repeats the part of the invariant that has
+to hold in the APK — every canvas on the grid, and the whole set inside its decoded
+byte budget — where CI will actually run it.

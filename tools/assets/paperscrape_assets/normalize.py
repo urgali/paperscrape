@@ -150,6 +150,37 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "Overlays palmtree_fronds at the same origin and shares its off-grid canvas. Deferred for "
         "the same reasons.",
     ),
+    *(
+        Exclusion(
+            name,
+            "Anchored on its canvas rather than on its drawing (`SPRITE_CENTRE`), and placed by a "
+            "constant this normalisation is not allowed to split. `CELESTIAL_DISC_ORIGIN_UNITS` "
+            "positions the sun and all four moon phases from one number, and their content boxes "
+            "differ, so cropping each to its own would need that constant separated per sprite and "
+            "the anchor rule changed with it -- an anchor-model decision, not padding removal. "
+            "`SkySpriteAnchoringTest` pins the surviving relationship between each canvas and its "
+            "origin, and it is the test that caught defect D-1 twice.",
+        )
+        for name in ("sun_body", "moon_full", "moon_half", "moon_gibbous", "moon_crescent")
+    ),
+    Exclusion(
+        "sun_glow",
+        "`SPRITE_CENTRE`, and its padding is one pixel on each side of a 396x396 canvas. Rounded "
+        "outward to the sprite grid that removes nothing at all, so there is no crop to make.",
+    ),
+    Exclusion(
+        "star_sparkle",
+        "`SPRITE_CENTRE`, positioned by `STAR_SPRITE_ORIGIN_UNITS` against a nominal 32-unit star "
+        "radius. The crop is symmetric and would be safe on its own, but it moves the canvas the "
+        "origin constant is expressed against, and that constant is the one D-1 broke. Left with "
+        "the other canvas-anchored sprites so the sky set moves as one decision or not at all.",
+    ),
+    Exclusion(
+        "firework",
+        "`SPRITE_CENTRE`, blitted centred on the burst it draws. Same reasoning as `star_sparkle`: "
+        "a symmetric crop is expressible, but it redefines the canvas the origin is measured "
+        "against, which is a change to the sky sprites' anchoring rather than to their padding.",
+    ),
 )
 
 
@@ -163,14 +194,26 @@ def unit_for(scale: str) -> int:
 
 
 def normalised_box(boxes: list[Box], size: tuple[int, int], unit: int) -> Box:
-    """The union of `boxes`, rounded outward to `unit` and clamped to the canvas."""
+    """The union of `boxes`, rounded outward to the sprite grid and clamped to the canvas.
+
+    The rounding grid is `SPRITE_PIXELS_PER_UNIT` for **every** sprite, not only the
+    `SCENE_UNITS` ones. `unit` still governs the compensation -- a `CANVAS_PIXELS`
+    sprite's origin is written in pixels, so its trim converts one for one -- but the
+    canvas itself has to stay a whole multiple of the grid on both axes whatever
+    convention positions it, because `SpriteGeometryTest` requires that of the whole
+    shipped set and makes no exception. Rounding a `CANVAS_PIXELS` sprite to its own
+    pixel instead took `bird_body` to 88x21, which is off the grid on both axes.
+    Rounding outward can only leave padding behind, never remove artwork, and a trim
+    that is a multiple of the grid is still a whole number of pixels.
+    """
     if not boxes:
         raise ValueError("a normalised box needs at least one content box")
     width, height = size
-    left = min(b[0] for b in boxes) // unit * unit
-    top = min(b[1] for b in boxes) // unit * unit
-    right = -(-max(b[2] for b in boxes) // unit) * unit
-    bottom = -(-max(b[3] for b in boxes) // unit) * unit
+    grid = SPRITE_PIXELS_PER_UNIT
+    left = min(b[0] for b in boxes) // grid * grid
+    top = min(b[1] for b in boxes) // grid * grid
+    right = -(-max(b[2] for b in boxes) // grid) * grid
+    bottom = -(-max(b[3] for b in boxes) // grid) * grid
     return (max(0, left), max(0, top), min(width, right), min(height, bottom))
 
 
@@ -277,3 +320,66 @@ def plan(
 def pending(plans: list[Normalisation]) -> list[Normalisation]:
     """The normalisations that still have something to remove."""
     return [p for p in plans if not p.is_noop]
+
+
+#: Anchor rules whose anchor is the *canvas* rather than the drawing inside it.
+#: A trailing crop changes the canvas, so it moves their anchor and is not free.
+CANVAS_ANCHORED_RULES = ("SPRITE_CENTRE",)
+
+
+def trailing(item: Normalisation, grid: int = SPRITE_PIXELS_PER_UNIT) -> Normalisation:
+    """The part of ``item``'s crop that costs nothing at the call site.
+
+    The full rule removes padding on all four sides and pays for it with an origin
+    compensation, because `SpriteBlitter` puts the bitmap's pixel (0,0) on the
+    caller's origin and cropping the left or the top moves what that pixel is. The
+    trailing crop removes padding on the **right and bottom only**. Pixel (0,0) is
+    untouched, every drawn pixel keeps the coordinates it had, and no call site,
+    anchor or content box moves. Nothing outside `GlTextureAtlas` and
+    `CanvasSceneTarget` reads a sprite's dimensions at all, and both derive
+    everything they need from the bitmap they are handed.
+
+    That makes this the half of the padding that can be removed without the
+    re-anchoring decision the rest of it needs, and without a device to confirm
+    afterwards that nothing moved -- because nothing can have.
+
+    Two conditions still apply.
+
+    **Rounded outward to ``grid``, for every sprite and not only the `SCENE_UNITS`
+    ones.** `SpriteGeometryTest` requires every shipped canvas to be a whole
+    multiple of `SpriteBlitter.SPRITE_PIXELS_PER_UNIT` on both axes, and it makes
+    no exception for the raw-pixel convention. Rounding outward can only leave
+    padding behind, never remove artwork.
+
+    **Not for a canvas-anchored sprite.** `SPRITE_CENTRE` says the sprite is placed
+    by the centre of its bitmap, so changing the bitmap's width or height moves the
+    anchor even though no drawn pixel moved. Those sprites are left to the full
+    rule -- see `CANVAS_ANCHORED_RULES`.
+    """
+    right = -(-item.box[2] // grid) * grid
+    bottom = -(-item.box[3] // grid) * grid
+    box = (0, 0, min(item.size[0], right), min(item.size[1], bottom))
+    return Normalisation(
+        key=item.key,
+        members=item.members,
+        unit=item.unit,
+        size=item.size,
+        box=box,
+        origin_site=item.origin_site,
+    )
+
+
+def trailing_plan(
+    plans: list[Normalisation],
+    anchor_rules: dict[str, str],
+    grid: int = SPRITE_PIXELS_PER_UNIT,
+) -> list[Normalisation]:
+    """Every trailing crop worth performing, in the order `plan` produced them."""
+    results = []
+    for item in plans:
+        if any(anchor_rules[n] in CANVAS_ANCHORED_RULES for n in item.members):
+            continue
+        candidate = trailing(item, grid)
+        if not candidate.is_noop:
+            results.append(candidate)
+    return results

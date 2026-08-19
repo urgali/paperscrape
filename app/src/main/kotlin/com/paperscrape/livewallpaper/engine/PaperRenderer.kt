@@ -443,17 +443,32 @@ class PaperRenderer(
         const val FIREWORK_REACH_UNITS = 120f
 
         /**
-         * `rainbow_arc` is 600x312, so 200x104 local units, with the arc spanning the full width
-         * and its base on the bottom edge. Half the width is what maps onto the arc's radius.
+         * The arc's own radius in local units, and what `maxRadius` is expressed against.
+         *
+         * **This is a scale reference, not the sprite's width, and the two stopped being the same
+         * number when D-10 cropped the padding away.** The sprite was 600x312 with its arc
+         * spanning x 3..597 and y 15..312; it is now 594x297 holding exactly the same drawing, and
+         * the origin below moved by the trim so that every pixel of it lands where it did before.
+         * The 100 has to stay 100 regardless: it is the half-width the on-screen radius is divided
+         * by, so lowering it to the new canvas would scale the whole rainbow up by a percent.
          */
         const val RAINBOW_SPRITE_HALF_WIDTH_UNITS = 100f
-        const val RAINBOW_SPRITE_HEIGHT_UNITS = 104f
+
+        /** Where the cropped sprite is blitted so its arc keeps the coordinates it always had. */
+        const val RAINBOW_SPRITE_ORIGIN_X_UNITS = -99f
+        const val RAINBOW_SPRITE_ORIGIN_Y_UNITS = -99f
 
         /** Matches the peak alpha the stroked bands used, so the fade curve is unchanged. */
         const val RAINBOW_MAX_ALPHA = 200f
 
-        /** `lightning_bolt` is 102x252, so 34x84 local units, hanging from its own top edge. */
-        const val LIGHTNING_BOLT_WIDTH_UNITS = 34f
+        /**
+         * `lightning_bolt` is 90x252, so 30x84 local units, hanging from its own top edge.
+         *
+         * The width was 34 until D-10 cropped six pixels of padding from each side. It is used
+         * only to centre the bolt -- the height, which is the scale reference, is untouched -- so
+         * halving the new width puts the same drawing on the same axis.
+         */
+        const val LIGHTNING_BOLT_WIDTH_UNITS = 30f
         const val LIGHTNING_BOLT_HEIGHT_UNITS = 84f
 
         /** Where a bolt starts and how far down it reaches, as fractions of screen height. */
@@ -462,8 +477,8 @@ class PaperRenderer(
         const val LIGHTNING_BOLT_HEIGHT_SPREAD_FRACTION = 0.14f
 
         const val SANTA_SLEIGH_SCALE = 1.5f
-        const val SANTA_SLEIGH_ORIGIN_X_UNITS = -103.67f
-        const val SANTA_SLEIGH_ORIGIN_Y_UNITS = -27.5f
+        const val SANTA_SLEIGH_ORIGIN_X_UNITS = -99.67f
+        const val SANTA_SLEIGH_ORIGIN_Y_UNITS = -25.5f
 
         /**
          * How fast the sleigh's two leg poses alternate, in poses per second.
@@ -522,10 +537,19 @@ class PaperRenderer(
          * y 12..70, so its content centre sits at (57.3, 41).
          */
         const val DOLPHIN_ORIGIN_X_UNITS = -57.3f
-        const val DOLPHIN_ORIGIN_Y_UNITS = -41f
+        const val DOLPHIN_ORIGIN_Y_UNITS = -29f
 
+        /**
+         * Where the bird bitmap is blitted, in raw pixels.
+         *
+         * The wing-flap mirrors the canvas vertically about y = 0, so what has to stay put is the
+         * *drawing's* position in that frame, not the canvas's. D-10 cropped 6 px of padding from
+         * the top and 15 from the bottom, and the y origin moved by the top trim so every drawn
+         * pixel keeps the coordinate it had; the flip therefore produces exactly the frame it did
+         * before. Changing either number without the other moves the bird.
+         */
         const val BIRD_SPRITE_ORIGIN_X_PX = -45f
-        const val BIRD_SPRITE_ORIGIN_Y_PX = -21f
+        const val BIRD_SPRITE_ORIGIN_Y_PX = -15f
 
         /** Centres a 240px raw-pixel disc in the `radius / 120f` space of the sun and moon. */
         const val CELESTIAL_DISC_ORIGIN_UNITS = -120f
@@ -1343,7 +1367,7 @@ class PaperRenderer(
         canvas.save()
         canvas.translate(cx, cy)
         canvas.scale(scale, scale)
-        sprites.drawTinted(canvas, R.drawable.cloud_body, -144f, -103f, SpriteScale.SCENE_UNITS, cloudPaint.color)
+        sprites.drawTinted(canvas, R.drawable.cloud_body, -128f, -85f, SpriteScale.SCENE_UNITS, cloudPaint.color)
         canvas.restore()
     }
 
@@ -1376,9 +1400,8 @@ class PaperRenderer(
         val baseY = screenHeight * baseYFraction
         val cx = screenWidth * 0.5f
         // The arc's outer radius, unchanged: the geometry is the same, only what fills it moved
-        // from stroked bands to artwork. `rainbow_arc` is 600x312 -- 200x104 local units under
-        // the SCENE_UNITS convention the manifest declares -- and its arc spans the full width
-        // with its base on the bottom edge, so a half-width of 100 units maps onto `maxRadius`.
+        // from stroked bands to artwork. A half-width of 100 units maps onto `maxRadius`, and it
+        // stays 100 even though the sprite is now 594x297 -- see the constant.
         val maxRadius = screenWidth * 0.62f
         val scale = maxRadius / RAINBOW_SPRITE_HALF_WIDTH_UNITS
         canvas.save()
@@ -1387,8 +1410,8 @@ class PaperRenderer(
         sprites.draw(
             canvas,
             R.drawable.rainbow_arc,
-            -RAINBOW_SPRITE_HALF_WIDTH_UNITS,
-            -RAINBOW_SPRITE_HEIGHT_UNITS,
+            RAINBOW_SPRITE_ORIGIN_X_UNITS,
+            RAINBOW_SPRITE_ORIGIN_Y_UNITS,
             SpriteScale.SCENE_UNITS,
             (RAINBOW_MAX_ALPHA * visibility).toInt().coerceIn(0, 255),
         )
@@ -2129,7 +2152,7 @@ class PaperRenderer(
                 canvas.save()
                 canvas.translate(x, y)
                 canvas.scale(boatScale, boatScale)
-                sprites.draw(canvas, R.drawable.sailboat_sail, -41f, -50f, SpriteScale.SCENE_UNITS)
+                sprites.draw(canvas, R.drawable.sailboat_sail, -35f, -50f, SpriteScale.SCENE_UNITS)
                 sprites.draw(canvas, R.drawable.sailboat_hull, -42f, 8f, SpriteScale.SCENE_UNITS)
                 canvas.restore()
             }

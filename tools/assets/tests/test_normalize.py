@@ -83,9 +83,17 @@ class NormalisedBoxTest(unittest.TestCase):
             normalize.normalised_box([(1, 1, 119, 125)], (120, 126), UNIT),
         )
 
-    def test_a_raw_pixel_sprite_needs_no_rounding_at_all(self):
+    def test_a_raw_pixel_sprite_is_rounded_to_the_same_grid(self):
+        """The grid is the canvas's, not the origin's.
+
+        A `CANVAS_PIXELS` sprite writes its origin in pixels, so `unit` is 1 and its
+        compensation converts one for one -- but `SpriteGeometryTest` requires every
+        shipped canvas to be a whole multiple of the sprite grid whatever convention
+        positions it. Rounding this one to its own pixel took `bird_body` to 88x21,
+        off the grid on both axes.
+        """
         self.assertEqual(
-            (7, 8, 97, 119),
+            (6, 6, 99, 120),
             normalize.normalised_box([(7, 8, 97, 119)], (120, 126), 1),
         )
 
@@ -152,18 +160,25 @@ class GroupTest(unittest.TestCase):
         )
 
     def test_a_group_whose_members_fill_the_canvas_is_not_cropped(self):
-        # The moon phases: each is the same disc lit differently, so individually
-        # they carry a lot of padding and together they carry none. Cropping them
-        # by their own boxes would make the moon move as it waxes.
-        phases = {
-            "moon_full": (0, 0, 240, 240),
-            "moon_gibbous": (43, 0, 240, 240),
-            "moon_half": (117, 0, 240, 240),
-            "moon_crescent": (95, 0, 240, 240),
+        # The window occupants: four busts on one canvas, chosen from a lookup table
+        # and blitted through one origin. Individually each leaves margin; between
+        # them they reach every edge, so the union has nothing to remove and
+        # cropping them to their own boxes would move each occupant relative to the
+        # others.
+        #
+        # This used to be stated with the moon phases, which say the same thing more
+        # neatly. They are no longer usable here: D-10 excluded the whole
+        # canvas-anchored sky set by decision, so `plan` now skips them and the case
+        # would pass for the wrong reason.
+        heads = {
+            "person_man_summer_head_window": (0, 0, 180, 120),
+            "person_woman_summer_head_window": (21, 0, 180, 162),
+            "person_boy_summer_head_window": (0, 42, 159, 162),
+            "person_girl_summer_head_window": (30, 0, 180, 162),
         }
-        measurements = {n: measurement(n, (240, 240), b) for n, b in phases.items()}
+        measurements = {n: measurement(n, (180, 162), b) for n, b in heads.items()}
         plans = normalize.plan(
-            measurements, dict.fromkeys(phases, "CANVAS_PIXELS"), set(phases)
+            measurements, dict.fromkeys(heads, "SCENE_UNITS"), set(heads)
         )
         self.assertEqual(1, len(plans))
         self.assertTrue(plans[0].is_noop)
@@ -208,7 +223,69 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual(1, normalize.unit_for("CANVAS_PIXELS"))
 
 
-#: How many normalisation targets still carry removable padding.
+class TrailingCropTest(unittest.TestCase):
+    """The crop that costs nothing, and the three ways it could stop being free.
+
+    The whole claim of `normalize.trailing` is that pixel (0,0) does not move, so
+    no origin, anchor or content box needs to move with it. Each test below breaks
+    one leg of that: a box that no longer starts at zero, a canvas that leaves the
+    grid, and a sprite whose anchor is its canvas rather than its drawing.
+    """
+
+    def plan_for(self, size, box, scale="SCENE_UNITS", rule="PART_LOCAL"):
+        plans = normalize.plan(
+            {"s": measurement("s", size, box)}, {"s": scale}, {"s"}
+        )
+        return normalize.trailing_plan(plans, {"s": rule})
+
+    def test_the_crop_never_moves_the_bitmaps_own_origin(self):
+        (item,) = self.plan_for((120, 120), (12, 12, 90, 90))
+        self.assertEqual(0, item.box[0])
+        self.assertEqual(0, item.box[1])
+        self.assertEqual((0.0, 0.0), item.compensation)
+
+    def test_the_retained_canvas_stays_on_the_grid(self):
+        """Rounded outward, so a content edge one pixel past the grid keeps a row."""
+        (item,) = self.plan_for((120, 120), (0, 0, 91, 91))
+        self.assertEqual((93, 93), item.new_size)
+
+    def test_the_grid_applies_to_raw_pixel_sprites_too(self):
+        """`SpriteGeometryTest` makes no exception for `CANVAS_PIXELS`."""
+        (item,) = self.plan_for((90, 42), (0, 0, 88, 26), scale="CANVAS_PIXELS")
+        self.assertEqual((90, 27), item.new_size)
+
+    def test_a_canvas_anchored_sprite_is_left_alone(self):
+        """`SPRITE_CENTRE` moves when the canvas does, even if no drawn pixel does."""
+        self.assertEqual([], self.plan_for((120, 120), (12, 12, 90, 90), rule="SPRITE_CENTRE"))
+
+    def test_a_sprite_with_no_trailing_padding_is_not_a_target(self):
+        self.assertEqual([], self.plan_for((120, 120), (12, 12, 120, 120)))
+
+    def test_the_shipped_set_has_no_trailing_padding_left(self):
+        specs = registry.load(REGISTRY_PATH)
+        measurements = {m.name: m for m in inventory.measure_directory(RUNTIME_DIR)}
+        referenced = set()
+        for path in KOTLIN_SOURCES.rglob("*.kt"):
+            for chunk in path.read_text(encoding="utf-8").split("R.drawable.")[1:]:
+                end = 0
+                while end < len(chunk) and (chunk[end].isalnum() or chunk[end] == "_"):
+                    end += 1
+                referenced.add(chunk[:end])
+        plans = normalize.plan(
+            measurements, {s.name: s.scale for s in specs}, referenced
+        )
+        remaining = normalize.trailing_plan(
+            normalize.pending(plans), {s.name: s.anchor_rule for s in specs}
+        )
+        self.assertEqual(
+            [], [item.key for item in remaining],
+            "these targets regained padding on the right or bottom, which "
+            "`normalize --apply-trailing` removes with nothing to compensate",
+        )
+
+
+#: How many normalisation targets still carry padding that only a compensated crop
+#: can remove.
 #:
 #: The V2 asset library never went through Phase 3.3's padding pass. See the test
 #: below for why this is a recorded state rather than a failure.
@@ -217,7 +294,15 @@ class ScopeTest(unittest.TestCase):
 #: is authored on the canvas of the roof it covers, so its blit origin is that roof's
 #: origin plus a stated crest rather than a number of its own. Trimming them to their
 #: own content would buy a few kilobytes and cost that derivation.
-KNOWN_PENDING_CROP_COUNT = 40
+#:
+#: **Now zero, which is what closing D-10 means.** The trailing padding went first,
+#: with no origin to compensate because pixel (0,0) never moved. The leading padding
+#: followed in the same change as its compensation: 34 targets cropped, every one of
+#: their blit origins moved by the trim, and every ink pixel verified to land on the
+#: coordinate it had before. What remains is `EXCLUSIONS`, which is a list of
+#: decisions rather than a backlog -- the canvas-anchored sky sprites, whose origin
+#: constants would have to be split per sprite, and the two palm fronds.
+KNOWN_PENDING_CROP_COUNT = 0
 
 
 class ShippedSetTest(unittest.TestCase):
@@ -244,10 +329,11 @@ class ShippedSetTest(unittest.TestCase):
             self.referenced,
         )
         pending = normalize.pending(plans)
-        # **Not empty, and deliberately so.** Phase 3.3 normalised the set that
-        # existed then; the V2 asset library replaced almost all of it and was never
-        # put through the same pass, so its sprites still carry croppable transparent
-        # padding -- 2.84 MB of the decoded total, by `inventory`.
+        # **Empty, and that is the whole of D-10.** Phase 3.3 normalised the set that
+        # existed then; the V2 asset library replaced almost all of it and went
+        # through the same pass only now. Nothing in scope carries removable padding
+        # any more, so this reads as a guard rather than as a record: a new sprite
+        # that ships with padding, or a crop that is undone, fails here.
         #
         # Cropping is not a standalone change: every crop shifts the sprite's content
         # inside its own box, so each one needs its blit origin compensated in the
