@@ -19,9 +19,98 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.9 — the settings rebuilt, and previews that show the theme
+
+**Stable / latest.** `versionCode = 13`, `versionName = "2.9"`. Tag `v2.9`.
+
+A UI release. The renderer, `SceneSpace`, the sprite library, the themes, the calendar, Live
+Weather, the reset behaviours and every stored preference are untouched; what changed is how the
+settings present them, and what a theme's gallery card draws.
+
+### The settings were one list
+
+v2.8's settings were a single `SettingsScreen.kt` of 2,414 lines producing one scroll about four
+and a half screens tall, plus two full-screen dialogs. Three things were wrong with it, and none
+of them was a matter of taste:
+
+1. **Weather had no section**, and worse, it lived *inside* the "Follow real time" branch — so
+   switching the clock to a fixed hour removed the two location toggles, Live Weather and the API
+   key field from the screen entirely, with nothing saying where they had gone.
+2. **Seasonal Decorations expanded six category blocks inline** — about sixty controls in one
+   scroll, with each block's season named in a heading two thousand pixels above it, and the
+   Flowers switch sitting under the *Christmas* heading.
+3. **The active theme was never named.** The home preview drew it and said nothing.
+
+### What replaced it
+
+Five destinations, all drill-downs from a home screen that holds no settings of its own: **Weather
+& time**, **Seasons & decorations**, **World & scene**, **Advanced & about**, and the theme gallery
+from Home's Theme row. One file each, plus `SettingsComponents.kt` for the shared Material 3
+vocabulary. Every v2.8 control is present.
+
+Two pairs of mutually exclusive booleans became one choice each — location source
+(Off / Phone / Custom) and seasonal palette (None / Autumn / Winter). **Presentation only.** The
+flags are the same flags, written by the same setters, whose own exclusivity is what makes three
+states out of two booleans; `SettingsUiModelTest` pins both mappings in both directions, including
+that the enum ordinals match the segmented labels, because indexing by ordinal is how a reorder
+would silently swap two settings.
+
+Live Weather now stays visible and **disabled**, with the reason, when the clock is fixed —
+the disabled pattern v2.8 already used when no location was set, so nothing previously unreachable
+became reachable.
+
+### Material 3, completed
+
+`PaperScrapeTheme` defined 4 roles out of roughly 30, so switches, inactive slider tracks,
+containers and dialog surfaces fell back to Material's baseline violet. The scheme is now complete
+in both light and dark, every role a tone of the four colours the app already had. The emoji used
+as section markers are gone; the icons are Material Symbols from `material-icons-extended`, which
+was already a dependency.
+
+### Theme previews
+
+`ThemeScenePreview` drew a sky gradient, a circle for the sun and a rectangle for the hills. It was
+honest about the palette and silent about everything else, which left six of the twelve built-in
+themes looking alike in the gallery.
+
+A card now draws a real mini scene from the shipping sprites at the renderer's own part offsets,
+with the theme's own palette and the customization the theme actually carries.
+`engine/ThemePreviewScene.kt` holds the description — no Android type beyond resource ids, so what
+a preview contains is a unit-testable question — and `ui/ThemePreview.kt` replays it through
+`CanvasSceneTarget` and the same `SpriteBlitter` the wallpaper uses.
+
+The rule that keeps it honest is that **every object is conditional on the flag the wallpaper
+reads**. No lake where `lake.visible` is false; no sailboats or dolphins on the tundra, which turns
+both off; palms only on the two themes whose tree slots map to `PALM_TREE`; the carved moon tinted
+with `PaperRenderer.HALLOWEEN_MOON_COLOUR` rather than the theme's `moonColor`; the fall canopies
+in `fallLeafColorFor`'s own palette. Where the scene has no sprite at all — parasols are drawn
+procedurally — the preview shows nothing rather than standing in a different sprite. Nineteen tests
+pin this, in both directions.
+
+It is static: no GL context, no animation, no timer, no per-card bitmap. The description is built
+once and kept by `remember`; pixels come from the process-wide `SpriteCache`; a card is roughly
+twenty blits on composition and on scroll, and nothing at rest.
+
+One thing the previews revealed rather than introduced: the default mountain colours are green
+(`#4CAF7C` / `#3E8F68`), which is what the wallpaper has always drawn on the themes that do not
+override them. The preview shows it because it is true.
+
+### Measured
+
+442 Kotlin unit tests passing (v2.8: 407) across 31 classes, `lintDebug` **0 errors / 40 warnings**
+— one below v2.8's 41, because two pre-existing `UseKtx` warnings were closed along the way.
+`assembleDebug` produced an APK, so resource linking, dexing and packaging are proven for this
+source tree and not only compilation.
+
+**Not seen rendering.** No device or emulator was available. The previews were verified by dumping
+the shipping `ThemePreviewScenes` output and rasterising it against the real PNGs, which checks the
+composition the code produces but is not the app drawing on a screen.
+
+---
+
 ## v2.8 — the buildings measured against a person
 
-**Stable / latest.** `versionCode = 12`, `versionName = "2.8"`. Tag `v2.8`.
+**Stable.** `versionCode = 12`, `versionName = "2.8"`. Tag `v2.8`.
 
 v2.7 raised the shops' metres and left their single-storey artwork, which multiplied every opening
 the drawing contains. Measured in metres as a 1.9 m person reads them, v2.7 shipped a **4.20 m

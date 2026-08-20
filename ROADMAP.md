@@ -10,25 +10,20 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.8 Stable — the buildings measured against a person.**
+**v2.9 Stable — the settings rebuilt, and previews that show the theme.**
 
-`versionCode = 12`, `versionName = "2.8"`. Shops given a first floor so they out-top the houses by
-mass rather than by four-metre doors; the small house lowered onto the large house's own
-metres-per-unit and widened; the tower shortened with a coarse window grid and a ground-floor
-entrance; Christmas firs on one tree in three; Christmas lights scattered by hash across every
-facade. Not yet seen rendering.
+`versionCode = 13`, `versionName = "2.9"`. A UI release: the settings split from one 2,414-line
+screen into five destinations, the Material 3 colour scheme completed from the existing palette,
+emoji replaced by Material Symbols, and theme previews that draw a real mini scene from the
+shipping sprites instead of a gradient with a circle on it. No flag, default, calendar rule, reset,
+renderer or asset changed.
 
-Last measured: 407 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
-asset `validate` clean across 125 sprites, `normalize` reporting nothing pending,
-offline tooling 96 tests with no failures.
-
-`assembleDebug` has not been run and no APK is produced locally — CI builds the release
-APK. Compilation is proven by `testDebugUnitTest`, which compiles the whole `debug`
-source set; resource linking, dexing and packaging are not.
+Last measured: 442 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK. Not yet seen rendering on a device.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -43,8 +38,8 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 | 3 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
 | 4 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
 | 5 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
-| 6 | **Material 3 colour scheme** | The settings UI uses Material 3 components without a completed colour scheme. Cosmetic, contained to `ui/`. |
-| 7 | **Theme previews** | The settings preview magnifies the size table with per-item fitting factors so three objects of very different heights fit a 120 dp strip. Honest, but not representative. |
+| 6 | **Device pass on v2.9's settings UI and theme previews** | Five destinations, a completed colour scheme and twelve mini-scene previews, none of it seen rendering. The previews in particular were verified by rasterising the scene description the code produces, not by the app drawing it. |
+| 7 | **Scene-objects live preview** | The strip at the top of World & scene still magnifies the size table with per-item fitting factors so three objects of very different heights fit 120 dp. Honest, but not representative — and now inconsistent with the gallery previews next to it. |
 | 8 | **README / lint / KDoc tidying** | `UseKtx`, `ObsoleteSdkInt`, `DataExtractionRules`, and KDoc that has accumulated layers across releases. |
 
 **Localisation is explicitly out of scope.** PaperScrape is English-only by decision;
@@ -69,6 +64,7 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.9 Stable** — settings UI restructured into five destinations, complete Material 3 colour scheme, Material Symbols, and theme previews drawn from the real sprite library.
 - **v2.8 Stable** — shop first floors, small-house harmonisation, a shorter tower with a coarse grid and a real entrance, Christmas firs and scattered lights.
 - **v2.7 Stable** — roof-snow and leaf-spawn bugs fixed, flowers toggle, window Christmas lights, balloons removed, building hierarchy and skyscraper grid corrected.
 - **v2.6 Stable** — a true outer silhouette outline replacing v2.5's inner rim, which flickered across the walk frames, and a wider small-house facade.

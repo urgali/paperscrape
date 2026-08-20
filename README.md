@@ -3,7 +3,7 @@
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.8 Stable**
+**Current version: v2.9 Stable**
 
 ---
 
@@ -18,8 +18,9 @@ moving on its own.
   whole palette blends from night through dawn to day and back. Sunrise and sunset
   times can come from the clock alone, from your location, or from a place you pick.
 - **Twelve themes** — sunset, autumn, winter, spring, desert, Christmas, new year, beach,
-  city, tundra, Easter and Halloween — with optional automatic switching by date, which now
-  covers every day of the year and moves Easter with the calendar.
+  city, tundra, Easter and Halloween — with optional automatic switching by date, which
+  covers every day of the year and moves Easter with the calendar. Each one's gallery card
+  draws a small version of that theme's own world, so you can see what you are choosing.
 - **Custom themes.** Save your own, built on any of the ten, and keep them.
 - **Every part of the scene is adjustable.** Houses, buildings, trees, umbrellas,
   cars, people, hills, mountains, clouds, stars, rainbows, the lake and its boats and
@@ -85,9 +86,17 @@ holds per-category visibility, density and colours; `CustomThemeData` serialises
 themes to JSON with a versioned schema and migrations. `SeasonalThemeRules` decides the
 automatic by-date theme.
 
-**Settings.** A Jetpack Compose UI (Material 3) backed by DataStore Preferences. The
-wallpaper service collects the preferences flow, so changes reach the running scene
-without a restart.
+**Settings.** A Jetpack Compose UI (Material 3, complete colour scheme derived from the
+app's own palette) backed by DataStore Preferences. Five destinations — Weather & time,
+Seasons & decorations, World & scene, Advanced & about, and the theme gallery — reached
+from a home screen that says which theme is showing and who chose it. The wallpaper
+service collects the preferences flow, so changes reach the running scene without a
+restart.
+
+**Theme previews.** A gallery card is a real mini scene, drawn from the shipping sprites
+at the renderer's own part offsets with the theme's own palette, and containing only what
+that theme actually has switched on. It is static: no GL context, no animation, and the
+sprite pixels are shared with the rest of the process.
 
 **Assets.** 125 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
 source under `tools/assets/sources/svg/`. A Python pipeline renders, measures and checks
@@ -101,8 +110,9 @@ sites that blit them.
 
 ```
 app/src/main/kotlin/com/paperscrape/livewallpaper/
-  engine/     the wallpaper service, renderers, GL backend, scene model, themes
-  ui/         Compose settings screen
+  engine/     the wallpaper service, renderers, GL backend, scene model, themes,
+              theme-preview scene descriptions
+  ui/         Compose settings UI, one file per destination
   prefs/      DataStore preferences
   weather/    Live Weather fetching
   location/   optional location for sunrise/sunset and weather

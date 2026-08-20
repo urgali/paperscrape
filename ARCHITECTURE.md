@@ -49,13 +49,13 @@ PaperScrape/
 
 | Metric | Value |
 |---|---|
-| Kotlin files | 32 |
-| Kotlin lines | ~8,990 |
+| Kotlin files | 41 |
+| Kotlin lines | ~11,100 |
 | Sprite PNGs in `drawable-nodpi/` | **111 files, 111 unique contents** — no byte-identical pair; the V2 asset library replaced the whole set in v76 |
 | Vector drawables | 4 |
-| Unit tests | **287** (21 classes, JVM-local, no Android dependencies) |
+| Unit tests | **442** (31 classes, JVM-local, no Android dependencies) |
 | Instrumentation tests | 0 |
-| Largest files | `SettingsScreen.kt` 2,240 · `PaperRenderer.kt` 1,728 · `SceneObjectRenderer.kt` 1,152 · `WallpaperPrefs.kt` 789 |
+| Largest files | `PaperRenderer.kt` 1,728 · `SceneObjectRenderer.kt` 1,152 · `WorldSceneScreen.kt` 813 · `WallpaperPrefs.kt` 789 · `SettingsComponents.kt` 736 |
 
 ---
 
@@ -96,7 +96,21 @@ PaperScrape/
 - `location/DeviceLocationProvider.kt`, `location/LocationLabelResolver.kt`.
 - `weather/WeatherRepository.kt` — Open-Meteo, `HttpURLConnection`, `Dispatchers.IO`.
 - `update/UpdateChecker.kt`, `update/UpdatePrefs.kt` — GitHub Releases API.
-- `ui/SettingsActivity.kt`, `ui/SettingsScreen.kt`, `ui/theme/PaperScrapeTheme.kt`.
+- `ui/` — the settings UI, one file per destination since v2.9 (it was a single 2,414-line
+  `SettingsScreen.kt`):
+  - `SettingsActivity.kt` — the activity, edge-to-edge, wraps everything in `PaperScrapeTheme`.
+  - `SettingsScreen.kt` — the home screen and the routing between the five destinations.
+  - `WeatherTimeScreen.kt`, `SeasonsScreen.kt`, `WorldSceneScreen.kt`, `AdvancedScreen.kt`,
+    `ThemeGalleryScreen.kt` — one destination each, all drill-downs from home.
+  - `SettingsComponents.kt` — the shared Material 3 vocabulary (section header, grouped
+    container, row, switch row, navigation row, segmented choice, banner, caption, screen
+    shells, slider, colour picker).
+  - `SettingsUiModel.kt` — the pure mapping between the two segmented choices
+    (location source, seasonal palette) and the preference flags that back them. No Compose
+    and no Android imports, so both directions are unit-tested.
+  - `SceneCategorySections.kt` — the per-category and per-mountain-layer editors.
+  - `ThemePreview.kt` — draws a theme's preview scene; see `engine/ThemePreviewScene.kt`.
+  - `theme/PaperScrapeTheme.kt` — the complete Material 3 colour scheme, light and dark.
 
 ---
 
@@ -664,6 +678,29 @@ the same scene on every device and every run.
 
 Nothing here is cached, so nothing needs invalidating: a theme, size or
 customization change simply produces different values on the next frame.
+
+### Theme previews
+
+`engine/ThemePreviewScene.kt` describes what one theme's gallery card contains: sky colours, the
+hill colour, the mountain peaks, the lake band, and a list of objects, each an (x, ground y, scale)
+plus the sprite parts the renderer itself blits for that object, at the renderer's own offsets.
+`ThemePreviewScenes.forTheme(theme, customization)` builds it, and every object in it is
+conditional on the same flag the wallpaper reads — `lake.visible`, `snowmen.visible`,
+`winterColorsEnabled`, `halloweenEnabled`, `mountainsFront.visible`, and so on — so a preview
+cannot contain something the scene would not. The gallery passes the customization a theme
+actually carries: `defaultCustomizationFor(id)` for an untouched built-in, the stored override for
+a customised one, the saved snapshot for a user theme.
+
+It holds **no Android type beyond resource ids**, which is what makes "what does this theme's
+preview contain" a unit-testable question; `ThemePreviewSceneTest` pins the characteristic object
+of each of the twelve themes and, in both directions, that nothing a theme has switched off is
+drawn.
+
+`ui/ThemePreview.kt` replays that description into a Compose `Canvas` through `CanvasSceneTarget`
+and the same `SpriteBlitter` the wallpaper uses. There is no GL context, no animation, no timer and
+no per-card bitmap: the description is built once and kept by `remember`, sprite pixels come from
+the process-wide `SpriteCache`, and a card costs roughly twenty static blits on composition and on
+scroll, and nothing at rest.
 
 ### Theme resolution
 

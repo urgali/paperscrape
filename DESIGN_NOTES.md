@@ -726,29 +726,66 @@ orphans.
 Material 3 governs the **settings UI only**. It must never be applied to the
 wallpaper's illustration style.
 
-### Current state — incomplete
+### Colour scheme **[DECIDED — v2.9]**
 
-`PaperScrapeTheme` defines **4 colour roles** (`primary`, `secondary`,
-`background`, `surface`) out of roughly 30. Every undefined role falls back to
-Material 3's baseline palette, which is violet — so switches, inactive slider
-tracks, containers and dialog surfaces render off-brand. `themes.xml` still
-inherits from the framework's Material 1 theme and sets
-`android:statusBarColor`, which is ignored from API 35 with edge-to-edge active.
+`PaperScrapeTheme` now defines the **complete** Material 3 scheme, light and dark. Every role is a
+tone of the four colours the app has always been built on — `PaperOrange #F2A65A`,
+`PaperOrangeDark #B5651D`, `PaperCream #FFF7EC`, `PaperNight #1B1B2F`:
 
-`enableEdgeToEdge()` **is** correctly called in `SettingsActivity`.
+- **primary family** — `PaperOrangeDark`, with a light tint of it as the container.
+- **secondary family** — the same hue desaturated, so a secondary container reads as paper rather
+  than as a second accent competing with primary.
+- **tertiary family** — the wallpaper's own day sky (`SceneTheme.SUNSET.skyDay`), the one cool
+  colour already in the product, used sparingly.
+- **surface family** — `PaperCream` stepped darker for each container level. This is what gives a
+  grouped list its container, and it is the reason the settings UI needs neither a border nor a
+  divider per row.
+- **error family** — a warm brick rather than Material's default red.
 
-### Icons **[OBSERVED]**
+Before this, four roles were defined and the remaining ~30 fell back to Material 3's baseline
+violet, so switches, inactive slider tracks, containers and dialog surfaces rendered off-brand.
 
-The settings UI currently uses **emoji** as section markers (🎨 Scene objects,
-🎃 Seasonal decorations, 🖼️ Manage themes, 🎲 Generate random theme). This is a
-de facto convention, not a designed one.
+### Icons **[DECIDED — v2.9]**
 
-### **[TO BE ESTABLISHED]**
+**Material Symbols, not emoji.** The settings UI used emoji as section markers (🎨 Scene objects,
+🎃 Seasonal decorations, 🖼️ Manage themes) as a de facto convention. Every one is now a Material
+icon from `material-icons-extended`, which was already a dependency. The one emoji that lived in a
+string resource (`live_weather_title`) lost it too.
 
-Whether to keep emoji or move to Material Symbols; custom icon rules (stroke
-width, corner radius, proportions, scaling); and a complete Material 3 colour
-scheme derived from the brand palette. These must be decided before any UI
-restyling work.
+The wallpaper is untouched by this: Material 3 governs the settings UI only.
+
+### Settings structure **[DECIDED — v2.9]**
+
+Five destinations, all drill-downs from a home screen that holds no settings of its own:
+**Home** (which theme is showing, who chose it, where everything else is), **Weather & time**,
+**Seasons & decorations**, **World & scene**, **Advanced & about**, plus the theme gallery reached
+from Home's Theme row.
+
+Two pairs of mutually exclusive booleans are presented as one choice each — location source
+(Off / Phone / Custom) and seasonal palette (None / Autumn / Winter). Both are presentation only:
+the flags, the setters and the exclusivity they already enforced are unchanged, and
+`SettingsUiModelTest` pins both mappings in both directions.
+
+### Theme previews **[DECIDED — v2.9]**
+
+A gallery card draws a **real mini scene** — sky, horizon, mountains or dunes, water, buildings,
+trees, people, traffic, and whatever seasonal decorations that theme actually has — from the
+shipping sprites, at the renderer's own part offsets, with the theme's own palette.
+
+Three rules govern it:
+
+1. **Nothing a theme does not have.** Every object is conditional on the flag the wallpaper reads.
+   No lake where `lake.visible` is false, no boats on the tundra, no flowers outside Spring. Where
+   the scene has no sprite at all — parasols are drawn procedurally — the preview shows nothing
+   rather than standing in a different sprite.
+2. **A dozen objects in four reading bands** — skyline, tree line, the house row with its people,
+   the road. The real scene carries hundreds of objects across a screen five times wider; shrinking
+   that produces mush, and a preview needs a hierarchy, not a census.
+3. **Static and cheap.** No GL context, no animation, no timer, no per-card bitmap. See
+   `ARCHITECTURE.md` § "Theme previews".
+
+Themes whose subject *is* a time of day show that time: Sunset shows its dusk sky, New Year and
+Halloween show night. Everything else shows its day palette.
 
 ---
 
