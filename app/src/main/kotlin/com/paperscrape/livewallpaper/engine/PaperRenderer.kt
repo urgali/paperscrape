@@ -484,6 +484,21 @@ class PaperRenderer(
          * lighter than the night pair only enough to keep sunrise and sunset legible; this sky is
          * meant to look wrong at noon, which is the point of it.
          */
+        /**
+         * What the carved moon is multiplied by, in place of the theme's own moon colour.
+         *
+         * The sprite stays a colourless mask -- `SpriteTintClassTest` requires that of every
+         * tintable sprite, and multiplying one hue by another compounds them -- so the orange has
+         * to arrive at the blit. What the artwork carries instead is *luminance*: three concentric
+         * paper rings, dark at the rim and bright at the centre, which this colour turns into a
+         * warm lantern without a gradient, a glow or a second draw call.
+         *
+         * Fixed rather than derived from the theme. A carved lantern is orange in the same way a
+         * pumpkin is; letting a theme's cool moon colour through would produce a blue jack-o'-
+         * lantern, which is nobody's Halloween.
+         */
+        const val HALLOWEEN_MOON_COLOUR = 0xFFFF8C2A.toInt()
+
         const val HORROR_SKY_TOP_NIGHT = 0xFF07060A.toInt()
         const val HORROR_SKY_TOP_DAY = 0xFF1A1020.toInt()
         const val HORROR_SKY_LOW_NIGHT = 0xFFB03A06.toInt()
@@ -1137,7 +1152,7 @@ class PaperRenderer(
                 CELESTIAL_DISC_ORIGIN_UNITS,
                 CELESTIAL_DISC_ORIGIN_UNITS,
                 CELESTIAL_DISC_SCALE,
-                litColor,
+                HALLOWEEN_MOON_COLOUR,
             )
             canvas.restore()
             return

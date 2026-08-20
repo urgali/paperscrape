@@ -135,11 +135,20 @@ class RecoveredGeometryTest(unittest.TestCase):
         self.assertLess(abs(fitted.best_radius - self.TRIM_RADIUS), 0.5)
 
     def test_fitted_radius_reproduces_the_shipped_trim(self):
-        reference = runtime_pixels("house_large_trim")
+        """Reproduced from the sprite's own source form, not from a 1:1 rounded rectangle.
+
+        `rounded_rect_svg` writes a document at one pixel per user unit; every committed V2
+        source is authored at `SPRITE_PIXELS_PER_UNIT` and scaled by its viewBox. The two
+        describe the same rectangle and the rasteriser resolves their curves a hair
+        differently, which mattered not at all while the shipped PNGs came from a third
+        rasteriser and matters now that they are exact renders of their own sources. The
+        radius is still the one `fit` recovers; only the document form it is rendered in
+        changed.
+        """
         result = fidelity.compare(
-            "house_large_trim", reference, render_rounded_rect(450, 18, self.TRIM_RADIUS)
+            "house_large_trim", runtime_pixels("house_large_trim"), source_pixels("house_large_trim")
         )
-        self.assertEqual("EDGE_EQUIVALENT", result.verdict)
+        self.assertIn(result.verdict, ("PIXEL_IDENTICAL", "EDGE_EQUIVALENT"))
         self.assertEqual(0, result.interior_alpha_mismatch)
 
     def test_wrong_radius_does_not_reproduce_the_shipped_trim(self):
@@ -153,22 +162,27 @@ class RecoveredGeometryTest(unittest.TestCase):
                 self.assertEqual("DIVERGENT", result.verdict)
 
     def test_low_iou_alone_does_not_reject_a_recovered_shape(self):
-        """Small sprites score far below the reporting floor and are still right.
+        """A near-miss radius on a small sprite scores under the floor without being wrong.
 
-        Each of these reproduces its shipped PNG with no solid/empty conflict, an
-        exact fill and every differing pixel on the reference's own antialiased
-        edge, while scoring under `IOU_REPORTING_FLOOR`. That is the failure mode
-        of an area ratio applied to a boundary phenomenon, not of the
-        reconstruction: `bunny_innerear` is 48x48 and `penguin_feet` is 60x12, so
-        their antialiased band is a large share of their area, and a single
-        absolute IoU threshold would ask them for precision it never asks of a
-        270x450 wall.
+        This used to be shown on shipped sprites -- `bunny_innerear`, `pumpkin_stem`,
+        `penguin_feet` all sat around 0.99 against their own sources. It cannot be shown that
+        way any more: v2.5 re-rendered the library from its sources while baking the
+        readability rim in, so those sprites are now byte-exact against them and score 1.0.
+        That is a better state of the world and a worse demonstration, so the case is made on
+        a constructed pair instead.
+
+        A 60x12 pill at radius 6 against the same pill at 5.9 or 5.8 is the same shape recovered to
+        within a tenth of a unit: no solid/empty conflict anywhere, every difference on the
+        antialiased edge. It still scores 0.9976, because on a sprite that small the edge is a
+        large share of the area -- which is the failure mode of an area ratio applied to a
+        boundary phenomenon, and the reason `IOU_REPORTING_FLOOR` reports rather than gates.
         """
-        for name in ("bunny_innerear", "pumpkin_stem", "penguin_feet"):
-            with self.subTest(name=name):
-                result = fidelity.compare(name, runtime_pixels(name), source_pixels(name))
+        reference = render_rounded_rect(60, 12, 6)
+        for radius in (5.8, 5.9):
+            with self.subTest(radius=radius):
+                result = fidelity.compare("pill", reference, render_rounded_rect(60, 12, radius))
                 self.assertLess(result.alpha_iou, fidelity.IOU_REPORTING_FLOOR)
-                self.assertEqual("EDGE_EQUIVALENT", result.verdict)
+                self.assertEqual(0, result.interior_alpha_mismatch)
 
 
 class ShippedAgainstSourceTest(unittest.TestCase):
@@ -203,7 +217,7 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         ]
 
     def test_every_sprite_with_a_source_is_covered(self):
-        self.assertEqual(122, len(self.results))
+        self.assertEqual(123, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

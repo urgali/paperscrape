@@ -1,6 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="114" height="93" viewBox="0 1 38 31">
+<svg xmlns="http://www.w3.org/2000/svg" width="114" height="90" viewBox="0 2 38 30">
+<clipPath id="rim_pumpkin_body"><ellipse cx="9" cy="17" rx="9" ry="15" fill="#f4f4f4"/><ellipse cx="29" cy="17" rx="9" ry="15" fill="#f4f4f4"/><ellipse cx="19" cy="17" rx="13" ry="15" fill="#ffffff"/></clipPath>
+<g clip-path="url(#rim_pumpkin_body)">
   
-<ellipse cx="9" cy="17" rx="9" ry="15" fill="#f4f4f4"></ellipse>
-        <ellipse cx="29" cy="17" rx="9" ry="15" fill="#f4f4f4"></ellipse>
-        <ellipse cx="19" cy="17" rx="13" ry="15" fill="#ffffff"></ellipse>
+<ellipse stroke="#cfcfcf" stroke-width="0.9" stroke-linejoin="round" cx="9" cy="17" rx="9" ry="15" fill="#f4f4f4"></ellipse>
+        <ellipse stroke="#cfcfcf" stroke-width="0.9" stroke-linejoin="round" cx="29" cy="17" rx="9" ry="15" fill="#f4f4f4"></ellipse>
+        <ellipse stroke="#cfcfcf" stroke-width="0.9" stroke-linejoin="round" cx="19" cy="17" rx="13" ry="15" fill="#ffffff"></ellipse>
+</g>
 </svg>

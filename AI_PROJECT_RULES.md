@@ -428,7 +428,7 @@ Git tag.
 
 | Tag shape | Meaning | GitHub |
 |---|---|---|
-| `vMAJOR.MINOR` — `v1.0`, `v1.1`, `v2.0`, `v2.1`, `v2.2`, `v2.3`, `v2.4` | Stable release | published, marked latest |
+| `vMAJOR.MINOR` — `v1.0`, `v1.1`, `v2.0`, `v2.1`, `v2.2`, `v2.3`, `v2.4`, `v2.5` | Stable release | published, marked latest |
 
 11.7. **There is no pre-release tag form yet.** Any tag that is not `vMAJOR.MINOR` is
 rejected. A beta syntax will be added when it is needed rather than guessed at now;

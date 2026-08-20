@@ -1,14 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="159" height="162" viewBox="4 0 53 54">
+<clipPath id="rim_person_girl_winter_head_window"><path d="M6 54 C6 44 17 39 30 39 C43 39 54 44 54 54 Z" fill="#F0A03C"/><ellipse cx="12" cy="34" rx="6" ry="10" fill="#C98F5A"/><ellipse cx="49" cy="34" rx="6" ry="10" fill="#C98F5A"/><rect x="16" y="10" width="29" height="32" rx="10" fill="#EFB994"/><rect x="14" y="38" width="33" height="9" rx="4.5" fill="#FBF4E6"/><path d="M13 20 C13 10 20 4 30 4 C40 4 47 10 47 20 Z" fill="#E4623E"/><rect x="13" y="18" width="34" height="7" rx="3.5" fill="#FBF4E6"/><circle cx="11" cy="21" r="5" fill="#E4623E"/><circle cx="49" cy="21" r="5" fill="#E4623E"/><circle cx="24" cy="29" r="2.4" fill="#2B2A33"/><circle cx="37" cy="29" r="2.4" fill="#2B2A33"/></clipPath>
+<g clip-path="url(#rim_person_girl_winter_head_window)">
   
-<path d="M6 54 C6 44 17 39 30 39 C43 39 54 44 54 54 Z" fill="#F0A03C"></path>
-        <ellipse cx="12" cy="34" rx="6" ry="10" fill="#C98F5A"></ellipse>
-        <ellipse cx="49" cy="34" rx="6" ry="10" fill="#C98F5A"></ellipse>
-        <rect x="16" y="10" width="29" height="32" rx="10" fill="#EFB994"></rect>
-        <rect x="14" y="38" width="33" height="9" rx="4.5" fill="#FBF4E6"></rect>
-        <path d="M13 20 C13 10 20 4 30 4 C40 4 47 10 47 20 Z" fill="#E4623E"></path>
-        <rect x="13" y="18" width="34" height="7" rx="3.5" fill="#FBF4E6"></rect>
-        <circle cx="11" cy="21" r="5" fill="#E4623E"></circle>
-        <circle cx="49" cy="21" r="5" fill="#E4623E"></circle>
-        <circle cx="24" cy="29" r="2.4" fill="#2B2A33"></circle>
-        <circle cx="37" cy="29" r="2.4" fill="#2B2A33"></circle>
+<path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M6 54 C6 44 17 39 30 39 C43 39 54 44 54 54 Z" fill="#F0A03C"></path>
+        <ellipse stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="12" cy="34" rx="6" ry="10" fill="#C98F5A"></ellipse>
+        <ellipse stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="49" cy="34" rx="6" ry="10" fill="#C98F5A"></ellipse>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="16" y="10" width="29" height="32" rx="10" fill="#EFB994"></rect>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="14" y="38" width="33" height="9" rx="4.5" fill="#FBF4E6"></rect>
+        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M13 20 C13 10 20 4 30 4 C40 4 47 10 47 20 Z" fill="#E4623E"></path>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="13" y="18" width="34" height="7" rx="3.5" fill="#FBF4E6"></rect>
+        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="11" cy="21" r="5" fill="#E4623E"></circle>
+        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="49" cy="21" r="5" fill="#E4623E"></circle>
+        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="24" cy="29" r="2.4" fill="#2B2A33"></circle>
+        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="37" cy="29" r="2.4" fill="#2B2A33"></circle>
+</g>
 </svg>
