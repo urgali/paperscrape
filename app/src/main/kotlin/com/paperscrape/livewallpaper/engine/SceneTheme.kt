@@ -215,7 +215,34 @@ object ThemeCatalog {
         accentColor = 0xFFE07A2E.toInt(),
     )
 
-    val ALL: List<SceneTheme> = listOf(SUNSET, AUTUMN, WINTER, DESERT, CHRISTMAS, NEW_YEAR, BEACH, CITY, TUNDRA, EASTER, HALLOWEEN)
+    /**
+     * Early spring: the season between the snow going and the summer arriving.
+     *
+     * **Not Easter, and not a recolour of Beach.** Easter is four days of decoration that happen
+     * to fall inside it and keeps its own theme; Beach is high summer with palms and a hot sky.
+     * What separates this one is the light -- a pale, washed sky with green rather than blue in it,
+     * and hills in the sharp new green that only exists for a few weeks -- and the fact that its
+     * ground is growing rather than baked or frozen.
+     */
+    val SPRING = SceneTheme(
+        id = "spring",
+        displayName = "Spring",
+        skyNight = intArrayOf(0xFF1C2440.toInt(), 0xFF2E3A5C.toInt()),
+        skyDawn = intArrayOf(0xFFF6C6D8.toInt(), 0xFFFDF0E2.toInt()),
+        skyDay = intArrayOf(0xFF8FD3EF.toInt(), 0xFFEAF8E4.toInt()),
+        skyDusk = intArrayOf(0xFFE9A6C0.toInt(), 0xFFFBDCC0.toInt()),
+        hillColorsDay = intArrayOf(0xFFA8DC7C.toInt(), 0xFF88C862.toInt(), 0xFF69AE4C.toInt()),
+        hillColorsNight = intArrayOf(0xFF2F4230.toInt(), 0xFF243425.toInt(), 0xFF1A271C.toInt()),
+        sunColor = 0xFFFFF6C8.toInt(),
+        moonColor = 0xFFEFF3FF.toInt(),
+        starColor = 0xFFFFFFFF.toInt(),
+        accentColor = 0xFFE8A0C0.toInt(),
+    )
+
+    val ALL: List<SceneTheme> = listOf(
+        SUNSET, AUTUMN, WINTER, DESERT, CHRISTMAS, NEW_YEAR, BEACH, CITY, TUNDRA, EASTER,
+        HALLOWEEN, SPRING,
+    )
 
     fun byId(id: String?): SceneTheme {
         if (id != null && RandomSceneGenerator.isRandomThemeId(id)) {

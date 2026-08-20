@@ -1,29 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="123" height="252" viewBox="1 0 41 84">
+<clipPath id="rim_person_woman_winter_walk2"><ellipse cx="22" cy="82" rx="17" ry="2.6" fill="#2B2A33" opacity="0.16"/><polygon points="15,60 20,60 13,76 8,73" fill="#2B2A33"/><polygon points="23,60 28,60 34,73 29,76" fill="#2B2A33"/><rect x="3" y="72" width="11" height="9" rx="3" fill="#5A3A28" transform="rotate(-14 8 76)"/><rect x="29" y="72" width="11" height="9" rx="3" fill="#5A3A28" transform="rotate(14 35 76)"/><path d="M10 33 C10 30 14 29 22 29 C30 29 33 30 33 33 L34 62 L9 62 Z" fill="#BF4130"/><rect x="9" y="40" width="25" height="2.4"/><rect x="9" y="48" width="25" height="2.4"/><rect x="9" y="56" width="25" height="2.4"/><polygon points="9,33 14,33 12,55 7,54" fill="#BF4130"/><polygon points="30,33 35,33 37,54 32,55" fill="#BF4130"/><rect x="6" y="53" width="7" height="6" rx="3" fill="#F7CE64"/><rect x="31" y="52" width="7" height="6" rx="3" fill="#F7CE64"/><rect x="13" y="7" width="18" height="22" rx="6" fill="#F0C9A6"/><path d="M11 26 L11 14 L15 14 L15 26 Z" fill="#8C5A38"/><path d="M29 26 L29 14 L33 14 L33 26 Z" fill="#8C5A38"/><path d="M10 30 C10 26 15 24 22 24 C29 24 34 26 34 30 Z" fill="#FBF4E6"/><path d="M11 15 C11 8 16 4 22 4 C28 4 33 8 33 15 Z" fill="#FBF4E6"/><rect x="11" y="13" width="22" height="5" rx="2.5" fill="#E4623E"/><circle cx="22" cy="3" r="3.4" fill="#E4623E"/><circle cx="18" cy="21" r="1.4" fill="#2B2A33"/><circle cx="26" cy="21" r="1.4" fill="#2B2A33"/></clipPath>
+<g clip-path="url(#rim_person_woman_winter_walk2)">
   
-<ellipse cx="22" cy="82" rx="17" ry="2.6" fill="#2B2A33" opacity="0.16"></ellipse>
-        <polygon points="15,60 20,60 13,76 8,73" fill="#2B2A33"></polygon>
-        <polygon points="23,60 28,60 34,73 29,76" fill="#2B2A33"></polygon>
-        <rect x="3" y="72" width="11" height="9" rx="3" fill="#5A3A28" transform="rotate(-14 8 76)"></rect>
-        <rect x="29" y="72" width="11" height="9" rx="3" fill="#5A3A28" transform="rotate(14 35 76)"></rect>
+<ellipse stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="22" cy="82" rx="17" ry="2.6" fill="#2B2A33" opacity="0.16"></ellipse>
+        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="15,60 20,60 13,76 8,73" fill="#2B2A33"></polygon>
+        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="23,60 28,60 34,73 29,76" fill="#2B2A33"></polygon>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="3" y="72" width="11" height="9" rx="3" fill="#5A3A28" transform="rotate(-14 8 76)"></rect>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="29" y="72" width="11" height="9" rx="3" fill="#5A3A28" transform="rotate(14 35 76)"></rect>
         <g transform="translate(0 0) scale(1.000000 1.000000)">
-        <path d="M10 33 C10 30 14 29 22 29 C30 29 33 30 33 33 L34 62 L9 62 Z" fill="#BF4130"></path>
+        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M10 33 C10 30 14 29 22 29 C30 29 33 30 33 33 L34 62 L9 62 Z" fill="#BF4130"></path>
         <g fill="#8B2A1F">
-          <rect x="9" y="40" width="25" height="2.4"></rect>
-          <rect x="9" y="48" width="25" height="2.4"></rect>
-          <rect x="9" y="56" width="25" height="2.4"></rect>
+          <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="9" y="40" width="25" height="2.4"></rect>
+          <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="9" y="48" width="25" height="2.4"></rect>
+          <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="9" y="56" width="25" height="2.4"></rect>
         </g>
-        <polygon points="9,33 14,33 12,55 7,54" fill="#BF4130"></polygon>
-        <polygon points="30,33 35,33 37,54 32,55" fill="#BF4130"></polygon>
-        <rect x="6" y="53" width="7" height="6" rx="3" fill="#F7CE64"></rect>
-        <rect x="31" y="52" width="7" height="6" rx="3" fill="#F7CE64"></rect>
-        <rect x="13" y="7" width="18" height="22" rx="6" fill="#F0C9A6"></rect>
-        <path d="M11 26 L11 14 L15 14 L15 26 Z" fill="#8C5A38"></path>
-        <path d="M29 26 L29 14 L33 14 L33 26 Z" fill="#8C5A38"></path>
-        <path d="M10 30 C10 26 15 24 22 24 C29 24 34 26 34 30 Z" fill="#FBF4E6"></path>
-        <path d="M11 15 C11 8 16 4 22 4 C28 4 33 8 33 15 Z" fill="#FBF4E6"></path>
-        <rect x="11" y="13" width="22" height="5" rx="2.5" fill="#E4623E"></rect>
-        <circle cx="22" cy="3" r="3.4" fill="#E4623E"></circle>
-        <circle cx="18" cy="21" r="1.4" fill="#2B2A33"></circle>
-        <circle cx="26" cy="21" r="1.4" fill="#2B2A33"></circle>
+        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="9,33 14,33 12,55 7,54" fill="#BF4130"></polygon>
+        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="30,33 35,33 37,54 32,55" fill="#BF4130"></polygon>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="6" y="53" width="7" height="6" rx="3" fill="#F7CE64"></rect>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="31" y="52" width="7" height="6" rx="3" fill="#F7CE64"></rect>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="13" y="7" width="18" height="22" rx="6" fill="#F0C9A6"></rect>
+        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M11 26 L11 14 L15 14 L15 26 Z" fill="#8C5A38"></path>
+        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M29 26 L29 14 L33 14 L33 26 Z" fill="#8C5A38"></path>
+        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M10 30 C10 26 15 24 22 24 C29 24 34 26 34 30 Z" fill="#FBF4E6"></path>
+        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M11 15 C11 8 16 4 22 4 C28 4 33 8 33 15 Z" fill="#FBF4E6"></path>
+        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="11" y="13" width="22" height="5" rx="2.5" fill="#E4623E"></rect>
+        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="22" cy="3" r="3.4" fill="#E4623E"></circle>
+        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="18" cy="21" r="1.4" fill="#2B2A33"></circle>
+        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="26" cy="21" r="1.4" fill="#2B2A33"></circle>
       </g>
+</g>
 </svg>

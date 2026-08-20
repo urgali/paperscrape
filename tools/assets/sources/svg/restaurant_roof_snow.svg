@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="288" height="30" viewBox="2 2 96 10">
+<clipPath id="rim_restaurant_roof_snow"><polygon points="2,9.5 8,4.5 22,6.5 36,3.5 52,5.5 68,3.5 84,6.5 96,4.5 98,9.5 98,12 2,12" fill="#DCE7EF"/><polygon points="2,8 8,3 22,5 36,2 52,4 68,2 84,5 96,3 98,8 98,10.5 2,10.5" fill="#FFFFFF"/></clipPath>
+<g clip-path="url(#rim_restaurant_roof_snow)">
   <!-- Snow on the restaurant's flat roof. The wall's own top edge is at y=8 here; the four units
        above it are the drift standing proud of the parapet, which is what separates a layer of
        snow from a white stripe painted on the building. -->
-<polygon points="2,9.5 8,4.5 22,6.5 36,3.5 52,5.5 68,3.5 84,6.5 96,4.5 98,9.5 98,12 2,12" fill="#DCE7EF"></polygon>
-        <polygon points="2,8 8,3 22,5 36,2 52,4 68,2 84,5 96,3 98,8 98,10.5 2,10.5" fill="#FFFFFF"></polygon>
+<polygon stroke="#cdd8e0" stroke-width="1.2" stroke-linejoin="round" points="2,9.5 8,4.5 22,6.5 36,3.5 52,5.5 68,3.5 84,6.5 96,4.5 98,9.5 98,12 2,12" fill="#DCE7EF"></polygon>
+        <polygon stroke="#cdd8e0" stroke-width="1.2" stroke-linejoin="round" points="2,8 8,3 22,5 36,2 52,4 68,2 84,5 96,3 98,8 98,10.5 2,10.5" fill="#FFFFFF"></polygon>
+</g>
 </svg>
