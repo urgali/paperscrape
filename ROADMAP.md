@@ -10,13 +10,15 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.5 Stable — a readability rim, a bigger world, dead palms, spring, and a full-year calendar.**
+**v2.6 Stable — the outline moved outside, and the small house got its facade.**
 
-`versionCode = 9`, `versionName = "2.5"`. Not yet seen rendering.
+`versionCode = 10`, `versionName = "2.6"`. A device pass on v2.5 approved the world scale, Spring,
+the Halloween palms and the carved moon, and rejected the readability rim and the small house's
+width. Both corrected; nothing else reopened. Not yet seen rendering.
 
 Last measured: 395 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
 asset `validate` clean across 123 sprites, `normalize` reporting nothing pending,
-offline tooling 89 tests with no failures.
+offline tooling 96 tests with no failures.
 
 `assembleDebug` has not been run and no APK is produced locally — CI builds the release
 APK. Compilation is proven by `testDebugUnitTest`, which compiles the whole `debug`
@@ -24,7 +26,7 @@ source set; resource linking, dexing and packaging are not.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -65,6 +67,7 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.6 Stable** — a true outer silhouette outline replacing v2.5's inner rim, which flickered across the walk frames, and a wider small-house facade.
 - **v2.5 Stable** — readability rim baked into 39 sprites, world scale +12.5%, Halloween palms, orange moon, two-window small house, the `spring` theme and a calendar covering every day.
 - **v2.4 Stable** — the gull, dolphin and carved moon redrawn; the dolphin splash on both crossings; the Halloween theme added with both switches preset.
 - **v2.3 Stable** — Halloween and Horror Sky as two independent flags, a stateless dolphin re-entry splash, and the dolphin and bird sprites redrawn.

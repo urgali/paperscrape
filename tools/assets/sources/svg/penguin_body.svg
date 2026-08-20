@@ -1,12 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="84" height="132" viewBox="2 1 28 44">
-<clipPath id="rim_penguin_body"><path d="M16 1 C25 1 30 8 30 18 L30 34 C30 42 24 45 16 45 C8 45 2 42 2 34 L2 18 C2 8 7 1 16 1 Z" fill="#e2e2e2"/><path d="M2 22 C2 30 3 38 6 44 C3 43 2 40 2 34 Z" fill="#e6e6e6"/><circle cx="11" cy="14" r="2" fill="#ffffff"/><circle cx="21" cy="14" r="2" fill="#ffffff"/><circle cx="11.4" cy="14.4" r="1" fill="#e2e2e2"/><circle cx="21.4" cy="14.4" r="1" fill="#e2e2e2"/></clipPath>
-<g clip-path="url(#rim_penguin_body)">
+<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.6" stroke-linejoin="round" stroke-linecap="round">
   
-<path stroke="#d0d0d0" stroke-width="0.7" stroke-linejoin="round" d="M16 1 C25 1 30 8 30 18 L30 34 C30 42 24 45 16 45 C8 45 2 42 2 34 L2 18 C2 8 7 1 16 1 Z" fill="#e2e2e2"></path>
-        <path stroke="#d0d0d0" stroke-width="0.7" stroke-linejoin="round" d="M2 22 C2 30 3 38 6 44 C3 43 2 40 2 34 Z" fill="#e6e6e6"></path>
-        <circle stroke="#d0d0d0" stroke-width="0.7" stroke-linejoin="round" cx="11" cy="14" r="2" fill="#ffffff"></circle>
-        <circle stroke="#d0d0d0" stroke-width="0.7" stroke-linejoin="round" cx="21" cy="14" r="2" fill="#ffffff"></circle>
-        <circle stroke="#d0d0d0" stroke-width="0.7" stroke-linejoin="round" cx="11.4" cy="14.4" r="1" fill="#e2e2e2"></circle>
-        <circle stroke="#d0d0d0" stroke-width="0.7" stroke-linejoin="round" cx="21.4" cy="14.4" r="1" fill="#e2e2e2"></circle>
+<path d="M16 1 C25 1 30 8 30 18 L30 34 C30 42 24 45 16 45 C8 45 2 42 2 34 L2 18 C2 8 7 1 16 1 Z"></path>
+        <path d="M2 22 C2 30 3 38 6 44 C3 43 2 40 2 34 Z"></path>
+        <circle cx="11" cy="14" r="2"></circle>
+        <circle cx="21" cy="14" r="2"></circle>
+        <circle cx="11.4" cy="14.4" r="1"></circle>
+        <circle cx="21.4" cy="14.4" r="1"></circle>
+
 </g>
+  
+<path d="M16 1 C25 1 30 8 30 18 L30 34 C30 42 24 45 16 45 C8 45 2 42 2 34 L2 18 C2 8 7 1 16 1 Z" fill="#e2e2e2"></path>
+        <path d="M2 22 C2 30 3 38 6 44 C3 43 2 40 2 34 Z" fill="#e6e6e6"></path>
+        <circle cx="11" cy="14" r="2" fill="#ffffff"></circle>
+        <circle cx="21" cy="14" r="2" fill="#ffffff"></circle>
+        <circle cx="11.4" cy="14.4" r="1" fill="#e2e2e2"></circle>
+        <circle cx="21.4" cy="14.4" r="1" fill="#e2e2e2"></circle>
+
+
 </svg>

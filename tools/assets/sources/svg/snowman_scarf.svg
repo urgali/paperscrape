@@ -1,8 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="72" height="18" viewBox="0 0 24 6">
-<clipPath id="rim_snowman_scarf"><rect x="0" y="0" width="24" height="6" rx="3" fill="#BF4130"/><polygon points="18,2 24,2 22,6 17,6" fill="#A5372A"/></clipPath>
-<g clip-path="url(#rim_snowman_scarf)">
   
-<rect stroke="#c98f8f" stroke-width="0.6" stroke-linejoin="round" x="0" y="0" width="24" height="6" rx="3" fill="#BF4130"></rect>
-        <polygon stroke="#c98f8f" stroke-width="0.6" stroke-linejoin="round" points="18,2 24,2 22,6 17,6" fill="#A5372A"></polygon>
-</g>
+<rect x="0" y="0" width="24" height="6" rx="3" fill="#BF4130"></rect>
+        <polygon points="18,2 24,2 22,6 17,6" fill="#A5372A"></polygon>
 </svg>

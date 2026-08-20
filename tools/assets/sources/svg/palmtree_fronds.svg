@@ -1,17 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 40 40">
-<clipPath id="rim_palmtree_fronds"><polygon points="20,34 0,20 2,13 21,27"/><polygon points="20,34 40,18 38,11 20,27"/><polygon points="20,34 4,4 11,1 22,26"/><polygon points="20,34 36,5 29,1 19,26"/><polygon points="20,34 20,0 26,3 23,28"/><circle cx="16" cy="33" r="3" fill="#8C5A38"/><circle cx="24" cy="34" r="2.6" fill="#8C5A38"/></clipPath>
-<g clip-path="url(#rim_palmtree_fronds)">
+<g id="paperscrape-outline" fill="#3a6b42" stroke="#3a6b42" stroke-width="0.6" stroke-linejoin="round" stroke-linecap="round">
+  
+<g>
+          <polygon points="20,34 0,20 2,13 21,27"></polygon>
+          <polygon points="20,34 40,18 38,11 20,27"></polygon>
+        </g>
+        <g>
+          <polygon points="20,34 4,4 11,1 22,26"></polygon>
+          <polygon points="20,34 36,5 29,1 19,26"></polygon>
+          <polygon points="20,34 20,0 26,3 23,28"></polygon>
+        </g>
+        <circle cx="16" cy="33" r="3"></circle>
+        <circle cx="24" cy="34" r="2.6"></circle>
+</g>
   
 <g fill="#43804C">
-          <polygon stroke="#3a6b42" stroke-width="0.8" stroke-linejoin="round" points="20,34 0,20 2,13 21,27"></polygon>
-          <polygon stroke="#3a6b42" stroke-width="0.8" stroke-linejoin="round" points="20,34 40,18 38,11 20,27"></polygon>
+          <polygon points="20,34 0,20 2,13 21,27"></polygon>
+          <polygon points="20,34 40,18 38,11 20,27"></polygon>
         </g>
         <g fill="#6BA84F">
-          <polygon stroke="#3a6b42" stroke-width="0.8" stroke-linejoin="round" points="20,34 4,4 11,1 22,26"></polygon>
-          <polygon stroke="#3a6b42" stroke-width="0.8" stroke-linejoin="round" points="20,34 36,5 29,1 19,26"></polygon>
-          <polygon stroke="#3a6b42" stroke-width="0.8" stroke-linejoin="round" points="20,34 20,0 26,3 23,28"></polygon>
+          <polygon points="20,34 4,4 11,1 22,26"></polygon>
+          <polygon points="20,34 36,5 29,1 19,26"></polygon>
+          <polygon points="20,34 20,0 26,3 23,28"></polygon>
         </g>
-        <circle stroke="#3a6b42" stroke-width="0.8" stroke-linejoin="round" cx="16" cy="33" r="3" fill="#8C5A38"></circle>
-        <circle stroke="#3a6b42" stroke-width="0.8" stroke-linejoin="round" cx="24" cy="34" r="2.6" fill="#8C5A38"></circle>
-</g>
+        <circle cx="16" cy="33" r="3" fill="#8C5A38"></circle>
+        <circle cx="24" cy="34" r="2.6" fill="#8C5A38"></circle>
+
 </svg>

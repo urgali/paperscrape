@@ -1,25 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="123" height="252" viewBox="1 0 41 84">
-<clipPath id="rim_person_boy_winter_walk2"><ellipse cx="22" cy="82" rx="16" ry="2.4" fill="#2B2A33" opacity="0.16"/><polygon points="15,66 20,66 13,77 9,75" fill="#2B2A33"/><polygon points="23,66 28,66 34,75 30,77" fill="#2B2A33"/><rect x="4" y="73" width="10" height="8" rx="3" fill="#5A3A28" transform="rotate(-12 9 77)"/><rect x="29" y="73" width="10" height="8" rx="3" fill="#5A3A28" transform="rotate(12 34 77)"/><polygon points="11,44 33,44 32,68 12,68" fill="#43804C"/><polygon points="21,44 24,44 24,68 21,68" fill="#26512D"/><polygon points="11,45 15,45 13,62 9,61" fill="#43804C"/><polygon points="29,45 33,45 35,61 31,62" fill="#43804C"/><rect x="8" y="60" width="7" height="6" rx="3" fill="#F7CE64"/><rect x="30" y="59" width="7" height="6" rx="3" fill="#F7CE64"/><rect x="14" y="26" width="17" height="20" rx="6" fill="#A9714B"/><path d="M9 30 C9 20 15 15 22 15 C29 15 36 20 36 30 C36 38 32 44 22 44 C12 44 9 38 9 30 Z" fill="#43804C"/><path d="M12 30 C12 24 16 21 22 21 C28 21 33 24 33 30 C33 36 29 40 22 40 C15 40 12 36 12 30 Z" fill="#FBF4E6"/><rect x="14" y="26" width="17" height="18" rx="6" fill="#A9714B"/><circle cx="18" cy="35" r="1.4" fill="#2B2A33"/><circle cx="27" cy="35" r="1.4" fill="#2B2A33"/></clipPath>
-<g clip-path="url(#rim_person_boy_winter_walk2)">
+<g id="paperscrape-outline" fill="#4a4038" stroke="#4a4038" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">
   
-<ellipse stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="22" cy="82" rx="16" ry="2.4" fill="#2B2A33" opacity="0.16"></ellipse>
-        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="15,66 20,66 13,77 9,75" fill="#2B2A33"></polygon>
-        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="23,66 28,66 34,75 30,77" fill="#2B2A33"></polygon>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="4" y="73" width="10" height="8" rx="3" fill="#5A3A28" transform="rotate(-12 9 77)"></rect>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="29" y="73" width="10" height="8" rx="3" fill="#5A3A28" transform="rotate(12 34 77)"></rect>
+<ellipse cx="22" cy="82" rx="16" ry="2.4"></ellipse>
+        <polygon points="15,66 20,66 13,77 9,75"></polygon>
+        <polygon points="23,66 28,66 34,75 30,77"></polygon>
+        <rect x="4" y="73" width="10" height="8" rx="3" transform="rotate(-12 9 77)"></rect>
+        <rect x="29" y="73" width="10" height="8" rx="3" transform="rotate(12 34 77)"></rect>
         <g transform="translate(0 0) scale(1.000000 1.000000)">
-        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="11,44 33,44 32,68 12,68" fill="#43804C"></polygon>
-        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="21,44 24,44 24,68 21,68" fill="#26512D"></polygon>
-        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="11,45 15,45 13,62 9,61" fill="#43804C"></polygon>
-        <polygon stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" points="29,45 33,45 35,61 31,62" fill="#43804C"></polygon>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="8" y="60" width="7" height="6" rx="3" fill="#F7CE64"></rect>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="30" y="59" width="7" height="6" rx="3" fill="#F7CE64"></rect>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="14" y="26" width="17" height="20" rx="6" fill="#A9714B"></rect>
-        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M9 30 C9 20 15 15 22 15 C29 15 36 20 36 30 C36 38 32 44 22 44 C12 44 9 38 9 30 Z" fill="#43804C"></path>
-        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M12 30 C12 24 16 21 22 21 C28 21 33 24 33 30 C33 36 29 40 22 40 C15 40 12 36 12 30 Z" fill="#FBF4E6"></path>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="14" y="26" width="17" height="18" rx="6" fill="#A9714B"></rect>
-        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="18" cy="35" r="1.4" fill="#2B2A33"></circle>
-        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="27" cy="35" r="1.4" fill="#2B2A33"></circle>
+        <polygon points="11,44 33,44 32,68 12,68"></polygon>
+        <polygon points="21,44 24,44 24,68 21,68"></polygon>
+        <polygon points="11,45 15,45 13,62 9,61"></polygon>
+        <polygon points="29,45 33,45 35,61 31,62"></polygon>
+        <rect x="8" y="60" width="7" height="6" rx="3"></rect>
+        <rect x="30" y="59" width="7" height="6" rx="3"></rect>
+        <rect x="14" y="26" width="17" height="20" rx="6"></rect>
+        <path d="M9 30 C9 20 15 15 22 15 C29 15 36 20 36 30 C36 38 32 44 22 44 C12 44 9 38 9 30 Z"></path>
+        <path d="M12 30 C12 24 16 21 22 21 C28 21 33 24 33 30 C33 36 29 40 22 40 C15 40 12 36 12 30 Z"></path>
+        <rect x="14" y="26" width="17" height="18" rx="6"></rect>
+        <circle cx="18" cy="35" r="1.4"></circle>
+        <circle cx="27" cy="35" r="1.4"></circle>
       </g>
 </g>
+  
+<ellipse cx="22" cy="82" rx="16" ry="2.4" fill="#2B2A33" opacity="0.16"></ellipse>
+        <polygon points="15,66 20,66 13,77 9,75" fill="#2B2A33"></polygon>
+        <polygon points="23,66 28,66 34,75 30,77" fill="#2B2A33"></polygon>
+        <rect x="4" y="73" width="10" height="8" rx="3" fill="#5A3A28" transform="rotate(-12 9 77)"></rect>
+        <rect x="29" y="73" width="10" height="8" rx="3" fill="#5A3A28" transform="rotate(12 34 77)"></rect>
+        <g transform="translate(0 0) scale(1.000000 1.000000)">
+        <polygon points="11,44 33,44 32,68 12,68" fill="#43804C"></polygon>
+        <polygon points="21,44 24,44 24,68 21,68" fill="#26512D"></polygon>
+        <polygon points="11,45 15,45 13,62 9,61" fill="#43804C"></polygon>
+        <polygon points="29,45 33,45 35,61 31,62" fill="#43804C"></polygon>
+        <rect x="8" y="60" width="7" height="6" rx="3" fill="#F7CE64"></rect>
+        <rect x="30" y="59" width="7" height="6" rx="3" fill="#F7CE64"></rect>
+        <rect x="14" y="26" width="17" height="20" rx="6" fill="#A9714B"></rect>
+        <path d="M9 30 C9 20 15 15 22 15 C29 15 36 20 36 30 C36 38 32 44 22 44 C12 44 9 38 9 30 Z" fill="#43804C"></path>
+        <path d="M12 30 C12 24 16 21 22 21 C28 21 33 24 33 30 C33 36 29 40 22 40 C15 40 12 36 12 30 Z" fill="#FBF4E6"></path>
+        <rect x="14" y="26" width="17" height="18" rx="6" fill="#A9714B"></rect>
+        <circle cx="18" cy="35" r="1.4" fill="#2B2A33"></circle>
+        <circle cx="27" cy="35" r="1.4" fill="#2B2A33"></circle>
+      </g>
+
 </svg>

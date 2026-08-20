@@ -1,4 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="123" height="252" viewBox="1 0 41 84">
+<g id="paperscrape-outline" fill="#4a4038" stroke="#4a4038" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">
+  
+<ellipse cx="22" cy="82" rx="14" ry="2.4"></ellipse>
+        <polygon points="16,64 21,64 19,79 14,78"></polygon>
+        <polygon points="23,64 28,64 30,78 25,79"></polygon>
+        <rect x="11" y="77" width="9" height="5" rx="2.5"></rect>
+        <rect x="24" y="77" width="9" height="5" rx="2.5"></rect>
+        <g transform="translate(0 1) scale(1.000000 1.000000)">
+        <rect x="19" y="44" width="6" height="4"></rect>
+        <polygon points="14,46 30,46 34,66 10,66"></polygon>
+        <polygon points="10,63 34,63 34,66 10,66"></polygon>
+        <polygon points="14,47 17,47 15,61 11,60"></polygon>
+        <polygon points="27,47 30,47 33,60 29,61"></polygon>
+        <rect x="14" y="26" width="17" height="20" rx="6"></rect>
+        <path d="M12 24 C12 40 12 40 12 40 L12 24 Z"></path>
+        <path d="M12 32 C12 25 16 22 22 22 C28 22 33 25 33 32 L33 34 L29 32 L16 31 L12 34 Z"></path>
+        <ellipse cx="10" cy="38" rx="4" ry="7"></ellipse>
+        <ellipse cx="35" cy="38" rx="4" ry="7"></ellipse>
+        <circle cx="10" cy="31" r="2.4"></circle>
+        <circle cx="35" cy="31" r="2.4"></circle>
+        <circle cx="18" cy="36" r="1.4"></circle>
+        <circle cx="27" cy="36" r="1.4"></circle>
+      </g>
+</g>
   
 <ellipse cx="22" cy="82" rx="14" ry="2.4" fill="#2B2A33" opacity="0.16"></ellipse>
         <polygon points="16,64 21,64 19,79 14,78" fill="#EFB994"></polygon>
@@ -21,4 +45,5 @@
         <circle cx="18" cy="36" r="1.4" fill="#2B2A33"></circle>
         <circle cx="27" cy="36" r="1.4" fill="#2B2A33"></circle>
       </g>
+
 </svg>

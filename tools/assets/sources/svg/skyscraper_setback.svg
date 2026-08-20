@@ -1,9 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="96" viewBox="0 0 60 32">
-<clipPath id="rim_skyscraper_setback"><rect x="0" y="6" width="60" height="26" rx="2" fill="#ffffff"/><rect x="26" y="0" width="4" height="8" fill="#ffffff"/><circle cx="28" cy="0" r="2.6" fill="#f6f6f6"/></clipPath>
-<g clip-path="url(#rim_skyscraper_setback)">
+<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
   
-<rect stroke="#c9c9c9" stroke-width="1.2" stroke-linejoin="round" x="0" y="6" width="60" height="26" rx="2" fill="#ffffff"></rect>
-        <rect stroke="#c9c9c9" stroke-width="1.2" stroke-linejoin="round" x="26" y="0" width="4" height="8" fill="#ffffff"></rect>
-        <circle stroke="#c9c9c9" stroke-width="1.2" stroke-linejoin="round" cx="28" cy="0" r="2.6" fill="#f6f6f6"></circle>
+<rect x="0" y="6" width="60" height="26" rx="2"></rect>
+        <rect x="26" y="0" width="4" height="8"></rect>
+        <circle cx="28" cy="0" r="2.6"></circle>
+
 </g>
+  
+<rect x="0" y="6" width="60" height="26" rx="2" fill="#ffffff"></rect>
+        <rect x="26" y="0" width="4" height="8" fill="#ffffff"></rect>
+        <circle cx="28" cy="0" r="2.6" fill="#f6f6f6"></circle>
+
+
 </svg>

@@ -1,8 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120" viewBox="0 0 80 40">
-<clipPath id="rim_house_small_roof"><polygon points="0,40 30,0 50,0 80,40" fill="#ffffff"/><polygon points="30,0 50,0 56,9 24,9" fill="#f3f3f3"/></clipPath>
-<g clip-path="url(#rim_house_small_roof)">
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="120" viewBox="0 0 96 40">
+<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
   
-<polygon stroke="#c4c4c4" stroke-width="1.2" stroke-linejoin="round" points="0,40 30,0 50,0 80,40" fill="#ffffff"></polygon>
-        <polygon stroke="#c4c4c4" stroke-width="1.2" stroke-linejoin="round" points="30,0 50,0 56,9 24,9" fill="#f3f3f3"></polygon>
+<polygon points="0,40 38,0 58,0 96,40"></polygon>
+        <polygon points="38,0 58,0 64,9 32,9"></polygon>
+
 </g>
+  
+<polygon points="0,40 38,0 58,0 96,40" fill="#ffffff"></polygon>
+        <polygon points="38,0 58,0 64,9 32,9" fill="#f3f3f3"></polygon>
+
+
 </svg>

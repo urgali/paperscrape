@@ -1,8 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="228" height="111" viewBox="1 2 76 37">
-<clipPath id="rim_tree_canopy_snowcap"><polygon points="1,24 25,2 55,2 77,24 70,36 57,29 44,39 30,30 16,36" fill="#DCE7EF"/><polygon points="1,24 25,2 55,2 77,24 70,31 57,24 44,34 30,25 16,31" fill="#FFFFFF"/></clipPath>
-<g clip-path="url(#rim_tree_canopy_snowcap)">
+<g id="paperscrape-outline" fill="#9fb0bd" stroke="#9fb0bd" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
   
-<polygon stroke="#cdd8e0" stroke-width="1.2" stroke-linejoin="round" points="1,24 25,2 55,2 77,24 70,36 57,29 44,39 30,30 16,36" fill="#DCE7EF"></polygon>
-        <polygon stroke="#cdd8e0" stroke-width="1.2" stroke-linejoin="round" points="1,24 25,2 55,2 77,24 70,31 57,24 44,34 30,25 16,31" fill="#FFFFFF"></polygon>
+<polygon points="1,24 25,2 55,2 77,24 70,36 57,29 44,39 30,30 16,36"></polygon>
+        <polygon points="1,24 25,2 55,2 77,24 70,31 57,24 44,34 30,25 16,31"></polygon>
 </g>
+  
+<polygon points="1,24 25,2 55,2 77,24 70,36 57,29 44,39 30,30 16,36" fill="#DCE7EF"></polygon>
+        <polygon points="1,24 25,2 55,2 77,24 70,31 57,24 44,34 30,25 16,31" fill="#FFFFFF"></polygon>
+
 </svg>

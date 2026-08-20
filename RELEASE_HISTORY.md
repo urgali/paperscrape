@@ -19,9 +19,105 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.6 — the outline moved outside, and the small house got its facade
+
+**Stable / latest.** `versionCode = 10`, `versionName = "2.6"`. Tag `v2.6`.
+
+A device pass on v2.5 approved the world scale, Spring, the Halloween palms and the carved moon,
+and rejected two things. Both are corrected here; nothing else was reopened.
+
+### The rim failed because every check looked at one sprite at a time
+
+v2.5's readability edge was clipped to the **inside** of every shape, so its thickness was a
+function of what each shape happened to overlap. On a still that is invisible. Across the walk
+cycle, where the arms and legs move and the overlaps move with them, the band appeared and
+vanished between consecutive frames — and it passed every test there was, because the tests were
+per-sprite and the defect is per-sequence.
+
+**The replacement draws the whole sprite a second time underneath itself**, filled and stroked in
+the outline colour. The strokes of overlapping shapes merge into one contour and the normal fills
+on top hide every internal seam, so what is left is a continuous band of one width around the
+**union** of the artwork — and the union is the only thing it depends on. Baked into the PNG; no
+runtime draw call was added.
+
+An outer outline grows the silhouette by half the stroke on every side, which is what an outer
+outline *is*. The registry was re-measured and the affected anchors and origins followed it, the
+same way a crop is handled.
+
+### Tinted sprites cannot carry a dark edge, and that turned out to be an advantage
+
+`SpriteTintClassTest` requires every tintable sprite to be a colourless mask averaging at least
+220 — the runtime multiplies it by the user's colour, and a dark or hued band would compound with
+it. The first pass gave walls, vehicles and animals the same dark edge as the people and failed
+both of those assertions.
+
+The fix is better than a special case: tintable sprites get a **light neutral grey** (`#dcdcdc` to
+`#e4e4e4`), which `MULTIPLY` turns into a slightly darker version of whatever colour the user
+chose. Fixed-art sprites — the people above all — carry their dark edge directly. Two treatments
+because the two classes of sprite reach the screen by different arithmetic, not because one looked
+nicer.
+
+### The tests now look at the sequence
+
+`tools/assets/tests/test_outline.py`, seven tests over the eight walk cycles (four people, two
+seasons, three frames each): the frames of one cycle must agree on the outline colour; the band
+must run all the way round each frame's own silhouette; its thickness, measured as the share of
+the silhouette it occupies, may not vary more than 6% across a cycle; the still window and car
+occupants must match the walkers; the marker must be present in each source; the band must be
+darker than the interior; and every outlined sprite must match its registry geometry.
+
+The middle one is the assertion the rim would have failed, and the reason it is stated as a
+property of a cycle rather than of a sprite.
+
+### The small house needed facade, not height
+
+The height was right — `SceneSpace.SceneVariant.HOUSE_SMALL` governs it and v2.5 had already
+settled it at 6.4 m. What was wrong was the width: 70 local units of wall with the two windows
+reaching to within two units of each edge, which at the size a Pixel 9 draws it read as a pair of
+windows about to fall off the front.
+
+The wall is 86 units now and the roof and eaves 96, keeping the same five-unit overhang, so there
+are **six units of facade either side of a window instead of two**. Every origin moved with it:
+wall, roof, roof snow, trim, both windows, the lit glass, the occupant, the planter, the flowers,
+the door and the porch light. Pitch, door and window count are untouched.
+
+### Verification
+
+```
+Release identifier:            v2.6
+Verification level:            3
+Tests run:                     yes -- 395 Kotlin tests, 0 failures
+Lint run:                      yes -- ./gradlew lintDebug, 41 warnings, 0 errors
+Python tooling suite:          yes -- 96 tests, 0 failures (was 89; seven are the new
+                               animation-sequence checks)
+Asset validate:                yes -- 0 failures, 123 entries, anchors 123/123,
+                               18 variant groups distinct
+Normalisation:                 yes -- 74 targets, none pending, 12 excluded by decision
+Visual mockup:                 yes -- all eight walk cycles at Pixel 9 size (85 px tall) and
+                               at 3x, and the widened small house beside a large house, a tree
+                               and a car at their real scales. **Not** an OpenGL frame.
+APK build run:                 no
+Maintainer-side verification required: **yes** -- specifically, watch a pedestrian walk rather
+                               than looking at one standing, which is what the v2.5 defect
+                               needed to be seen.
+```
+
+### Known limitations
+
+- **At Pixel 9 size the pedestrian outline is about 1.2 px.** Stable and continuous, but at the
+  low end of visible. If it reads as too timid on the device it is one number per category --
+  1.2 to 1.5 local units -- and no change to the principle.
+- `cloud_body`'s source was rebuilt by hand after the old rim's removal cut the wrong closing
+  tag. It is the authored artwork plus the outline group, but it is the one file that did not go
+  through the automated path.
+- **Nothing was seen rendering.** The mockups use the shipped PNGs at the real scales.
+- Eight walk frames that could not carry the v2.5 rim carry the new outline without trouble --
+  the failure mode that forced those reverts was specific to clipping.
+
+
 ## v2.5 — a readability rim, a bigger world, dead palms, and a calendar that covers the year
 
-**Stable / latest.** `versionCode = 9`, `versionName = "2.5"`. Tag `v2.5`.
+`versionCode = 9`, `versionName = "2.5"`. Tag `v2.5`.
 
 ### The rim is the snowman's trick, generalised
 
@@ -1672,13 +1768,13 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v2.5 — Stable / latest** (`versionCode = 9`, `versionName = "2.5"`) |
-| **Latest stable** | v2.5 |
+| **Version** | **v2.6 — Stable / latest** (`versionCode = 10`, `versionName = "2.6"`) |
+| **Latest stable** | v2.6 |
 | **Date** | 2026-08-20 |
 | **Build status** | ⚠️ `testDebugUnitTest` **378 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 122 sprites**; `normalize` **0 targets pending, 11 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
 | **Sprite memory** | **122 PNGs, 15.31 MB decoded, 1.66 MB of it padding** — re-measured at v2.4. D-10's crop recovered 1.49 MB at v2.2; v2.3 added four sprites back. The residual padding is the outward rounding to the sprite grid plus the eleven sprites excluded by decision |
-| **Tests** | 395 Kotlin unit tests, 89 Python tooling tests |
+| **Tests** | 395 Kotlin unit tests, 96 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

@@ -1,9 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="246" height="222" viewBox="4 4 82 74">
-<clipPath id="rim_tree_canopy"><polygon points="18,58 10,32 32,10 62,8 86,30 78,62 46,78" fill="#eaeaea"/><polygon points="12,52 4,26 28,4 58,4 80,26 72,56 42,70" fill="#f6f6f6"/><polygon points="24,24 40,10 56,12 38,30" fill="#ffffff"/></clipPath>
-<g clip-path="url(#rim_tree_canopy)">
+<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
   
-<polygon stroke="#d2d2d2" stroke-width="1.2" stroke-linejoin="round" points="18,58 10,32 32,10 62,8 86,30 78,62 46,78" fill="#eaeaea"></polygon>
-        <polygon stroke="#d2d2d2" stroke-width="1.2" stroke-linejoin="round" points="12,52 4,26 28,4 58,4 80,26 72,56 42,70" fill="#f6f6f6"></polygon>
-        <polygon stroke="#d2d2d2" stroke-width="1.2" stroke-linejoin="round" points="24,24 40,10 56,12 38,30" fill="#ffffff"></polygon>
+<polygon points="18,58 10,32 32,10 62,8 86,30 78,62 46,78"></polygon>
+        <polygon points="12,52 4,26 28,4 58,4 80,26 72,56 42,70"></polygon>
+        <polygon points="24,24 40,10 56,12 38,30"></polygon>
+
 </g>
+  
+<polygon points="18,58 10,32 32,10 62,8 86,30 78,62 46,78" fill="#eaeaea"></polygon>
+        <polygon points="12,52 4,26 28,4 58,4 80,26 72,56 42,70" fill="#f6f6f6"></polygon>
+        <polygon points="24,24 40,10 56,12 38,30" fill="#ffffff"></polygon>
+
+
 </svg>

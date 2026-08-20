@@ -1,9 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420" height="285" viewBox="0 0 140 95">
-<clipPath id="rim_house_large_wall"><rect x="0" y="0" width="140" height="95" rx="3" fill="#ffffff"/><rect x="110" y="0" width="30" height="95" fill="#f8f8f8"/><rect x="0" y="84" width="140" height="11" fill="#f5f5f5"/></clipPath>
-<g clip-path="url(#rim_house_large_wall)">
+<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
   
-<rect stroke="#c9c9c9" stroke-width="1.2" stroke-linejoin="round" x="0" y="0" width="140" height="95" rx="3" fill="#ffffff"></rect>
-        <rect stroke="#c9c9c9" stroke-width="1.2" stroke-linejoin="round" x="110" y="0" width="30" height="95" fill="#f8f8f8"></rect>
-        <rect stroke="#c9c9c9" stroke-width="1.2" stroke-linejoin="round" x="0" y="84" width="140" height="11" fill="#f5f5f5"></rect>
+<rect x="0" y="0" width="140" height="95" rx="3"></rect>
+        <rect x="110" y="0" width="30" height="95"></rect>
+        <rect x="0" y="84" width="140" height="11"></rect>
+
 </g>
+  
+<rect x="0" y="0" width="140" height="95" rx="3" fill="#ffffff"></rect>
+        <rect x="110" y="0" width="30" height="95" fill="#f8f8f8"></rect>
+        <rect x="0" y="84" width="140" height="11" fill="#f5f5f5"></rect>
+
+
 </svg>

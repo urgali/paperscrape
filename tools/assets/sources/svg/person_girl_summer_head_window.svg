@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="159" height="162" viewBox="4 0 53 54">
+<g id="paperscrape-outline" fill="#4a4038" stroke="#4a4038" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">
+  
+<path d="M8 54 C8 45 17 40 30 40 C43 40 52 45 52 54 Z"></path>
+        <rect x="16" y="8" width="29" height="32" rx="10"></rect>
+        <path d="M14 24 C14 12 21 6 30 6 C39 6 47 12 47 24 L47 26 L41 22 L20 21 L14 26 Z"></path>
+        <ellipse cx="12" cy="32" rx="6" ry="11"></ellipse>
+        <ellipse cx="49" cy="32" rx="6" ry="11"></ellipse>
+        <circle cx="12" cy="22" r="3.6"></circle>
+        <circle cx="49" cy="22" r="3.6"></circle>
+        <circle cx="24" cy="26" r="2.4"></circle>
+        <circle cx="37" cy="26" r="2.4"></circle>
+        <path d="M27 33 C29 36 33 36 35 33" stroke="#A5713F" stroke-width="2" stroke-linecap="round"></path>
+</g>
   
 <path d="M8 54 C8 45 17 40 30 40 C43 40 52 45 52 54 Z" fill="#F7CE64"></path>
         <rect x="16" y="8" width="29" height="32" rx="10" fill="#EFB994"></rect>
@@ -10,4 +23,5 @@
         <circle cx="24" cy="26" r="2.4" fill="#2B2A33"></circle>
         <circle cx="37" cy="26" r="2.4" fill="#2B2A33"></circle>
         <path d="M27 33 C29 36 33 36 35 33" stroke="#A5713F" stroke-width="2" fill="none" stroke-linecap="round"></path>
+
 </svg>

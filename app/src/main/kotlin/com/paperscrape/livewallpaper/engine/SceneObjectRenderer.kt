@@ -931,9 +931,9 @@ class SceneObjectRenderer(
         // where it is declared rather than corrected where it is painted.
         drawGroundShadow(canvas, 40f)
         // wall: local bbox (-35,-70)-(35,0)
-        drawTintedSprite(canvas, R.drawable.house_small_wall, -35f, -70f, wallColor)
+        drawTintedSprite(canvas, R.drawable.house_small_wall, -43f, -70f, wallColor)
         // roof: local bbox (-40,-110)-(40,-70)
-        drawTintedSprite(canvas, R.drawable.house_small_roof, -40f, -110f, roofColor)
+        drawTintedSprite(canvas, R.drawable.house_small_roof, -48f, -110f, roofColor)
         // Snow settles on the roof in the winter and Christmas themes -- a layer *on* the roof,
         // cut to that roof's own outline, never the roof tinted white. Tinting it would repaint
         // the building rather than cover it, and `winterColorsEnabled` is already a palette
@@ -944,9 +944,9 @@ class SceneObjectRenderer(
         // than under it. The origin is the roof's own, less the four units of crest the cap adds
         // above the ridge -- derived from the roof, so the two move together if either is redrawn.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.house_small_roof_snow, -27f, -114f)
+            drawSprite(canvas, R.drawable.house_small_roof_snow, -35f, -114f)
         }
-        drawTintedSprite(canvas, R.drawable.house_small_trim, -40f, -71f, trimColor)
+        drawTintedSprite(canvas, R.drawable.house_small_trim, -48f, -71f, trimColor)
         // chimney: local bbox (8,-115)-(20,-85) -- base sits on the roof slope (off-center,
         // right side) with enough of it above the ridge line to read as poking through, was
         // floating past the roof's edge entirely at the old centered position.
@@ -962,6 +962,13 @@ class SceneObjectRenderer(
         // comes from the `canvas.scale` above, not from the artwork.
         // Window and door mirrored about the wall's own centre: a 22-unit window at -28 and a
         // 20-unit door at 8 put their centres at -17 and +18 on a wall running -35..35.
+        // **Wider, after a device pass.** The facade was 70 local units across and the windows
+        // reached to within two of each edge, so at the size a Pixel 9 draws it the pair read as
+        // about to fall off the front. The wall is 86 now and the roof and eaves 96, keeping the
+        // same five-unit overhang; the height is untouched, because the height is what
+        // [SceneSpace.SceneVariant.HOUSE_SMALL] governs and it was already right. Six units of
+        // facade either side of a window instead of two.
+        //
         // **A window on each side of a centred door.** With one window and a door pushed to the
         // right, the elevation was asymmetric and short, and read as a cabin rather than a house.
         // The door now sits on the wall's own centre and the windows are mirrored about it, which
@@ -971,16 +978,16 @@ class SceneObjectRenderer(
         // artwork: `house_shared_window` is one drawing used by both house variants, so a second
         // one cannot drift from the first. A 22-unit window centred at -22 and at +22, and a
         // 20-unit door centred on 0, all sit clear of each other on a wall running -35..35.
-        drawSprite(canvas, R.drawable.house_shared_window, -33f, -51f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, -33f, -52f, litWindowAlpha(nightGlow))
-        drawWindowOccupant(canvas, r, -33f, -52f, 22f, 22f)
-        drawSprite(canvas, R.drawable.house_shared_window, 11f, -51f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, 11f, -52f, litWindowAlpha(nightGlow))
-        drawSprite(canvas, R.drawable.house_shared_planter, -35f, -29f)
-        drawFlowerDots(canvas, -29f, -29f)
+        drawSprite(canvas, R.drawable.house_shared_window, -37f, -51f)
+        drawSpriteFaded(canvas, R.drawable.house_window_lit, -37f, -52f, litWindowAlpha(nightGlow))
+        drawWindowOccupant(canvas, r, -37f, -52f, 22f, 22f)
+        drawSprite(canvas, R.drawable.house_shared_window, 15f, -51f)
+        drawSpriteFaded(canvas, R.drawable.house_window_lit, 15f, -52f, litWindowAlpha(nightGlow))
+        drawSprite(canvas, R.drawable.house_shared_planter, -39f, -29f)
+        drawFlowerDots(canvas, -33f, -29f)
         // door, centred between the two windows, with the porch light beside it
         drawTintedSprite(canvas, R.drawable.house_small_door, -10f, -38f, ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.55f))
-        drawPorchLight(canvas, x = 14f, y = -20f, nightGlow = nightGlow)
+        drawPorchLight(canvas, x = 16f, y = -20f, nightGlow = nightGlow)
     }
 
     private fun drawLargeHouse(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {

@@ -1023,3 +1023,29 @@ the effect rather than the whole event.
 
 Drawn after the animal, so on the way out it rises up through its own splash. On the way back
 in there is nothing left to cover, so the order costs nothing there.
+
+## 22. An outline goes outside, and is judged over a sequence
+
+v2.5's readability edge was clipped to the inside of every shape, which made its thickness a
+function of what each shape happened to overlap. Standing still it looked right. Walking, the band
+appeared and vanished between frames as the arms and legs moved the overlaps — **and every test
+passed, because every test looked at one sprite and the defect only exists across three.**
+
+The replacement draws the whole sprite a second time underneath itself, filled and stroked in the
+outline colour: overlapping strokes merge into one contour, the normal fills hide the internal
+seams, and what is left is a continuous band of one width around the union of the artwork. It
+depends on the union and on nothing else, which is exactly why it is stable.
+
+**Two treatments, because two classes of sprite reach the screen by different arithmetic.** A
+fixed-art sprite carries a dark edge directly. A tintable one cannot: the runtime multiplies it by
+the user's colour, so it must stay a colourless mask, and its edge is a light neutral grey that
+`MULTIPLY` turns into a darker version of whatever colour was chosen. Not a special case — the
+same intent expressed in the only form each class can hold.
+
+**An outer outline grows the silhouette by half the stroke on every side.** That is what makes it
+outer, and it is handled the way a crop is: re-measure the registry, let the anchors follow, move
+the origins that depend on them.
+
+**Anything with frames is verified over its frames.** `test_outline.py` asserts across a walk
+cycle, not within a sprite: one colour for the cycle, the band all the way round each frame, and a
+thickness that cannot vary more than a few percent between them.
