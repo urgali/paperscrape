@@ -49,11 +49,11 @@ PaperScrape/
 
 | Metric | Value |
 |---|---|
-| Kotlin files | 41 |
+| Kotlin files | 43 |
 | Kotlin lines | ~11,100 |
 | Sprite PNGs in `drawable-nodpi/` | **111 files, 111 unique contents** — no byte-identical pair; the V2 asset library replaced the whole set in v76 |
 | Vector drawables | 4 |
-| Unit tests | **442** (31 classes, JVM-local, no Android dependencies) |
+| Unit tests | **468** (35 classes, JVM-local, no Android dependencies) |
 | Instrumentation tests | 0 |
 | Largest files | `PaperRenderer.kt` 1,728 · `SceneObjectRenderer.kt` 1,152 · `WorldSceneScreen.kt` 813 · `WallpaperPrefs.kt` 789 · `SettingsComponents.kt` 736 |
 
@@ -93,7 +93,13 @@ PaperScrape/
 
 - `prefs/WallpaperPrefs.kt` — main DataStore store, exposes `settingsFlow`.
 - `prefs/CustomThemeStore.kt` — separate DataStore for custom themes/overrides.
-- `location/DeviceLocationProvider.kt`, `location/LocationLabelResolver.kt`.
+- `location/DeviceLocationProvider.kt` — the device fix.
+- `location/LocationLabelResolver.kt` — reverse geocoding through the platform `Geocoder`, which
+  needs no network where a device supports it.
+- `location/CityGeocoder.kt` — forward search by city name, through Open-Meteo's keyless geocoding
+  API (the same provider Live Weather uses, and the same `HttpURLConnection` style). The response
+  parser and the small in-memory search cache are separated from the network call so both are
+  unit-testable.
 - `weather/WeatherRepository.kt` — Open-Meteo, `HttpURLConnection`, `Dispatchers.IO`.
 - `update/UpdateChecker.kt`, `update/UpdatePrefs.kt` — GitHub Releases API.
 - `ui/` — the settings UI, one file per destination since v2.9 (it was a single 2,414-line
@@ -110,6 +116,10 @@ PaperScrape/
     and no Android imports, so both directions are unit-tested.
   - `SceneCategorySections.kt` — the per-category and per-mountain-layer editors.
   - `ThemePreview.kt` — draws a theme's preview scene; see `engine/ThemePreviewScene.kt`.
+  - `SettingsInsets.kt` — the single bottom-spacing rule for every scrolling screen. The
+    destinations are full-screen `Dialog`s whose own window can report no bottom inset, so the
+    inset is measured in the activity's composition and passed down through
+    `LocalSettingsBottomInset`; the shells apply it, screens never set their own.
   - `theme/PaperScrapeTheme.kt` — the complete Material 3 colour scheme, light and dark.
 
 ---

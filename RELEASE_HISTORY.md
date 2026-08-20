@@ -19,9 +19,78 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.10 — a city by name, and the bottom of the page
+
+**Stable / latest.** `versionCode = 14`, `versionName = "2.10"`. Tag `v2.10`.
+
+Two contained changes found on the v2.9 device pass. Nothing in the wallpaper, the themes, the
+previews or the weather logic was touched.
+
+### The last row was under the gesture bar
+
+Scrolling to the bottom of a settings screen left the final row partly hidden on some screens and
+not others. The cause is structural rather than cosmetic: every destination is a full-screen
+`Dialog`, and a dialog has its own window. Unless that window is told otherwise it fits system
+windows itself, so `WindowInsets.safeDrawing` measured *inside* it can report zero while the
+content still runs to the bottom of the display — and each screen was left carrying whatever
+padding it happened to have.
+
+`SettingsInsets` is now the one rule: the system's own bottom inset plus 24 dp of breathing room,
+floored at 48 dp. The inset is read once in the **activity's** composition, where it is real, and
+passed to the dialogs through `LocalSettingsBottomInset`; the two shared shells apply it, so every
+screen ends the same way and no screen sets its own. The shells also gained `imePadding`, which is
+what keeps the new search field and its results above the keyboard.
+
+The floor is the part that matters: it is what makes the fix hold on a window that reports no
+inset at all, which is the case the bug came from.
+
+### Custom location by city name
+
+A user setting up Live Weather had to know their latitude and longitude. There is now a search
+field above the coordinate fields: type a name, pick a result, and the same three values a manual
+entry writes — latitude, longitude, label — are written through the same `setCustomLocation` call.
+**Downstream nothing can tell the two apart**, which is the whole design: the search is a more
+convenient way to fill the existing fields, not a second location system.
+
+**Provider: Open-Meteo's geocoding API** — the same provider Live Weather already uses. It needs no
+API key, adds no library, and reuses `WeatherRepository`'s exact networking style
+(`HttpURLConnection`, fixed timeouts, every failure becoming a value). No secret was added and the
+CI workflow is unchanged. The device's own `Geocoder` was the alternative and was rejected for
+forward search: `getFromLocationName` is optional on Android, absent without Play services, and
+populates its region fields inconsistently — which is exactly the information needed to tell three
+Springfields apart. Reverse geocoding stays on the platform `LocationLabelResolver`, which works
+offline and has no reason to move.
+
+**Ambiguity is the user's to resolve.** Every place sharing a name is listed with its region,
+second-level division and country, and nothing is auto-selected — not even when there is a single
+result. Choosing for the user is how the wrong continent's weather ends up on the wallpaper.
+
+**Nothing is written until a result is tapped.** A failed search, an empty one, or a cancelled one
+leaves the existing custom location exactly as it was, and "couldn't reach the search" and "no such
+place" are separate messages because they are separate answers.
+
+Requests are bounded by a 500 ms debounce plus an explicit search action on the keyboard, and an
+8-entry in-memory cache so backspacing a letter and retyping it does not re-ask. The cache is not
+persisted.
+
+### Measured
+
+468 Kotlin unit tests passing (v2.9: 442), `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK.
+
+**Version note.** This is the first release whose minor number is two digits. `AppVersion` compares
+parsed integers, so 2.10 is correctly newer than 2.9; a string comparison would have read it as
+older and silently stopped offering updates. There is now a test saying so.
+
+**Not seen rendering.** No device or emulator was available for this batch. The bottom-spacing rule
+is pinned by unit tests and the search is verified through its parser, its cache and its query
+rules — but neither has been watched on a screen.
+
+---
+
 ## v2.9 — the settings rebuilt, and previews that show the theme
 
-**Stable / latest.** `versionCode = 13`, `versionName = "2.9"`. Tag `v2.9`.
+**Stable.** `versionCode = 13`, `versionName = "2.9"`. Tag `v2.9`.
 
 A UI release. The renderer, `SceneSpace`, the sprite library, the themes, the calendar, Live
 Weather, the reset behaviours and every stored preference are untouched; what changed is how the

@@ -10,20 +10,21 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.9 Stable — the settings rebuilt, and previews that show the theme.**
+**v2.10 Stable — a city by name, and the bottom of the page.**
 
-`versionCode = 13`, `versionName = "2.9"`. A UI release: the settings split from one 2,414-line
-screen into five destinations, the Material 3 colour scheme completed from the existing palette,
-emoji replaced by Material Symbols, and theme previews that draw a real mini scene from the
-shipping sprites instead of a gradient with a circle on it. No flag, default, calendar rule, reset,
-renderer or asset changed.
+`versionCode = 14`, `versionName = "2.10"`. Two fixes from the v2.9 device pass: one central
+bottom-inset rule for every scrolling settings screen (`SettingsInsets`, provided from the
+activity because the destination dialogs cannot measure it themselves), and city search for the
+custom location, using Open-Meteo's keyless geocoding API — the same provider Live Weather already
+uses. Live Weather, its cache and fallback, phone location, the themes and the previews are
+untouched.
 
-Last measured: 442 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+Last measured: 468 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
 producing an APK. Not yet seen rendering on a device.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -38,7 +39,7 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 | 3 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
 | 4 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
 | 5 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
-| 6 | **Device pass on v2.9's settings UI and theme previews** | Five destinations, a completed colour scheme and twelve mini-scene previews, none of it seen rendering. The previews in particular were verified by rasterising the scene description the code produces, not by the app drawing it. |
+| 6 | **Device pass on v2.10's bottom spacing and city search, and on v2.9's settings UI and theme previews** | Five destinations, a completed colour scheme and twelve mini-scene previews, none of it seen rendering. The previews in particular were verified by rasterising the scene description the code produces, not by the app drawing it. |
 | 7 | **Scene-objects live preview** | The strip at the top of World & scene still magnifies the size table with per-item fitting factors so three objects of very different heights fit 120 dp. Honest, but not representative — and now inconsistent with the gallery previews next to it. |
 | 8 | **README / lint / KDoc tidying** | `UseKtx`, `ObsoleteSdkInt`, `DataExtractionRules`, and KDoc that has accumulated layers across releases. |
 
@@ -64,6 +65,7 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.10 Stable** — one central bottom-inset rule for every settings screen, and custom location by city search.
 - **v2.9 Stable** — settings UI restructured into five destinations, complete Material 3 colour scheme, Material Symbols, and theme previews drawn from the real sprite library.
 - **v2.8 Stable** — shop first floors, small-house harmonisation, a shorter tower with a coarse grid and a real entrance, Christmas firs and scattered lights.
 - **v2.7 Stable** — roof-snow and leaf-spawn bugs fixed, flowers toggle, window Christmas lights, balloons removed, building hierarchy and skyscraper grid corrected.

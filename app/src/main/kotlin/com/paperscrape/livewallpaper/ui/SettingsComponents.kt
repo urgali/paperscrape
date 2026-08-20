@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -273,10 +273,16 @@ internal fun SettingsSegmentedChoice(
     }
 }
 
-/** Trailing breathing room so the last row of a screen is never flush with the nav bar. */
+/**
+ * Trailing space under the last row of a scrolling screen.
+ *
+ * One spacer, used by every settings screen, sized by [SettingsInsets.bottomSpacing] from the
+ * inset the activity measured -- rather than each screen carrying a padding of its own, which is
+ * how the last row ended up half under the gesture bar on some of them and not others.
+ */
 @Composable
 internal fun SettingsBottomSpacer() {
-    Box(modifier = Modifier.height(40.dp))
+    Box(modifier = Modifier.height(SettingsInsets.bottomSpacing(LocalSettingsBottomInset.current)))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -321,8 +327,11 @@ internal fun SettingsSubScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .verticalScroll(rememberScrollState())
-                        .navigationBarsPadding(),
+                        // Before the scroll modifier, so the scrollable area itself shrinks when
+                        // the keyboard opens: the city search field stays visible with its results
+                        // rather than being pushed under it.
+                        .imePadding()
+                        .verticalScroll(rememberScrollState()),
                 ) {
                     content()
                     SettingsBottomSpacer()

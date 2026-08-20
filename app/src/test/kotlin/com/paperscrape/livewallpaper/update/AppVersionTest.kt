@@ -67,4 +67,18 @@ class AppVersionTest {
         assertEquals(AppVersion.parse("v1.0"), AppVersion.parse("1.0"))
         assertEquals("1.0", v("v1.0").toString())
     }
+
+    /**
+     * The first release whose minor number is two digits. `AppVersion` compares parsed integers
+     * rather than strings, so 2.10 is correctly newer than 2.9 -- a string comparison would have
+     * read "2.10" as older than "2.9" and silently stopped offering updates.
+     */
+    @Test
+    fun `a two-digit minor is newer than a single-digit one`() {
+        val v29 = AppVersion.parse("2.9")!!
+        val v210 = AppVersion.parse("v2.10")!!
+        assertTrue(v210 > v29)
+        assertTrue(v29 < v210)
+        assertEquals(10, v210.minor)
+    }
 }

@@ -3,7 +3,7 @@
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.9 Stable**
+**Current version: v2.10 Stable**
 
 ---
 
@@ -16,7 +16,8 @@ moving on its own.
   every frame.
 - **A day that follows yours.** The sun and moon move with your device clock, and the
   whole palette blends from night through dawn to day and back. Sunrise and sunset
-  times can come from the clock alone, from your location, or from a place you pick.
+  times can come from the clock alone, from your location, or from a place you pick —
+  by searching for it by name, or by entering coordinates.
 - **Twelve themes** — sunset, autumn, winter, spring, desert, Christmas, new year, beach,
   city, tundra, Easter and Halloween — with optional automatic switching by date, which
   covers every day of the year and moves Easter with the calendar. Each one's gallery card

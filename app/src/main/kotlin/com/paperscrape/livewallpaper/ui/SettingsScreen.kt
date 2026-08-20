@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -117,6 +117,7 @@ fun SettingsScreen(
         pendingThemeId = settings.pendingCustomizationThemeId,
     )
 
+    ProvideSettingsBottomInset {
     Scaffold(
         topBar = { TopAppBar(title = { Text("PaperScrape") }) },
     ) { padding ->
@@ -124,8 +125,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .navigationBarsPadding(),
+                .imePadding()
+                .verticalScroll(rememberScrollState()),
         ) {
             HomeThemePreview(
                 theme = effectiveTheme,
@@ -335,6 +336,7 @@ fun SettingsScreen(
                 },
             )
         }
+    }
     }
 }
 

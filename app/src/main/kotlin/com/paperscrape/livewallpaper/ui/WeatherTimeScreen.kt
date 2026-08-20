@@ -12,6 +12,26 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.layout.size
+import com.paperscrape.livewallpaper.location.CityGeocoder
+import com.paperscrape.livewallpaper.location.CitySearchResult
+import com.paperscrape.livewallpaper.location.GeocodedCity
+import kotlinx.coroutines.delay
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -130,17 +150,18 @@ internal fun WeatherTimeScreen(
                 )
             }
             if (locationEnabled && locationMode == LocationMode.CUSTOM) {
+                // The place in use, above the ways of changing it: what is set now is the first
+                // question, and it stays answered while a search is in progress.
+                SelectedCustomLocationRow(
+                    label = settings.customLocationLabel,
+                    latitude = settings.customLocationLatitude,
+                    longitude = settings.customLocationLongitude,
+                )
                 CustomLocationFields(
                     latitude = settings.customLocationLatitude,
                     longitude = settings.customLocationLongitude,
                     label = settings.customLocationLabel,
                     onApply = { lat, lon, label -> scope.launch { prefs.setCustomLocation(lat, lon, label) } },
-                )
-                LocationRow(
-                    latitude = settings.customLocationLatitude,
-                    longitude = settings.customLocationLongitude,
-                    loadingText = "Looking up this location...",
-                    supporting = "Resolved from the coordinates above",
                 )
             }
         }
@@ -234,16 +255,211 @@ private fun LocationRow(latitude: Float?, longitude: Float?, loadingText: String
 }
 
 /**
- * Latitude/longitude/label entry for the custom location. Local text state (not committed to
- * prefs on every keystroke, unlike this screen's usual pattern of firing a prefs write per
- * Slider/Switch change) because a lat/long is only valid once fully typed -- writing "4" then
- * "45" then "45." etc as separate coordinate values as the user types would spam invalid,
- * incomplete fixes through to the sunrise/sunset and Live Weather calculation on every keystroke.
- * Committed via the explicit "Apply" button instead, same reasoning as why a hex colour field in
- * [ColorPickerDialog] commits on "Apply" rather than per-keystroke.
+ * The custom location currently in force: its name, with the coordinates kept available
+ * underneath rather than made the headline. A user who searched for "Milano" should see Milano;
+ * a user who typed coordinates should still be able to check them.
+ */
+@Composable
+private fun SelectedCustomLocationRow(label: String, latitude: Float, longitude: Float) {
+    val title = label.ifBlank { "%.3f, %.3f".format(latitude, longitude) }
+    SettingsRow(
+        title = title,
+        supporting = "Selected location - %.3f, %.3f".format(latitude, longitude),
+        icon = Icons.Filled.LocationOn,
+    )
+}
+
+/**
+ * Setting a custom location: search for a city by name, or type coordinates.
+ *
+ * The search is a *convenience for filling the same fields*, not a second location system. A
+ * selected result writes latitude, longitude and label through `prefs.setCustomLocation` -- the
+ * one call the manual Apply button has always made -- so Live Weather, the sunrise/sunset
+ * calculation, the cache and the fallback cannot tell the two apart, and there is nothing new for
+ * them to handle.
+ *
+ * Nothing is written until a result is tapped. A failed search, an empty one, or a cancelled one
+ * leaves the current custom location exactly as it was.
  */
 @Composable
 private fun CustomLocationFields(
+    latitude: Float,
+    longitude: Float,
+    label: String,
+    onApply: (Float, Float, String) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    var searchState by remember { mutableStateOf<CitySearchUiState>(CitySearchUiState.Idle) }
+    var lastSearched by remember { mutableStateOf("") }
+    val keyboard = LocalSoftwareKeyboardController.current
+
+    suspend fun runSearch(text: String) {
+        val trimmed = text.trim()
+        if (!CityGeocoder.isQuerySearchable(trimmed)) return
+        lastSearched = trimmed
+        searchState = CitySearchUiState.Searching
+        searchState = when (val result = CityGeocoder.search(trimmed)) {
+            is CitySearchResult.Found -> CitySearchUiState.Results(result.cities)
+            CitySearchResult.NoMatches -> CitySearchUiState.NoMatches
+            CitySearchResult.Failed -> CitySearchUiState.Failed
+        }
+    }
+
+    // Typing settles before anything is asked. 500 ms is long enough that a whole city name is one
+    // request rather than one per letter, and the search action on the keyboard is there for
+    // anyone who does not want to wait for it.
+    LaunchedEffect(query) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            searchState = CitySearchUiState.Idle
+            return@LaunchedEffect
+        }
+        if (!CityGeocoder.isQuerySearchable(trimmed) || trimmed == lastSearched) return@LaunchedEffect
+        delay(SEARCH_DEBOUNCE_MS)
+        runSearch(trimmed)
+    }
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            label = { Text("Search for a city") },
+            placeholder = { Text("Milano") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = ""; searchState = CitySearchUiState.Idle }) {
+                        Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                    }
+                }
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
+                keyboard?.hide()
+                scope.launch { runSearch(query) }
+            }),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        when (val state = searchState) {
+            CitySearchUiState.Idle -> Unit
+            CitySearchUiState.Searching -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(vertical = 8.dp),
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                Text("Searching...", style = MaterialTheme.typography.bodyMedium)
+            }
+
+            CitySearchUiState.NoMatches -> Text(
+                "No place found for \"$lastSearched\". Check the spelling, or enter coordinates below.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            CitySearchUiState.Failed -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Couldn't reach the city search - check your connection and try again. Your " +
+                        "current location is unchanged.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                OutlinedButton(onClick = { scope.launch { runSearch(lastSearched) } }) { Text("Try again") }
+            }
+
+            is CitySearchUiState.Results -> Column {
+                // Never picked automatically, even when there is only one match: three Springfields
+                // differ by region and country alone, and choosing for the user is how the wrong
+                // continent's weather ends up on the wallpaper.
+                Text(
+                    if (state.cities.size == 1) "1 result" else "${state.cities.size} results - pick one",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column {
+                        state.cities.forEach { city ->
+                            CityResultRow(city) {
+                                keyboard?.hide()
+                                onApply(city.latitude.toFloat(), city.longitude.toFloat(), city.label)
+                                query = ""
+                                lastSearched = ""
+                                searchState = CitySearchUiState.Idle
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Text(
+            "Or enter coordinates directly",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        ManualCoordinateFields(latitude, longitude, label, onApply)
+    }
+}
+
+/** One search result: the name, then everything that tells it from a place with the same name. */
+@Composable
+private fun CityResultRow(city: GeocodedCity, onSelect: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Icons.Filled.LocationOn,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(city.name, style = MaterialTheme.typography.bodyLarge)
+            if (city.disambiguation.isNotBlank()) {
+                Text(
+                    city.disambiguation,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                city.coordinatesText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
+}
+
+/**
+ * Latitude/longitude/label entry, unchanged.
+ *
+ * Local text state (not committed to prefs on every keystroke, unlike this screen's usual pattern
+ * of firing a prefs write per Slider/Switch change) because a lat/long is only valid once fully
+ * typed -- writing "4" then "45" then "45." as separate coordinate values as the user types would
+ * spam invalid, incomplete fixes through to the sunrise/sunset and Live Weather calculation on
+ * every keystroke. Committed via the explicit "Apply" button instead, the same reasoning as why a
+ * hex colour field in [ColorPickerDialog] commits on "Apply" rather than per-keystroke.
+ */
+@Composable
+private fun ManualCoordinateFields(
     latitude: Float,
     longitude: Float,
     label: String,
@@ -257,10 +473,7 @@ private fun CustomLocationFields(
     val isValid = parsedLat != null && parsedLat in -90f..90f && parsedLon != null && parsedLon in -180f..180f
     val context = LocalContext.current
 
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = labelText,
             onValueChange = { labelText = it },
@@ -292,7 +505,7 @@ private fun CustomLocationFields(
                     onApply(parsedLat!!, parsedLon!!, labelText)
                     // aa reported that applying a manual location gave no confirmation it had
                     // actually taken effect. A Toast is the right fit here specifically because
-                    // the row below is a *persistent* on-screen confirmation (reverse-geocoding
+                    // the row above is a *persistent* on-screen confirmation (reverse-geocoding
                     // these same coordinates) -- the Toast is the immediate "yes, that tap
                     // registered" feedback, the row is the lasting proof once resolved.
                     Toast.makeText(context, "Location applied", Toast.LENGTH_SHORT).show()
@@ -301,10 +514,21 @@ private fun CustomLocationFields(
             enabled = isValid,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Apply location")
+            Text("Apply coordinates")
         }
     }
 }
+
+/** What the search area is showing. Failure and emptiness are separate states, deliberately. */
+private sealed interface CitySearchUiState {
+    data object Idle : CitySearchUiState
+    data object Searching : CitySearchUiState
+    data class Results(val cities: List<GeocodedCity>) : CitySearchUiState
+    data object NoMatches : CitySearchUiState
+    data object Failed : CitySearchUiState
+}
+
+private const val SEARCH_DEBOUNCE_MS = 500L
 
 /**
  * Optional user-entered Open-Meteo API key for Live Weather -- always takes priority over the
