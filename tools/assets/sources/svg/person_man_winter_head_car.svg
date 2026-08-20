@@ -1,14 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="120" height="144" viewBox="8 6 40 48">
-<clipPath id="rim_person_man_winter_head_car"><path d="M8 54 C8 45 17 40 28 40 C39 40 48 45 48 54 Z" fill="#47698F"/><rect x="30" y="40" width="6" height="14" fill="#EFDFC4" transform="rotate(16 33 47)"/><rect x="12" y="12" width="31" height="31" rx="10" fill="#DCA97C"/><rect x="14" y="37" width="27" height="9" rx="4.5" fill="#E4623E"/><path d="M9 21 C9 12 17 6 28 6 C39 6 46 12 46 21 Z" fill="#2F6E85"/><rect x="9" y="19" width="37" height="7" rx="3.5" fill="#FBF4E6"/><circle cx="22" cy="30" r="2.4" fill="#2B2A33"/><circle cx="35" cy="30" r="2.4" fill="#2B2A33"/></clipPath>
-<g clip-path="url(#rim_person_man_winter_head_car)">
   
-<path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M8 54 C8 45 17 40 28 40 C39 40 48 45 48 54 Z" fill="#47698F"></path>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="30" y="40" width="6" height="14" fill="#EFDFC4" transform="rotate(16 33 47)"></rect>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="12" y="12" width="31" height="31" rx="10" fill="#DCA97C"></rect>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="14" y="37" width="27" height="9" rx="4.5" fill="#E4623E"></rect>
-        <path stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" d="M9 21 C9 12 17 6 28 6 C39 6 46 12 46 21 Z" fill="#2F6E85"></path>
-        <rect stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" x="9" y="19" width="37" height="7" rx="3.5" fill="#FBF4E6"></rect>
-        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="22" cy="30" r="2.4" fill="#2B2A33"></circle>
-        <circle stroke="#d0d0d0" stroke-width="1.2" stroke-linejoin="round" cx="35" cy="30" r="2.4" fill="#2B2A33"></circle>
-</g>
+<path d="M8 54 C8 45 17 40 28 40 C39 40 48 45 48 54 Z" fill="#47698F"></path>
+        <rect x="30" y="40" width="6" height="14" fill="#EFDFC4" transform="rotate(16 33 47)"></rect>
+        <rect x="12" y="12" width="31" height="31" rx="10" fill="#DCA97C"></rect>
+        <rect x="14" y="37" width="27" height="9" rx="4.5" fill="#E4623E"></rect>
+        <path d="M9 21 C9 12 17 6 28 6 C39 6 46 12 46 21 Z" fill="#2F6E85"></path>
+        <rect x="9" y="19" width="37" height="7" rx="3.5" fill="#FBF4E6"></rect>
+        <circle cx="22" cy="30" r="2.4" fill="#2B2A33"></circle>
+        <circle cx="35" cy="30" r="2.4" fill="#2B2A33"></circle>
 </svg>

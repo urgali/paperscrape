@@ -292,29 +292,7 @@ object SceneSpace {
      * metre for a shop front to 46 for a person -- a spread of three and a half times -- and no
      * set of hand-authored per-category multipliers had ever corrected for it.
      */
-    const val PIXELS_PER_METRE_AT_REFERENCE = 45f
-
-    /*
-     * **Raised from 40 in v2.5, and this is the only place the world's size is stated.**
-     *
-     * On a Pixel 9 the scene read as a model of a place rather than a place: correctly
-     * proportioned and too small to have presence. One number governs that, because every
-     * category's base scale is `metres * PIXELS_PER_METRE_AT_REFERENCE / spriteUnits` -- so
-     * raising it enlarges houses, buildings, trees, people, cars and every other standing object
-     * by the same 12.5% and **cannot change a single ratio between them**. A per-category
-     * multiplier pass would have been the other way to do it and would have had to be argued
-     * object by object, with the ratios as the thing at risk.
-     *
-     * 12.5% is deliberately short of what the impression alone would ask for. The road is laid out
-     * in fractions of the screen and does not scale with this, so the objects standing on it grow
-     * into a fixed band: a car is 1.45 m, which was 58 px against a 67 px lane spacing and is now
-     * 65 px. Past this the near lane's traffic starts meeting the far lane's. Everything else
-     * grows upward from a ground line and has room.
-     *
-     * The lake keeps its own metric (`LAKE_PIXELS_PER_METRE`) and is deliberately not raised with
-     * this: it is a band at the horizon, and growing its boats and dolphins in step with the
-     * foreground would flatten the depth the two separate metrics exist to express.
-     */
+    const val PIXELS_PER_METRE_AT_REFERENCE = 40f
 
     /**
      * ### On the word "metres"
@@ -365,11 +343,7 @@ object SceneSpace {
      */
     enum class SceneVariant(val metresTall: Float, val spriteUnitsTall: Float) {
         /** A one-bay cottage. Its own door is 38 units, which fixes the internal scale at 2 m. */
-        // Raised from 5.8 m in v2.5 with the second window. One window, a door pushed to one
-        // side and a 5.8 m ridge made a cabin; the height is what settles whether the elevation
-        // reads as a house, and 6.4 puts it in a defensible relation to the 7.6 m large house
-        // rather than at three quarters of it.
-        HOUSE_SMALL(6.4f, 110f),
+        HOUSE_SMALL(5.8f, 110f),
 
         /** Two storeys plus a roof; its door is 45 units on the same reading. */
         HOUSE_LARGE(7.6f, 145f),

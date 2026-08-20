@@ -654,16 +654,6 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
             pumpkins = base.pumpkins.copy(visible = true, density = 0.5f),
             parasols = base.parasols.copy(visible = false),
         )
-        // Spring's own defaults, and they are mostly about what is *off*. No winter palette, no
-        // fall palette, no Christmas layer, no Halloween: the season is defined here by the
-        // absence of every other season's dressing plus a full, dense canopy, which is the one
-        // thing spring has that winter and autumn do not. Parasols stay away -- it is not warm
-        // yet -- and the lake comes up because meltwater is what early spring looks like.
-        "spring" -> base.copy(
-            trees = base.trees.copy(visible = true, density = 0.7f),
-            parasols = base.parasols.copy(visible = false),
-            lake = base.lake.copy(visible = true),
-        )
         "easter" -> base.copy(
             bunnies = base.bunnies.copy(visible = true, density = 0.3f),
             easterEggs = base.easterEggs.copy(visible = true, density = 0.5f),

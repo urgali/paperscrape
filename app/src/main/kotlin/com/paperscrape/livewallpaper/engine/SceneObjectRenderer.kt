@@ -962,25 +962,14 @@ class SceneObjectRenderer(
         // comes from the `canvas.scale` above, not from the artwork.
         // Window and door mirrored about the wall's own centre: a 22-unit window at -28 and a
         // 20-unit door at 8 put their centres at -17 and +18 on a wall running -35..35.
-        // **A window on each side of a centred door.** With one window and a door pushed to the
-        // right, the elevation was asymmetric and short, and read as a cabin rather than a house.
-        // The door now sits on the wall's own centre and the windows are mirrored about it, which
-        // is what a small house actually looks like from the road.
-        //
-        // The second window is the same drawable at the same size, mirrored in position and not in
-        // artwork: `house_shared_window` is one drawing used by both house variants, so a second
-        // one cannot drift from the first. A 22-unit window centred at -22 and at +22, and a
-        // 20-unit door centred on 0, all sit clear of each other on a wall running -35..35.
-        drawSprite(canvas, R.drawable.house_shared_window, -33f, -51f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, -33f, -52f, litWindowAlpha(nightGlow))
-        drawWindowOccupant(canvas, r, -33f, -52f, 22f, 22f)
-        drawSprite(canvas, R.drawable.house_shared_window, 11f, -51f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, 11f, -52f, litWindowAlpha(nightGlow))
-        drawSprite(canvas, R.drawable.house_shared_planter, -35f, -29f)
-        drawFlowerDots(canvas, -29f, -29f)
-        // door, centred between the two windows, with the porch light beside it
-        drawTintedSprite(canvas, R.drawable.house_small_door, -10f, -38f, ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.55f))
-        drawPorchLight(canvas, x = 14f, y = -20f, nightGlow = nightGlow)
+        drawSprite(canvas, R.drawable.house_shared_window, -28f, -51f)
+        drawSpriteFaded(canvas, R.drawable.house_window_lit, -28f, -52f, litWindowAlpha(nightGlow))
+        drawWindowOccupant(canvas, r, -28f, -52f, 22f, 22f)
+        drawSprite(canvas, R.drawable.house_shared_planter, -30f, -29f)
+        drawFlowerDots(canvas, -24f, -29f)
+        // door (right side, clear of the window) + porch light
+        drawTintedSprite(canvas, R.drawable.house_small_door, 8f, -38f, ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.55f))
+        drawPorchLight(canvas, x = 30f, y = -20f, nightGlow = nightGlow)
     }
 
     private fun drawLargeHouse(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
@@ -1319,7 +1308,7 @@ class SceneObjectRenderer(
         val color = customization.colorFor(r.spec, dayBlend)
         drawGroundShadow(canvas, 22f)
         drawTintedSprite(canvas, R.drawable.gift_box, -20f, -30f, color)
-        drawSprite(canvas, R.drawable.gift_ribbon, -20f, -40f)
+        drawSprite(canvas, R.drawable.gift_ribbon, -20f, -41f)
     }
 
     /**
@@ -1360,7 +1349,7 @@ class SceneObjectRenderer(
         // trunk: 42x186, anchored CONTENT_BOTTOM_CENTRE at (24,186), so the origin that stands it
         // on the ground with its base centred on the pivot is (-8,-62). It was 33 wide and
         // originated at -6; V2 widened it to carry the new frond fan.
-        drawSprite(canvas, R.drawable.palmtree_trunk, -6f, -58f)
+        drawSprite(canvas, R.drawable.palmtree_trunk, -6f, -59f)
         // fronds: the attachment point is no longer measured off the artwork, it is declared.
         // The V2 fan is 120x120 with a DECLARED_ATTACHMENT at (60,102) -- (20,34) in local units
         // -- which is the point where the blades converge. The trunk's own content top sits at
@@ -1371,22 +1360,10 @@ class SceneObjectRenderer(
         //
         // The fronds are fixed art in V2 and no longer follow the tree colour or Fall Colors --
         // see this class's own note on the retired accent constants, and `DESIGN_NOTES.md`.
-        // **Halloween reaches the palms too.** The leafy trees lost their canopy from the first
-        // release of the flag and the palms did not, so a Halloween beach kept a row of healthy
-        // green fans over its bare-branch neighbours. The dead crown is drawn on the live one's
-        // canvas with the same content box, so it blits at the same origin and the frost overlay
-        // and the light ellipse below keep the geometry they were derived from.
-        //
-        // Desaturating the live fan was the cheaper option and the wrong one: a grey palm is a
-        // palm in bad light, not a dead one. The drooping, splayed fronds are what carry it.
-        if (customization.halloweenEnabled) {
-            drawSprite(canvas, R.drawable.palmtree_fronds_dead, -20f, -90.33f)
-        } else {
-            drawSprite(canvas, R.drawable.palmtree_fronds, -20f, -90.33f)
-        }
+        drawSprite(canvas, R.drawable.palmtree_fronds, -20f, -90.33f)
         // Frost is the season; the lights are the decoration. Two flags, tested separately, so a
         // frosted palm without lights and a lit palm without frost are both expressible.
-        if (customization.winterColorsEnabled && !customization.halloweenEnabled) {
+        if (customization.winterColorsEnabled) {
             drawSprite(canvas, R.drawable.palmtree_fronds_frost, -20f, -90.33f)
         }
         if (customization.christmasDecorationsEnabled) {
@@ -1641,7 +1618,7 @@ class SceneObjectRenderer(
     private fun drawPumpkin(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
         val base = customization.colorFor(r.spec, dayBlend)
         drawGroundShadow(canvas, 16f)
-        drawTintedSprite(canvas, R.drawable.pumpkin_body, -19f, -30f, base)
+        drawTintedSprite(canvas, R.drawable.pumpkin_body, -19f, -31f, base)
         drawSprite(canvas, R.drawable.pumpkin_stem, 2f, -42f)
     }
 

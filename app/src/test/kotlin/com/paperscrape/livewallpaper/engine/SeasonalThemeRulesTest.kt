@@ -57,16 +57,6 @@ class SeasonalThemeRulesTest {
         2100 to LocalDate.of(2100, 3, 28),
     )
 
-
-    /*
-     * **The window tests that used to live here are gone, not disabled.** v2.5 replaced the
-     * calendar wholesale -- every date resolves now, the December windows no longer overlap, and
-     * Easter is the long weekend rather than a week either side -- so assertions pinning the old
-     * windows were describing a calendar that no longer exists. `SeasonalCalendarTest` covers the
-     * new one boundary by boundary, on both sides of each. What stays here is the Computus
-     * arithmetic and the invariants that hold whatever the windows are.
-     */
-
     @Test
     fun `computus matches published Easter Sunday dates`() {
         for ((year, expected) in knownEasterSundays) {
@@ -106,12 +96,66 @@ class SeasonalThemeRulesTest {
 
     // --- Window matching --------------------------------------------------------------------
 
-    
-    
-    
-    
-    
-    
+    @Test
+    fun `new year window wins over christmas where they overlap`() {
+        // 30 Dec - 1 Jan falls inside both windows; the narrower one is listed first and must win.
+        assertEquals("new_year", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 12, 30)))
+        assertEquals("new_year", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 12, 31)))
+        assertEquals("new_year", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 1, 1)))
+    }
+
+    @Test
+    fun `christmas window covers its own days on both sides of the year boundary`() {
+        assertEquals("christmas", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 12, 18)))
+        assertEquals("christmas", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 12, 25)))
+        assertEquals("christmas", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 12, 29)))
+        assertEquals("christmas", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 1, 2)))
+        assertEquals("christmas", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 1, 6)))
+    }
+
+    @Test
+    fun `days just outside the christmas window do not match it`() {
+        assertNull(SeasonalThemeRules.themeForDate(LocalDate.of(2026, 12, 17)))
+        assertNull(SeasonalThemeRules.themeForDate(LocalDate.of(2026, 1, 7)))
+    }
+
+    @Test
+    fun `easter window spans three days either side of Easter Sunday`() {
+        val easter = SeasonalThemeRules.computeEasterSunday(2026) // 5 April 2026
+        for (offset in -3..3) {
+            assertEquals(
+                "Easter window should include offset $offset",
+                "easter",
+                SeasonalThemeRules.themeForDate(easter.plusDays(offset.toLong())),
+            )
+        }
+        assertNull(
+            "four days before Easter should not match",
+            SeasonalThemeRules.themeForDate(easter.minusDays(4)),
+        )
+        assertNull(
+            "four days after Easter should not match",
+            SeasonalThemeRules.themeForDate(easter.plusDays(4)),
+        )
+    }
+
+    @Test
+    fun `summer window matches its boundaries and not the days outside them`() {
+        assertEquals("beach", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 6, 21)))
+        assertEquals("beach", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 8, 1)))
+        assertEquals("beach", SeasonalThemeRules.themeForDate(LocalDate.of(2026, 9, 21)))
+        assertNull(SeasonalThemeRules.themeForDate(LocalDate.of(2026, 6, 20)))
+        assertNull(SeasonalThemeRules.themeForDate(LocalDate.of(2026, 9, 22)))
+    }
+
+    @Test
+    fun `ordinary dates fall through to no seasonal theme`() {
+        assertNull(SeasonalThemeRules.themeForDate(LocalDate.of(2026, 2, 14)))
+        assertNull(SeasonalThemeRules.themeForDate(LocalDate.of(2026, 5, 1)))
+        assertNull(SeasonalThemeRules.themeForDate(LocalDate.of(2026, 10, 31)))
+        assertNull(SeasonalThemeRules.themeForDate(LocalDate.of(2026, 11, 15)))
+    }
+
     @Test
     fun `every returned theme id exists in the theme catalog`() {
         // Guards against a rule pointing at an id that was renamed or removed from ThemeCatalog,

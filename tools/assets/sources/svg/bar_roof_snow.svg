@@ -1,9 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="258" height="30" viewBox="2 2 86 10">
-<clipPath id="rim_bar_roof_snow"><polygon points="2,9.5 7,4.5 20,6.5 32,3.5 46,5.5 60,3.5 74,6.5 86,4.5 88,9.5 88,12 2,12" fill="#DCE7EF"/><polygon points="2,8 7,3 20,5 32,2 46,4 60,2 74,5 86,3 88,8 88,10.5 2,10.5" fill="#FFFFFF"/></clipPath>
-<g clip-path="url(#rim_bar_roof_snow)">
   <!-- Snow on the bar's flat roof. Same construction as restaurant_roof_snow, cut to this wall's
        narrower 90 units. -->
-<polygon stroke="#cdd8e0" stroke-width="1.2" stroke-linejoin="round" points="2,9.5 7,4.5 20,6.5 32,3.5 46,5.5 60,3.5 74,6.5 86,4.5 88,9.5 88,12 2,12" fill="#DCE7EF"></polygon>
-        <polygon stroke="#cdd8e0" stroke-width="1.2" stroke-linejoin="round" points="2,8 7,3 20,5 32,2 46,4 60,2 74,5 86,3 88,8 88,10.5 2,10.5" fill="#FFFFFF"></polygon>
-</g>
+<polygon points="2,9.5 7,4.5 20,6.5 32,3.5 46,5.5 60,3.5 74,6.5 86,4.5 88,9.5 88,12 2,12" fill="#DCE7EF"></polygon>
+        <polygon points="2,8 7,3 20,5 32,2 46,4 60,2 74,5 86,3 88,8 88,10.5 2,10.5" fill="#FFFFFF"></polygon>
 </svg>

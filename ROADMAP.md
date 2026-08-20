@@ -10,12 +10,14 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.5 Stable — a readability rim, a bigger world, dead palms, spring, and a full-year calendar.**
+**v2.4 Stable — the refinement pass, and a Halloween theme to hold it.**
 
-`versionCode = 9`, `versionName = "2.5"`. Not yet seen rendering.
+`versionCode = 8`, `versionName = "2.4"`. Three sprites redrawn after v2.3's device look, the
+dolphin splash extended to both crossings of the surface, and the eleventh built-in theme
+added with both Halloween switches preset. Not yet seen rendering.
 
-Last measured: 395 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
-asset `validate` clean across 123 sprites, `normalize` reporting nothing pending,
+Last measured: 378 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
+asset `validate` clean across 122 sprites, `normalize` reporting nothing pending,
 offline tooling 89 tests with no failures.
 
 `assembleDebug` has not been run and no APK is produced locally — CI builds the release
@@ -24,7 +26,7 @@ source set; resource linking, dexing and packaging are not.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -65,7 +67,6 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
-- **v2.5 Stable** — readability rim baked into 39 sprites, world scale +12.5%, Halloween palms, orange moon, two-window small house, the `spring` theme and a calendar covering every day.
 - **v2.4 Stable** — the gull, dolphin and carved moon redrawn; the dolphin splash on both crossings; the Halloween theme added with both switches preset.
 - **v2.3 Stable** — Halloween and Horror Sky as two independent flags, a stateless dolphin re-entry splash, and the dolphin and bird sprites redrawn.
 - **v2.2 Stable** — D-10 closed; 1.49 MB of sprite padding removed with every blit origin compensated in the same change.

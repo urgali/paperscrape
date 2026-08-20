@@ -146,11 +146,6 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "perspective work.",
     ),
     Exclusion(
-        "palmtree_fronds_dead",
-        "Halloween's crown for the palm. Shares palmtree_fronds' canvas and content box so the two "
-        "blit at one origin; cropping it alone would separate them.",
-    ),
-    Exclusion(
         "palmtree_fronds_frost",
         "Overlays palmtree_fronds at the same origin and shares its off-grid canvas. Deferred for "
         "the same reasons.",

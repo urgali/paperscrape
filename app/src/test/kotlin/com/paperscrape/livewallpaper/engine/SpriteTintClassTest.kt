@@ -91,9 +91,6 @@ class SpriteTintClassTest {
         "house_small_roof_snow", "house_large_roof_snow",
         "restaurant_roof_snow", "bar_roof_snow", "skyscraper_roof_snow",
         "palmtree_trunk", "palmtree_fronds", "palmtree_fronds_frost",
-        // Halloween's palm crown. Fixed art in the trunk browns for the same reason
-        // `tree_dead_branches` is: a dead frond is not a theme colour.
-        "palmtree_fronds_dead",
         "snowman_nose", "snowman_scarf", "gift_ribbon",
         "skyscraper_canopy", "skyscraper_wall_lit",
         "restaurant_awning", "restaurant_sign", "bar_sign",

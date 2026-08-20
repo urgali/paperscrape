@@ -436,7 +436,6 @@ object SceneObjectCatalog {
         // Broadleaf woodland, which the Halloween flag then strips to bare branches. Palms have
         // no dead variant and would go on standing in leaf through the whole presentation.
         "halloween" -> uniformCandidates(themeId, accentColor)
-        "spring" -> uniformCandidates(themeId, accentColor)
         else -> null
     }
 }

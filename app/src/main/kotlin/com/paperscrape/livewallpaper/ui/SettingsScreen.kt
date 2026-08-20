@@ -796,7 +796,6 @@ private val THEME_ICON_HINTS: Map<String, String> = mapOf(
     "tundra" to "🐧⛄",
     "easter" to "🐰🥚",
     "halloween" to "🎃🌙",
-    "spring" to "🌸🌱",
 )
 
 private fun iconHintFor(themeId: String): String = THEME_ICON_HINTS[themeId] ?: "🎨"

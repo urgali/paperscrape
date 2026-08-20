@@ -19,138 +19,9 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
-## v2.5 — a readability rim, a bigger world, dead palms, and a calendar that covers the year
-
-**Stable / latest.** `versionCode = 9`, `versionName = "2.5"`. Tag `v2.5`.
-
-### The rim is the snowman's trick, generalised
-
-The snowman already solved this once: white on white separated by nothing but antialiasing, fixed
-with **a tonal rim inset into the silhouette** rather than an outline drawn around it. It did that
-by shrinking each circle by half a stroke width and straddling the edge with the other half, which
-works for a circle and not for a path.
-
-Clipping a sprite to its own shapes keeps only the inner half of every stroke, which is the same
-thing and exact for any geometry: **the content box cannot move**, and every anchor and origin in
-the registry is measured against it. 39 sprites carry it now -- walls, roofs, roof snow, canopies,
-palms, vehicles, people, the light animals, the cloud and the gull -- each with a rim in its own
-tone rather than one colour for the library. Baked into the PNG, so it costs nothing at runtime.
-
-**Eight walk frames were reverted rather than forced.** Their clip did not confine the stroke
-(a parent `<g transform>` the clipPath copies do not carry), and their content box moved 2 px.
-`person_boy_summer_head_window` was skipped for a different reason -- it already carried strokes of
-its own, and adding a second set is a duplicate-attribute error.
-
-The cloud got a hand-written variant: rimming every internal circle made the puff read as a bag of
-separate bubbles, so only the front layer is stroked and the back layer stays a plain shadow.
-
-### One number made the world bigger
-
-`PIXELS_PER_METRE_AT_REFERENCE` went from 40 to 45. Every category's base scale is
-`metres * that / spriteUnits`, so a 12.5% rise enlarges houses, buildings, trees, people and cars
-by the same amount and **cannot change a single ratio between them**. A per-category pass would
-have had to be argued object by object, with the ratios as the thing at risk.
-
-12.5% is deliberately short of what the impression alone would ask for: the road is laid out in
-fractions of the screen and does not scale with it, so a 1.45 m car went from 58 px against a 67 px
-lane spacing to 65 px. Past this the near lane's traffic starts meeting the far lane's. The lake
-keeps its own metric and is deliberately not raised: growing its boats in step with the foreground
-would flatten the depth two separate metrics exist to express.
-
-### The small house was a cabin because of its elevation, not its size
-
-One window, a door pushed to one side, and a 5.8 m ridge. The door now sits on the wall's centre
-with a window mirrored either side of it -- the same drawable at the same size, so a second window
-cannot drift from the first -- and the height went to 6.4 m, which puts it in a defensible relation
-to the 7.6 m large house rather than at three quarters of it.
-
-### Halloween reaches the palms
-
-The leafy trees lost their canopy from the first release of the flag and the palms did not, so a
-Halloween beach kept healthy green fans over its bare-branch neighbours. `palmtree_fronds_dead` is
-drawn on the live fan's canvas with the same content box, so it blits at the same origin and the
-frost overlay and the light ellipse keep the geometry they were derived from. Desaturating the live
-fan was the cheaper option and the wrong one: a grey palm is a palm in bad light.
-
-### The moon is orange without a gradient
-
-The sprite stays a colourless mask -- `SpriteTintClassTest` requires that of every tintable sprite.
-What the artwork carries is *luminance*: three concentric paper rings, dark at the rim and bright at
-the centre. `HALLOWEEN_MOON_COLOUR` turns that into a warm lantern at the blit, with no glow, no
-gradient and no second draw call. Fixed rather than derived from the theme, because letting a cool
-moon colour through would produce a blue jack-o'-lantern.
-
-### The calendar covered four windows and now covers the year
-
-It returned `null` for most dates, leaving the caller on whatever the user last picked -- so
-"automatic" meant "automatic in December, at Easter and over the summer". It also had a real defect:
-New Year began on 30 December and Christmas ran to 6 January, so **Christmas was unreachable on the
-last two days of December**, decided by list ordering with a comment asking the next editor to
-preserve it.
-
-Occasions are now an ordered list checked before the seasons, and the seasons partition what is
-left: Easter, then Halloween, then Christmas, then New Year, then Spring/Winter/Autumn/Beach. Easter
-is Good Friday to Easter Monday computed per year, not a fixed week. Every date resolves.
-
-| Window | Theme |
-|---|---|
-| 1–7 Jan | `new_year` |
-| 8 Jan – 1 Mar | `winter` |
-| 2 Mar – 31 May | `spring` |
-| 1 Jun – 31 Aug | `beach` |
-| 1–30 Sep | `autumn` |
-| 1–31 Oct | `halloween` |
-| 1–30 Nov | `autumn` |
-| 1–26 Dec | `christmas` |
-| 27–31 Dec | `new_year` |
-| Good Friday – Easter Monday | `easter`, above all of the above |
-
-`LocalDate.now()` reads the device's default zone, so the turnover is local midnight and the same
-local date always gives the same theme.
-
-### Spring is a theme, not a recolour
-
-Twelfth built-in. Not Easter -- that is four days of decoration that fall inside it -- and not Beach.
-What separates it is the light: a pale washed sky with green rather than blue in it, and hills in
-the sharp new green that only exists for a few weeks. Its defaults are mostly about what is off:
-no winter palette, no fall palette, no Christmas layer, no parasols, plus a full canopy.
-
-### Verification
-
-```
-Release identifier:            v2.5
-Verification level:            3
-Tests run:                     yes -- 395 tests, 0 failures (was 378).
-                               SeasonalCalendarTest 23/23 new, SeasonalThemeRulesTest 6/6,
-                               BuiltInThemeCoherenceTest 20/20, HalloweenAndSplashTest 21/21,
-                               SpriteGeometryTest 3/3, SkySpriteAnchoringTest 7/7,
-                               SpriteTintClassTest 5/5, SpriteVariantTest 3/3
-Lint run:                      yes -- ./gradlew lintDebug, 41 warnings, 0 errors
-Python tooling suite:          yes -- 89 tests, 0 failures
-Asset validate:                yes -- 0 failures, 123 entries, anchors 123/123
-Normalisation:                 yes -- 74 targets, none pending, 12 excluded by decision
-Visual mockup:                 yes -- rim before/after on a close-toned ground and on a white
-                               cloud; small house before/after beside a large house; dead palms
-                               against live ones; the orange moon at 96 px; a spring frame.
-                               **Not** an OpenGL frame.
-APK build run:                 no
-Maintainer-side verification required: **yes**, and more than usual -- the global scale change
-                               touches every standing object at once.
-```
-
-### Known limitations
-
-- **The world scale has not been seen on a device.** 12.5% is an argued figure, not an observed one.
-- Re-rendering the library from source while baking the rim made the shipped PNGs byte-exact against
-  their own sources, which is a better state than D-7 measured -- and cost two fidelity tests their
-  shipped examples. Both were re-derived on a constructed pair with the reason recorded.
-- Eight walk frames and one window head carry no rim (above).
-- Spring has no seasonal decoration of its own, in the way Autumn has pumpkins.
-
-
 ## v2.4 — the refinement pass, and a Halloween theme to hold it
 
-`versionCode = 8`, `versionName = "2.4"`. Tag `v2.4`.
+**Stable / latest.** `versionCode = 8`, `versionName = "2.4"`. Tag `v2.4`.
 
 v2.3 shipped the machinery; the device look said the artwork was not there yet. Three
 sprites redrawn, the splash extended to both crossings of the surface, and the eleventh
@@ -1672,13 +1543,13 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v2.5 — Stable / latest** (`versionCode = 9`, `versionName = "2.5"`) |
-| **Latest stable** | v2.5 |
+| **Version** | **v2.4 — Stable / latest** (`versionCode = 8`, `versionName = "2.4"`) |
+| **Latest stable** | v2.4 |
 | **Date** | 2026-08-20 |
 | **Build status** | ⚠️ `testDebugUnitTest` **378 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 122 sprites**; `normalize` **0 targets pending, 11 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
 | **Sprite memory** | **122 PNGs, 15.31 MB decoded, 1.66 MB of it padding** — re-measured at v2.4. D-10's crop recovered 1.49 MB at v2.2; v2.3 added four sprites back. The residual padding is the outward rounding to the sprite grid plus the eleven sprites excluded by decision |
-| **Tests** | 395 Kotlin unit tests, 89 Python tooling tests |
+| **Tests** | 378 Kotlin unit tests, 89 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

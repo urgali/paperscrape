@@ -1,11 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="90" height="24" viewBox="0 0 30 8">
-<clipPath id="rim_bird_body"><path d="M13.4 5.6 C10.2 4.2 5.8 2.6 0.6 0.9 C4.2 3.0 8.0 5.0 11.4 6.6 C12.6 7.1 13.4 6.7 13.4 5.6 Z" fill="#ffffff"/><path d="M17.2 5.5 C20.2 4.1 24.6 2.6 29.4 1.5 C26.0 3.3 22.4 5.1 19.2 6.7 C18.1 7.2 17.3 6.7 17.2 5.5 Z" fill="#ffffff"/><path d="M7.4 5.6 C9.2 5.4 11.4 5.3 13.8 5.4 C16.8 5.5 19.0 5.9 20.2 6.3 C18.8 7.1 16.4 7.5 13.6 7.4 C11.4 7.3 9.6 6.9 8.4 6.3 C9.0 6.1 9.4 5.9 9.6 5.7 C8.8 5.6 8.1 5.6 7.4 5.6 Z" fill="#ffffff"/><circle cx="19.6" cy="5.9" r="1.15" fill="#ffffff"/><path d="M20.6 5.45 L23.4 6.0 L20.6 6.55 Z" fill="#ffffff"/></clipPath>
-<g clip-path="url(#rim_bird_body)">
   
-<path stroke="#cfcfcf" stroke-width="0.35" stroke-linejoin="round" d="M13.4 5.6 C10.2 4.2 5.8 2.6 0.6 0.9 C4.2 3.0 8.0 5.0 11.4 6.6 C12.6 7.1 13.4 6.7 13.4 5.6 Z" fill="#ffffff"></path>
-        <path stroke="#cfcfcf" stroke-width="0.35" stroke-linejoin="round" d="M17.2 5.5 C20.2 4.1 24.6 2.6 29.4 1.5 C26.0 3.3 22.4 5.1 19.2 6.7 C18.1 7.2 17.3 6.7 17.2 5.5 Z" fill="#ffffff"></path>
-        <path stroke="#cfcfcf" stroke-width="0.35" stroke-linejoin="round" d="M7.4 5.6 C9.2 5.4 11.4 5.3 13.8 5.4 C16.8 5.5 19.0 5.9 20.2 6.3 C18.8 7.1 16.4 7.5 13.6 7.4 C11.4 7.3 9.6 6.9 8.4 6.3 C9.0 6.1 9.4 5.9 9.6 5.7 C8.8 5.6 8.1 5.6 7.4 5.6 Z" fill="#ffffff"></path>
-        <circle stroke="#cfcfcf" stroke-width="0.35" stroke-linejoin="round" cx="19.6" cy="5.9" r="1.15" fill="#ffffff"></circle>
-        <path stroke="#cfcfcf" stroke-width="0.35" stroke-linejoin="round" d="M20.6 5.45 L23.4 6.0 L20.6 6.55 Z" fill="#ffffff"></path>
-</g>
+<path d="M13.4 5.6 C10.2 4.2 5.8 2.6 0.6 0.9 C4.2 3.0 8.0 5.0 11.4 6.6 C12.6 7.1 13.4 6.7 13.4 5.6 Z" fill="#ffffff"></path>
+        <path d="M17.2 5.5 C20.2 4.1 24.6 2.6 29.4 1.5 C26.0 3.3 22.4 5.1 19.2 6.7 C18.1 7.2 17.3 6.7 17.2 5.5 Z" fill="#ffffff"></path>
+        <path d="M7.4 5.6 C9.2 5.4 11.4 5.3 13.8 5.4 C16.8 5.5 19.0 5.9 20.2 6.3 C18.8 7.1 16.4 7.5 13.6 7.4 C11.4 7.3 9.6 6.9 8.4 6.3 C9.0 6.1 9.4 5.9 9.6 5.7 C8.8 5.6 8.1 5.6 7.4 5.6 Z" fill="#ffffff"></path>
+        <circle cx="19.6" cy="5.9" r="1.15" fill="#ffffff"></circle>
+        <path d="M20.6 5.45 L23.4 6.0 L20.6 6.55 Z" fill="#ffffff"></path>
 </svg>

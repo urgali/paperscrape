@@ -3,7 +3,7 @@
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.5 Stable**
+**Current version: v2.4 Stable**
 
 ---
 
@@ -17,9 +17,8 @@ moving on its own.
 - **A day that follows yours.** The sun and moon move with your device clock, and the
   whole palette blends from night through dawn to day and back. Sunrise and sunset
   times can come from the clock alone, from your location, or from a place you pick.
-- **Twelve themes** — sunset, autumn, winter, spring, desert, Christmas, new year, beach,
-  city, tundra, Easter and Halloween — with optional automatic switching by date, which now
-  covers every day of the year and moves Easter with the calendar.
+- **Eleven themes** — sunset, autumn, winter, desert, Christmas, new year, beach, city,
+  tundra, Easter and Halloween — with optional automatic switching by date.
 - **Custom themes.** Save your own, built on any of the ten, and keep them.
 - **Every part of the scene is adjustable.** Houses, buildings, trees, umbrellas,
   cars, people, hills, mountains, clouds, stars, rainbows, the lake and its boats and
@@ -89,7 +88,7 @@ automatic by-date theme.
 wallpaper service collects the preferences flow, so changes reach the running scene
 without a restart.
 
-**Assets.** 123 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
+**Assets.** 122 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
 source under `tools/assets/sources/svg/`. A Python pipeline renders, measures and checks
 them against a registry (`sources/sprites.json`) that records every sprite's size,
 content box, anchor rule, scale convention and tint class — and against the Kotlin call
@@ -107,7 +106,7 @@ app/src/main/kotlin/com/paperscrape/livewallpaper/
   weather/    Live Weather fetching
   location/   optional location for sunrise/sunset and weather
   update/     GitHub release check
-app/src/main/res/drawable-nodpi/   the 123 shipped sprites
+app/src/main/res/drawable-nodpi/   the 122 shipped sprites
 app/src/test/                      Kotlin unit tests
 tools/assets/                      SVG sources, sprite registry, Python pipeline
 release-notes/                     user-facing notes, one file per release
@@ -171,10 +170,9 @@ tag, because the two answer different questions:
 | `v2.2` | `2.2` | 6 |
 | `v2.3` | `2.3` | 7 |
 | `v2.4` | `2.4` | 8 |
-| `v2.5` | `2.5` | 9 |
 
 Every release is published as latest. There is no pre-release tag form yet; one will
-be added when it is needed. v2.5 is the current stable release. The `versionCode`
+be added when it is needed. v2.4 is the current stable release. The `versionCode`
 counter only has to increase, not to be contiguous — 3 is unused because no v1.2 was
 ever released.
 
