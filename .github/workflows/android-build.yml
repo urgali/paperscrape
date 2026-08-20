@@ -9,6 +9,11 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to rebuild (e.g. v2.5)"
+        required: true
+        default: "v2.5"
 
 # Least-privilege default: neither job needs more than this unless explicitly overridden below.
 permissions:
