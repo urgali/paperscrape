@@ -161,7 +161,9 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
             "`SkySpriteAnchoringTest` pins the surviving relationship between each canvas and its "
             "origin, and it is the test that caught defect D-1 twice.",
         )
-        for name in ("sun_body", "moon_full", "moon_half", "moon_gibbous", "moon_crescent")
+        for name in (
+            "sun_body", "moon_full", "moon_half", "moon_gibbous", "moon_crescent", "moon_jack_o_lantern",
+        )
     ),
     Exclusion(
         "sun_glow",

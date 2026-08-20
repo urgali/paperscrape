@@ -1123,6 +1123,21 @@ class SceneObjectRenderer(
         canvas.save()
         canvas.translate(0f, -38f)
         canvas.rotate(sway)
+        // **Halloween strips the crown.** The bare limbs blit at the canopy's own origin on the
+        // canopy's own canvas, so they meet the trunk exactly where the leaves did and sway on the
+        // same transform -- the tree is the same tree with a different crown, not a second object
+        // placed where the first one was.
+        //
+        // Everything that decorates a canopy is skipped with it, and each for its own reason
+        // rather than as one blanket condition: a snow cap is cut to the leaf silhouette and would
+        // hang in mid-air over bare branches, and fairy lights are placed on the crown's ellipse,
+        // which no longer has anything in it. Neither the winter flag nor the Christmas flag is
+        // read or changed here; they simply have nothing to draw on a tree with no foliage.
+        if (customization.halloweenEnabled) {
+            drawSprite(canvas, R.drawable.tree_dead_branches, -41f, -80f)
+            canvas.restore()
+            return
+        }
         // canopy: local bbox (-45,-84)-(45,0), refreshed in the aesthetic pass to a 5-lobe
         // silhouette (was a single blob) with its attachment point at local y=0 so it sits
         // flush on the trunk regardless of sway.

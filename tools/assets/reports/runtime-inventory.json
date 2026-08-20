@@ -147,16 +147,16 @@
     },
     {
       "content_bbox": [
-        1,
+        2,
         0,
-        89,
+        88,
         21
       ],
       "content_height": 21,
-      "content_width": 88,
+      "content_width": 86,
       "decoded_bytes": 7560,
-      "distinct_colour_count": 40,
-      "file_bytes": 548,
+      "distinct_colour_count": 47,
+      "file_bytes": 623,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 21,
@@ -164,9 +164,9 @@
       "name": "bird_body",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "sha256": "2ba430b07705bf70fc3596eb73e240b6cd3600583e7be530fee946baf5003c99",
-      "transparent_padding_bytes": 168,
-      "transparent_padding_fraction": 0.022222222222222223,
+      "sha256": "3d40df47a1cec69220bf19e98fed915e898e662b875e43eabf3c01d22dabef8d",
+      "transparent_padding_bytes": 336,
+      "transparent_padding_fraction": 0.044444444444444446,
       "width": 90
     },
     {
@@ -317,24 +317,24 @@
       "content_bbox": [
         0,
         0,
-        344,
+        345,
         174
       ],
       "content_height": 174,
-      "content_width": 344,
+      "content_width": 345,
       "decoded_bytes": 240120,
-      "distinct_colour_count": 245,
-      "file_bytes": 8440,
+      "distinct_colour_count": 211,
+      "file_bytes": 7148,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 174,
       "mode": "RGBA",
       "name": "dolphin_body",
       "on_grid": true,
-      "opaque_rgb_count": 98,
-      "sha256": "e0b07085c4ae594f3d37f3305dadcfd093f4c993813f3737a59058fad7b36574",
-      "transparent_padding_bytes": 696,
-      "transparent_padding_fraction": 0.002898550724637681,
+      "opaque_rgb_count": 74,
+      "sha256": "9fd24866a345756bf6d6964103b4c326f639b637cf28bdb689f0f7b2ac8a3693",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
       "width": 345
     },
     {
@@ -1007,6 +1007,30 @@
       "sha256": "586a64f8ed4ed0c8737393bf2bdf703604f8f223b57427cb276b0becd8247bef",
       "transparent_padding_bytes": 146352,
       "transparent_padding_fraction": 0.6352083333333334,
+      "width": 240
+    },
+    {
+      "content_bbox": [
+        18,
+        18,
+        222,
+        222
+      ],
+      "content_height": 204,
+      "content_width": 204,
+      "decoded_bytes": 230400,
+      "distinct_colour_count": 29,
+      "file_bytes": 4351,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 240,
+      "mode": "RGBA",
+      "name": "moon_jack_o_lantern",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "sha256": "ca14ee46876bec4c7a6227c3b9eb387b0ab1daa3e6dc459e9af39aa70e3b7f40",
+      "transparent_padding_bytes": 63936,
+      "transparent_padding_fraction": 0.2775,
       "width": 240
     },
     {
@@ -2811,6 +2835,30 @@
     },
     {
       "content_bbox": [
+        1,
+        0,
+        245,
+        222
+      ],
+      "content_height": 222,
+      "content_width": 244,
+      "decoded_bytes": 218448,
+      "distinct_colour_count": 94,
+      "file_bytes": 8079,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 222,
+      "mode": "RGBA",
+      "name": "tree_dead_branches",
+      "on_grid": true,
+      "opaque_rgb_count": 16,
+      "sha256": "bd7501208fccb115b4c4bbe42405055dfa98f5d92de0d0c1b14f873f67d1d6fd",
+      "transparent_padding_bytes": 1776,
+      "transparent_padding_fraction": 0.008130081300813009,
+      "width": 246
+    },
+    {
+      "content_bbox": [
         0,
         0,
         30,
@@ -2832,6 +2880,54 @@
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
       "width": 30
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        162,
+        54
+      ],
+      "content_height": 54,
+      "content_width": 162,
+      "decoded_bytes": 34992,
+      "distinct_colour_count": 73,
+      "file_bytes": 2372,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 54,
+      "mode": "RGBA",
+      "name": "water_splash0",
+      "on_grid": true,
+      "opaque_rgb_count": 20,
+      "sha256": "aeac530ce0185a08d8a4e7cd40d3ab062e0c8b48e4aa045a0799b33e5ba8aa64",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 162
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        162,
+        54
+      ],
+      "content_height": 54,
+      "content_width": 162,
+      "decoded_bytes": 34992,
+      "distinct_colour_count": 67,
+      "file_bytes": 1888,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 54,
+      "mode": "RGBA",
+      "name": "water_splash1",
+      "on_grid": true,
+      "opaque_rgb_count": 16,
+      "sha256": "5e02f1cbe4f69c0d69c1581240ad049dc6e9cc0ae842ba18d0d54f9a57b586c1",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 162
     }
   ]
 }

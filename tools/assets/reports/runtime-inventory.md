@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 118 |
-| Unique contents | 118 |
-| Bytes on disk | 614.4 KB |
-| Decoded `ARGB_8888` | 14.79 MB |
-| Of which transparent padding | 1.59 MB (11 %) |
+| Files | 122 |
+| Unique contents | 122 |
+| Bytes on disk | 629.5 KB |
+| Decoded `ARGB_8888` | 15.31 MB |
+| Of which transparent padding | 1.66 MB (11 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -38,14 +38,14 @@ from the shipped PNGs; nothing is copied from documentation.
 | `bar_roof_snow` | 258x30 | RGBA | 0,0,258,30 | 0 % | 3 | yes |
 | `bar_sign` | 108x108 | RGBA | 0,0,108,108 | 0 % | 24 | yes |
 | `bar_wall` | 270x165 | RGBA | 0,0,270,165 | 0 % | 3 | yes |
-| `bird_body` | 90x21 | RGBA | 1,0,89,21 | 2 % | 1 | yes |
+| `bird_body` | 90x21 | RGBA | 2,0,88,21 | 4 % | 1 | yes |
 | `bunny_body` | 102x183 | RGBA | 0,0,102,183 | 0 % | 16 | yes |
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
 | `bunny_tail` | 30x30 | RGBA | 0,0,30,30 | 0 % | 7 | yes |
 | `car_body` | 291x111 | RGBA | 0,0,291,111 | 0 % | 11 | yes |
 | `car_window` | 138x48 | RGBA | 0,0,138,48 | 0 % | 3 | yes |
 | `cloud_body` | 798x414 | RGBA | 0,0,798,414 | 0 % | 8 | yes |
-| `dolphin_body` | 345x174 | RGBA | 0,0,344,174 | 0 % | 98 | yes |
+| `dolphin_body` | 345x174 | RGBA | 0,0,345,174 | 0 % | 74 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
 | `easteregg_shell` | 96x120 | RGBA | 0,0,96,120 | 0 % | 1 | yes |
 | `firetruck_body` | 294x147 | RGBA | 0,0,294,147 | 0 % | 14 | yes |
@@ -74,6 +74,7 @@ from the shipped PNGs; nothing is copied from documentation.
 | `moon_full` | 240x240 | RGBA | 18,18,222,222 | 28 % | 5 | yes |
 | `moon_gibbous` | 240x240 | RGBA | 66,18,222,222 | 45 % | 5 | yes |
 | `moon_half` | 240x240 | RGBA | 120,18,223,222 | 64 % | 5 | yes |
+| `moon_jack_o_lantern` | 240x240 | RGBA | 18,18,222,222 | 28 % | 1 | yes |
 | `palmtree_fronds` | 120x120 | RGBA | 0,0,120,110 | 8 % | 69 | yes |
 | `palmtree_fronds_frost` | 120x120 | RGBA | 0,0,120,102 | 15 % | 44 | yes |
 | `palmtree_trunk` | 36x177 | RGBA | 2,2,34,177 | 12 % | 4 | yes |
@@ -149,4 +150,7 @@ from the shipped PNGs; nothing is copied from documentation.
 | `taxi_checker` | 204x27 | RGBA | 0,0,204,27 | 0 % | 4 | yes |
 | `tree_canopy` | 246x222 | RGBA | 0,0,246,222 | 0 % | 22 | yes |
 | `tree_canopy_snowcap` | 228x111 | RGBA | 0,0,228,111 | 0 % | 17 | yes |
+| `tree_dead_branches` | 246x222 | RGBA | 1,0,245,222 | 1 % | 16 | yes |
 | `tree_trunk` | 30x132 | RGBA | 0,0,30,132 | 0 % | 2 | yes |
+| `water_splash0` | 162x54 | RGBA | 0,0,162,54 | 0 % | 20 | yes |
+| `water_splash1` | 162x54 | RGBA | 0,0,162,54 | 0 % | 16 | yes |

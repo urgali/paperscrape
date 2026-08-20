@@ -910,3 +910,65 @@ correct alone but wrong beside its neighbours is wrong.
 
 When a new decision changes an existing rule, **edit the existing rule**. Never
 leave two contradictory instructions in this document.
+
+## 16. Halloween: two flags, and a moon that is carved rather than painted
+
+**Halloween and the horror sky are separate switches.** A decoration layer and a palette are
+different statements, and every combination of the two is a scene somebody might want: bare
+trees under an ordinary night sky, an ordinary scene under a lurid orange one, both, or
+neither. Tying them together would repeat exactly what winter and Christmas were split to
+undo — for a whole release "winter" and "Christmas" were synonyms, and nothing failed, because
+each was internally consistent and the defect was only visible as a scene you could not reach.
+
+Neither flag touches winter, Christmas, New Year or the fall palette, in either direction.
+
+**Halloween does two things and no more.** The moon becomes `moon_jack_o_lantern`; every tree
+drops its canopy for `tree_dead_branches`. The pumpkins keep their own switch, for the same
+reason Santa keeps his: one thing with two controls that can disagree is worse than two things
+with one each. The snow cap and the Christmas lights are not disabled by it — they simply have
+nothing to draw on a tree with no foliage.
+
+**The moon's face is cut out of the disc, not laid on top of it.** One `fill-rule="evenodd"`
+path, so the sky shows through the eyes, the nose and the grin. Painting the face in a second
+colour would have been easier and would have stopped reading at around 90 px; the moon is
+drawn at roughly 48. This is the same paper-cutout move the rest of the library makes, and it
+is what makes the shape survive being small. The carved face is always full: a jack-o'-lantern
+that waxed and waned would be a lit fraction of a grin, which reads as a rendering fault.
+
+**The horror sky overrides the user's six sky colours rather than editing them**, so switching
+it off gives the palette back untouched. It keeps the day/night blend, because a sky that never
+changed would stop the sun and the moon meaning anything — but it holds the whole range between
+near-black overhead and one saturated orange at the horizon. Two flat paper tones with a
+gradient between them; nothing photographic.
+
+## 17. The dolphin's splash is derived from the leap, not remembered across frames
+
+The leap is a sine and the animal is drawn only while it is positive, so re-entry is exactly
+where that angle, read as a position in a 0..1 cycle, passes half. The splash occupies a short
+window after that instant, and the frame and the fade come from where the current frame lands
+inside it.
+
+**Nothing is stored.** A "was it above water last frame" flag would need allocating per
+dolphin, keeping across a surface change and a visibility pause, and would be wrong for one
+frame every time the wallpaper resumes mid-leap. Deriving it is correct at exactly the seams
+where remembering it is not.
+
+The splash is scaled by the same factor as the animal that made it, so a distant dolphin throws
+a small one and a near one a bigger, and the two can only ever be wrong together.
+
+## 18. Silhouettes are judged at the size they are drawn, not at the size they are authored
+
+`bird_body` read as a bat for as long as it shipped: a sharp elbow in the leading edge, broad
+wing roots, and a head circle sitting apart from the body — the three things that separate a bat
+from a gull, all present at once. The gull that replaced it has smooth tapered wings sweeping
+back to a point, a head continuous with the body, and a wedge of tail.
+
+Its geometry could not change while its look did. The wing-flap is a **vertical mirror of the
+coordinate frame**, so the body has to sit on y=0 and the wings above it; the redraw kept the
+canvas, the viewBox and that axis exactly, and only the shapes moved.
+
+**The before/after mockup is what caught the dolphin redraw's real defect.** The first version
+put the flukes and the head at the same end — the sprite is drawn inside a mirrored group, and
+the eye had been left at low x, matching the original, while the flukes were moved there too.
+An animal with two tails and no face, and it would have shipped. Artwork changes get a mockup
+for this reason and not as ceremony.

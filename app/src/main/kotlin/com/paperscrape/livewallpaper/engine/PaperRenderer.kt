@@ -476,6 +476,40 @@ class PaperRenderer(
         const val LIGHTNING_BOLT_MIN_HEIGHT_FRACTION = 0.26f
         const val LIGHTNING_BOLT_HEIGHT_SPREAD_FRACTION = 0.14f
 
+        /**
+         * The horror sky's four corners: near-black overhead, hard orange at the horizon.
+         *
+         * Flat paper colours, not a photographic gradient -- the orange is one saturated tone and
+         * the black is one, with the blend between them doing all the work. The day pair is
+         * lighter than the night pair only enough to keep sunrise and sunset legible; this sky is
+         * meant to look wrong at noon, which is the point of it.
+         */
+        const val HORROR_SKY_TOP_NIGHT = 0xFF07060A.toInt()
+        const val HORROR_SKY_TOP_DAY = 0xFF1A1020.toInt()
+        const val HORROR_SKY_LOW_NIGHT = 0xFFB03A06.toInt()
+        const val HORROR_SKY_LOW_DAY = 0xFFF07A10.toInt()
+
+        /**
+         * The dolphin's re-entry splash: how long it lasts and how it is timed.
+         *
+         * The leap is `sin(2*PI*(f*t + phase))` and the animal is drawn only while that is
+         * positive, so it meets the water again at the instant the cycle's fraction passes 0.5.
+         * [SPLASH_WINDOW_CYCLES] is how much of the cycle after that instant the splash occupies
+         * -- 6% of a 0.9 Hz cycle, about a fifteenth of a second at each end of it. That is short
+         * enough to read as an impact rather than as a second object in the lake.
+         *
+         * **Nothing is stored to make this work.** The trigger is the same phase the leap is drawn
+         * from, so there is no per-dolphin splash state to allocate, update or lose across a
+         * surface change, and no frame can miss the event by arriving late: whatever frame lands
+         * inside the window draws the splash at the right size for where it is inside it.
+         */
+        const val DOLPHIN_LEAP_RATE = 0.9f
+        const val TWO_PI = 6.2831855f
+        const val SPLASH_WINDOW_CYCLES = 0.06f
+        const val SPLASH_FRAME_SPLIT = 0.4f
+        const val SPLASH_ORIGIN_X_UNITS = -27f
+        const val SPLASH_ORIGIN_Y_UNITS = -18f
+
         const val SANTA_SLEIGH_SCALE = 1.5f
         const val SANTA_SLEIGH_ORIGIN_X_UNITS = -99.67f
         const val SANTA_SLEIGH_ORIGIN_Y_UNITS = -25.5f
@@ -917,6 +951,22 @@ class PaperRenderer(
         val nightToTwilightBot = blendColor(sky.colorNightLow, twilightBottomColor, dayPhase.dayBlend.coerceIn(0f, 1f))
         val bottom = blendColor(nightToTwilightBot, sky.colorDayLow, (dayPhase.dayBlend - twilightWeight * 0.3f).coerceIn(0f, 1f))
 
+        // The horror sky overrides the six user colours rather than editing them, so turning it
+        // off gives the palette back exactly as it was. It keeps the day/night blend so the scene
+        // still gets lighter and darker across a day -- a sky that never changed would stop the
+        // sun and the moon meaning anything -- but it holds the whole range inside near-black
+        // overhead and a hard orange at the horizon. Two flat bands and a gradient between them
+        // is what the rest of the sky already is; nothing here is a new drawing technique.
+        if (sceneCustomization.horrorSkyEnabled) {
+            val lift = dayPhase.dayBlend.coerceIn(0f, 1f)
+            val horrorTop = blendColor(HORROR_SKY_TOP_NIGHT, HORROR_SKY_TOP_DAY, lift)
+            val horrorBottom = blendColor(HORROR_SKY_LOW_NIGHT, HORROR_SKY_LOW_DAY, lift)
+            canvas.drawVerticalGradientRect(
+                0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), horrorTop, horrorBottom,
+            )
+            return
+        }
+
         canvas.drawVerticalGradientRect(
             0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), top, bottom,
         )
@@ -1071,6 +1121,27 @@ class PaperRenderer(
     private fun drawMoonWithPhase(canvas: SceneCanvas, cx: Float, cy: Float, radius: Float, litColor: Int) {
         val darkColor = ColorUtils.blendARGB(litColor, 0xFF10101A.toInt(), 0.82f)
         val s = radius / 120f
+
+        // Halloween replaces the disc outright, phases and all. A carved face that waxed and
+        // waned would be a lit fraction of a grin, which reads as a rendering fault rather than as
+        // a decoration -- and the phase sprites are a fixed set of four silhouettes, so there is
+        // no "jack-o'-lantern crescent" to reach for. One sprite, always full, while the flag is
+        // on.
+        if (sceneCustomization.halloweenEnabled) {
+            canvas.save()
+            canvas.translate(cx, cy)
+            canvas.scale(s, s)
+            sprites.drawTinted(
+                canvas,
+                R.drawable.moon_jack_o_lantern,
+                CELESTIAL_DISC_ORIGIN_UNITS,
+                CELESTIAL_DISC_ORIGIN_UNITS,
+                CELESTIAL_DISC_SCALE,
+                litColor,
+            )
+            canvas.restore()
+            return
+        }
 
         if (!sceneCustomization.moon.realisticPhases) {
             canvas.save()
@@ -2107,11 +2178,49 @@ class PaperRenderer(
                 // rotation follows the arc's own slope, so it noses up on the way out and down on
                 // the way back in, and the sprite's own centre line sits on the waterline at the
                 // instants it enters and leaves.
-                val arc = elapsedSeconds.sinAt(0.9f, phase * 6.28f)
-                if (arc <= 0f) continue
+                val arc = elapsedSeconds.sinAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
                 val lakeScale = SceneSpace.sceneScale(screenHeight.toFloat())
+                if (arc <= 0f) {
+                    // **The splash is drawn from the same phase the leap is, not from a stored
+                    // "was it above water last frame" flag.** `arc` is `sin(theta)` with
+                    // `theta = 0.9 * t + phase * 6.28`, so the animal is above the surface for the
+                    // first half of each turn of that angle and meets the water again exactly when
+                    // the turn passes its half. Expressing the same angle as a 0..1 position gives
+                    // the instant directly: everything from 0.5 onwards is time since re-entry.
+                    //
+                    // Deriving it rather than remembering it is what makes it correct at the
+                    // seams. A remembered flag has to be allocated per dolphin, kept across a
+                    // surface change and a visibility pause, and is wrong for one frame whenever
+                    // the wallpaper resumes mid-leap. This has no state to lose, allocates
+                    // nothing in the draw path, and costs one modulo on the frames that are
+                    // already skipping the animal.
+                    val cyclePosition = elapsedSeconds.cycle(
+                        DOLPHIN_LEAP_RATE / TWO_PI,
+                        phase * 6.28f / TWO_PI,
+                    )
+                    val sinceEntry = cyclePosition - 0.5f
+                    if (sinceEntry < 0f || sinceEntry >= SPLASH_WINDOW_CYCLES) continue
+                    val progress = sinceEntry / SPLASH_WINDOW_CYCLES
+                    canvas.save()
+                    canvas.translate(x, y)
+                    // Sized against the animal that made it, so a far dolphin throws a small
+                    // splash and a near one a larger, and the two can only be wrong together.
+                    val splashScale = SceneSpace.DOLPHIN_BASE_SCALE * lakeScale
+                    canvas.scale(splashScale, splashScale)
+                    sprites.draw(
+                        canvas,
+                        if (progress < SPLASH_FRAME_SPLIT) R.drawable.water_splash0
+                        else R.drawable.water_splash1,
+                        SPLASH_ORIGIN_X_UNITS,
+                        SPLASH_ORIGIN_Y_UNITS,
+                        SpriteScale.SCENE_UNITS,
+                        (255f * (1f - progress * progress)).toInt().coerceIn(0, 255),
+                    )
+                    canvas.restore()
+                    continue
+                }
                 val climb = arc * SceneSpace.DOLPHIN_LEAP_METRES * SceneSpace.LAKE_PIXELS_PER_METRE * lakeScale
-                val slope = elapsedSeconds.cosAt(0.9f, phase * 6.28f)
+                val slope = elapsedSeconds.cosAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
                 canvas.save()
                 canvas.translate(x, y - climb)
                 canvas.rotate(-slope * DOLPHIN_LEAP_TILT_DEGREES)

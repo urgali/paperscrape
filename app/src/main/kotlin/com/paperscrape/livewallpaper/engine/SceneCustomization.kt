@@ -215,6 +215,37 @@ data class SceneCustomization(
      * defaults set all three together; a user can still take any of them separately.
      */
     val christmasDecorationsEnabled: Boolean = false,
+    /**
+     * The Halloween presentation: a skull moon, and every tree stripped to bare branches.
+     *
+     * **A third independent statement, alongside [winterColorsEnabled] and
+     * [christmasDecorationsEnabled], and it implies neither.** The lesson v2.0 recorded about
+     * winter and Christmas applies here in advance: a season and a decoration layer are different
+     * things, and folding one into the other is what made "winter" and "Christmas" synonyms for a
+     * whole release. Halloween is not a temperature and not a fortnight of fairy lights, so it
+     * gets its own flag rather than a shared one, and turning it on changes nothing about winter,
+     * Christmas, New Year or the fall palette.
+     *
+     * **Scope, deliberately narrow.** Two things follow from it: the moon becomes
+     * `moon_jack_o_lantern`, and every tree drops its canopy for `tree_dead_branches`. The pumpkins already
+     * have their own switch and keep it, for the same reason Santa keeps his -- one thing with two
+     * controls that can disagree is worse than two things with one each.
+     *
+     * The sky is **not** part of this. See [horrorSkyEnabled].
+     */
+    val halloweenEnabled: Boolean = false,
+    /**
+     * The horror sky: near-black overhead, a hard orange band at the horizon.
+     *
+     * **Separate from [halloweenEnabled] on purpose, and all four combinations are reachable.** A
+     * scene can be a bare-tree, skull-moon Halloween under an ordinary night sky, and an ordinary
+     * scene can sit under a lurid orange one -- neither reading is wrong, and tying them together
+     * would repeat exactly the mistake winter and Christmas were split to undo.
+     *
+     * It overrides the six user sky colours while it is on rather than editing them, so switching
+     * it off returns the palette the user chose, untouched.
+     */
+    val horrorSkyEnabled: Boolean = false,
     // Previously hardcoded per-theme via SceneTheme.hasSantaSleigh with no user control at all --
     // aa asked for an actual toggle. Kept as a per-theme customization (not a global setting)
     // specifically so it fits the same defaultCustomizationFor() pattern every other per-theme

@@ -1871,6 +1871,20 @@ private fun SeasonalDecorationsDialog(
                         onCheckedChange = { scope.launch { prefs.setSantaEnabled(it, forThemeId) } },
                     )
 
+                    SectionTitle("Halloween")
+                    SettingSwitchRow(
+                        title = "\uD83D\uDC80 Halloween",
+                        subtitle = "A carved jack-o'-lantern moon, and every tree stripped to bare branches. Independent of Winter Colors and Christmas Lights — turning it on changes neither.",
+                        checked = customization.halloweenEnabled,
+                        onCheckedChange = { scope.launch { prefs.setHalloweenEnabled(it, forThemeId) } },
+                    )
+                    SettingSwitchRow(
+                        title = "\uD83C\uDF83 Horror Sky",
+                        subtitle = "Near-black overhead with a hard orange horizon. A separate switch from Halloween, so you can have either on its own.",
+                        checked = customization.horrorSkyEnabled,
+                        onCheckedChange = { scope.launch { prefs.setHorrorSkyEnabled(it, forThemeId) } },
+                    )
+
                     ObjectCategorySection(
                         title = "Snowmen",
                         config = customization.snowmen,

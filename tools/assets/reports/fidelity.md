@@ -15,9 +15,9 @@ absolute threshold asks small sprites for more precision than large ones.
 
 | Verdict | Sprites |
 |---|---|
-| `PIXEL_IDENTICAL` | 13 |
+| `PIXEL_IDENTICAL` | 18 |
 | `EDGE_EQUIVALENT` | 14 |
-| `DIVERGENT` | 91 |
+| `DIVERGENT` | 90 |
 
 ## Per sprite
 
@@ -32,7 +32,6 @@ absolute threshold asks small sprites for more precision than large ones.
 | `car_body` | 291x111 | 0.999236 | 0.1553 | 56 | 325 / 32301 | 0 | NO | 3 | 0,0,0,0 | `DIVERGENT` |
 | `car_window` | 138x48 | 0.999412 | 0.1347 | 52 | 118 / 6624 | 0 | NO | 4 | 0,0,0,0 | `DIVERGENT` |
 | `cloud_body` | 798x414 | 0.999806 | 0.0408 | 39 | 1771 / 330372 | 0 | NO | 1 | 0,0,0,0 | `DIVERGENT` |
-| `dolphin_body` | 345x174 | 0.999916 | 0.0093 | 32 | 30 / 60030 | 0 | NO | 0 | 0,0,0,0 | `DIVERGENT` |
 | `easteregg_shell` | 96x120 | 0.998094 | 0.3774 | 46 | 329 / 11520 | 0 | NO | 0 | 0,0,0,0 | `DIVERGENT` |
 | `firetruck_ladder` | 288x42 | 0.999360 | 0.0859 | 37 | 318 / 12096 | 0 | NO | 0 | 0,0,0,0 | `DIVERGENT` |
 | `firework` | 240x240 | 0.982443 | 0.5957 | 63 | 2116 / 57600 | 0 | NO | 15 | 0,0,0,0 | `DIVERGENT` |
@@ -130,17 +129,22 @@ absolute threshold asks small sprites for more precision than large ones.
 | `tree_trunk` | 30x132 | 0.999737 | 0.0664 | 30 | 28 / 3960 | 0 | yes | 0 | 0,0,0,0 | `EDGE_EQUIVALENT` |
 | `bar_roof_snow` | 258x30 | 1.000000 | 0.0000 | 0 | 0 / 7740 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `bird_body` | 90x21 | 1.000000 | 0.0000 | 0 | 0 / 1890 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `dolphin_body` | 345x174 | 1.000000 | 0.0000 | 0 | 0 / 60030 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `firetruck_body` | 294x147 | 1.000000 | 0.0000 | 0 | 0 / 43218 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `house_large_roof_snow` | 300x117 | 1.000000 | 0.0000 | 0 | 0 / 35100 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `house_small_roof_snow` | 162x99 | 1.000000 | 0.0000 | 0 | 0 / 16038 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `moon_crescent` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `moon_gibbous` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `moon_jack_o_lantern` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `restaurant_roof_snow` | 288x30 | 1.000000 | 0.0000 | 0 | 0 / 8640 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `road_asphalt` | 402x102 | 1.000000 | 0.0000 | 0 | 0 / 41004 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `road_curb` | 402x18 | 1.000000 | 0.0000 | 0 | 0 / 7236 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `skyscraper_roof_snow` | 168x27 | 1.000000 | 0.0000 | 0 | 0 / 4536 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `snowman_body` | 114x222 | 1.000000 | 0.0000 | 0 | 0 / 25308 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `tree_canopy_snowcap` | 228x111 | 1.000000 | 0.0000 | 0 | 0 / 25308 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `tree_dead_branches` | 246x222 | 1.000000 | 0.0000 | 0 | 0 / 54612 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `water_splash0` | 162x54 | 1.000000 | 0.0000 | 0 | 0 / 8748 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `water_splash1` | 162x54 | 1.000000 | 0.0000 | 0 | 0 / 8748 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 
 ## Sprites with no recoverable source
 

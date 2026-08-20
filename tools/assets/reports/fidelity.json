@@ -257,12 +257,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        1,
+        2,
         0,
-        89,
+        88,
         21
       ],
-      "candidate_padding_fraction": 0.022222222222222254,
+      "candidate_padding_fraction": 0.0444444444444444,
       "candidate_size": [
         90,
         21
@@ -274,12 +274,12 @@
       "mean_alpha_diff": 0.0,
       "name": "bird_body",
       "reference_bbox": [
-        1,
+        2,
         0,
-        89,
+        88,
         21
       ],
-      "reference_padding_fraction": 0.022222222222222254,
+      "reference_padding_fraction": 0.0444444444444444,
       "reference_size": [
         90,
         21
@@ -535,45 +535,45 @@
       "verdict": "DIVERGENT"
     },
     {
-      "alpha_iou": 0.9999155554183458,
+      "alpha_iou": 1.0,
       "bbox_delta": [
         0,
         0,
         0,
         0
       ],
-      "boundary_confined": false,
+      "boundary_confined": true,
       "candidate_bbox": [
         0,
         0,
-        344,
+        345,
         174
       ],
-      "candidate_padding_fraction": 0.0028985507246376274,
+      "candidate_padding_fraction": 0.0,
       "candidate_size": [
         345,
         174
       ],
-      "differing_pixels": 30,
+      "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 32,
+      "max_alpha_diff": 0,
       "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.009295352323838081,
+      "mean_alpha_diff": 0.0,
       "name": "dolphin_body",
       "reference_bbox": [
         0,
         0,
-        344,
+        345,
         174
       ],
-      "reference_padding_fraction": 0.0028985507246376274,
+      "reference_padding_fraction": 0.0,
       "reference_size": [
         345,
         174
       ],
       "size_match": true,
       "total_pixels": 60030,
-      "verdict": "DIVERGENT"
+      "verdict": "PIXEL_IDENTICAL"
     },
     {
       "alpha_iou": 0.9951211315797515,
@@ -1722,6 +1722,47 @@
       "size_match": true,
       "total_pixels": 57600,
       "verdict": "DIVERGENT"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        18,
+        18,
+        222,
+        222
+      ],
+      "candidate_padding_fraction": 0.27749999999999997,
+      "candidate_size": [
+        240,
+        240
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "moon_jack_o_lantern",
+      "reference_bbox": [
+        18,
+        18,
+        222,
+        222
+      ],
+      "reference_padding_fraction": 0.27749999999999997,
+      "reference_size": [
+        240,
+        240
+      ],
+      "size_match": true,
+      "total_pixels": 57600,
+      "verdict": "PIXEL_IDENTICAL"
     },
     {
       "alpha_iou": 0.9967010340618381,
@@ -4799,6 +4840,47 @@
       "verdict": "PIXEL_IDENTICAL"
     },
     {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        1,
+        0,
+        245,
+        222
+      ],
+      "candidate_padding_fraction": 0.008130081300813052,
+      "candidate_size": [
+        246,
+        222
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "tree_dead_branches",
+      "reference_bbox": [
+        1,
+        0,
+        245,
+        222
+      ],
+      "reference_padding_fraction": 0.008130081300813052,
+      "reference_size": [
+        246,
+        222
+      ],
+      "size_match": true,
+      "total_pixels": 54612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
       "alpha_iou": 0.9997372716611024,
       "bbox_delta": [
         0,
@@ -4838,6 +4920,88 @@
       "size_match": true,
       "total_pixels": 3960,
       "verdict": "EDGE_EQUIVALENT"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        162,
+        54
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        162,
+        54
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "water_splash0",
+      "reference_bbox": [
+        0,
+        0,
+        162,
+        54
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        162,
+        54
+      ],
+      "size_match": true,
+      "total_pixels": 8748,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        162,
+        54
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        162,
+        54
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "water_splash1",
+      "reference_bbox": [
+        0,
+        0,
+        162,
+        54
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        162,
+        54
+      ],
+      "size_match": true,
+      "total_pixels": 8748,
+      "verdict": "PIXEL_IDENTICAL"
     }
   ]
 }

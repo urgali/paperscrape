@@ -63,6 +63,9 @@ class SpriteTintClassTest {
         "balloon_envelope", "pumpkin_body", "car_body",
         "cloud_body", "bird_body",
         "moon_full", "moon_crescent", "moon_half", "moon_gibbous",
+        // The Halloween moon. Tintable like every other phase: it is the same disc under the
+        // same theme colour, with the skull cut out of it rather than painted on.
+        "moon_jack_o_lantern",
     )
 
     /**
@@ -75,6 +78,13 @@ class SpriteTintClassTest {
     private val fixedArtSprites = listOf(
         "house_shared_window", "house_shared_planter", "house_window_lit",
         "tree_trunk", "tree_canopy_snowcap",
+        // Halloween's bare crown. Fixed art in the trunk browns rather than tintable: a dead
+        // tree is not a theme colour, and multiplying it by a leaf green is the one thing
+        // that would give the effect away.
+        "tree_dead_branches",
+        // The dolphin's re-entry splash, two frames. Water in its own greys and blues, the
+        // same fixed art the dolphin and the lake decorations already are.
+        "water_splash0", "water_splash1",
         // The roof caps, added in v76.12 for defect D-8. Fixed art for the same reason the tree's
         // cap is: snow is white with its own cool shadow, and tinting it would make it the roof's
         // colour, which is the thing a layer of snow is meant not to be.

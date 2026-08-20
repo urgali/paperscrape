@@ -237,6 +237,8 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("fallColorsEnabled", fallColorsEnabled)
     put("winterColorsEnabled", winterColorsEnabled)
     put("christmasDecorationsEnabled", christmasDecorationsEnabled)
+    put("halloweenEnabled", halloweenEnabled)
+    put("horrorSkyEnabled", horrorSkyEnabled)
     put("santaEnabled", santaEnabled)
 }
 
@@ -376,6 +378,8 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // changed one. A saved Christmas theme therefore regains its lights; a saved Winter theme
         // correctly does not get them.
         christmasDecorationsEnabled = json.optBoolean("christmasDecorationsEnabled", defaults.christmasDecorationsEnabled),
+        halloweenEnabled = json.optBoolean("halloweenEnabled", defaults.halloweenEnabled),
+        horrorSkyEnabled = json.optBoolean("horrorSkyEnabled", defaults.horrorSkyEnabled),
         santaEnabled = json.optBoolean("santaEnabled", defaults.santaEnabled),
     )
 }

@@ -19,9 +19,132 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.3 — Halloween, a horror sky, a dolphin splash, and two sprites redrawn
+
+**Stable / latest.** `versionCode = 7`, `versionName = "2.3"`. Tag `v2.3`.
+
+Four visible changes, two new flags, four new sprites and two redrawn ones. 122 sprites now,
+15.31 MB decoded.
+
+### Halloween and the horror sky are two flags, not one
+
+`halloweenEnabled` carves the moon into `moon_jack_o_lantern` and swaps every canopy for
+`tree_dead_branches`. `horrorSkyEnabled` overrides the six sky colours with near-black
+overhead and a hard orange horizon. **Neither implies the other, and neither reaches winter,
+Christmas, New Year or the fall palette in either direction.**
+
+That separation is the lesson v2.0 recorded, applied before the mistake rather than after it.
+Christmas lights hung off the winter flag for a whole release and nothing failed -- each was
+internally consistent, and the only way to see the defect was to want a snowy January without
+fairy lights and find it unreachable. A season and a decoration layer are different statements;
+so are a decoration layer and a palette. `HalloweenAndSplashTest` pins that all four
+combinations are expressible and that the existing seasonal flags are untouched, because that
+is the property that would rot silently.
+
+**Scope kept narrow on purpose.** Halloween does two things. The pumpkins already have their
+own switch and keep it, for the same reason Santa keeps his: one thing with two controls that
+can disagree is worse than two things with one each. The snow cap and the Christmas lights are
+not disabled by it either -- they simply have nothing to draw on a tree with no foliage.
+
+The horror sky **overrides** the user's palette rather than editing it, so switching it off
+returns exactly the colours that were there. It keeps the day/night blend: a sky that never
+changed would stop the sun and the moon meaning anything.
+
+### The moon is carved, not painted
+
+`moon_jack_o_lantern` is one `fill-rule="evenodd"` path: the eyes, nose and grin are holes in
+the disc, so the sky shows through them. Painting the face on in a second colour would have
+been easier and would have stopped reading at about 90 px; a moon is drawn at roughly 48.
+Checked at 240, 90 and 48 px before it was wired up. Tintable like every other phase, and
+excluded from normalisation with the rest of the canvas-anchored sky set.
+
+Halloween replaces the disc outright, phases and all. A carved face that waxed and waned
+would be a lit fraction of a grin, which reads as a rendering fault rather than as a
+decoration.
+
+### The dolphin splash carries no state
+
+The leap is `sin(0.9t + phase * 6.28)` and the animal is drawn only while that is positive, so
+it meets the water again exactly when the angle, expressed as a position in a 0..1 cycle,
+passes 0.5. The splash occupies the 6% of cycle after that -- about 0.07 s -- with the frame
+chosen and the alpha faded from where the frame lands inside it.
+
+**Derived rather than remembered, and that is the point.** A "was it above water last frame"
+flag has to be allocated per dolphin, kept across a surface change and a visibility pause, and
+is wrong for one frame whenever the wallpaper resumes mid-leap. This allocates nothing in the
+draw path and costs one modulo on frames that are already skipping the animal.
+
+Sized against the animal that made it, so the two can only be wrong together.
+
+### Two sprites redrawn, and what the mockup caught
+
+`bird_body` was reading as a bat: a sharp elbow in the leading edge, broad wing roots and a
+head circle sitting apart from the body. It is a gull now -- smooth tapered wings sweeping
+back to a point, head continuous with the body, a wedge of tail. The geometric contract is
+unchanged: 90x21 on the same viewBox with the body on y=0, because the wing-flap is a vertical
+mirror of the frame and the body has to sit on the axis.
+
+`dolphin_body` gained a tapered beak, a distinct melon, a swept dorsal fin and a notched
+two-lobed tail, on the same canvas so no origin moved.
+
+**The before/after mockup caught a real defect in that redraw.** The first version had the
+flukes and the head on the same end: the group is mirrored, and the eye had been kept at low
+x, matching the original, while the flukes were moved there too. The result was an animal with
+two tails and no face, and it would have shipped. The mockup existed because the batch changed
+artwork; this is what it was for.
+
+### Verification
+
+```
+Release identifier:            v2.3
+Verification level:            3
+Reason for the level:          new sprites, new flags, renderer and settings changes.
+Tests run:                     yes -- ./gradlew testDebugUnitTest, 371 tests, 0 failures
+                               (was 357). HalloweenAndSplashTest 14/14 new,
+                               SpriteTintClassTest 5/5, SpriteGeometryTest 3/3,
+                               SkySpriteAnchoringTest 7/7, SpriteVariantTest 3/3,
+                               CustomThemeDataJsonTest 23/23
+Lint run:                      yes -- ./gradlew lintDebug, 41 warnings, 0 errors
+Python tooling suite:          yes -- 89 tests, 0 failures
+Rasteriser probe:              yes -- fingerprint matches the pin
+Asset validate:                yes -- 0 failures, 122 entries, anchors 122/122,
+                               18 variant groups distinct
+Normalisation:                 yes -- 74 targets, none pending, 11 excluded by decision
+Fidelity compare:              yes -- 18 PIXEL_IDENTICAL, 14 EDGE_EQUIVALENT, 90 DIVERGENT
+Visual mockup:                 yes -- the four Halloween/Horror-Sky combinations, the leap
+                               and splash sequence at runtime scale, and before/after for
+                               the dolphin and the gull. Composed from the shipped PNGs at
+                               the real origins and scales; **not** an OpenGL frame.
+APK build run:                 no
+ZIP verification:              yes
+Git tag created:               no
+Maintainer-side verification required: **yes.** Install on the Pixel 9 and check: the four
+                               flag combinations, the moon at its real on-screen size, the
+                               trees under sway with Halloween on, and a dolphin leap timed
+                               so the splash lands with the animal.
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **Nothing here was seen rendering.** The mockups use real assets and real geometry, but no
+  device or emulator was available.
+- The dead-tree crown is on the sparse side at scene scale. It reads correctly as a bare tree;
+  slightly heavier limbs would read better, and that is a judgement best made on the device.
+- The reference export supplied for this batch was used as **direction only**. Its own manifest
+  records that it was extracted from a third-party APK and is study material, which matches this
+  project's stated position on original assets. What it contributed was the decision to carve
+  the moon's face rather than paint it, and the two-level forked structure of the bare tree. No
+  pixel from it ships.
+- The fidelity criterion still reads antialiasing out of the alpha channel only. Recorded at
+  v2.1, unchanged.
+
+
 ## v2.2 — D-10 closed: the padding, and the origins that had to move with it
 
-**Stable / latest.** `versionCode = 6`, `versionName = "2.2"`. Tag `v2.2`.
+`versionCode = 6`, `versionName = "2.2"`. Tag `v2.2`.
 
 67 PNGs cropped, 34 blit origins compensated, decoded artwork **16.28 MB -> 14.79 MB**
 and transparent padding **3.08 MB -> 1.59 MB**. Nothing in the scene moves, and that is
@@ -1292,13 +1415,13 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v2.2 — Stable / latest** (`versionCode = 6`, `versionName = "2.2"`) |
-| **Latest stable** | v2.2 |
+| **Version** | **v2.3 — Stable / latest** (`versionCode = 7`, `versionName = "2.3"`) |
+| **Latest stable** | v2.3 |
 | **Date** | 2026-08-19 |
-| **Build status** | ⚠️ `testDebugUnitTest` **357 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 118 sprites**; `normalize` **0 targets pending, 10 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
+| **Build status** | ⚠️ `testDebugUnitTest` **357 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 122 sprites**; `normalize` **0 targets pending, 11 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
-| **Sprite memory** | **118 PNGs, 14.79 MB decoded, 1.59 MB of it padding** — re-measured at v2.2 after D-10's crop, which recovered 1.49 MB. The residual padding is the outward rounding to the sprite grid plus the ten sprites excluded by decision |
-| **Tests** | 357 Kotlin unit tests, 89 Python tooling tests |
+| **Sprite memory** | **122 PNGs, 15.31 MB decoded, 1.66 MB of it padding** — re-measured at v2.3. D-10's crop recovered 1.49 MB at v2.2; v2.3 added four sprites back. The residual padding is the outward rounding to the sprite grid plus the ten sprites excluded by decision |
+| **Tests** | 371 Kotlin unit tests, 89 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

@@ -268,9 +268,9 @@ Nothing inside the document moves.
 
 `EXCLUSIONS` in `normalize.py` lists the sprites this rule deliberately leaves alone, each
 with its reason. It is not a backlog: a `SPRITE_CENTRE` sprite is placed by the centre of
-its canvas, so cropping it moves its anchor even though no drawn pixel moves, and the sun
-and the four moon phases share one origin constant that would have to be split per sprite
-first.
+its canvas, so cropping it moves its anchor even though no drawn pixel moves, and the sun,
+the four moon phases and `moon_jack_o_lantern` share one origin constant that would have to
+be split per sprite first.
 
 ### What the pinned rasteriser does and does not reproduce
 
