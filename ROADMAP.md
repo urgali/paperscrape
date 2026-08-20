@@ -10,21 +10,19 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.10 Stable — a city by name, and the bottom of the page.**
+**v2.11 Stable — updating from inside the app, and one preview system.**
 
-`versionCode = 14`, `versionName = "2.10"`. Two fixes from the v2.9 device pass: one central
-bottom-inset rule for every scrolling settings screen (`SettingsInsets`, provided from the
-activity because the destination dialogs cannot measure it themselves), and city search for the
-custom location, using Open-Meteo's keyless geocoding API — the same provider Live Weather already
-uses. Live Weather, its cache and fallback, phone location, the themes and the previews are
-untouched.
+`versionCode = 15`, `versionName = "2.11"`. The update checker became a full check -> download ->
+verify -> install flow, with the release's own SHA-256 enforced before anything reaches Android's
+installer, and the World & scene preview now goes through the same `ThemeScenePreview` and
+`ThemePreviewGeometry` as the theme gallery. Roadmap priority 7 is closed.
 
-Last measured: 468 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
-producing an APK. Not yet seen rendering on a device.
+Last measured: 505 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK. Not yet seen rendering on a device, and the updater has not been run end to end.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -39,8 +37,8 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 | 3 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
 | 4 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
 | 5 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
-| 6 | **Device pass on v2.10's bottom spacing and city search, and on v2.9's settings UI and theme previews** | Five destinations, a completed colour scheme and twelve mini-scene previews, none of it seen rendering. The previews in particular were verified by rasterising the scene description the code produces, not by the app drawing it. |
-| 7 | **Scene-objects live preview** | The strip at the top of World & scene still magnifies the size table with per-item fitting factors so three objects of very different heights fit 120 dp. Honest, but not representative — and now inconsistent with the gallery previews next to it. |
+| 6 | **Device pass: v2.10's bottom spacing (still unconfirmed), the v2.11 updater, and the aligned World & scene preview** | Five destinations, a completed colour scheme and twelve mini-scene previews, none of it seen rendering. The previews in particular were verified by rasterising the scene description the code produces, not by the app drawing it. |
+| 7 | **End-to-end updater run** | The download/verify/install path is covered by unit tests over its pure parts, but no APK has been fetched from a real release and installed. Needs v2.11 published and a v2.12 to update to. |
 | 8 | **README / lint / KDoc tidying** | `UseKtx`, `ObsoleteSdkInt`, `DataExtractionRules`, and KDoc that has accumulated layers across releases. |
 
 **Localisation is explicitly out of scope.** PaperScrape is English-only by decision;
@@ -65,6 +63,7 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.11 Stable** — in-app update flow with SHA-256 verification, and the World & scene preview merged into the gallery's preview system.
 - **v2.10 Stable** — one central bottom-inset rule for every settings screen, and custom location by city search.
 - **v2.9 Stable** — settings UI restructured into five destinations, complete Material 3 colour scheme, Material Symbols, and theme previews drawn from the real sprite library.
 - **v2.8 Stable** — shop first floors, small-house harmonisation, a shorter tower with a coarse grid and a real entrance, Christmas firs and scattered lights.

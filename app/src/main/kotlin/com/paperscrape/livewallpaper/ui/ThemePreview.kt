@@ -15,6 +15,7 @@ import com.paperscrape.livewallpaper.engine.SceneShape
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.SpriteBlitter
 import com.paperscrape.livewallpaper.engine.SpriteScale
+import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
 import com.paperscrape.livewallpaper.engine.ThemePreviewScene
 import com.paperscrape.livewallpaper.engine.ThemePreviewScenes
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
@@ -40,10 +41,13 @@ internal fun ThemeScenePreview(
     theme: SceneTheme,
     modifier: Modifier = Modifier,
     customization: SceneCustomization? = null,
+    forceNight: Boolean? = null,
 ) {
     val context = LocalContext.current
     val resolved = customization ?: remember(theme.id) { defaultCustomizationFor(theme.id) }
-    val scene = remember(theme.id, resolved) { ThemePreviewScenes.forTheme(theme, resolved) }
+    val scene = remember(theme.id, resolved, forceNight) {
+        ThemePreviewScenes.forTheme(theme, resolved, forceNight)
+    }
     // One blitter, one canvas adapter, one paint and one shape per preview, built once: nothing
     // below allocates while drawing.
     val blitter = remember(context) { SpriteBlitter(context) }
@@ -52,7 +56,7 @@ internal fun ThemeScenePreview(
     val shape = remember { SceneShape() }
 
     Canvas(modifier = modifier) {
-        val scale = size.width / ThemePreviewScene.WIDTH_UNITS
+        val scale = ThemePreviewGeometry.scaleFor(size.width)
         drawIntoCanvas { canvas ->
             target.bind(canvas.nativeCanvas)
             target.save()

@@ -1,14 +1,9 @@
 package com.paperscrape.livewallpaper.ui
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,29 +23,23 @@ import androidx.compose.material.icons.outlined.Terrain
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Waves
 import androidx.compose.material.icons.outlined.WbSunny
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material3.Card
+import com.paperscrape.livewallpaper.engine.SceneTheme
+import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.paperscrape.livewallpaper.engine.CanvasSceneTarget
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.SceneCustomization
-import com.paperscrape.livewallpaper.engine.SceneObjectLayout
-import com.paperscrape.livewallpaper.engine.SceneObjectRenderer
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.ObjectCategory
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
@@ -72,6 +61,7 @@ import kotlinx.coroutines.launch
 internal fun WorldSceneScreen(
     customization: SceneCustomization,
     settings: WallpaperSettings,
+    theme: SceneTheme,
     forThemeId: String,
     themeName: String,
     prefs: WallpaperPrefs,
@@ -84,10 +74,7 @@ internal fun WorldSceneScreen(
     val liveWeatherEnabled = settings.liveWeatherEnabled
 
     SettingsSubScreen(title = "World & scene", onBack = onBack) {
-        SceneObjectLivePreview(
-            customization = customization,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-        )
+        WorldScenePreview(theme = theme, customization = customization)
         SettingsBanner(
             "These apply to $themeName, the theme showing now, and follow whichever theme you are on. " +
                 "Keep this look by saving the theme from Advanced & about.",
@@ -762,52 +749,40 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
 }
 
 /**
- * Renders a compact row of sample objects (house, tree, building) using the exact same drawing
- * code as the real wallpaper, so changes made on these screens are visible immediately, right
- * there, instead of only on the actual applied wallpaper. Includes a day/night toggle since
- * colors blend between the two.
+ * The scene as it currently stands, at the top of the screen that edits it.
+ *
+ * **The same preview the theme gallery draws**, through the same [ThemeScenePreview] and the same
+ * [ThemePreviewGeometry] -- one preview system, not two. What was here before was a 120 dp strip
+ * showing three sample objects, each magnified by its own fitting factor so that a house, a tree
+ * and a tower of very different real heights would all fit the band. It answered "what colour is
+ * my tree" and nothing else, and sitting a tap away from the gallery's mini scenes it read as a
+ * leftover from a different app.
+ *
+ * The day/night control is kept, and is the one thing this call site adds: half the values edited
+ * on the screens below are night colours, and a preview fixed at midday cannot show them.
  */
 @Composable
-private fun SceneObjectLivePreview(customization: SceneCustomization, modifier: Modifier = Modifier) {
-    var previewIsDay by remember { mutableStateOf(true) }
-    val previewContext = LocalContext.current
-    // Keyed on the context, not on `customization`: the renderer accepts a new configuration in
-    // place, so there is no reason to build a new one (and a new set of Paint objects) every time
-    // a colour changes. Its layout is empty, so no runtime list is ever rebuilt here.
-    val previewRenderer = remember(previewContext) {
-        SceneObjectRenderer(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), customization, previewContext)
-    }
-    // The preview draws onto a Compose canvas, where there is no EGL surface and no GL context, so
-    // it uses the Canvas backend of the same renderer the wallpaper uses. That is the reason the
-    // Canvas backend is kept rather than deleted once the GPU renderer took over the wallpaper.
-    val previewTarget = remember { CanvasSceneTarget() }
-    SideEffect { previewRenderer.customization = customization }
-
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (previewIsDay) Color(0xFFAEE0F2) else Color(0xFF14152B)),
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawIntoCanvas { canvas ->
-                    previewTarget.bind(canvas.nativeCanvas)
-                    previewRenderer.drawPreviewPair(
-                        previewTarget,
-                        size.width,
-                        size.height,
-                        dayBlend = if (previewIsDay) 1f else 0f,
-                    )
-                    previewTarget.unbind()
-                }
-            }
+private fun WorldScenePreview(theme: SceneTheme, customization: SceneCustomization) {
+    var showNight by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+            ThemeScenePreview(
+                theme = theme,
+                customization = customization,
+                forceNight = showNight,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // The gallery's shape, from the same constant, so the two cannot drift.
+                    .aspectRatio(ThemePreviewGeometry.ASPECT_RATIO),
+            )
         }
         SettingsSegmentedChoice(
             options = listOf("Day", "Night"),
-            selectedIndex = if (previewIsDay) 0 else 1,
-            onSelect = { index -> previewIsDay = index == 0 },
+            selectedIndex = if (showNight) 1 else 0,
+            onSelect = { index -> showNight = index == 1 },
         )
     }
 }

@@ -49,11 +49,11 @@ PaperScrape/
 
 | Metric | Value |
 |---|---|
-| Kotlin files | 43 |
+| Kotlin files | 45 |
 | Kotlin lines | ~11,100 |
 | Sprite PNGs in `drawable-nodpi/` | **111 files, 111 unique contents** — no byte-identical pair; the V2 asset library replaced the whole set in v76 |
 | Vector drawables | 4 |
-| Unit tests | **468** (35 classes, JVM-local, no Android dependencies) |
+| Unit tests | **505** (40 classes, JVM-local, no Android dependencies) |
 | Instrumentation tests | 0 |
 | Largest files | `PaperRenderer.kt` 1,728 · `SceneObjectRenderer.kt` 1,152 · `WorldSceneScreen.kt` 813 · `WallpaperPrefs.kt` 789 · `SettingsComponents.kt` 736 |
 
@@ -102,6 +102,12 @@ PaperScrape/
   unit-testable.
 - `weather/WeatherRepository.kt` — Open-Meteo, `HttpURLConnection`, `Dispatchers.IO`.
 - `update/UpdateChecker.kt`, `update/UpdatePrefs.kt` — GitHub Releases API.
+- `update/ReleaseAssets.kt` — which attachment is the APK and which is its checksum (exact names),
+  how a `sha256sum` file is read, and whether a downloaded package may be installed. All pure, all
+  unit-tested: these are the parts that fail silently.
+- `update/ApkDownloader.kt` — streams the APK to `cache/updates` while hashing it in the same pass,
+  and `ApkInstaller`, which hands the verified file to Android through a `FileProvider` URI scoped
+  to that one directory. No silent-install path exists.
 - `ui/` — the settings UI, one file per destination since v2.9 (it was a single 2,414-line
   `SettingsScreen.kt`):
   - `SettingsActivity.kt` — the activity, edge-to-edge, wraps everything in `PaperScrapeTheme`.
@@ -705,6 +711,11 @@ It holds **no Android type beyond resource ids**, which is what makes "what does
 preview contain" a unit-testable question; `ThemePreviewSceneTest` pins the characteristic object
 of each of the twelve themes and, in both directions, that nothing a theme has switched off is
 drawn.
+
+Both places that show a preview -- the gallery card and the strip at the top of World & scene --
+go through `ThemePreviewGeometry` (one 4:3 shape, one uniform scale, no per-call-site crop or
+fitting factor) and through the same scene builder, so they cannot drift apart again. World &
+scene passes `forceNight` to see night colours; the gallery never does.
 
 `ui/ThemePreview.kt` replays that description into a Compose `Canvas` through `CanvasSceneTarget`
 and the same `SpriteBlitter` the wallpaper uses. There is no GL context, no animation, no timer and

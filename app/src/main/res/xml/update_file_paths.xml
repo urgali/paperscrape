@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The one directory the update FileProvider exposes: cache/updates, where ApkDownloader writes
+    the release APK. Deliberately not the whole cache directory, and certainly not files/ - the
+    provider can only ever hand out a file this app downloaded and verified for an install.
+-->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

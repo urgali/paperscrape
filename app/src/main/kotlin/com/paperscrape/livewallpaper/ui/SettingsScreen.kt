@@ -255,6 +255,7 @@ fun SettingsScreen(
         SettingsDestination.WORLD -> WorldSceneScreen(
             customization = customization,
             settings = settings,
+            theme = effectiveTheme,
             forThemeId = effectiveThemeId,
             themeName = effectiveTheme.displayName,
             prefs = prefs,

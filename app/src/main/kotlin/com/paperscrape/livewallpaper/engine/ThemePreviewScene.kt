@@ -53,6 +53,34 @@ data class ThemePreviewScene(
 }
 
 /**
+ * The one place a preview's size on screen is decided.
+ *
+ * Both places that show a preview -- the gallery card and the strip at the top of World & scene --
+ * go through this, so they cannot drift into different aspect ratios, different crops or different
+ * per-object fitting factors. That drift is exactly what v2.9 shipped: the gallery previews were
+ * composed in scene units while the World & scene strip still magnified the size table with
+ * per-item fitting factors so three objects of very different heights would fit a 120 dp band, and
+ * the two sat next to each other looking like different products.
+ */
+object ThemePreviewGeometry {
+
+    /** 4:3. The scene is composed once, at one shape, and never cropped to fit a container. */
+    const val ASPECT_RATIO = ThemePreviewScene.WIDTH_UNITS / ThemePreviewScene.HEIGHT_UNITS
+
+    /**
+     * Scene units to pixels for a container [widthPx] wide.
+     *
+     * Uniform: the same factor on both axes, so nothing is stretched and no object needs a fitting
+     * factor of its own. A container is expected to hold the whole scene at [ASPECT_RATIO]; the
+     * height that requires is [heightFor].
+     */
+    fun scaleFor(widthPx: Float): Float = widthPx / ThemePreviewScene.WIDTH_UNITS
+
+    /** The height a container [widthPx] wide must have to show the whole scene. */
+    fun heightFor(widthPx: Float): Float = widthPx / ASPECT_RATIO
+}
+
+/**
  * Builds a theme's preview scene out of the theme's own palette and the customization it actually
  * ships with.
  *
@@ -85,13 +113,23 @@ object ThemePreviewScenes {
     /** The carved moon's own tint in `PaperRenderer`; not the theme's `moonColor`. */
     private const val HALLOWEEN_MOON_COLOUR = 0xFFFF8C2A.toInt()
 
-    fun forTheme(theme: SceneTheme, customization: SceneCustomization): ThemePreviewScene {
+    /**
+     * [forceNight] overrides the time of day the theme would otherwise be shown at. The gallery
+     * never passes it -- a card shows the theme's own hour -- but the World & scene strip has
+     * always had a day/night toggle, because half the colours a user edits there are night
+     * colours and a preview that cannot show them is not much of a preview.
+     */
+    fun forTheme(
+        theme: SceneTheme,
+        customization: SceneCustomization,
+        forceNight: Boolean? = null,
+    ): ThemePreviewScene {
         val c = customization
         val winter = c.winterColorsEnabled
         val halloween = c.halloweenEnabled
         // Night for the two themes whose subject *is* the night: the fireworks theme and the
         // horror sky. Everything else reads its day palette, which is what a gallery is for.
-        val night = c.horrorSkyEnabled || theme.hasFireworks
+        val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
         val palms = theme.id in PALM_THEMES
 
         val skyTop: Int

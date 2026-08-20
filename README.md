@@ -3,7 +3,7 @@
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.10 Stable**
+**Current version: v2.11 Stable**
 
 ---
 
@@ -98,6 +98,11 @@ restart.
 at the renderer's own part offsets with the theme's own palette, and containing only what
 that theme actually has switched on. It is static: no GL context, no animation, and the
 sprite pixels are shared with the rest of the process.
+
+**Updates.** Advanced & about checks the GitHub Releases API, downloads the release's own APK,
+verifies it against the SHA-256 the release publishes, and hands it to Android's installer, which
+asks the user to confirm. A release without a checksum is not installed in-app at all. Nothing
+downloads or installs without an explicit tap.
 
 **Assets.** 125 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
 source under `tools/assets/sources/svg/`. A Python pipeline renders, measures and checks

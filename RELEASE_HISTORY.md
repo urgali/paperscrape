@@ -19,9 +19,84 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.11 — updating from inside the app, and one preview system
+
+**Stable / latest.** `versionCode = 15`, `versionName = "2.11"`. Tag `v2.11`.
+
+### CHECK -> DOWNLOAD -> VERIFY -> INSTALL
+
+The update checker could only ever say "there is a newer release" and open the release page, which
+left the user to find the APK among the attachments, download it and install it by hand. The whole
+flow now runs in Advanced & about.
+
+The pieces are deliberately split so that the parts which fail silently are the parts that are
+testable without a network or a device:
+
+- `ReleaseAssets` picks the APK and its checksum **by exact name** -- `PaperScrape-<tag>.apk` and
+  the same name plus `.sha256`, which is what `.github/workflows/android-build.yml` publishes.
+  Not "the first asset ending in .apk": Gradle's own output is `app-release.apk`, the workflow
+  renames it for a reason, and a loose rule would also match an asset attached to another tag.
+- `ChecksumFile` reads the `sha256sum` format and a bare hash, and its `matches` refuses to pass
+  on a missing, short or malformed value. An install that proceeds because verification was
+  *skipped* is worse than one that does not happen.
+- `ApkDownloader` streams the file to the app's cache while hashing it in the same pass, so the
+  digest describes exactly what was written and a 19 MB APK is not read twice. A truncated
+  transfer, a mismatch, or any failure deletes the file.
+- `ApkSafety` reads the downloaded package's own id and version code and refuses anything that is
+  not this app, or is not newer. The comparison that decided to *offer* the update was made against
+  release tags; this one is made against the bytes on disk, which is a different claim.
+- `ApkInstaller` hands the verified file to Android through a `FileProvider` content URI scoped to
+  `cache/updates` alone. **There is no silent install path and no attempt to find one**: Android
+  shows its own confirmation, and declining is a normal outcome that changes nothing.
+
+A release without a checksum is not installable in-app at all, by design; the user is sent to the
+release page and told why. `Check for updates automatically` is unchanged and still only reports.
+
+New permission: `REQUEST_INSTALL_PACKAGES`, used only after the user taps through the flow. No
+secret was added, and the signing config and CI workflow are untouched.
+
+### One preview system
+
+Roadmap priority 7, closed. The strip at the top of World & scene still magnified the size table
+with per-item fitting factors so a house, a tree and a tower of very different heights would fit a
+120 dp band -- honest about colour and nothing else, and sitting one tap from the gallery's mini
+scenes it read as a leftover.
+
+It is now the **same** `ThemeScenePreview`, at the same 4:3 shape and the same uniform scale, both
+call sites going through the new `ThemePreviewGeometry`. Neither applies a crop, a zoom or a
+fitting factor of its own, and `ThemePreviewGeometryTest` pins that: the ratio of the two scales is
+exactly the ratio of the two widths, and identical inputs produce an identical scene whichever
+screen asks.
+
+The one thing World & scene adds is a `forceNight` override on `ThemePreviewScenes.forTheme`,
+because half the values edited on the screens below it are night colours and a preview fixed at
+midday cannot show them. The gallery never passes it, so cards are unaffected.
+
+### Measured
+
+505 Kotlin unit tests passing (v2.10: 469), `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK.
+
+**Not seen rendering, and the updater has not been run end to end.** No device was available for
+this batch. The download, verification and install hand-off are covered by unit tests over their
+pure parts -- asset selection, checksum parsing and comparison, install verdicts, version
+comparison -- but no APK has actually been fetched from a release and installed. That is the first
+thing to try on the Pixel 9, and it can only be tried properly once v2.11 itself is published and
+a v2.12 exists to update *to*.
+
+### The v2.10 bottom spacing, not verified
+
+The device pass asked for confirmation that the v2.10 bottom-spacing fix holds. It could not be
+given here: no device. The screenshot supplied with the request shows the theme gallery mid-scroll
+(its top row is cut too), so it is not evidence either way. The rule is unchanged and remains
+`SettingsInsets`: system inset + 24 dp, floored at 48 dp, applied by the two shared shells. Nothing
+was adjusted on a guess.
+
+---
+
 ## v2.10 — a city by name, and the bottom of the page
 
-**Stable / latest.** `versionCode = 14`, `versionName = "2.10"`. Tag `v2.10`.
+**Stable.** `versionCode = 14`, `versionName = "2.10"`. Tag `v2.10`.
 
 Two contained changes found on the v2.9 device pass. Nothing in the wallpaper, the themes, the
 previews or the weather logic was touched.

@@ -52,7 +52,15 @@ data class UpdateInfo(
     val version: AppVersion,  // parsed from tagName, e.g. 1.1
     val releasePageUrl: String, // GitHub release page — where "Update now" sends the user
     val releaseNotes: String?, // combined "what's new" across *every* release newer than the user's, not just the latest
-)
+    // The two files the release workflow publishes, when they are both there. Null means this
+    // release cannot be installed from inside the app -- the user is sent to the release page
+    // instead, which is where every update went before v2.11.
+    val apkAsset: ReleaseAsset? = null,
+    val checksumAsset: ReleaseAsset? = null,
+) {
+    /** Whether the in-app download/verify/install path is available for this release. */
+    val isInstallable: Boolean get() = apkAsset != null && checksumAsset != null
+}
 
 /**
  * Checks the public GitHub Releases API for a newer version than the one currently installed.
@@ -106,14 +114,29 @@ object UpdateChecker {
             // whose tag is not `vMAJOR.MINOR` -- a hand-created release, or one of the bare
             // integer tags this project used before the semver scheme, is ignored rather than
             // misread. See [AppVersion.parse].
-            data class ParsedRelease(val version: AppVersion, val tagName: String, val htmlUrl: String, val notes: String?)
+            data class ParsedRelease(
+                val version: AppVersion,
+                val tagName: String,
+                val htmlUrl: String,
+                val notes: String?,
+                val assets: List<ReleaseAsset>,
+            )
             val parsed = (0 until releases.length()).mapNotNull { i ->
                 val entry = releases.getJSONObject(i)
                 val tagName = entry.optString("tag_name", "").ifBlank { return@mapNotNull null }
                 val version = AppVersion.parse(tagName) ?: return@mapNotNull null
                 val htmlUrl = sanitizeGitHubUrl(entry.optString("html_url", fallbackReleasePageUrl)) ?: fallbackReleasePageUrl
                 val notes = entry.optString("body", "").trim().ifBlank { null }
-                ParsedRelease(version, tagName, htmlUrl, notes)
+                val assets = entry.optJSONArray("assets")?.let { array ->
+                    (0 until array.length()).mapNotNull { index ->
+                        val asset = array.optJSONObject(index) ?: return@mapNotNull null
+                        val name = asset.optString("name", "").ifBlank { return@mapNotNull null }
+                        val url = sanitizeGitHubUrl(asset.optString("browser_download_url", ""))
+                            ?: return@mapNotNull null
+                        ReleaseAsset(name, url, asset.optLong("size", 0L))
+                    }
+                }.orEmpty()
+                ParsedRelease(version, tagName, htmlUrl, notes, assets)
             }
             if (parsed.isEmpty()) return@withContext null
 
@@ -136,6 +159,8 @@ object UpdateChecker {
                 version = latest.version,
                 releasePageUrl = latest.htmlUrl,
                 releaseNotes = combinedNotes,
+                apkAsset = ReleaseAssets.findApk(latest.tagName, latest.assets),
+                checksumAsset = ReleaseAssets.findChecksum(latest.tagName, latest.assets),
             )
         } catch (_: Exception) {
             // No internet, DNS failure, GitHub down, unexpected JSON shape, etc. -- all treated

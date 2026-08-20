@@ -11,6 +11,13 @@
          other network calls exist anywhere in the app or the live wallpaper engine itself. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Used only by Advanced & about -> Updates, and only after the user taps "Download and
+         install": the downloaded APK is handed to Android's own installer, which shows its own
+         confirmation. Nothing is installed silently, and the app never installs anything but an
+         APK it has just downloaded from its own GitHub release and verified against that
+         release's SHA-256. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <uses-feature android:name="android.software.live_wallpaper" android:required="true" />
 
     <application
@@ -32,6 +39,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Shares the downloaded APK with the system installer. The file sits in this app's own
+             cache directory, which no other process can read by path, so a content URI with a
+             read grant is the only way to pass it on (file:// URIs have been banned since API 24). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_file_paths" />
+        </provider>
 
         <service
             android:name=".engine.PaperWallpaperService"
