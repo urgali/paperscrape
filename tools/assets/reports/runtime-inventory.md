@@ -7,7 +7,7 @@ from the shipped PNGs; nothing is copied from documentation.
 |---|---|
 | Files | 122 |
 | Unique contents | 122 |
-| Bytes on disk | 629.5 KB |
+| Bytes on disk | 629.2 KB |
 | Decoded `ARGB_8888` | 15.31 MB |
 | Of which transparent padding | 1.66 MB (11 %) |
 | Off the 3x authoring grid | 0 |
@@ -38,14 +38,14 @@ from the shipped PNGs; nothing is copied from documentation.
 | `bar_roof_snow` | 258x30 | RGBA | 0,0,258,30 | 0 % | 3 | yes |
 | `bar_sign` | 108x108 | RGBA | 0,0,108,108 | 0 % | 24 | yes |
 | `bar_wall` | 270x165 | RGBA | 0,0,270,165 | 0 % | 3 | yes |
-| `bird_body` | 90x21 | RGBA | 2,0,88,21 | 4 % | 1 | yes |
+| `bird_body` | 90x24 | RGBA | 2,2,88,23 | 16 % | 1 | yes |
 | `bunny_body` | 102x183 | RGBA | 0,0,102,183 | 0 % | 16 | yes |
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
 | `bunny_tail` | 30x30 | RGBA | 0,0,30,30 | 0 % | 7 | yes |
 | `car_body` | 291x111 | RGBA | 0,0,291,111 | 0 % | 11 | yes |
 | `car_window` | 138x48 | RGBA | 0,0,138,48 | 0 % | 3 | yes |
 | `cloud_body` | 798x414 | RGBA | 0,0,798,414 | 0 % | 8 | yes |
-| `dolphin_body` | 345x174 | RGBA | 0,0,345,174 | 0 % | 74 | yes |
+| `dolphin_body` | 345x174 | RGBA | 0,0,345,174 | 0 % | 62 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
 | `easteregg_shell` | 96x120 | RGBA | 0,0,96,120 | 0 % | 1 | yes |
 | `firetruck_body` | 294x147 | RGBA | 0,0,294,147 | 0 % | 14 | yes |

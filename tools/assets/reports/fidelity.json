@@ -258,14 +258,14 @@
       "boundary_confined": true,
       "candidate_bbox": [
         2,
-        0,
+        2,
         88,
-        21
+        23
       ],
-      "candidate_padding_fraction": 0.0444444444444444,
+      "candidate_padding_fraction": 0.16388888888888886,
       "candidate_size": [
         90,
-        21
+        24
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -275,17 +275,17 @@
       "name": "bird_body",
       "reference_bbox": [
         2,
-        0,
+        2,
         88,
-        21
+        23
       ],
-      "reference_padding_fraction": 0.0444444444444444,
+      "reference_padding_fraction": 0.16388888888888886,
       "reference_size": [
         90,
-        21
+        24
       ],
       "size_match": true,
-      "total_pixels": 1890,
+      "total_pixels": 2160,
       "verdict": "PIXEL_IDENTICAL"
     },
     {

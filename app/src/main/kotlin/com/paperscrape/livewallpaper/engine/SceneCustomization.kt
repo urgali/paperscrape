@@ -634,6 +634,26 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
             ),
             precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
         )
+        // **The one theme that presets the two Halloween flags.** Choosing it has to show the
+        // whole presentation at once -- carved moon, bare trees, black-and-orange sky -- because a
+        // theme called Halloween that needs two switches found in a menu before it looks like
+        // Halloween is a theme that does not work.
+        //
+        // Presetting is not coupling. Both flags stay exactly as independent as they were: the
+        // user can turn either off, or on, in any combination, and this block only seeds their
+        // starting value the same way every other theme seeds `winterColorsEnabled` or
+        // `parasols.visible`. Neither flag reads the other, here or anywhere else.
+        //
+        // The pumpkins come with it for the same reason Autumn's do: they are the season's own
+        // decoration, and leaving them to be discovered in a menu would ship a Halloween scene
+        // without the one object that says Halloween. Winter, Christmas and the fall palette are
+        // untouched -- bare branches are not autumn leaves, and this is not December.
+        "halloween" -> base.copy(
+            halloweenEnabled = true,
+            horrorSkyEnabled = true,
+            pumpkins = base.pumpkins.copy(visible = true, density = 0.5f),
+            parasols = base.parasols.copy(visible = false),
+        )
         "easter" -> base.copy(
             bunnies = base.bunnies.copy(visible = true, density = 0.3f),
             easterEggs = base.easterEggs.copy(visible = true, density = 0.5f),

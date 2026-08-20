@@ -3,7 +3,7 @@
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.3 Stable**
+**Current version: v2.4 Stable**
 
 ---
 
@@ -17,8 +17,8 @@ moving on its own.
 - **A day that follows yours.** The sun and moon move with your device clock, and the
   whole palette blends from night through dawn to day and back. Sunrise and sunset
   times can come from the clock alone, from your location, or from a place you pick.
-- **Ten themes** — sunset, autumn, winter, desert, Christmas, new year, beach, city,
-  tundra and Easter — with optional automatic switching by date.
+- **Eleven themes** — sunset, autumn, winter, desert, Christmas, new year, beach, city,
+  tundra, Easter and Halloween — with optional automatic switching by date.
 - **Custom themes.** Save your own, built on any of the ten, and keep them.
 - **Every part of the scene is adjustable.** Houses, buildings, trees, umbrellas,
   cars, people, hills, mountains, clouds, stars, rainbows, the lake and its boats and
@@ -29,8 +29,9 @@ moving on its own.
   roofs and trees.
 - **Halloween**, and a **horror sky**, as two independent switches. The first carves the
   moon into a jack-o'-lantern and strips the trees to bare branches; the second turns the
-  sky near-black with a hard orange horizon. Either alone, both, or neither — and neither
-  touches winter, Christmas or the autumn palette.
+  sky near-black with a hard orange horizon. The Halloween theme starts with both on;
+  either can be turned off afterwards, in any combination, and neither touches winter,
+  Christmas or the autumn palette.
 - **Parallax.** Swiping between home screens scrolls the world, with nearer things
   moving further than distant ones.
 - **Traffic and pedestrians.** Two lanes of cars, taxis, police cars and fire engines,
@@ -168,9 +169,10 @@ tag, because the two answer different questions:
 | `v2.1` | `2.1` | 5 |
 | `v2.2` | `2.2` | 6 |
 | `v2.3` | `2.3` | 7 |
+| `v2.4` | `2.4` | 8 |
 
 Every release is published as latest. There is no pre-release tag form yet; one will
-be added when it is needed. v2.3 is the current stable release. The `versionCode`
+be added when it is needed. v2.4 is the current stable release. The `versionCode`
 counter only has to increase, not to be contiguous — 3 is unused because no v1.2 was
 ever released.
 

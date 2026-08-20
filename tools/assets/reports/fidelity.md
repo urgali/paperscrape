@@ -128,7 +128,7 @@ absolute threshold asks small sprites for more precision than large ones.
 | `sun_glow` | 396x396 | 0.997331 | 0.1115 | 60 | 88399 / 156816 | 0 | yes | 0 | 0,0,0,0 | `EDGE_EQUIVALENT` |
 | `tree_trunk` | 30x132 | 0.999737 | 0.0664 | 30 | 28 / 3960 | 0 | yes | 0 | 0,0,0,0 | `EDGE_EQUIVALENT` |
 | `bar_roof_snow` | 258x30 | 1.000000 | 0.0000 | 0 | 0 / 7740 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `bird_body` | 90x21 | 1.000000 | 0.0000 | 0 | 0 / 1890 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `bird_body` | 90x24 | 1.000000 | 0.0000 | 0 | 0 / 2160 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `dolphin_body` | 345x174 | 1.000000 | 0.0000 | 0 | 0 / 60030 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `firetruck_body` | 294x147 | 1.000000 | 0.0000 | 0 | 0 / 43218 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `house_large_roof_snow` | 300x117 | 1.000000 | 0.0000 | 0 | 0 / 35100 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |

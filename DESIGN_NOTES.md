@@ -972,3 +972,54 @@ put the flukes and the head at the same end — the sprite is drawn inside a mir
 the eye had been left at low x, matching the original, while the flukes were moved there too.
 An animal with two tails and no face, and it would have shipped. Artwork changes get a mockup
 for this reason and not as ceremony.
+
+## 19. The Halloween theme presets its two switches without coupling them
+
+`ThemeCatalog` had ten themes and none was Halloween, so there was nowhere to preset anything
+until the eleventh was written. Its own palette — bruised violet overhead, low amber at the
+horizon — matters even though `horrorSkyEnabled` overrides it the moment the theme is chosen:
+**it is what comes back when the user turns the horror sky off**, and a Halloween theme with
+both switches off still has to look like something.
+
+The theme's defaults set `halloweenEnabled`, `horrorSkyEnabled` and the pumpkins. **Presetting
+is not coupling.** It seeds a starting value the way every other theme seeds
+`winterColorsEnabled` or `parasols.visible`; neither flag reads the other, here or anywhere,
+and a test starts from the theme's own defaults and turns each off in turn to prove the other
+survives. Winter, Christmas and the fall palette are untouched: bare branches are not a
+snowfall, October is not December, and bare branches are not autumn leaves either.
+
+The pumpkins joined it rather than being excused from the rule. `BuiltInThemeCoherenceTest`'s
+"pumpkins stay in autumn" became "pumpkins stay in the two themes that are about pumpkins",
+and asserts both directions.
+
+## 20. What actually separates a gull from a bat
+
+Three things, and it took all three to fix it: notches under each wing that read as claws, a
+hard elbow in the leading edge over broad wing roots, and a head sitting apart from the body.
+Any one alone might have passed. The gull has long tapered wings drawn to a point, a body and
+head in one piece, and a tail that narrows away rather than forking.
+
+**Before touching an animal, read the library's rule off the animals already in it.**
+`bunny_body` and `penguin_body` gave it: three to seven shapes, large primitives, flat tints,
+no outline, almost no interior detail. That rule is also what finally fixed the dolphin —
+nine iterations of trying to carry the whole animal in one outline, and what worked was
+building it the way the bunny is built, a circle for the melon and a wedge for the beak with
+a fusiform body over them.
+
+**Judge it at the size it ships.** The gull is 90 px wide on screen and the dolphin about 48;
+a sprite that only reads at 345 px has not been checked.
+
+## 21. The splash fires on both crossings, and still keeps no state
+
+The leap is a sine and the animal is above water for the first half of every turn of its
+angle, so as a position in a 0..1 cycle the two crossings are the two ends of that half: out
+at 0, in at 0.5. Each opens a short window, and the two cannot overlap because the window is a
+small fraction of half a cycle.
+
+**One splash per crossing, not one per phase change.** A frame inside a window draws the burst
+at the size and opacity its position calls for; a frame outside both draws nothing. Nothing
+accumulates, nothing trails the animal across the lake, and a dropped frame costs a frame of
+the effect rather than the whole event.
+
+Drawn after the animal, so on the way out it rises up through its own splash. On the way back
+in there is nothing left to cover, so the order costs nothing there.

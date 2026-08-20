@@ -191,7 +191,31 @@ object ThemeCatalog {
         accentColor = 0xFFE87FA0.toInt(), // spring pink for the touch bird
     )
 
-    val ALL: List<SceneTheme> = listOf(SUNSET, AUTUMN, WINTER, DESERT, CHRISTMAS, NEW_YEAR, BEACH, CITY, TUNDRA, EASTER)
+    /**
+     * Halloween. The one theme whose defaults switch the two Halloween flags on for the user.
+     *
+     * Its own palette is a late-October dusk -- bruised violet overhead, a low amber horizon --
+     * and it stands on its own without either flag, because the flags stay user-editable after the
+     * theme is chosen and a Halloween theme with both turned off still has to look like something.
+     * `horrorSkyEnabled` overrides these six colours while it is on; they are what comes back when
+     * it is turned off.
+     */
+    val HALLOWEEN = SceneTheme(
+        id = "halloween",
+        displayName = "Halloween",
+        skyNight = intArrayOf(0xFF120A1C.toInt(), 0xFF2A1430.toInt()),
+        skyDawn = intArrayOf(0xFF6B2E3A.toInt(), 0xFFD98A4A.toInt()),
+        skyDay = intArrayOf(0xFF6A5A86.toInt(), 0xFFE8B478.toInt()),
+        skyDusk = intArrayOf(0xFF3A1E3C.toInt(), 0xFFE07A2E.toInt()),
+        hillColorsDay = intArrayOf(0xFF6B5A3C.toInt(), 0xFF4E4230.toInt(), 0xFF352E24.toInt()),
+        hillColorsNight = intArrayOf(0xFF241C2A.toInt(), 0xFF1A1420.toInt(), 0xFF120E17.toInt()),
+        sunColor = 0xFFFFC46B.toInt(),
+        moonColor = 0xFFF3E2C0.toInt(),
+        starColor = 0xFFF0E6D2.toInt(),
+        accentColor = 0xFFE07A2E.toInt(),
+    )
+
+    val ALL: List<SceneTheme> = listOf(SUNSET, AUTUMN, WINTER, DESERT, CHRISTMAS, NEW_YEAR, BEACH, CITY, TUNDRA, EASTER, HALLOWEEN)
 
     fun byId(id: String?): SceneTheme {
         if (id != null && RandomSceneGenerator.isRandomThemeId(id)) {

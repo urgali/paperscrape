@@ -583,7 +583,7 @@ class PaperRenderer(
          * before. Changing either number without the other moves the bird.
          */
         const val BIRD_SPRITE_ORIGIN_X_PX = -45f
-        const val BIRD_SPRITE_ORIGIN_Y_PX = -15f
+        const val BIRD_SPRITE_ORIGIN_Y_PX = -18f
 
         /** Centres a 240px raw-pixel disc in the `radius / 120f` space of the sun and moon. */
         const val CELESTIAL_DISC_ORIGIN_UNITS = -120f
@@ -2180,27 +2180,58 @@ class PaperRenderer(
                 // instants it enters and leaves.
                 val arc = elapsedSeconds.sinAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
                 val lakeScale = SceneSpace.sceneScale(screenHeight.toFloat())
-                if (arc <= 0f) {
-                    // **The splash is drawn from the same phase the leap is, not from a stored
-                    // "was it above water last frame" flag.** `arc` is `sin(theta)` with
-                    // `theta = 0.9 * t + phase * 6.28`, so the animal is above the surface for the
-                    // first half of each turn of that angle and meets the water again exactly when
-                    // the turn passes its half. Expressing the same angle as a 0..1 position gives
-                    // the instant directly: everything from 0.5 onwards is time since re-entry.
-                    //
-                    // Deriving it rather than remembering it is what makes it correct at the
-                    // seams. A remembered flag has to be allocated per dolphin, kept across a
-                    // surface change and a visibility pause, and is wrong for one frame whenever
-                    // the wallpaper resumes mid-leap. This has no state to lose, allocates
-                    // nothing in the draw path, and costs one modulo on the frames that are
-                    // already skipping the animal.
-                    val cyclePosition = elapsedSeconds.cycle(
-                        DOLPHIN_LEAP_RATE / TWO_PI,
-                        phase * 6.28f / TWO_PI,
-                    )
-                    val sinceEntry = cyclePosition - 0.5f
-                    if (sinceEntry < 0f || sinceEntry >= SPLASH_WINDOW_CYCLES) continue
-                    val progress = sinceEntry / SPLASH_WINDOW_CYCLES
+
+                // **Both crossings of the surface, derived from the leap's own phase.**
+                //
+                // `arc` is `sin(theta)` with `theta = DOLPHIN_LEAP_RATE * t + phase * 6.28`, so
+                // the animal is above water for the first half of every turn of that angle.
+                // Written as a position in a 0..1 cycle, the two crossings are the two ends of
+                // that half: the body breaks the surface at 0, and meets it again at 0.5. Each
+                // opens a window of [SPLASH_WINDOW_CYCLES], and the two cannot overlap because
+                // the window is a small fraction of half a cycle.
+                //
+                // **This is one splash per crossing, not one per phase change.** A frame anywhere
+                // inside a window draws the splash at the size and opacity its position calls for;
+                // a frame outside both draws nothing. Nothing accumulates, nothing repeats while
+                // the animal travels, and a dropped frame costs a frame of the effect rather than
+                // the whole event.
+                //
+                // Deriving it also beats remembering it at exactly the seams that matter. A
+                // "was it above water last frame" flag needs allocating per dolphin, keeping
+                // across a surface change and a visibility pause, and is wrong for one frame every
+                // time the wallpaper resumes mid-leap. This keeps no state at all.
+                val cyclePosition = elapsedSeconds.cycle(
+                    DOLPHIN_LEAP_RATE / TWO_PI,
+                    phase * 6.28f / TWO_PI,
+                )
+                val splashProgress = when {
+                    cyclePosition < SPLASH_WINDOW_CYCLES -> cyclePosition / SPLASH_WINDOW_CYCLES
+                    cyclePosition >= 0.5f && cyclePosition < 0.5f + SPLASH_WINDOW_CYCLES ->
+                        (cyclePosition - 0.5f) / SPLASH_WINDOW_CYCLES
+                    else -> -1f
+                }
+                if (arc <= 0f && splashProgress < 0f) continue
+
+                if (arc > 0f) {
+                    val climb = arc * SceneSpace.DOLPHIN_LEAP_METRES * SceneSpace.LAKE_PIXELS_PER_METRE * lakeScale
+                    val slope = elapsedSeconds.cosAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
+                    canvas.save()
+                    canvas.translate(x, y - climb)
+                    canvas.rotate(-slope * DOLPHIN_LEAP_TILT_DEGREES)
+                    // Sized against the sailboat rather than against nothing. Both were blitted at
+                    // their own native size, which made the animal 115 local units long and the
+                    // boat 84 -- a dolphin longer than the vessel beside it. [SceneSpace] states
+                    // both in metres over one lake metric, so the two can only be wrong together.
+                    canvas.scale(SceneSpace.DOLPHIN_BASE_SCALE * lakeScale, SceneSpace.DOLPHIN_BASE_SCALE * lakeScale)
+                    sprites.draw(canvas, R.drawable.dolphin_body, DOLPHIN_ORIGIN_X_UNITS, DOLPHIN_ORIGIN_Y_UNITS, SpriteScale.SCENE_UNITS)
+                    canvas.restore()
+                }
+
+                // **After the animal, so it emerges through its own splash on the way out.** On
+                // the way back in there is nothing left to cover, so the order costs nothing
+                // there; on the way out, drawing the water first would have put the burst behind
+                // a body that is rising out of it.
+                if (splashProgress >= 0f) {
                     canvas.save()
                     canvas.translate(x, y)
                     // Sized against the animal that made it, so a far dolphin throws a small
@@ -2209,33 +2240,15 @@ class PaperRenderer(
                     canvas.scale(splashScale, splashScale)
                     sprites.draw(
                         canvas,
-                        if (progress < SPLASH_FRAME_SPLIT) R.drawable.water_splash0
+                        if (splashProgress < SPLASH_FRAME_SPLIT) R.drawable.water_splash0
                         else R.drawable.water_splash1,
                         SPLASH_ORIGIN_X_UNITS,
                         SPLASH_ORIGIN_Y_UNITS,
                         SpriteScale.SCENE_UNITS,
-                        (255f * (1f - progress * progress)).toInt().coerceIn(0, 255),
+                        (255f * (1f - splashProgress * splashProgress)).toInt().coerceIn(0, 255),
                     )
                     canvas.restore()
-                    continue
                 }
-                val climb = arc * SceneSpace.DOLPHIN_LEAP_METRES * SceneSpace.LAKE_PIXELS_PER_METRE * lakeScale
-                val slope = elapsedSeconds.cosAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
-                canvas.save()
-                canvas.translate(x, y - climb)
-                canvas.rotate(-slope * DOLPHIN_LEAP_TILT_DEGREES)
-                // Sized against the sailboat rather than against nothing. Both were blitted at
-                // their own native size, which made the animal 115 local units long and the boat
-                // 84 -- a dolphin longer than the vessel beside it. [SceneSpace] states both in
-                // metres over one lake metric, so the two can only be wrong together.
-                //
-                // Centred on its own content box too. The shipped origin put a 120x75 sprite at
-                // (-28,-14), which is neither its canvas centre nor its content centre, so the
-                // body sat down and to the right of the point the leap arc was computed for and
-                // broke the surface off-centre.
-                canvas.scale(SceneSpace.DOLPHIN_BASE_SCALE * lakeScale, SceneSpace.DOLPHIN_BASE_SCALE * lakeScale)
-                sprites.draw(canvas, R.drawable.dolphin_body, DOLPHIN_ORIGIN_X_UNITS, DOLPHIN_ORIGIN_Y_UNITS, SpriteScale.SCENE_UNITS)
-                canvas.restore()
             } else {
                 // Sprite-converted the same way as the dolphin above -- hull and sail are two
                 // separate sprites (matching the reference's own `SailboatBottom`/`SailboatSails`

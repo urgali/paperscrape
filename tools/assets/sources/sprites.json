@@ -343,12 +343,12 @@
       "name": "bird_body",
       "category": "animal",
       "width": 90,
-      "height": 21,
+      "height": 24,
       "contentBox": [
         2,
-        0,
+        2,
         88,
-        21
+        23
       ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",

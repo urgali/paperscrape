@@ -172,9 +172,17 @@ class BuiltInThemeCoherenceTest {
     }
 
     @Test
-    fun `pumpkins stay in autumn`() {
-        ThemeCatalog.ALL.filter { it.id != "autumn" }.forEach { theme ->
+    fun `pumpkins stay in the two themes that are about pumpkins`() {
+        // Halloween joined Autumn here rather than being excused from the rule. A pumpkin is the
+        // one object that says Halloween, and a theme that needs it switched on by hand in a menu
+        // before it reads as Halloween is a theme that does not work. Every other theme still has
+        // to leave them off.
+        val pumpkinThemes = setOf("autumn", "halloween")
+        ThemeCatalog.ALL.filter { it.id !in pumpkinThemes }.forEach { theme ->
             assertFalse("${theme.id} should not have pumpkins", defaults(theme.id).pumpkins.visible)
+        }
+        pumpkinThemes.forEach { id ->
+            assertTrue("$id should have pumpkins", defaults(id).pumpkins.visible)
         }
     }
 

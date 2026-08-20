@@ -10,13 +10,13 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.3 Stable — Halloween, a horror sky, a dolphin splash, and two sprites redrawn.**
+**v2.4 Stable — the refinement pass, and a Halloween theme to hold it.**
 
-`versionCode = 7`, `versionName = "2.3"`. v2.2 closed D-10 and was verified on a Pixel 9.
-v2.3 adds four sprites, two independent flags and a re-entry effect, and has not been seen
-rendering.
+`versionCode = 8`, `versionName = "2.4"`. Three sprites redrawn after v2.3's device look, the
+dolphin splash extended to both crossings of the surface, and the eleventh built-in theme
+added with both Halloween switches preset. Not yet seen rendering.
 
-Last measured: 371 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
+Last measured: 378 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
 asset `validate` clean across 122 sprites, `normalize` reporting nothing pending,
 offline tooling 89 tests with no failures.
 
@@ -26,8 +26,8 @@ source set; resource linking, dexing and packaging are not.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7 — 3 is unused because no v1.2 was released, and the
-counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8 — 3 is unused because no v1.2 was released,
+and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
 ---
@@ -67,6 +67,7 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.4 Stable** — the gull, dolphin and carved moon redrawn; the dolphin splash on both crossings; the Halloween theme added with both switches preset.
 - **v2.3 Stable** — Halloween and Horror Sky as two independent flags, a stateless dolphin re-entry splash, and the dolphin and bird sprites redrawn.
 - **v2.2 Stable** — D-10 closed; 1.49 MB of sprite padding removed with every blit origin compensated in the same change.
 - **D-10 — sprite padding, closed.** It was never an asset problem. `SpriteBlitter` puts the

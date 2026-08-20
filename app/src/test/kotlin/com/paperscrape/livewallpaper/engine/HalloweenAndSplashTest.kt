@@ -47,12 +47,40 @@ class HalloweenAndSplashTest {
     }
 
     @Test
-    fun `no built-in theme turns either flag on`() {
-        for (theme in ThemeCatalog.ALL) {
+    fun `only the halloween theme turns either flag on`() {
+        for (theme in ThemeCatalog.ALL.filter { it.id != "halloween" }) {
             val defaults = defaultCustomizationFor(theme.id)
             assertFalse("${theme.id} enables Halloween by default", defaults.halloweenEnabled)
             assertFalse("${theme.id} enables the horror sky by default", defaults.horrorSkyEnabled)
         }
+    }
+
+    @Test
+    fun `the halloween theme presents as halloween without touching a switch`() {
+        val defaults = defaultCustomizationFor("halloween")
+        assertTrue("choosing the theme must carve the moon", defaults.halloweenEnabled)
+        assertTrue("choosing the theme must blacken the sky", defaults.horrorSkyEnabled)
+    }
+
+    @Test
+    fun `presetting the two flags is not coupling them`() {
+        // The theme seeds both; the user still owns both afterwards. Each has to be reachable in
+        // either state from the theme's own starting point, or the preset has quietly become a
+        // dependency.
+        val seeded = defaultCustomizationFor("halloween")
+        assertFalse(seeded.copy(halloweenEnabled = false).halloweenEnabled)
+        assertTrue(seeded.copy(halloweenEnabled = false).horrorSkyEnabled)
+        assertFalse(seeded.copy(horrorSkyEnabled = false).horrorSkyEnabled)
+        assertTrue(seeded.copy(horrorSkyEnabled = false).halloweenEnabled)
+    }
+
+    @Test
+    fun `the halloween theme leaves winter and christmas alone`() {
+        val defaults = defaultCustomizationFor("halloween")
+        assertFalse("bare branches are not a snowfall", defaults.winterColorsEnabled)
+        assertFalse("October is not December", defaults.christmasDecorationsEnabled)
+        assertFalse("bare branches are not autumn leaves", defaults.fallColorsEnabled)
+        assertFalse(defaults.santaEnabled)
     }
 
     @Test
@@ -151,6 +179,94 @@ class HalloweenAndSplashTest {
         val since = cyclePosition(seconds, phase) - 0.5f
         if (since < 0f || since >= PaperRenderer.SPLASH_WINDOW_CYCLES) return null
         return since / PaperRenderer.SPLASH_WINDOW_CYCLES
+    }
+
+    /** The renderer's own `when`, restated. */
+    private fun splashProgressBoth(seconds: Float, phase: Float): Float? {
+        val u = cyclePosition(seconds, phase)
+        val w = PaperRenderer.SPLASH_WINDOW_CYCLES
+        return when {
+            u < w -> u / w
+            u >= 0.5f && u < 0.5f + w -> (u - 0.5f) / w
+            else -> null
+        }
+    }
+
+    @Test
+    fun `the splash fires on the way out as well as on the way back in`() {
+        val phase = 0.23f
+        val period = PaperRenderer.TWO_PI / PaperRenderer.DOLPHIN_LEAP_RATE
+        val step = period / 8000f
+        var previousAbove = arc(0f, phase) > 0f
+        var exits = 0
+        var entries = 0
+        var t = step
+        while (t < period * 2f) {
+            val above = arc(t, phase) > 0f
+            if (above != previousAbove) {
+                assertTrue(
+                    "a splash must be showing at every crossing of the surface",
+                    splashProgressBoth(t, phase) != null,
+                )
+                if (above) exits++ else entries++
+            }
+            previousAbove = above
+            t += step
+        }
+        assertEquals("two exits in two periods", 2, exits)
+        assertEquals("two re-entries in two periods", 2, entries)
+    }
+
+    @Test
+    fun `each crossing fires exactly one splash and the two never merge`() {
+        val phase = 0.71f
+        val period = PaperRenderer.TWO_PI / PaperRenderer.DOLPHIN_LEAP_RATE
+        var windows = 0
+        var showing = false
+        var lastProgress = -1f
+        var t = 0f
+        while (t < period) {
+            val progress = splashProgressBoth(t, phase)
+            if (progress != null) {
+                if (!showing) windows++
+                showing = true
+                assertTrue("progress runs forwards inside one window", progress > lastProgress)
+                lastProgress = progress
+                assertTrue(progress in 0f..1f)
+            } else {
+                showing = false
+                lastProgress = -1f
+            }
+            t += period / 20000f
+        }
+        assertEquals("one splash out, one splash in, per leap", 2, windows)
+    }
+
+    @Test
+    fun `the two windows cannot overlap`() {
+        assertTrue(
+            "a window as long as half a cycle would make the splash continuous",
+            PaperRenderer.SPLASH_WINDOW_CYCLES < 0.5f,
+        )
+    }
+
+    @Test
+    fun `nothing is drawn between the two crossings`() {
+        val phase = 0.44f
+        val period = PaperRenderer.TWO_PI / PaperRenderer.DOLPHIN_LEAP_RATE
+        val w = PaperRenderer.SPLASH_WINDOW_CYCLES
+        var t = 0f
+        while (t < period * 3f) {
+            val u = cyclePosition(t, phase)
+            val insideWindow = u < w || (u >= 0.5f && u < 0.5f + w)
+            if (!insideWindow) {
+                assertEquals(
+                    "the splash must not follow the animal across the lake",
+                    null, splashProgressBoth(t, phase),
+                )
+            }
+            t += 0.003f
+        }
     }
 
     @Test

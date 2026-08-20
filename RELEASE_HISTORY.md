@@ -19,9 +19,137 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.4 — the refinement pass, and a Halloween theme to hold it
+
+**Stable / latest.** `versionCode = 8`, `versionName = "2.4"`. Tag `v2.4`.
+
+v2.3 shipped the machinery; the device look said the artwork was not there yet. Three
+sprites redrawn, the splash extended to both crossings of the surface, and the eleventh
+built-in theme added.
+
+### The bird was a bat for three reasons, not one
+
+Small notches under each wing that read as claws, a hard elbow in the leading edge with broad
+wing roots, and a head circle sitting apart from the body. Any one of those alone might have
+passed; together they were unmistakable.
+
+Before touching it the sprite was set beside `bunny_body` and `penguin_body` to read the
+library's own rule off them: three to seven shapes, large primitives, flat tints, no outline,
+almost no interior detail. The gull that replaced it has long tapered wings drawn to a point,
+a body and head in one piece, and a tail that narrows away rather than forking.
+
+The canvas went from 90x21 to 90x24 so the wings have room to rise, and
+`BIRD_SPRITE_ORIGIN_Y_PX` moved from -15 to -18 with it. **The body still sits on y = 0**,
+because the wing-flap is a vertical mirror of the coordinate frame and the axis is the one
+thing about this sprite that cannot move.
+
+### The dolphin was rebuilt with the library's own idiom
+
+Nine iterations, each checked at 345, 97 and 48 px. What finally worked was building it the
+way `bunny_body` is built -- a circle for the melon, a wedge for the beak, a fusiform body
+over them -- rather than trying to carry the whole animal in one outline. Six shapes instead
+of eight; the dark mouth crease is gone, and the back's peak moved forward where a dolphin's
+actually is.
+
+**Recorded honestly: this is better, not finished.** At full size the beak is still thinner
+than it should be and the melon-to-back junction has a step. At 48 px, which is the size the
+lake draws it, it reads correctly. Accepted on that basis with the maintainer's agreement.
+
+### The splash now fires on both crossings
+
+`arc` is `sin(theta)` and the animal is above water for the first half of every turn of that
+angle, so written as a position in a 0..1 cycle the two crossings are the two ends of that
+half: **out at 0, in at 0.5.** Each opens a window of `SPLASH_WINDOW_CYCLES`, and the two
+cannot overlap because the window is a small fraction of half a cycle.
+
+**One splash per crossing, not one per phase change.** A frame inside a window draws the
+burst at the size and opacity its position calls for; a frame outside both draws nothing.
+Nothing accumulates, nothing trails the animal across the lake, and a dropped frame costs a
+frame of the effect rather than the whole event. Still no state: a remembered "was it above
+water last frame" flag would need allocating per dolphin, keeping across a surface change and
+a visibility pause, and would be wrong for one frame every resume mid-leap.
+
+Drawn **after** the animal, so on the way out it rises up through its own splash.
+
+### The moon stopped being friendly
+
+Narrow slanted eyes with the inner corner dropped -- the shape a lowered brow makes -- a
+triangular nose, and a wide ragged gash with uneven fangs top and bottom, deliberately not
+symmetric. One `fill-rule="evenodd"` path still, cut out of the disc so the sky shows through
+it. Checked at 240, 110, 72 and 48 px before it was wired up.
+
+### The Halloween theme did not exist
+
+`ThemeCatalog` had ten themes and none of them was Halloween, so the request to preset its
+flags had nowhere to land. `SceneTheme.HALLOWEEN` is the eleventh: a late-October dusk,
+bruised violet overhead and low amber at the horizon. That palette matters even though
+`horrorSkyEnabled` overrides it on arrival -- **it is what comes back when the user turns the
+horror sky off**, and a Halloween theme with both switches off still has to look like
+something.
+
+Its defaults set `halloweenEnabled`, `horrorSkyEnabled` and the pumpkins. **Presetting is not
+coupling.** Both flags stay exactly as independent as they were; this seeds their starting
+value the way every other theme seeds `winterColorsEnabled` or `parasols.visible`, and
+neither flag reads the other anywhere. A test starts from the theme's own defaults and
+asserts each can be turned off without disturbing the other.
+
+The pumpkins joined it for the reason Autumn's are on: they are the season's own decoration.
+`BuiltInThemeCoherenceTest`'s "pumpkins stay in autumn" became "pumpkins stay in the two
+themes that are about pumpkins", and now asserts both directions rather than excusing
+Halloween from the rule. Broadleaf trees, not palms -- a palm has no dead variant and would
+stand in leaf through the whole presentation.
+
+### Verification
+
+```
+Release identifier:            v2.4
+Verification level:            3
+Reason for the level:          three sprites redrawn, a new built-in theme, renderer and
+                               settings changes.
+Tests run:                     yes -- ./gradlew testDebugUnitTest, 378 tests, 0 failures
+                               (was 371). HalloweenAndSplashTest 21/21,
+                               BuiltInThemeCoherenceTest 20/20, SpriteTintClassTest 5/5,
+                               SpriteGeometryTest 3/3, SkySpriteAnchoringTest 7/7,
+                               SpriteVariantTest 3/3, CustomThemeDataJsonTest 23/23
+Lint run:                      yes -- ./gradlew lintDebug, 41 warnings, 0 errors
+Python tooling suite:          yes -- 89 tests, 0 failures
+Rasteriser probe:              yes -- fingerprint matches the pin
+Asset validate:                yes -- 0 failures, 122 entries, anchors 122/122,
+                               18 variant groups distinct
+Normalisation:                 yes -- 74 targets, none pending, 11 excluded by decision
+Fidelity compare:              yes -- 18 PIXEL_IDENTICAL, 14 EDGE_EQUIVALENT, 90 DIVERGENT
+Visual mockup:                 yes -- a full Halloween frame from the shipped PNGs at the
+                               real origins and scales: horror sky, carved moon at its
+                               on-screen size, four dead trees, gulls at 90 px, and a leap
+                               cycle with the splash at both crossings. Each redrawn sprite
+                               also checked at 48 px on its own. **Not** an OpenGL frame.
+APK build run:                 no
+ZIP verification:              yes
+Git tag created:               no
+Maintainer-side verification required: **yes.** Select the Halloween theme and confirm both
+                               switches arrive on; then turn each off in turn and confirm the
+                               other stays. Watch a dolphin through a full leap for the two
+                               splashes. Check the gulls against the sky at their real size.
+Release identifier verified unique: yes
+```
+
+`assembleDebug intentionally skipped under normal verification policy.`
+
+### Known limitations
+
+- **The dolphin is accepted rather than finished** -- see above.
+- **Nothing was seen rendering.** The mockups use real assets and real geometry, but no
+  device or emulator was available.
+- The Halloween theme has no entry in `SeasonalThemeRules`, so it never auto-selects by date.
+  Deliberate: this batch was asked for the theme and its defaults, not for a date window.
+- The dead-tree crown is still on the sparse side at scene scale.
+- The reference export was used as **direction only**, per its own manifest and this project's
+  position on original assets. No pixel from it ships.
+
+
 ## v2.3 — Halloween, a horror sky, a dolphin splash, and two sprites redrawn
 
-**Stable / latest.** `versionCode = 7`, `versionName = "2.3"`. Tag `v2.3`.
+`versionCode = 7`, `versionName = "2.3"`. Tag `v2.3`.
 
 Four visible changes, two new flags, four new sprites and two redrawn ones. 122 sprites now,
 15.31 MB decoded.
@@ -1415,13 +1543,13 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v2.3 — Stable / latest** (`versionCode = 7`, `versionName = "2.3"`) |
-| **Latest stable** | v2.3 |
-| **Date** | 2026-08-19 |
-| **Build status** | ⚠️ `testDebugUnitTest` **357 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 122 sprites**; `normalize` **0 targets pending, 11 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
+| **Version** | **v2.4 — Stable / latest** (`versionCode = 8`, `versionName = "2.4"`) |
+| **Latest stable** | v2.4 |
+| **Date** | 2026-08-20 |
+| **Build status** | ⚠️ `testDebugUnitTest` **378 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 122 sprites**; `normalize` **0 targets pending, 11 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
-| **Sprite memory** | **122 PNGs, 15.31 MB decoded, 1.66 MB of it padding** — re-measured at v2.3. D-10's crop recovered 1.49 MB at v2.2; v2.3 added four sprites back. The residual padding is the outward rounding to the sprite grid plus the ten sprites excluded by decision |
-| **Tests** | 371 Kotlin unit tests, 89 Python tooling tests |
+| **Sprite memory** | **122 PNGs, 15.31 MB decoded, 1.66 MB of it padding** — re-measured at v2.4. D-10's crop recovered 1.49 MB at v2.2; v2.3 added four sprites back. The residual padding is the outward rounding to the sprite grid plus the eleven sprites excluded by decision |
+| **Tests** | 378 Kotlin unit tests, 89 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

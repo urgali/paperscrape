@@ -433,6 +433,9 @@ object SceneObjectCatalog {
         "city" -> uniformCandidates(themeId, accentColor)
         "tundra" -> uniformCandidates(themeId, accentColor)
         "easter" -> uniformCandidates(themeId, accentColor)
+        // Broadleaf woodland, which the Halloween flag then strips to bare branches. Palms have
+        // no dead variant and would go on standing in leaf through the whole presentation.
+        "halloween" -> uniformCandidates(themeId, accentColor)
         else -> null
     }
 }
