@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 32 32">
+  <!--
+    The tower's main entrance: a recessed frame, an awning lintel, two glazed leaves with a
+    central mullion. 24 units of opening at the tower's own metre-per-unit is 2.06 m wide and
+    2.31 m high, the same door height the houses have, which is the point.
+
+    Everything reaches y=32, the sprite's own bottom edge. An earlier cut ended the leaves five
+    units short and put a threshold slab under them, which read on a device as a door standing on
+    a step: the canopy the tower already draws at ground level then looked like a raised floor.
+    The doors meet the ground the building and the people meet.
+
+    Fixed art: an entrance is glass and metal, not a theme colour.
+  -->
+<rect x="0" y="0" width="32" height="32" rx="1.5" fill="#5E6C7A"></rect>
+        <rect x="0" y="0" width="32" height="5" rx="1.5" fill="#E0A850"></rect>
+        <rect x="4" y="5" width="24" height="27" fill="#33414E"></rect>
+        <rect x="5.5" y="7" width="9.5" height="25" rx="0.8" fill="#A8C0D0"></rect>
+        <rect x="17" y="7" width="9.5" height="25" rx="0.8" fill="#A8C0D0"></rect>
+        <rect x="15.3" y="5" width="1.4" height="27" fill="#222C36"></rect>
+</svg>

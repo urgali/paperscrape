@@ -1,37 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="186" height="99" viewBox="17 0 62 33">
-<g id="paperscrape-outline" fill="#9fb0bd" stroke="#9fb0bd" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
+<svg xmlns="http://www.w3.org/2000/svg" width="204" height="99" viewBox="19 0 68 33">
   <!--
     Snow lying on house_small_roof, cut to that roof's own slopes.
 
-    Re-authored for the 96-unit roof v2.6 widened the small house to. It was still drawn on the
-    80-unit roof, so on a device the drift sat short of both eaves and off-centre against the
-    ridge - the "storto" in the v2.6 device pass. Every x below is the old cap's, mapped through
-    the roof's own change: the left half from [0,30] to [0,38], the ridge from [30,50] to [38,58],
-    the right half mirrored. The four units of crest above the ridge, the shadow inset and the
-    scalloped lower edge are the shape that was approved; only the roof under them moved.
-
-    Two polygons, cool shadow under white, which is the recipe tree_canopy_snowcap already uses -
-    and the reason this sprite carries colour at all. It is blitted untinted, so an achromatic
-    white mask would be the tint-class defect DESIGN_NOTES decision 25 exists to prevent.
+    Re-cut for the 106-unit roof v2.8 widened the small house to. Every x is the approved cap's,
+    mapped through the roof's change: left half [0,38] -> [0,43], ridge [38,58] -> [43,63], right
+    half mirrored. The four units of crest above the ridge, the shadow inset and the scalloped
+    lower edge are the shape that was approved; only the roof under them moved.
   -->
-<polygon points="17.1,26 32.93,4 38,0 58,0 63.07,4 78.9,26 70.67,26 58,33 48,26 38,33 25.33,26"></polygon>
-        <polygon points="17.1,26 32.93,4 38,0 58,0 63.07,4 78.9,26 70.67,21 58,28 48,21 38,28 25.33,21"></polygon>
-</g>
-  <!--
-    Snow lying on house_small_roof, cut to that roof's own slopes.
-
-    Re-authored for the 96-unit roof v2.6 widened the small house to. It was still drawn on the
-    80-unit roof, so on a device the drift sat short of both eaves and off-centre against the
-    ridge - the "storto" in the v2.6 device pass. Every x below is the old cap's, mapped through
-    the roof's own change: the left half from [0,30] to [0,38], the ridge from [30,50] to [38,58],
-    the right half mirrored. The four units of crest above the ridge, the shadow inset and the
-    scalloped lower edge are the shape that was approved; only the roof under them moved.
-
-    Two polygons, cool shadow under white, which is the recipe tree_canopy_snowcap already uses -
-    and the reason this sprite carries colour at all. It is blitted untinted, so an achromatic
-    white mask would be the tint-class defect DESIGN_NOTES decision 25 exists to prevent.
-  -->
-<polygon points="17.1,26 32.93,4 38,0 58,0 63.07,4 78.9,26 70.67,26 58,33 48,26 38,33 25.33,26" fill="#c9d6e0"></polygon>
-        <polygon points="17.1,26 32.93,4 38,0 58,0 63.07,4 78.9,26 70.67,21 58,28 48,21 38,28 25.33,21" fill="#ffffff"></polygon>
-
+<polygon points="19.35,26 37.28,4 43,0 63,0 68.72,4 86.65,26 77.99,26 63,33 53,26 43,33 28.66,26" fill="#c9d6e0"></polygon>
+        <polygon points="19.35,26 37.28,4 43,0 63,0 68.72,4 86.65,26 77.99,21 63,28 53,21 43,28 28.66,21" fill="#ffffff"></polygon>
 </svg>

@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 122 |
-| Unique contents | 122 |
-| Bytes on disk | 436.9 KB |
-| Decoded `ARGB_8888` | 14.88 MB |
-| Of which transparent padding | 1.55 MB (10 %) |
+| Files | 125 |
+| Unique contents | 125 |
+| Bytes on disk | 441.9 KB |
+| Decoded `ARGB_8888` | 15.51 MB |
+| Of which transparent padding | 1.63 MB (11 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -21,12 +21,12 @@ from the shipped PNGs; nothing is copied from documentation.
 | `rainbow_arc` | 594x297 | 0.71 MB | 0 % |
 | `sun_glow` | 396x396 | 0.63 MB | 1 % |
 | `skyscraper_wall` | 270x450 | 0.49 MB | 0 % |
-| `skyscraper_wall_lit` | 270x450 | 0.49 MB | 0 % |
 | `house_large_wall` | 420x285 | 0.48 MB | 0 % |
 | `santa_sleigh_scene` | 600x153 | 0.37 MB | 2 % |
 | `santa_sleigh_trot` | 600x153 | 0.37 MB | 2 % |
-| `house_large_roof` | 450x150 | 0.27 MB | 0 % |
-| `dolphin_body` | 345x174 | 0.24 MB | 0 % |
+| `restaurant_wall` | 300x288 | 0.35 MB | 0 % |
+| `tree_fir` | 234x366 | 0.34 MB | 0 % |
+| `bar_wall` | 270x276 | 0.30 MB | 0 % |
 
 ## Every sprite
 
@@ -34,8 +34,8 @@ from the shipped PNGs; nothing is copied from documentation.
 |---|---|---|---|---|---|---|
 | `bar_door` | 60x84 | RGBA | 0,0,60,84 | 0 % | 11 | yes |
 | `bar_roof_snow` | 258x30 | RGBA | 0,0,258,30 | 0 % | 20 | yes |
-| `bar_sign` | 108x108 | RGBA | 0,0,108,108 | 0 % | 31 | yes |
-| `bar_wall` | 270x165 | RGBA | 0,0,270,165 | 0 % | 9 | yes |
+| `bar_sign` | 72x72 | RGBA | 0,0,72,72 | 0 % | 53 | yes |
+| `bar_wall` | 270x276 | RGBA | 0,0,270,276 | 0 % | 5 | yes |
 | `bird_body` | 90x24 | RGBA | 1,2,89,23 | 14 % | 22 | yes |
 | `bunny_body` | 102x183 | RGBA | 0,0,102,183 | 0 % | 29 | yes |
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
@@ -62,10 +62,10 @@ from the shipped PNGs; nothing is copied from documentation.
 | `house_shared_window` | 66x63 | RGBA | 0,0,66,63 | 0 % | 9 | yes |
 | `house_small_chimney` | 36x90 | RGBA | 0,0,36,90 | 0 % | 3 | yes |
 | `house_small_door` | 60x114 | RGBA | 0,0,60,114 | 0 % | 9 | yes |
-| `house_small_roof` | 288x120 | RGBA | 0,0,288,120 | 0 % | 13 | yes |
-| `house_small_roof_snow` | 186x99 | RGBA | 0,0,186,99 | 0 % | 48 | yes |
-| `house_small_trim` | 288x12 | RGBA | 0,0,288,12 | 0 % | 1 | yes |
-| `house_small_wall` | 258x210 | RGBA | 0,0,258,210 | 0 % | 11 | yes |
+| `house_small_roof` | 318x120 | RGBA | 0,0,318,120 | 0 % | 5 | yes |
+| `house_small_roof_snow` | 204x99 | RGBA | 1,0,203,99 | 1 % | 17 | yes |
+| `house_small_trim` | 318x12 | RGBA | 0,0,318,12 | 0 % | 1 | yes |
+| `house_small_wall` | 288x210 | RGBA | 0,0,288,210 | 0 % | 3 | yes |
 | `house_window` | 66x66 | RGBA | 0,0,66,66 | 0 % | 9 | yes |
 | `house_window_lit` | 66x66 | RGBA | 0,0,66,66 | 0 % | 15 | yes |
 | `lightning_bolt` | 90x252 | RGBA | 0,0,90,252 | 0 % | 1 | yes |
@@ -127,7 +127,7 @@ from the shipped PNGs; nothing is copied from documentation.
 | `restaurant_door` | 54x84 | RGBA | 0,0,54,84 | 0 % | 9 | yes |
 | `restaurant_roof_snow` | 288x30 | RGBA | 0,0,288,30 | 0 % | 21 | yes |
 | `restaurant_sign` | 102x105 | RGBA | 0,0,102,105 | 0 % | 26 | yes |
-| `restaurant_wall` | 300x180 | RGBA | 0,0,300,180 | 0 % | 11 | yes |
+| `restaurant_wall` | 300x288 | RGBA | 0,0,300,288 | 0 % | 5 | yes |
 | `restaurant_window` | 90x66 | RGBA | 0,0,90,66 | 0 % | 7 | yes |
 | `road_asphalt` | 402x102 | RGBA | 0,0,402,102 | 0 % | 2 | yes |
 | `road_curb` | 402x18 | RGBA | 0,0,402,18 | 0 % | 2 | yes |
@@ -137,10 +137,11 @@ from the shipped PNGs; nothing is copied from documentation.
 | `santa_sleigh_scene` | 600x153 | RGBA | 0,1,598,152 | 2 % | 357 | yes |
 | `santa_sleigh_trot` | 600x153 | RGBA | 0,1,598,152 | 2 % | 359 | yes |
 | `skyscraper_canopy` | 330x24 | RGBA | 0,0,330,24 | 0 % | 1 | yes |
+| `skyscraper_entrance` | 96x96 | RGBA | 0,0,96,96 | 0 % | 15 | yes |
 | `skyscraper_roof_snow` | 168x27 | RGBA | 0,0,168,27 | 0 % | 21 | yes |
 | `skyscraper_setback` | 180x96 | RGBA | 0,0,180,96 | 0 % | 20 | yes |
 | `skyscraper_wall` | 270x450 | RGBA | 0,0,270,450 | 0 % | 14 | yes |
-| `skyscraper_wall_lit` | 270x450 | RGBA | 0,0,270,450 | 0 % | 14 | yes |
+| `skyscraper_wall_lit` | 237x300 | RGBA | 15,15,237,300 | 11 % | 1 | yes |
 | `snowman_body` | 114x222 | RGBA | 0,0,114,222 | 0 % | 37 | yes |
 | `snowman_nose` | 39x12 | RGBA | 0,0,39,12 | 0 % | 1 | yes |
 | `snowman_scarf` | 72x18 | RGBA | 0,0,72,18 | 0 % | 8 | yes |
@@ -151,6 +152,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `tree_canopy` | 246x222 | RGBA | 0,0,246,222 | 0 % | 36 | yes |
 | `tree_canopy_snowcap` | 228x111 | RGBA | 0,0,228,111 | 0 % | 42 | yes |
 | `tree_dead_branches` | 246x222 | RGBA | 1,0,245,222 | 1 % | 16 | yes |
+| `tree_fir` | 234x366 | RGBA | 0,0,234,366 | 0 % | 16 | yes |
+| `tree_fir_snow` | 186x252 | RGBA | 49,6,185,251 | 29 % | 13 | yes |
 | `tree_trunk` | 30x132 | RGBA | 0,0,30,132 | 0 % | 2 | yes |
 | `water_splash0` | 162x54 | RGBA | 0,0,162,54 | 0 % | 20 | yes |
 | `water_splash1` | 162x54 | RGBA | 0,0,162,54 | 0 % | 16 | yes |

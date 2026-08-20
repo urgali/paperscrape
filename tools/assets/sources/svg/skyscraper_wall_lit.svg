@@ -1,11 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="270" height="450" viewBox="0 0 90 150">
-  
-  <defs>
-    <pattern id="p_towerwin_lit" width="18" height="18" patternUnits="userSpaceOnUse">
-        <rect x="4.5" y="8" width="9" height="8" rx="1.5" fill="#F7CE64"></rect>
-      </pattern>
-  </defs>
-<rect x="0" y="0" width="90" height="150" rx="2" fill="#3F4A57"></rect>
-        <rect x="72" y="0" width="18" height="150" fill="#36404C"></rect>
-        <rect x="0" y="0" width="72" height="150" fill="url(#p_towerwin_lit)"></rect>
+<svg xmlns="http://www.w3.org/2000/svg" width="237" height="300" viewBox="0 0 79 100">
+  <!-- The night facade: the same grid as skyscraper_wall, lit. Kept in step with it by hand. -->
+<rect x="0" y="0" width="90" height="150" rx="2" fill="#00000000" fill-opacity="0"></rect>
+        <rect x="5" y="5" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="25" y="5" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="45" y="5" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="65" y="5" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="5" y="32" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="25" y="32" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="45" y="32" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="65" y="32" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="5" y="59" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="25" y="59" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="45" y="59" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="65" y="59" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="5" y="86" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="25" y="86" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="45" y="86" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="65" y="86" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
 </svg>

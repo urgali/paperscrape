@@ -1,15 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="258" height="210" viewBox="0 0 86 70">
-<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="210" viewBox="0 0 96 70">
   
-<rect x="0" y="0" width="86" height="70" rx="3"></rect>
-        <rect x="70" y="0" width="16" height="70"></rect>
-        <rect x="0" y="62" width="86" height="8"></rect>
-
-</g>
-  
-<rect x="0" y="0" width="86" height="70" rx="3" fill="#ffffff"></rect>
-        <rect x="70" y="0" width="16" height="70" fill="#f8f8f8"></rect>
-        <rect x="0" y="62" width="86" height="8" fill="#f3f3f3"></rect>
-
-
+<rect x="0" y="0" width="96" height="70" rx="3" fill="#ffffff"></rect>
+        <rect x="80" y="0" width="16" height="70" fill="#f8f8f8"></rect>
+        <rect x="0" y="62" width="96" height="8" fill="#f3f3f3"></rect>
 </svg>

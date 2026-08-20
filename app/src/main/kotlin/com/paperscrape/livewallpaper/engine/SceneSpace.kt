@@ -369,13 +369,26 @@ object SceneSpace {
         // side and a 5.8 m ridge made a cabin; the height is what settles whether the elevation
         // reads as a house, and 6.4 puts it in a defensible relation to the 7.6 m large house
         // rather than at three quarters of it.
-        HOUSE_SMALL(6.4f, 110f),
+        // Lowered from 6.4 m in v2.8 to the large house's own metres-per-unit. At 6.4 the small
+        // house's windows and door were 11 % larger than the large house's and its sills sat
+        // 1.57 m up against the large house's 1.20 m -- the same family drawn at two scales. The
+        // facade also went from 86 to 96 units wide, which is width and not height, so it is in
+        // the artwork rather than here.
+        HOUSE_SMALL(5.76f, 110f),
 
         /** Two storeys plus a roof; its door is 45 units on the same reading. */
         HOUSE_LARGE(7.6f, 145f),
 
         /** Trunk to crown; the trunk is 36 % of it. Nudged up in v76.6 for presence beside the houses. */
         TREE(9.8f, 122f),
+
+        /**
+         * The Christmas fir that replaces one tree in three while the Christmas layer is on.
+         *
+         * 122 units, the same as [TREE], so the two are one metre-per-unit family: a fir cannot
+         * drift out of scale with the wood it stands in, whichever of them is redrawn.
+         */
+        FIR(9.3f, 122f),
 
         /** Trunk plus frond fan, ground to the top of the blades. */
         PALM_TREE(8f, 90.33f),
@@ -387,7 +400,11 @@ object SceneSpace {
          * the scene is supposed to show -- tower over shop over house -- holds by height rather
          * than by depth alone.
          */
-        TOWER(21f, 196f),
+        // Lowered from 21 m in v2.8 with a coarser window grid. At 21 m over an 18-unit grid a
+        // window read as 0.86 m and a storey as under a metre; at 16.8 m over a 27-unit grid a
+        // window is 1.2 m and a floor 2.3 m, which is a building people work in. Still comfortably
+        // the tallest thing in the scene.
+        TOWER(16.8f, 196f),
 
         /**
          * Shop front, measured to the top of the wall and not to its hanging sign.
@@ -399,10 +416,17 @@ object SceneSpace {
          * 9 m is two domestic courses plus the parapet the sign hangs off, which is what the
          * artwork actually draws.
          */
-        RESTAURANT(9f, 60f),
+        // **Both numbers changed together, and that is the whole correction.** v2.7 raised the
+        // metres and left the 60-unit single-storey wall, which multiplied every opening the
+        // artwork draws: a 4.2 m door and a 5.25 m sign on a building meant to read as a shop. The
+        // wall is now 96 units -- a shop front with a residential storey over it -- and 8.2 m over
+        // 96 puts the door back at 2.40 m, beside a house door of 2.36 m. The building is bigger
+        // than a house by mass, not by openings.
+        RESTAURANT(8.2f, 96f),
 
         /** The same, one course lower. */
-        BAR(8.4f, 55f),
+        /** The same, one course lower: 92 units of wall at 7.7 m gives a 2.35 m door. */
+        BAR(7.7f, 92f),
 
         /** Pole to canopy rim. Raised in v76.7: at 2.3 m it had shrunk out of the composition. */
         PARASOL(2.9f, 84f),

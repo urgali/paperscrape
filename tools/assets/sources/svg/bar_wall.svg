@@ -1,15 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="270" height="165" viewBox="0 0 90 55">
-<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
-  
-<rect x="0" y="0" width="90" height="55" rx="3"></rect>
-        <rect x="0" y="0" width="90" height="9"></rect>
-        <rect x="70" y="9" width="20" height="46"></rect>
+<svg xmlns="http://www.w3.org/2000/svg" width="270" height="276" viewBox="0 0 90 92">
+  <!--
+    Two storeys, not one wall stacked twice.
 
-</g>
-  
-<rect x="0" y="0" width="90" height="55" rx="3" fill="#ffffff"></rect>
-        <rect x="0" y="0" width="90" height="9" fill="#f2f2f2"></rect>
-        <rect x="70" y="9" width="20" height="46" fill="#f7f7f7"></rect>
-
-
+    The shop front keeps its own 55 units at the bottom; above it sits a 37-unit residential
+    storey, a string course marking the division and a cornice capping the parapet. The shaded
+    return runs the full height so the building reads as one mass, and the upper storey is a
+    shade darker than the front, which is what a rendered upper floor over a shop actually is.
+  -->
+<rect x="0" y="0" width="90" height="92" rx="3" fill="#ffffff"></rect>
+        <rect x="0" y="0" width="90" height="37" fill="#f0f0f0"></rect>
+        <rect x="0" y="0" width="90" height="6" fill="#e6e6e6"></rect>
+        <rect x="0" y="33" width="90" height="5" fill="#e6e6e6"></rect>
+        <rect x="0" y="38" width="90" height="9" fill="#f7f7f7"></rect>
+        <rect x="70" y="6" width="20" height="86" fill="#f4f4f4"></rect>
 </svg>

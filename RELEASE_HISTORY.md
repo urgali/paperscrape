@@ -19,9 +19,115 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.8 — the buildings measured against a person
+
+**Stable / latest.** `versionCode = 12`, `versionName = "2.8"`. Tag `v2.8`.
+
+v2.7 raised the shops' metres and left their single-storey artwork, which multiplied every opening
+the drawing contains. Measured in metres as a 1.9 m person reads them, v2.7 shipped a **4.20 m
+restaurant door**, a **4.28 m bar door**, a **5.25 m sign** and a **0.86 m tower window**. That is
+the defect this release corrects, and the correction is not "make the shops smaller".
+
+### metres and spriteUnits are one decision, not two
+
+Every element's drawn size is `units x metres / spriteUnitsTall x 45`. Raising `metres` alone
+scales the openings with the building, which is why v2.7's shops looked like toys enlarged rather
+than buildings. **Both numbers moved together here**, and the artwork moved with them.
+
+| | v2.7 | v2.8 | door reads |
+|---|---|---|---|
+| `HOUSE_SMALL` | 6.4 m / 110 u | **5.76 m / 110 u** | 1.99 m |
+| `HOUSE_LARGE` | 7.6 m / 145 u | unchanged | 2.36 m |
+| `BAR` | 8.4 m / 55 u | **7.7 m / 92 u** | 2.34 m |
+| `RESTAURANT` | 9.0 m / 60 u | **8.2 m / 96 u** | 2.39 m |
+| `TOWER` | 21 m / 196 u | **16.8 m / 196 u** | 2.31 m entrance |
+| `FIR` | — | **9.3 m / 122 u** | — |
+
+`HOUSE_SMALL` takes the large house's own metres-per-unit exactly, which is what makes their
+windows the same size; the window also came down 6 units so the two sills line up. The facade went
+86 to 96 units wide, and the roof and eaves 96 to 106 — width is artwork, not a `SceneSpace`
+number.
+
+`FIR` shares `TREE`'s 122 units so one metre governs both: a fir cannot drift out of scale with the
+wood it stands in, whichever is redrawn.
+
+### The shops got a storey, because that is the only way to be taller without bigger doors
+
+`bar_wall` 90x55 to **90x92** and `restaurant_wall` 100x60 to **100x96**: a residential storey over
+the shop front, a string course at the division and a cornice at the parapet, with the shaded
+return running the full height so it reads as one mass. The upper windows are
+`house_shared_window`, so a shop's first floor cannot drift from a house's. `bar_sign` came down
+from 36 to 24 units and off the roofline onto the facade.
+
+### The tower
+
+`skyscraper_wall` was a `userSpaceOnUse` pattern at an 18-unit pitch with 8-unit windows —
+eighteen storeys in 150 units. It is now **four rows of four 14-unit windows at a 27 pitch**, which
+at 16.8 m is a 1.2 m window on a 2.3 m floor, over a 32-unit glazed hall.
+
+**The grid stops 18 units clear of the hall**, and that blank course is deliberate: a row of
+windows sitting on the door head made the entrance read as one more pane. `skyscraper_entrance` is
+a new 32x32 sprite — recessed frame, awning lintel, two glazed leaves on a central mullion.
+Everything in it reaches the sprite's bottom edge: an earlier cut ended the leaves five units short
+over a threshold slab, and on a device the canopy then looked like a raised floor with a door
+standing on it. **The doors meet the ground the building and the people meet.**
+
+### Firs, and lights that are actually scattered
+
+`standsAsFir` hashes a tree's own seed and takes about one in three. Not a count, which would need
+state to distribute, and not a position, which would put the firs on a line. The same third every
+frame — a wood that reshuffled itself while you watched would be worse than no firs.
+
+`litWindowChosen` ranks a facade's windows by `hashWindow(seed, index)` and lights the first N.
+Deterministic, different between two buildings side by side, steady frame to frame, and **N is a
+cap**, which is what holds the draw calls where they were: twelve on a tower, as before, but spread
+over all sixteen windows instead of filling the three lowest floors.
+
+### What the previews caught
+
+Two defects, both found by looking rather than by testing. The fir was **upside down** — widest
+tier at the top — and `tree_fir_snow` was an achromatic white mask blitted untinted, which is the
+tint-class defect `DESIGN_NOTES` decision 25 exists to prevent; it now carries a cool shadow under
+the white, the recipe `tree_canopy_snowcap` already uses.
+
+### Canvas against facade
+
+Checked as asked: `bar_wall` is 270x276 px = 90x92 units with a full content box, `restaurant_wall`
+300x288 = 100x96 with a full content box. In both the canvas *is* the facade — there is no
+difference to document.
+
+### Verification
+
+```
+Release identifier:            v2.8
+Verification level:            3
+Tests run:                     yes -- 407 Kotlin tests, 0 failures
+Lint run:                      yes -- 41 warnings, 0 errors
+Python tooling suite:          yes -- 96 tests, 0 failures
+Asset validate:                yes -- 0 failures, 125 entries, anchors 125/125
+Normalisation:                 yes -- 73 targets, none pending, 15 excluded by decision
+Previews:                      the full scene and the Christmas scene built from the shipped
+                               PNGs at the shipped origins under SceneSpace's own projection,
+                               plus per-asset checks of the tower facade, the entrance and the
+                               fir. **Not** OpenGL frames.
+APK build run:                 no
+Maintainer-side verification required: yes, on the Pixel 9.
+```
+
+### Known limitations
+
+- **Nothing was seen rendering.** The previews use the shipped sprites and the real projection,
+  but they are compositions.
+- `skyscraper_wall_lit` is kept in step with `skyscraper_wall` by hand: the two grids are written
+  out separately and a change to one has to be copied to the other.
+- The fir's presents reuse `gift_box`/`gift_ribbon` at a third of their size rather than having
+  artwork of their own.
+- `restaurant_sign` was left at its old size; only the bar's sign was cut down.
+
+
 ## v2.7 — two device-pass bugs, flowers, lights on the buildings, and the balloons removed
 
-**Stable / latest.** `versionCode = 11`, `versionName = "2.7"`. Tag `v2.7`.
+`versionCode = 11`, `versionName = "2.7"`. Tag `v2.7`.
 
 ### The snow was cut for a roof that no longer existed
 
@@ -1882,12 +1988,12 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v2.7 — Stable / latest** (`versionCode = 11`, `versionName = "2.7"`) |
-| **Latest stable** | v2.7 |
+| **Version** | **v2.8 — Stable / latest** (`versionCode = 12`, `versionName = "2.8"`) |
+| **Latest stable** | v2.8 |
 | **Date** | 2026-08-20 |
-| **Build status** | ⚠️ `testDebugUnitTest` **378 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 122 sprites**; `normalize` **0 targets pending, 11 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
+| **Build status** | ⚠️ `testDebugUnitTest` **407 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **96 tests, 0 failures**; asset `validate` **0 failures across 125 sprites**; `normalize` **0 targets pending, 15 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
-| **Sprite memory** | **122 PNGs, 15.31 MB decoded, 1.66 MB of it padding** — re-measured at v2.4. D-10's crop recovered 1.49 MB at v2.2; v2.3 added four sprites back. The residual padding is the outward rounding to the sprite grid plus the eleven sprites excluded by decision |
+| **Sprite memory** | **125 PNGs, 15.51 MB decoded, 1.63 MB of it padding** — re-measured at v2.8, which added the tower entrance and the two fir sprites and re-authored seven others |
 | **Tests** | 407 Kotlin unit tests, 96 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 

@@ -245,6 +245,7 @@ class SceneSpaceTest {
             SceneSpace.SceneVariant.HOUSE_LARGE,
             SceneSpace.SceneVariant.BAR,
             SceneSpace.SceneVariant.RESTAURANT,
+            SceneSpace.SceneVariant.FIR,
             SceneSpace.SceneVariant.TREE,
             SceneSpace.SceneVariant.TOWER,
         )

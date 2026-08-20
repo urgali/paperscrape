@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="186" height="252" viewBox="0 0 62 84">
+  <!--
+    Snow lying on tree_fir's four tiers, cut to their own shoulders. A layer over the tree, never
+    the tree tinted white, for the reason DESIGN_NOTES gives for every other snow cap.
+  -->
+                <polygon points="39,66 16.4,82.0 27.3,76.6 39,83.5 50.7,76.6 61.6,82.0" fill="#c9d6e0"></polygon>
+        <polygon points="39,42 21.0,57.1 29.7,52.1 39,58.6 48.3,52.1 57.0,57.1" fill="#c9d6e0"></polygon>
+        <polygon points="39,20 26.2,33.4 32.4,29.0 39,34.7 45.6,29.0 51.8,33.4" fill="#c9d6e0"></polygon>
+        <polygon points="39,2 31.5,12.9 35.1,9.3 39,24.0 42.9,9.3 46.5,12.9" fill="#c9d6e0"></polygon>
+        <polygon points="39,66 16.4,82.0 27.3,76.6 39,83.5 50.7,76.6 61.6,82.0" fill="#ffffff"></polygon>
+        <polygon points="39,42 21.0,57.1 29.7,52.1 39,58.6 48.3,52.1 57.0,57.1" fill="#ffffff"></polygon>
+        <polygon points="39,20 26.2,33.4 32.4,29.0 39,34.7 45.6,29.0 51.8,33.4" fill="#ffffff"></polygon>
+        <polygon points="39,2 31.5,12.9 35.1,9.3 39,14.0 42.9,9.3 46.5,12.9" fill="#ffffff"></polygon>
+</svg>

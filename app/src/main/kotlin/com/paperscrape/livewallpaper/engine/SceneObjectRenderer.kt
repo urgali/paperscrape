@@ -301,6 +301,9 @@ class SceneObjectRenderer(
          */
         const val MAX_LEAF_SOURCES = 24
 
+        /** The presents under a fir, in the tree lights' own palette. */
+        val GIFT_COLOURS = intArrayOf(0xFFE8564F.toInt(), 0xFF4F8FBF.toInt(), 0xFF6FCF6F.toInt())
+
         /** How many flower clumps the ground carries, and where they may stand. */
         const val FLOWER_CLUMP_COUNT = 22
         const val FLOWER_DEPTH_MIN = 0.06f
@@ -985,6 +988,10 @@ class SceneObjectRenderer(
             SceneSpace.SceneVariant.HOUSE_SMALL ->
                 if (r.spec.type == SceneObjectType.HOUSE) drawSmallHouse(canvas, r, elapsed, dayBlend) else Unit
             SceneSpace.SceneVariant.HOUSE_LARGE -> drawLargeHouse(canvas, r, elapsed, dayBlend)
+            // Never dispatched: a fir is a state a TREE candidate takes on while the Christmas
+            // layer is on, not a placeable type of its own -- see [standsAsFir]. It exists in the
+            // variant table only so the fir's height is governed by the same metre as the tree's.
+            SceneSpace.SceneVariant.FIR -> Unit
             SceneSpace.SceneVariant.TOWER -> drawSkyscraperBuilding(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.RESTAURANT -> drawRestaurantBuilding(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.BAR -> drawBarBuilding(canvas, r, elapsed, dayBlend)
@@ -1032,6 +1039,34 @@ class SceneObjectRenderer(
      * than a blit, and the colours are the tree lights' own array so a house and its tree agree.
      * The window is not touched -- this is drawn after it and adds nothing to its box.
      */
+    /**
+     * Whether window [index] of [count] carries a light string, chosen once and for good.
+     *
+     * **Deterministic, spread, and capped.** The first version lit the three lowest floors of a
+     * tower in one block, which is not how a building looks at Christmas and is not what anybody
+     * asked for. This hashes the object's own seed with the window's index, so the pattern is
+     * fixed for a given scene, differs between two buildings standing side by side, and does not
+     * flicker frame to frame -- and [lit] caps how many any one facade may light, which is what
+     * keeps the draw calls where they were.
+     */
+    private fun litWindowChosen(r: StaticRuntime, index: Int, count: Int, lit: Int): Boolean {
+        if (lit >= count) return true
+        val seed = (r.idleSeed * 100000f).toInt()
+        var rank = 0
+        val mine = hashWindow(seed, index)
+        for (other in 0 until count) {
+            if (other != index && hashWindow(seed, other) < mine) rank++
+        }
+        return rank < lit
+    }
+
+    private fun hashWindow(seed: Int, index: Int): Int {
+        var h = seed * 0x9E3779B1.toInt() + index * 0x85EBCA77.toInt()
+        h = h xor (h ushr 15)
+        h *= 0xC2B2AE35.toInt()
+        return h xor (h ushr 13)
+    }
+
     private fun drawWindowLights(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, x: Float, sillY: Float, width: Float) {
         val left = x
         val right = x + width
@@ -1070,9 +1105,9 @@ class SceneObjectRenderer(
         // where it is declared rather than corrected where it is painted.
         drawGroundShadow(canvas, 40f)
         // wall: local bbox (-35,-70)-(35,0)
-        drawTintedSprite(canvas, R.drawable.house_small_wall, -43f, -70f, wallColor)
+        drawTintedSprite(canvas, R.drawable.house_small_wall, -48f, -70f, wallColor)
         // roof: local bbox (-40,-110)-(40,-70)
-        drawTintedSprite(canvas, R.drawable.house_small_roof, -48f, -110f, roofColor)
+        drawTintedSprite(canvas, R.drawable.house_small_roof, -53f, -110f, roofColor)
         // Snow settles on the roof in the winter and Christmas themes -- a layer *on* the roof,
         // cut to that roof's own outline, never the roof tinted white. Tinting it would repaint
         // the building rather than cover it, and `winterColorsEnabled` is already a palette
@@ -1083,9 +1118,9 @@ class SceneObjectRenderer(
         // than under it. The origin is the roof's own, less the four units of crest the cap adds
         // above the ridge -- derived from the roof, so the two move together if either is redrawn.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.house_small_roof_snow, -31f, -114f)
+            drawSprite(canvas, R.drawable.house_small_roof_snow, -34f, -114f)
         }
-        drawTintedSprite(canvas, R.drawable.house_small_trim, -48f, -71f, trimColor)
+        drawTintedSprite(canvas, R.drawable.house_small_trim, -53f, -71f, trimColor)
         // chimney: local bbox (8,-115)-(20,-85) -- base sits on the roof slope (off-center,
         // right side) with enough of it above the ridge line to read as poking through, was
         // floating past the roof's edge entirely at the old centered position.
@@ -1117,14 +1152,14 @@ class SceneObjectRenderer(
         // artwork: `house_shared_window` is one drawing used by both house variants, so a second
         // one cannot drift from the first. A 22-unit window centred at -22 and at +22, and a
         // 20-unit door centred on 0, all sit clear of each other on a wall running -35..35.
-        drawSprite(canvas, R.drawable.house_shared_window, -37f, -51f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, -37f, -52f, litWindowAlpha(nightGlow))
-        drawWindowOccupant(canvas, r, -37f, -52f, 22f, 22f)
-        drawSprite(canvas, R.drawable.house_shared_window, 15f, -51f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, 15f, -52f, litWindowAlpha(nightGlow))
+        drawSprite(canvas, R.drawable.house_shared_window, -37f, -45f)
+        drawSpriteFaded(canvas, R.drawable.house_window_lit, -37f, -46f, litWindowAlpha(nightGlow))
+        drawWindowOccupant(canvas, r, -37f, -46f, 22f, 22f)
+        drawSprite(canvas, R.drawable.house_shared_window, 15f, -45f)
+        drawSpriteFaded(canvas, R.drawable.house_window_lit, 15f, -46f, litWindowAlpha(nightGlow))
         if (customization.christmasDecorationsEnabled) {
-            drawWindowLights(canvas, r, elapsed, -37f, -30f, 22f)
-            drawWindowLights(canvas, r, elapsed, 15f, -30f, 22f)
+            drawWindowLights(canvas, r, elapsed, -37f, -24f, 22f)
+            drawWindowLights(canvas, r, elapsed, 15f, -24f, 22f)
         }
         drawSprite(canvas, R.drawable.house_shared_planter, -39f, -29f)
         drawFlowerDots(canvas, -33f, -29f)
@@ -1174,10 +1209,12 @@ class SceneObjectRenderer(
         drawSprite(canvas, R.drawable.house_shared_window, 24f, -44f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -45f, litAlpha)
         if (customization.christmasDecorationsEnabled) {
-            drawWindowLights(canvas, r, elapsed, -46f, -63f, 22f)
-            drawWindowLights(canvas, r, elapsed, 24f, -63f, 22f)
-            drawWindowLights(canvas, r, elapsed, -46f, -23f, 22f)
-            drawWindowLights(canvas, r, elapsed, 24f, -23f, 22f)
+            val sills = floatArrayOf(-46f, -63f, 24f, -63f, -46f, -23f, 24f, -23f)
+            for (i in 0 until 4) {
+                if (litWindowChosen(r, i, 4, 3)) {
+                    drawWindowLights(canvas, r, elapsed, sills[i * 2], sills[i * 2 + 1], 22f)
+                }
+            }
         }
         drawSprite(canvas, R.drawable.house_shared_planter, -48f, -22f)
         drawFlowerDots(canvas, -42f, -22f)
@@ -1274,7 +1311,56 @@ class SceneObjectRenderer(
      * No outline anymore -- matches the reference's own flat, unbordered canopy sprite (see
      * v63's own changelog entry on this exact "reference doesn't have one either" correction).
      */
+    /**
+     * Whether this tree stands as a Christmas fir.
+     *
+     * **One tree in three, decided from the tree's own seed.** Not a count and not a position: a
+     * count would need state to distribute, and a position would put the firs on a line. Hashing
+     * the seed gives about a third, differently for each theme's layout, and gives the *same*
+     * third on every frame -- a wood that reshuffled itself as you watched would be worse than no
+     * firs at all.
+     */
+    private fun standsAsFir(r: StaticRuntime): Boolean {
+        if (!customization.christmasDecorationsEnabled) return false
+        var h = (r.idleSeed * 100000f).toInt() * 0x9E3779B1.toInt()
+        h = h xor (h ushr 16)
+        return (h and 0x7FFFFFFF) % 3 == 0
+    }
+
+    /**
+     * A fir in the leafy tree's place: tiers, snow while the winter palette is on, the tree
+     * lights, and presents at its foot.
+     *
+     * The lights come from [drawChristmasLights], the same call the leafy tree makes, with the
+     * ellipse pulled in to the fir's own narrower crown. The presents are `gift_box`/`gift_ribbon`
+     * rather than a new sprite: they are the same objects the Gifts decoration already draws.
+     */
+    private fun drawFir(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime) {
+        drawGroundShadow(canvas, 24f)
+        drawSprite(canvas, R.drawable.tree_fir, -39f, -122f)
+        if (customization.winterColorsEnabled) {
+            drawSprite(canvas, R.drawable.tree_fir_snow, -39f, -122f)
+        }
+        drawChristmasLights(canvas, r, elapsed, centerY = -66f, radiusX = 22f, radiusY = 34f)
+        // Three presents at the foot, sized against the fir rather than against the scene: the
+        // gift sprite is 30 units on its own canvas and a fir is 122, so a third of it reads.
+        val gifts = floatArrayOf(-19f, -2f, 14f)
+        val sizes = floatArrayOf(0.36f, 0.30f, 0.26f)
+        for (i in gifts.indices) {
+            canvas.save()
+            canvas.translate(gifts[i], 0f)
+            canvas.scale(sizes[i], sizes[i])
+            drawTintedSprite(canvas, R.drawable.gift_box, -20f, -30f, GIFT_COLOURS[i % GIFT_COLOURS.size])
+            drawSprite(canvas, R.drawable.gift_ribbon, -20f, -40f)
+            canvas.restore()
+        }
+    }
+
     private fun drawTree(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float = 1f) {
+        if (standsAsFir(r)) {
+            drawFir(canvas, r, elapsed)
+            return
+        }
         val sway = elapsed.sinAt(1.1f, r.idleSeed) * 4f
         drawGroundShadow(canvas, 26f)
         // The trunk was a flat `drawRect` from (-5,-38) to (5,0) with one hardcoded brown. V2
@@ -1621,16 +1707,26 @@ class SceneObjectRenderer(
         // same lit pattern. That is the trade the asset set makes, and it removes the last
         // per-frame vector work from this building style.
         drawSpriteFaded(canvas, R.drawable.skyscraper_wall_lit, -width / 2f, -height, litWindowAlpha(nightGlow))
+        // **The entrance, on the ground the building and the people stand on.** Blitted after the
+        // wall so it sits in the hall band the facade draws, and with its own bottom edge on y=0:
+        // the canopy straddles the ground line and is a plinth, not a floor to stand a door on.
+        drawSprite(canvas, R.drawable.skyscraper_entrance, -16f, -32f)
         // The tower's windows are painted into its wall, so there is no per-window call site to
-        // hang a string from. The grid is regular and stated: four columns of 9 units at an 18
-        // pitch starting 4.5 in from the front face, and rows on the same pitch from y=8. The
-        // strings follow that grid rather than a guess, and only the lowest three floors carry
-        // them -- nobody hangs lights on the twentieth storey.
+        // hang a string from. The grid is stated by the artwork: four rows of four 14-unit windows
+        // at a 27 pitch from the top, stopping clear of the 32-unit hall. Twelve of the sixteen
+        // are lit, chosen by hash rather than by position, which is the same draw-call ceiling the
+        // three-lowest-floors version had.
         if (customization.christmasDecorationsEnabled) {
-            for (floor in 0 until 3) {
-                val sill = -height + 8f + floor * 18f + 8f
+            for (row in 0 until 4) {
                 for (column in 0 until 4) {
-                    drawWindowLights(canvas, r, elapsed, -width / 2f + 4.5f + column * 18f, sill, 9f)
+                    val index = row * 4 + column
+                    if (!litWindowChosen(r, index, 16, 12)) continue
+                    drawWindowLights(
+                        canvas, r, elapsed,
+                        -width / 2f + 5f + column * 20f,
+                        -height + 5f + row * 27f + 14f,
+                        14f,
+                    )
                 }
             }
         }
@@ -1664,11 +1760,11 @@ class SceneObjectRenderer(
         drawGroundShadow(canvas, 50f * 0.58f)
 
         // wall: local bbox (-50,-60)-(50,0)
-        drawTintedSprite(canvas, R.drawable.restaurant_wall, -50f, -60f, wallColor)
+        drawTintedSprite(canvas, R.drawable.restaurant_wall, -50f, -96f, wallColor)
         // A flat roof, so the cap is a drift standing proud of the parapet rather than following a
         // pitch. Its canvas puts the wall's own top edge 8 units down. See [drawSmallHouse].
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.restaurant_roof_snow, -48f, -66f)
+            drawSprite(canvas, R.drawable.restaurant_roof_snow, -48f, -102f)
         }
         // awning: local bbox (-34,-46)-(34,-36), fixed red/white stripes (not tinted)
         drawSprite(canvas, R.drawable.restaurant_awning, -34f, -46f)
@@ -1705,16 +1801,24 @@ class SceneObjectRenderer(
         drawGroundShadow(canvas, width * 0.6f)
 
         // wall: local bbox (-45,-55)-(45,0)
-        drawTintedSprite(canvas, R.drawable.bar_wall, -45f, -55f, wallColor)
+        drawTintedSprite(canvas, R.drawable.bar_wall, -45f, -92f, wallColor)
         // Same construction as the restaurant's, cut to this wall's narrower 90 units.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.bar_roof_snow, -43f, -61f)
+            drawSprite(canvas, R.drawable.bar_roof_snow, -43f, -98f)
         }
         // door
         drawTintedSprite(canvas, R.drawable.bar_door, -10f, -28f, doorColor)
+        // The upper storey's windows, the same drawable the houses use so a shop's first floor
+        // cannot drift from a house's.
+        val barLit = litWindowAlpha((1f - dayBlend).coerceIn(0f, 1f))
+        for (wx in floatArrayOf(-34f, -11f, 12f)) {
+            drawSprite(canvas, R.drawable.house_shared_window, wx, -82f)
+            drawSpriteFaded(canvas, R.drawable.house_window_lit, wx, -83f, barLit)
+        }
         if (customization.christmasDecorationsEnabled) {
-            drawWindowLights(canvas, r, elapsed, -40f, -33f, 26f)
-            drawWindowLights(canvas, r, elapsed, 14f, -33f, 26f)
+            for ((i, wx) in floatArrayOf(-34f, -11f, 12f).withIndex()) {
+                if (litWindowChosen(r, i, 3, 2)) drawWindowLights(canvas, r, elapsed, wx, -61f, 22f)
+            }
         }
 
         // Hanging beer-mug sign, glowing warm at night.
@@ -1728,7 +1832,10 @@ class SceneObjectRenderer(
         fillPaint.alpha = (60 + nightGlow * 90).toInt()
         canvas.drawCircle(0f, -height - 30f, 24f, fillPaint)
         fillPaint.alpha = 255
-        drawSprite(canvas, R.drawable.bar_sign, -18f, -height - 50f)
+        // On the facade, at a shop's own scale. It was 36 units hung above the roof, which at
+        // v2.7's metres read as a 5.5 m sign floating free of the building; it is 24 units now and
+        // sits on the upper storey where a shop sign is.
+        drawSprite(canvas, R.drawable.bar_sign, -12f, -84f)
 
         // String lights along the top edge.
         fillPaint.color = ColorUtils.blendARGB(0xFF8A6A50.toInt(), 0xFFFFE79A.toInt(), nightGlow)

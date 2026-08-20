@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="234" height="366" viewBox="0 0 78 122">
+  <!--
+    The Christmas fir: four stacked paper tiers over a trunk, in the same vocabulary as
+    tree_canopy's stacked polygons. 122 local units tall, the same as the leafy tree, so the two
+    are governed by one metre-per-unit family and a fir cannot drift out of scale with the wood
+    it stands in.
+
+    Fixed art. A fir is a species, not a theme colour, and the tiers carry their own two greens
+    the way the palm fronds carry theirs.
+  -->
+<rect x="35" y="104" width="8" height="18" rx="1.5" fill="#533217"></rect>
+        <polygon points="39,66 0,104 78,104" fill="#3A7044"></polygon>
+        <polygon points="39,42 8,78 70,78" fill="#2E5E38"></polygon>
+        <polygon points="39,20 17,52 61,52" fill="#3A7044"></polygon>
+        <polygon points="39,2 26,28 52,28" fill="#2E5E38"></polygon>
+        <polygon points="39,0 33.4,8 44.6,8" fill="#F2C24A"></polygon>
+        <polygon points="39,14 33.4,6 44.6,6" fill="#F2C24A"></polygon>
+</svg>

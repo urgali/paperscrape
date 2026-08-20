@@ -146,6 +146,17 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "perspective work.",
     ),
     Exclusion(
+        "tree_fir_snow",
+        "Shares tree_fir's 78x122 canvas so the two blit at one origin. The snow only touches the "
+        "tiers' shoulders, so its own ink is a fraction of the tree; cropping to it would separate "
+        "the layer from the tree it lies on.",
+    ),
+    Exclusion(
+        "skyscraper_wall_lit",
+        "Shares skyscraper_wall's 90x150 canvas and is blitted at the same origin, so the night "
+        "facade lands exactly on the day one. Its ink is only the lit panes.",
+    ),
+    Exclusion(
         "ground_flowers",
         "The canvas is the clump's footprint, not its ink: the margins around the blooms are the "
         "spacing that keeps two adjacent clumps from touching, and the stems stand on the bottom "

@@ -96,6 +96,8 @@ class SpriteTintClassTest {
         "palmtree_fronds_dead",
         // The flower clump. Fixed art for the reason its own registry note gives.
         "ground_flowers",
+        // v2.8: the tower's entrance is glass and metal, and a fir is a species. Both fixed.
+        "skyscraper_entrance", "tree_fir", "tree_fir_snow",
         "snowman_nose", "snowman_scarf", "gift_ribbon",
         "skyscraper_canopy", "skyscraper_wall_lit",
         "restaurant_awning", "restaurant_sign", "bar_sign",

@@ -1,25 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="270" height="450" viewBox="0 0 90 150">
-<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
-  
-  <defs>
-    <pattern id="p_towerwin" width="18" height="18" patternUnits="userSpaceOnUse">
-        <rect x="4.5" y="8" width="9" height="8" rx="1.5"></rect>
-      </pattern>
-  </defs>
-<rect x="0" y="0" width="90" height="150" rx="2"></rect>
-        <rect x="72" y="0" width="18" height="150"></rect>
-        <rect x="4" y="6" width="66" height="138"></rect>
+  <!--
+    A coarse grid over a glazed ground-floor hall.
 
-</g>
-  
-  <defs>
-    <pattern id="p_towerwin" width="18" height="18" patternUnits="userSpaceOnUse">
-        <rect x="4.5" y="8" width="9" height="8" rx="1.5" fill="#eaeaea"></rect>
-      </pattern>
-  </defs>
+    The old grid was a userSpaceOnUse pattern at an 18-unit pitch with 8-unit windows: at the
+    tower's own metre-per-unit that is a 0.86 m window and eighteen storeys in 150 units, which
+    is not a building anybody works in. Four rows of four 14-unit windows at a 27 pitch read as
+    1.2 m windows on 2.3 m floors.
+
+    The bottom 32 units are the entrance hall, and the grid stops 18 units clear of it. A row of
+    windows sitting directly on the door head made the entrance read as one more pane; the blank
+    course above the hall is what makes it a separate bay.
+  -->
 <rect x="0" y="0" width="90" height="150" rx="2" fill="#ffffff"></rect>
         <rect x="72" y="0" width="18" height="150" fill="#f4f4f4"></rect>
-        <rect x="0" y="0" width="72" height="150" fill="url(#p_towerwin)"></rect>
-
-
+        <rect x="5" y="5" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="25" y="5" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="45" y="5" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="65" y="5" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="5" y="32" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="25" y="32" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="45" y="32" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="65" y="32" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="5" y="59" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="25" y="59" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="45" y="59" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="65" y="59" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="5" y="86" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="25" y="86" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="45" y="86" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="65" y="86" width="14" height="14" rx="1.5" fill="#eaeaea"></rect>
+        <rect x="0" y="118" width="90" height="32" fill="#e0e0e0"></rect>
+        <rect x="0" y="118" width="90" height="4" fill="#d2d2d2"></rect>
+        <rect x="7" y="126" width="8" height="20" rx="1" fill="#f0f0f0"></rect>
+        <rect x="19" y="126" width="8" height="20" rx="1" fill="#f0f0f0"></rect>
+        <rect x="63" y="126" width="8" height="20" rx="1" fill="#f0f0f0"></rect>
+        <rect x="75" y="126" width="8" height="20" rx="1" fill="#f0f0f0"></rect>
 </svg>

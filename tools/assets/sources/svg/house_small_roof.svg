@@ -1,13 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="288" height="120" viewBox="0 0 96 40">
-<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
+<svg xmlns="http://www.w3.org/2000/svg" width="318" height="120" viewBox="0 0 106 40">
   
-<polygon points="0,40 38,0 58,0 96,40"></polygon>
-        <polygon points="38,0 58,0 64,9 32,9"></polygon>
-
-</g>
-  
-<polygon points="0,40 38,0 58,0 96,40" fill="#ffffff"></polygon>
-        <polygon points="38,0 58,0 64,9 32,9" fill="#f3f3f3"></polygon>
-
-
+<polygon points="0,40 43,0 63,0 106,40" fill="#ffffff"></polygon>
+        <polygon points="43,0 63,0 69,9 37,9" fill="#f3f3f3"></polygon>
 </svg>

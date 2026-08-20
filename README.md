@@ -3,7 +3,7 @@
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.7 Stable**
+**Current version: v2.8 Stable**
 
 ---
 
@@ -89,7 +89,7 @@ automatic by-date theme.
 wallpaper service collects the preferences flow, so changes reach the running scene
 without a restart.
 
-**Assets.** 122 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
+**Assets.** 125 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
 source under `tools/assets/sources/svg/`. A Python pipeline renders, measures and checks
 them against a registry (`sources/sprites.json`) that records every sprite's size,
 content box, anchor rule, scale convention and tint class — and against the Kotlin call
@@ -107,7 +107,7 @@ app/src/main/kotlin/com/paperscrape/livewallpaper/
   weather/    Live Weather fetching
   location/   optional location for sunrise/sunset and weather
   update/     GitHub release check
-app/src/main/res/drawable-nodpi/   the 122 shipped sprites
+app/src/main/res/drawable-nodpi/   the 125 shipped sprites
 app/src/test/                      Kotlin unit tests
 tools/assets/                      SVG sources, sprite registry, Python pipeline
 release-notes/                     user-facing notes, one file per release
@@ -174,9 +174,10 @@ tag, because the two answer different questions:
 | `v2.5` | `2.5` | 9 |
 | `v2.6` | `2.6` | 10 |
 | `v2.7` | `2.7` | 11 |
+| `v2.8` | `2.8` | 12 |
 
 Every release is published as latest. There is no pre-release tag form yet; one will
-be added when it is needed. v2.7 is the current stable release. The `versionCode`
+be added when it is needed. v2.8 is the current stable release. The `versionCode`
 counter only has to increase, not to be contiguous — 3 is unused because no v1.2 was
 ever released.
 
