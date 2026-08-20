@@ -1786,7 +1786,7 @@ private fun LakeSubDialog(customization: SceneCustomization, forThemeId: String,
 
 
 /**
- * Mirrors "Scene Objects"'s [ObjectCategorySection] editing model but for seasonal decorations (snowmen, gifts, balloons, penguins,
+ * Mirrors "Scene Objects"'s [ObjectCategorySection] editing model but for seasonal decorations (snowmen, gifts, penguins,
  * bunnies, Easter eggs, pumpkins) -- same per-theme editing model, same [ObjectCategorySection]
  * UI, just a separate screen showing a different subset of categories (opt-in extras rather than
  * every theme's structural building blocks). Unlike the structural categories, each built-in
@@ -1873,6 +1873,13 @@ private fun SeasonalDecorationsDialog(
                         onCheckedChange = { scope.launch { prefs.setSantaEnabled(it, forThemeId) } },
                     )
 
+                    SettingSwitchRow(
+                        title = "\uD83C\uDF3C Flowers",
+                        subtitle = "Wildflowers scattered on the open ground. On by default in Spring; available on any theme.",
+                        checked = customization.flowersEnabled,
+                        onCheckedChange = { scope.launch { prefs.setFlowersEnabled(it, forThemeId) } },
+                    )
+
                     SectionTitle("Halloween")
                     SettingSwitchRow(
                         title = "\uD83D\uDC80 Halloween",
@@ -1900,15 +1907,6 @@ private fun SeasonalDecorationsDialog(
                         title = "Gifts",
                         config = customization.gifts,
                         category = ObjectCategory.GIFTS,
-                        forThemeId = forThemeId,
-                        prefs = prefs,
-                        scope = scope,
-                        onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
-                    )
-                    ObjectCategorySection(
-                        title = "Balloons",
-                        config = customization.balloons,
-                        category = ObjectCategory.BALLOONS,
                         forThemeId = forThemeId,
                         prefs = prefs,
                         scope = scope,
@@ -1959,7 +1957,7 @@ private fun SeasonalDecorationsDialog(
                                 // trees/etc, which isn't what "reset everything" means on this
                                 // specific screen.
                                 for (category in listOf(
-                                    ObjectCategory.SNOWMEN, ObjectCategory.GIFTS, ObjectCategory.BALLOONS,
+                                    ObjectCategory.SNOWMEN, ObjectCategory.GIFTS,
                                     ObjectCategory.PENGUINS, ObjectCategory.BUNNIES, ObjectCategory.EASTER_EGGS,
                                     ObjectCategory.PUMPKINS,
                                 )) {

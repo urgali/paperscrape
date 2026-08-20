@@ -6,7 +6,7 @@ import kotlin.random.Random
 enum class SceneObjectType {
     CAR, HOUSE, TREE,
     // Seasonal / festive additions (step 2)
-    SNOWMAN, GIFT, PALM_TREE, PARASOL, SKYSCRAPER, PENGUIN, BALLOON,
+    SNOWMAN, GIFT, PALM_TREE, PARASOL, SKYSCRAPER, PENGUIN,
     // Easter theme additions (auto-theme-by-date feature)
     EASTER_EGG, BUNNY,
     // Standalone seasonal decorations, independent of any theme -- user-toggleable on any
@@ -101,7 +101,7 @@ data class SceneObjectLayout(
  * per theme. Whether a theme ends up looking like a quiet village or a dense city is entirely
  * up to the user's density sliders in "Scene Objects", never baked into the theme itself.
  *
- * Seasonal decorations (snowmen, gifts, balloons, penguins, bunnies, Easter eggs, pumpkins) are
+ * Seasonal decorations (snowmen, gifts, penguins, bunnies, Easter eggs, pumpkins) are
  * a *second*, independent customization surface -- "Seasonal Decorations", edited via
  * [SceneCustomization]'s snowmen/gifts/etc. fields -- generated the same uniform way by
  * [seasonalDecorationCandidates] but layered onto *every* theme in [layoutFor], not tied to any
@@ -386,7 +386,7 @@ object SceneObjectCatalog {
     }
 
     /**
-     * Standalone seasonal decorations (snowmen, gifts, balloons, penguins, bunnies, Easter eggs,
+     * Standalone seasonal decorations (snowmen, gifts, penguins, bunnies, Easter eggs,
      * pumpkins), generated for *every* theme regardless of which one it "traditionally" belongs
      * to -- these used to be hardcoded per theme (Christmas got snowmen+gifts, Easter got
      * eggs+bunnies, etc.) with no way to turn them off or use them anywhere else. They're now
@@ -408,7 +408,6 @@ object SceneObjectCatalog {
         val seed = themeId.hashCode()
         return generateStaticCandidates(SceneObjectType.SNOWMAN, seed + 101, 0.45f..1.0f) +
             generateStaticCandidates(SceneObjectType.GIFT, seed + 102, 0.45f..1.0f) +
-            generateStaticCandidates(SceneObjectType.BALLOON, seed + 103, 0.05f..0.45f) +
             generateStaticCandidates(SceneObjectType.PENGUIN, seed + 104, 0.45f..1.0f) +
             generateStaticCandidates(SceneObjectType.BUNNY, seed + 105, 0.45f..1.0f) +
             generateStaticCandidates(SceneObjectType.EASTER_EGG, seed + 106, 0.45f..1.0f) +

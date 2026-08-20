@@ -120,7 +120,7 @@ enum class ObjectCategory {
     // `DESIGN_NOTES.md` decision 25 exists to prevent. The four colour keys below exist for every
     // category because the storage is generic; nothing reads People's.
     PEOPLE,
-    SNOWMEN, GIFTS, BALLOONS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS,
+    SNOWMEN, GIFTS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS,
 }
 
 class WallpaperPrefs(private val context: Context) {
@@ -204,6 +204,7 @@ class WallpaperPrefs(private val context: Context) {
         val FALL_COLORS_ENABLED = booleanPreferencesKey("fall_colors_enabled")
         val WINTER_COLORS_ENABLED = booleanPreferencesKey("winter_colors_enabled")
         val CHRISTMAS_DECORATIONS_ENABLED = booleanPreferencesKey("christmas_decorations_enabled")
+        val FLOWERS_ENABLED = booleanPreferencesKey("flowers_enabled")
         val HALLOWEEN_ENABLED = booleanPreferencesKey("halloween_enabled")
         val HORROR_SKY_ENABLED = booleanPreferencesKey("horror_sky_enabled")
         val SANTA_ENABLED = booleanPreferencesKey("santa_enabled")
@@ -260,7 +261,6 @@ class WallpaperPrefs(private val context: Context) {
                 trees = readVariantConfig(prefs, ObjectCategory.TREES, defaults.trees),
                 snowmen = readVariantConfig(prefs, ObjectCategory.SNOWMEN, defaults.snowmen),
                 gifts = readVariantConfig(prefs, ObjectCategory.GIFTS, defaults.gifts),
-                balloons = readVariantConfig(prefs, ObjectCategory.BALLOONS, defaults.balloons),
                 penguins = readVariantConfig(prefs, ObjectCategory.PENGUINS, defaults.penguins),
                 bunnies = readVariantConfig(prefs, ObjectCategory.BUNNIES, defaults.bunnies),
                 easterEggs = readVariantConfig(prefs, ObjectCategory.EASTER_EGGS, defaults.easterEggs),
@@ -347,6 +347,7 @@ class WallpaperPrefs(private val context: Context) {
                 fallColorsEnabled = prefs[Keys.FALL_COLORS_ENABLED] ?: defaults.fallColorsEnabled,
                 winterColorsEnabled = prefs[Keys.WINTER_COLORS_ENABLED] ?: defaults.winterColorsEnabled,
                 christmasDecorationsEnabled = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED] ?: defaults.christmasDecorationsEnabled,
+                flowersEnabled = prefs[Keys.FLOWERS_ENABLED] ?: defaults.flowersEnabled,
                 halloweenEnabled = prefs[Keys.HALLOWEEN_ENABLED] ?: defaults.halloweenEnabled,
                 horrorSkyEnabled = prefs[Keys.HORROR_SKY_ENABLED] ?: defaults.horrorSkyEnabled,
                 santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
@@ -692,6 +693,13 @@ class WallpaperPrefs(private val context: Context) {
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
+    /** Ground flowers on or off. Independent of every other flag. */
+    suspend fun setFlowersEnabled(enabled: Boolean, forThemeId: String) =
+        context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.FLOWERS_ENABLED] = enabled
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
     /**
      * Halloween on or off. **Clears nothing and is cleared by nothing.**
      *
@@ -752,6 +760,7 @@ class WallpaperPrefs(private val context: Context) {
             it.remove(Keys.FALL_COLORS_ENABLED)
             it.remove(Keys.WINTER_COLORS_ENABLED)
             it.remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
+            it.remove(Keys.FLOWERS_ENABLED)
             it.remove(Keys.HALLOWEEN_ENABLED)
             it.remove(Keys.HORROR_SKY_ENABLED)
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
@@ -845,6 +854,7 @@ class WallpaperPrefs(private val context: Context) {
         remove(Keys.FALL_COLORS_ENABLED)
         remove(Keys.WINTER_COLORS_ENABLED)
         remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
+        remove(Keys.FLOWERS_ENABLED)
         remove(Keys.HALLOWEEN_ENABLED)
         remove(Keys.HORROR_SKY_ENABLED)
         remove(Keys.SANTA_ENABLED)

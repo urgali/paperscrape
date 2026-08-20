@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 123 |
-| Unique contents | 123 |
-| Bytes on disk | 467.9 KB |
-| Decoded `ARGB_8888` | 15.36 MB |
-| Of which transparent padding | 1.67 MB (11 %) |
+| Files | 122 |
+| Unique contents | 122 |
+| Bytes on disk | 436.9 KB |
+| Decoded `ARGB_8888` | 14.88 MB |
+| Of which transparent padding | 1.55 MB (10 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -17,56 +17,55 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Sprite | Size | Decoded | Padding |
 |---|---|---|---|
-| `cloud_body` | 798x414 | 1.32 MB | 0 % |
+| `cloud_body` | 798x396 | 1.26 MB | 0 % |
 | `rainbow_arc` | 594x297 | 0.71 MB | 0 % |
 | `sun_glow` | 396x396 | 0.63 MB | 1 % |
-| `balloon_envelope` | 330x369 | 0.49 MB | 0 % |
 | `skyscraper_wall` | 270x450 | 0.49 MB | 0 % |
 | `skyscraper_wall_lit` | 270x450 | 0.49 MB | 0 % |
 | `house_large_wall` | 420x285 | 0.48 MB | 0 % |
 | `santa_sleigh_scene` | 600x153 | 0.37 MB | 2 % |
 | `santa_sleigh_trot` | 600x153 | 0.37 MB | 2 % |
 | `house_large_roof` | 450x150 | 0.27 MB | 0 % |
+| `dolphin_body` | 345x174 | 0.24 MB | 0 % |
 
 ## Every sprite
 
 | Sprite | Size | Mode | Content bbox | Padding | Opaque RGB | Grid |
 |---|---|---|---|---|---|---|
-| `balloon_basket` | 120x72 | RGBA | 0,0,120,72 | 0 % | 4 | yes |
-| `balloon_envelope` | 330x369 | RGBA | 0,0,330,369 | 0 % | 43 | yes |
 | `bar_door` | 60x84 | RGBA | 0,0,60,84 | 0 % | 11 | yes |
 | `bar_roof_snow` | 258x30 | RGBA | 0,0,258,30 | 0 % | 20 | yes |
 | `bar_sign` | 108x108 | RGBA | 0,0,108,108 | 0 % | 31 | yes |
-| `bar_wall` | 270x165 | RGBA | 0,0,270,165 | 0 % | 14 | yes |
-| `bird_body` | 90x24 | RGBA | 2,2,88,23 | 16 % | 23 | yes |
+| `bar_wall` | 270x165 | RGBA | 0,0,270,165 | 0 % | 9 | yes |
+| `bird_body` | 90x24 | RGBA | 1,2,89,23 | 14 % | 22 | yes |
 | `bunny_body` | 102x183 | RGBA | 0,0,102,183 | 0 % | 29 | yes |
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
 | `bunny_tail` | 30x30 | RGBA | 0,0,30,30 | 0 % | 8 | yes |
-| `car_body` | 291x111 | RGBA | 0,0,291,111 | 0 % | 26 | yes |
+| `car_body` | 291x111 | RGBA | 0,0,291,111 | 0 % | 28 | yes |
 | `car_window` | 138x48 | RGBA | 0,0,138,48 | 0 % | 3 | yes |
-| `cloud_body` | 798x414 | RGBA | 0,0,798,414 | 0 % | 24 | yes |
+| `cloud_body` | 798x396 | RGBA | 0,0,798,396 | 0 % | 27 | yes |
 | `dolphin_body` | 345x174 | RGBA | 0,0,345,174 | 0 % | 62 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
 | `easteregg_shell` | 96x120 | RGBA | 0,0,96,120 | 0 % | 17 | yes |
-| `firetruck_body` | 294x147 | RGBA | 0,0,294,147 | 0 % | 21 | yes |
+| `firetruck_body` | 294x147 | RGBA | 0,0,294,147 | 0 % | 26 | yes |
 | `firetruck_ladder` | 288x42 | RGBA | 0,1,288,42 | 2 % | 2 | yes |
 | `firework` | 240x240 | RGBA | 9,9,231,231 | 14 % | 13 | yes |
-| `gift_box` | 120x90 | RGBA | 0,0,120,90 | 0 % | 12 | yes |
+| `gift_box` | 120x90 | RGBA | 0,0,120,90 | 0 % | 10 | yes |
 | `gift_ribbon` | 120x120 | RGBA | 0,0,120,120 | 0 % | 12 | yes |
+| `ground_flowers` | 108x36 | RGBA | 5,9,98,36 | 35 % | 38 | yes |
 | `house_large_chimney` | 39x105 | RGBA | 0,0,39,105 | 0 % | 3 | yes |
 | `house_large_door` | 66x135 | RGBA | 0,0,66,135 | 0 % | 9 | yes |
-| `house_large_roof` | 450x150 | RGBA | 0,0,450,150 | 0 % | 29 | yes |
-| `house_large_roof_snow` | 300x117 | RGBA | 2,0,298,117 | 1 % | 34 | yes |
+| `house_large_roof` | 450x150 | RGBA | 0,0,450,150 | 0 % | 21 | yes |
+| `house_large_roof_snow` | 300x117 | RGBA | 1,0,299,117 | 1 % | 43 | yes |
 | `house_large_trim` | 450x18 | RGBA | 0,0,450,18 | 0 % | 1 | yes |
-| `house_large_wall` | 420x285 | RGBA | 0,0,420,285 | 0 % | 13 | yes |
+| `house_large_wall` | 420x285 | RGBA | 0,0,420,285 | 0 % | 11 | yes |
 | `house_shared_planter` | 78x18 | RGBA | 0,0,78,18 | 0 % | 23 | yes |
 | `house_shared_window` | 66x63 | RGBA | 0,0,66,63 | 0 % | 9 | yes |
 | `house_small_chimney` | 36x90 | RGBA | 0,0,36,90 | 0 % | 3 | yes |
 | `house_small_door` | 60x114 | RGBA | 0,0,60,114 | 0 % | 9 | yes |
-| `house_small_roof` | 240x120 | RGBA | 0,0,240,120 | 0 % | 16 | yes |
-| `house_small_roof_snow` | 162x99 | RGBA | 1,0,161,99 | 1 % | 38 | yes |
-| `house_small_trim` | 240x12 | RGBA | 0,0,240,12 | 0 % | 1 | yes |
-| `house_small_wall` | 210x210 | RGBA | 0,0,210,210 | 0 % | 13 | yes |
+| `house_small_roof` | 288x120 | RGBA | 0,0,288,120 | 0 % | 13 | yes |
+| `house_small_roof_snow` | 186x99 | RGBA | 0,0,186,99 | 0 % | 48 | yes |
+| `house_small_trim` | 288x12 | RGBA | 0,0,288,12 | 0 % | 1 | yes |
+| `house_small_wall` | 258x210 | RGBA | 0,0,258,210 | 0 % | 11 | yes |
 | `house_window` | 66x66 | RGBA | 0,0,66,66 | 0 % | 9 | yes |
 | `house_window_lit` | 66x66 | RGBA | 0,0,66,66 | 0 % | 15 | yes |
 | `lightning_bolt` | 90x252 | RGBA | 0,0,90,252 | 0 % | 1 | yes |
@@ -75,50 +74,50 @@ from the shipped PNGs; nothing is copied from documentation.
 | `moon_gibbous` | 240x240 | RGBA | 66,18,222,222 | 45 % | 5 | yes |
 | `moon_half` | 240x240 | RGBA | 120,18,222,222 | 64 % | 5 | yes |
 | `moon_jack_o_lantern` | 240x240 | RGBA | 18,18,222,222 | 28 % | 35 | yes |
-| `palmtree_fronds` | 120x120 | RGBA | 0,0,120,110 | 8 % | 78 | yes |
+| `palmtree_fronds` | 120x120 | RGBA | 0,0,120,111 | 8 % | 98 | yes |
 | `palmtree_fronds_dead` | 120x120 | RGBA | 0,0,120,110 | 8 % | 17 | yes |
 | `palmtree_fronds_frost` | 120x120 | RGBA | 0,0,120,102 | 15 % | 17 | yes |
 | `palmtree_trunk` | 33x174 | RGBA | 2,0,33,174 | 6 % | 6 | yes |
 | `penguin_beak` | 36x18 | RGBA | 0,0,36,18 | 0 % | 1 | yes |
 | `penguin_belly` | 54x102 | RGBA | 0,0,54,102 | 0 % | 1 | yes |
-| `penguin_body` | 84x132 | RGBA | 0,0,84,132 | 0 % | 27 | yes |
+| `penguin_body` | 84x132 | RGBA | 0,0,84,132 | 0 % | 22 | yes |
 | `penguin_feet` | 60x12 | RGBA | 0,0,60,12 | 0 % | 1 | yes |
-| `person_boy_summer_head_window` | 159x162 | RGBA | 12,15,159,162 | 16 % | 40 | yes |
-| `person_boy_summer_walk0` | 123x252 | RGBA | 24,66,111,252 | 48 % | 98 | yes |
-| `person_boy_summer_walk1` | 123x252 | RGBA | 21,69,111,252 | 47 % | 51 | yes |
-| `person_boy_summer_walk2` | 123x252 | RGBA | 9,66,114,252 | 37 % | 116 | yes |
-| `person_boy_winter_head_window` | 159x162 | RGBA | 6,12,150,162 | 16 % | 177 | yes |
-| `person_boy_winter_walk0` | 123x252 | RGBA | 21,45,108,252 | 42 % | 144 | yes |
-| `person_boy_winter_walk1` | 123x252 | RGBA | 21,48,108,252 | 43 % | 89 | yes |
-| `person_boy_winter_walk2` | 123x252 | RGBA | 8,45,115,252 | 29 % | 163 | yes |
-| `person_girl_summer_head_window` | 159x162 | RGBA | 6,18,153,162 | 18 % | 57 | yes |
-| `person_girl_summer_walk0` | 123x252 | RGBA | 15,66,114,252 | 41 % | 101 | yes |
-| `person_girl_summer_walk1` | 123x252 | RGBA | 15,69,114,252 | 42 % | 46 | yes |
-| `person_girl_summer_walk2` | 123x252 | RGBA | 6,66,117,252 | 33 % | 112 | yes |
-| `person_girl_winter_head_window` | 159x162 | RGBA | 6,12,153,162 | 14 % | 116 | yes |
-| `person_girl_winter_walk0` | 123x252 | RGBA | 10,57,116,252 | 33 % | 146 | yes |
-| `person_girl_winter_walk1` | 123x252 | RGBA | 10,60,116,252 | 34 % | 57 | yes |
-| `person_girl_winter_walk2` | 123x252 | RGBA | 8,57,116,252 | 32 % | 164 | yes |
-| `person_man_summer_head_car` | 120x144 | RGBA | 6,3,117,144 | 9 % | 96 | yes |
-| `person_man_summer_head_window` | 159x162 | RGBA | 6,9,150,162 | 14 % | 44 | yes |
-| `person_man_summer_walk0` | 123x252 | RGBA | 18,12,108,252 | 30 % | 112 | yes |
-| `person_man_summer_walk1` | 123x252 | RGBA | 15,15,111,252 | 27 % | 49 | yes |
-| `person_man_summer_walk2` | 123x252 | RGBA | 0,12,123,252 | 5 % | 116 | yes |
-| `person_man_winter_head_car` | 120x144 | RGBA | 0,0,120,144 | 0 % | 119 | yes |
-| `person_man_winter_head_window` | 159x162 | RGBA | 0,6,156,162 | 6 % | 157 | yes |
-| `person_man_winter_walk0` | 123x252 | RGBA | 15,9,111,252 | 25 % | 181 | yes |
-| `person_man_winter_walk1` | 123x252 | RGBA | 15,12,111,252 | 26 % | 90 | yes |
-| `person_man_winter_walk2` | 123x252 | RGBA | 2,9,121,252 | 7 % | 195 | yes |
-| `person_woman_summer_head_car` | 120x144 | RGBA | 6,3,117,144 | 9 % | 110 | yes |
-| `person_woman_summer_head_window` | 159x162 | RGBA | 6,9,150,162 | 14 % | 48 | yes |
-| `person_woman_summer_walk0` | 123x252 | RGBA | 18,12,105,252 | 33 % | 104 | yes |
-| `person_woman_summer_walk1` | 123x252 | RGBA | 18,15,108,252 | 31 % | 46 | yes |
-| `person_woman_summer_walk2` | 123x252 | RGBA | 3,12,120,252 | 9 % | 115 | yes |
-| `person_woman_winter_head_car` | 120x144 | RGBA | 0,0,120,144 | 0 % | 120 | yes |
-| `person_woman_winter_head_window` | 159x162 | RGBA | 0,0,156,162 | 2 % | 107 | yes |
-| `person_woman_winter_walk0` | 123x252 | RGBA | 15,0,111,252 | 22 % | 149 | yes |
-| `person_woman_winter_walk1` | 123x252 | RGBA | 15,1,111,252 | 22 % | 72 | yes |
-| `person_woman_winter_walk2` | 123x252 | RGBA | 5,0,118,252 | 8 % | 177 | yes |
+| `person_boy_summer_head_window` | 159x162 | RGBA | 10,13,159,162 | 14 % | 79 | yes |
+| `person_boy_summer_walk0` | 123x252 | RGBA | 22,64,113,252 | 45 % | 128 | yes |
+| `person_boy_summer_walk1` | 123x252 | RGBA | 19,67,113,252 | 44 % | 126 | yes |
+| `person_boy_summer_walk2` | 123x252 | RGBA | 7,64,116,252 | 34 % | 156 | yes |
+| `person_boy_winter_head_window` | 159x162 | RGBA | 4,10,152,162 | 13 % | 125 | yes |
+| `person_boy_winter_walk0` | 123x252 | RGBA | 19,43,110,252 | 39 % | 154 | yes |
+| `person_boy_winter_walk1` | 123x252 | RGBA | 19,46,110,252 | 40 % | 161 | yes |
+| `person_boy_winter_walk2` | 123x252 | RGBA | 6,43,117,252 | 25 % | 188 | yes |
+| `person_girl_summer_head_window` | 159x162 | RGBA | 4,16,155,162 | 14 % | 133 | yes |
+| `person_girl_summer_walk0` | 123x252 | RGBA | 13,64,116,252 | 38 % | 173 | yes |
+| `person_girl_summer_walk1` | 123x252 | RGBA | 13,67,116,252 | 39 % | 175 | yes |
+| `person_girl_summer_walk2` | 123x252 | RGBA | 4,64,119,252 | 30 % | 192 | yes |
+| `person_girl_winter_head_window` | 159x162 | RGBA | 4,10,155,162 | 11 % | 136 | yes |
+| `person_girl_winter_walk0` | 123x252 | RGBA | 9,55,117,252 | 31 % | 165 | yes |
+| `person_girl_winter_walk1` | 123x252 | RGBA | 9,58,117,252 | 32 % | 174 | yes |
+| `person_girl_winter_walk2` | 123x252 | RGBA | 6,55,117,252 | 29 % | 203 | yes |
+| `person_man_summer_head_car` | 120x144 | RGBA | 4,1,119,144 | 5 % | 98 | yes |
+| `person_man_summer_head_window` | 159x162 | RGBA | 4,7,152,162 | 11 % | 92 | yes |
+| `person_man_summer_walk0` | 123x252 | RGBA | 16,10,110,252 | 27 % | 107 | yes |
+| `person_man_summer_walk1` | 123x252 | RGBA | 13,13,113,252 | 23 % | 108 | yes |
+| `person_man_summer_walk2` | 123x252 | RGBA | 0,10,123,252 | 4 % | 111 | yes |
+| `person_man_winter_head_car` | 120x144 | RGBA | 0,0,120,144 | 0 % | 118 | yes |
+| `person_man_winter_head_window` | 159x162 | RGBA | 0,4,158,162 | 3 % | 132 | yes |
+| `person_man_winter_walk0` | 123x252 | RGBA | 13,7,113,252 | 21 % | 179 | yes |
+| `person_man_winter_walk1` | 123x252 | RGBA | 13,10,113,252 | 22 % | 190 | yes |
+| `person_man_winter_walk2` | 123x252 | RGBA | 0,7,123,252 | 3 % | 205 | yes |
+| `person_woman_summer_head_car` | 120x144 | RGBA | 4,1,119,144 | 5 % | 123 | yes |
+| `person_woman_summer_head_window` | 159x162 | RGBA | 4,7,152,162 | 11 % | 111 | yes |
+| `person_woman_summer_walk0` | 123x252 | RGBA | 16,10,107,252 | 29 % | 128 | yes |
+| `person_woman_summer_walk1` | 123x252 | RGBA | 16,13,110,252 | 28 % | 134 | yes |
+| `person_woman_summer_walk2` | 123x252 | RGBA | 1,10,122,252 | 6 % | 150 | yes |
+| `person_woman_winter_head_car` | 120x144 | RGBA | 0,0,120,144 | 0 % | 144 | yes |
+| `person_woman_winter_head_window` | 159x162 | RGBA | 0,0,158,162 | 1 % | 131 | yes |
+| `person_woman_winter_walk0` | 123x252 | RGBA | 13,0,113,252 | 19 % | 160 | yes |
+| `person_woman_winter_walk1` | 123x252 | RGBA | 13,0,113,252 | 19 % | 165 | yes |
+| `person_woman_winter_walk2` | 123x252 | RGBA | 3,0,120,252 | 5 % | 192 | yes |
 | `police_lightbar` | 60x18 | RGBA | 0,0,60,18 | 0 % | 9 | yes |
 | `police_stripe` | 204x39 | RGBA | 0,0,204,39 | 0 % | 23 | yes |
 | `pumpkin_body` | 114x90 | RGBA | 0,0,114,90 | 0 % | 31 | yes |
@@ -128,29 +127,29 @@ from the shipped PNGs; nothing is copied from documentation.
 | `restaurant_door` | 54x84 | RGBA | 0,0,54,84 | 0 % | 9 | yes |
 | `restaurant_roof_snow` | 288x30 | RGBA | 0,0,288,30 | 0 % | 21 | yes |
 | `restaurant_sign` | 102x105 | RGBA | 0,0,102,105 | 0 % | 26 | yes |
-| `restaurant_wall` | 300x180 | RGBA | 0,0,300,180 | 0 % | 13 | yes |
+| `restaurant_wall` | 300x180 | RGBA | 0,0,300,180 | 0 % | 11 | yes |
 | `restaurant_window` | 90x66 | RGBA | 0,0,90,66 | 0 % | 7 | yes |
 | `road_asphalt` | 402x102 | RGBA | 0,0,402,102 | 0 % | 2 | yes |
 | `road_curb` | 402x18 | RGBA | 0,0,402,18 | 0 % | 2 | yes |
 | `road_line` | 54x9 | RGBA | 0,0,54,9 | 0 % | 1 | yes |
 | `sailboat_hull` | 252x51 | RGBA | 0,0,252,51 | 0 % | 3 | yes |
-| `sailboat_sail` | 210x180 | RGBA | 0,0,210,180 | 0 % | 44 | yes |
+| `sailboat_sail` | 210x180 | RGBA | 0,0,210,180 | 0 % | 43 | yes |
 | `santa_sleigh_scene` | 600x153 | RGBA | 0,1,598,152 | 2 % | 357 | yes |
 | `santa_sleigh_trot` | 600x153 | RGBA | 0,1,598,152 | 2 % | 359 | yes |
 | `skyscraper_canopy` | 330x24 | RGBA | 0,0,330,24 | 0 % | 1 | yes |
-| `skyscraper_roof_snow` | 168x27 | RGBA | 0,1,168,27 | 4 % | 21 | yes |
-| `skyscraper_setback` | 180x96 | RGBA | 0,0,180,96 | 0 % | 15 | yes |
-| `skyscraper_wall` | 270x450 | RGBA | 0,0,270,450 | 0 % | 22 | yes |
-| `skyscraper_wall_lit` | 270x450 | RGBA | 0,0,270,450 | 0 % | 9 | yes |
+| `skyscraper_roof_snow` | 168x27 | RGBA | 0,0,168,27 | 0 % | 21 | yes |
+| `skyscraper_setback` | 180x96 | RGBA | 0,0,180,96 | 0 % | 20 | yes |
+| `skyscraper_wall` | 270x450 | RGBA | 0,0,270,450 | 0 % | 14 | yes |
+| `skyscraper_wall_lit` | 270x450 | RGBA | 0,0,270,450 | 0 % | 14 | yes |
 | `snowman_body` | 114x222 | RGBA | 0,0,114,222 | 0 % | 37 | yes |
 | `snowman_nose` | 39x12 | RGBA | 0,0,39,12 | 0 % | 1 | yes |
-| `snowman_scarf` | 72x18 | RGBA | 0,0,72,18 | 0 % | 23 | yes |
+| `snowman_scarf` | 72x18 | RGBA | 0,0,72,18 | 0 % | 8 | yes |
 | `star_sparkle` | 180x180 | RGBA | 3,3,177,177 | 7 % | 1 | yes |
 | `sun_body` | 240x240 | RGBA | 18,18,222,222 | 28 % | 18 | yes |
 | `sun_glow` | 396x396 | RGBA | 1,1,395,395 | 1 % | 0 | yes |
 | `taxi_checker` | 204x27 | RGBA | 0,0,204,27 | 0 % | 4 | yes |
-| `tree_canopy` | 246x222 | RGBA | 0,0,246,222 | 0 % | 33 | yes |
-| `tree_canopy_snowcap` | 228x111 | RGBA | 0,0,228,111 | 0 % | 37 | yes |
+| `tree_canopy` | 246x222 | RGBA | 0,0,246,222 | 0 % | 36 | yes |
+| `tree_canopy_snowcap` | 228x111 | RGBA | 0,0,228,111 | 0 % | 42 | yes |
 | `tree_dead_branches` | 246x222 | RGBA | 1,0,245,222 | 1 % | 16 | yes |
 | `tree_trunk` | 30x132 | RGBA | 0,0,30,132 | 0 % | 2 | yes |
 | `water_splash0` | 162x54 | RGBA | 0,0,162,54 | 0 % | 20 | yes |

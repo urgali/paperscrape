@@ -189,13 +189,23 @@ jobs:
           PAPERSCRAPE_OPENMETEO_API_KEY: ${{ secrets.OPENMETEO_API_KEY }}
         run: ./gradlew assembleRelease
 
-      - name: Generate SHA-256 checksum
-        # Published alongside the APK so anyone can verify what they downloaded matches what CI
-        # actually built, independent of GitHub's own integrity guarantees.
+      - name: Name the artefact after the release, and checksum it
+        # Gradle always writes `app-release.apk`, so every release published one file with the
+        # same name and nothing in it to say which version it was -- indistinguishable in a
+        # downloads folder the moment there are two. Renamed to `PaperScrape-<tag>.apk`, with the
+        # tag taken from the ref rather than written down anywhere: v2.8 and v3.0 will name
+        # themselves.
+        #
+        # The checksum is generated *after* the rename and over the renamed file, so the name
+        # inside the `.sha256` is the name of the thing you downloaded.
         run: |
           cd app/build/outputs/apk/release
-          sha256sum app-release.apk > app-release.apk.sha256
-          cat app-release.apk.sha256
+          ARTIFACT="PaperScrape-${GITHUB_REF_NAME}.apk"
+          mv app-release.apk "$ARTIFACT"
+          sha256sum "$ARTIFACT" > "$ARTIFACT.sha256"
+          cat "$ARTIFACT.sha256"
+          echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
+        id: artifact
 
       - name: Generate signed build provenance attestation
         # Goes beyond the plain SHA-256 above: this cryptographically binds the APK's exact
@@ -203,10 +213,10 @@ jobs:
         # publicly verifiable in-toto/SLSA attestation, published to GitHub's attestations API
         # (free for public repos). A checksum alone only proves "this file matches what I have a
         # hash for" -- it doesn't prove *who* produced it. Anyone can verify the download with:
-        #   gh attestation verify app-release.apk --repo ${{ github.repository }}
+        #   gh attestation verify PaperScrape-<tag>.apk --repo ${{ github.repository }}
         uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
         with:
-          subject-path: app/build/outputs/apk/release/app-release.apk
+          subject-path: app/build/outputs/apk/release/${{ steps.artifact.outputs.artifact }}
 
       - name: Refuse to overwrite an existing release
         # Git already refuses to push a duplicate tag, so reaching this with an existing release
@@ -254,7 +264,7 @@ jobs:
           {
             echo ""
             echo "---"
-            echo "🔒 Verify this build: check \`app-release.apk.sha256\`, or run \`gh attestation verify app-release.apk --repo ${{ github.repository }}\`."
+            echo "🔒 Verify this build: check \`${{ steps.artifact.outputs.artifact }}.sha256\`, or run \`gh attestation verify ${{ steps.artifact.outputs.artifact }} --repo ${{ github.repository }}\`."
           } >> "$COMPOSED"
           echo "file=$COMPOSED" >> "$GITHUB_OUTPUT"
 
@@ -278,8 +288,8 @@ jobs:
             EXTRA_ARGS+=(--latest=true)
           fi
           gh release create "$TAG" \
-            app/build/outputs/apk/release/app-release.apk \
-            app/build/outputs/apk/release/app-release.apk.sha256 \
+            "app/build/outputs/apk/release/${{ steps.artifact.outputs.artifact }}" \
+            "app/build/outputs/apk/release/${{ steps.artifact.outputs.artifact }}.sha256" \
             --title "PaperScrape $TAG — $TITLE_SUFFIX" \
             --notes-file "${{ steps.notes.outputs.file }}" \
             --target "${{ github.sha }}" \

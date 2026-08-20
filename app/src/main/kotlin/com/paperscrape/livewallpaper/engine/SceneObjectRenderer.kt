@@ -177,7 +177,6 @@ class SceneObjectRenderer(
             SceneObjectType.BUNNY -> SceneSpace.SceneVariant.BUNNY
             SceneObjectType.EASTER_EGG -> SceneSpace.SceneVariant.EASTER_EGG
             SceneObjectType.PUMPKIN -> SceneSpace.SceneVariant.PUMPKIN
-            SceneObjectType.BALLOON -> SceneSpace.SceneVariant.BALLOON
             // Cars are drawn by drawCar, from their lane, and never reach drawStaticObject.
             SceneObjectType.CAR -> SceneSpace.SceneVariant.HOUSE_SMALL
         }
@@ -292,6 +291,25 @@ class SceneObjectRenderer(
         const val CHRISTMAS_LIGHT_RADIUS_UNITS = 2.6f
 
         const val MAX_OBJECT_HALF_WIDTH_UNITS = 96f
+
+        /**
+         * How many canopies a frame can offer the falling leaves.
+         *
+         * A fixed ceiling because the arrays are refilled every frame and must not grow: a
+         * densely-treed theme across a wide screen with wrap tiles can present more crowns than
+         * there are leaves, and the leaves only need somewhere plausible to come from.
+         */
+        const val MAX_LEAF_SOURCES = 24
+
+        /** How many flower clumps the ground carries, and where they may stand. */
+        const val FLOWER_CLUMP_COUNT = 22
+        const val FLOWER_DEPTH_MIN = 0.06f
+        const val FLOWER_DEPTH_MAX = 0.92f
+        const val FLOWER_METRES_TALL = 0.55f
+        const val FLOWER_SPRITE_UNITS_TALL = 12f
+
+        /** Bulbs on the string under one window. */
+        const val WINDOW_LIGHT_COUNT = 4
 
         /**
          * The preview strip height the fitting factors in [drawPreviewPair] were chosen against.
@@ -513,7 +531,91 @@ class SceneObjectRenderer(
      * [isHorizontallyVisible] still decides every copy, so the set of objects painted is exactly
      * the set that passed the same predicate before.
      */
+    /**
+     * Where this frame's canopies are, in screen pixels, for anything that needs to come *off* a
+     * tree rather than out of the sky.
+     *
+     * **Filled here because here is the only place that knows.** A tree's screen position is its
+     * depth fraction, its ground line, its effective scale and its wrap-tile offset combined, and
+     * all four are resolved inside [draw]. `PaperRenderer` draws the falling leaves and had none
+     * of them, so it spawned every leaf at one fixed height across the whole width -- which is
+     * what read on a device as leaves appearing out of mid-air, most of them nowhere near a tree.
+     *
+     * Three parallel arrays and a count rather than a list of points: this is refilled every
+     * frame, and a list of objects would allocate every frame.
+     */
+    val leafSourceX = FloatArray(MAX_LEAF_SOURCES)
+    val leafSourceY = FloatArray(MAX_LEAF_SOURCES)
+    val leafSourceHalfWidth = FloatArray(MAX_LEAF_SOURCES)
+    var leafSourceCount = 0
+        private set
+
+    private fun recordLeafSource(variant: SceneSpace.SceneVariant, x: Float, groundY: Float, scale: Float) {
+        if (leafSourceCount >= MAX_LEAF_SOURCES) return
+        // The centre of the crown as each is actually blitted: the leafy canopy hangs at -38 with
+        // its own content centred another 43 above that, and the palm's fan at -90.33 with its
+        // content centre 18 below its origin. Derived from the two call sites rather than guessed,
+        // so a change to either moves the leaves with it.
+        val centreUnits = when (variant) {
+            SceneSpace.SceneVariant.TREE -> -81f
+            SceneSpace.SceneVariant.PALM_TREE -> -72f
+            else -> return
+        }
+        val halfWidthUnits = if (variant == SceneSpace.SceneVariant.TREE) 41f else 20f
+        leafSourceX[leafSourceCount] = x
+        leafSourceY[leafSourceCount] = groundY + centreUnits * scale
+        leafSourceHalfWidth[leafSourceCount] = halfWidthUnits * scale
+        leafSourceCount++
+    }
+
+    /**
+     * Wildflowers on the open ground, drawn before anything that stands on it.
+     *
+     * **Placed on the same ground line and the same perspective as everything else**, so a clump
+     * near the road is larger than one at the back and both sit where their stems meet the earth.
+     * The positions come from a fixed integer hash of the clump index rather than from a stored
+     * list, so nothing is allocated per frame and the scatter is identical every frame -- flowers
+     * that shimmered from frame to frame would be worse than none.
+     *
+     * The scatter is stratified rather than uniform: each clump gets its own band of depth and its
+     * own slice of the width, and jitters inside them. A purely uniform draw clusters and leaves
+     * bald patches, which is what makes a scatter read as random rather than as ground cover.
+     */
+    private fun drawGroundFlowers(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float) {
+        if (!customization.flowersEnabled) return
+        val sceneScale = SceneSpace.sceneScale(screenHeight)
+        for (i in 0 until FLOWER_CLUMP_COUNT) {
+            val h = (i * 2654435761L.toInt()) xor (i shl 7)
+            val jitterX = ((h ushr 3) and 0xFF) / 255f
+            val jitterDepth = ((h ushr 13) and 0xFF) / 255f
+            // **Stratified across the width, free in depth.** The first version banded depth by
+            // the clump index as well, which correlated depth with x and laid every clump on one
+            // straight diagonal -- caught in the preview, not in a test. Only the horizontal
+            // slice is stratified now; how far back a clump stands is its own hash.
+            val depth = FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth
+            val groundY = screenHeight * SceneSpace.groundYFraction(depth)
+            val scale = SceneSpace.scaleForHeight(FLOWER_METRES_TALL, FLOWER_SPRITE_UNITS_TALL) *
+                SceneSpace.depthScale(depth) * sceneScale
+            val slice = screenWidth / FLOWER_CLUMP_COUNT
+            val baseX = (i + jitterX) * slice
+            val tile = if (geom.tileWidth > 0f) geom.tileWidth else screenWidth
+            var x = (baseX + geom.shiftXWrapped) % tile
+            while (x < screenWidth + slice) {
+                if (x > -slice) {
+                    canvas.save()
+                    canvas.translate(x, groundY)
+                    canvas.scale(scale, scale)
+                    drawSprite(canvas, R.drawable.ground_flowers, -18f, -12f)
+                    canvas.restore()
+                }
+                x += tile
+            }
+        }
+    }
+
     fun draw(canvas: SceneCanvas, geom: GroundGeometry, dayBlend: Float, elapsedSeconds: SceneTime, screenWidth: Float, screenHeight: Float) {
+        leafSourceCount = 0
+        drawGroundFlowers(canvas, geom, screenWidth, screenHeight)
         // staticRuntimes is already depth-sorted at construction -- see its declaration.
         for (r in staticRuntimes) {
             val groundY = screenHeight * SceneSpace.groundYFraction(r.spec.depthFraction)
@@ -532,6 +634,7 @@ class SceneObjectRenderer(
                 // correctness guard, not an optimisation.
                 if (isHorizontallyVisible(x, halfWidth, screenWidth)) {
                     drawStaticObject(canvas, r, x, groundY, effectiveScale, dayBlend, elapsedSeconds)
+                    recordLeafSource(variantFor(r.spec), x, groundY, effectiveScale)
                 }
                 continue
             }
@@ -546,6 +649,7 @@ class SceneObjectRenderer(
                 val copyX = x + tileIndex * geom.tileWidth
                 if (isHorizontallyVisible(copyX, halfWidth, screenWidth)) {
                     drawStaticObject(canvas, r, copyX, groundY, effectiveScale, dayBlend, elapsedSeconds)
+                    recordLeafSource(variantFor(r.spec), copyX, groundY, effectiveScale)
                 }
             }
         }
@@ -751,13 +855,13 @@ class SceneObjectRenderer(
         val previewScale = screenHeight / PREVIEW_REFERENCE_HEIGHT_PX
 
         drawPreviewItem(canvas, screenWidth * 0.22f, screenHeight * 0.88f, SceneSpace.SceneVariant.HOUSE_SMALL, previewScale, 1f) {
-            drawSmallHouse(canvas, houseRuntime, dayBlend)
+            drawSmallHouse(canvas, houseRuntime, SceneTime.ZERO, dayBlend)
         }
         drawPreviewItem(canvas, screenWidth * 0.52f, screenHeight * 0.94f, SceneSpace.SceneVariant.TREE, previewScale, 0.55f) {
             drawTree(canvas, treeRuntime, elapsed = SceneTime.ZERO, dayBlend = dayBlend)
         }
         drawPreviewItem(canvas, screenWidth * 0.80f, screenHeight * 0.96f, SceneSpace.SceneVariant.TOWER, previewScale, 0.34f) {
-            drawSkyscraperBuilding(canvas, buildingRuntime, dayBlend)
+            drawSkyscraperBuilding(canvas, buildingRuntime, SceneTime.ZERO, dayBlend)
         }
     }
 
@@ -879,11 +983,11 @@ class SceneObjectRenderer(
         // sized as one drawing and painted as another.
         when (variantFor(r.spec)) {
             SceneSpace.SceneVariant.HOUSE_SMALL ->
-                if (r.spec.type == SceneObjectType.HOUSE) drawSmallHouse(canvas, r, dayBlend) else Unit
-            SceneSpace.SceneVariant.HOUSE_LARGE -> drawLargeHouse(canvas, r, dayBlend)
-            SceneSpace.SceneVariant.TOWER -> drawSkyscraperBuilding(canvas, r, dayBlend)
-            SceneSpace.SceneVariant.RESTAURANT -> drawRestaurantBuilding(canvas, r, dayBlend)
-            SceneSpace.SceneVariant.BAR -> drawBarBuilding(canvas, r, dayBlend)
+                if (r.spec.type == SceneObjectType.HOUSE) drawSmallHouse(canvas, r, elapsed, dayBlend) else Unit
+            SceneSpace.SceneVariant.HOUSE_LARGE -> drawLargeHouse(canvas, r, elapsed, dayBlend)
+            SceneSpace.SceneVariant.TOWER -> drawSkyscraperBuilding(canvas, r, elapsed, dayBlend)
+            SceneSpace.SceneVariant.RESTAURANT -> drawRestaurantBuilding(canvas, r, elapsed, dayBlend)
+            SceneSpace.SceneVariant.BAR -> drawBarBuilding(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.TREE -> drawTree(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.PALM_TREE -> drawPalmTree(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.PARASOL -> drawParasol(canvas, r, elapsed, dayBlend)
@@ -893,7 +997,6 @@ class SceneObjectRenderer(
             SceneSpace.SceneVariant.BUNNY -> drawBunny(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.EASTER_EGG -> drawEasterEgg(canvas, r, dayBlend)
             SceneSpace.SceneVariant.PUMPKIN -> drawPumpkin(canvas, r, dayBlend)
-            SceneSpace.SceneVariant.BALLOON -> drawBalloon(canvas, r, elapsed, dayBlend)
         }
         canvas.restore()
     }
@@ -916,7 +1019,43 @@ class SceneObjectRenderer(
      * values this function already computed -- no change to the color/day-night-blend logic
      * itself, only how the final pixels get painted.
      */
-    private fun drawSmallHouse(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
+    /**
+     * A string of Christmas lights hung under a window.
+     *
+     * **Under the window, not near the building.** The existing `drawChristmasLights` scatters
+     * bulbs around a canopy's ellipse, which is the right shape for a tree and the wrong one for a
+     * facade: on a wall it produced a cloud of dots beside the glass. This draws a slack cord
+     * between two points on the window's own sill and hangs the bulbs off it, so the string is
+     * where a real one is and moves with the window rather than with the building.
+     *
+     * Geometry only, and no new sprite: four bulbs and a two-segment cord per window is cheaper
+     * than a blit, and the colours are the tree lights' own array so a house and its tree agree.
+     * The window is not touched -- this is drawn after it and adds nothing to its box.
+     */
+    private fun drawWindowLights(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, x: Float, sillY: Float, width: Float) {
+        val left = x
+        val right = x + width
+        val sag = width * 0.16f
+        strokePaint.color = 0xB0203528.toInt()
+        strokePaint.strokeWidth = 1.1f
+        canvas.drawLine(left, sillY, (left + right) / 2f, sillY + sag, strokePaint)
+        canvas.drawLine((left + right) / 2f, sillY + sag, right, sillY, strokePaint)
+        for (bulb in 0 until WINDOW_LIGHT_COUNT) {
+            val along = (bulb + 1f) / (WINDOW_LIGHT_COUNT + 1f)
+            val bx = left + width * along
+            // The cord's own height at this point, so a bulb hangs off the string rather than
+            // floating beside it: two straight segments meeting at the middle.
+            val drop = sag * (1f - kotlin.math.abs(along - 0.5f) * 2f)
+            val phase = r.idleSeed * 3.1f + bulb * 1.7f
+            val blink = 0.55f + 0.45f * elapsed.sinAt(1.6f, phase)
+            fillPaint.color = christmasLightColors[bulb % christmasLightColors.size]
+            fillPaint.alpha = (255 * blink).toInt().coerceIn(70, 255)
+            canvas.drawCircle(bx, sillY + drop + 1.6f, 1.5f, fillPaint)
+        }
+        fillPaint.alpha = 255
+    }
+
+    private fun drawSmallHouse(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val wallColor = customization.colorFor(r.spec, dayBlend)
         val roofColor = ColorUtils.blendARGB(wallColor, 0xFF1A1410.toInt(), 0.45f)
         val trimColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
@@ -944,7 +1083,7 @@ class SceneObjectRenderer(
         // than under it. The origin is the roof's own, less the four units of crest the cap adds
         // above the ridge -- derived from the roof, so the two move together if either is redrawn.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.house_small_roof_snow, -35f, -114f)
+            drawSprite(canvas, R.drawable.house_small_roof_snow, -31f, -114f)
         }
         drawTintedSprite(canvas, R.drawable.house_small_trim, -48f, -71f, trimColor)
         // chimney: local bbox (8,-115)-(20,-85) -- base sits on the roof slope (off-center,
@@ -983,6 +1122,10 @@ class SceneObjectRenderer(
         drawWindowOccupant(canvas, r, -37f, -52f, 22f, 22f)
         drawSprite(canvas, R.drawable.house_shared_window, 15f, -51f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 15f, -52f, litWindowAlpha(nightGlow))
+        if (customization.christmasDecorationsEnabled) {
+            drawWindowLights(canvas, r, elapsed, -37f, -30f, 22f)
+            drawWindowLights(canvas, r, elapsed, 15f, -30f, 22f)
+        }
         drawSprite(canvas, R.drawable.house_shared_planter, -39f, -29f)
         drawFlowerDots(canvas, -33f, -29f)
         // door, centred between the two windows, with the porch light beside it
@@ -990,7 +1133,7 @@ class SceneObjectRenderer(
         drawPorchLight(canvas, x = 16f, y = -20f, nightGlow = nightGlow)
     }
 
-    private fun drawLargeHouse(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
+    private fun drawLargeHouse(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val wallColor = customization.colorFor(r.spec, dayBlend)
         val roofColor = ColorUtils.blendARGB(wallColor, 0xFF1A1410.toInt(), 0.45f)
         val trimColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
@@ -1030,6 +1173,12 @@ class SceneObjectRenderer(
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -46f, -45f, litAlpha)
         drawSprite(canvas, R.drawable.house_shared_window, 24f, -44f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -45f, litAlpha)
+        if (customization.christmasDecorationsEnabled) {
+            drawWindowLights(canvas, r, elapsed, -46f, -63f, 22f)
+            drawWindowLights(canvas, r, elapsed, 24f, -63f, 22f)
+            drawWindowLights(canvas, r, elapsed, -46f, -23f, 22f)
+            drawWindowLights(canvas, r, elapsed, 24f, -23f, 22f)
+        }
         drawSprite(canvas, R.drawable.house_shared_planter, -48f, -22f)
         drawFlowerDots(canvas, -42f, -22f)
         drawTintedSprite(canvas, R.drawable.house_large_door, -11f, -45f, ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.55f))
@@ -1453,7 +1602,7 @@ class SceneObjectRenderer(
      * part of `skyscraper_wall`, the night one is `skyscraper_wall_lit` -- so the loop is gone
      * and with it the per-building variation. See the overlay's own comment below.
      */
-    private fun drawSkyscraperBuilding(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
+    private fun drawSkyscraperBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val height = 150f
         val width = 90f
         val wallColor = customization.colorFor(r.spec, dayBlend)
@@ -1472,6 +1621,19 @@ class SceneObjectRenderer(
         // same lit pattern. That is the trade the asset set makes, and it removes the last
         // per-frame vector work from this building style.
         drawSpriteFaded(canvas, R.drawable.skyscraper_wall_lit, -width / 2f, -height, litWindowAlpha(nightGlow))
+        // The tower's windows are painted into its wall, so there is no per-window call site to
+        // hang a string from. The grid is regular and stated: four columns of 9 units at an 18
+        // pitch starting 4.5 in from the front face, and rows on the same pitch from y=8. The
+        // strings follow that grid rather than a guess, and only the lowest three floors carry
+        // them -- nobody hangs lights on the twentieth storey.
+        if (customization.christmasDecorationsEnabled) {
+            for (floor in 0 until 3) {
+                val sill = -height + 8f + floor * 18f + 8f
+                for (column in 0 until 4) {
+                    drawWindowLights(canvas, r, elapsed, -width / 2f + 4.5f + column * 18f, sill, 9f)
+                }
+            }
+        }
         drawTintedSprite(canvas, R.drawable.skyscraper_setback, -30f, -height - 32f, wallColor)
         // The setback's roof is the only horizontal surface of a tower a viewer sees, so it is
         // where the snow goes. Its own block starts 6 units down its canvas, and the cap carries 8
@@ -1495,7 +1657,7 @@ class SceneObjectRenderer(
      * identifier since a striped awning alone reads as ambiguous as any other shop) -- a fixed
      * accent sprite, not tinted, same reasoning as the awning's own fixed red/white stripes.
      */
-    private fun drawRestaurantBuilding(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
+    private fun drawRestaurantBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val wallColor = customization.colorFor(r.spec, dayBlend)
         val doorColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
 
@@ -1514,6 +1676,9 @@ class SceneObjectRenderer(
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
         val windowColor = ColorUtils.blendARGB(0xFFB9CBD9.toInt(), 0xFFFFE79A.toInt(), nightGlow)
         drawTintedSprite(canvas, R.drawable.restaurant_window, -35f, -45f, windowColor)
+        if (customization.christmasDecorationsEnabled) {
+            drawWindowLights(canvas, r, elapsed, -35f, -22f, 30f)
+        }
         // door
         drawTintedSprite(canvas, R.drawable.restaurant_door, 8f, -28f, doorColor)
         // hanging fork-and-knife sign
@@ -1531,7 +1696,7 @@ class SceneObjectRenderer(
      * of a plain glowing circle, so "bar" reads immediately instead of depending on the reader
      * already knowing it's a bar. String lights stay vector, unchanged.
      */
-    private fun drawBarBuilding(canvas: SceneCanvas, r: StaticRuntime, dayBlend: Float) {
+    private fun drawBarBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val height = 55f
         val width = 90f
         val wallColor = customization.colorFor(r.spec, dayBlend)
@@ -1547,6 +1712,10 @@ class SceneObjectRenderer(
         }
         // door
         drawTintedSprite(canvas, R.drawable.bar_door, -10f, -28f, doorColor)
+        if (customization.christmasDecorationsEnabled) {
+            drawWindowLights(canvas, r, elapsed, -40f, -33f, 26f)
+            drawWindowLights(canvas, r, elapsed, 14f, -33f, 26f)
+        }
 
         // Hanging beer-mug sign, glowing warm at night.
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
@@ -1616,30 +1785,6 @@ class SceneObjectRenderer(
         // hung the left patch in mid-air beside the head.
         drawSprite(canvas, R.drawable.bunny_innerear, -4f, -57f)
         drawSprite(canvas, R.drawable.bunny_tail, -21f, -10f)
-        canvas.restore()
-    }
-
-    /**
-     * Redesigned from a plain round balloon-on-a-string into a proper hot air balloon (envelope
-     * + basket), matching the aesthetic-pass reference research into The reference app's own balloon
-     * atlas (which used a full envelope-plus-basket silhouette, not a party balloon). Envelope
-     * is a tinted sprite (`balloon_envelope`, local bbox (-60,-110)-(60,22)); basket is a
-     * fixed-color wicker-brown sprite (local bbox (-20,20)-(20,44)), overlapping the envelope's
-     * bottom by 2 units so the two sprites read as one continuous object with no seam. Bob
-     * motion unchanged.
-     */
-    private fun drawBalloon(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        val bob = elapsed.sinAt(1.3f, r.idleSeed) * 8f
-        canvas.save()
-        canvas.translate(0f, bob - 40f)
-        strokePaint.style = Paint.Style.STROKE
-        strokePaint.strokeWidth = 1.5f
-        strokePaint.color = 0x66000000
-        canvas.drawLine(-14f, 18f, -18f, 26f, strokePaint)
-        canvas.drawLine(14f, 18f, 18f, 26f, strokePaint)
-        val balloonColor = customization.colorFor(r.spec, dayBlend)
-        drawTintedSprite(canvas, R.drawable.balloon_envelope, -55f, -105f, balloonColor)
-        drawSprite(canvas, R.drawable.balloon_basket, -20f, 20f)
         canvas.restore()
     }
 

@@ -1650,19 +1650,39 @@ class PaperRenderer(
             0xFFE0A93A.toInt(), // gold/yellow
             0xFF8F3B1B.toInt(), // deep brown-red
         )
+        // **Every leaf comes off a crown that is actually on screen.**
+        //
+        // It used to start at one height across the whole width -- `xFraction * screenWidth` at a
+        // fixed `fallStartY` -- so on a device most leaves appeared in clear sky with no tree
+        // anywhere near them. The tree positions were never available here: a crown's screen
+        // position is its depth, its ground line, its scale and its wrap-tile offset combined, and
+        // all four are resolved inside `SceneObjectRenderer.draw`, which runs immediately before
+        // this. It now records them, and a leaf is assigned to one of them.
+        //
+        // No trees on screen means no leaves, which is the correct answer rather than a fallback:
+        // a themeless expanse with the tree category switched off should not be shedding foliage.
+        val sources = objectRenderer.leafSourceCount
+        if (sources == 0) return
         val candidateCount = FALLING_LEAF_POOL_SIZE
         val fallSpeed = 0.06f
-        val fallStartY = screenHeight * (yOffsets[0] - 0.03f)
         val fallEndY = screenHeight * 0.88f
-        val fallRange = fallEndY - fallStartY
         for (i in 0 until candidateCount) {
-            val xFraction = CandidateNoise.value(seed, i, CandidateNoise.CH_X)
+            val source = i % sources
             val speedVariance = CandidateNoise.range(seed, i, CandidateNoise.CH_VARIANCE, 0.7f, 1.3f)
             val phase = CandidateNoise.value(seed, i, CandidateNoise.CH_PHASE)
             val fallFraction = elapsedSeconds.cycle(fallSpeed * speedVariance, phase)
+            val fallStartY = objectRenderer.leafSourceY[source]
+            val fallRange = fallEndY - fallStartY
+            if (fallRange <= 0f) continue
             val y = fallStartY + fallFraction * fallRange
             val sway = elapsedSeconds.sinAt(0.9f, phase * 6.28f) * 26f
-            val x = xFraction * screenWidth + sway
+            // Across the crown it left, not across the screen: the offset is a fraction of that
+            // crown's own half width, so a small tree sheds from a small area and a near one from
+            // a wide one. The sway then carries it away as it falls, which is the drift the
+            // effect always had.
+            val acrossCrown = (CandidateNoise.value(seed, i, CandidateNoise.CH_X) - 0.5f) * 2f
+            val x = objectRenderer.leafSourceX[source] +
+                acrossCrown * objectRenderer.leafSourceHalfWidth[source] + sway * fallFraction
             val spin = elapsedSeconds.cycleOf(60f * (0.5f + speedVariance * 0.5f), phase * 360f, 360f)
             val color = palette[i % palette.size]
             // Fade in leaving the canopy, fade out settling near the ground -- same polish

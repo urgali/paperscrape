@@ -217,7 +217,7 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         ]
 
     def test_every_sprite_with_a_source_is_covered(self):
-        self.assertEqual(123, len(self.results))
+        self.assertEqual(122, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

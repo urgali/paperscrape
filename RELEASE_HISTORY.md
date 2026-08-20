@@ -19,9 +19,123 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.7 — two device-pass bugs, flowers, lights on the buildings, and the balloons removed
+
+**Stable / latest.** `versionCode = 11`, `versionName = "2.7"`. Tag `v2.7`.
+
+### The snow was cut for a roof that no longer existed
+
+v2.6 widened the small house's roof from 80 local units to 96 and left `house_small_roof_snow`
+drawn on the old one, so the drift stopped short of both eaves and sat off-centre against the
+ridge. Re-authored by mapping every x through the roof's own change -- left half [0,30] to [0,38],
+ridge [30,50] to [38,58], right half mirrored -- so the crest, the shadow inset and the scalloped
+lower edge are the approved shape and only the roof under them moved. Canvas 186x99, origin -31.
+
+### Leaves were never told where the trees are
+
+`drawFallingLeaves` computed `x = xFraction * screenWidth` at a fixed `fallStartY`. Nothing tied a
+leaf to a tree, so most of them appeared in clear sky. The positions were not *available*: a
+crown's screen position is depth, ground line, effective scale and wrap-tile offset combined, and
+all four resolve inside `SceneObjectRenderer.draw`. It now records the frame's crowns in three
+parallel `FloatArray`s and a count -- fixed ceiling, no per-frame allocation -- and each leaf takes
+one, offset across *that crown's own half width*. No trees on screen means no leaves, which is the
+right answer rather than a fallback.
+
+**Rendering path, since it was asked for explicitly.** The leaves are `canvas.drawOval` calls on
+the `SceneCanvas` seam, so they already go through the GL backend like everything else: not a
+particle system, not a separate Canvas path. **No draw call was added** -- the count is still
+`FALLING_LEAF_POOL_SIZE` -- and no geometry or texture is generated. The change costs one modulo
+and two array reads per leaf.
+
+### Flowers
+
+`flowersEnabled` is a plain boolean, not an `ObjectVariantConfig`, and that is the decision worth
+recording: every other decoration carries visibility, density and a day/night colour pair, which is
+right for a snowman and wrong for a meadow. `ground_flowers` is one clump of three kinds at three
+sizes on a single canvas -- one blit per clump rather than one per bloom -- and it is fixed art.
+Spring turns it on by default; every other theme leaves it off and the user owns it either way.
+
+**The scatter was wrong the first time and the preview is what caught it.** Banding depth by the
+clump index as well as x correlated the two and laid every clump on one straight diagonal. Only
+the horizontal slice is stratified now; depth is its own hash.
+
+### Lights under the windows, not beside them
+
+The existing `drawChristmasLights` scatters bulbs around a canopy's ellipse, which is a tree's
+shape. `drawWindowLights` draws a slack two-segment cord between two points on a window's own sill
+and hangs four bulbs off it, at the cord's own height at each point. Geometry only, no new sprite,
+and the window is not touched. Hung on: both small-house windows, all four large-house windows, the
+restaurant frontage, the bar's two bays, and the tower's three lowest floors -- the tower's windows
+are painted into its wall, so the strings follow the grid the artwork states (four columns of 9 at
+an 18 pitch from 4.5) rather than a guess.
+
+### Balloons, removed rather than hidden
+
+`SceneObjectType.BALLOON`, `SceneVariant.BALLOON`, `ObjectCategory.BALLOONS`, the
+`SceneCustomization.balloons` field and its defaults, the New Year preset, the structural
+comparison, the theme JSON read and write, the prefs read, the settings section, the draw function,
+the candidate generator, the random-scene type list, both sprites, both SVG sources and the two
+registry entries. `SceneCustomizationStructureTest`'s reflected field count went 13 to 12, which is
+the guard that would have caught a half-removal. A saved theme that still carries a `balloons`
+block loads and comes back without one.
+
+### The shops were measured as a domestic storey
+
+`RESTAURANT` was 5.2 m and `BAR` 4.8 m against a 6.4 m cottage, so a parade of shops read as
+outbuildings *behind* the houses. Now 9 m and 8.4 m -- a commercial storey is taller than a
+domestic one and carries a parapet -- and `TOWER` from 17 to 21 m so it still out-tops them.
+`SceneSpaceTest`'s ordering list was re-derived rather than relaxed, and two direct relations were
+added, because a chain can be satisfied by moving either end.
+
+### The skyscraper grid was flush left
+
+The defect was in the asset, not the renderer. The window field used a `patternUnits="userSpaceOnUse"`
+pattern whose tile starts at the document origin rather than at the field rect, so the columns
+landed at 4, 22, 40, 58 and the field was clipped at 70 -- no margin on the left, none to spare on
+the right. Four columns of 9 at an 18 pitch span 63 on a 72-unit front face, so 4.5 either side
+centres them. Fixed in `skyscraper_wall` and `skyscraper_wall_lit` together.
+
+### Release artefacts carry their version
+
+`PaperScrape-${GITHUB_REF_NAME}.apk`, taken from the ref rather than written down, so v2.8 and v3.0
+name themselves. The rename happens before the checksum, so the name inside the `.sha256` is the
+name of the file you downloaded. Signing and keystore untouched.
+
+### Verification
+
+```
+Release identifier:            v2.7
+Verification level:            3
+Tests run:                     yes -- 407 Kotlin tests, 0 failures (was 395)
+Lint run:                      yes -- 41 warnings, 0 errors
+Python tooling suite:          yes -- 96 tests, 0 failures
+Asset validate:                yes -- 0 failures, 122 entries, anchors 122/122
+Normalisation:                 yes -- 72 targets, none pending, 13 excluded by decision
+Sprite memory:                 14.88 MB decoded across 122 PNGs
+Previews generated:            building hierarchy on one ground line; flowers ON/OFF on spring
+                               ground; Christmas lights on small house, large house, restaurant
+                               and tower; six consecutive fall-leaf frames; the skyscraper grid;
+                               the small house in winter. All from the shipped PNGs at the real
+                               SceneSpace heights. **Not** OpenGL frames.
+APK build run:                 no
+Maintainer-side verification required: **yes**, on the Pixel 9, before any release.
+```
+
+### Known limitations
+
+- **Nothing was seen rendering.** The previews use the shipped PNGs and the real height table, but
+  they are compositions, not engine output.
+- The fall-leaf preview reconstructs the renderer's spawn rule in Python rather than running it;
+  what it verifies is that the rule puts leaves on crowns, not that the Kotlin executes it.
+- The bar's hanging sign is placed by hand in the hierarchy preview and is not at its call-site
+  origin; the wall heights either side of it are.
+- `drawWindowLights` adds up to 12 small draw calls to a tower and 4 to a house, and only while
+  the Christmas flag is on.
+
+
 ## v2.6 — the outline moved outside, and the small house got its facade
 
-**Stable / latest.** `versionCode = 10`, `versionName = "2.6"`. Tag `v2.6`.
+`versionCode = 10`, `versionName = "2.6"`. Tag `v2.6`.
 
 A device pass on v2.5 approved the world scale, Spring, the Halloween palms and the carved moon,
 and rejected two things. Both are corrected here; nothing else was reopened.
@@ -1768,13 +1882,13 @@ Release identifier verified unique: yes
 
 | | |
 |---|---|
-| **Version** | **v2.6 — Stable / latest** (`versionCode = 10`, `versionName = "2.6"`) |
-| **Latest stable** | v2.6 |
+| **Version** | **v2.7 — Stable / latest** (`versionCode = 11`, `versionName = "2.7"`) |
+| **Latest stable** | v2.7 |
 | **Date** | 2026-08-20 |
 | **Build status** | ⚠️ `testDebugUnitTest` **378 passing, 0 failures**; `lintDebug` **41 warnings, 0 errors, 0 fatal**; Python tooling **89 tests, 0 failures**; asset `validate` **0 failures across 122 sprites**; `normalize` **0 targets pending, 11 excluded by decision**. **`assembleDebug` was not run and no APK was produced** — Level 3 |
 | **APK size (debug)** | Not measured. Last measured: **19,017,989 bytes** at v75 |
 | **Sprite memory** | **122 PNGs, 15.31 MB decoded, 1.66 MB of it padding** — re-measured at v2.4. D-10's crop recovered 1.49 MB at v2.2; v2.3 added four sprites back. The residual padding is the outward rounding to the sprite grid plus the eleven sprites excluded by decision |
-| **Tests** | 395 Kotlin unit tests, 96 Python tooling tests |
+| **Tests** | 407 Kotlin unit tests, 96 Python tooling tests |
 | **Device verification** | ⚠️ **Four device passes (v76, v76.1, v76.2, v76.3), twenty-five defects between them, all fixed except roof snow.** **A sixth device pass, on v76.6, produced this release's tuning list; it confirmed the dolphins and sailboats as correct.** v76.7's own result has not been seen on a device |
 
 ---

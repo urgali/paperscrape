@@ -168,7 +168,6 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("trees", trees.toJson())
     put("snowmen", snowmen.toJson())
     put("gifts", gifts.toJson())
-    put("balloons", balloons.toJson())
     put("penguins", penguins.toJson())
     put("bunnies", bunnies.toJson())
     put("easterEggs", easterEggs.toJson())
@@ -237,6 +236,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("fallColorsEnabled", fallColorsEnabled)
     put("winterColorsEnabled", winterColorsEnabled)
     put("christmasDecorationsEnabled", christmasDecorationsEnabled)
+    put("flowersEnabled", flowersEnabled)
     put("halloweenEnabled", halloweenEnabled)
     put("horrorSkyEnabled", horrorSkyEnabled)
     put("santaEnabled", santaEnabled)
@@ -260,7 +260,6 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // actually persist that choice, not silently drop it.
         snowmen = json.optJSONObject("snowmen")?.let { objectVariantConfigFromJson(it, defaults.snowmen) } ?: defaults.snowmen,
         gifts = json.optJSONObject("gifts")?.let { objectVariantConfigFromJson(it, defaults.gifts) } ?: defaults.gifts,
-        balloons = json.optJSONObject("balloons")?.let { objectVariantConfigFromJson(it, defaults.balloons) } ?: defaults.balloons,
         penguins = json.optJSONObject("penguins")?.let { objectVariantConfigFromJson(it, defaults.penguins) } ?: defaults.penguins,
         bunnies = json.optJSONObject("bunnies")?.let { objectVariantConfigFromJson(it, defaults.bunnies) } ?: defaults.bunnies,
         easterEggs = json.optJSONObject("easterEggs")?.let { objectVariantConfigFromJson(it, defaults.easterEggs) } ?: defaults.easterEggs,
@@ -378,6 +377,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // changed one. A saved Christmas theme therefore regains its lights; a saved Winter theme
         // correctly does not get them.
         christmasDecorationsEnabled = json.optBoolean("christmasDecorationsEnabled", defaults.christmasDecorationsEnabled),
+        flowersEnabled = json.optBoolean("flowersEnabled", defaults.flowersEnabled),
         halloweenEnabled = json.optBoolean("halloweenEnabled", defaults.halloweenEnabled),
         horrorSkyEnabled = json.optBoolean("horrorSkyEnabled", defaults.horrorSkyEnabled),
         santaEnabled = json.optBoolean("santaEnabled", defaults.santaEnabled),

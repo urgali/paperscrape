@@ -79,7 +79,7 @@ object RandomSceneGenerator {
         // reimplemented from scratch later.
         SceneObjectType.HOUSE, SceneObjectType.TREE,
         SceneObjectType.SNOWMAN, SceneObjectType.GIFT, SceneObjectType.PALM_TREE, SceneObjectType.PARASOL,
-        SceneObjectType.SKYSCRAPER, SceneObjectType.PENGUIN, SceneObjectType.BALLOON,
+        SceneObjectType.SKYSCRAPER, SceneObjectType.PENGUIN,
         SceneObjectType.BUNNY, SceneObjectType.EASTER_EGG,
     )
 

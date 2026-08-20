@@ -233,6 +233,17 @@ data class SceneCustomization(
      *
      * The sky is **not** part of this. See [horrorSkyEnabled].
      */
+    /**
+     * Flowers on the open ground: on or off, and nothing else.
+     *
+     * **A plain boolean rather than an `ObjectVariantConfig`, on purpose.** Every other decoration
+     * in this class carries visibility, density and a day/night colour pair, and that is right for
+     * a snowman or a gift, which are objects a theme can restyle. A meadow is not: flowers whose
+     * colour follows a theme's building tint are a meadow of the wrong flowers. The artwork is
+     * fixed -- three kinds at three sizes on one canvas -- and the only decision left to make is
+     * whether they are there.
+     */
+    val flowersEnabled: Boolean = false,
     val halloweenEnabled: Boolean = false,
     /**
      * The horror sky: near-black overhead, a hard orange band at the horizon.
@@ -259,7 +270,6 @@ data class SceneCustomization(
     // deliberately turned on, not part of a theme's base look.
     val snowmen: ObjectVariantConfig,
     val gifts: ObjectVariantConfig,
-    val balloons: ObjectVariantConfig,
     val penguins: ObjectVariantConfig,
     val bunnies: ObjectVariantConfig,
     val easterEggs: ObjectVariantConfig,
@@ -419,15 +429,6 @@ data class SceneCustomization(
                 colorDay2 = 0xFF4F8FBF.toInt(),
                 colorNight2 = 0xFF335E7D.toInt(),
             ),
-            balloons = ObjectVariantConfig(
-                visible = false,
-                density = 0.5f,
-                // Matches 2 of the fixed colors previously hardcoded in balloonColors.
-                colorDay1 = 0xFFE8564F.toInt(),
-                colorNight1 = 0xFF9C3A35.toInt(),
-                colorDay2 = 0xFFF2C230.toInt(),
-                colorNight2 = 0xFFB08E1F.toInt(),
-            ),
             penguins = ObjectVariantConfig(
                 visible = false,
                 density = 0.5f,
@@ -491,7 +492,6 @@ private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantCo
     SceneObjectType.TREE, SceneObjectType.PALM_TREE -> trees
     SceneObjectType.SNOWMAN -> snowmen
     SceneObjectType.GIFT -> gifts
-    SceneObjectType.BALLOON -> balloons
     SceneObjectType.PENGUIN -> penguins
     SceneObjectType.BUNNY -> bunnies
     SceneObjectType.EASTER_EGG -> easterEggs
@@ -604,12 +604,11 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
         // in the same season, so it gets the same snow-laden trees, roof snow and winter
         // clothing -- but the tree lights, the presents and Santa belong to the fortnight that
         // has just ended and stay in Christmas. What makes this theme itself is the night:
-        // fireworks, balloons, a dusk-purple ground, and no shade umbrellas at a party after dark.
+        // fireworks, a dusk-purple ground, and no shade umbrellas at a party after dark.
         "new_year" -> base.copy(
             winterColorsEnabled = true,
             christmasDecorationsEnabled = false,
             parasols = base.parasols.copy(visible = false),
-            balloons = base.balloons.copy(visible = true, density = 0.4f),
             precipitation = base.precipitation.copy(type = PrecipitationType.SNOW),
         )
         "tundra" -> base.copy(
@@ -660,6 +659,8 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
         // thing spring has that winter and autumn do not. Parasols stay away -- it is not warm
         // yet -- and the lake comes up because meltwater is what early spring looks like.
         "spring" -> base.copy(
+            // The one theme that starts with them on. Spring without flowers is a green summer.
+            flowersEnabled = true,
             trees = base.trees.copy(visible = true, density = 0.7f),
             parasols = base.parasols.copy(visible = false),
             lake = base.lake.copy(visible = true),
@@ -750,7 +751,6 @@ fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Bool
         trees.structurallyEquals(other.trees) &&
         snowmen.structurallyEquals(other.snowmen) &&
         gifts.structurallyEquals(other.gifts) &&
-        balloons.structurallyEquals(other.balloons) &&
         penguins.structurallyEquals(other.penguins) &&
         bunnies.structurallyEquals(other.bunnies) &&
         easterEggs.structurallyEquals(other.easterEggs) &&

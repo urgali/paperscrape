@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="36" viewBox="0 0 36 12">
+  <!--
+    A clump of ground flowers: three kinds at three sizes on one canvas, so a scattering of them
+    is one blit rather than one per bloom.
+
+    Fixed art, deliberately. The user gets ON and OFF and no colour: a meadow whose flowers follow
+    a theme's building colour is a meadow of the wrong flowers, and every other decoration that
+    carries its own palette (the awning, the roof snow, the sleigh) is fixed for the same reason.
+
+    Everything stands on y=12, the canvas's own bottom edge, so the blit origin puts the stems on
+    the ground line and nothing has to be nudged per size.
+  -->
+<g stroke="#4E7A3A" stroke-width="0.9" stroke-linecap="round" fill="none">
+          <path d="M5 12 C4.6 9 4.8 7.4 5.6 6.2"></path>
+          <path d="M11 12 C11.4 9.6 11.2 8.4 10.6 7.6"></path>
+          <path d="M18 12 C17.6 8.6 17.8 6.6 18.8 5"></path>
+          <path d="M24 12 C24.4 10 24.2 9 23.6 8.2"></path>
+          <path d="M30.5 12 C30 9.2 30.2 7.6 31 6.4"></path>
+        </g>
+        <g fill="#5E8F44">
+          <ellipse cx="3.4" cy="10.2" rx="1.8" ry="0.8" transform="rotate(-20 3.4 10.2)"></ellipse>
+          <ellipse cx="19.8" cy="9.4" rx="2" ry="0.9" transform="rotate(-18 19.8 9.4)"></ellipse>
+          <ellipse cx="29" cy="10.4" rx="1.7" ry="0.8" transform="rotate(18 29 10.4)"></ellipse>
+        </g>
+        <g fill="#F2E27A">
+          <circle cx="5.6" cy="6.2" r="1.5"></circle>
+        </g>
+        <g fill="#E8748F">
+          <circle cx="10.6" cy="7.6" r="1.1"></circle>
+        </g>
+        <g fill="#FFFFFF">
+          <circle cx="18.8" cy="5" r="1.9"></circle>
+          <circle cx="18.8" cy="5" r="0.8" fill="#F2C24A"></circle>
+        </g>
+        <g fill="#B98BD6">
+          <circle cx="23.6" cy="8.2" r="1.2"></circle>
+        </g>
+        <g fill="#F2E27A">
+          <circle cx="31" cy="6.4" r="1.6"></circle>
+          <circle cx="31" cy="6.4" r="0.7" fill="#D8A63A"></circle>
+        </g>
+</svg>

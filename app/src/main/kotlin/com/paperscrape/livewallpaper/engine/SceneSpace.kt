@@ -381,16 +381,28 @@ object SceneSpace {
         PALM_TREE(8f, 90.33f),
 
         /**
-         * The office block. Deliberately a backdrop rather than a landmark, and lowered again in
-         * v76.6: on a device even 20 m dominated the foreground it is meant to stand behind.
+         * The office block. A backdrop rather than a landmark, but it has to out-top the houses
+         * in front of it: at 17 m against v2.5's enlarged 7.6 m house it had stopped reading as a
+         * different class of building. Raised to 21 m in v2.7 with the shops, so the hierarchy
+         * the scene is supposed to show -- tower over shop over house -- holds by height rather
+         * than by depth alone.
          */
-        TOWER(17f, 196f),
+        TOWER(21f, 196f),
 
-        /** Single-storey shop front, measured to the top of the wall, not its hanging sign. */
-        RESTAURANT(5.2f, 60f),
+        /**
+         * Shop front, measured to the top of the wall and not to its hanging sign.
+         *
+         * **Raised from 5.2 m in v2.7, and the old number was the wrong shape of wrong.** It was
+         * measured as a single storey, which put a restaurant *below* a 6.4 m cottage and a bar
+         * below that -- so a parade of shops read as outbuildings behind the houses. A commercial
+         * frontage is a taller storey than a domestic one and usually carries something above it;
+         * 9 m is two domestic courses plus the parapet the sign hangs off, which is what the
+         * artwork actually draws.
+         */
+        RESTAURANT(9f, 60f),
 
         /** The same, one course lower. */
-        BAR(4.8f, 55f),
+        BAR(8.4f, 55f),
 
         /** Pole to canopy rim. Raised in v76.7: at 2.3 m it had shrunk out of the composition. */
         PARASOL(2.9f, 84f),
@@ -418,9 +430,6 @@ object SceneSpace {
 
         /** A prize pumpkin, measured over the stem. */
         PUMPKIN(0.5f, 42f),
-
-        /** Envelope plus basket. The envelope alone works out at just under 15 m across. */
-        BALLOON(20f, 149f),
         ;
 
         /** The scale this variant is drawn at when it stands on [REFERENCE_Y_FRACTION]. */
@@ -538,7 +547,6 @@ object SceneSpace {
         SceneObjectType.TREE, SceneObjectType.PALM_TREE -> 1.3f
         SceneObjectType.PARASOL -> 1.3f
         SceneObjectType.SNOWMAN -> 1.3f
-        SceneObjectType.BALLOON -> 1.3f
         SceneObjectType.GIFT -> 1.25f
         SceneObjectType.PENGUIN -> 1.25f
         SceneObjectType.BUNNY -> 1.25f

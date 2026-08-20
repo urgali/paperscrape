@@ -146,6 +146,12 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "perspective work.",
     ),
     Exclusion(
+        "ground_flowers",
+        "The canvas is the clump's footprint, not its ink: the margins around the blooms are the "
+        "spacing that keeps two adjacent clumps from touching, and the stems stand on the bottom "
+        "edge so the blit origin puts them on the ground line. Cropping to the ink would move both.",
+    ),
+    Exclusion(
         "palmtree_fronds_dead",
         "Halloween's crown for the palm. Shares palmtree_fronds' canvas and content box so the two "
         "blit at one origin; cropping it alone would separate them.",

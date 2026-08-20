@@ -32,7 +32,6 @@ class SceneVariantResolutionTest {
         }
         assertEquals(SceneSpace.SceneVariant.TREE, SceneObjectRenderer.variantFor(spec(SceneObjectType.TREE)))
         assertEquals(SceneSpace.SceneVariant.PALM_TREE, SceneObjectRenderer.variantFor(spec(SceneObjectType.PALM_TREE)))
-        assertEquals(SceneSpace.SceneVariant.BALLOON, SceneObjectRenderer.variantFor(spec(SceneObjectType.BALLOON)))
     }
 
     @Test

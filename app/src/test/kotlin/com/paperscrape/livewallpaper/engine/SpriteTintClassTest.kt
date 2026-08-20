@@ -17,7 +17,7 @@ import org.junit.Test
  * colour, pure white, across every opaque pixel, and their call sites passed no tint on the
  * stated grounds that the colours were baked in. White is the `MULTIPLY` identity, so the
  * wallpaper showed white silhouettes drifting on the lake. v74.1 repaired it by supplying the
- * colour at the blit. `balloon_basket` had the same defect and was still open as D-6.
+ * colour at the blit. A second sprite had the same defect and was still open as D-6.
  *
  * The second is the mirror image, and it is what the V2 asset set would have caused if the call
  * sites had been left alone: finished art multiplied by a constant is not a recolouring, it is
@@ -60,7 +60,7 @@ class SpriteTintClassTest {
         "restaurant_wall", "restaurant_window", "restaurant_door",
         "bar_wall", "bar_door",
         "penguin_body", "penguin_belly", "easteregg_shell", "bunny_body",
-        "balloon_envelope", "pumpkin_body", "car_body",
+        "pumpkin_body", "car_body",
         "cloud_body", "bird_body",
         "moon_full", "moon_crescent", "moon_half", "moon_gibbous",
         // The Halloween moon. Tintable like every other phase: it is the same disc under the
@@ -94,11 +94,13 @@ class SpriteTintClassTest {
         // Halloween's palm crown. Fixed art in the trunk browns for the same reason
         // `tree_dead_branches` is: a dead frond is not a theme colour.
         "palmtree_fronds_dead",
+        // The flower clump. Fixed art for the reason its own registry note gives.
+        "ground_flowers",
         "snowman_nose", "snowman_scarf", "gift_ribbon",
         "skyscraper_canopy", "skyscraper_wall_lit",
         "restaurant_awning", "restaurant_sign", "bar_sign",
         "penguin_beak", "penguin_feet", "easteregg_pattern", "bunny_innerear", "bunny_tail",
-        "balloon_basket", "pumpkin_stem",
+        "pumpkin_stem",
         "car_window", "police_stripe", "police_lightbar", "taxi_checker",
         "firetruck_ladder", "firetruck_body",
         "dolphin_body", "sailboat_hull", "sailboat_sail",
@@ -162,7 +164,7 @@ class SpriteTintClassTest {
 
     /**
      * Every fixed-art sprite must carry a colour somewhere. A colourless one blitted untinted is
-     * a white or grey silhouette, which is exactly what the lake decorations and the balloon
+     * a white or grey silhouette, which is exactly what the lake decorations and the seasonal
      * basket shipped as.
      */
     @Test

@@ -31,7 +31,6 @@ class SceneCustomizationStructureTest {
         "trees" to { c -> c.copy(trees = c.trees.copy(density = c.trees.density / 2f + 0.1f)) },
         "snowmen" to { c -> c.copy(snowmen = c.snowmen.copy(density = c.snowmen.density / 2f + 0.1f)) },
         "gifts" to { c -> c.copy(gifts = c.gifts.copy(density = c.gifts.density / 2f + 0.1f)) },
-        "balloons" to { c -> c.copy(balloons = c.balloons.copy(density = c.balloons.density / 2f + 0.1f)) },
         "penguins" to { c -> c.copy(penguins = c.penguins.copy(density = c.penguins.density / 2f + 0.1f)) },
         "bunnies" to { c -> c.copy(bunnies = c.bunnies.copy(density = c.bunnies.density / 2f + 0.1f)) },
         "easterEggs" to { c -> c.copy(easterEggs = c.easterEggs.copy(density = c.easterEggs.density / 2f + 0.1f)) },
@@ -48,7 +47,6 @@ class SceneCustomizationStructureTest {
         "trees" to { c -> c.copy(trees = c.trees.copy(visible = !c.trees.visible)) },
         "snowmen" to { c -> c.copy(snowmen = c.snowmen.copy(visible = !c.snowmen.visible)) },
         "gifts" to { c -> c.copy(gifts = c.gifts.copy(visible = !c.gifts.visible)) },
-        "balloons" to { c -> c.copy(balloons = c.balloons.copy(visible = !c.balloons.visible)) },
         "penguins" to { c -> c.copy(penguins = c.penguins.copy(visible = !c.penguins.visible)) },
         "bunnies" to { c -> c.copy(bunnies = c.bunnies.copy(visible = !c.bunnies.visible)) },
         "easterEggs" to { c -> c.copy(easterEggs = c.easterEggs.copy(visible = !c.easterEggs.visible)) },
@@ -64,7 +62,6 @@ class SceneCustomizationStructureTest {
         "trees" to { c -> c.copy(trees = c.trees.copy(colorDay1 = c.trees.colorDay1 xor 0x00FFFFFF)) },
         "snowmen" to { c -> c.copy(snowmen = c.snowmen.copy(colorDay1 = c.snowmen.colorDay1 xor 0x00FFFFFF)) },
         "gifts" to { c -> c.copy(gifts = c.gifts.copy(colorDay1 = c.gifts.colorDay1 xor 0x00FFFFFF)) },
-        "balloons" to { c -> c.copy(balloons = c.balloons.copy(colorDay1 = c.balloons.colorDay1 xor 0x00FFFFFF)) },
         "penguins" to { c -> c.copy(penguins = c.penguins.copy(colorDay1 = c.penguins.colorDay1 xor 0x00FFFFFF)) },
         "bunnies" to { c -> c.copy(bunnies = c.bunnies.copy(colorDay1 = c.bunnies.colorDay1 xor 0x00FFFFFF)) },
         "easterEggs" to { c -> c.copy(easterEggs = c.easterEggs.copy(colorDay1 = c.easterEggs.colorDay1 xor 0x00FFFFFF)) },
@@ -208,7 +205,8 @@ class SceneCustomizationStructureTest {
             .map { it.name }
         assertEquals(
             "SceneCustomization has ObjectVariantConfig fields not covered here: $configFields",
-            13,
+            // 13 until v2.7 removed the balloons outright -- category, sprites, toggle and all.
+            12,
             configFields.size,
         )
         assertEquals(

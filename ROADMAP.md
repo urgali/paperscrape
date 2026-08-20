@@ -10,14 +10,16 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.6 Stable — the outline moved outside, and the small house got its facade.**
+**v2.7 Stable — two device-pass bugs, flowers, lights on the buildings, balloons removed.**
 
-`versionCode = 10`, `versionName = "2.6"`. A device pass on v2.5 approved the world scale, Spring,
-the Halloween palms and the carved moon, and rejected the readability rim and the small house's
-width. Both corrected; nothing else reopened. Not yet seen rendering.
+`versionCode = 11`, `versionName = "2.7"`. Small-house roof snow re-cut for the widened roof;
+fall leaves now spawn from the crowns; a flowers toggle with Spring on by default; Christmas
+lights hung under every window; balloons removed outright; shops and towers re-proportioned above
+the houses; the skyscraper window grid centred; release artefacts named after the tag. Not yet
+seen rendering.
 
-Last measured: 395 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
-asset `validate` clean across 123 sprites, `normalize` reporting nothing pending,
+Last measured: 407 Kotlin unit tests passing, `lintDebug` 41 warnings / 0 errors,
+asset `validate` clean across 122 sprites, `normalize` reporting nothing pending,
 offline tooling 96 tests with no failures.
 
 `assembleDebug` has not been run and no APK is produced locally — CI builds the release
@@ -26,7 +28,7 @@ source set; resource linking, dexing and packaging are not.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -67,6 +69,7 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.7 Stable** — roof-snow and leaf-spawn bugs fixed, flowers toggle, window Christmas lights, balloons removed, building hierarchy and skyscraper grid corrected.
 - **v2.6 Stable** — a true outer silhouette outline replacing v2.5's inner rim, which flickered across the walk frames, and a wider small-house facade.
 - **v2.5 Stable** — readability rim baked into 39 sprites, world scale +12.5%, Halloween palms, orange moon, two-window small house, the `spring` theme and a calendar covering every day.
 - **v2.4 Stable** — the gull, dolphin and carved moon redrawn; the dolphin splash on both crossings; the Halloween theme added with both switches preset.

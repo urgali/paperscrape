@@ -1,35 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="162" height="99" viewBox="13 0 54 33">
+<svg xmlns="http://www.w3.org/2000/svg" width="186" height="99" viewBox="17 0 62 33">
 <g id="paperscrape-outline" fill="#9fb0bd" stroke="#9fb0bd" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
   <!--
     Snow lying on house_small_roof, cut to that roof's own slopes.
 
-    The canvas is the roof's 80x40 with four units added at the top, so the drift can crest above
-    the ridge instead of stopping level with it - that crest is what makes it read as a layer
-    resting on the roof rather than as the roof repainted white. Everything below the ridge stays
-    strictly inside the roof outline: at the cap's lowest point the left slope is at x=9.75 and the
-    right at x=70.25, and the shadow's corners sit at 13.5 and 66.5.
+    Re-authored for the 96-unit roof v2.6 widened the small house to. It was still drawn on the
+    80-unit roof, so on a device the drift sat short of both eaves and off-centre against the
+    ridge - the "storto" in the v2.6 device pass. Every x below is the old cap's, mapped through
+    the roof's own change: the left half from [0,30] to [0,38], the ridge from [30,50] to [38,58],
+    the right half mirrored. The four units of crest above the ridge, the shadow inset and the
+    scalloped lower edge are the shape that was approved; only the roof under them moved.
 
-    Two polygons, cool shadow under white, which is the recipe tree_canopy_snowcap already uses —
+    Two polygons, cool shadow under white, which is the recipe tree_canopy_snowcap already uses -
     and the reason this sprite carries colour at all. It is blitted untinted, so an achromatic
     white mask would be the tint-class defect DESIGN_NOTES decision 25 exists to prevent.
   -->
-<polygon points="13.5,26 26,4 30,0 50,0 54,4 66.5,26 60,26 50,33 40,26 30,33 20,26"></polygon>
-        <polygon points="13.5,26 26,4 30,0 50,0 54,4 66.5,26 60,21 50,28 40,21 30,28 20,21"></polygon>
+<polygon points="17.1,26 32.93,4 38,0 58,0 63.07,4 78.9,26 70.67,26 58,33 48,26 38,33 25.33,26"></polygon>
+        <polygon points="17.1,26 32.93,4 38,0 58,0 63.07,4 78.9,26 70.67,21 58,28 48,21 38,28 25.33,21"></polygon>
 </g>
   <!--
     Snow lying on house_small_roof, cut to that roof's own slopes.
 
-    The canvas is the roof's 80x40 with four units added at the top, so the drift can crest above
-    the ridge instead of stopping level with it - that crest is what makes it read as a layer
-    resting on the roof rather than as the roof repainted white. Everything below the ridge stays
-    strictly inside the roof outline: at the cap's lowest point the left slope is at x=9.75 and the
-    right at x=70.25, and the shadow's corners sit at 13.5 and 66.5.
+    Re-authored for the 96-unit roof v2.6 widened the small house to. It was still drawn on the
+    80-unit roof, so on a device the drift sat short of both eaves and off-centre against the
+    ridge - the "storto" in the v2.6 device pass. Every x below is the old cap's, mapped through
+    the roof's own change: the left half from [0,30] to [0,38], the ridge from [30,50] to [38,58],
+    the right half mirrored. The four units of crest above the ridge, the shadow inset and the
+    scalloped lower edge are the shape that was approved; only the roof under them moved.
 
-    Two polygons, cool shadow under white, which is the recipe tree_canopy_snowcap already uses —
+    Two polygons, cool shadow under white, which is the recipe tree_canopy_snowcap already uses -
     and the reason this sprite carries colour at all. It is blitted untinted, so an achromatic
     white mask would be the tint-class defect DESIGN_NOTES decision 25 exists to prevent.
   -->
-<polygon points="13.5,26 26,4 30,0 50,0 54,4 66.5,26 60,26 50,33 40,26 30,33 20,26" fill="#DCE7EF"></polygon>
-        <polygon points="13.5,26 26,4 30,0 50,0 54,4 66.5,26 60,21 50,28 40,21 30,28 20,21" fill="#FFFFFF"></polygon>
+<polygon points="17.1,26 32.93,4 38,0 58,0 63.07,4 78.9,26 70.67,26 58,33 48,26 38,33 25.33,26" fill="#c9d6e0"></polygon>
+        <polygon points="17.1,26 32.93,4 38,0 58,0 63.07,4 78.9,26 70.67,21 58,28 48,21 38,28 25.33,21" fill="#ffffff"></polygon>
 
 </svg>

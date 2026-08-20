@@ -231,15 +231,20 @@ class SceneSpaceTest {
 
     @Test
     fun `the size table is ordered the way the real objects are`() {
+        // **The shops moved above the houses in v2.7, and that is the fix rather than a
+        // relaxation.** They were measured as a single domestic storey, which put a restaurant
+        // below a cottage and a bar below that -- so on a device a parade of shops read as
+        // outbuildings behind the houses instead of as the commercial frontage they draw. A shop
+        // storey is taller than a domestic one and carries a parapet above it.
         val ordered = listOf(
             SceneSpace.SceneVariant.PUMPKIN,
             SceneSpace.SceneVariant.BUNNY,
             SceneSpace.SceneVariant.EASTER_EGG,
             SceneSpace.SceneVariant.PARASOL,
-            SceneSpace.SceneVariant.BAR,
-            SceneSpace.SceneVariant.RESTAURANT,
             SceneSpace.SceneVariant.HOUSE_SMALL,
             SceneSpace.SceneVariant.HOUSE_LARGE,
+            SceneSpace.SceneVariant.BAR,
+            SceneSpace.SceneVariant.RESTAURANT,
             SceneSpace.SceneVariant.TREE,
             SceneSpace.SceneVariant.TOWER,
         )
@@ -257,6 +262,17 @@ class SceneSpaceTest {
         // A snowman and a gift are smaller than the person who built and wrapped them.
         assertTrue(SceneSpace.SceneVariant.SNOWMAN.metresTall < SceneSpace.PERSON_METRES_TALL)
         assertTrue(SceneSpace.SceneVariant.GIFT.metresTall < SceneSpace.SceneVariant.SNOWMAN.metresTall)
+        // Stated as its own relation as well as through the chain above, because "a commercial
+        // building out-tops a house" is the property the v2.6 device pass reported missing, and a
+        // chain can be satisfied by moving either end of it.
+        assertTrue(
+            "a bar should out-top the largest house",
+            SceneSpace.SceneVariant.BAR.metresTall > SceneSpace.SceneVariant.HOUSE_LARGE.metresTall,
+        )
+        assertTrue(
+            "a tower should out-top a shop by a clear margin",
+            SceneSpace.SceneVariant.TOWER.metresTall > SceneSpace.SceneVariant.RESTAURANT.metresTall * 2f,
+        )
     }
 
     @Test
