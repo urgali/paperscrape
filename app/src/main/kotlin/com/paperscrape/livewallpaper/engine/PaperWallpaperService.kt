@@ -7,9 +7,12 @@ import android.service.wallpaper.WallpaperService
 import android.view.SurfaceHolder
 import com.paperscrape.livewallpaper.location.DeviceLocationFix
 import com.paperscrape.livewallpaper.location.DeviceLocationProvider
+import com.paperscrape.livewallpaper.location.LocationSource
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.weather.LiveWeatherInputs
+import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import com.paperscrape.livewallpaper.weather.WeatherRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -172,7 +175,16 @@ class PaperWallpaperService : WallpaperService() {
          * flow, and the weather loop evaluates every two minutes.
          */
         @Volatile
-        private var publishedWeatherFallback: Boolean? = null
+        private var publishedWeatherStatus: LiveWeatherStatus? = null
+
+        /**
+         * Which of the two mutually exclusive location sources the current [lastLocationFix] came
+         * from.
+         *
+         * Exists because `hasFixLocation` alone cannot answer "is this fix still the right kind" --
+         * see the collector for the bug that produced.
+         */
+        private var locationSource: LocationSource = LocationSource.NONE
         private var lastAppliedThemeId = "sunset"
         private var lastAppliedCustomization: SceneCustomization = SceneCustomization.DEFAULT
 
@@ -256,10 +268,14 @@ class PaperWallpaperService : WallpaperService() {
                     // before anything can observe the change, removes the window entirely.
                     val previousSettings = settings
                     settings = newSettings
-                    val liveWeatherChanged =
-                        newSettings.liveWeatherEnabled != previousSettings.liveWeatherEnabled ||
-                            newSettings.liveWeatherApiKey != previousSettings.liveWeatherApiKey
-                    if (liveWeatherChanged) {
+                    // Every input the next fetch would use. Switching provider, or entering the
+                    // key the selected provider was waiting for, is exactly as much a reason to
+                    // re-check as flipping the switch: the answer on screen came from a different
+                    // service, or from no service at all.
+                    if (LiveWeatherInputs.changed(previousSettings, newSettings)) {
+                        // Ignore the cached hourly timer. This is what makes OFF -> ON fetch now
+                        // instead of at the next tick; the check-interval loop only ever decides
+                        // *whether* a fetch is due, and this is what makes it due.
                         lastWeatherFetchMillis = 0L
                         weatherWakeUp.trySend(Unit)
                     }
@@ -270,6 +286,23 @@ class PaperWallpaperService : WallpaperService() {
                         renderer?.swipeScrollEnabled = newSettings.swipeScroll
                         renderer?.scrollSpeed = newSettings.scrollSpeed
                         if (changed) requestRedraw()
+                    }
+                    // **A fix belongs to the source it came from.** `hasFixLocation` used to be
+                    // set by both the GPS and the custom paths, so switching Custom -> Phone found
+                    // it already true, returned from maybeStartLocationUpdates without ever
+                    // starting the provider, and left `lastLocationFix` holding the *custom*
+                    // coordinates -- measured on a Pixel 9, where selecting Phone kept fetching
+                    // Florence's weather. Treating a source change as an invalidation is what
+                    // makes the two sources actually exclusive at runtime and not only in prefs.
+                    val requestedSource = LocationSource.of(newSettings)
+                    if (requestedSource != locationSource) {
+                        locationSource = requestedSource
+                        hasFixLocation = false
+                        lastLocationFix = null
+                        // The conditions on screen are the old source's. Nothing about them is
+                        // worth keeping, so the next pass must fetch rather than compare.
+                        lastWeatherFetchLocation = null
+                        lastWeatherFetchMillis = 0L
                     }
                     if (newSettings.useLocationForSunTimes) {
                         maybeStartLocationUpdates()
@@ -309,38 +342,49 @@ class PaperWallpaperService : WallpaperService() {
                     // hour, because the timer was the only gate.
                     val movedSinceLastFetch = fix != null && fix != lastWeatherFetchLocation
                     val timerExpired = System.currentTimeMillis() - lastWeatherFetchMillis >= WEATHER_REFRESH_INTERVAL_MS
+                    val provider = settings.weatherProvider
                     if (settings.liveWeatherEnabled && fix != null && (movedSinceLastFetch || timerExpired)) {
                         lastWeatherFetchMillis = System.currentTimeMillis()
                         lastWeatherFetchLocation = fix
-                        val snapshot = WeatherRepository.fetchCurrentConditions(
+                        val result = WeatherRepository.fetchCurrentConditions(
+                            providerId = provider,
                             latitude = fix.latitude,
                             longitude = fix.longitude,
-                            userApiKey = settings.liveWeatherApiKey,
+                            apiKey = settings.apiKeyForWeatherProvider,
                         )
-                        // Null on any failure -- leaves the *previous* snapshot in place rather
-                        // than clearing it, so a single dropped network call doesn't momentarily
-                        // revert the scene to the theme's manual precipitation/clouds settings;
-                        // it just keeps showing the last known-good conditions until the next
-                        // successful fetch an hour later.
+                        // A failure leaves the *previous* snapshot in place rather than clearing
+                        // it, so one dropped request doesn't momentarily revert the scene to the
+                        // theme's manual precipitation/clouds; it keeps showing the last
+                        // known-good conditions until the next successful fetch.
+                        val snapshot = WeatherRepository.snapshotOf(result)
                         if (snapshot != null) {
                             onRenderThread {
                                 renderer?.liveWeatherOverride = snapshot
                                 requestRedraw()
                             }
                         }
-                        // A fetch that fails leaves the previous snapshot in place, so the scene
-                        // is only really running on the theme's own weather when there is no
-                        // snapshot at all.
-                        publishWeatherFallback(snapshot == null && renderer?.liveWeatherOverride == null)
+                        // A missing key is not a transient. Nothing was sent, nothing will succeed
+                        // until the user acts, and the two-minute tick would otherwise retry a
+                        // request that cannot be made -- so the timer is left running rather than
+                        // reset, and the status says what is wrong.
+                        publishWeatherStatus(
+                            LiveWeatherStatus.of(
+                                enabled = true,
+                                hasLocation = true,
+                                result = result,
+                                hasSnapshotInEffect = snapshot != null || renderer?.liveWeatherOverride != null,
+                                previous = publishedWeatherStatus ?: LiveWeatherStatus.OFF,
+                            ),
+                        )
                     } else if (settings.liveWeatherEnabled && fix == null) {
                         // **Live Weather is on and has nowhere to check.** The scene keeps running
                         // on the theme's own clouds and precipitation, which is a valid scene and
                         // exactly what it shows with Live Weather off -- the failure was never
                         // that the scene broke, it was that the switch looked dead and nothing
                         // said why. Saying so is the whole fix; the renderer is left alone.
-                        publishWeatherFallback(true)
+                        publishWeatherStatus(LiveWeatherStatus.NO_LOCATION)
                     } else if (!settings.liveWeatherEnabled) {
-                        publishWeatherFallback(false)
+                        publishWeatherStatus(LiveWeatherStatus.OFF)
                         if (renderer?.liveWeatherOverride != null) {
                             lastWeatherFetchMillis = 0L
                             lastWeatherFetchLocation = null
@@ -588,10 +632,10 @@ class PaperWallpaperService : WallpaperService() {
          * Only on a change, because every write re-emits the settings flow to every collector and
          * this is evaluated on a two-minute tick.
          */
-        private fun publishWeatherFallback(active: Boolean) {
-            if (publishedWeatherFallback == active) return
-            publishedWeatherFallback = active
-            scope.launch { prefs.setLiveWeatherFallbackActive(active) }
+        private fun publishWeatherStatus(status: LiveWeatherStatus) {
+            if (publishedWeatherStatus == status) return
+            publishedWeatherStatus = status
+            scope.launch { prefs.setLiveWeatherStatus(status) }
         }
 
         private fun maybeStartLocationUpdates() {

@@ -25,6 +25,8 @@ import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.RainbowConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
+import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
+import com.paperscrape.livewallpaper.weather.WeatherProviderId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -51,15 +53,37 @@ data class WallpaperSettings(
     val liveWeatherEnabled: Boolean = false,
     val liveWeatherApiKey: String = "",
     /**
-     * Whether Live Weather is on but has no location to check the weather for, so the scene is
-     * running on the theme's own manual clouds and precipitation instead.
+     * Which service Live Weather fetches from, stored by
+     * [com.paperscrape.livewallpaper.weather.WeatherProviderId.storageId].
+     *
+     * A string rather than the enum so that reordering the enum cannot reinterpret an existing
+     * install's choice, and an unrecognised value reads as the default instead of crashing
+     * forward. Separate from every other weather setting on purpose: changing provider must not
+     * disturb the location, the toggle, or the other provider's key.
+     */
+    val weatherProviderId: String = WeatherProviderId.DEFAULT.storageId,
+    /**
+     * The user's Visual Crossing key. Never compiled in, never logged, never sent anywhere but
+     * Visual Crossing -- unlike Open-Meteo's, whose free tier makes a shipped key sensible.
+     *
+     * Kept apart from [liveWeatherApiKey] so that switching provider and back does not lose
+     * either one.
+     */
+    val visualCrossingApiKey: String = "",
+    /**
+     * What Live Weather is actually doing, as a [LiveWeatherStatus.storageId].
+     *
+     * v2.13 had a boolean here that could only say "running on the theme's own weather". With a
+     * provider that can require an API key there are now reasons the settings screen must tell
+     * apart -- a missing key is one tap from fixed, a dropped request is not -- so this carries
+     * the reason rather than the symptom.
      *
      * **Written by the wallpaper service, read by the settings screen** -- the only direction any
      * of these flow, and the reason it is here rather than in a separate store: the settings flow
      * already reaches the UI without a restart, so a status published through it appears the
      * moment it changes. It is not a user preference and nothing in the UI sets it.
      */
-    val liveWeatherFallbackActive: Boolean = false,
+    val liveWeatherStatus: String = LiveWeatherStatus.OFF.storageId,
     /**
      * Whether opening the settings screen may check GitHub for a new release.
      *
@@ -104,7 +128,30 @@ data class WallpaperSettings(
      * where you left off), but they simply won't apply anywhere except that one theme. */
     val pendingCustomization: SceneCustomization = SceneCustomization.DEFAULT,
     val pendingCustomizationThemeId: String? = null,
-)
+) {
+
+    /** [weatherProviderId] resolved; an unrecognised stored id reads as the default. */
+    val weatherProvider: WeatherProviderId
+        get() = WeatherProviderId.fromStorageId(weatherProviderId)
+
+    /**
+     * The key the **selected** provider should be called with.
+     *
+     * Each provider keeps its own, so switching back and forth loses neither. Open-Meteo's may be
+     * blank, which its free keyless tier accepts; Visual Crossing's may not, and a blank one there
+     * is what produces [com.paperscrape.livewallpaper.weather.WeatherFetchResult.MissingApiKey]
+     * instead of a request.
+     */
+    val apiKeyForWeatherProvider: String
+        get() = when (weatherProvider) {
+            WeatherProviderId.OPEN_METEO -> liveWeatherApiKey
+            WeatherProviderId.VISUAL_CROSSING -> visualCrossingApiKey
+        }
+
+    /** [liveWeatherStatus] resolved. */
+    val liveWeather: LiveWeatherStatus
+        get() = LiveWeatherStatus.fromStorageId(liveWeatherStatus)
+}
 
 /** Object categories that can be individually customized (visibility, density, 2x day/night
  * colors). The first 5 are structural (houses/buildings/cars/parasols/trees); the rest are
@@ -143,7 +190,9 @@ class WallpaperPrefs(private val context: Context) {
         val CUSTOM_LOCATION_LABEL = stringPreferencesKey("custom_location_label")
         val LIVE_WEATHER_ENABLED = booleanPreferencesKey("live_weather_enabled")
         val LIVE_WEATHER_API_KEY = stringPreferencesKey("live_weather_api_key")
-        val LIVE_WEATHER_FALLBACK_ACTIVE = booleanPreferencesKey("live_weather_fallback_active")
+        val WEATHER_PROVIDER = stringPreferencesKey("weather_provider")
+        val VISUAL_CROSSING_API_KEY = stringPreferencesKey("visual_crossing_api_key")
+        val LIVE_WEATHER_STATUS = stringPreferencesKey("live_weather_status")
         val AUTOMATIC_UPDATE_CHECK = booleanPreferencesKey("automatic_update_check")
         val RESOLVED_GPS_LAT = floatPreferencesKey("resolved_gps_lat")
         val RESOLVED_GPS_LON = floatPreferencesKey("resolved_gps_lon")
@@ -249,7 +298,9 @@ class WallpaperPrefs(private val context: Context) {
             customLocationLabel = prefs[Keys.CUSTOM_LOCATION_LABEL] ?: "",
             liveWeatherEnabled = prefs[Keys.LIVE_WEATHER_ENABLED] ?: false,
             liveWeatherApiKey = prefs[Keys.LIVE_WEATHER_API_KEY] ?: "",
-            liveWeatherFallbackActive = prefs[Keys.LIVE_WEATHER_FALLBACK_ACTIVE] ?: false,
+            weatherProviderId = prefs[Keys.WEATHER_PROVIDER] ?: WeatherProviderId.DEFAULT.storageId,
+            visualCrossingApiKey = prefs[Keys.VISUAL_CROSSING_API_KEY] ?: "",
+            liveWeatherStatus = prefs[Keys.LIVE_WEATHER_STATUS] ?: LiveWeatherStatus.OFF.storageId,
             automaticUpdateCheckEnabled = prefs[Keys.AUTOMATIC_UPDATE_CHECK] ?: false,
             resolvedGpsLatitude = prefs[Keys.RESOLVED_GPS_LAT],
             resolvedGpsLongitude = prefs[Keys.RESOLVED_GPS_LON],
@@ -400,6 +451,13 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setLiveWeatherApiKey(apiKey: String) =
         context.dataStore.edit { it[Keys.LIVE_WEATHER_API_KEY] = apiKey }
 
+    /** Writes only the provider. Nothing else about Live Weather or the location is touched. */
+    suspend fun setWeatherProvider(provider: WeatherProviderId) =
+        context.dataStore.edit { it[Keys.WEATHER_PROVIDER] = provider.storageId }
+
+    suspend fun setVisualCrossingApiKey(apiKey: String) =
+        context.dataStore.edit { it[Keys.VISUAL_CROSSING_API_KEY] = apiKey }
+
     /**
      * Records whether Live Weather has fallen back to the theme's manual weather.
      *
@@ -411,8 +469,8 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setAutomaticUpdateCheckEnabled(enabled: Boolean) =
         context.dataStore.edit { it[Keys.AUTOMATIC_UPDATE_CHECK] = enabled }
 
-    suspend fun setLiveWeatherFallbackActive(active: Boolean) =
-        context.dataStore.edit { it[Keys.LIVE_WEATHER_FALLBACK_ACTIVE] = active }
+    suspend fun setLiveWeatherStatus(status: LiveWeatherStatus) =
+        context.dataStore.edit { it[Keys.LIVE_WEATHER_STATUS] = status.storageId }
 
     suspend fun setResolvedGpsLocation(latitude: Float, longitude: Float) =
         context.dataStore.edit {

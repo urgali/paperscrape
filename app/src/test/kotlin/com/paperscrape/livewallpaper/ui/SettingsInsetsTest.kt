@@ -6,93 +6,84 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The rule that keeps the last row of a scrolled settings screen off the gesture bar.
+ * The rule that keeps the last row of a scrolled settings screen reachable.
  *
- * The bug this fixes was not that one screen had too little padding: it was that each screen
- * carried its own, and that the destinations are full-screen dialogs whose own window can report
- * no bottom inset at all. Both halves are pinned here -- the spacing grows with a real inset, and
- * it never falls below a floor when there isn't one.
+ * The measurement behind it is in [SettingsInsets]'s own documentation: on a Pixel 9 the dialog
+ * that hosts every settings destination has a window frame of `[0,142][1079,2361]` -- 2219 px --
+ * while its content is measured against the 2424 px display, so 204 px of every screen was laid
+ * out outside the window and clipped. What is pinned here is the arithmetic that sizes the content
+ * to the window instead, and the fact that the trailing spacer is no longer carrying the inset.
  */
 class SettingsInsetsTest {
 
+    /** The Pixel 9 figures, in dp: 2424 px / 2.625 = 923 dp, 142 px = 54 dp, 63 px = 24 dp. */
     @Test
-    fun `a reported inset is respected and given breathing room on top`() {
-        assertEquals(
-            48.dp + SettingsInsets.EXTRA_BOTTOM_SPACING,
-            SettingsInsets.bottomSpacing(48.dp, 48.dp),
+    fun `the measured Pixel 9 case reproduces the window frame`() {
+        val height = SettingsInsets.safeAreaHeight(
+            displayHeight = 923.dp,
+            topInset = 54.dp,
+            bottomInset = 24.dp,
         )
+        assertEquals(845.dp, height)
     }
 
     @Test
-    fun `a gesture bar sized inset still clears the bar`() {
-        val spacing = SettingsInsets.bottomSpacing(24.dp, 24.dp)
-        assertTrue("$spacing must clear a 24 dp gesture bar", spacing > 24.dp)
-    }
-
-    /**
-     * The case the bug actually came from: inside a `Dialog` window that fits system windows
-     * itself, `safeDrawing` measures zero while the content still runs to the bottom of the
-     * display. The floor is what keeps the last row reachable there.
-     */
-    @Test
-    fun `no reported inset falls back to the minimum rather than to nothing`() {
-        assertEquals(SettingsInsets.MINIMUM_BOTTOM_SPACING, SettingsInsets.bottomSpacing(0.dp, 0.dp))
-    }
-
-    @Test
-    fun `a nonsensical negative inset cannot pull content back under the bar`() {
-        assertEquals(SettingsInsets.MINIMUM_BOTTOM_SPACING, SettingsInsets.bottomSpacing((-40).dp, (-40).dp))
-    }
-
-    @Test
-    fun `spacing never decreases as the system reserves more space`() {
-        var previous = SettingsInsets.bottomSpacing(0.dp, 0.dp)
-        for (inset in listOf(8, 16, 24, 32, 48, 64, 96)) {
-            val spacing = SettingsInsets.bottomSpacing(inset.dp, inset.dp)
-            assertTrue("spacing shrank at $inset dp", spacing >= previous)
-            previous = spacing
-        }
+    fun `both insets are subtracted`() {
+        assertEquals(700.dp, SettingsInsets.safeAreaHeight(800.dp, topInset = 60.dp, bottomInset = 40.dp))
     }
 
     /**
-     * Every screen -- a two-row one and a fifty-row one alike -- ends with the same spacer, because
-     * the shells apply it rather than the screens. Content length is not an input, and this test
-     * exists to say that the day someone is tempted to make it one.
+     * The first composition pass reports nothing, because the activity's window has not been
+     * measured yet. Collapsing the screen would be worse than one frame of the pre-fix layout, so
+     * the display height is used unchanged.
      */
     @Test
-    fun `spacing does not depend on how much content a screen has`() {
-        val shortScreen = SettingsInsets.bottomSpacing(24.dp, 24.dp)
-        val longScreen = SettingsInsets.bottomSpacing(24.dp, 24.dp)
-        assertEquals(shortScreen, longScreen)
-    }
-
-    /**
-     * The v2.10 fix asked one window and trusted it. On the Pixel 9 that was not enough, because
-     * a settings destination is a dialog with a window of its own and only one of the two is
-     * telling the truth at any moment. These pin the rule that replaced it.
-     */
-    @Test
-    fun `the window that knows the inset is the one that decides`() {
-        // Dialog reports nothing, activity has the real figure.
-        assertEquals(48.dp + SettingsInsets.EXTRA_BOTTOM_SPACING, SettingsInsets.bottomSpacing(0.dp, 48.dp))
-        // The other way round: the dialog measured it, the activity's value is stale.
-        assertEquals(48.dp + SettingsInsets.EXTRA_BOTTOM_SPACING, SettingsInsets.bottomSpacing(48.dp, 0.dp))
+    fun `insets that are not known yet leave the height alone`() {
+        assertEquals(923.dp, SettingsInsets.safeAreaHeight(923.dp, topInset = 0.dp, bottomInset = 0.dp))
     }
 
     @Test
-    fun `disagreeing windows never produce less space than the larger one asks for`() {
-        for (dialog in listOf(0, 16, 24, 48, 64)) {
-            for (activity in listOf(0, 16, 24, 48, 64)) {
-                val spacing = SettingsInsets.bottomSpacing(dialog.dp, activity.dp)
-                val larger = maxOf(dialog, activity).dp
-                assertTrue("$dialog/$activity", spacing >= larger + SettingsInsets.EXTRA_BOTTOM_SPACING)
+    fun `a negative inset is ignored rather than added back`() {
+        assertEquals(900.dp, SettingsInsets.safeAreaHeight(923.dp, topInset = (-10).dp, bottomInset = 23.dp))
+    }
+
+    /** Insets larger than the display cannot happen, but a negative height must not escape. */
+    @Test
+    fun `an impossible pair never produces a negative height`() {
+        val height = SettingsInsets.safeAreaHeight(100.dp, topInset = 200.dp, bottomInset = 200.dp)
+        assertTrue(height >= 0.dp)
+    }
+
+    @Test
+    fun `the height never exceeds the display`() {
+        for (top in 0..120 step 8) {
+            for (bottom in 0..120 step 8) {
+                val height = SettingsInsets.safeAreaHeight(923.dp, top.dp, bottom.dp)
+                assertTrue("$top/$bottom", height <= 923.dp)
             }
         }
     }
 
+    /** More inset, less content. Stated as a property because both edges feed the same subtraction. */
     @Test
-    fun `neither window knowing still clears a gesture bar`() {
-        assertEquals(SettingsInsets.MINIMUM_BOTTOM_SPACING, SettingsInsets.bottomSpacing(0.dp, 0.dp))
-        assertTrue(SettingsInsets.bottomSpacing(0.dp, 0.dp) > 24.dp)
+    fun `the height never grows as an inset grows`() {
+        var previous = SettingsInsets.safeAreaHeight(923.dp, 0.dp, 24.dp)
+        for (top in 1..120) {
+            val height = SettingsInsets.safeAreaHeight(923.dp, top.dp, 24.dp)
+            assertTrue("top $top", height <= previous)
+            previous = height
+        }
+    }
+
+    /**
+     * Breathing room is a constant now. The regression this guards against is it drifting back
+     * into being the inset's substitute, which is what it was in v2.10 and v2.12: it must stay
+     * small enough that it is obviously not one.
+     */
+    @Test
+    fun `breathing room is a small constant, not a stand-in for the inset`() {
+        assertEquals(24.dp, SettingsInsets.BOTTOM_BREATHING_ROOM)
+        assertTrue(SettingsInsets.BOTTOM_BREATHING_ROOM > 0.dp)
+        assertTrue(SettingsInsets.BOTTOM_BREATHING_ROOM < 48.dp)
     }
 }

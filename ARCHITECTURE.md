@@ -65,7 +65,7 @@ PaperScrape/
 
 | File | Responsibility |
 |---|---|
-| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. |
+| `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed or the location did. |
 | `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains, hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
 | `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, buildings, trees, parasols, seasonal decorations), the road, cars and people. |
 | `SpriteBlitter.kt` | The single sprite-blitting path, shared by both renderers, plus the `SpriteScale` convention selector and the one definition of `SPRITE_PIXELS_PER_UNIT`. |
@@ -82,6 +82,7 @@ PaperScrape/
 | `SceneObject.kt` | Scene object data model (`StaticSceneObject`, `CarObject`, `SceneObjectLayout`) and `SceneObjectCatalog`, which generates candidate slots per category. |
 | `SceneTheme.kt` | Theme data model and built-in theme catalog. |
 | `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, lake, birds config. |
+| `LiveWeatherSceneRules.kt` | Which layer's settings win while Live Weather is active. Pure, because the defect it prevents is not a wrong value in either layer but the two layers disagreeing: precipitation ignored the theme's own switch under the forecast and clouds did not, so rain fell from an empty sky. |
 | `CustomThemeData.kt` | JSON (de)serialisation of custom themes and overrides. |
 | `CustomThemeRegistry.kt` | Synchronous in-memory cache of custom themes, with a `generation()` counter used to detect changes. |
 | `RandomSceneGenerator.kt` | Procedural theme/layout generation for the "Random" theme. |
@@ -94,13 +95,43 @@ PaperScrape/
 - `prefs/WallpaperPrefs.kt` — main DataStore store, exposes `settingsFlow`.
 - `prefs/CustomThemeStore.kt` — separate DataStore for custom themes/overrides.
 - `location/DeviceLocationProvider.kt` — the device fix.
+- `location/LocationSource.kt` — which of the two mutually exclusive sources a held fix came from.
+  The engine invalidates the fix when the source changes; without it a custom location survived a
+  switch to phone location and Live Weather kept querying the old coordinates.
 - `location/LocationLabelResolver.kt` — reverse geocoding through the platform `Geocoder`, which
   needs no network where a device supports it.
 - `location/CityGeocoder.kt` — forward search by city name, through Open-Meteo's keyless geocoding
   API (the same provider Live Weather uses, and the same `HttpURLConnection` style). The response
   parser and the small in-memory search cache are separated from the network call so both are
   unit-testable.
-- `weather/WeatherRepository.kt` — Open-Meteo, `HttpURLConnection`, `Dispatchers.IO`.
+- `weather/` — the Live Weather pipeline, one step per file:
+  `provider → normalised WeatherObservation → WeatherRepository → cache/scheduler → scene`.
+  - `WeatherProvider.kt` — the interface every service implements, plus `WeatherProviderId`
+    (stored by string id, not ordinal), `WeatherFetchResult` and `WeatherFailure`. A provider owns
+    its endpoint, its query and its response shape and nothing else: not the schedule, not the
+    cache, not the preferences, not the renderer.
+  - `WeatherObservation.kt` — the normalised model both providers produce: temperature, cloud
+    cover, precipitation, rain, showers, snowfall, a normalised `WeatherCondition`, a timestamp,
+    and the provider it came from. Every field is nullable because "not reported" and "reported
+    zero" are different facts the mapping depends on.
+  - `OpenMeteoProvider.kt` — the default. Keyless free tier; a key only upgrades the endpoint.
+    Splits precipitation into rain/showers/snowfall, which is why the model has room for it.
+  - `VisualCrossingProvider.kt` — the Timeline API. **Requires a key** (no anonymous tier), which
+    is why `WeatherFetchResult.MissingApiKey` exists: without one no request is made at all. No
+    key for it is compiled into the app.
+  - `WeatherSnapshotMapper.kt` — observation → `LiveWeatherSnapshot`, the renderer's vocabulary.
+    **A measurement, where one exists, is the answer.** The summary code only chooses the *kind*
+    when a positive total has no breakdown to explain it, and only decides whether anything falls
+    at all when the provider reported no measurements — otherwise four readings of zero would keep
+    being outvoted by a code, which is what rained on a dry Florence afternoon in v2.13.
+  - `WeatherRepository.kt` — dispatches to the selected provider. **No silent fallback between
+    providers:** a failure is reported as one and the selection stands.
+  - `LiveWeatherStatus.kt` — what Live Weather is actually doing (`OFF`, `OK`, `NO_LOCATION`,
+    `MISSING_API_KEY`, `FAILED`, `STALE`), written by the service and read by the settings screen.
+  - `LiveWeatherInputs.kt` — which settings force an immediate fetch rather than waiting for the
+    hourly refresh. Pure, so the list cannot quietly fall behind the settings again.
+  - `WeatherHttp.kt` — the one `HttpURLConnection` JSON GET both providers share, and the pure
+    status → `WeatherFailure` mapping.
 - `update/UpdateChecker.kt`, `update/UpdatePrefs.kt` — GitHub Releases API.
 - `update/ReleaseAssets.kt` — which attachment is the APK and which is its checksum (exact names),
   how a `sha256sum` file is read, and whether a downloaded package may be installed. All pure, all
@@ -122,10 +153,18 @@ PaperScrape/
     and no Android imports, so both directions are unit-tested.
   - `SceneCategorySections.kt` — the per-category and per-mountain-layer editors.
   - `ThemePreview.kt` — draws a theme's preview scene; see `engine/ThemePreviewScene.kt`.
-  - `SettingsInsets.kt` — the single bottom-spacing rule for every scrolling screen. The
-    destinations are full-screen `Dialog`s whose own window can report no bottom inset, so the
-    inset is measured in the activity's composition and passed down through
-    `LocalSettingsBottomInset`; the shells apply it, screens never set their own.
+  - `SettingsInsets.kt` — how a settings destination is **sized**. Every destination is a
+    full-screen `Dialog`, and with `usePlatformDefaultWidth = false` Compose measures the dialog's
+    content against the *display* while the window manager sizes the window to the space between
+    the system bars. On a Pixel 9 that is 2423 px of content in a 2219 px window
+    (`frame=[0,142][1079,2361]`, from `dumpsys window`), so the last 204 px of every screen was
+    laid out outside the window and clipped — which is what the bottom-spacing bug always was, and
+    why two rounds of padding could not fix it. The content is now given the height of the area
+    its window occupies: the display less the insets the **activity** measures, passed down
+    through `LocalSettingsTopInset`/`LocalSettingsBottomInset`. The scaffold inside reserves the
+    dialog's *own* insets — zero exactly when the window already fits the bars — so a device whose
+    dialog window is full-bleed instead is handled by the same code. The trailing spacer is a
+    24 dp constant again; the shells apply all of it, screens never set their own.
   - `theme/PaperScrapeTheme.kt` — the complete Material 3 colour scheme, light and dark.
 
 ---

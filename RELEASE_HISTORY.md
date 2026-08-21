@@ -19,9 +19,195 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.14 — the settings screens were the wrong size, the sky was not the forecast's, and a second weather provider
+
+**Stable / latest.** `versionCode = 18`, `versionName = "2.14"`. Tag `v2.14`.
+
+### Live Weather drew rain out of a dry forecast, and clouds out of nothing at all
+
+Reported after the rest of v2.14 was already written and fixed before the tag: with Custom Location
+= Florence during real rain, the sky showed no clouds while rain fell. Reproduced from a clean
+install on a fresh Android 17 emulator (`sdk_gphone16k_x86_64`, 1080x2424 at 420 dpi) with the
+whole pipeline instrumented, and it turned out to be **two independent defects that happened to
+compose into one symptom**.
+
+**What the provider actually said.** The request the running app made, and the reply, captured from
+logcat at 13:15 local:
+
+```
+GET https://api.open-meteo.com/v1/forecast?latitude=43.77925109863281&longitude=11.246259689331055
+    &current=temperature_2m,precipitation,rain,showers,snowfall,weather_code,cloud_cover&timezone=auto
+200  {"current":{"time":"2026-08-21T13:15","temperature_2m":25.3,"precipitation":0.00,"rain":0.00,
+                 "showers":0.00,"snowfall":0.00,"weather_code":80,"cloud_cover":100}}
+```
+
+The same request issued directly from the diagnostic tooling returned the same body, which rules
+out caching, a timezone mismatch and a stale timestamp: the provider reports `Europe/Rome`,
+`utc_offset_seconds: 7200`, and a `current.time` inside the live quarter-hour. Fifteen minutes
+earlier the same coordinates had returned `weather_code: 3` with the same four zeroes -- the code
+alternates between "overcast" and "slight rain showers" across a dry hour while not one measurement
+moves.
+
+**Defect 1, normalisation.** v2.13's mapper put the measurements first and then fell back to the
+weather code **unconditionally**. So four measurements reading 0.00 were outvoted by a code, and the
+snapshot came out `precipitationType=RAIN, precipitationIntensity=0.15` -- the 0.15 being the
+minimum-visible floor, which is what a phantom looks like: drops with no millimetres behind them.
+v2.12 had the same bug pointing the other way (code-only, so measured rain under an overcast code
+drew a dry sky). The rule is now one sentence, and it cuts both ways: **a measurement, where one
+exists, is the answer.** The code only chooses the *kind* when a positive total has no breakdown to
+explain it, or decides anything at all when the provider reported no measurements whatsoever -- the
+case Open-Meteo's customer endpoint and Visual Crossing's response shape both produce.
+
+**Defect 2, the weather-to-scene step.** The two layers answered the same question differently:
+
+```
+drawPrecipitation:  if (liveOverride != null) { ... }    // the theme's own switch is not consulted
+drawClouds:         if (!clouds.visible) return          // consulted, and before the override
+```
+
+Measured on the device with the theme's cloud switch off and the forecast reporting full cover:
+
+```
+SCENE clouds.visible=false clouds.density=0.4 override.cloudCover=1.0 -> drawn=false
+SCENE precip.visible=false override.type=RAIN                          -> drawn=true
+```
+
+Rain from the forecast, no clouds from the same forecast. The settings screen promises that real
+conditions replace the theme's manual cloud setting; that is now true of both layers, via
+`engine/LiveWeatherSceneRules`, which is pure and therefore testable. A forecast reporting a clear
+sky draws no clouds whatever the theme's switch says, and the coverage field is treated as uniform
+whenever no clouds are placed so that precipitation the forecast *does* report is never silently
+cancelled by an empty field.
+
+**Verified on the emulator, against live data, per case:**
+
+| Case | Live reading | Scene |
+|---|---|---|
+| No precipitation, 0 % cloud (Concordia, Antarctica) | all zero, code 0 | clear sky, no clouds, no rain |
+| 100 % cloud, no precipitation (Florence) | precip/rain/showers/snow 0.00, code 80 | full cloud band, **no rain** |
+| 100 % cloud, rain and showers (Yangon) | precip 0.40, rain 0.20, showers 0.20 | grey cloud band **and** rain |
+
+The Yangon run was made with the theme's cloud switch still off -- the reported configuration --
+and rendered coherently.
+
+**Snow was not verified against a real event.** No location sampled had snowfall at the time of
+testing, so the snow path is covered by fixtures only. It is not a device observation and is not
+claimed as one.
+
+### The bottom-spacing bug was never spacing
+
+Changed in v2.10, changed again in v2.12, still wrong on the device in v2.13. It was fixed this
+time by measuring the window rather than reasoning about the padding.
+
+`dumpsys window` on the Pixel 9 (Android 16, gesture navigation, 1080x2424 at 2.625x), with a
+settings destination open:
+
+```
+mAttrs={(0,0)(1079x2423) gr=CENTER ... fitTypes=statusBars navigationBars captionBar systemOverlays}
+Frames: parent=[0,142][1080,2361] frame=[0,142][1079,2361]
+```
+
+The window is **2219 px** tall — display minus status bar (142 px) minus gesture bar (63 px) — and
+that is right. Its layout parameters ask for **2423 px**, because with `usePlatformDefaultWidth =
+false` Compose measures a dialog's content against the display, not against the window frame. So
+`Modifier.fillMaxSize()` laid out **204 px of every settings screen outside its own window**, where
+the window clipped it.
+
+The last rows were therefore not under the gesture bar; they were outside the window. That is why
+a trailing spacer could not fix it however large it was, and why scrolling to the very end still
+left the last row cut: the end of the content was off-window.
+
+Instrumented `WindowInsets` readings, logged from inside the running app, corroborate it exactly:
+
+| Where | `safeDrawing.bottom` | scaffold bottom | scroll viewport |
+|---|---|---|---|
+| Activity (home screen) | 63 px | 24 dp | `top=310 height=2051` → ends at 2361 |
+| Dialog (Weather & time), before | **0 px** | 0 dp | `top=168 height=2255` → ends at **2423** |
+| Dialog (Weather & time), after | 0 px | 0 dp | `top=168 height=2050` → ends at **2218** |
+
+The dialog's zero is correct — its window already fits the bars. The content was simply sized
+against the other window.
+
+**The fix.** The dialog's content is given the height of the area its window occupies: the display
+less the insets the activity measures (`SettingsInsets.safeAreaHeight`, pure and unit-tested). The
+scaffold inside reserves the dialog's *own* insets, which are zero exactly when the window is
+already inside the bars and real values on a device whose dialog window is full-bleed instead — so
+both arrangements work without the code asking which one it is on. The trailing spacer is a 24 dp
+constant again and carries no inset.
+
+**Verified by scrolling to the end and reading positions off the accessibility tree.** Weather &
+time's last row moved from y = 2380 (inside the gesture bar's 2361–2424 band) to y = 2238. Also
+checked at the end of the scroll on World & scene, Themes, Advanced & about, a form sub-screen,
+the home screen, and Weather & time with the keyboard open.
+
+### Live Weather: what was actually broken
+
+The reported bug was that switching Live Weather on did not fetch immediately. **It did.** Measured
+on the device with the preference write and the request both logged: the write landed at
+11:45:12.166 and the request started at 11:45:12.183 — 17 ms — with a custom location, and the
+same within a millisecond with phone location. v2.13's wake-up path was working.
+
+What the measurement *did* find is a different defect, in the same area. Switching Location from
+Custom to Phone left `lastLocationFix` holding the **custom** coordinates: `maybeStartLocationUpdates`
+returns early when a fix is already held, `hasFixLocation` was set by both sources, and nothing
+invalidated a fix when the source changed. Live Weather went on fetching Florence's weather with
+Phone selected, indefinitely. A fix now belongs to the `LocationSource` that produced it, and a
+change of source invalidates it.
+
+The immediate-refresh rule itself was also widened and made testable. v2.13 compared the toggle and
+Open-Meteo's key, which was a complete list at the time; `LiveWeatherInputs` now names every input
+a fetch depends on — the toggle, the provider, and both providers' keys — as one pure function with
+a test over it, because entering the Visual Crossing key is exactly the change that turns "no
+requests are being made" into "requests can be made" and would otherwise have been missed.
+
+### A second provider
+
+`WeatherProvider` is now an interface, and the pipeline is
+`provider → normalised WeatherObservation → WeatherRepository → cache/scheduler → scene`. A provider
+owns its endpoint, its query and its response shape and nothing else.
+
+`WeatherObservation` carries temperature, cloud cover, total precipitation, rain, showers,
+snowfall, a normalised `WeatherCondition`, a timestamp and the source. Every field is nullable,
+because **"not reported" and "reported zero" are different facts** and the mapping depends on
+telling them apart — Visual Crossing has no showers category at all, and reading its silence as
+"no showers" would reintroduce v2.12's bug from the other end.
+
+Open-Meteo's mapping is unchanged in behaviour: snowfall first, then rain-or-showers, then the
+code, then a positive total. Visual Crossing reports one `precip` figure plus a `preciptype` array,
+so millimetres are attributed to rain only when it says rain is falling, and its condition is read
+from the icon slug, the `conditions` text (the only place a thunderstorm appears on the free
+`icons1` set) and `preciptype` together.
+
+Visual Crossing **requires a key** — its free plan is 1,000 records a day and has no anonymous
+tier. Without one the provider returns `MissingApiKey` and sends nothing; the settings screen says
+so and offers the way back to Open-Meteo. No key for it is compiled into the app, added to a
+workflow, or logged, and the field is masked.
+
+**No silent fallback between providers.** A failure is reported as a failure and the selection
+stands.
+
+### What was verified on the device, and what was not
+
+Verified on the Pixel 9 through the Android MCP bridge: every bottom-spacing case above; the
+provider selector persisting and switching; the missing-key state; entering a key forcing an
+immediate fetch; that fetch reaching the real Visual Crossing host and being rejected, producing
+the `STALE` banner with Visual Crossing still selected; and switching back to Open-Meteo producing
+an immediate successful fetch.
+
+**Not verified:** a successful Visual Crossing response. No account was available, so its parser is
+tested against fixtures built from the published field list rather than captured from the wire, and
+the provider is **not** end-to-end verified. Nor is snowfall: no sampled location was snowing during
+testing, so that path rests on fixtures too.
+
+Measured: 636 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK, the settings work seen running on a Pixel 9, and the Live Weather work seen
+running on a clean Android 17 emulator against live Open-Meteo data.
+
+---
+
 ## v2.13 — the update button updates, and showers count as rain
 
-**Stable / latest.** `versionCode = 17`, `versionName = "2.13"`. Tag `v2.13`.
+`versionCode = 17`, `versionName = "2.13"`. Tag `v2.13`.
 
 ### The update dialog's main action opened a browser
 

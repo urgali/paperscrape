@@ -10,20 +10,28 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.13 Stable — the update button updates, and showers count as rain.**
+**v2.14 Stable — the settings screens were the wrong size, the sky was not the forecast's, and a
+second weather provider.**
 
-`versionCode = 17`, `versionName = "2.13"`. The update dialog offers Remind me later / Check
-project page / Install update, with the last one starting the in-app download instead of opening
-GitHub; a missing install permission now deep-links to PaperScrape's own page and resumes on
-return. Live Weather reads `rain`, `showers` and `snowfall` alongside `precipitation`, and trusts a
-measurement over a summary code.
+`versionCode = 18`, `versionName = "2.14"`. The bottom-spacing bug is closed: it was never
+spacing. A settings destination is a full-screen `Dialog` whose content Compose measures against
+the display while the window manager sizes the window to the space between the system bars — 2423
+px of content in a 2219 px window on the Pixel 9 — so the last 204 px of every screen was laid out
+outside the window and clipped. Content is now sized to the window. Live Weather gained a provider
+abstraction and Visual Crossing alongside Open-Meteo, with per-provider keys, a required-key state
+that makes no request, and no silent fallback between providers. Two Live Weather defects found by
+reproducing the reported Florence scene on a clean emulator and fixed before the tag: a weather code
+could outvote four measurements reading zero and rain on a dry forecast, and the theme's own cloud
+switch could veto the forecast's cloud cover while the same forecast's rain still drew.
 
-Last measured: 548 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
-producing an APK. **Not seen on a device.**
+Last measured: 636 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK. **Seen running on a Pixel 9** (Android 16, gesture navigation, 1080x2424 at
+2.625x) and on a **clean Android 17 emulator** against live Open-Meteo data — see
+`RELEASE_HISTORY.md` for exactly which paths were exercised and which were not.
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -38,7 +46,7 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 | 3 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
 | 4 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
 | 5 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
-| 6 | **Device pass, now three releases deep: bottom spacing (changed twice unseen), the updater, the aligned preview, and v2.12's sun/moon and people work** | Five destinations, a completed colour scheme and twelve mini-scene previews, none of it seen rendering. The previews in particular were verified by rasterising the scene description the code produces, not by the app drawing it. |
+| 6 | **Device pass on the parts v2.14 did not reach** | v2.14 saw the five destinations, the colour scheme and the settings shells rendering on a Pixel 9, which closes the bottom-spacing half of this. Still unseen: the updater's end-to-end run, the twelve mini-scene previews (verified by rasterising the scene description the code produces, not by the app drawing it), and v2.12's sun/moon and people work. |
 | 7 | **End-to-end updater run** | The download/verify/install path is covered by unit tests over its pure parts, but no APK has been fetched from a real release and installed. Needs v2.11 published and a v2.12 to update to. |
 | 8 | **README / lint / KDoc tidying** | `UseKtx`, `ObsoleteSdkInt`, `DataExtractionRules`, and KDoc that has accumulated layers across releases. |
 
@@ -58,12 +66,19 @@ Genuinely open, genuinely not worth doing yet.
 | **D1** | The README states the project is not a decompilation of any third-party product; some source comments imply otherwise. | Deferred by the maintainer. Recorded, no action. |
 | **D4** | Whether the `MULTIPLY` tint's colour-fidelity trade-off is acceptable. | Accepted in practice across the whole V2 set and never reported as a problem. |
 | **D5** | Dependency upgrade — the AndroidX versions are from late 2024. | Nothing is broken by it. Worth taking before any future work that needs a newer API, not before. |
+| **D9** | Snowfall is covered by fixtures only. No sampled location was snowing during the v2.14 emulator session, so the snow branch of the forecast-to-scene mapping has never been seen rendering from a live reading. | Not a blocker: the rule is the same one the rain branch was verified on, and the fixtures pin it. Worth a single check the next time real snowfall is available somewhere the app can be pointed at. |
+| **D8** | Visual Crossing is not verified end to end: no account was available, so its parser is tested against fixtures built from the published field list rather than against a captured live response. | Needs a free API key. The missing-key path, the failure path and the request URL are all verified on the device; only a *successful* response is not. Worth closing the next time a key is to hand, not worth blocking on. |
 | **D7** | The V2 artwork retired four user-visible colour behaviours (sun colour reaching only the glow, theme star colour reaching nothing, Fall Colors not reaching palm fronds, per-building window lighting). | Approved as consequences of the redesign. Whether each reads well is a judgement to make while looking at the app, and nothing has been reported. |
 
 ---
 
 ## Completed
 
+- **v2.14 Stable** — bottom spacing root-caused to the dialog window's size and closed, immediate
+  Live Weather refresh widened to every input it depends on, a location fix now belongs to its
+  source, a second weather provider behind a common abstraction, and the forecast-to-scene step
+  corrected in both directions: measurements now outrank the weather code, and Live Weather drives
+  the cloud layer as completely as it already drove precipitation.
 - **v2.13 Stable** — three-action update dialog with in-app install, install-permission deep link, and measurement-first weather mapping.
 - **v2.12 Stable** — day/night blend continuity, Sun/Cloud Height corrected and rescaled, day/night people density, two-source bottom inset.
 - **v2.11 Stable** — in-app update flow with SHA-256 verification, and the World & scene preview merged into the gallery's preview system.

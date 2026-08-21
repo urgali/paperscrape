@@ -12,18 +12,17 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -285,16 +284,20 @@ internal fun SettingsSegmentedChoice(
  */
 @Composable
 internal fun SettingsBottomSpacer() {
-    // Both sources, every time: the inset this window reports right now, and the one the activity
-    // measured. See SettingsInsets.bottomSpacing for why neither can be trusted alone.
-    val here = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
-    val fromActivity = LocalSettingsBottomInset.current
-    Box(modifier = Modifier.height(SettingsInsets.bottomSpacing(here, fromActivity)))
+    // A constant. The system inset is reserved by the screen's Scaffold, outside the scroll
+    // container, so this is only the gap between the last row and that reservation -- see
+    // SettingsInsets for why the reservation moved out of here.
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(SettingsInsets.BOTTOM_BREATHING_ROOM),
+    )
 }
 
 // ---------------------------------------------------------------------------------------------
 // Screen shells
 // ---------------------------------------------------------------------------------------------
+
 
 /**
  * The shell every settings destination uses: a full-screen dialog with a back arrow and a
@@ -317,8 +320,20 @@ internal fun SettingsSubScreen(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(onDismissRequest = onBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Surface(
+            // **Not fillMaxSize.** The dialog's content is measured against the display, its
+            // window is only as tall as the space between the system bars, and the difference was
+            // laid out off-window and clipped. See SettingsInsets for the measurement and for why
+            // this is a height and not a padding.
+            modifier = Modifier.fillMaxWidth().height(settingsDialogHeight()),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
             Scaffold(
+                // The dialog window's own insets, which are zero exactly when the window already
+                // fits the system bars -- the case the height above is sized for. A device whose
+                // dialog window is full-bleed instead reports real values here and they are
+                // reserved normally. Neither case needs to know which one it is.
+                contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
                     TopAppBar(
                         title = { Text(title) },

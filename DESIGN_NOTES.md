@@ -1086,3 +1086,144 @@ the origins that depend on them.
 **Anything with frames is verified over its frames.** `test_outline.py` asserts across a walk
 cycle, not within a sprite: one colour for the cycle, the band all the way round each frame, and a
 thickness that cannot vary more than a few percent between them.
+
+---
+
+## 23. A settings screen is sized to its window, not to the display
+
+**[MEASURED — Pixel 9, Android 16, gesture navigation, 1080x2424 at 2.625x]**
+
+The last row of a scrolled-to-the-bottom settings screen was cut off. It had been treated twice as
+a spacing problem, and twice it survived the fix, because it was never one.
+
+Every settings destination is a full-screen `Dialog`. `dumpsys window` reports:
+
+```
+mAttrs={(0,0)(1079x2423) gr=CENTER ... fitTypes=statusBars navigationBars captionBar systemOverlays}
+Frames: frame=[0,142][1079,2361]
+```
+
+The window's frame is **2219 px** — the display less the status bar (142 px) and the gesture bar
+(63 px), which is correct and is what `fitTypes` promises. But its layout parameters ask for
+**2423 px**, because with `usePlatformDefaultWidth = false` Compose measures a dialog's content
+against the display rather than against that frame. `Modifier.fillMaxSize()` therefore laid out
+204 px of content below the window's own bottom edge, where the window clipped it.
+
+So the last rows were never under the gesture bar. They were **outside the window**, and no
+trailing spacer inside the scrolling content can move something back into a window it has already
+overflowed. It also explains the symptom precisely: scrolling did reach the end of the content,
+and the end of the content was off-window.
+
+The corroborating measurement, from inside the dialog: `WindowInsets.safeDrawing` reports **0 px on
+every edge** — which is right, the window already fits the bars — while the same UI hosted by the
+activity reports 63 px at the bottom. Two windows, two correct answers, and content sized against
+the wrong one.
+
+**The rule, from v2.14.** A settings destination's content is given the height of the area its
+window occupies: the display less the insets the *activity* measures, since the activity's window
+does cover the display and does report them. The scaffold inside reserves the dialog's own insets,
+which are zero exactly when the window is already inside the bars — and are real values on a
+device whose dialog window is full-bleed instead, so both arrangements are handled without asking
+which one applies. The trailing spacer goes back to being 24 dp of breathing room, a constant,
+carrying no inset at all.
+
+**Verified by scrolling to the end and reading the position off the accessibility tree**, not by
+eye: the last row of Weather & time moved from y = 2380 — inside the gesture bar's 2361–2424 band
+— to y = 2238.
+
+---
+
+## 24. Two weather providers, and no silent substitution
+
+Live Weather can fetch from Open-Meteo or Visual Crossing. The choice is the user's and the app
+does not revise it: if the selected provider fails, the failure is reported and the selection
+stands. Quietly answering with the other service would make "which provider am I using"
+unanswerable, and the existing behaviour on failure — keep the last good reading, and otherwise
+let the theme's own weather run — is already the right one.
+
+The two differ in one way that reaches the UI. Open-Meteo has a keyless free tier, so a blank key
+is a working state and the key screen says "optional". Visual Crossing has none, so a blank key is
+a **configured state with a name**: the provider stays selected, the settings screen says a key is
+required, and **no request is made** — an app that sends a call it knows will be rejected has
+spent a round trip to learn nothing and reports it as a network problem.
+
+Status is reported as one of six states rather than the single "running on the theme's own
+weather" flag v2.13 had, because with a key involved the reasons now need different answers from
+the user: a missing key is one tap from fixed, a dropped request is something to wait out, and a
+dropped request with an earlier reading still on screen is not a fallback at all.
+
+---
+
+## 25. A measurement, where one exists, is the answer
+
+**[MEASURED — clean Android 17 emulator, live Open-Meteo, Florence 43.77925 / 11.24626]**
+
+Live Weather has now been wrong in both directions, and the two failures are mirror images:
+
+- **v2.12** read only the `weather_code`. Millimetres falling under an "overcast" code drew a dry,
+  fully clouded sky.
+- **v2.13** added the measurements but kept the code as an *unconditional* fallback. Four
+  measurements reading `0.00` were outvoted by a code, and the sky rained on a dry afternoon.
+
+The captured reading that settles it:
+
+```
+current: precipitation 0.00 · rain 0.00 · showers 0.00 · snowfall 0.00 · weather_code 80 · cloud_cover 100
+```
+
+`80` is "slight rain showers". Fifteen minutes earlier the same coordinates returned `3`,
+"overcast", with the same four zeroes. **The code alternates across a dry hour while the numbers
+never move**, which is the whole argument: a code is an interpretation of a grid cell and the
+millimetres are the observation, and an interpretation cannot be allowed to overrule four
+observations that disagree with it.
+
+**The rule, from v2.14.** Snowfall decides, then rain-or-showers, then — for a positive total with
+no breakdown to explain it — the code chooses only the *kind*. If measurements were reported and
+every one is zero, nothing is falling. Only a response carrying no measurements at all lets the code
+decide whether anything falls, which is the case Open-Meteo's customer endpoint and Visual
+Crossing's shape both produce, and the reason the model keeps "not reported" and "reported zero"
+distinguishable all the way through.
+
+The intensity floor is what made the phantom visible: with no millimetres behind it, a code-derived
+rain came out at the 0.15 minimum-visible intensity — a scatter of drops with nothing measured
+under them.
+
+---
+
+## 26. Live Weather drives both layers, or neither
+
+**[MEASURED — same session]**
+
+Rain fell from a cloudless sky, and it was not one bug but two composing. The second was an
+asymmetry between two layers that should have answered the same question the same way:
+
+```
+drawPrecipitation:  if (liveOverride != null) { ... }    // the theme's own switch is not consulted
+drawClouds:         if (!clouds.visible) return          // consulted, and before the override
+```
+
+With the theme's cloud switch off:
+
+```
+SCENE clouds.visible=false clouds.density=0.4 override.cloudCover=1.0 -> drawn=false
+SCENE precip.visible=false override.type=RAIN                          -> drawn=true
+```
+
+The settings screen states the contract plainly — *"Real current conditions replace each theme's
+manual rain/snow/cloud settings automatically... this theme's own Clouds/Precipitation screens
+switch to read-only."* A layer that keeps its veto while its sibling gives one up produces exactly
+the scene that was reported, and the user cannot even undo it: the Clouds switch is read-only while
+Live Weather is on, so a setting left off earlier is stuck off.
+
+**The rule.** While Live Weather is active the forecast owns the cloud layer as completely as it
+already owned precipitation. It lives in `engine/LiveWeatherSceneRules`, pure and tested, rather
+than inside the draw call, because what needed pinning was not a value but the *agreement between
+the two layers* — a property no test of either one alone would have caught.
+
+Two consequences worth stating:
+
+- A forecast reporting **0 % cover draws no clouds**, whatever the theme's switch says. The forecast
+  wins in both directions or it is not driving.
+- When no clouds are placed, the coverage field is **uniform**. Precipitation is thinned by the
+  cloud cover above it, so an empty field would silently cancel rain the forecast did report —
+  which is the same class of bug again, one layer quietly overruling the other.

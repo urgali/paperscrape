@@ -45,10 +45,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.R
 import com.paperscrape.livewallpaper.location.LocationLabelResolver
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
+import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
+import com.paperscrape.livewallpaper.weather.WeatherProviderId
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -79,6 +82,8 @@ internal fun WeatherTimeScreen(
     onBack: () -> Unit,
 ) {
     var showApiKey by remember { mutableStateOf(false) }
+    var showVisualCrossingKey by remember { mutableStateOf(false) }
+    val provider = settings.weatherProvider
     val locationMode = SettingsUiModel.locationMode(settings.useLocationForSunTimes, settings.useCustomLocation)
     val locationEnabled = settings.syncWithRealTime
     val liveWeatherAvailable = locationEnabled && locationMode != LocationMode.OFF
@@ -188,17 +193,58 @@ internal fun WeatherTimeScreen(
                 onClick = onOpenWeatherEffects,
             )
         }
-        if (settings.liveWeatherEnabled && settings.liveWeatherFallbackActive) {
+        if (settings.liveWeatherEnabled) {
             // Published by the wallpaper service through the same settings flow this screen
             // already collects, so it appears and clears as the service changes it -- no polling,
-            // no restart. Shown only while Live Weather is on: with it off there is no fallback
-            // to be in.
-            SettingsBanner(text = stringResource(R.string.live_weather_fallback_notice), isError = true)
-        } else if (settings.liveWeatherEnabled) {
-            SettingsBanner(
-                "While Live Weather is on, cloud and precipitation amounts come from the forecast and " +
-                    "their screens are read-only. Their colours stay editable.",
+            // no restart. Shown only while Live Weather is on: with it off there is no state to
+            // report.
+            val status = settings.liveWeather
+            when (status) {
+                LiveWeatherStatus.MISSING_API_KEY -> SettingsBanner(
+                    text = "${provider.displayName} needs an API key. No requests are being made " +
+                        "until one is entered; the scene is running on this theme's own weather. " +
+                        "Enter a key below, or switch back to Open-Meteo, which needs none.",
+                    isError = true,
+                )
+                LiveWeatherStatus.NO_LOCATION -> SettingsBanner(
+                    text = stringResource(R.string.live_weather_fallback_notice),
+                    isError = true,
+                )
+                LiveWeatherStatus.FAILED -> SettingsBanner(
+                    text = "${provider.displayName} could not be reached, and there are no earlier " +
+                        "conditions to fall back on, so the scene is running on this theme's own " +
+                        "weather. It will try again on the next refresh.",
+                    isError = true,
+                )
+                LiveWeatherStatus.STALE -> SettingsBanner(
+                    text = "${provider.displayName} could not be reached. The scene is still showing " +
+                        "the last conditions it fetched.",
+                    isError = true,
+                )
+                LiveWeatherStatus.OK, LiveWeatherStatus.OFF -> SettingsBanner(
+                    "While Live Weather is on, cloud and precipitation amounts come from the forecast and " +
+                        "their screens are read-only. Their colours stay editable.",
+                )
+            }
+        }
+
+        SettingsSectionHeader("Weather provider")
+        SettingsGroup {
+            SettingsRow(
+                title = "Source",
+                supporting = "Where current conditions are fetched from. Changing it keeps your " +
+                    "location and every other weather setting.",
+                icon = Icons.Outlined.Cloud,
             )
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+                SettingsSegmentedChoice(
+                    options = WeatherProviderId.entries.map { it.displayName },
+                    selectedIndex = WeatherProviderId.entries.indexOf(provider),
+                    onSelect = { index ->
+                        scope.launch { prefs.setWeatherProvider(WeatherProviderId.entries[index]) }
+                    },
+                )
+            }
         }
 
         SettingsSectionHeader("Advanced")
@@ -213,6 +259,16 @@ internal fun WeatherTimeScreen(
                 icon = Icons.Filled.Key,
                 onClick = { showApiKey = true },
             )
+            SettingsNavigationRow(
+                title = "Visual Crossing API key",
+                supporting = if (settings.visualCrossingApiKey.isBlank()) {
+                    "Required - not set"
+                } else {
+                    "Set"
+                },
+                icon = Icons.Filled.Key,
+                onClick = { showVisualCrossingKey = true },
+            )
         }
     }
 
@@ -221,6 +277,14 @@ internal fun WeatherTimeScreen(
             apiKey = settings.liveWeatherApiKey,
             onApply = { key -> scope.launch { prefs.setLiveWeatherApiKey(key) } },
             onBack = { showApiKey = false },
+        )
+    }
+
+    if (showVisualCrossingKey) {
+        VisualCrossingApiKeyScreen(
+            apiKey = settings.visualCrossingApiKey,
+            onApply = { key -> scope.launch { prefs.setVisualCrossingApiKey(key) } },
+            onBack = { showVisualCrossingKey = false },
         )
     }
 }
@@ -538,6 +602,44 @@ private const val SEARCH_DEBOUNCE_MS = 500L
  * own account, not a requirement to make Live Weather work. That is why it is one level down,
  * under "Advanced", rather than in the main flow where v2.8 put it.
  */
+/**
+ * Visual Crossing's key, which unlike Open-Meteo's is **required**: there is no anonymous tier, so
+ * without one the provider makes no request at all and the settings screen says so.
+ *
+ * The key is stored in this install's own DataStore and sent only to Visual Crossing. Nothing
+ * about it is compiled into the app, written to the build, or logged -- the field is masked here
+ * for the same reason.
+ */
+@Composable
+private fun VisualCrossingApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
+    var text by remember(apiKey) { mutableStateOf(apiKey) }
+    SettingsFormSubScreen(title = "Visual Crossing API key", onBack = onBack) {
+        Text(
+            "Required for the Visual Crossing provider: it has no keyless tier. A free account " +
+                "gives 1,000 weather records a day, which is far more than one hourly refresh " +
+                "needs. Get one at visualcrossing.com, then paste it here.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            label = { Text("API key") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+        Button(onClick = { onApply(text); onBack() }, modifier = Modifier.fillMaxWidth()) {
+            Text("Save API key")
+        }
+        Text(
+            "Stored on this device only and sent only to Visual Crossing.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 @Composable
 private fun LiveWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
     var text by remember(apiKey) { mutableStateOf(apiKey) }

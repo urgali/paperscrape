@@ -1388,14 +1388,27 @@ class PaperRenderer(
     private fun drawClouds(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         val clouds = sceneCustomization.clouds
         cloudCoverage.beginFrame()
-        if (!clouds.visible) {
-            // Turning the cloud layer off must not also turn precipitation off. With no clouds to
-            // derive a field from, treat the sky as uniformly covered so intensity governs alone,
-            // exactly as it did before coverage existed.
+        // **The override is consulted before the theme's own switch, exactly as [drawPrecipitation]
+        // does.** Until v2.14 this early return came first, so with the cloud layer switched off
+        // Live Weather's cloud cover was discarded while Live Weather's rain was still drawn from
+        // the same snapshot -- the asymmetry that produced "rain falling from a cloudless sky".
+        // Measured on a clean emulator: `clouds.visible=false clouds.density=0.4
+        // override.cloudCover=1.0 -> drawn=false` while precipitation drew. The settings screen
+        // promises that real conditions replace the theme's manual cloud setting; this is what
+        // makes that true for both layers rather than one.
+        val density = LiveWeatherSceneRules.cloudDensity(
+            liveCloudCover = liveWeatherOverride?.cloudCoverFraction,
+            themeCloudsVisible = clouds.visible,
+            themeCloudDensity = clouds.density,
+        )
+        if (density == null) {
+            // No clouds to place, either because the layer is off or because the forecast reports a
+            // clear sky. Turning the cloud layer off must not also turn precipitation off, so with
+            // no clouds to derive a field from the sky is treated as uniformly covered and
+            // intensity governs alone -- exactly as it did before coverage existed.
             cloudCoverage.setUniform()
             return
         }
-        val density = (liveWeatherOverride?.cloudCoverFraction ?: clouds.density).coerceIn(0f, 1f)
         cloudPaint.color = blendColor(clouds.colorNight, clouds.colorDay, dayPhase.dayBlend)
         cloudPaint.alpha = 255
 
