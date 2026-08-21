@@ -4,11 +4,36 @@ Operational plan only. What shipped and why lives in `RELEASE_HISTORY.md`; how t
 code works lives in `ARCHITECTURE.md`; the visual rules live in `DESIGN_NOTES.md`;
 the rules that always apply live in `AI_PROJECT_RULES.md`.
 
-**Nothing below is approved. Ask before starting any of it.**
+**Nothing below is approved except where a row says so explicitly. Ask before starting
+anything else.** As of v2.16 exactly one item is approved: **D13**, the in-app updater
+stuck on `Downloading`, which is the next task.
 
 ---
 
 ## Current status
+
+**v2.16 Stable — the build stack was brought to the current stable line, and nothing else.**
+
+`versionCode = 20`, `versionName = "2.16"`. Tag `v2.16`. **v2.16 is the Android/build component
+upgrade and only that** — Phase 2, the dependency upgrade recorded as **D5**, now closed. No
+Kotlin source file was modified, no feature was added, and no bug was fixed in it. In particular
+it does **not** fix the in-app updater (**D13**, below), which is the next task.
+
+What moved: Gradle 9.5.0 → 9.7.1, AGP 9.3.0 → 9.3.1, Kotlin/Compose plugin 2.2.10 → 2.2.21,
+`compileSdk` 36 → 37, and the AndroidX set off its late-2024 versions onto the current stable
+line (Compose BOM `2024.10.01` → `2026.08.00`, `core-ktx` 1.13.1 → 1.19.0, `appcompat` 1.7.0 →
+1.8.0, `lifecycle` 2.8.6 → 2.11.0, `activity-compose` 1.9.3 → 1.13.0, `datastore-preferences`
+1.1.1 → 1.2.1, `coroutines` 1.9.0 → 1.11.0). No source change was needed to make any of it
+compile: the 688 tests, the lint result and the debug APK all came through unchanged, and
+`targetSdk` deliberately stayed at 36 (**D10**) so nothing about how the app runs could move.
+
+The upgrade was also **run on a clean Android 17 emulator** against the v2.15 build for comparison:
+same install, same saved settings, the five settings destinations, the twelve theme previews, the
+system live-wallpaper preview and the wallpaper running on the home screen, plus a real update
+check and a live Open-Meteo fetch. Screenshots of every screen were diffed pixel by pixel against
+v2.15. The main settings screen came out **byte-identical**; everywhere else the only differences
+are one-pixel anti-aliasing on glyph and sprite edges — except one real change, recorded as
+**D12**: Material3 `1.4.0` restyled `OutlinedButton`.
 
 **v2.15 Stable — the storm flashes only when something is falling, the sky knows about the weather,
 and the snow path was finally seen running.**
@@ -52,9 +77,25 @@ producing an APK. **Seen running on a Pixel 9** (Android 16, gesture navigation,
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
+
+---
+
+## Known broken
+
+| ID | Symptom | State |
+|---|---|---|
+| **D13** | **The in-app updater hangs on `Downloading`.** Reported against v2.15: the update flow enters `UpdateUiState.Downloading` and stays there indefinitely — the download never completes, and the user has to fetch the APK from the GitHub Releases page by hand. *Checking* for an update is unaffected and was seen working on an Android 17 emulator during v2.16's verification; it is the download step that hangs. | **Open. Not fixed in v2.16, and not investigated.** No cause is recorded, because none has been established — the updater's code was not read, instrumented or modified during the v2.16 upgrade, deliberately, so that v2.16 is exactly one thing. This is the **next approved task**. |
+
+**How D13 must be closed.** Not by reasoning about the code and declaring it fixed. Reproduce the
+hang first, on an emulator, driven through MCP, against a **real GitHub release** — not a fixture,
+not a mocked response — then fix it, then run the whole flow end to end on that same real release:
+check, download, verify the SHA-256, hand the APK to the installer, and come back to an installed
+newer build. Publishing v2.16 is what makes that possible: v2.15 → v2.16 is the first pair of real
+releases this project has had available to update *between*, which is precisely what item 7 of the
+old priority list had been waiting for.
 
 ---
 
@@ -62,14 +103,20 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 
 | # | Item | Why it is here |
 |---|---|---|
-| 1 | **Device pass on v2.0's theme defaults** | Every built-in theme's defaults were reviewed and corrected: the winter family now enables the winter presentation (roof snow, snow-capped trees, winter clothing), Autumn enables Fall Colors and pumpkins, umbrellas leave the cold themes, the tundra lake loses its yachts and dolphins, Beach stands on sand, Desert gets palms, City is built rather than settled. Winter and Christmas are now two independent flags, so a snowy scene without fairy lights and a lit scene without snow are both expressible. Winter and Christmas snow by default. A fresh install now looks materially different per theme, and v2.0 shipped without any of it having been seen rendering. |
-| 2 | **Star-field cost, if it still matters** | Most stars became single `drawCircle` points shortly before v1.0, which cut the per-frame count to roughly a third. Whether the remainder is still worth attention is a question for a device, not for a static count. |
-| 3 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
-| 4 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
-| 5 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
-| 6 | **Device pass on the parts v2.14 did not reach** | v2.14 saw the five destinations, the colour scheme and the settings shells rendering on a Pixel 9, which closes the bottom-spacing half of this. Still unseen: the updater's end-to-end run, the twelve mini-scene previews (verified by rasterising the scene description the code produces, not by the app drawing it), and v2.12's sun/moon and people work. |
-| 7 | **End-to-end updater run** | The download/verify/install path is covered by unit tests over its pure parts, but no APK has been fetched from a real release and installed. Needs v2.11 published and a v2.12 to update to. |
+| 1 | **D13 — the in-app updater hangs on `Downloading`** *(approved; see Known broken above)* | The only item on this list that is approved to start. It also absorbs what used to sit at number 7 — "no APK has ever been fetched from a real release and installed" — because closing D13 properly requires exactly that run. |
+| 2 | **Device pass on v2.0's theme defaults** | Every built-in theme's defaults were reviewed and corrected: the winter family now enables the winter presentation (roof snow, snow-capped trees, winter clothing), Autumn enables Fall Colors and pumpkins, umbrellas leave the cold themes, the tundra lake loses its yachts and dolphins, Beach stands on sand, Desert gets palms, City is built rather than settled. Winter and Christmas are now two independent flags, so a snowy scene without fairy lights and a lit scene without snow are both expressible. Winter and Christmas snow by default. A fresh install now looks materially different per theme, and v2.0 shipped without any of it having been seen rendering. |
+| 3 | **Star-field cost, if it still matters** | Most stars became single `drawCircle` points shortly before v1.0, which cut the per-frame count to roughly a third. Whether the remainder is still worth attention is a question for a device, not for a static count. |
+| 4 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
+| 5 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
+| 6 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
+| 7 | **Device pass on the parts v2.14 did not reach** | v2.14 saw the five destinations, the colour scheme and the settings shells rendering on a Pixel 9, which closes the bottom-spacing half of this. Still unseen: the twelve mini-scene previews (verified by rasterising the scene description the code produces, not by the app drawing it), and v2.12's sun/moon and people work. The updater's end-to-end run moved out of this row and into **D13**. |
 | 8 | **README / lint / KDoc tidying** | `UseKtx`, `ObsoleteSdkInt`, `DataExtractionRules`, and KDoc that has accumulated layers across releases. |
+
+**After D13 comes Live Weather's location modes.** The agreed sequence is D13 first, then
+splitting Live Weather's location into **GPS / Network-Cell / Custom** — a coarse,
+`ACCESS_COARSE_LOCATION`, network-provider mode alongside the two that exist, cached and
+refreshed rarely, with Custom staying the zero-cost option. It is planned, not approved, and
+deliberately not started: it is a feature, and D13 is a defect that reaches users first.
 
 **Localisation is explicitly out of scope.** PaperScrape is English-only by decision;
 about seventy UI strings remain inline in Compose rather than in `strings.xml`, and
@@ -86,7 +133,9 @@ Genuinely open, genuinely not worth doing yet.
 | **B5** | The renderer, wallpaper engine, preferences layer and Compose UI cannot be unit tested without being decoupled from `Canvas`/`Context`. | The reason engine fixes are verified on a device rather than by a test. Decoupling is a large refactor with no user-visible result; it earns its place only if engine bugs start recurring. |
 | **D1** | The README states the project is not a decompilation of any third-party product; some source comments imply otherwise. | Deferred by the maintainer. Recorded, no action. |
 | **D4** | Whether the `MULTIPLY` tint's colour-fidelity trade-off is acceptable. | Accepted in practice across the whole V2 set and never reported as a problem. |
-| **D5** | Dependency upgrade — the AndroidX versions are from late 2024. | Nothing is broken by it. Worth taking before any future work that needs a newer API, not before. |
+| **D10** | `targetSdk` is 36 while `compileSdk` is 37. Android 17's behaviour changes are not opted into. | Deliberate. The Phase 2 dependency upgrade raised `compileSdk` because `core 1.19` and Compose `1.12` require it, and left `targetSdk` alone so the upgrade could not change how the app runs. Raising it is a behaviour change and needs its own device pass — lint's `OldTargetApi` warning is the reminder, not a defect. |
+| **D11** | Three lint findings that only appeared once the tooling was current: `ConfigurationScreenWidthHeight` on `SettingsInsets.kt:115`, and three `AutoboxingStateCreation` hints on `SettingsComponents.kt`. | New checks over unchanged code, not regressions. `SettingsInsets` is the file that closed v2.14's dialog-sizing bug, so swapping `Configuration.screenHeightDp` for `LocalWindowInfo.current.containerSize` is a change to the one thing that bug turned on — worth doing deliberately, with a device pass, not as a lint tidy-up. |
+| **D12** | Every `OutlinedButton` changed colour in the upgrade. Material3 `1.4.0` moved the default content colour from `primary` to `onSurfaceVariant` and the default border from `outline` to `outlineVariant`, so "Reset this theme's scene to defaults" and the other six outlined buttons now read grey-brown with a pale border instead of orange with a mid border. Verified on an Android 17 emulator by sampling the pixels: the new values are exactly this project's own `onSurfaceVariant` (`0xFF54443A`) and `outlineVariant` (`0xFFD9C7B7`). `TextButton` and filled `Button` are unchanged. | This is Material 3's own current default, and rule 3 says the app follows Material 3 — so it was **left as Material draws it** rather than pinned back, which would mean hard-coding a superseded default into seven call sites. It is nevertheless the one user-visible change the whole upgrade produced, and whether the quieter outlined button reads well is a judgement to make while looking at the app. Pinning it back is one argument: `colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)` plus `border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)`. |
 | **D8** | Visual Crossing is not verified end to end: no account was available, so its parser is tested against fixtures built from the published field list rather than against a captured live response. | Needs a free API key. The missing-key path, the failure path and the request URL are all verified on the device; only a *successful* response is not. Worth closing the next time a key is to hand, not worth blocking on. |
 | **D7** | The V2 artwork retired four user-visible colour behaviours (sun colour reaching only the glow, theme star colour reaching nothing, Fall Colors not reaching palm fronds, per-building window lighting). | Approved as consequences of the redesign. Whether each reads well is a judgement to make while looking at the app, and nothing has been reported. |
 
@@ -94,6 +143,16 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.16 Stable** — the Android/build component upgrade, and nothing else. Gradle, AGP, Kotlin
+  and the whole AndroidX/Compose/DataStore/Coroutines set on the current stable line;
+  `compileSdk 37` with `targetSdk` held at 36; no Kotlin source changed; verified statically
+  and on an Android 17 emulator against v2.15 screen by screen. **It fixes nothing** — D13 in
+  particular is untouched.
+- **D5 closed — the dependency upgrade.** Gradle, AGP, Kotlin and the whole AndroidX set taken
+  to the current stable line in one controlled pass, with the build, the 688 unit tests and lint
+  re-run after each group. `compileSdk` went to 37 because `androidx.core 1.19` and Compose
+  `1.12` declare `minCompileSdk=37`; `targetSdk` stayed at 36 on purpose (**D10**). Nothing was
+  taken to an alpha, beta or rc, and no library was moved that had no reason to move.
 - **v2.15 Stable** — thunderstorm reviewed end to end (the lightning system existed and was wired;
   the missing piece was gating it on precipitation actually falling), and **D9 closed**: the snow
   path verified on a device against a live Open-Meteo snowfall at Mawson, with the weather-driven

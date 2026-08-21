@@ -6,12 +6,19 @@ plugins {
 
 android {
     namespace = "com.paperscrape.livewallpaper"
-    // API 36 = Android 16 ("Baklava"), released 2025/2026 SDK cycle.
-    compileSdk = 36
+    // API 37 = Android 17. This is a *compile-time* setting only: it says which android.jar
+    // the code is compiled and linked against, and it is what androidx.core 1.19 and the
+    // Compose 1.12 line require (`minCompileSdk=37` in their AAR metadata). It changes no
+    // runtime behaviour on its own -- the platform's behaviour gates read `targetSdk`, which
+    // deliberately stays at 36 below so this upgrade cannot move the app's behaviour.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.paperscrape.livewallpaper"
         minSdk = 26 // Android 8.0 - required for adaptive icons & modern WallpaperService features
+        // Deliberately one behind `compileSdk`. Raising this opts the app into Android 17's
+        // behaviour changes, which is a change to how the app runs and needs its own device
+        // pass -- it is not part of a dependency upgrade. See ROADMAP.md.
         targetSdk = 36
         // **Two numbers doing two different jobs — see AI_PROJECT_RULES.md §11.A.**
         //
@@ -19,15 +26,15 @@ android {
         // this file and fails the release if the tag disagrees. `versionCode` is Android's own
         // install counter, checked by nothing but the installer, and only has to increase.
         //
-        // v1.0 → 1, v1.1 → 2, v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19. Three is skipped
+        // v1.0 → 1, v1.1 → 2, v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20. Three is skipped
         // because no v1.2 was ever released; the counter has no obligation to be contiguous, only
         // monotonic, and leaving the gap is more honest than renumbering a release that never was.
         //
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 19
-        versionName = "2.15"
+        versionCode = 20
+        versionName = "2.16"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
@@ -145,13 +152,13 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
-    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.core:core-ktx:1.19.0")
+    implementation("androidx.appcompat:appcompat:1.8.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    implementation("androidx.activity:activity-compose:1.13.0")
 
     // Jetpack Compose (settings UI)
-    implementation(platform("androidx.compose:compose-bom:2024.10.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.08.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -160,8 +167,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // DataStore for wallpaper preferences
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     testImplementation("junit:junit:4.13.2")
 
@@ -177,8 +184,8 @@ dependencies {
     // byte-for-byte identical to this reference implementation. For the plain object/array/
     // primitive shapes this project persists they agree, but do not rely on unit tests to prove
     // exotic edge-case parsing behaviour matches the device.
-    testImplementation("org.json:json:20260719")
+    testImplementation("org.json:json:20260814")
 
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 }

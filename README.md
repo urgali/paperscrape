@@ -3,7 +3,7 @@
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.14 Stable**
+**Current version: v2.16 Stable**
 
 ---
 
@@ -63,7 +63,7 @@ the repository.
 
 ## Technical overview
 
-Kotlin, minSdk 26, compileSdk/targetSdk 36.
+Kotlin, minSdk 26, compileSdk 37, targetSdk 36.
 
 **Rendering.** The scene is drawn through `SceneCanvas`, a small drawing interface with
 two implementations. `GlSceneTarget` turns those calls into OpenGL ES 2.0 geometry and
@@ -106,6 +106,12 @@ verifies it against the SHA-256 the release publishes, and hands it to Android's
 asks the user to confirm. A release without a checksum is not installed in-app at all. Nothing
 downloads or installs without an explicit tap.
 
+> **Known problem (open).** The download step can hang: the flow reaches `Downloading` and stays
+> there, so the update never installs and the APK has to be fetched from the Releases page by
+> hand. Checking for an update is unaffected. Reported against v2.15, still open in v2.16, and
+> **not yet investigated** — no cause is claimed. Tracked as **D13** in `ROADMAP.md`; it is the
+> next task.
+
 **Assets.** 125 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
 source under `tools/assets/sources/svg/`. A Python pipeline renders, measures and checks
 them against a registry (`sources/sprites.json`) that records every sprite's size,
@@ -140,7 +146,7 @@ UX decisions), `ROADMAP.md` (what is next), `RELEASE_HISTORY.md` (what shipped),
 
 ## Build
 
-Requires JDK 17 and an Android SDK with platform 36. The Gradle wrapper is committed —
+Requires JDK 17 and an Android SDK with platform 37 (Android 17). The Gradle wrapper is committed —
 use it rather than a local Gradle install.
 
 ```bash
@@ -194,9 +200,17 @@ tag, because the two answer different questions:
 | `v2.6` | `2.6` | 10 |
 | `v2.7` | `2.7` | 11 |
 | `v2.8` | `2.8` | 12 |
+| `v2.9` | `2.9` | 13 |
+| `v2.10` | `2.10` | 14 |
+| `v2.11` | `2.11` | 15 |
+| `v2.12` | `2.12` | 16 |
+| `v2.13` | `2.13` | 17 |
+| `v2.14` | `2.14` | 18 |
+| `v2.15` | `2.15` | 19 |
+| `v2.16` | `2.16` | 20 |
 
 Every release is published as latest. There is no pre-release tag form yet; one will
-be added when it is needed. v2.8 is the current stable release. The `versionCode`
+be added when it is needed. v2.16 is the current stable release. The `versionCode`
 counter only has to increase, not to be contiguous — 3 is unused because no v1.2 was
 ever released.
 

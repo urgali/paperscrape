@@ -143,6 +143,13 @@ PaperScrape/
 - `update/ApkDownloader.kt` — streams the APK to `cache/updates` while hashing it in the same pass,
   and `ApkInstaller`, which hands the verified file to Android through a `FileProvider` URI scoped
   to that one directory. No silent-install path exists.
+  **This path is known broken and unexplained (D13).** Reported against v2.15: the UI reaches
+  `UpdateUiState.Downloading` and stays there — the download never completes and the user has to
+  install from the Releases page by hand. *Checking* is unaffected. Nothing above should be read
+  as a description of working behaviour past the check: the download/verify/install chain has
+  never been run end to end against a real release, only unit-tested over its pure parts. No
+  diagnosis exists, and none is written here, because the code was deliberately not touched during
+  the v2.16 upgrade.
 - `ui/` — the settings UI, one file per destination since v2.9 (it was a single 2,414-line
   `SettingsScreen.kt`):
   - `SettingsActivity.kt` — the activity, edge-to-edge, wraps everything in `PaperScrapeTheme`.
@@ -1131,28 +1138,49 @@ exists as a counter to work around this.
 
 | Component | Version |
 |---|---|
-| Android Gradle Plugin | 9.3.0 (verified present on Google Maven) |
-| Gradle | 9.5.0 (wrapper jar SHA-256 matches the official distribution) |
-| Kotlin Compose plugin | 2.2.10 |
-| Kotlin | AGP built-in (the `org.jetbrains.kotlin.android` plugin is intentionally not applied) |
-| `compileSdk` / `targetSdk` | 36 |
+| Android Gradle Plugin | 9.3.1 (verified present on Google Maven) |
+| Gradle | 9.7.1 (wrapper jar SHA-256 matches the checksum Gradle publishes for 9.7.1) |
+| Kotlin Compose plugin | 2.2.21 |
+| Kotlin | AGP built-in, driven by the Compose plugin version above -- 2.2.21 (the `org.jetbrains.kotlin.android` plugin is intentionally not applied) |
+| `compileSdk` | 37 |
+| `targetSdk` | 36 |
 | `minSdk` | 26 |
 | Java compatibility | 17 |
 
+**`compileSdk` and `targetSdk` are deliberately one apart.** `compileSdk 37` says
+only which `android.jar` the code links against; it is what `androidx.core 1.19`
+and the Compose `1.12` line require (`minCompileSdk=37` in their AAR metadata) and
+it changes nothing about how the app runs. The platform's behaviour gates read
+`targetSdk`, which stays at 36 so the dependency upgrade could not move the app's
+behaviour. Raising `targetSdk` to 37 is its own change with its own device pass --
+see `ROADMAP.md`.
+
 Dependencies are declared as hardcoded version strings; there is no Gradle
-version catalog. Most are from late 2024 (Compose BOM `2024.10.01`,
-`core-ktx 1.13.1`, `appcompat 1.7.0`, `lifecycle 2.8.6`, `coroutines 1.9.0`).
+version catalog. They were brought to the current stable line in the Phase 2
+upgrade (Compose BOM `2026.08.00`, `core-ktx 1.19.0`, `appcompat 1.8.0`,
+`lifecycle 2.11.0`, `activity-compose 1.13.0`, `datastore-preferences 1.2.1`,
+`coroutines 1.11.0`). Nothing is on an alpha, beta or rc.
 
 ### Workflows
 
 `.github/workflows/android-build.yml`
 - `build` job on every push and PR: lint, unit tests, `assembleDebug`, artifact
   upload. Never sees release secrets.
-- `release` job, only on pushes to `main`: checks required secrets, decodes the
-  keystore to a runner temp path, builds a signed release APK, emits a SHA-256
-  checksum, produces a Sigstore build-provenance attestation, derives the tag
-  from `versionCode`, refuses to overwrite an existing release, composes the
-  body from `release-notes/<tag>.md`, and publishes.
+- `release` job, only on a pushed `v*` tag -- never on a merge to `main`: checks
+  required secrets, decodes the keystore to a runner temp path, builds a signed
+  release APK, emits a SHA-256 checksum, produces a Sigstore build-provenance
+  attestation, refuses to overwrite an existing release, composes the body from
+  `release-notes/<tag>.md`, and publishes. The tag is validated against
+  `versionName`, not `versionCode` -- this paragraph said `versionCode` and was
+  describing a rule the workflow had already stopped enforcing.
+
+Neither workflow needed a change for the Phase 2 upgrade. JDK 17 still builds
+AGP 9.3.1 / Gradle 9.7.1 (checked locally on a Temurin 17 that matches the
+`setup-java` step, not inferred), the wrapper jar matches the SHA-256 Gradle
+publishes for 9.7.1 so wrapper validation still passes, and `compileSdk 37`
+needs nothing installed: the `ubuntu-latest` runner image already ships
+`android-37.0` alongside `android-36`, and build-tools 36.0.0, which is what
+AGP 9.3.1 selects by default.
 
 `.github/workflows/dependency-submission.yml`
 - Submits the resolved dependency graph on push and weekly, feeding Dependabot
@@ -1221,8 +1249,9 @@ spans three days either side.
 ### Environment requirements
 
 Building requires a full JDK (17 recommended, matching CI), the Android SDK
-with platform 36 and build-tools 36, and network access to Google Maven and
-Maven Central. See `CLAUDE.md` for the reproducible setup procedure used in
+with platform 37 (Android 17) and build-tools 36, and network access to Google
+Maven and Maven Central. Platform 37 is what `compileSdk` links against;
+build-tools stays at 36.0.0, which is what AGP 9.3.1 selects by default. See `CLAUDE.md` for the reproducible setup procedure used in
 ephemeral environments.
 
 ---
