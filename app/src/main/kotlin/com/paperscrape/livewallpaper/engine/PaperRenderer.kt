@@ -179,6 +179,7 @@ class PaperRenderer(
     private var lightningTimer = 4f + Random.nextFloat() * 6f
     private var lightningFlashAlpha = 0f
 
+
     /**
      * Where the current strike's bolt hangs, as a fraction of screen width, and how tall it is
      * as a fraction of screen height.
@@ -471,10 +472,17 @@ class PaperRenderer(
         const val LIGHTNING_BOLT_WIDTH_UNITS = 30f
         const val LIGHTNING_BOLT_HEIGHT_UNITS = 84f
 
-        /** Where a bolt starts and how far down it reaches, as fractions of screen height. */
-        const val LIGHTNING_BOLT_TOP_FRACTION = 0.08f
-        const val LIGHTNING_BOLT_MIN_HEIGHT_FRACTION = 0.26f
-        const val LIGHTNING_BOLT_HEIGHT_SPREAD_FRACTION = 0.14f
+        /**
+         * How far down a bolt reaches, as a fraction of screen height.
+         *
+         * A quarter to two fifths of the screen was the other half of the report: at 0.26..0.40 the
+         * bolt was taller than the entire cloud band and read as a stage prop rather than as
+         * lightning. These are sized against the band instead -- roughly two thirds to one band
+         * height of visible bolt below the cloud -- which keeps it comfortably clear of the horizon
+         * at 0.62 from the highest band position.
+         */
+        const val LIGHTNING_BOLT_MIN_HEIGHT_FRACTION = 0.10f
+        const val LIGHTNING_BOLT_HEIGHT_SPREAD_FRACTION = 0.06f
 
         /**
          * The horror sky's four corners: near-black overhead, hard orange at the horizon.
@@ -937,20 +945,41 @@ class PaperRenderer(
         // drifting off them), matching how Rain/Snow's own falling-particle effect isn't a
         // separate toggle from the rain/snow color pair either.
         drawFallingLeaves(canvas, dayPhase, elapsedSeconds)
-        // Live Weather override applies here too -- a real thunderstorm should flash regardless
-        // of the theme's own manual "Thunderstorm" toggle, same reasoning as drawPrecipitation's
-        // own override (see its doc comment).
-        val stormActive = liveWeatherOverride?.isThunderstorm ?: (
-            sceneCustomization.precipitation.visible &&
-                sceneCustomization.precipitation.type == PrecipitationType.RAIN &&
-                sceneCustomization.precipitation.thunderstorm
-            )
+        // Live Weather override applies here too -- a real thunderstorm should flash regardless of
+        // the theme's own manual "Thunderstorm" toggle, same reasoning as drawPrecipitation's own
+        // override. The precedence itself lives in LiveWeatherSceneRules alongside the cloud one,
+        // because the three layers agreeing is the property worth testing, not any one of them.
+        val stormActive = LiveWeatherSceneRules.stormActive(
+            liveIsThunderstorm = liveWeatherOverride?.isThunderstorm,
+            themePrecipitationVisible = sceneCustomization.precipitation.visible,
+            themePrecipitationIsRain = sceneCustomization.precipitation.type == PrecipitationType.RAIN,
+            themeThunderstorm = sceneCustomization.precipitation.thunderstorm,
+        )
         updateLightning(deltaSeconds, stormActive)
         drawLightningFlash(canvas)
     }
 
     private fun blendColor(night: Int, day: Int, blend: Float): Int =
         ColorUtils.blendARGB(night, day, blend.coerceIn(0f, 1f))
+
+    /**
+     * How bad the weather looks right now, 0..1 -- see [StormAtmosphere].
+     *
+     * Read from the Live Weather snapshot only. With Live Weather off there is no forecast to
+     * report, and the theme's own manual rain slider is a *scene setting* rather than a statement
+     * about the weather, so it does not darken the sky: a user who turns rain on for a sunny theme
+     * asked for rain on a sunny theme. One property read and a handful of multiplies, evaluated
+     * once per frame rather than per drawn element.
+     */
+    private fun stormStrength(): Float {
+        val live = liveWeatherOverride ?: return 0f
+        return StormAtmosphere.strength(
+            precipitationType = live.precipitationType,
+            precipitationIntensity = live.precipitationIntensity,
+            isThunderstorm = live.isThunderstorm,
+            cloudCoverFraction = live.cloudCoverFraction,
+        )
+    }
 
     private fun drawSky(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase) {
         val sky = sceneCustomization.sky
@@ -982,8 +1011,15 @@ class PaperRenderer(
             return
         }
 
+        // The weather, applied to the finished day/night colours rather than instead of them: the
+        // twilight bump, the sunrise/sunset band and the whole dayBlend above are computed exactly
+        // as before and then weathered. That ordering is what keeps "18:30 + heavy rain" a dim
+        // sunset instead of a night, and what stops a storm from becoming a palette swap.
+        val storm = stormStrength()
         canvas.drawVerticalGradientRect(
-            0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), top, bottom,
+            0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(),
+            StormAtmosphere.dimSky(top, storm),
+            StormAtmosphere.dimSky(bottom, storm),
         )
     }
 
@@ -1074,9 +1110,18 @@ class PaperRenderer(
         val radius = screenWidth * CELESTIAL_RADIUS_FRACTION * 2f
         val color = if (isSun) sceneCustomization.sun.color else sceneCustomization.moon.color
 
-        canvas.drawRadialGlow(cx, cy, radius * 3.2f, color, CELESTIAL_GLOW_CENTRE_ALPHA)
+        // **Attenuation only.** cx, cy, the radius and the arc above are untouched by the weather;
+        // the sun keeps its position and its role in the day/night blend, and a storm only makes it
+        // fainter. The moon is left alone: a rainy night is already dark, and dimming the moon as
+        // well would take the last light out of the scene.
+        val sunStorm = if (isSun) stormStrength() else 0f
+        canvas.drawRadialGlow(
+            cx, cy, radius * 3.2f, color,
+            StormAtmosphere.sunAlpha(CELESTIAL_GLOW_CENTRE_ALPHA, sunStorm),
+        )
 
         if (isSun) {
+            val sunAlpha = StormAtmosphere.sunAlpha(255, sunStorm)
             canvas.save()
             canvas.translate(cx, cy)
             val s = radius / 120f
@@ -1110,6 +1155,7 @@ class PaperRenderer(
                 SUN_GLOW_ORIGIN_UNITS,
                 SUN_GLOW_ORIGIN_UNITS,
                 SUN_GLOW_SCALE,
+                sunAlpha,
             )
             sprites.draw(
                 canvas,
@@ -1117,6 +1163,7 @@ class PaperRenderer(
                 CELESTIAL_DISC_ORIGIN_UNITS,
                 CELESTIAL_DISC_ORIGIN_UNITS,
                 CELESTIAL_DISC_SCALE,
+                sunAlpha,
             )
             canvas.restore()
         } else {
@@ -1367,23 +1414,11 @@ class PaperRenderer(
      * only adjusts how many clouds show once that decision has already opted in, not whether any
      * appear.
      */
-    /**
-     * Where the top of the cloud band sits, for an arc height.
-     *
-     * The clouds follow the sun: a low arc puts them low in the sky, a high one lifts them toward
-     * the top. v2.11 computed `0.08 + (1 - height) * 0.15`, which over the whole slider moved the
-     * band by 0.075 of screen height -- about 7% -- and read on a device as a control that did
-     * nothing. The band now spans a range the eye can actually see, while landing within a few
-     * pixels of the old position at the default height (0.42), so existing scenes are not
-     * rearranged by the fix.
-     *
-     * Stays clear of the horizon at every setting: the lowest band top is 0.31 and the band is
-     * 0.16 tall, ending at 0.47 against a horizon at 0.62.
-     */
-    private fun cloudBandTopFor(screenHeight: Int, sunCloudHeight: Float): Float {
-        val height = sunCloudHeight.coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
-        return screenHeight * (0.06f + (SUN_CLOUD_HEIGHT_MAX - height) * 0.5f)
-    }
+    /** See [CloudBand], which owns this arithmetic now that three layers depend on it agreeing. */
+    private fun cloudBandTopFor(screenHeight: Int, sunCloudHeight: Float): Float =
+        CloudBand.topFor(screenHeight, sunCloudHeight)
+
+    private fun cloudBandHeightFor(screenHeight: Int): Float = CloudBand.heightFor(screenHeight)
 
     private fun drawClouds(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         val clouds = sceneCustomization.clouds
@@ -1409,7 +1444,13 @@ class PaperRenderer(
             cloudCoverage.setUniform()
             return
         }
-        cloudPaint.color = blendColor(clouds.colorNight, clouds.colorDay, dayPhase.dayBlend)
+        // Same treatment as the sky and from the same strength, with heavier amounts: under a
+        // storm the cloud layer should be the darkest thing above the horizon. Still the theme's
+        // own colour pair, blended by day phase first -- no second cloud system, no new palette.
+        cloudPaint.color = StormAtmosphere.dimCloud(
+            blendColor(clouds.colorNight, clouds.colorDay, dayPhase.dayBlend),
+            stormStrength(),
+        )
         cloudPaint.alpha = 255
 
         // aa reported clouds too small and, even at 100% density, not actually covering the sky.
@@ -1429,7 +1470,7 @@ class PaperRenderer(
         val tileWidth = screenWidth * 2f
 
         val bandTop = cloudBandTopFor(screenHeight, sceneCustomization.sky.sunCloudHeight)
-        val bandHeight = screenHeight * 0.16f
+        val bandHeight = cloudBandHeightFor(screenHeight)
 
         for (i in 0 until CLOUD_POOL_SIZE) {
             if (!CandidateThreshold.isPresent(i, density, effectOffset, fallbackIndex)) continue
@@ -1589,7 +1630,7 @@ class PaperRenderer(
         // Same band-center line drawClouds' own `laneY` is built around (bandTop + bandHeight*0.5)
         // -- see this function's own doc comment for why this replaced the old bandTop-only origin.
         val cloudBandTop = cloudBandTopFor(screenHeight, sceneCustomization.sky.sunCloudHeight)
-        val cloudBandHeight = screenHeight * 0.16f
+        val cloudBandHeight = cloudBandHeightFor(screenHeight)
         val fallStartY = cloudBandTop + cloudBandHeight * 0.5f
         val fallRange = (screenHeight + 40f) - fallStartY
         // Paint state that does not vary between drops, set once instead of once per drop.
@@ -1772,13 +1813,17 @@ class PaperRenderer(
         lightningPaint.alpha = (180 * lightningFlashAlpha).toInt().coerceIn(0, 255)
         canvas.drawRect(0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), lightningPaint)
 
-        // The sprite is 102x252 -- 34x84 local units -- hanging from its own top edge, so the
-        // scale that gives it the rolled height is that height over 84, and the origin puts its
-        // top at the cloud band and centres it on the rolled x.
+        // The sprite hangs from its own top edge, so the scale that gives it the rolled height is
+        // that height over 84, and the origin centres it on the rolled x.
+        //
+        // The y is read from [cloudBandTopFor] rather than from a constant of its own: a bolt is
+        // born inside the cloud band, past its midpoint, so its head is behind cloud and only the
+        // fork below is seen. The old fixed 0.08 of screen height put it above the band entirely.
         val boltHeight = screenHeight * lightningBoltHeightFraction
         val scale = boltHeight / LIGHTNING_BOLT_HEIGHT_UNITS
+        val boltTop = CloudBand.lightningOriginY(screenHeight, sceneCustomization.sky.sunCloudHeight)
         canvas.save()
-        canvas.translate(screenWidth * lightningBoltXFraction, screenHeight * LIGHTNING_BOLT_TOP_FRACTION)
+        canvas.translate(screenWidth * lightningBoltXFraction, boltTop)
         canvas.scale(scale, scale)
         sprites.draw(
             canvas,

@@ -82,7 +82,9 @@ PaperScrape/
 | `SceneObject.kt` | Scene object data model (`StaticSceneObject`, `CarObject`, `SceneObjectLayout`) and `SceneObjectCatalog`, which generates candidate slots per category. |
 | `SceneTheme.kt` | Theme data model and built-in theme catalog. |
 | `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, lake, birds config. |
-| `LiveWeatherSceneRules.kt` | Which layer's settings win while Live Weather is active. Pure, because the defect it prevents is not a wrong value in either layer but the two layers disagreeing: precipitation ignored the theme's own switch under the forecast and clouds did not, so rain fell from an empty sky. |
+| `LiveWeatherSceneRules.kt` | Which layer's settings win while Live Weather is active — clouds and the lightning flash. Pure, because the defect it prevents is not a wrong value in any one layer but the layers disagreeing: precipitation ignored the theme's own switch under the forecast, clouds did not (rain from an empty sky), and the storm required no rain at all (a flash over a dry scene). Three layers, one rule. |
+| `StormAtmosphere.kt` | How much the weather darkens the scene, and what that darkening does to a colour. One pure `strength(...) -> 0..1` feeds sky darkening, cloud darkening and sun attenuation, so the three cannot disagree about how bad the weather is. `dim` pulls a colour toward its own Rec. 601 luminance and then down, which keeps the blend relative to the theme's palette rather than substituting a storm one. Applied *on top of* the day/night colour, so the two are orthogonal and combine. |
+| `CloudBand.kt` | Where the cloud band sits and what hangs off it: the clouds, the rain's fall origin, and the lightning's origin. Pure, and separate, because the same arithmetic was written out at three call sites and the lightning's copy had drifted — bolts were born above the band instead of inside it. Deriving all three from one function is what keeps them agreeing. |
 | `CustomThemeData.kt` | JSON (de)serialisation of custom themes and overrides. |
 | `CustomThemeRegistry.kt` | Synchronous in-memory cache of custom themes, with a `generation()` counter used to detect changes. |
 | `RandomSceneGenerator.kt` | Procedural theme/layout generation for the "Random" theme. |
@@ -124,6 +126,8 @@ PaperScrape/
     when a positive total has no breakdown to explain it, and only decides whether anything falls
     at all when the provider reported no measurements — otherwise four readings of zero would keep
     being outvoted by a code, which is what rained on a dry Florence afternoon in v2.13.
+    `isThunderstorm` carries the same requirement: it means "the scene should storm", so the
+    lightning flash cannot fire over a scene with nothing falling in it.
   - `WeatherRepository.kt` — dispatches to the selected provider. **No silent fallback between
     providers:** a failure is reported as one and the selection stands.
   - `LiveWeatherStatus.kt` — what Live Weather is actually doing (`OFF`, `OK`, `NO_LOCATION`,

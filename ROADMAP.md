@@ -10,6 +10,27 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
+**v2.15 Stable — the storm flashes only when something is falling, the sky knows about the weather,
+and the snow path was finally seen running.**
+
+`versionCode = 19`, `versionName = "2.15"`. The existing lightning system was found already wired
+to Live Weather; what was missing was the gate, so a thunderstorm code with every measurement at
+zero would have flashed over a dry scene. `isThunderstorm` now means "the scene should storm" —
+the condition and something falling — and the source precedence joined the cloud rule in
+`LiveWeatherSceneRules`. **D9 is closed**: the snow path was verified on a device against a live
+Open-Meteo snowfall, and the weather-driven / theme-driven separation held.
+
+The batch then closed the sky itself. `StormAtmosphere` turns the forecast into one 0–1 strength
+that drives sky darkening, cloud darkening and sun attenuation together, as a blend of the theme's
+own colours rather than a storm palette, and independent of — but combining with — day/night. Two
+defects were found by watching it run and fixed in the same batch: lightning bolts were born above
+the cloud band rather than inside it and were three times too large, and the rain response was so
+flat at the low end that everyday rain looked like a clear afternoon.
+
+Last measured: 688 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK. **Seen running on a clean Android 17 emulator** against live provider data for a
+thunderstorm, a snowfall and a light drizzle, and through a full controlled A–H weather matrix.
+
 **v2.14 Stable — the settings screens were the wrong size, the sky was not the forecast's, and a
 second weather provider.**
 
@@ -31,7 +52,7 @@ producing an APK. **Seen running on a Pixel 9** (Android 16, gesture navigation,
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -66,7 +87,6 @@ Genuinely open, genuinely not worth doing yet.
 | **D1** | The README states the project is not a decompilation of any third-party product; some source comments imply otherwise. | Deferred by the maintainer. Recorded, no action. |
 | **D4** | Whether the `MULTIPLY` tint's colour-fidelity trade-off is acceptable. | Accepted in practice across the whole V2 set and never reported as a problem. |
 | **D5** | Dependency upgrade — the AndroidX versions are from late 2024. | Nothing is broken by it. Worth taking before any future work that needs a newer API, not before. |
-| **D9** | Snowfall is covered by fixtures only. No sampled location was snowing during the v2.14 emulator session, so the snow branch of the forecast-to-scene mapping has never been seen rendering from a live reading. | Not a blocker: the rule is the same one the rain branch was verified on, and the fixtures pin it. Worth a single check the next time real snowfall is available somewhere the app can be pointed at. |
 | **D8** | Visual Crossing is not verified end to end: no account was available, so its parser is tested against fixtures built from the published field list rather than against a captured live response. | Needs a free API key. The missing-key path, the failure path and the request URL are all verified on the device; only a *successful* response is not. Worth closing the next time a key is to hand, not worth blocking on. |
 | **D7** | The V2 artwork retired four user-visible colour behaviours (sun colour reaching only the glow, theme star colour reaching nothing, Fall Colors not reaching palm fronds, per-building window lighting). | Approved as consequences of the redesign. Whether each reads well is a judgement to make while looking at the app, and nothing has been reported. |
 
@@ -74,6 +94,12 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.15 Stable** — thunderstorm reviewed end to end (the lightning system existed and was wired;
+  the missing piece was gating it on precipitation actually falling), and **D9 closed**: the snow
+  path verified on a device against a live Open-Meteo snowfall at Mawson, with the weather-driven
+  falling snow and the theme-driven winter presentation confirmed independent. Storm atmosphere
+  (darker sky and clouds) deliberately **not** added — it would reverse a recorded visual decision;
+  raised as an open question instead.
 - **v2.14 Stable** — bottom spacing root-caused to the dialog window's size and closed, immediate
   Live Weather refresh widened to every input it depends on, a location fix now belongs to its
   source, a second weather provider behind a common abstraction, and the forecast-to-scene step

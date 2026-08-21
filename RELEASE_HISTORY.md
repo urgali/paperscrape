@@ -19,9 +19,176 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.15 — the storm now flashes only when something is falling, the sky knows about the weather, and the snow path was finally seen
+
+**Stable / latest.** `versionCode = 19`, `versionName = "2.15"`. Tag `v2.15`.
+
+### The lightning system already existed and was already wired
+
+The review asked whether a thunderstorm reaches the existing lightning/flash machinery. It does,
+and it has since before Live Weather: `PaperRenderer.updateLightning`/`drawLightningFlash` are a
+full-screen white veil plus the `lightning_bolt` sprite, on a randomised 4-12 s timer with a
+randomised x position and bolt height, fading at 3/s. No second system was built and none was
+needed. `WeatherCondition.THUNDERSTORM` comes from WMO codes 95/96/99 on Open-Meteo and from the
+icon slug or the `conditions` text on Visual Crossing (its free `icons1` set has no thunder value,
+so the text is the only place it appears), and `PaperRenderer` already read
+`liveWeatherOverride?.isThunderstorm`.
+
+**What was wrong was the gate.** The theme's own storm toggle has always required rain to actually
+be falling -- `precipitation.visible && type == RAIN && thunderstorm`. The forecast-driven path
+required only the condition. So a thunderstorm code arriving with every measurement at zero -- the
+same code-flapping artefact v2.14 documented for Florence -- would have flashed lightning over a
+dry scene: a strobe, not a storm. `isThunderstorm` in the snapshot now means "the scene should
+storm", which is the condition **and** something falling, and the precedence between the two
+sources moved into `LiveWeatherSceneRules.stormActive` next to the cloud rule, so all three layers
+answer the "who is in charge" question in one tested place.
+
+**Verified on the emulator against a real provider case**, not a fixture: Open-Meteo reported
+`weather_code: 95, precipitation: 1.4, showers: 1.4, cloud_cover: 100` at (10, 150), and the app
+produced `isThunderstorm=true, precipitationType=RAIN, cloudCoverFraction=1.0` with `stormActive=true`.
+Twelve consecutive strikes were logged at intervals of 6.7, 9.8, 11.4, 12.0, 11.2, 9.4, 11.2, 7.2,
+4.4, 8.0, 4.4 and 6.2 s -- mean 8.5 s against a designed 4-12 s, and with a ~0.33 s fade that is a
+visible-flash duty cycle near 4 %. Occasional, randomised, never continuous. The scene at that
+moment was a night sky with a dark full-cover cloud band and visible rain, which also covers the
+day/night interaction.
+
+A second candidate storm at (10, -90) had decayed to code 55 by the time the emulator was
+configured, and the app correctly reported `isThunderstorm=false` for it. Real weather moving is
+what makes these runs real.
+
+The sky darkening that this section originally flagged as *not done* was approved separately and is
+the next section.
+
+### The storm atmosphere: heavy rain no longer falls out of a summer afternoon
+
+Before this, the forecast reached exactly two things — how many cloud sprites were placed and how
+many raindrops fell. The sky's colour, the clouds' colour and the sun's brightness came only from
+the theme and the time of day. A thunderstorm at two in the afternoon therefore rendered as bright
+blue sky, a full sun with its rays, a band of cloud and heavy rain: four things that cannot all be
+true at once.
+
+`StormAtmosphere` is one pure function, `strength(precipitationType, precipitationIntensity,
+isThunderstorm, cloudCoverFraction) -> 0..1`, and three transforms driven from that one number, so
+sky, clouds and sun can never disagree about how bad the weather is:
+
+| State | intensity | strength | sky darkening | sun left |
+|---|---|---|---|---|
+| Clear | — | 0.00 | none, bit for bit | 100 % |
+| Overcast, dry | — | 0.10 | 4 % | 92 % |
+| Light rain | 0.15 | 0.22 | 9 % | 82 % |
+| A real 1.8 mm/h | 0.23 | 0.29 | 12 % | 76 % |
+| Rain | 0.40 | 0.41 | 17 % | 66 % |
+| Heavy rain | 1.00 | 0.75 | 32 % | 39 % |
+| Thunderstorm | 0.15–1.00 | 0.79–1.00 | 33–42 % | 35–18 % |
+
+**Why this is not the old density darkening returning.** §27's removal was of *density-driven*
+cloud darkening — a slider, blended toward black, against a reference app that uses a flat
+day/night colour pair. This is different in all three respects: it is driven by the **forecast**
+rather than by a slider, it is a **blend** rather than a palette substitution, and it is derived
+from **the theme's own colour** rather than from a fixed storm palette. `dim` pulls a colour toward
+its own Rec. 601 luminance and then pulls that luminance down, so a warm sunset stays warm as it
+goes dull and dark and two themes never converge on one storm grey. Nothing reaches black.
+
+**Day/night and weather are independent and combine.** The storm blend is applied to the colour the
+day/night system has already produced, so `FINAL SKY = NORMAL DAY/NIGHT SKY + WEATHER STORM BLEND`.
+The sun keeps its position, its arc and its part in the day blend; only how strongly it is painted
+changes, and it never falls below 18 % — a scene with no light source reads as night, and a storm
+must stay recognisably daytime. The moon is deliberately left untouched (see the residual
+observation below).
+
+**The rain response is not linear, and that was measured rather than chosen.** With a linear rain
+term the six-level ramp was walked on a device and its bottom half did not read: light rain was
+indistinguishable from a dry overcast sky and a moderate rain looked like a bright blue afternoon
+with some drops in it. The cause is upstream — `FULL_INTENSITY_MM` is 8 mm/h, a torrential rate, so
+the everyday 1–2 mm/h most forecasts report lands near 0.2 of the range. Rather than change what
+the millimetres mean, the intensity is raised to 0.65 before scaling, which lifts the low and middle
+of the range while pinning both ends. The "linear" column of the table above would have read 0.11,
+0.17 and 0.30 for the three middle rows.
+
+**Lightning came out of the top of the sky.** Reported from a live render — *"i fulmini sono
+giganti e escono dalla cima del cielo"* — and both halves were real. The bolt used a constant of its
+own, a flat 8 % of screen height, while the cloud band at the default arc starts at 15 % and is
+16 % tall, so every bolt was born roughly half a band **above** the cloud it was meant to come out
+of; at 26–40 % of screen height it was also taller than the entire cloud layer. The band arithmetic
+was duplicated in three call sites and one of them had drifted, so it now lives once in `CloudBand`
+and the bolt's origin is *derived* from it: 60 % into the band, past its midpoint, so the bolt's
+head is inside the cloud mass. Height is now 10–16 % of screen height, sized against the band. The
+timer (4–12 s), the randomisation, the fade and the sprite are unchanged — no second system.
+
+**Verified on a clean Android 17 emulator**, one unchanging Florence scene stepped through every
+level by a temporary harness so the levels could be compared against each other rather than against
+six different places at six different local times — and because nothing sampled worldwide during the
+session was above 4 mm/h, so heavy rain could not have been reached from a real reading at all:
+
+| Case | Kind | Observed |
+|---|---|---|
+| A Clear, day | controlled | Untouched: bright blue sky, full sun. `strength=0.002` |
+| A Clear, night | controlled | Untouched: stars, full moon |
+| B Overcast, dry | controlled | White band, sky and sun essentially unchanged. `strength=0.1` |
+| C Light rain | controlled | Slightly duller sky, sun slightly dimmed. `strength=0.219` |
+| D Rain | controlled | Muted steel-blue sky, mid-grey cloud, visibly dimmed sun. `strength=0.413` |
+| E Heavy rain | controlled | Dull grey-blue sky, dark cloud, pale sun, dense visible rain. `strength=0.75` |
+| F Thunderstorm, day | controlled | Darkest sky and cloud, sun at its 18 % floor. `strength=1.0` |
+| G Rain + sunset | controlled | Low warm sun keeps its position and hue; dusk sky darkened, rain visible |
+| H Thunderstorm + night | controlled | Night stays night: stars and moon intact, storm-dark cloud band, rain visible |
+| Light drizzle | **real provider** | Kano (11.986, 7.998), Open-Meteo `weather_code: 51, rain: 0.1, cloud_cover: 91` — rendered as the light-rain row above |
+
+Rain stayed clearly visible against every darkened sky; the darker background raises its contrast
+rather than lowering it. The bolt geometry was confirmed in a separate observation build with the
+strike interval shortened, since a 0.33 s flash on a 4–12 s timer is not something a screenshot
+catches reliably; the geometry has no day-phase input, so one verification covers both.
+
+**Residual observation, not changed.** At night the moon and stars are not attenuated, so a
+night-time storm is a dark cloud band and rain under a crisp bright moon. The brief scoped the
+attenuation to the sun, and dimming the moon risks making night scenes unreadable, so this is
+recorded rather than done.
+
+**Cost.** Colour blending and alpha arithmetic on values the renderer was already computing:
+`strength()` is one property read and a handful of multiplies once per frame, `dim` is integer
+maths returning a primitive. No new texture, no new particle system, no extra draw call, no
+per-frame allocation.
+
+### D9 closed: the snow path, seen running on real snowfall
+
+D9 was "snow verified by fixture only". It is now verified on a device against a **live provider
+reading**: Mawson, Antarctica (-67.6, 62.87) at 17:15 local, `snowfall: 0.07, precipitation: 0.10,
+rain: 0.00, showers: 0.00, weather_code: 73, cloud_cover: 88, temperature: -11.2`. The app produced
+`precipitationType=SNOW, precipitationIntensity=0.15, cloudCoverFraction=0.88, isThunderstorm=false`,
+and snow fell in the scene.
+
+No code change was needed. What the run confirmed is the separation the design already has, which
+was the part actually worth checking:
+
+| Case | Setup | Observed |
+|---|---|---|
+| B | Live snow, Sunset theme | Snow in the air; **no** roof snow, no tree caps, no winter clothing |
+| C | Live snow, Winter theme | Snow in the air **and** roof snow, snow-capped firs, winter clothing |
+| A | Winter theme, Live Weather off | Theme's own snow falls; dressing intact; cloud cover drops to the theme's 40 % |
+| D | Live rain (the storm case) | Rain, no snow anywhere |
+| E | Live snow, any theme | Christmas dressing never appears -- it is its own flag |
+| F | Storm location -> snow location | Override switched `RAIN` -> `SNOW` cleanly, one coherent state throughout |
+
+Case B is the one that matters: **a live snowfall does not dress the buildings.** Falling snow is
+weather-driven (`PrecipitationType.SNOW`); roof snow, tree caps and winter clothing are
+theme-driven (`SceneCustomization.winterColorsEnabled`), a decoration a user opts into on any theme.
+Christmas is a third independent flag. Nothing a `LiveWeatherSnapshot` carries can reach any of
+them.
+
+The Winter theme does ship with falling snow of its own, deliberately -- "a theme called Winter
+whose weather is off is a theme whose central subject the user has to go and find in a menu" -- and
+that is a theme default setting two independent fields, not one implying the other.
+
+**Still fixture-only:** nothing. D9 moves to Completed. Snow is covered by a live provider reading
+on a device *and* by two captured real responses in the test suite.
+
+Measured: 688 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK.
+
+---
+
 ## v2.14 — the settings screens were the wrong size, the sky was not the forecast's, and a second weather provider
 
-**Stable / latest.** `versionCode = 18`, `versionName = "2.14"`. Tag `v2.14`.
+`versionCode = 18`, `versionName = "2.14"`. Tag `v2.14`.
 
 ### Live Weather drew rain out of a dry forecast, and clouds out of nothing at all
 

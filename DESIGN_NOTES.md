@@ -1227,3 +1227,190 @@ Two consequences worth stating:
 - When no clouds are placed, the coverage field is **uniform**. Precipitation is thinned by the
   cloud cover above it, so an empty field would silently cancel rain the forecast did report —
   which is the same class of bug again, one layer quietly overruling the other.
+
+---
+
+## 27. A storm is a storm because something is falling out of it
+
+**[MEASURED — clean Android 17 emulator, live Open-Meteo]**
+
+The lightning system was never missing and was never disconnected. `updateLightning` /
+`drawLightningFlash` — a white veil plus the `lightning_bolt` sprite, on a randomised 4–12 s timer
+— predate Live Weather, and Live Weather already drove them. What was wrong was the *gate*, and it
+was the same asymmetry v2.14 found twice already, in the one layer that had not yet been looked at:
+
+```
+theme path:     precipitation.visible && type == RAIN && thunderstorm   // rain required
+forecast path:  isThunderstorm                                          // rain not required
+```
+
+A thunderstorm code arriving with every measurement at zero — the code-flapping shape §25
+documents — would have flashed lightning over a dry scene. That is a strobe, not weather.
+`isThunderstorm` on the snapshot now means *the scene should storm*: the condition **and**
+something actually falling. It is the same sentence as §25, applied to the third layer.
+
+**Measured, so the "occasional" claim is not an impression.** Against a real code-95 reading
+(precipitation 1.4 mm, showers 1.4 mm, 100 % cloud), twelve consecutive strikes came 6.7, 9.8,
+11.4, 12.0, 11.2, 9.4, 11.2, 7.2, 4.4, 8.0, 4.4 and 6.2 s apart — mean 8.5 s against a designed
+4–12 s. The flash fades at 3/s, so it is visible about 0.33 s in every 8.5: a duty cycle near 4 %.
+Occasional, randomised, never continuous, and no allocation per frame — the paints are reused and
+the only per-strike work is four float rolls.
+
+**What this section originally deferred** — a thunderstorm darkening the sky and the clouds — was
+raised as an open question rather than silently done, went through its own approval cycle, and is
+now §29.
+
+---
+
+## 28. Falling snow is weather; a white roof is a costume
+
+**[MEASURED — live snowfall, Mawson -67.6/62.87, on device]**
+
+Snow can appear in a PaperScrape scene two ways, and they are not the same feature:
+
+- **Weather-driven** — snow falling through the air, from `PrecipitationType.SNOW`, which comes
+  from a measured `snowfall` or, failing that, a snow code.
+- **Theme-driven** — the winter presentation: snow settling on roofs, caps on the firs, people in
+  coats. All of it hangs off `SceneCustomization.winterColorsEnabled`, a seasonal decoration a user
+  can switch on for *any* theme at any time, exactly like pumpkins.
+
+**A live snowfall must not dress the buildings**, and the run confirmed it does not: with real snow
+falling and the Sunset theme selected, flakes fell through a summer scene with bare roofs, green
+trees and people in shorts. Switch the theme to Winter and both layers appear together, from two
+independent sources. Christmas is a third flag again and appeared in neither.
+
+The Winter theme does set both — it ships with falling snow of its own, because "a theme called
+Winter whose weather is off is a theme whose central subject the user has to go and find in a
+menu". That is one theme's default writing two independent fields, which is not the same thing as
+either field implying the other, and the distinction is what keeps a warm rainy day in July from
+putting snow on the roofs.
+
+---
+
+## 29. Bad weather is a blend over the day, not a different sky
+
+**[MEASURED — clean Android 17 emulator, controlled A–H matrix plus a live Open-Meteo drizzle]**
+
+Until v2.15 the forecast reached two things: how many cloud sprites were placed, and how many
+raindrops fell. Everything else about the sky came from the theme and the clock. A thunderstorm at
+two in the afternoon therefore rendered as **bright blue sky + full sun with rays + storm cloud +
+heavy rain** — four statements that cannot all be true, and the one combination this section exists
+to make impossible.
+
+### One number, three consumers
+
+`StormAtmosphere.strength(precipitationType, precipitationIntensity, isThunderstorm,
+cloudCoverFraction)` returns 0–1 and is the *only* input to sky darkening, cloud darkening and sun
+attenuation. Three consumers reading one number cannot disagree about how bad the weather is, which
+is the same structural argument §26 makes about the three layers and precedence.
+
+Monotone in every argument. Continuous everywhere except one deliberate step *between states*: a
+thunderstorm starts at 0.75 however little is falling at this instant, because a squall line is
+black before the first drop and its darkness comes from the depth of the cloud, not from the
+millimetres in the current quarter-hour. Inside "thunderstorm" the scale still rises smoothly.
+
+### A blend, not a palette
+
+`dim(color, strength, desaturation, darkening)` pulls a colour toward **its own** Rec. 601
+luminance, then pulls that luminance down. Both moves are relative to the colour given, never
+toward a fixed storm palette, so:
+
+- a warm sunset stays warm as it goes dull and dark;
+- two themes under the same storm remain two different themes;
+- at zero strength the input is returned bit for bit, so the clear-sky path is untouched.
+
+Clouds get heavier amounts than the sky, because under a storm the cloud layer should be the
+darkest thing above the horizon. Nothing is driven to black — no outline, no gloss, no second cloud
+system, no new palette. **This is not the density darkening §27 records as removed**: that was a
+*slider* blended toward black; this is the *forecast* blended out of the theme's own colours.
+
+### Day/night and weather are orthogonal
+
+```
+FINAL SKY = NORMAL DAY/NIGHT SKY + WEATHER STORM BLEND
+```
+
+The blend is applied to whatever the day/night system has already produced, so a storm at midnight
+and a storm at noon are the same blend over two different skies. The sun keeps its position, its
+arc and its part in the day blend; only how strongly it is painted changes, and it never falls
+below 18 % of full — **a scene with no light source reads as night, and a storm must stay
+recognisably daytime.** The moon is not attenuated at all: dimming it risks making night scenes
+unreadable, and the brief scoped the attenuation to the sun. That is a recorded limitation, not an
+oversight.
+
+### The rain response is bent, and that was measured
+
+`FULL_INTENSITY_MM` is 8 mm/h — a torrential rate — so the everyday 1–2 mm/h that real forecasts
+report lands near 0.2 of the intensity range. With the rain term linear, the device run showed the
+bottom half of the scale simply did not read: light rain was indistinguishable from a dry overcast
+sky (0.11 against 0.10) and a moderate rain looked like a bright blue afternoon with drops in it.
+
+The fix belongs in how weather maps to *appearance*, which is what this object is for, not in what
+the millimetres mean. Intensity is raised to 0.65 before scaling. Both ends are pinned, so nothing
+above is rescaled and monotonicity is untouched; only the low and middle of the range lift.
+
+| State | intensity | linear | shipped |
+|---|---|---|---|
+| Overcast, dry | — | 0.10 | 0.10 |
+| Light rain | 0.15 | 0.11 | **0.22** |
+| A real 1.8 mm/h | 0.23 | 0.17 | **0.29** |
+| Rain | 0.40 | 0.30 | **0.41** |
+| Heavy rain | 1.00 | 0.75 | 0.75 |
+| Thunderstorm | 0.15–1.00 | 0.79–1.00 | 0.79–1.00 |
+
+**Snow is deliberately outside the precipitation term.** The snow path was verified on a device in
+this same release (§28) and darkening it would change a presentation that is known good and was not
+asked about. Snow still picks up the cloud term, because snow arrives under cloud, so a snowy scene
+is mildly flattened rather than untouched.
+
+### Rain reads *better* against the darker sky
+
+The concern with darkening was that it would swallow the precipitation the v2.14 work made visible.
+It does the opposite: the drops are pale and the sky moved away from them, so contrast rose. Every
+row of the matrix from light rain to thunderstorm showed the rain clearly, day and night.
+
+### Cost
+
+Colour blending and alpha arithmetic on values already being computed. `strength()` is one property
+read and a handful of multiplies once per frame; `dim` is integer maths returning a primitive. No
+new texture, no new particle system, no extra draw call, no per-frame allocation.
+
+---
+
+## 30. A lightning bolt comes out of a cloud, and the cloud band is one number
+
+**[MEASURED — clean Android 17 emulator, observation build with a shortened strike interval]**
+
+Reported from a live render: *"i fulmini sono giganti e escono dalla cima del cielo"*. Both halves
+were true, and the cause was one thing.
+
+The bolt hung from a constant of its own — a flat 8 % of screen height — while the cloud band, at
+the default arc, starts at 15 % and is 16 % tall. So every bolt began roughly **half a band above
+the cloud it was meant to come out of**, with nothing over it but sky. At 26–40 % of screen height
+it was also taller than the entire cloud layer, which is the "giant" half.
+
+The drawing code's own comment claimed *"the origin puts its top at the cloud band"*. It did not,
+and had not for as long as the constant existed. The band arithmetic was written out three times —
+in the clouds, in the precipitation, and nowhere at all in the lightning — and duplicating a number
+that three layers must agree on is exactly how one of them drifts away from the other two.
+
+`CloudBand` now owns it once, and the bolt's origin is **derived** rather than parallel:
+
+```
+band top    = f(arc height)                 // clouds sit here
+rain from   = band top + 0.50 * band height // the band's middle
+bolt from   = band top + 0.60 * band height // deeper: the head is inside the cloud
+```
+
+Past the midpoint is what "comes out of the cloud" means here: the bolt's head is behind cloud and
+only the fork below it is seen against open sky. Being fractions *of the band* rather than of the
+screen, this holds at every arc height instead of only at the default one. Bolt height is now
+10–16 % of screen height, sized against the band, and the longest roll from the lowest band
+position still ends well clear of the horizon at 0.62.
+
+The timer (4–12 s), the randomisation, the fade rate, the veil and the sprite are all unchanged.
+No second lightning system, no strobe.
+
+`CloudBandTest` pins the relationship rather than the numbers: rain and lightning are both born
+inside the band, the bolt deeper than the rain, at every point of the arc slider — which is the
+assertion the old constant fails.

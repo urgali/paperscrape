@@ -46,4 +46,23 @@ object LiveWeatherSceneRules {
      * than to let a cloud-derived field cancel it.
      */
     fun coverageIsUniformWhenNoClouds(): Boolean = true
+
+    /**
+     * Whether the lightning flash should be running.
+     *
+     * The third layer, and the last one that answered the precedence question on its own. The
+     * theme's storm toggle has always been gated on rain actually falling -- a flash over a dry
+     * scene is not a storm, it is a strobe -- and the forecast-driven path is now held to the
+     * same standard: [liveIsThunderstorm] already carries that requirement (see
+     * `WeatherSnapshotMapper`), so this only has to pick which source is in charge.
+     *
+     * @param liveIsThunderstorm the forecast's verdict, or null when Live Weather is not active.
+     */
+    fun stormActive(
+        liveIsThunderstorm: Boolean?,
+        themePrecipitationVisible: Boolean,
+        themePrecipitationIsRain: Boolean,
+        themeThunderstorm: Boolean,
+    ): Boolean = liveIsThunderstorm
+        ?: (themePrecipitationVisible && themePrecipitationIsRain && themeThunderstorm)
 }

@@ -119,7 +119,18 @@ object WeatherSnapshotMapper {
                 0f
             },
             cloudCoverFraction = ((observation.cloudCoverPercent ?: 0) / 100f).coerceIn(0f, 1f),
-            isThunderstorm = observation.condition == WeatherCondition.THUNDERSTORM,
+            // **A storm the scene draws is a storm something is falling out of.**
+            //
+            // This field is the renderer's vocabulary, not the observation's: it asks "should the
+            // sky flash", and the answer has to survive the same test every other effect does.
+            // `isThunderstorm` used to be the condition alone, so a thunderstorm code with every
+            // measurement reading zero -- the exact code-flapping shape documented above, where
+            // Open-Meteo alternated 3 and 80 over a dry Florence hour -- would have flashed
+            // lightning over a sky with no rain in it. The theme's own storm toggle has always
+            // required rain to be falling before it flashes; this is the same requirement for the
+            // forecast-driven path, which had been the looser of the two.
+            isThunderstorm = observation.condition == WeatherCondition.THUNDERSTORM &&
+                precipitationType != null,
             fetchedAtMillis = observation.observedAtMillis,
         )
     }
