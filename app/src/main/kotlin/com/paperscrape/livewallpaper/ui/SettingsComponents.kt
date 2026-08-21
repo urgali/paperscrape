@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -282,7 +285,11 @@ internal fun SettingsSegmentedChoice(
  */
 @Composable
 internal fun SettingsBottomSpacer() {
-    Box(modifier = Modifier.height(SettingsInsets.bottomSpacing(LocalSettingsBottomInset.current)))
+    // Both sources, every time: the inset this window reports right now, and the one the activity
+    // measured. See SettingsInsets.bottomSpacing for why neither can be trusted alone.
+    val here = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
+    val fromActivity = LocalSettingsBottomInset.current
+    Box(modifier = Modifier.height(SettingsInsets.bottomSpacing(here, fromActivity)))
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -664,7 +664,7 @@ class SceneObjectRenderer(
             drawCar(canvas, c, screenWidth, screenHeight, dayBlend)
         }
 
-        drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds)
+        drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend)
     }
 
     private val personKinds = arrayOf("man", "woman", "boy", "girl")
@@ -771,6 +771,7 @@ class SceneObjectRenderer(
         screenWidth: Float,
         screenHeight: Float,
         elapsedSeconds: SceneTime,
+        dayBlend: Float,
     ) {
         if (geom.tileWidth <= 0f) return
         val config = customization.people
@@ -783,7 +784,16 @@ class SceneObjectRenderer(
         // particular pedestrian and leaves the rest exactly where they were, instead of
         // reshuffling everybody.
         val effectOffset = CandidateThreshold.offsetFor(PEDESTRIAN_THRESHOLD_SALT)
-        val density = config.density.coerceIn(0f, 1f)
+        // Day and night have their own populations, crossfaded by the scene's own dayBlend --
+        // the same value the colours blend with, so the street empties over the length of dusk
+        // instead of four people vanishing between two frames. Because the threshold below is
+        // stable per pedestrian, a falling density removes particular people and leaves the rest
+        // exactly where they were.
+        val density = PeopleDensity.at(
+            dayDensity = config.density,
+            nightDensity = customization.peopleNightDensity,
+            dayBlend = dayBlend,
+        )
         val fallbackIndex = CandidateThreshold.fallbackIndexFor(density, candidateCount, effectOffset)
         for (i in 0 until candidateCount) {
             if (!CandidateThreshold.isPresent(i, density, effectOffset, fallbackIndex)) continue

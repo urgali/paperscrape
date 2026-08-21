@@ -86,7 +86,12 @@ class SunPositionCalculatorTest {
         val shortlyAfter = SunPositionCalculator.compute(6.5f, 6f, 20f).dayBlend
         val wellAfter = SunPositionCalculator.compute(9f, 6f, 20f).dayBlend
 
-        assertEquals("sunrise should start from full dark", 0f, atSunrise, tolerance)
+        // Half-light, not full dark. This assertion used to demand 0f at sunrise, which is the
+        // shape the v2.12 fix removed: the day arc reached full night at the terminator while the
+        // night arc, one instant earlier, was at full *day* -- a discontinuity that painted a
+        // daylight sky over a rising moon. Both arcs now meet at 0.5 and the ramp continues from
+        // there. See SunPositionCalculator.TERMINATOR_BLEND.
+        assertEquals("sunrise should be half-light from both sides", 0.5f, atSunrise, tolerance)
         assertTrue("blend should have started rising", shortlyAfter > atSunrise)
         assertTrue("blend should still be rising", wellAfter > shortlyAfter)
         assertEquals("blend should reach full day", 1f, wellAfter, tolerance)

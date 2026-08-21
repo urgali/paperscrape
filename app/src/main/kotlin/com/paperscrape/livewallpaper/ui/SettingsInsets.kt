@@ -37,14 +37,27 @@ object SettingsInsets {
     val MINIMUM_BOTTOM_SPACING: Dp = 48.dp
 
     /**
-     * The spacer height for a screen whose window reports [systemBottomInset].
+     * The spacer height, given what **both** windows report.
      *
-     * A negative inset cannot come from the platform but is clamped anyway rather than trusted:
-     * a negative spacer would silently pull content back under the bar, which is the exact
-     * failure this function exists to prevent.
+     * v2.10 asked one window and trusted the answer, with a floor for when it came back zero. On
+     * the Pixel 9 that was not enough, and the reason is that neither window is reliable on its
+     * own: a settings destination is a `Dialog` with a window of its own, and depending on whether
+     * that window fits system windows, *either* it reports the gesture inset and the activity's
+     * value is stale, *or* it reports zero while the activity holds the real figure. Taking the
+     * larger of the two removes the guess: whichever window knows, its answer is used, and a floor
+     * is only reached when neither does.
+     *
+     * That is also why the floor was not simply raised. A bigger constant would have papered over
+     * the case where the inset *is* known and merely ignored, and would have left a visible gap on
+     * devices that report nothing at all.
+     *
+     * Negative values cannot come from the platform but are clamped rather than trusted: a
+     * negative spacer would pull content back under the bar, which is the failure being fixed.
      */
-    fun bottomSpacing(systemBottomInset: Dp): Dp {
-        val inset = if (systemBottomInset < 0.dp) 0.dp else systemBottomInset
+    fun bottomSpacing(dialogBottomInset: Dp, activityBottomInset: Dp): Dp {
+        val dialog = if (dialogBottomInset < 0.dp) 0.dp else dialogBottomInset
+        val activity = if (activityBottomInset < 0.dp) 0.dp else activityBottomInset
+        val inset = if (dialog > activity) dialog else activity
         val requested = inset + EXTRA_BOTTOM_SPACING
         return if (requested < MINIMUM_BOTTOM_SPACING) MINIMUM_BOTTOM_SPACING else requested
     }

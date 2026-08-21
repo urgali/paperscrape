@@ -49,11 +49,11 @@ PaperScrape/
 
 | Metric | Value |
 |---|---|
-| Kotlin files | 45 |
+| Kotlin files | 46 |
 | Kotlin lines | ~11,100 |
 | Sprite PNGs in `drawable-nodpi/` | **111 files, 111 unique contents** — no byte-identical pair; the V2 asset library replaced the whole set in v76 |
 | Vector drawables | 4 |
-| Unit tests | **505** (40 classes, JVM-local, no Android dependencies) |
+| Unit tests | **533** (44 classes, JVM-local, no Android dependencies) |
 | Instrumentation tests | 0 |
 | Largest files | `PaperRenderer.kt` 1,728 · `SceneObjectRenderer.kt` 1,152 · `WorldSceneScreen.kt` 813 · `WallpaperPrefs.kt` 789 · `SettingsComponents.kt` 736 |
 

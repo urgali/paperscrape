@@ -1066,7 +1066,8 @@ class PaperRenderer(
         val margin = screenWidth * CELESTIAL_MARGIN_FRACTION
         val cx = margin + dayPhase.celestialX * (screenWidth - 2 * margin) + offsetX
         val horizonY = screenHeight * 0.62f
-        val riseHeight = screenHeight * sceneCustomization.sky.sunCloudHeight.coerceIn(0.1f, 0.6f)
+        val riseHeight = screenHeight * sceneCustomization.sky.sunCloudHeight
+            .coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
         val cy = horizonY - dayPhase.celestialY * riseHeight
 
         // doubled -- was too small to read clearly
@@ -1366,6 +1367,24 @@ class PaperRenderer(
      * only adjusts how many clouds show once that decision has already opted in, not whether any
      * appear.
      */
+    /**
+     * Where the top of the cloud band sits, for an arc height.
+     *
+     * The clouds follow the sun: a low arc puts them low in the sky, a high one lifts them toward
+     * the top. v2.11 computed `0.08 + (1 - height) * 0.15`, which over the whole slider moved the
+     * band by 0.075 of screen height -- about 7% -- and read on a device as a control that did
+     * nothing. The band now spans a range the eye can actually see, while landing within a few
+     * pixels of the old position at the default height (0.42), so existing scenes are not
+     * rearranged by the fix.
+     *
+     * Stays clear of the horizon at every setting: the lowest band top is 0.31 and the band is
+     * 0.16 tall, ending at 0.47 against a horizon at 0.62.
+     */
+    private fun cloudBandTopFor(screenHeight: Int, sunCloudHeight: Float): Float {
+        val height = sunCloudHeight.coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
+        return screenHeight * (0.06f + (SUN_CLOUD_HEIGHT_MAX - height) * 0.5f)
+    }
+
     private fun drawClouds(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         val clouds = sceneCustomization.clouds
         cloudCoverage.beginFrame()
@@ -1396,7 +1415,7 @@ class PaperRenderer(
         val seed = seedFor(EffectId.CLOUDS)
         val tileWidth = screenWidth * 2f
 
-        val bandTop = screenHeight * (0.08f + (1f - sceneCustomization.sky.sunCloudHeight) * 0.15f)
+        val bandTop = cloudBandTopFor(screenHeight, sceneCustomization.sky.sunCloudHeight)
         val bandHeight = screenHeight * 0.16f
 
         for (i in 0 until CLOUD_POOL_SIZE) {
@@ -1556,7 +1575,7 @@ class PaperRenderer(
         val fallSpeed = if (isRain) 1.3f else 0.09f
         // Same band-center line drawClouds' own `laneY` is built around (bandTop + bandHeight*0.5)
         // -- see this function's own doc comment for why this replaced the old bandTop-only origin.
-        val cloudBandTop = screenHeight * (0.08f + (1f - sceneCustomization.sky.sunCloudHeight) * 0.15f)
+        val cloudBandTop = cloudBandTopFor(screenHeight, sceneCustomization.sky.sunCloudHeight)
         val cloudBandHeight = screenHeight * 0.16f
         val fallStartY = cloudBandTop + cloudBandHeight * 0.5f
         val fallRange = (screenHeight + 40f) - fallStartY

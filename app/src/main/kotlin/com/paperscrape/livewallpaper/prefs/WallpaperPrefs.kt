@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
+import com.paperscrape.livewallpaper.engine.PeopleDensity
 import com.paperscrape.livewallpaper.engine.MountainLayerConfig
 import com.paperscrape.livewallpaper.engine.LakeConfig
 import com.paperscrape.livewallpaper.engine.BirdsConfig
@@ -126,6 +127,13 @@ enum class ObjectCategory {
 class WallpaperPrefs(private val context: Context) {
 
     private object Keys {
+        /**
+         * Night-time pedestrian density. Absent for every install that predates v2.12, which is
+         * what [PeopleDensity.resolveNightDensity] reads as "use the daytime value" -- see its own
+         * comment on why that, and not a fresh default, is the right upgrade.
+         */
+        val PEOPLE_NIGHT_DENSITY = floatPreferencesKey("people_night_density")
+
         val THEME_ID = stringPreferencesKey("theme_id")
         val SYNC_REAL_TIME = booleanPreferencesKey("sync_real_time")
         val USE_LOCATION = booleanPreferencesKey("use_location")
@@ -258,6 +266,10 @@ class WallpaperPrefs(private val context: Context) {
                 cars = readVariantConfig(prefs, ObjectCategory.CARS, defaults.cars),
                 parasols = readVariantConfig(prefs, ObjectCategory.PARASOLS, defaults.parasols),
             people = readVariantConfig(prefs, ObjectCategory.PEOPLE, defaults.people),
+            peopleNightDensity = PeopleDensity.resolveNightDensity(
+                stored = prefs[Keys.PEOPLE_NIGHT_DENSITY],
+                dayDensity = prefs[Keys.density(ObjectCategory.PEOPLE)] ?: defaults.people.density,
+            ),
                 trees = readVariantConfig(prefs, ObjectCategory.TREES, defaults.trees),
                 snowmen = readVariantConfig(prefs, ObjectCategory.SNOWMEN, defaults.snowmen),
                 gifts = readVariantConfig(prefs, ObjectCategory.GIFTS, defaults.gifts),
@@ -439,6 +451,13 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setCategoryDensity(category: ObjectCategory, density: Float, forThemeId: String) =
         context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.density(category)] = density
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /** The night-time pedestrian density. The daytime one is `setCategoryDensity(PEOPLE, ...)`. */
+    suspend fun setPeopleNightDensity(density: Float, forThemeId: String) =
+        context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.PEOPLE_NIGHT_DENSITY] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
@@ -774,6 +793,10 @@ class WallpaperPrefs(private val context: Context) {
         prefs.remove(Keys.colorNight1(category))
         prefs.remove(Keys.colorDay2(category))
         prefs.remove(Keys.colorNight2(category))
+        // People carry a second density that lives outside the per-category keys; resetting the
+        // category has to clear it too, or "reset to default" would leave the night population
+        // wherever the user had dragged it.
+        if (category == ObjectCategory.PEOPLE) prefs.remove(Keys.PEOPLE_NIGHT_DENSITY)
     }
 
     /**

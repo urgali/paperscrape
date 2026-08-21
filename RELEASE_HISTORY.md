@@ -19,9 +19,87 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.12 — the sky after sunset, two crowds, and one honest slider
+
+**Stable / latest.** `versionCode = 16`, `versionName = "2.12"`. Tag `v2.12`.
+
+### The moon was never early; the sky was wrong
+
+The Pixel 9 report was "the moon starts rising while it is still nearly daylight, around 19:00".
+The moon's timing turned out to be correct -- `isSunVisible` flips exactly at sunset, and for
+Florence in late August the location-aware sunset computes to 20:02 against an almanac 20:07 -- but
+`SunPositionCalculator.compute` gave the night arc a `dayBlend` of `1f - smoothEdge(arcT)`, which
+is 0 in the middle of the night and **1 at both of its ends**. The day arc ended at 0 at that same
+instant. So the blend the entire scene is coloured with jumped from full night to full day across
+sunset and then slid back down over 12% of the night -- more than an hour in summer -- with the
+moon already climbing through it.
+
+Both arcs now meet at `TERMINATOR_BLEND = 0.5`: full day easing to half-light at sunset, easing on
+to full night, and symmetrically at dawn. Continuous, with the sun's and moon's own timings
+untouched.
+
+One existing test asserted the old behaviour outright ("sunrise should start from full dark") and
+was updated deliberately, with the reason recorded in place: it had pinned the bug.
+
+### Sun/Cloud Height
+
+Three complaints, one cause each, all real:
+
+- **"The slider doesn't move the clouds."** It did, by `0.08 + (1 - h) * 0.15` of screen height --
+  a total travel of about 7% across the entire range. Now `0.06 + (max - h) * 0.5`, which spans a
+  range the eye can see, still clears the horizon at its lowest, and lands within a few pixels of
+  the old position at the default so existing scenes are not rearranged.
+- **"At 60% the sun is too high."** The slider printed the stored value as a percentage, and the
+  stored range is 0.1..0.6 -- so "60%" was the maximum, not the middle.
+- **"It's 0-60 instead of 0-100."** It now shows 0-100% mapped onto that same stored range. The
+  scale the renderer reads is unchanged, so **nothing saved needs migrating**.
+
+The semantics were confirmed from the code rather than assumed: one value feeds both the celestial
+arc (`drawCelestialBody`) and the cloud band (`drawClouds`, and the precipitation origin that hangs
+off it), which is answer (C)-with-(B) from the brief -- a real single parameter whose cloud half
+was too weak to notice.
+
+### Day and night crowds
+
+`people.density` is read in exactly one place, `SceneObjectRenderer.drawPeople`, and governs
+pedestrians only -- drivers, passengers and lit-window figures are drawn elsewhere and are
+untouched. A dedicated `peopleNightDensity` sits beside it (not a second density on every
+`ObjectVariantConfig`: no other category has a population that plausibly depends on the hour), and
+the renderer crossfades between the two with the scene's own `dayBlend` rather than switching at a
+threshold, so the street empties over the length of dusk instead of between two frames.
+
+**Migration:** the preference is absent for every pre-v2.12 install, and absent reads as "use the
+daytime value" (`PeopleDensity.resolveNightDensity`). The scene after the upgrade is the scene
+before it. Saved custom themes without the key fall back to their own daytime density for the same
+reason, and `resetCategory(PEOPLE)` clears the new key too -- otherwise "reset to default" would
+have left the night population wherever it had been dragged.
+
+### Bottom spacing, again
+
+v2.10 asked one window for the bottom inset and floored the result at 48 dp. That was not enough on
+the device, and raising the constant would have been the wrong fix: the problem is that **neither
+window is reliable alone**. A settings destination is a `Dialog` with a window of its own, and
+depending on whether it fits system windows, either it reports the gesture inset and the activity's
+figure is stale, or it reports zero while the activity holds the real one. The spacer now takes the
+larger of the two and the floor is only reached when neither knows.
+
+### Measured
+
+533 Kotlin unit tests passing (v2.11: 505), `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK.
+
+**Not verified on a device.** No Pixel 9 and no emulator were available for this batch, so none of
+the four fixes has been watched on a screen -- including the bottom spacing, which is the second
+time it has been changed without being seen. The sun/moon and people work is pinned by unit tests
+over the pure arithmetic (blend continuity across both terminators, real-location sunset against an
+almanac figure, the DST trap, slider round-trips at every percent, crossfade endpoints and the
+migration), but arithmetic is not a screenshot.
+
+---
+
 ## v2.11 — updating from inside the app, and one preview system
 
-**Stable / latest.** `versionCode = 15`, `versionName = "2.11"`. Tag `v2.11`.
+**Stable.** `versionCode = 15`, `versionName = "2.11"`. Tag `v2.11`.
 
 ### CHECK -> DOWNLOAD -> VERIFY -> INSTALL
 

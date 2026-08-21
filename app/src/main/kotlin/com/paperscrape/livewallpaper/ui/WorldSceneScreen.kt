@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.sunCloudHeightForFraction
+import com.paperscrape.livewallpaper.engine.sunCloudHeightFraction
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.ObjectCategory
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
@@ -308,11 +310,18 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
             "How high the sun and moon's arc rises across the sky.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // Shown as a plain 0-100%, like every other slider, and mapped onto the arc-height range
+        // the renderer has always used. The stored value keeps its own scale, so nothing saved
+        // needs migrating -- what changed is that the slider no longer prints an internal number
+        // as if it were a percentage, which is what made "60%" look like it was near the middle
+        // when it was the maximum.
         PreferenceSlider(
             label = { shown -> Text("Sun/Cloud Height: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
-            value = customization.sky.sunCloudHeight,
-            onCommit = { committed -> scope.launch { prefs.setSkySunCloudHeight(committed, forThemeId) } },
-            valueRange = 0.1f..0.6f,
+            value = sunCloudHeightFraction(customization.sky.sunCloudHeight),
+            onCommit = { fraction ->
+                scope.launch { prefs.setSkySunCloudHeight(sunCloudHeightForFraction(fraction), forThemeId) }
+            },
+            valueRange = 0f..1f,
         )
     }
     editingTarget?.let { target ->
@@ -608,13 +617,20 @@ private fun PeopleSubScreen(customization: SceneCustomization, forThemeId: Strin
             onCheckedChange = { scope.launch { prefs.setCategoryVisible(ObjectCategory.PEOPLE, it, forThemeId) } },
         )
         PreferenceSlider(
-            label = { shown -> Text("Density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
+            label = { shown -> Text("Day density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = config.density,
             onCommit = { committed -> scope.launch { prefs.setCategoryDensity(ObjectCategory.PEOPLE, committed, forThemeId) } },
             valueRange = 0f..1f,
         )
+        PreferenceSlider(
+            label = { shown -> Text("Night density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
+            value = customization.peopleNightDensity,
+            onCommit = { committed -> scope.launch { prefs.setPeopleNightDensity(committed, forThemeId) } },
+            valueRange = 0f..1f,
+        )
         Text(
-            "Their clothing follows the Winter palette, like the trees do.",
+            "The street fills and empties across dusk and dawn, following the same light the " +
+                "colours do. Their clothing follows the Winter palette, like the trees do.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

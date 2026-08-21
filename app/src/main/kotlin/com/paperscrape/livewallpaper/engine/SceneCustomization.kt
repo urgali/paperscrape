@@ -76,7 +76,17 @@ data class SkyConfig(
     val colorNightLow: Int,
     val colorSunriseLow: Int,
     val colorSunsetLow: Int,
-    /** 0f..1f — how high the sun/moon's arc rises (and, once built, where clouds sit). */
+    /**
+     * How high the sun and moon's arc rises, as a fraction of screen height, and with it how high
+     * the cloud band sits. Stored in scene terms, [SUN_CLOUD_HEIGHT_MIN]..[SUN_CLOUD_HEIGHT_MAX];
+     * the settings slider shows that range as a plain 0-100%.
+     *
+     * One value for both is deliberate and always was: the clouds belong to the same sky the sun
+     * crosses, and a scene whose sun peaks low while its clouds sit high reads as two skies. The
+     * v2.11 coupling was real but nearly invisible -- the whole slider moved the cloud band by
+     * about 7% of screen height -- which is why it was reported as "the slider doesn't move the
+     * clouds". See `PaperRenderer.cloudBandTop`.
+     */
     val sunCloudHeight: Float,
 )
 
@@ -181,6 +191,21 @@ data class SceneCustomization(
      * candidates render, not which ones exist.
      */
     val people: ObjectVariantConfig,
+    /**
+     * How many pedestrians walk **after dark**, 0f..1f.
+     *
+     * [people]`.density` is the daytime figure; this is the same thing for the night side, and the
+     * renderer crossfades between them with the scene's own `dayBlend` rather than switching at a
+     * threshold -- a street that empties over the length of dusk, not one where four people vanish
+     * between two frames.
+     *
+     * Deliberately a field of its own rather than a second density on every
+     * [ObjectVariantConfig]: pedestrians are the only category whose population plausibly depends
+     * on the hour, and giving houses and mountains a night density would be a preference that can
+     * never mean anything. It governs the same pedestrians `people.density` always has -- drivers,
+     * passengers and the figures in lit windows are drawn elsewhere and are untouched.
+     */
+    val peopleNightDensity: Float = DEFAULT_PEOPLE_NIGHT_DENSITY,
     val trees: ObjectVariantConfig,
     // Fall Colors / Winter-Christmas Colors: NOT their own placeable object category (no
     // visibility/density/color-variant shape like the seasonal decorations below) -- they're a
@@ -393,6 +418,7 @@ data class SceneCustomization(
                 density = 1f,
                 colorDay1 = 0, colorNight1 = 0, colorDay2 = 0, colorNight2 = 0,
             ),
+            peopleNightDensity = DEFAULT_PEOPLE_NIGHT_DENSITY,
             parasols = ObjectVariantConfig(
                 visible = true,
                 density = 0.65f, // see houses' own comment on this same default-density change
@@ -467,6 +493,35 @@ data class SceneCustomization(
         )
     }
 }
+
+/**
+ * The night-time pedestrian density a fresh install starts with.
+ *
+ * Equal to the daytime default, so v2.12 looks exactly like v2.11 until the user moves one of the
+ * two sliders. Splitting a setting in two is not a licence to change what it does.
+ */
+const val DEFAULT_PEOPLE_NIGHT_DENSITY = 1f
+
+/**
+ * The arc-height range, in fractions of screen height.
+ *
+ * These are the bounds the renderer has always clamped to, now named once and shared with the
+ * settings slider so the two cannot disagree. They are the reason the old slider looked wrong at
+ * "60%": it displayed the stored value directly, so its 60% was `0.6` -- the *top* of the range,
+ * not the middle of anything. The stored scale is unchanged, so no saved theme or preference
+ * needs migrating; only what the slider prints on top of it changed.
+ */
+const val SUN_CLOUD_HEIGHT_MIN = 0.1f
+const val SUN_CLOUD_HEIGHT_MAX = 0.6f
+
+/** The stored arc height for a slider at [fraction] of the way along 0-100%. */
+fun sunCloudHeightForFraction(fraction: Float): Float =
+    SUN_CLOUD_HEIGHT_MIN + (SUN_CLOUD_HEIGHT_MAX - SUN_CLOUD_HEIGHT_MIN) * fraction.coerceIn(0f, 1f)
+
+/** Where a stored arc height sits on the slider's 0-100%. */
+fun sunCloudHeightFraction(stored: Float): Float =
+    ((stored.coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX) - SUN_CLOUD_HEIGHT_MIN) /
+        (SUN_CLOUD_HEIGHT_MAX - SUN_CLOUD_HEIGHT_MIN))
 
 /**
  * Stable per-instance fraction in [0, 1), derived purely from an object's fixed position (never

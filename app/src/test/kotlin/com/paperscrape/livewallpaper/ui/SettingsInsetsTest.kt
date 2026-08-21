@@ -19,13 +19,13 @@ class SettingsInsetsTest {
     fun `a reported inset is respected and given breathing room on top`() {
         assertEquals(
             48.dp + SettingsInsets.EXTRA_BOTTOM_SPACING,
-            SettingsInsets.bottomSpacing(48.dp),
+            SettingsInsets.bottomSpacing(48.dp, 48.dp),
         )
     }
 
     @Test
     fun `a gesture bar sized inset still clears the bar`() {
-        val spacing = SettingsInsets.bottomSpacing(24.dp)
+        val spacing = SettingsInsets.bottomSpacing(24.dp, 24.dp)
         assertTrue("$spacing must clear a 24 dp gesture bar", spacing > 24.dp)
     }
 
@@ -36,19 +36,19 @@ class SettingsInsetsTest {
      */
     @Test
     fun `no reported inset falls back to the minimum rather than to nothing`() {
-        assertEquals(SettingsInsets.MINIMUM_BOTTOM_SPACING, SettingsInsets.bottomSpacing(0.dp))
+        assertEquals(SettingsInsets.MINIMUM_BOTTOM_SPACING, SettingsInsets.bottomSpacing(0.dp, 0.dp))
     }
 
     @Test
     fun `a nonsensical negative inset cannot pull content back under the bar`() {
-        assertEquals(SettingsInsets.MINIMUM_BOTTOM_SPACING, SettingsInsets.bottomSpacing((-40).dp))
+        assertEquals(SettingsInsets.MINIMUM_BOTTOM_SPACING, SettingsInsets.bottomSpacing((-40).dp, (-40).dp))
     }
 
     @Test
     fun `spacing never decreases as the system reserves more space`() {
-        var previous = SettingsInsets.bottomSpacing(0.dp)
+        var previous = SettingsInsets.bottomSpacing(0.dp, 0.dp)
         for (inset in listOf(8, 16, 24, 32, 48, 64, 96)) {
-            val spacing = SettingsInsets.bottomSpacing(inset.dp)
+            val spacing = SettingsInsets.bottomSpacing(inset.dp, inset.dp)
             assertTrue("spacing shrank at $inset dp", spacing >= previous)
             previous = spacing
         }
@@ -61,8 +61,38 @@ class SettingsInsetsTest {
      */
     @Test
     fun `spacing does not depend on how much content a screen has`() {
-        val shortScreen = SettingsInsets.bottomSpacing(24.dp)
-        val longScreen = SettingsInsets.bottomSpacing(24.dp)
+        val shortScreen = SettingsInsets.bottomSpacing(24.dp, 24.dp)
+        val longScreen = SettingsInsets.bottomSpacing(24.dp, 24.dp)
         assertEquals(shortScreen, longScreen)
+    }
+
+    /**
+     * The v2.10 fix asked one window and trusted it. On the Pixel 9 that was not enough, because
+     * a settings destination is a dialog with a window of its own and only one of the two is
+     * telling the truth at any moment. These pin the rule that replaced it.
+     */
+    @Test
+    fun `the window that knows the inset is the one that decides`() {
+        // Dialog reports nothing, activity has the real figure.
+        assertEquals(48.dp + SettingsInsets.EXTRA_BOTTOM_SPACING, SettingsInsets.bottomSpacing(0.dp, 48.dp))
+        // The other way round: the dialog measured it, the activity's value is stale.
+        assertEquals(48.dp + SettingsInsets.EXTRA_BOTTOM_SPACING, SettingsInsets.bottomSpacing(48.dp, 0.dp))
+    }
+
+    @Test
+    fun `disagreeing windows never produce less space than the larger one asks for`() {
+        for (dialog in listOf(0, 16, 24, 48, 64)) {
+            for (activity in listOf(0, 16, 24, 48, 64)) {
+                val spacing = SettingsInsets.bottomSpacing(dialog.dp, activity.dp)
+                val larger = maxOf(dialog, activity).dp
+                assertTrue("$dialog/$activity", spacing >= larger + SettingsInsets.EXTRA_BOTTOM_SPACING)
+            }
+        }
+    }
+
+    @Test
+    fun `neither window knowing still clears a gesture bar`() {
+        assertEquals(SettingsInsets.MINIMUM_BOTTOM_SPACING, SettingsInsets.bottomSpacing(0.dp, 0.dp))
+        assertTrue(SettingsInsets.bottomSpacing(0.dp, 0.dp) > 24.dp)
     }
 }

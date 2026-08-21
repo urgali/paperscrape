@@ -165,6 +165,11 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("cars", cars.toJson())
     put("parasols", parasols.toJson())
     put("people", people.toJson())
+    // Written alongside the people block rather than inside it: it belongs to the pedestrians,
+    // not to ObjectVariantConfig, which every other category shares. A theme saved before v2.12
+    // has no such key, and reading falls back to that theme's own daytime density -- so an old
+    // saved theme keeps behaving exactly as it did.
+    put("peopleNightDensity", peopleNightDensity.toDouble())
     put("trees", trees.toJson())
     put("snowmen", snowmen.toJson())
     put("gifts", gifts.toJson())
@@ -253,6 +258,10 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // Absent from every payload written before v76.12, which is why it falls back to the
         // default rather than needing a schema step: a missing category is not a changed one.
         people = json.optJSONObject("people")?.let { objectVariantConfigFromJson(it, defaults.people) } ?: defaults.people,
+        peopleNightDensity = json.optDouble(
+            "peopleNightDensity",
+            (json.optJSONObject("people")?.optDouble("density") ?: defaults.people.density.toDouble()),
+        ).toFloat(),
         trees = json.optJSONObject("trees")?.let { objectVariantConfigFromJson(it, defaults.trees) } ?: defaults.trees,
         // Seasonal decorations ARE part of a saved custom theme's JSON now -- per-theme editable
         // and saveable exactly like the structural categories above (see the ObjectCategory doc

@@ -47,13 +47,15 @@ object SunPositionCalculator {
         if (isDay) {
             arcT = (hour24 - sunriseHour) / dayLength
             progress = 0.25f + arcT * 0.5f
-            // Smooth blend near the edges so dawn/dusk have a gradient, not a hard cut.
-            dayBlend = smoothEdge(arcT)
+            // Twilight is shared between the two arcs: the day side runs from half-light at the
+            // terminator up to full day, and the night side from half-light back down to full
+            // night. See TERMINATOR_BLEND.
+            dayBlend = TERMINATOR_BLEND + (1f - TERMINATOR_BLEND) * smoothEdge(arcT)
         } else {
             val hourSinceSunset = if (hour24 > sunsetHour) hour24 - sunsetHour else hour24 + (24f - sunsetHour)
             arcT = hourSinceSunset / nightLength
             progress = (0.75f + arcT * 0.5f) % 1f
-            dayBlend = 1f - smoothEdge(arcT)
+            dayBlend = TERMINATOR_BLEND - TERMINATOR_BLEND * smoothEdge(arcT)
         }
 
         val celestialX = arcT
@@ -68,6 +70,24 @@ object SunPositionCalculator {
             isSunVisible = isDay,
         )
     }
+
+    /**
+     * The blend at sunrise and at sunset -- half day, half night, from both sides.
+     *
+     * This is what makes the two arcs meet. The night arc used to be `1f - smoothEdge(arcT)`,
+     * which is 0 in the middle of the night (correct) but **1 at both of its ends**: the instant
+     * after sunset the sky was painted with full daytime colours, and it then took 12% of the
+     * night -- over an hour in summer -- to darken. The day arc ended at 0 at that same instant,
+     * so the blend jumped from full night to full day across the terminator and slid back down,
+     * with the moon already climbing. That is the "the moon rises while it is still daylight"
+     * report from the Pixel 9, and it was never about the moon's timing: the moon appears exactly
+     * at sunset, which is right, into a sky that had been told it was noon.
+     *
+     * With both arcs anchored here the blend is continuous: full day, easing to half at sunset,
+     * easing on down to full night, and symmetrically at dawn. The sun's and the moon's own
+     * timings are untouched -- [isSunVisible] still flips exactly at sunrise and sunset.
+     */
+    private const val TERMINATOR_BLEND = 0.5f
 
     /** Eases the first/last 12% of the arc so twilight fades smoothly instead of snapping. */
     private fun smoothEdge(t: Float): Float {
