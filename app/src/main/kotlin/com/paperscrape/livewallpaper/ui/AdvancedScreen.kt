@@ -25,7 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,12 +72,63 @@ internal fun AdvancedScreen(
     customThemeStore: CustomThemeStore,
     scope: CoroutineScope,
     onUpdateFound: (UpdateInfo) -> Unit,
+    startInstallFor: UpdateInfo? = null,
+    onInstallStarted: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     var showSaveDialog by remember { mutableStateOf(false) }
     var confirmResetAll by remember { mutableStateOf(false) }
     var updateState by remember { mutableStateOf<UpdateUiState>(UpdateUiState.Idle) }
+
+    /**
+     * Downloads, verifies, and moves to whatever the verdict allows.
+     *
+     * Declared before it is used from the permission launcher below, because granting the
+     * permission has to be able to resume the same flow that sent the user to Settings.
+     */
+    suspend fun runDownload(info: UpdateInfo) {
+        updateState = UpdateUiState.Downloading(-1)
+        val result = ApkDownloader.downloadAndVerify(context, info) { percent ->
+            // The download runs on an IO dispatcher; the state it reports is read on the UI
+            // thread, and Compose's snapshot state is safe to write from either.
+            updateState = UpdateUiState.Downloading(percent)
+        }
+        updateState = verifiedOrError(context, result)
+    }
+
+    /**
+     * Sends the user to **PaperScrape's own** "install unknown apps" page -- the per-app screen
+     * `ACTION_MANAGE_UNKNOWN_APP_SOURCES` opens when it is given a package URI, not the general
+     * settings list they would then have to search.
+     *
+     * Launched for a result purely so there is a callback when they come back: the result code is
+     * meaningless for this action (the screen reports nothing), so the permission is re-read
+     * instead. Granting it resumes the install that was interrupted; declining says what is
+     * missing rather than silently doing nothing.
+     */
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        val pending = updateState as? UpdateUiState.NeedsPermission ?: return@rememberLauncherForActivityResult
+        if (ApkInstaller.canRequestInstalls(context)) {
+            updateState = UpdateUiState.ReadyToInstall(pending.apk)
+            ApkInstaller.launchInstall(context, pending.apk)
+        } else {
+            updateState = UpdateUiState.Error(
+                "PaperScrape still isn't allowed to install app packages, so the update is ready " +
+                    "but can't be handed to Android. Turn on \"Allow from this source\" and tap " +
+                    "Install again.",
+            )
+        }
+    }
+
+    // Arriving here from the update dialog's "Install update": start immediately, so that tap is
+    // the whole of the user's involvement until Android asks them to confirm.
+    LaunchedEffect(startInstallFor) {
+        val info = startInstallFor ?: return@LaunchedEffect
+        onInstallStarted()
+        updateState = UpdateUiState.Available(info)
+        runDownload(info)
+    }
 
     SettingsSubScreen(title = "Advanced & about", onBack = onBack) {
         SettingsSectionHeader("Custom themes")
@@ -133,17 +187,7 @@ internal fun AdvancedScreen(
 
         UpdateProgressSection(
             state = updateState,
-            onDownload = { info ->
-                scope.launch {
-                    updateState = UpdateUiState.Downloading(-1)
-                    val result = ApkDownloader.downloadAndVerify(context, info) { percent ->
-                        // The download runs on an IO dispatcher; the state it reports is read on
-                        // the UI thread, and Compose's snapshot state is safe to write from either.
-                        updateState = UpdateUiState.Downloading(percent)
-                    }
-                    updateState = verifiedOrError(context, result)
-                }
-            },
+            onDownload = { info -> scope.launch { runDownload(info) } },
             onInstall = { apk ->
                 if (!ApkInstaller.canRequestInstalls(context)) {
                     updateState = UpdateUiState.NeedsPermission(apk)
@@ -151,7 +195,7 @@ internal fun AdvancedScreen(
                     ApkInstaller.launchInstall(context, apk)
                 }
             },
-            onGrantPermission = { context.startActivity(ApkInstaller.installPermissionIntent(context)) },
+            onGrantPermission = { permissionLauncher.launch(ApkInstaller.installPermissionIntent(context)) },
             onOpenReleasePage = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
             onRetry = { scope.launch { updateState = checkForUpdate(onUpdateFound) } },
             onDismiss = { updateState = UpdateUiState.Idle },

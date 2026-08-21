@@ -19,9 +19,75 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v2.13 — the update button updates, and showers count as rain
+
+**Stable / latest.** `versionCode = 17`, `versionName = "2.13"`. Tag `v2.13`.
+
+### The update dialog's main action opened a browser
+
+v2.11 built a download -> verify -> install path and then left the update dialog's primary button
+pointing at the GitHub release page, because that button predated the flow. So the feature existed
+and almost nobody would have found it: it was reachable only by going to Advanced & about and
+starting a check again.
+
+Three actions now, with the primary one doing the primary thing: **Remind me later** (closes,
+snooze unchanged), **Check project page** (opens the release, and that is all it claims to do), and
+**Install update**, which drops straight into the download with the release already selected.
+
+### Install permission
+
+`ACTION_MANAGE_UNKNOWN_APP_SOURCES` opens PaperScrape's **own** per-app page when it is given a
+`package:` URI, and that is what the app sends. It is launched for a result purely to get a
+callback on return -- the screen reports nothing useful in its result code, so the permission is
+re-read instead. Granted, the interrupted install resumes and Android's installer opens; not
+granted, the screen says what is still missing rather than silently doing nothing.
+
+### The Florence rain: what the API actually said
+
+Checked against live responses for 43.7696, 11.2558 (Europe/Rome, +7200 s, model elevation 65 m):
+
+| Local time | precipitation | rain | showers | snowfall | code | cloud |
+|---|---|---|---|---|---|---|
+| 2026-08-21T09:00 (current) | 0.0 | 0.0 | 0.0 | 0.0 | 3 | 100% |
+| 2026-08-21T00:00 | 0.1 | **0.0** | **0.1** | 0.0 | 80 | 100% |
+| 2026-08-21T13:00 | 1.0 | **0.0** | **1.0** | 0.0 | 80 | 100% |
+| 2026-08-21T14:00 | 0.6 | **0.0** | **0.6** | 0.0 | 61 | 100% |
+
+Over 72 hours the grid square had 3 wet hours and near-permanent 100% cloud -- which is exactly the
+shape of the report: clouds present, rain absent.
+
+**The finding that matters: Open-Meteo files a Florence shower under `showers` and leaves `rain` at
+0.0.** The app was not reading either field -- it mapped `weather_code` and used `precipitation`
+for intensity -- so case **B** from the brief was ruled out by inspection, and codes 80-82 were
+already mapped, ruling out **C** for showers.
+
+What was left is a real hole plus two things no code change reaches:
+
+- **The hole (a variant of A):** `precipitation > 0` under a non-precipitation code produced no
+  rain at all. That happens when a shower ends inside the reporting hour. Fixed: measurements now
+  decide *that* something is falling, `snowfall`/`rain`/`showers` decide *which*, and the code is
+  the fallback. `precipitation`, `rain`, `showers` and `snowfall` are now all requested.
+- **Staleness (D)** is real but bounded and unchanged: the service refreshes at most hourly, so a
+  shower starting just after a fetch can be up to an hour late. Left alone deliberately -- cutting
+  the interval multiplies network calls for a wallpaper.
+- **(E) cannot be excluded and is likely part of it.** The observation has no recorded timestamp,
+  so it cannot be matched against a specific response; and a model grid square is not a window. A
+  convective shower it did not resolve will not appear however the response is read.
+
+### Measured
+
+548 Kotlin unit tests passing (v2.12: 533), `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK.
+
+**Not verified on a device.** No Pixel 9 was available, so the three-button dialog, the permission
+deep link, the resumed install and the weather mapping have not been seen running. The updater in
+particular still has never been exercised end to end against a real release.
+
+---
+
 ## v2.12 — the sky after sunset, two crowds, and one honest slider
 
-**Stable / latest.** `versionCode = 16`, `versionName = "2.12"`. Tag `v2.12`.
+**Stable.** `versionCode = 16`, `versionName = "2.12"`. Tag `v2.12`.
 
 ### The moon was never early; the sky was wrong
 

@@ -10,19 +10,20 @@ the rules that always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v2.12 Stable — the sky after sunset, two crowds, and one honest slider.**
+**v2.13 Stable — the update button updates, and showers count as rain.**
 
-`versionCode = 16`, `versionName = "2.12"`. The day/night blend is continuous across both
-terminators (the real cause of "the moon rises in daylight"), Sun/Cloud Height reads 0-100% and
-moves the clouds visibly, People has separate day and night densities with a no-op migration, and
-the bottom spacer takes the larger of the two window insets instead of trusting one.
+`versionCode = 17`, `versionName = "2.13"`. The update dialog offers Remind me later / Check
+project page / Install update, with the last one starting the in-app download instead of opening
+GitHub; a missing install permission now deep-links to PaperScrape's own page and resumes on
+return. Live Weather reads `rain`, `showers` and `snowfall` alongside `precipitation`, and trusts a
+measurement over a summary code.
 
-Last measured: 533 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
-producing an APK. **None of it seen on a device.**
+Last measured: 548 Kotlin unit tests passing, `lintDebug` 0 errors / 40 warnings, `assembleDebug`
+producing an APK. **Not seen on a device.**
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -63,6 +64,7 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v2.13 Stable** — three-action update dialog with in-app install, install-permission deep link, and measurement-first weather mapping.
 - **v2.12 Stable** — day/night blend continuity, Sun/Cloud Height corrected and rescaled, day/night people density, two-source bottom inset.
 - **v2.11 Stable** — in-app update flow with SHA-256 verification, and the World & scene preview merged into the gallery's preview system.
 - **v2.10 Stable** — one central bottom-inset rule for every settings screen, and custom location by city search.

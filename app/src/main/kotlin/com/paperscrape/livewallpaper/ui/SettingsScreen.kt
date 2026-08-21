@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -94,6 +95,10 @@ fun SettingsScreen(
     // system notification, per the requirement that it must not nag the user outside the app.
     var availableUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
     var showSnoozeChoice by remember { mutableStateOf(false) }
+    // Set when the update dialog's "Install update" is tapped: Advanced & about opens with this
+    // release already being downloaded, so the one tap starts the flow rather than dropping the
+    // user on a screen where they have to find it and start it again.
+    var pendingInstall by remember { mutableStateOf<UpdateInfo?>(null) }
 
     // **No automatic check.** Opening the settings screen used to reach the network every time,
     // which is a request the user never made, for a feature they may not want. The check now runs
@@ -272,6 +277,8 @@ fun SettingsScreen(
             customThemeStore = customThemeStore,
             scope = scope,
             onUpdateFound = { availableUpdate = it },
+            startInstallFor = pendingInstall,
+            onInstallStarted = { pendingInstall = null },
             onBack = { destination = SettingsDestination.HOME },
         )
     }
@@ -300,16 +307,32 @@ fun SettingsScreen(
                         }
                     }
                 },
+                // Three actions, and the one that reads like the main one now installs.
+                //
+                // Until v2.13 "Update now" opened the release page, which was the whole update
+                // path before there was an in-app one and stayed the default afterwards -- so the
+                // download/verify/install flow that v2.11 built was reachable only by finding it
+                // in Advanced & about. Installing is the primary action; the project page is
+                // available for anyone who wants to read the release on GitHub, and is now what it
+                // says it is rather than a redirect standing in for an update.
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, update.releasePageUrl.toUri()))
                             availableUpdate = null
+                            pendingInstall = update
+                            destination = SettingsDestination.ADVANCED
                         },
-                    ) { Text("Update now") }
+                    ) { Text("Install update") }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showSnoozeChoice = true }) { Text("Remind me later") }
+                    Row {
+                        TextButton(onClick = { showSnoozeChoice = true }) { Text("Remind me later") }
+                        TextButton(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, update.releasePageUrl.toUri()))
+                            },
+                        ) { Text("Check project page") }
+                    }
                 },
             )
         } else {

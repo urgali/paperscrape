@@ -66,7 +66,7 @@ object WeatherRepository {
         val host = if (apiKey != null) "customer-api.open-meteo.com" else "api.open-meteo.com"
         val keyParam = if (apiKey != null) "&apikey=$apiKey" else ""
         val url = "https://$host/v1/forecast?latitude=$latitude&longitude=$longitude" +
-            "&current=precipitation,weather_code,cloud_cover&timezone=auto$keyParam"
+            "&current=precipitation,rain,showers,snowfall,weather_code,cloud_cover&timezone=auto$keyParam"
 
         var connection: HttpURLConnection? = null
         try {
@@ -84,8 +84,15 @@ object WeatherRepository {
             val weatherCode = current.optInt("weather_code", 0)
             val precipitationMm = current.optDouble("precipitation", 0.0)
             val cloudCoverPercent = current.optInt("cloud_cover", 0)
+            // Open-Meteo splits precipitation three ways and `precipitation` is their sum, so the
+            // breakdown is what says *which kind* is falling. It matters here because a Florence
+            // shower reports `rain: 0.0` with the millimetres in `showers` -- looking only at
+            // `rain` would have read a downpour as a dry hour. See [weatherCodeToSnapshot].
+            val rainMm = current.optDouble("rain", 0.0)
+            val showersMm = current.optDouble("showers", 0.0)
+            val snowfallCm = current.optDouble("snowfall", 0.0)
 
-            weatherCodeToSnapshot(weatherCode, precipitationMm, cloudCoverPercent)
+            weatherCodeToSnapshot(weatherCode, precipitationMm, cloudCoverPercent, rainMm, showersMm, snowfallCm)
         } catch (_: Exception) {
             null
         } finally {
@@ -100,19 +107,48 @@ object WeatherRepository {
      * hour) rather than guessed purely from the code's "slight/moderate/heavy" wording, so two
      * "61 slight rain" readings with different real mm still produce different intensities.
      */
-    internal fun weatherCodeToSnapshot(weatherCode: Int, precipitationMm: Double, cloudCoverPercent: Int): LiveWeatherSnapshot {
+    internal fun weatherCodeToSnapshot(
+        weatherCode: Int,
+        precipitationMm: Double,
+        cloudCoverPercent: Int,
+        rainMm: Double = 0.0,
+        showersMm: Double = 0.0,
+        snowfallCm: Double = 0.0,
+    ): LiveWeatherSnapshot {
         val isSnowCode = weatherCode in intArrayOf(71, 73, 75, 77, 85, 86)
         val isRainCode = weatherCode in intArrayOf(51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99)
         val isThunderstorm = weatherCode in intArrayOf(95, 96, 99)
+        // Measurements first, code second.
+        //
+        // The code is an interpretation and the millimetres are an observation, and they can
+        // disagree: a shower that has just stopped, or one the model places a grid cell away,
+        // leaves `precipitation` above zero under an "overcast" code 3. v2.12 read only the code
+        // and so drew a dry, fully clouded sky in that case -- which is the shape of the Florence
+        // report. Where a measurement exists it decides *that something is falling*; the split
+        // between rain and snow comes from whichever of the three sub-fields carries it, falling
+        // back to the code when the sum is positive but the breakdown is not (a customer endpoint
+        // may omit the sub-fields).
+        val hasMeasuredSnow = snowfallCm > 0.0
+        val hasMeasuredRain = rainMm > 0.0 || showersMm > 0.0
+        val hasMeasuredPrecipitation = precipitationMm > 0.0 || hasMeasuredRain || hasMeasuredSnow
         val precipitationType = when {
+            hasMeasuredSnow -> PrecipitationType.SNOW
+            hasMeasuredRain -> PrecipitationType.RAIN
             isSnowCode -> PrecipitationType.SNOW
             isRainCode -> PrecipitationType.RAIN
+            // Something is measurably falling and nothing above said which kind. Rain is the
+            // right guess: snow arrives with either a snow code or a snowfall reading, and a
+            // wallpaper that snows in August on a rounding artefact is worse than one that rains.
+            hasMeasuredPrecipitation -> PrecipitationType.RAIN
             else -> null
         }
         // 8mm/h+ already reads as a heavy downpour -- capping the intensity mapping there instead
         // of at some much higher "extreme storm" figure keeps ordinary rain/snow readings usefully
         // spread across the 0..1 slider range instead of clustering near 0.
-        val intensity = (precipitationMm / 8.0).coerceIn(0.0, 1.0).toFloat()
+        // The sum, or the parts when the sum is missing: `precipitation` is rain + showers +
+        // snowfall's water equivalent, so it is the right figure whenever it is present.
+        val measuredMm = if (precipitationMm > 0.0) precipitationMm else rainMm + showersMm
+        val intensity = (measuredMm / 8.0).coerceIn(0.0, 1.0).toFloat()
         return LiveWeatherSnapshot(
             precipitationType = precipitationType,
             precipitationIntensity = if (precipitationType != null) intensity.coerceAtLeast(0.15f) else 0f,
