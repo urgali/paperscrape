@@ -27,7 +27,7 @@ PaperScrape/
 │       ├── kotlin/com/paperscrape/livewallpaper/
 │       │   ├── engine/          rendering, scene model, themes, effects
 │       │   ├── prefs/           DataStore persistence
-│       │   ├── location/        optional coarse location
+│       │   ├── location/        optional location: GPS, network/cell, or custom
 │       │   ├── weather/         optional live weather
 │       │   ├── update/          in-app update check
 │       │   └── ui/              Compose settings screen
@@ -96,8 +96,19 @@ PaperScrape/
 
 - `prefs/WallpaperPrefs.kt` — main DataStore store, exposes `settingsFlow`.
 - `prefs/CustomThemeStore.kt` — separate DataStore for custom themes/overrides.
-- `location/DeviceLocationProvider.kt` — the device fix.
-- `location/LocationSource.kt` — which of the two mutually exclusive sources a held fix came from.
+- `location/DeviceLocationKind.kt` — the two device positioning systems, each bound to exactly one
+  `LocationManager` provider and one permission. `NETWORK` is cell/Wi-Fi with
+  `ACCESS_COARSE_LOCATION` and **never** substitutes GPS; `GPS` is the GNSS receiver with
+  `ACCESS_FINE_LOCATION`.
+- `location/DeviceLocationProvider.kt` — **one fix, asked for when something needs it.** Not a
+  subscription: `currentFix` prefers a cached fix under 15 minutes old (no radio at all), otherwise
+  makes one bounded `getCurrentLocation` request (API 30+) or a self-removing single update below
+  that, and returns `null` rather than trying a different provider. Until v3.0 this held a
+  ten-minute `requestLocationUpdates` subscription for the wallpaper's whole life to feed an hourly
+  forecast, and picked its provider by whichever was enabled.
+- `location/LocationSource.kt` — which of the four mutually exclusive sources a held fix came from
+  (`NONE`, `NETWORK`, `GPS`, `CUSTOM`). `GPS` and `NETWORK` are separate values so switching between
+  them invalidates the held fix, exactly as switching to or from `CUSTOM` does.
   The engine invalidates the fix when the source changes; without it a custom location survived a
   switch to phone location and Live Weather kept querying the old coordinates.
 - `location/LocationLabelResolver.kt` — reverse geocoding through the platform `Geocoder`, which
@@ -143,13 +154,16 @@ PaperScrape/
 - `update/ApkDownloader.kt` — streams the APK to `cache/updates` while hashing it in the same pass,
   and `ApkInstaller`, which hands the verified file to Android through a `FileProvider` URI scoped
   to that one directory. No silent-install path exists.
-  **This path is known broken and unexplained (D13).** Reported against v2.15: the UI reaches
-  `UpdateUiState.Downloading` and stays there — the download never completes and the user has to
-  install from the Releases page by hand. *Checking* is unaffected. Nothing above should be read
-  as a description of working behaviour past the check: the download/verify/install chain has
-  never been run end to end against a real release, only unit-tested over its pure parts. No
-  diagnosis exists, and none is written here, because the code was deliberately not touched during
-  the v2.16 upgrade.
+  `downloadAndVerifyTo` is the same download with no `Context` in it, which is what makes the
+  failure modes JVM-testable against a local HTTP server (`ApkDownloadPathTest`). It reports a
+  `DownloadPhase` -- `Downloading(percent)` then `Verifying` -- because the digest comparison and
+  the package parse after the last byte are a visible pause the UI used to call "downloading".
+  **D13, fixed in v3.0:** the hang was never here. `AdvancedScreen`'s `LaunchedEffect` was keyed on
+  the state its own body cleared, so Compose cancelled the download ~30 ms after it started and the
+  UI was left on `Downloading` with the check row disabled. The effect is now keyed on the tag with
+  an already-started guard, the transfer runs in the settings screen's scope so it outlives the
+  effect, and `runDownload` restores an actionable state on cancellation. Verified end to end
+  against the real v2.15 → v2.16 releases.
 - `ui/` — the settings UI, one file per destination since v2.9 (it was a single 2,414-line
   `SettingsScreen.kt`):
   - `SettingsActivity.kt` — the activity, edge-to-edge, wraps everything in `PaperScrapeTheme`.

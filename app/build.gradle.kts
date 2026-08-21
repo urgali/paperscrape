@@ -26,15 +26,15 @@ android {
         // this file and fails the release if the tag disagrees. `versionCode` is Android's own
         // install counter, checked by nothing but the installer, and only has to increase.
         //
-        // v1.0 → 1, v1.1 → 2, v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20. Three is skipped
+        // v1.0 → 1, v1.1 → 2, v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21. Three is skipped
         // because no v1.2 was ever released; the counter has no obligation to be contiguous, only
         // monotonic, and leaving the gap is more honest than renumbering a release that never was.
         //
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 20
-        versionName = "2.16"
+        versionCode = 21
+        versionName = "3.0"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
@@ -47,6 +47,19 @@ android {
         // WeatherRepository.resolveApiKey.
         val openMeteoApiKey = System.getenv("PAPERSCRAPE_OPENMETEO_API_KEY") ?: ""
         buildConfigField("String", "OPENMETEO_API_KEY", "\"$openMeteoApiKey\"")
+
+        // Needed by the golden-image tests in `src/androidTest`, which are the only instrumented
+        // tests the project has. They render scenes through `CanvasSceneTarget` into a real
+        // `Bitmap` on a device, which is why they cannot be JVM tests: `SceneCanvas` passes
+        // `android.graphics.Paint` through, and the unit-test classpath's mockable android.jar
+        // has no working Paint to read a colour back out of.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    sourceSets {
+        getByName("androidTest") {
+            java.srcDirs("src/androidTest/kotlin")
+        }
     }
 
     signingConfigs {
@@ -187,5 +200,6 @@ dependencies {
     testImplementation("org.json:json:20260814")
 
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 }

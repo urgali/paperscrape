@@ -43,7 +43,7 @@ class SettingsActivity : ComponentActivity() {
                     customThemeStore = customThemeStore,
                     updatePrefs = updatePrefs,
                     onApplyWallpaper = { launchSetWallpaperFlow() },
-                    onRequestLocationPermission = { onGranted -> requestLocationPermission(onGranted) },
+                    onRequestLocationPermission = { permission, onGranted -> requestLocationPermission(permission, onGranted) },
                 )
             }
         }
@@ -72,8 +72,16 @@ class SettingsActivity : ComponentActivity() {
             pendingLocationCallback = null
         }
 
-    private fun requestLocationPermission(onResult: (Boolean) -> Unit) {
+    /**
+     * Asks for exactly the permission the chosen mode needs, and no more.
+     *
+     * "Network / Cell" asks for `ACCESS_COARSE_LOCATION` and stops there -- asking for fine
+     * location to serve a mode that will only ever read the network provider would be requesting
+     * a capability the feature does not use. "GPS" asks for `ACCESS_FINE_LOCATION`, which the
+     * system presents as the precise-location choice.
+     */
+    private fun requestLocationPermission(permission: String, onResult: (Boolean) -> Unit) {
         pendingLocationCallback = onResult
-        requestPermissionLauncher.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+        requestPermissionLauncher.launch(permission)
     }
 }

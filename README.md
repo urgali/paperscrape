@@ -1,9 +1,11 @@
+AI SLOP WARNING! I'm not a developer just a humble Networker. I don't know how to code. I just asked Chatgpt and Claude to do this app and that's it! Feel free to use it :)
+
 # PaperScrape
 
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v2.16 Stable**
+**Current version: v3.0 Stable**
 
 ---
 
@@ -106,11 +108,9 @@ verifies it against the SHA-256 the release publishes, and hands it to Android's
 asks the user to confirm. A release without a checksum is not installed in-app at all. Nothing
 downloads or installs without an explicit tap.
 
-> **Known problem (open).** The download step can hang: the flow reaches `Downloading` and stays
-> there, so the update never installs and the APK has to be fetched from the Releases page by
-> hand. Checking for an update is unaffected. Reported against v2.15, still open in v2.16, and
-> **not yet investigated** — no cause is claimed. Tracked as **D13** in `ROADMAP.md`; it is the
-> next task.
+The flow reports four states — checking, downloading, verifying, ready to install — and cannot be
+left stuck on any of them: a cancelled download returns the screen to the offer rather than freezing
+on a progress bar. (v2.13–v2.16 could hang on `Downloading`; that was **D13**, fixed in v3.0.)
 
 **Assets.** 125 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
 source under `tools/assets/sources/svg/`. A Python pipeline renders, measures and checks
@@ -208,9 +208,10 @@ tag, because the two answer different questions:
 | `v2.14` | `2.14` | 18 |
 | `v2.15` | `2.15` | 19 |
 | `v2.16` | `2.16` | 20 |
+| `v3.0` | `3.0` | 21 |
 
 Every release is published as latest. There is no pre-release tag form yet; one will
-be added when it is needed. v2.16 is the current stable release. The `versionCode`
+be added when it is needed. v3.0 is the current stable release. The `versionCode`
 counter only has to increase, not to be contiguous — 3 is unused because no v1.2 was
 ever released.
 

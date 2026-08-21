@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.R
 import com.paperscrape.livewallpaper.location.LocationLabelResolver
+import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import com.paperscrape.livewallpaper.weather.WeatherProviderId
@@ -77,14 +78,18 @@ internal fun WeatherTimeScreen(
     settings: WallpaperSettings,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
-    onRequestLocationPermission: (onResult: (Boolean) -> Unit) -> Unit,
+    onRequestLocationPermission: (permission: String, onResult: (Boolean) -> Unit) -> Unit,
     onOpenWeatherEffects: () -> Unit,
     onBack: () -> Unit,
 ) {
     var showApiKey by remember { mutableStateOf(false) }
     var showVisualCrossingKey by remember { mutableStateOf(false) }
     val provider = settings.weatherProvider
-    val locationMode = SettingsUiModel.locationMode(settings.useLocationForSunTimes, settings.useCustomLocation)
+    val locationMode = SettingsUiModel.locationMode(
+        settings.useLocationForSunTimes,
+        settings.useCustomLocation,
+        settings.deviceLocationKind,
+    )
     val locationEnabled = settings.syncWithRealTime
     val liveWeatherAvailable = locationEnabled && locationMode != LocationMode.OFF
 
@@ -116,8 +121,14 @@ internal fun WeatherTimeScreen(
         SettingsSectionHeader("Location")
         SettingsGroup {
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                // Four choices, because "Phone" was two different things wearing one label: the
+                // provider it actually used depended on what happened to be enabled, so the cheap
+                // option could quietly start the GNSS receiver. Naming them separately is the
+                // point -- a user picking Network/Cell has said no to GPS, and the app now has to
+                // honour that. Short labels because four segments have to fit a phone's width;
+                // the caption underneath carries the meaning.
                 SettingsSegmentedChoice(
-                    options = listOf("Off", "Phone", "Custom"),
+                    options = listOf("Off", "GPS", "Network", "Custom"),
                     selectedIndex = locationMode.ordinal,
                     enabled = locationEnabled,
                     onSelect = { index ->
@@ -126,32 +137,53 @@ internal fun WeatherTimeScreen(
                                 prefs.setUseLocation(false)
                                 prefs.setUseCustomLocation(false)
                             }
-                            // Same call, same permission prompt, same "only if granted" write the
-                            // phone-location switch has always performed.
-                            LocationMode.PHONE -> onRequestLocationPermission { granted ->
-                                scope.launch { prefs.setUseLocation(granted) }
+                            // Each device mode asks for its own permission and is only written if
+                            // that permission is actually granted, so a refused prompt leaves the
+                            // previous choice in place rather than switching to a mode that
+                            // cannot work.
+                            LocationMode.GPS -> onRequestLocationPermission(
+                                DeviceLocationKind.GPS.permission,
+                            ) { granted ->
+                                if (granted) scope.launch { prefs.setDeviceLocation(DeviceLocationKind.GPS) }
+                            }
+                            LocationMode.NETWORK -> onRequestLocationPermission(
+                                DeviceLocationKind.NETWORK.permission,
+                            ) { granted ->
+                                if (granted) scope.launch { prefs.setDeviceLocation(DeviceLocationKind.NETWORK) }
                             }
                             LocationMode.CUSTOM -> scope.launch { prefs.setUseCustomLocation(true) }
                         }
                     },
                 )
                 Text(
-                    text = if (locationEnabled) {
-                        "Used for precise sunrise and sunset times, and for Live Weather. One source at a time."
-                    } else {
-                        "Available while the scene follows real time."
+                    text = when {
+                        !locationEnabled -> "Available while the scene follows real time."
+                        locationMode == LocationMode.GPS ->
+                            "Uses the GPS receiver for a precise position. Checked at most once an hour, " +
+                                "never continuously."
+                        locationMode == LocationMode.NETWORK ->
+                            "Uses cell towers and Wi-Fi for an approximate position - enough to know your " +
+                                "town, and the GPS receiver is never started. Checked at most once an hour, " +
+                                "never continuously."
+                        locationMode == LocationMode.CUSTOM ->
+                            "A place you pick yourself. Costs no battery and needs no location permission."
+                        else -> "Used for precise sunrise and sunset times, and for Live Weather. One source at a time."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 12.dp),
                 )
             }
-            if (locationEnabled && locationMode == LocationMode.PHONE) {
+            if (locationEnabled && (locationMode == LocationMode.GPS || locationMode == LocationMode.NETWORK)) {
                 LocationRow(
                     latitude = settings.resolvedGpsLatitude,
                     longitude = settings.resolvedGpsLongitude,
                     loadingText = "Finding your location...",
-                    supporting = "Resolved from your device's position",
+                    supporting = if (locationMode == LocationMode.GPS) {
+                        "Resolved from the GPS receiver"
+                    } else {
+                        "Approximate, from cell towers and Wi-Fi"
+                    },
                 )
             }
             if (locationEnabled && locationMode == LocationMode.CUSTOM) {

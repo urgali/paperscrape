@@ -1,8 +1,10 @@
 package com.paperscrape.livewallpaper.weather
 
+import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.location.LocationSource
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -85,13 +87,68 @@ class LiveWeatherRefreshTest {
     fun `each location choice has its own source`() {
         assertEquals(LocationSource.NONE, LocationSource.of(WallpaperSettings()))
         assertEquals(
-            LocationSource.PHONE,
+            "a stored device flag with no kind is the pre-v3.0 shape, and means Network",
+            LocationSource.NETWORK,
             LocationSource.of(WallpaperSettings(useLocationForSunTimes = true)),
+        )
+        assertEquals(
+            LocationSource.GPS,
+            LocationSource.of(
+                WallpaperSettings(useLocationForSunTimes = true, deviceLocationKind = DeviceLocationKind.GPS),
+            ),
         )
         assertEquals(
             LocationSource.CUSTOM,
             LocationSource.of(WallpaperSettings(useCustomLocation = true)),
         )
+    }
+
+    /**
+     * GPS and Network are different sources, so switching between them has to invalidate the held
+     * fix exactly as switching to or from Custom does -- otherwise picking Network after GPS would
+     * keep serving the GNSS coordinates the user just opted out of.
+     */
+    @Test
+    fun `switching between the two device systems is a change of source`() {
+        val gps = LocationSource.of(
+            WallpaperSettings(useLocationForSunTimes = true, deviceLocationKind = DeviceLocationKind.GPS),
+        )
+        val network = LocationSource.of(
+            WallpaperSettings(useLocationForSunTimes = true, deviceLocationKind = DeviceLocationKind.NETWORK),
+        )
+        assertNotEquals(gps, network)
+    }
+
+    @Test
+    fun `only the device sources reach a positioning system`() {
+        assertEquals(DeviceLocationKind.GPS, LocationSource.GPS.deviceKind)
+        assertEquals(DeviceLocationKind.NETWORK, LocationSource.NETWORK.deviceKind)
+        assertEquals(null, LocationSource.CUSTOM.deviceKind)
+        assertEquals(null, LocationSource.NONE.deviceKind)
+    }
+
+    /**
+     * The whole point of the Network mode: a user who picks it has said no to the GNSS receiver,
+     * and no code path may substitute it.
+     */
+    @Test
+    fun `the network mode never names the GPS provider`() {
+        assertEquals(android.location.LocationManager.NETWORK_PROVIDER, DeviceLocationKind.NETWORK.providerName)
+        assertNotEquals(android.location.LocationManager.GPS_PROVIDER, DeviceLocationKind.NETWORK.providerName)
+        assertEquals(
+            "Network mode must ask for the coarse permission, never the precise one",
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            DeviceLocationKind.NETWORK.permission,
+        )
+    }
+
+    @Test
+    fun `a stored positioning kind round-trips, and anything else falls back to network`() {
+        for (kind in DeviceLocationKind.entries) {
+            assertEquals(kind, DeviceLocationKind.fromStorageId(kind.storageId))
+        }
+        assertEquals(DeviceLocationKind.NETWORK, DeviceLocationKind.fromStorageId(null))
+        assertEquals(DeviceLocationKind.NETWORK, DeviceLocationKind.fromStorageId("something else"))
     }
 
     @Test

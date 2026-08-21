@@ -898,11 +898,9 @@ class SceneObjectRenderer(
     /**
      * A simple two-lane road band spanning the full screen width at the cars' lane height.
      * Like the cars themselves, it's independent of home-screen parallax (it belongs to the
-     * "road" the cars drive on, not to any particular hill layer) -- matching the reference
-     * app's own `Road` model (decompiled: `Road extends Sky`, `mScrolls` unset/false, i.e. its
-     * *position* never moves). But the reference's `Road` also sets `mTextureScroll = true`, and
-     * (decompiled `Sky.onUpdate`) advances its surface pattern using the exact same shared
-     * `mParams.scrollSpeed` every other scrolling element uses -- not an independent rate. This
+     * "road" the cars drive on, not to any particular hill layer): its *position* never moves.
+     * Its surface pattern does advance, though, and it does so on the same shared
+     * `scrollSpeed` every other scrolling element uses -- not an independent rate. This
      * used to advance the dashed line by its own fixed `elapsedSeconds`-driven speed, unrelated to
      * [scrollSpeed]/swipe scroll entirely -- both wrong in the same direction the reference
      * corrects (a made-up independent rate) and the reported bug (dashes racing at a fixed pace no
@@ -1318,8 +1316,8 @@ class SceneObjectRenderer(
      * now one bitmap blit tinted to [leafColor]/the fall palette, with the winter snow-cap as a
      * second small blit only drawn when that's on. Trunk stays a plain `drawRect`: one flat-color
      * rectangle was already about as cheap as a vector draw can be, not worth a sprite for it.
-     * No outline anymore -- matches the reference's own flat, unbordered canopy sprite (see
-     * v63's own changelog entry on this exact "reference doesn't have one either" correction).
+     * No outline anymore: the canopy is flat and unbordered, which is what the paper-cutout look
+     * calls for (see v63's own changelog entry on that correction).
      */
     /**
      * Whether this tree stands as a Christmas fir.
@@ -2090,8 +2088,8 @@ class SceneObjectRenderer(
             }
         }
 
-        // Wheels: dark tire with a lighter gray hub ring, matching the reference's plain 2-tone
-        // wheel treatment (no separate small hubcap disc). Shared by every vehicle type.
+        // Wheels: dark tire with a lighter gray hub ring -- a plain 2-tone treatment with no
+        // separate hubcap disc, which is all the paper-cutout look wants. Shared by every type.
         fillPaint.color = 0xFF2B2B2B.toInt()
         canvas.drawCircle(-38f, 28f, 9f, fillPaint)
         canvas.drawCircle(38f, 28f, 9f, fillPaint)

@@ -19,9 +19,204 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.0 — the updater fixed at the root, the lake given depth, location split three ways, and the scene put under golden test
+
+**Stable / latest.** `versionCode = 21`, `versionName = "3.0"`. Tag `v3.0`.
+
+### D13 closed: the updater hung because the screen cancelled its own download
+
+**Reproduced first, on the real thing.** The published v2.15 release APK was installed on an
+Android 17 emulator and its "Install update" tapped against the real v2.16 release. It sat on
+`Downloading...` for over two minutes with no error, no exception and no way forward -- `Downloading`
+disables the check row, so the screen was a dead end.
+
+**Then proved, not guessed.** A differential first: the *other* download entry point, the "Download
+and install" button, uses `scope.launch` and completed the same download in under four seconds. Same
+release, same network, same `ApkDownloader` -- so the transfer was never the problem, the call site
+was. A temporary instrumented build of v2.15 then produced the exact sequence:
+
+```
+21:33:20.318  LaunchedEffect ENTER key=UpdateInfo(v2.16)
+21:33:20.318  calling onInstallStarted()
+21:33:20.318  runDownload START v2.16
+21:33:20.346  LaunchedEffect ENTER key=null          <- 28 ms later, the key changed
+21:33:23.597  LaunchedEffect THREW LeftCompositionCancellationException
+21:33:23.597  LaunchedEffect FINALLY, state=Downloading(percent=-1)
+```
+
+`LaunchedEffect(startInstallFor)` was keyed on the state its own body cleared: `onInstallStarted()`
+sets the caller's `pendingInstall` to null, the key changed from the release to `null`, Compose
+cancelled the effect it had just started, and the download died **before its first progress
+callback**. Nothing ever overwrote `Downloading(-1)`. The path has been broken since v2.13, which is
+when "Install update" became the dialog's primary action.
+
+**The fix is three things, not one.** The effect is keyed on the tag and guarded by an
+already-started check rather than by a key that clears itself; the download runs in the settings
+screen's own scope, which outlives the effect, so even a genuine key change cannot cut a transfer in
+half; and `runDownload` catches `CancellationException` and puts the state back to `Available`, so
+whatever cancels it -- a recomposition, a configuration change, leaving the screen -- the UI can
+never be left saying "Downloading" with nothing running.
+
+**A `Verifying` state was added**, because there was a real lie in the old one: after the last byte
+arrives there is still a digest to compare and a 2 MB package for `PackageManager` to parse, and the
+screen said "Downloading" through all of it. `DownloadPhase` now carries `Downloading(percent)` and
+`Verifying`, and the UI shows both.
+
+**The download path became testable.** `downloadAndVerify` took a `Context` only to decide where the
+file goes; `downloadAndVerifyTo` takes a `File`, so `ApkDownloadPathTest` drives the whole thing
+against a real `com.sun.net.httpserver` on localhost: a good download, the phase sequence, progress
+reaching 100, a server with no `Content-Length`, a truncated body, a 500 on the APK, a 404 on the
+checksum, an unreadable checksum, a wrong hash, an unreachable host, and cancellation. Eleven tests,
+no new dependency.
+
+**Two honest results from mutation testing**, recorded rather than hidden:
+
+- Removing the explicit `CancellationException` branch in `downloadHashing` leaves the suite green.
+  It changes no observable behaviour today, because `withContext` re-throws on a cancelled job
+  whatever the function returns. The branch is kept anyway -- the generic `catch (Exception)` below
+  it would otherwise swallow a cancellation, and the first edit that adds work after that catch
+  would turn a cancelled download into a silent success -- and its comment now says exactly that
+  rather than claiming a fix it does not deliver.
+- Removing the `downloaded != total` truncation guard also leaves the suite green, because
+  `HttpURLConnection` detects a short fixed-length body and throws first. The test pins the
+  *outcome* (`Failed`, no partial file) and its doc comment now says the guard itself is unproven.
+
+**End to end on real releases.** v2.15 → v2.16 was downloaded through the app, verified against the
+release's SHA-256, handed to the system installer, installed, and the new version launched. The
+fixed code was then run through the same "Install update" tap that used to hang: `Downloading` →
+`Verifying` → `Ready to install` → the system installer dialog, in under two seconds.
+
+### The lake: two defects, one system
+
+Reported as "two boats can completely overlap, one appears to be sailing on top of the other".
+Reproduced on the emulator with Lake Height at 100 % and Sailboats at 99 %: at 22:22 two boats sat
+on the same waterline with their hulls interpenetrating and their sails merged into one shape.
+
+Two causes, and neither is a per-asset nudge:
+
+1. **Lane aliasing.** `laneIndex = (i * 2 + category) % 6` with four candidates per category folded
+   candidate 3 back onto candidate 0's lane. Two boats on one line, each with its own speed, means
+   they must eventually slide through each other. One lane per candidate per category is eight
+   lanes, not six, and then nothing folds.
+2. **No depth order at all.** Boats were drawn in candidate order, then dolphins in candidate order.
+   Whichever had the higher index covered the other regardless of where it sat on the water. On a
+   flat scene with a horizon, distance *is* height: the lower thing is nearer and must be painted
+   last.
+
+`LakeLanes` is both rules, pure and unit-tested (10 tests). `drawLakeDecorations` was split into
+`gatherLakeDecorations` -- which places both categories into preallocated slots, no per-frame
+allocation on a draw path -- and one depth-sorted pass over them. Assets, speeds, paths, sizes and
+the paper-cutout look are untouched; nothing is scaled by depth, because the scene is deliberately
+flat.
+
+Verified by 24 frames before and 24 after at the same settings: the overlapping-hull frames are gone
+and boats close together now read as one passing in front of another.
+
+### Live Weather: GPS, Network / Cell, Custom
+
+"Phone" was two different things wearing one label. `DeviceLocationProvider` asked
+`isProviderEnabled(NETWORK)` and fell back to `GPS_PROVIDER` when that was false -- so the cheap
+option could start the GNSS receiver without saying so -- and it held a ten-minute
+`requestLocationUpdates` subscription for the wallpaper's whole life to feed an hourly forecast.
+
+| | Before | After |
+|---|---|---|
+| Modes | Off / Phone / Custom | Off / **GPS** / **Network** / Custom |
+| Provider choice | whichever was enabled | exactly the one the mode names, never substituted |
+| Permission | coarse, for both | coarse for Network, fine only if GPS is chosen |
+| Requests | standing subscription, every 10 min | one bounded request, at most once per refresh |
+| Cached fix | not consulted | preferred; a fix under 15 min old costs nothing |
+| No fix available | nothing | falls back to the last saved position |
+
+`DeviceLocationKind` names the two systems and their permissions; `LocationSource` gained `GPS` and
+`NETWORK` so switching between them counts as a change of source and invalidates the held fix, the
+same way switching to Custom already did. `currentFix` prefers `getLastKnownLocation`, falls back to
+one `getCurrentLocation` (API 30+) or a self-removing single update below that, and is bounded by a
+timeout on every path. The saved fix carries a timestamp and survives a reboot.
+
+**One request per service, not per engine.** A wallpaper service runs an engine per surface, and
+each had its own settings collector: measured on the emulator, one user action produced three
+simultaneous GPS registrations. The provider and a `Mutex` moved to the service.
+
+**Migration is silent.** An install from before v3.0 has the device flag and no stored kind, and
+reads as **Network** -- which is what the old mode used in practice, so behaviour and permission
+both stay put.
+
+**Verified on an Android 17 emulator, both directions:**
+
+- Network mode: the system prompt says *approximate*, only `ACCESS_COARSE_LOCATION` is granted, and
+  `dumpsys location` shows the gps provider `ProviderRequest[OFF]`, `mStarted=false`, with no
+  registration from this package at all.
+- GPS mode: the system offers the *precise* upgrade, `ACCESS_FINE_LOCATION` is granted, and
+  `dumpsys location` shows one bounded registration (`duration=+30s`, 3.9 s active, 3 locations)
+  that stops by itself. Position resolved and labelled "Mountain View, United States".
+- Permission refused: the mode does not change.
+- Network position unavailable (the emulator's network provider is `enabled=false`): no GPS
+  fallback, the saved position is used, and with no saved position the app says "Location
+  unavailable — showing this theme's own weather instead."
+- Mode switches, a reinstall and a force-stop all preserve the choice.
+
+### Golden-image tests
+
+13 scenes -- day, dusk, night, overcast, rain, snow, thunderstorm, three lakes and three themes --
+rendered at 360×800 through `CanvasSceneTarget`, the same Canvas backend the settings preview and
+the EGL fallback use, and compared against PNGs committed under `app/src/androidTest/assets/golden/`.
+
+They are instrumented rather than JVM tests for a reason worth writing down: `SceneCanvas` passes
+`android.graphics.Paint` through, and a unit test would be reading colours off the mockable
+`android.jar`'s stub. The alternative was a JVM-only drawing surface, which is a second renderer --
+and a golden produced by different drawing code proves nothing about the code that ships.
+
+Reproducibility comes from `deltaSeconds = 0`: every candidate system is seeded from the theme id,
+and the only unseeded `Random` is the lightning timer, which never advances. The bolt is therefore
+deliberately *not* in the goldens; what the storm golden does pin is all of `StormAtmosphere` --
+darkened sky, darker cloud band, attenuated sun.
+
+**Shown to have teeth**: reverting the lake lane fix fails exactly `lakeBusy` and `lakeBoats`, and
+nothing else. Tolerance is 8 per channel with at most 0.2 % of pixels exceeding it, which absorbs
+anti-aliasing across Skia builds while still failing on a one-pixel move.
+
+`assembleDebug`/`test`/`lint` are unaffected; the goldens run with
+`./gradlew connectedDebugAndroidTest` and need a device.
+
+### The external reference, removed
+
+PaperScrape was built partly by comparison with another wallpaper app, whose name was a forbidden
+string with a release-gate scan attached. Every **operational** trace is gone: about 45 source
+comments that cited it as the authority for a current decision, rewritten to say what the code does
+and why; `AI_PROJECT_RULES.md` §2 and §3 replaced with a standalone statement and a rule against
+acquiring a new one; the forbidden-name declaration and its scan retired from `CLAUDE.md` and from
+the release checklist. A global search -- text, binary and filenames -- now returns nothing anywhere
+in the repository.
+
+**The history was deliberately left alone.** `CHANGELOG.md` and the pre-v2.0 files under
+`release-notes/` still describe work done by that comparison, because rewriting a published release
+note to say something other than what it said is falsifying the record. `AI_PROJECT_RULES.md` §3
+says so explicitly, so a future pass does not "tidy" them.
+
+**D1 is closed as a side effect**: the README said the project is not a decompilation of a
+third-party product while some source comments implied otherwise. The comments no longer imply
+anything.
+
+### The README
+
+Opens with the maintainer's own note, added verbatim at their request:
+
+> AI SLOP WARNING! I'm not a developer just a humble Networker. I don't know how to code. I just
+> asked Chatgpt and Claude to do this app and that's it! Feel free to use it :)
+
+### Measured
+
+715 JVM unit tests (688 + 11 download-path + 10 lake-lane + 6 location, minus reshaped ones), 0
+failures. 13 instrumented golden tests, 0 failures. `lint` 0 errors. `assembleDebug` and
+`assembleRelease` both produce an APK, R8 clean. No rendering change beyond the two fixes above and
+the lake's lane geometry, which the goldens now pin.
+
+---
+
 ## v2.16 — the build stack, taken to the current stable line without touching the app
 
-**Stable / latest.** `versionCode = 20`, `versionName = "2.16"`. Tag `v2.16`.
+`versionCode = 20`, `versionName = "2.16"`. Tag `v2.16`.
 
 This release closes **D5**, the dependency upgrade that had been deferred since v2.0 on the grounds
 that nothing was broken by it. Nothing was, and nothing is: **no Kotlin source file was modified**.
@@ -203,8 +398,9 @@ sky, clouds and sun can never disagree about how bad the weather is:
 | Thunderstorm | 0.15–1.00 | 0.79–1.00 | 33–42 % | 35–18 % |
 
 **Why this is not the old density darkening returning.** §27's removal was of *density-driven*
-cloud darkening — a slider, blended toward black, against a reference app that uses a flat
-day/night colour pair. This is different in all three respects: it is driven by the **forecast**
+cloud darkening — a slider, blended toward black, when a cloud's colour is the theme's flat
+day/night pair and how many clouds there are is not what colour they are. This is different in all
+three respects: it is driven by the **forecast**
 rather than by a slider, it is a **blend** rather than a palette substitution, and it is derived
 from **the theme's own colour** rather than from a fixed storm palette. `dim` pulls a colour toward
 its own Rec. 601 luminance and then pulls that luminance down, so a warm sunset stays warm as it

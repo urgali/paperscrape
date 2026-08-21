@@ -83,7 +83,7 @@ fun SettingsScreen(
     customThemeStore: CustomThemeStore,
     updatePrefs: UpdatePrefs,
     onApplyWallpaper: () -> Unit,
-    onRequestLocationPermission: (onResult: (Boolean) -> Unit) -> Unit,
+    onRequestLocationPermission: (permission: String, onResult: (Boolean) -> Unit) -> Unit,
 ) {
     val settings by prefs.settingsFlow.collectAsState(initial = WallpaperSettings())
     val customThemeData by customThemeStore.dataFlow.collectAsState(initial = CustomThemeData())
@@ -429,9 +429,16 @@ private fun themeRowSummary(themeName: String, customThemeData: CustomThemeData)
 }
 
 private fun weatherRowSummary(settings: WallpaperSettings): String {
-    val location = when (SettingsUiModel.locationMode(settings.useLocationForSunTimes, settings.useCustomLocation)) {
+    val location = when (
+        SettingsUiModel.locationMode(
+            settings.useLocationForSunTimes,
+            settings.useCustomLocation,
+            settings.deviceLocationKind,
+        )
+    ) {
         LocationMode.OFF -> "no location"
-        LocationMode.PHONE -> "phone location"
+        LocationMode.GPS -> "GPS location"
+        LocationMode.NETWORK -> "network location"
         LocationMode.CUSTOM -> "custom location"
     }
     val weather = if (settings.liveWeatherEnabled) "Live Weather on" else "Live Weather off"

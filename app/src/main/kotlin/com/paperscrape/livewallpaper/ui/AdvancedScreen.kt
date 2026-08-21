@@ -45,10 +45,12 @@ import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import com.paperscrape.livewallpaper.update.ApkDownloader
 import com.paperscrape.livewallpaper.update.ApkInstaller
 import com.paperscrape.livewallpaper.update.ApkSafety
+import com.paperscrape.livewallpaper.update.DownloadPhase
 import com.paperscrape.livewallpaper.update.InstallVerdict
 import com.paperscrape.livewallpaper.update.UpdateChecker
 import com.paperscrape.livewallpaper.update.UpdateDownloadResult
 import com.paperscrape.livewallpaper.update.UpdateInfo
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -89,12 +91,28 @@ internal fun AdvancedScreen(
      */
     suspend fun runDownload(info: UpdateInfo) {
         updateState = UpdateUiState.Downloading(-1)
-        val result = ApkDownloader.downloadAndVerify(context, info) { percent ->
-            // The download runs on an IO dispatcher; the state it reports is read on the UI
-            // thread, and Compose's snapshot state is safe to write from either.
-            updateState = UpdateUiState.Downloading(percent)
+        try {
+            val result = ApkDownloader.downloadAndVerify(context, info) { phase ->
+                // The download runs on an IO dispatcher; the state it reports is read on the UI
+                // thread, and Compose's snapshot state is safe to write from either.
+                updateState = when (phase) {
+                    is DownloadPhase.Downloading -> UpdateUiState.Downloading(phase.percent)
+                    DownloadPhase.Verifying -> UpdateUiState.Verifying
+                }
+            }
+            // The package parse inside `verifiedOrError` reads a whole APK through PackageManager,
+            // so it belongs under "Verifying" rather than under a progress bar that has stopped.
+            updateState = UpdateUiState.Verifying
+            updateState = verifiedOrError(context, result)
+        } catch (cancellation: CancellationException) {
+            // **The screen must never be left saying "Downloading..." with nothing running.**
+            // `Downloading` and `Verifying` both disable the check row, so a state left behind by
+            // a cancelled coroutine is not a cosmetic lie -- it is a dead end with no way out of
+            // it. Whatever cancelled this (leaving the screen, a recomposition, a configuration
+            // change), the state goes back to something the user can act on.
+            updateState = UpdateUiState.Available(info)
+            throw cancellation
         }
-        updateState = verifiedOrError(context, result)
     }
 
     /**
@@ -123,11 +141,27 @@ internal fun AdvancedScreen(
 
     // Arriving here from the update dialog's "Install update": start immediately, so that tap is
     // the whole of the user's involvement until Android asks them to confirm.
-    LaunchedEffect(startInstallFor) {
+    //
+    // **This used to hang every time, and the download was never the reason.** The effect was
+    // keyed on `startInstallFor` and its own body called `onInstallStarted()`, which sets the
+    // caller's `pendingInstall` to null -- so ~30 ms later the key changed from the release to
+    // `null`, Compose cancelled the effect it had just started, and the download died with
+    // `LeftCompositionCancellationException` before its first progress callback. Nothing ever
+    // overwrote `Downloading(-1)`, and because `Downloading` disables the check row the screen had
+    // no way forward. Two things keep that from coming back:
+    //
+    //  1. the key is the tag, not the object, and clearing `pendingInstall` no longer changes it,
+    //     because the guard below -- not the key -- is what stops a second run;
+    //  2. the download itself runs in `scope`, which belongs to the settings screen and outlives
+    //     this effect, so even a genuine key change cannot cut a transfer in half.
+    var startedTag by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(startInstallFor?.tagName) {
         val info = startInstallFor ?: return@LaunchedEffect
-        onInstallStarted()
+        if (startedTag == info.tagName) return@LaunchedEffect
+        startedTag = info.tagName
         updateState = UpdateUiState.Available(info)
-        runDownload(info)
+        scope.launch { runDownload(info) }
+        onInstallStarted()
     }
 
     SettingsSubScreen(title = "Advanced & about", onBack = onBack) {
@@ -174,6 +208,7 @@ internal fun AdvancedScreen(
                     is UpdateUiState.UpToDate -> "You're up to date (v${BuildConfig.VERSION_NAME})"
                     is UpdateUiState.Available -> "Update available - PaperScrape ${state.info.tagName}"
                     is UpdateUiState.Downloading -> "Downloading..."
+                    is UpdateUiState.Verifying -> "Verifying..."
                     is UpdateUiState.ReadyToInstall -> "Ready to install"
                     else -> null
                 },
@@ -283,13 +318,16 @@ private sealed interface UpdateUiState {
 
     /** [percent] is -1 while the size is unknown. */
     data class Downloading(val percent: Int) : UpdateUiState
+
+    /** Every byte has arrived; the checksum and the package are being checked. */
+    data object Verifying : UpdateUiState
     data class ReadyToInstall(val apk: java.io.File) : UpdateUiState
     data class NeedsPermission(val apk: java.io.File) : UpdateUiState
     data class Error(val message: String, val releasePageUrl: String? = null) : UpdateUiState
 
     /** A check may be started from any state except one already in flight. */
     val allowsChecking: Boolean
-        get() = this !is Checking && this !is Downloading
+        get() = this !is Checking && this !is Downloading && this !is Verifying
 }
 
 private suspend fun checkForUpdate(onUpdateFound: (UpdateInfo) -> Unit): UpdateUiState {
@@ -411,6 +449,12 @@ private fun UpdateProgressSection(
             } else {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
+        }
+
+        UpdateUiState.Verifying -> Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text("Verifying...", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
 
         is UpdateUiState.ReadyToInstall -> Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {

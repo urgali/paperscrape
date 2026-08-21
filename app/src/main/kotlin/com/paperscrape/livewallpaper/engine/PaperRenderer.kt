@@ -42,9 +42,8 @@ class PaperRenderer(
 
     /**
      * The single combined scroll position everything below actually scrolls by -- two
-     * contributing inputs, matching a reference app's own decompiled source (its `scrollSpeed`
-     * multiplies a per-frame time delta in a classic `onUpdate(float f)` game-loop pattern, a
-     * genuinely different mechanism from swipe-driven parallax): a continuous drift that always
+     * contributing inputs, because they are genuinely different mechanisms -- one multiplies a
+     * per-frame time delta, the other is a swipe offset: a continuous drift that always
      * advances in *one direction* at [scrollSpeed], plus (only if [swipeScrollEnabled]) the
      * home-screen swipe offset on top of it. [parallaxStrength] then scales how far each *layer*
      * moves relative to this one shared position, same as before.
@@ -288,10 +287,10 @@ class PaperRenderer(
 
     // Layer configuration: baseHeightFraction = how tall the layer is relative to screen height,
     // parallaxFactor = how much the layer shifts with home-screen scrolling (farther = slower).
-    // A single layer now, not three -- the reference app's own `Hills` is one silhouette with one
-    // scroll rate, and its own randomized top edge only ever wobbles gently within the topmost
-    // slice of its own height (see buildBaseHillPath's doc comment below for the exact numbers,
-    // measured from the decompiled reference source). The previous 3-stacked-band version, with
+    // A single layer now, not three: the hillside is one silhouette with one scroll rate, and its
+    // randomized top edge only ever wobbles gently within the topmost slice of its own height (see
+    // buildBaseHillPath's doc comment below for the exact numbers). The previous 3-stacked-band
+    // version, with
     // each band independently colored/darkened and independently (and much more wildly) random,
     // was what read as "3 overlapping colors" instead of one cohesive hillside.
     private val layerCount = 1
@@ -304,8 +303,7 @@ class PaperRenderer(
      * randomness rolls -- i.e. [SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION] applied to layer 0's own band, the exact same
      * "always-covered" fraction already derived and proven for object row placement. [drawMountains]
      * and [updateLakeBandY] both anchor to this so mountains/lake always connect directly into the
-     * hills with no gap, at every x -- see [drawMountains]'s own doc comment for the reasoning and
-     * the reference app comparison. */
+     * hills with no gap, at every x -- see [drawMountains]'s own doc comment for the reasoning. */
     private val hillGuaranteedTopFraction = SceneSpace.GROUND_SOLID_TOP_Y_FRACTION
 
     companion object {
@@ -343,8 +341,8 @@ class PaperRenderer(
 
         /**
          * The four cloud depth tiers: farther tiers drift slower, sit higher and draw smaller;
-         * nearer tiers the reverse. Matching the reference's own four-layer rotation in spirit
-         * rather than reusing this file's mountain/hill layer identities, which carry no
+         * nearer tiers the reverse. Four tiers of their own rather than reusing this file's
+         * mountain/hill layer identities, which carry no
          * meaningful "a cloud is on this layer" concept.
          *
          * Constants rather than three `floatArrayOf` locals inside `drawClouds`, which is where
@@ -562,14 +560,6 @@ class PaperRenderer(
          * Five keeps roughly a dozen sparkles in a full field, which is enough for the sky to
          * read as having bright stars in it without the field looking like a repeated motif.
          */
-        /**
-         * How many lanes the lake's usable band is cut into.
-         *
-         * Even, so alternating them splits cleanly between the two categories; six gives each
-         * three lanes spread across the whole surface rather than three bunched in half of it.
-         */
-        const val LAKE_LANE_COUNT = 6
-
         const val STAR_SPARKLE_EVERY = 5
 
         /** The cream the sparkle art is drawn in, so a point and a sparkle are the same star. */
@@ -773,8 +763,8 @@ class PaperRenderer(
     }
 
     fun draw(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime, deltaSeconds: Float) {
-        // One direction only, per explicit request (matches the reference app's own always-
-        // forward drift) -- full screen-width drift every ~25s at scrollSpeed=1.0;
+        // One direction only, per explicit request -- full screen-width drift every ~25s at
+        // scrollSpeed=1.0;
         // scrollSpeed=0 freezes it. Safe to let this grow unbounded now that hills and objects
         // share one wrap period (see scrollProgress's own doc comment) -- no bound needed here
         // the way the old oscillating version required one.
@@ -866,7 +856,7 @@ class PaperRenderer(
         drawRainbow(canvas, dayPhase)
         drawMountains(canvas, dayPhase)
         drawBirds(canvas, dayPhase, elapsedSeconds)
-        // Lake drawn *before* hills now -- matching the reference app's own depth order
+        // Lake drawn *before* hills now, which is simply the scene's depth order
         // (mountains, farthest -> water -> hills/ground, nearest). Hills (and everything
         // standing on them, drawn right after) now naturally paint over whatever part of the
         // water their own wavy silhouette covers in a given column, which is what makes the
@@ -1024,9 +1014,9 @@ class PaperRenderer(
     }
 
     /**
-     * Sprite-blit conversion (batch 4 part 3): the reference's own `Star` class genuinely blits
-     * a texture (a 4-pointed sparkle for most stars, a plain small dot for the rest -- see
-     * `SpriteSheet.Sprite.starsmall`/`starcircle`), not a plain filled circle. Bumped the radius
+     * Sprite-blit conversion (batch 4 part 3): a star is a blitted texture -- a 4-pointed sparkle
+     * for most, a plain small dot for the rest -- rather than a plain filled circle. Bumped the
+     * radius
      * range too (was 1-2.8px, a barely-visible dot at any size -- too small for the sparkle
      * shape to read as anything but a blur) so the new shape actually shows.
      */
@@ -1172,14 +1162,13 @@ class PaperRenderer(
     }
 
     /**
-     * Sprite-blit conversion (batch 4 part 3): the reference's own `Moon` class assigns one of 8
-     * distinct hand-drawn phase silhouettes (`moonnew`/`mooncres`/`moonhalf`/`moongib`/
-     * `moonfull`, the waning half reusing the waxing shapes rotated 180°) rather than computing
-     * an ellipse-width approximation at runtime. Replaces the old "half-disc + variable-width
+     * Sprite-blit conversion (batch 4 part 3): the moon is one of 8 hand-drawn phase silhouettes
+     * (new, crescent, half, gibbous, full -- the waning half reusing the waxing shapes rotated
+     * 180°) rather than an ellipse-width approximation computed at runtime. Replaces the old
+     * "half-disc + variable-width
      * terminator ellipse" geometric technique with 4 baked shapes (crescent/half/gibbous/full)
-     * reused the same way for the waning side via a 180° rotation -- same trick the reference
-     * itself uses, not just visually similar. Thresholds on `illuminated` (already computed
-     * below, unchanged from the old technique) stand in for the reference's 8-bucket enum.
+     * reused the same way for the waning side via a 180° rotation. Thresholds on `illuminated`
+     * (already computed below, unchanged from the old technique) pick between the buckets.
      */
     private fun drawMoonWithPhase(canvas: SceneCanvas, cx: Float, cy: Float, radius: Float, litColor: Int) {
         val darkColor = ColorUtils.blendARGB(litColor, 0xFF10101A.toInt(), 0.82f)
@@ -1251,9 +1240,9 @@ class PaperRenderer(
         }
         canvas.save()
         canvas.translate(cx, cy)
-        // 180° reuse for the waning half -- same shapes, mirrored, exactly like the reference's
-        // own MoonPhase enum does (ThirdQuarter/WaningCrescent/WaningGibbous all reuse the
-        // waxing sprites with `angle = 180f`).
+        // 180° reuse for the waning half: third quarter, waning crescent and waning gibbous are
+        // the waxing shapes mirrored, so there is no second set of art to draw or to keep in
+        // step with the first.
         if (!waxing) canvas.rotate(180f)
         canvas.scale(s, s)
         sprites.drawTinted(
@@ -1299,9 +1288,9 @@ class PaperRenderer(
      * from [BirdsConfig.colors] (see [BirdsConfig.pickColor]), not re-rolled every frame.
      */
     /**
-     * Sprite-blit conversion (batch 4 part 3): the reference's own `Bird` class genuinely blits
-     * a texture (`SpriteSheet.Sprite.birdup`) and animates the wing flap by flipping `sy`'s sign
-     * every few frames (a mirror flip, not a continuously-bent curve) -- replaced the old
+     * Sprite-blit conversion (batch 4 part 3): a bird is a blitted texture whose wing flap is a
+     * mirror flip of `sy`'s sign every few frames rather than a continuously-bent curve --
+     * replaced the old
      * per-frame quad-bezier wing path with a single baked "wings up" sprite, vertically flipped
      * for the "wings down" half of the flap cycle via the same sign-flip trick the reference
      * itself uses, instead of a separate second frame.
@@ -1365,46 +1354,35 @@ class PaperRenderer(
      * anything below them either.
      *
      * Two reported bugs fixed here: clouds visibly turning gray/dark as density increased, and
-     * clouds never fully covering the sky even at 100% density. The reference's own decompiled
-     * `Cloud` class settles the first one directly: it's a plain `TwoColorModel` with a fixed
-     * day/night color pair and no density-dependent blending at all -- so the "darken toward
-     * black as density climbs" behaviour this used to have (meant to read as a storm) was never
-     * how the reference does it, and is removed below in favor of the same flat color at any
-     * density.
+     * clouds never fully covering the sky even at 100% density.
      *
-     * The second bug's *exact* reference formula couldn't be recovered -- the method that
-     * actually creates and places clouds (`Scene.addCloudsAndBalloons`) is present in the
-     * decompiled source but its body wasn't decompilable (tried twice, once with a
-     * deobfuscation pass, both times jadx reported "Method not decompiled" for it) -- so this
-     * isn't a literal port for the coverage fix, just an improvement built from what *was*
-     * recoverable from `Cloud`'s own constructor (a `mHeightRand`-driven vertical jitter within a
-     * band, `mUnmoving` clouds evenly spread by index, no other count/spacing formula visible),
-     * plus a real reference screenshot aa provided showing a full-density sky: a handful of large
-     * lobed cloud masses overlapping into one continuous band, not many small separate puffs
-     * across several rows. An earlier version of this fix went the opposite direction (36 small
-     * candidates across 3 stacked rows) before that screenshot was available -- fewer, larger
-     * candidates in a single row reproduces the reference's actual look much more directly, and
-     * still closes gaps at high density since each candidate is bigger and overlaps its
-     * neighbors more, not because there are more of them.
+     * The first is a category error, and the rule that settles it is one sentence: **a cloud's
+     * colour is the theme's day/night pair, and how many clouds there are is not what colour they
+     * are.** The "darken toward black as density climbs" behaviour this used to have was meant to
+     * read as a storm; a storm is weather, and weather now has its own path through
+     * [StormAtmosphere]. Density is left as a flat colour at any value.
+     *
+     * The second is about shape, not count. A full sky is a handful of large lobed masses
+     * overlapping into one continuous band, not many small separate puffs across several rows --
+     * an earlier attempt went the other way (36 small candidates across 3 stacked rows) and read
+     * as a texture rather than as cloud. Fewer, larger candidates in a single row close the gaps
+     * at high density because each one is bigger and overlaps its neighbours more, not because
+     * there are more of them.
      */
     /**
-     * Cloud placement, ported from the reference's real decompiled `Scene.addCloudsAndBalloons`
-     * (recovered via CFR after jadx reported "Method not decompiled" for it -- see this file's
-     * own notes on that): count is `numClouds * 40 + 1` there, and each cloud gets assigned one
-     * of 4 depth layers in rotation (`{Clouds, Mountain1, Mountain2, Hills}`, cycling by index),
-     * not one shared depth for all of them.
+     * Cloud placement: a count that scales with the density setting, and four depth tiers assigned
+     * in rotation by index rather than one shared depth for all of them.
      *
-     * Count used to be scaled down from that literal formula for a concrete, learned-the-hard-way
-     * reason: each cloud was a hand-built path via 4 `Path.op(..., UNION)` boolean operations
-     * plus a clip and an outline stroke, all real per-frame `Canvas` cost -- cheap on the
-     * reference's actual GPU sprite pipeline (drawing a single textured quad per cloud), not
-     * cheap doing dozens of path booleans a frame here. Batch 4 part 2 converted [drawPuffyCloud]
-     * to a single tinted sprite blit (see its own doc comment) -- the same category of cost the
-     * sprite-blit pilot eliminated for houses/trees/buildings/cars -- so that constraint no
-     * longer applies here either; count now goes right up to the reference's own ~41-cloud
-     * maximum instead of staying deliberately capped below it.
-     * The depth-layer *variety* is kept (4 tiers below, each with its own parallax/size/vertical
-     * offset), matching the reference's own 4-layer rotation.
+     * Count used to be capped well below the maximum for a concrete, learned-the-hard-way reason:
+     * each cloud was a hand-built path via 4 `Path.op(..., UNION)` boolean operations plus a clip
+     * and an outline stroke, all real per-frame `Canvas` cost, and dozens of path booleans a frame
+     * is not something this renderer can afford. Batch 4 part 2 converted [drawPuffyCloud] to a
+     * single tinted sprite blit (see its own doc comment) -- the same category of cost the
+     * sprite-blit pilot eliminated for houses/trees/buildings/cars -- so that constraint no longer
+     * applies and the count now goes right up to its maximum.
+     *
+     * The depth-tier *variety* is the part that matters visually and is kept: 4 tiers below, each
+     * with its own parallax, size and vertical offset.
      */
     /**
      * Live Weather override: only blends into the *density* when the theme's own Clouds toggle
@@ -1454,10 +1432,9 @@ class PaperRenderer(
         cloudPaint.alpha = 255
 
         // aa reported clouds too small and, even at 100% density, not actually covering the sky.
-        // Compared against the reference's decompiled Cloud/Scene.addCloudsAndBalloons: at full
-        // density it places ~41 heavily-overlapping clouds spread evenly across the *whole*
-        // width, deliberately overlapping enough to form a solid blanket. Radius (68f*scale)
-        // already matches that; count now goes to 41 too (was capped at 36) now that
+        // A full sky is ~41 heavily-overlapping clouds spread evenly across the *whole* width,
+        // overlapping enough to form a solid blanket. The radius (68f*scale) was already right;
+        // the count now goes to 41 too (was capped at 36) now that
         // [drawPuffyCloud] is a cheap sprite blit instead of 4 per-frame Path.op booleans -- see
         // this function's own doc comment above for why that cap no longer needs to exist.
         // Fixed pool: density now selects from a constant set of slots instead of also deciding
@@ -1585,10 +1562,10 @@ class PaperRenderer(
      * bottom, so drops never need to be spawned/removed from a live list.
      *
      * aa reported drops/flakes reading as falling "from above" rather than out of the clouds.
-     * Compared against the reference's decompiled RainDrop.java: it resets each drop to
-     * `mMaxDropHeight = scene.baseCloudY` -- the clouds' own anchor line, not some point above
-     * them -- and fades alpha in over the first 10% of the fall and out over the last 10%
-     * (`FADE_RANGE = 0.1f`) rather than popping in/out at full opacity. This file's own
+     * Two things fix that, and both are about where a drop begins rather than how it falls: a
+     * drop resets to the clouds' own anchor line, not to some point above them, and its alpha
+     * fades in over the first 10% of the fall and out over the last 10% rather than popping in
+     * and out at full opacity. This file's own
      * `fallStartY` used to sit at the clouds' band *top edge* (above the puffy bodies, which
      * visually center lower, at bandTop+bandHeight*0.5) with zero fade, which is exactly what
      * read as "falling from empty sky" instead of "emerging from the cloud layer" -- moved the
@@ -1664,9 +1641,9 @@ class PaperRenderer(
             val sway = if (isRain) 0f else elapsedSeconds.sinAt(1.3f, phase * 6.28f) * 14f
             val x = xFraction * screenWidth + sway
 
-            // Fade in over the first 10% of the fall and out over the last 10%, matching the
-            // reference's own FADE_RANGE -- this alone is most of what sells "emerging from the
-            // cloud layer" rather than popping into existence mid-air.
+            // Fade in over the first 10% of the fall and out over the last 10% -- this alone is
+            // most of what sells "emerging from the cloud layer" rather than popping into
+            // existence mid-air.
             val fadeRange = 0.1f
             val fadeAlpha = when {
                 fallFraction < fadeRange -> fallFraction / fadeRange
@@ -1843,34 +1820,30 @@ class PaperRenderer(
         // top edge is redrawn per-segment with an independent random roll each time, ranging
         // anywhere from 0.15 down to 0.75) -- so anchoring the *fixed* mountain/lake base line to
         // the shallowest possible point left a real gap of bare sky beneath it at almost every x,
-        // wherever the hill's own wavy edge happened to dip lower that frame (confirmed against
-        // the reference app's own decompiled source: `Mountain.onSceneSizeChanged` sets
-        // `y = mScene.mountainBottomY`, and `mountainBottomY = max(hillsVisibleBottomY,
-        // waterVisibleTopY-if-lake)` -- `hillsVisibleBottomY` there is deliberately the hill's own
-        // *worst-case-covered* line, not its peak, i.e. the deepest the top edge can ever reach).
+        // wherever the hill's own wavy edge happened to dip lower that frame. The anchor has to be
+        // the hill's *worst-case-covered* line -- the deepest its top edge can ever reach -- not
+        // its peak, or the gap reopens at whichever column dips furthest.
         // [SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION] is exactly that same "always-solid, whatever the roll"
         // fraction already derived and proven for object row placement -- reusing it here (instead
         // of inventing a second, inconsistent constant) guarantees mountains/lake always connect
-        // directly into the hills with zero gap, at every x, matching the reference app's own
-        // approach. Verified with a rendered mock of both the old and new anchor before this edit.
+        // directly into the hills with zero gap, at every x. Verified with a rendered mock of both
+        // the old and new anchor before this edit.
         val effectiveBaseYFraction =
             if (updateLakeBandY()) lakeBandTopY / screenHeight else hillGuaranteedTopFraction
 
-        // Sized directly from the reference app's own decompiled `Scene.java` (the code that
-        // creates its `Mountain` objects), not guessed from screenshots: back mountains there get
-        // `sy` (height) in `[0.8,1.2] * 0.15` and `sx` (width) in `[0.8,1.2] * 0.25` of `mSizeH`
-        // (its own normalized unit, which equals screen *height* in portrait -- confirmed from
+        // Sized in one normalized unit -- screen *height*, in portrait -- rather than guessed per
+        // layer: back mountains get a height in `[0.8,1.2] * 0.15` and a width in
+        // `[0.8,1.2] * 0.25` of that unit (which equals screen height in portrait -- see
         // `SceneBase.setupScreenSizes()`). The previous version of this comment converted that
         // 0.25/0.15≈1.67 width:height ratio into PaperScrape's own widthFraction-of-*screen-width*
         // convention by reusing the *old* (too-tall) 0.60/0.29≈2.07 ratio -- which was wrong,
         // baked in the exact same error that made the old mountains too tall, and produced
-        // mountains far narrower than the reference (the reported "too narrow" bug). Fixed by
-        // computing width the same way height already is -- as a fraction of screenHeight, since
-        // that's what the reference's `sx`/`sy` both actually are (fractions of the *same* unit)
+        // mountains far narrower than they should be (the reported "too narrow" bug). Fixed by
+        // computing width the same way height already is -- as a fraction of screenHeight, so
+        // both are fractions of the *same* unit
         // -- removing the error-prone width-of-screenWidth conversion entirely rather than
         // re-deriving it correctly by hand. `widthOfHeightFraction` below is `sx`'s own average
-        // (0.25 back, 0.175 front, both *0.7 for front matching the reference's own scaling)
-        // directly, no conversion needed.
+        // (0.25 back, 0.175 front, the front layer scaled by 0.7) directly, no conversion needed.
         drawMountainLayer(
             canvas, dayPhase, sceneCustomization.mountainsBack, parallaxFactor = 0.04f, seedSalt = EffectId.MOUNTAINS_BACK,
             baseYFraction = effectiveBaseYFraction, peakHeightFraction = 0.15f, widthOfHeightFraction = 0.25f,
@@ -1893,9 +1866,8 @@ class PaperRenderer(
     ) {
         if (!config.visible) return
         mountainPaint.color = blendColor(config.colorNight, config.colorDay, dayPhase.dayBlend)
-        // Fully opaque -- the back layer used to render at alpha 200 as a cheap depth cue, but
-        // that's not how the reference app does it (its own `Mountain` model is a plain solid
-        // two-color shape, no alpha blending at all) and it caused a real, reported bug: with the
+        // Fully opaque -- the back layer used to render at alpha 200 as a cheap depth cue, and it
+        // caused a real, reported bug: with the
         // sun/moon drawn *behind* mountains in z-order, a partially transparent back layer let it
         // (and the sky) visibly bleed through the mountain's own silhouette. Depth between the two
         // layers is already communicated by their independently user-editable colors (and, once a
@@ -1949,16 +1921,15 @@ class PaperRenderer(
      * (`t = i/segments`), but `√t` has infinite slope at `t=0` -- the width changes fastest right
      * at the peak, exactly where evenly-height-spaced sampling places its sparsest points. At the
      * mountain sizes this file used before, that faceting was too small to read as a flaw; once
-     * mountains got smaller (matching the reference's own real proportions), the same 8-segment
-     * discretization became a visibly angular "shoulder" instead of the reference's smooth round
-     * cap. Fixed by sampling evenly spaced in *width* instead (`x` from 0 to `halfWidth`, deriving
+     * mountains got smaller, the same 8-segment discretization became a visibly angular
+     * "shoulder" instead of a smooth round cap. Fixed by sampling evenly spaced in *width*
+     * instead (`x` from 0 to `halfWidth`, deriving
      * `t = x²` since that's `√t`'s own inverse) -- points naturally bunch up near the peak where
      * the curve bends fastest, giving a properly round tip at the same segment count.
      *
      * **Batch 4 aesthetic pass**: filled as two halves sharing the exact same peak/base points
-     * (so there's no seam) rather than one flat-color fill -- the reference's own `Mountain`
-     * class is genuine vertex-colored GL geometry with no texture (decompiled and confirmed, see
-     * this file's own [drawMountains] doc comment), so there's no sprite to convert to here, but
+     * (so there's no seam) rather than one flat-color fill. A mountain is vertex-coloured
+     * geometry rather than a sprite -- there is nothing to convert to a blit here -- but
      * a flat single-color silhouette read noticeably flatter than every sprite-converted object
      * elsewhere in the scene now carries its own baked-in "paper fold" shading. A left face
      * lightened and a right face darkened (a fixed light-from-upper-left convention, same side
@@ -2038,9 +2009,9 @@ class PaperRenderer(
 
     /** Recomputes [lakeBandTopY]/[lakeBandBottomY], returning whether the lake is visible at all.
      *
-     * Shared by [drawLake] and [drawMountains] -- matching the reference app's own architecture,
-     * where mountains' base is dynamically computed as `max(hillsReference, waterTopIfLakesOn)`
-     * rather than a fixed guess independent of wherever the water actually is. `false` means the
+     * Shared by [drawLake] and [drawMountains]: the mountains' base is computed as
+     * `max(hillsReference, waterTopIfLakesOn)` rather than being a fixed guess independent of
+     * wherever the water actually is. `false` means the
      * lake isn't visible and callers fall back to their own hill-only reference; the two fields
      * are then stale and must not be read. */
     private fun updateLakeBandY(): Boolean {
@@ -2057,8 +2028,8 @@ class PaperRenderer(
         // bare sky between them at any x.
         //
         // Top extends further up into the sky as Lake Height increases, capped at 0.16 (down
-        // from 0.20) -- v49 shrank the mountains to match the reference's real, much smaller
-        // proportions, but left this cap alone, so at max Lake Height the lake's top edge could
+        // from 0.20) -- v49 shrank the mountains considerably but left this cap alone, so at max
+        // Lake Height the lake's top edge could
         // rise as high as 0.704-0.20=0.504 while even the *tallest* possible back-mountain
         // candidate (peakHeightFraction 0.15, heightJitter up to 1.25) only reaches
         // 0.704-0.15*1.25≈0.5165 -- the lake could swallow every mountain on screen at high
@@ -2098,13 +2069,44 @@ class PaperRenderer(
         }
         canvas.restore()
 
+        // **One pass over the water, painted far to near.**
+        //
+        // Boats and dolphins used to be two independent passes in candidate order, which decided
+        // what covered what by index instead of by distance. Everything on the surface is now
+        // placed first and drawn afterwards in [LakeLanes.orderByDepth] order, so the nearer hull
+        // is always the one in front -- see LakeLanes for why that is the whole of the fix.
+        var lakeItems = 0
         if (lake.sailboatsVisible) {
-            drawLakeDecorations(canvas, top, bandHeight, elapsedSeconds, lake.sailboatsDensity, seedSalt = EffectId.SAILBOATS, isDolphin = false)
+            lakeItems = gatherLakeDecorations(
+                lakeItems, top, bandHeight, elapsedSeconds, lake.sailboatsDensity,
+                seedSalt = EffectId.SAILBOATS, isDolphin = false,
+            )
         }
         if (lake.dolphinsVisible) {
-            drawLakeDecorations(canvas, top, bandHeight, elapsedSeconds, lake.dolphinsDensity, seedSalt = EffectId.DOLPHINS, isDolphin = true)
+            lakeItems = gatherLakeDecorations(
+                lakeItems, top, bandHeight, elapsedSeconds, lake.dolphinsDensity,
+                seedSalt = EffectId.DOLPHINS, isDolphin = true,
+            )
+        }
+        LakeLanes.orderByDepth(lakeItemY, lakeItems, lakeDrawOrder)
+        for (n in 0 until lakeItems) {
+            val slot = lakeDrawOrder[n]
+            if (lakeItemIsDolphin[slot]) {
+                drawDolphin(canvas, lakeItemX[slot], lakeItemY[slot], lakeItemPhase[slot], elapsedSeconds)
+            } else {
+                drawSailboat(canvas, lakeItemX[slot], lakeItemY[slot])
+            }
         }
     }
+
+    // Slots for one frame's worth of lake surface, sized for every candidate of both categories.
+    // Fields rather than locals because this is a draw path: a per-frame list here would be a
+    // per-frame allocation, which is exactly what the CPU audit exists to keep out.
+    private val lakeItemX = FloatArray(LakeLanes.LANE_COUNT)
+    private val lakeItemY = FloatArray(LakeLanes.LANE_COUNT)
+    private val lakeItemPhase = FloatArray(LakeLanes.LANE_COUNT)
+    private val lakeItemIsDolphin = BooleanArray(LakeLanes.LANE_COUNT)
+    private val lakeDrawOrder = IntArray(LakeLanes.LANE_COUNT)
 
     /** One screen-width-wide copy of the lake's water band + ripple lines, offset horizontally
      * by [xOffset] -- see [drawLake], which draws 3 of these side by side under one translate.
@@ -2186,15 +2188,21 @@ class PaperRenderer(
         ripplePaint.alpha = 255
     }
 
-    private fun drawLakeDecorations(
-        canvas: SceneCanvas,
+    /**
+     * Places one category's present candidates into the frame's lake slots, starting at [from],
+     * and returns the new count. Draws nothing: what is in front of what cannot be decided until
+     * both categories have been placed.
+     */
+    private fun gatherLakeDecorations(
+        from: Int,
         bandTop: Float,
         bandHeight: Float,
         elapsedSeconds: SceneTime,
         density: Float,
         seedSalt: Int,
         isDolphin: Boolean,
-    ) {
+    ): Int {
+        var count = from
         val effectOffset = CandidateThreshold.offsetFor(seedSalt)
         val fallbackIndex = CandidateThreshold.fallbackIndexFor(density, LAKE_DECORATION_POOL_SIZE, effectOffset)
         val seed = seedFor(seedSalt)
@@ -2240,14 +2248,18 @@ class PaperRenderer(
             // the wrong trade: the surface is the scene's only open space and both belong on all
             // of it.
             //
-            // The band is instead cut into [LAKE_LANE_COUNT] lanes spanning it top to bottom, and
-            // each category draws from alternate ones. Boats take the even lanes and dolphins the
-            // odd, so both reach the near edge and the far edge, and two of them can never be
-            // placed on the same line. Where inside its lane a candidate sits is still its own
-            // noise, so nothing reads as a grid.
+            // The band is instead cut into [LakeLanes.LANE_COUNT] lanes spanning it top to
+            // bottom, and each category draws from alternate ones. Boats take the even lanes and
+            // dolphins the odd, so both reach the near edge and the far edge, and two of them can
+            // never be placed on the same line. Where inside its lane a candidate sits is still
+            // its own noise, so nothing reads as a grid.
+            //
+            // The lane count used to be six for eight candidates, so `% 6` folded candidate 3 back
+            // onto candidate 0's lane and two boats of the same category shared a line -- with
+            // their own speeds, sliding through each other. See [LakeLanes].
             val laneSpan = safeLaneFractionMax - 0.02f
-            val laneHeight = laneSpan / LAKE_LANE_COUNT
-            val laneIndex = (i * 2 + if (isDolphin) 1 else 0) % LAKE_LANE_COUNT
+            val laneHeight = laneSpan / LakeLanes.LANE_COUNT
+            val laneIndex = LakeLanes.laneIndex(i, isDolphin)
             val laneBase = 0.02f + laneIndex * laneHeight
             val laneFraction = CandidateNoise.range(
                 seed,
@@ -2262,135 +2274,143 @@ class PaperRenderer(
             val drift = elapsedSeconds.cycle(speed, phase / 6.28f)
             val x = drift * (screenWidth + 160f) - 80f
 
-            if (isDolphin) {
-                // Batch 4 (terrain sub-group) -- sprite-converted, matching the reference app's
-                // own architecture: unlike mountains/hills (procedural vertex-colored geometry
-                // even in the decompiled reference, see drawMountains'/drawHillLayers' own doc
-                // comments), the reference's real `Dolphin`/`SailboatBottom`/`SailboatSails`
-                // classes genuinely blit sprite textures -- so this one (and the sailboat below)
-                // get the same treatment batches 1-3 already gave houses/buildings/cars. Same
-                // leap/bob/rotate animation as before, just blitting `dolphin_body.png` instead
-                // of walking 5 separate Paths every frame.
-                //
-                // The tint history of this blit is worth keeping. It shipped untinted on the
-                // stated grounds that its colours were baked into the PNG; they were not, the
-                // artwork was pure white, and white being the `MULTIPLY` identity the blit drew a
-                // white silhouette. v74.1 repaired that with a constant. The V2 asset set draws
-                // the dolphin in its own greys and blues, which makes the constant the *second*
-                // colour over finished art -- the mirror-image defect its own test warned about
-                // -- so the repair is retired and the blit goes back to being untinted, this time
-                // because the artwork genuinely carries the colour.
-                // A dolphin is only drawn while it is **out of the water**. It used to be drawn
-                // every frame with a +/-10 unit bob, so it slid across the surface permanently
-                // visible, which is what read as flying rather than breaching.
-                //
-                // `leap` is the positive half of a sine: 0 at the surface, 1 at the top of the
-                // arc. Below zero the animal is under water and there is nothing to draw -- no
-                // clip is needed, and none is available on the `SceneCanvas` seam anyway. The
-                // rotation follows the arc's own slope, so it noses up on the way out and down on
-                // the way back in, and the sprite's own centre line sits on the waterline at the
-                // instants it enters and leaves.
-                val arc = elapsedSeconds.sinAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
-                val lakeScale = SceneSpace.sceneScale(screenHeight.toFloat())
+            lakeItemX[count] = x
+            lakeItemY[count] = y
+            lakeItemPhase[count] = phase
+            lakeItemIsDolphin[count] = isDolphin
+            count++
+        }
+        return count
+    }
 
-                // **Both crossings of the surface, derived from the leap's own phase.**
-                //
-                // `arc` is `sin(theta)` with `theta = DOLPHIN_LEAP_RATE * t + phase * 6.28`, so
-                // the animal is above water for the first half of every turn of that angle.
-                // Written as a position in a 0..1 cycle, the two crossings are the two ends of
-                // that half: the body breaks the surface at 0, and meets it again at 0.5. Each
-                // opens a window of [SPLASH_WINDOW_CYCLES], and the two cannot overlap because
-                // the window is a small fraction of half a cycle.
-                //
-                // **This is one splash per crossing, not one per phase change.** A frame anywhere
-                // inside a window draws the splash at the size and opacity its position calls for;
-                // a frame outside both draws nothing. Nothing accumulates, nothing repeats while
-                // the animal travels, and a dropped frame costs a frame of the effect rather than
-                // the whole event.
-                //
-                // Deriving it also beats remembering it at exactly the seams that matter. A
-                // "was it above water last frame" flag needs allocating per dolphin, keeping
-                // across a surface change and a visibility pause, and is wrong for one frame every
-                // time the wallpaper resumes mid-leap. This keeps no state at all.
-                val cyclePosition = elapsedSeconds.cycle(
-                    DOLPHIN_LEAP_RATE / TWO_PI,
-                    phase * 6.28f / TWO_PI,
-                )
-                val splashProgress = when {
-                    cyclePosition < SPLASH_WINDOW_CYCLES -> cyclePosition / SPLASH_WINDOW_CYCLES
-                    cyclePosition >= 0.5f && cyclePosition < 0.5f + SPLASH_WINDOW_CYCLES ->
-                        (cyclePosition - 0.5f) / SPLASH_WINDOW_CYCLES
-                    else -> -1f
-                }
-                if (arc <= 0f && splashProgress < 0f) continue
+    /** One dolphin, mid-leap or mid-splash, at the point [gatherLakeDecorations] placed it. */
+    private fun drawDolphin(canvas: SceneCanvas, x: Float, y: Float, phase: Float, elapsedSeconds: SceneTime) {
+            // Batch 4 (terrain sub-group) -- sprite-converted. Unlike mountains and hills, which
+            // are procedural vertex-coloured geometry (see drawMountains'/drawHillLayers' own doc
+            // comments), a dolphin and a sailboat are finished pieces of art, so both get the
+            // same blit treatment batches 1-3 already gave houses/buildings/cars. Same
+            // leap/bob/rotate animation as before, just blitting `dolphin_body.png` instead
+            // of walking 5 separate Paths every frame.
+            //
+            // The tint history of this blit is worth keeping. It shipped untinted on the
+            // stated grounds that its colours were baked into the PNG; they were not, the
+            // artwork was pure white, and white being the `MULTIPLY` identity the blit drew a
+            // white silhouette. v74.1 repaired that with a constant. The V2 asset set draws
+            // the dolphin in its own greys and blues, which makes the constant the *second*
+            // colour over finished art -- the mirror-image defect its own test warned about
+            // -- so the repair is retired and the blit goes back to being untinted, this time
+            // because the artwork genuinely carries the colour.
+            // A dolphin is only drawn while it is **out of the water**. It used to be drawn
+            // every frame with a +/-10 unit bob, so it slid across the surface permanently
+            // visible, which is what read as flying rather than breaching.
+            //
+            // `leap` is the positive half of a sine: 0 at the surface, 1 at the top of the
+            // arc. Below zero the animal is under water and there is nothing to draw -- no
+            // clip is needed, and none is available on the `SceneCanvas` seam anyway. The
+            // rotation follows the arc's own slope, so it noses up on the way out and down on
+            // the way back in, and the sprite's own centre line sits on the waterline at the
+            // instants it enters and leaves.
+            val arc = elapsedSeconds.sinAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
+            val lakeScale = SceneSpace.sceneScale(screenHeight.toFloat())
 
-                if (arc > 0f) {
-                    val climb = arc * SceneSpace.DOLPHIN_LEAP_METRES * SceneSpace.LAKE_PIXELS_PER_METRE * lakeScale
-                    val slope = elapsedSeconds.cosAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
-                    canvas.save()
-                    canvas.translate(x, y - climb)
-                    canvas.rotate(-slope * DOLPHIN_LEAP_TILT_DEGREES)
-                    // Sized against the sailboat rather than against nothing. Both were blitted at
-                    // their own native size, which made the animal 115 local units long and the
-                    // boat 84 -- a dolphin longer than the vessel beside it. [SceneSpace] states
-                    // both in metres over one lake metric, so the two can only be wrong together.
-                    canvas.scale(SceneSpace.DOLPHIN_BASE_SCALE * lakeScale, SceneSpace.DOLPHIN_BASE_SCALE * lakeScale)
-                    sprites.draw(canvas, R.drawable.dolphin_body, DOLPHIN_ORIGIN_X_UNITS, DOLPHIN_ORIGIN_Y_UNITS, SpriteScale.SCENE_UNITS)
-                    canvas.restore()
-                }
+            // **Both crossings of the surface, derived from the leap's own phase.**
+            //
+            // `arc` is `sin(theta)` with `theta = DOLPHIN_LEAP_RATE * t + phase * 6.28`, so
+            // the animal is above water for the first half of every turn of that angle.
+            // Written as a position in a 0..1 cycle, the two crossings are the two ends of
+            // that half: the body breaks the surface at 0, and meets it again at 0.5. Each
+            // opens a window of [SPLASH_WINDOW_CYCLES], and the two cannot overlap because
+            // the window is a small fraction of half a cycle.
+            //
+            // **This is one splash per crossing, not one per phase change.** A frame anywhere
+            // inside a window draws the splash at the size and opacity its position calls for;
+            // a frame outside both draws nothing. Nothing accumulates, nothing repeats while
+            // the animal travels, and a dropped frame costs a frame of the effect rather than
+            // the whole event.
+            //
+            // Deriving it also beats remembering it at exactly the seams that matter. A
+            // "was it above water last frame" flag needs allocating per dolphin, keeping
+            // across a surface change and a visibility pause, and is wrong for one frame every
+            // time the wallpaper resumes mid-leap. This keeps no state at all.
+            val cyclePosition = elapsedSeconds.cycle(
+                DOLPHIN_LEAP_RATE / TWO_PI,
+                phase * 6.28f / TWO_PI,
+            )
+            val splashProgress = when {
+                cyclePosition < SPLASH_WINDOW_CYCLES -> cyclePosition / SPLASH_WINDOW_CYCLES
+                cyclePosition >= 0.5f && cyclePosition < 0.5f + SPLASH_WINDOW_CYCLES ->
+                    (cyclePosition - 0.5f) / SPLASH_WINDOW_CYCLES
+                else -> -1f
+            }
+            if (arc <= 0f && splashProgress < 0f) return
 
-                // **After the animal, so it emerges through its own splash on the way out.** On
-                // the way back in there is nothing left to cover, so the order costs nothing
-                // there; on the way out, drawing the water first would have put the burst behind
-                // a body that is rising out of it.
-                if (splashProgress >= 0f) {
-                    canvas.save()
-                    canvas.translate(x, y)
-                    // Sized against the animal that made it, so a far dolphin throws a small
-                    // splash and a near one a larger, and the two can only be wrong together.
-                    val splashScale = SceneSpace.DOLPHIN_BASE_SCALE * lakeScale
-                    canvas.scale(splashScale, splashScale)
-                    sprites.draw(
-                        canvas,
-                        if (splashProgress < SPLASH_FRAME_SPLIT) R.drawable.water_splash0
-                        else R.drawable.water_splash1,
-                        SPLASH_ORIGIN_X_UNITS,
-                        SPLASH_ORIGIN_Y_UNITS,
-                        SpriteScale.SCENE_UNITS,
-                        (255f * (1f - splashProgress * splashProgress)).toInt().coerceIn(0, 255),
-                    )
-                    canvas.restore()
-                }
-            } else {
-                // Sprite-converted the same way as the dolphin above -- hull and sail are two
-                // separate sprites (matching the reference's own `SailboatBottom`/`SailboatSails`
-                // being two independent models) so a future delivery could animate them
-                // independently (e.g. sail luffing) without touching the hull.
-                //
-                // Both carried the same missing-colour defect as the dolphin above and both are
-                // resolved the same way in V2: the hull is drawn in wood browns and the sail in
-                // off-white with a red band, so neither needs the v74.1 repair constant any more.
-                // **Sail first, hull over it.** The sail was blitted after the hull and four units
-                // to the right of it, so its foot sat on top of the deck planking off to one side
-                // and the two pieces read as separate objects floating together. Drawn first, the
-                // hull's own gunwale covers the foot of the sail and the mast reads as stepped
-                // into the deck; the origin centres the sail's 70 units of content on the hull's
-                // 84, so the mast stands amidships instead of aft.
-                //
-                // The two origins keep the relationship v76.4 established between them -- the
-                // mast amidships, the sail's foot behind the gunwale -- and are shifted together
-                // by 32 units so the hull's own content is centred on the placement point rather
-                // than hanging off to its right. The pair is now scaled too, from the same lake
-                // metric the dolphin uses.
-                val boatScale = SceneSpace.SAILBOAT_BASE_SCALE * SceneSpace.sceneScale(screenHeight.toFloat())
+            if (arc > 0f) {
+                val climb = arc * SceneSpace.DOLPHIN_LEAP_METRES * SceneSpace.LAKE_PIXELS_PER_METRE * lakeScale
+                val slope = elapsedSeconds.cosAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
                 canvas.save()
-                canvas.translate(x, y)
-                canvas.scale(boatScale, boatScale)
-                sprites.draw(canvas, R.drawable.sailboat_sail, -35f, -50f, SpriteScale.SCENE_UNITS)
-                sprites.draw(canvas, R.drawable.sailboat_hull, -42f, 8f, SpriteScale.SCENE_UNITS)
+                canvas.translate(x, y - climb)
+                canvas.rotate(-slope * DOLPHIN_LEAP_TILT_DEGREES)
+                // Sized against the sailboat rather than against nothing. Both were blitted at
+                // their own native size, which made the animal 115 local units long and the
+                // boat 84 -- a dolphin longer than the vessel beside it. [SceneSpace] states
+                // both in metres over one lake metric, so the two can only be wrong together.
+                canvas.scale(SceneSpace.DOLPHIN_BASE_SCALE * lakeScale, SceneSpace.DOLPHIN_BASE_SCALE * lakeScale)
+                sprites.draw(canvas, R.drawable.dolphin_body, DOLPHIN_ORIGIN_X_UNITS, DOLPHIN_ORIGIN_Y_UNITS, SpriteScale.SCENE_UNITS)
                 canvas.restore()
             }
-        }
+
+            // **After the animal, so it emerges through its own splash on the way out.** On
+            // the way back in there is nothing left to cover, so the order costs nothing
+            // there; on the way out, drawing the water first would have put the burst behind
+            // a body that is rising out of it.
+            if (splashProgress >= 0f) {
+                canvas.save()
+                canvas.translate(x, y)
+                // Sized against the animal that made it, so a far dolphin throws a small
+                // splash and a near one a larger, and the two can only be wrong together.
+                val splashScale = SceneSpace.DOLPHIN_BASE_SCALE * lakeScale
+                canvas.scale(splashScale, splashScale)
+                sprites.draw(
+                    canvas,
+                    if (splashProgress < SPLASH_FRAME_SPLIT) R.drawable.water_splash0
+                    else R.drawable.water_splash1,
+                    SPLASH_ORIGIN_X_UNITS,
+                    SPLASH_ORIGIN_Y_UNITS,
+                    SpriteScale.SCENE_UNITS,
+                    (255f * (1f - splashProgress * splashProgress)).toInt().coerceIn(0, 255),
+                )
+                canvas.restore()
+            }
+    }
+
+    /** One sailboat at the point [gatherLakeDecorations] placed it. */
+    private fun drawSailboat(canvas: SceneCanvas, x: Float, y: Float) {
+            // Sprite-converted the same way as the dolphin above -- hull and sail are two
+            // separate sprites, kept independent so a future delivery could animate them
+            // separately (e.g. sail luffing) without touching the hull.
+            //
+            // Both carried the same missing-colour defect as the dolphin above and both are
+            // resolved the same way in V2: the hull is drawn in wood browns and the sail in
+            // off-white with a red band, so neither needs the v74.1 repair constant any more.
+            // **Sail first, hull over it.** The sail was blitted after the hull and four units
+            // to the right of it, so its foot sat on top of the deck planking off to one side
+            // and the two pieces read as separate objects floating together. Drawn first, the
+            // hull's own gunwale covers the foot of the sail and the mast reads as stepped
+            // into the deck; the origin centres the sail's 70 units of content on the hull's
+            // 84, so the mast stands amidships instead of aft.
+            //
+            // The two origins keep the relationship v76.4 established between them -- the
+            // mast amidships, the sail's foot behind the gunwale -- and are shifted together
+            // by 32 units so the hull's own content is centred on the placement point rather
+            // than hanging off to its right. The pair is now scaled too, from the same lake
+            // metric the dolphin uses.
+            val boatScale = SceneSpace.SAILBOAT_BASE_SCALE * SceneSpace.sceneScale(screenHeight.toFloat())
+            canvas.save()
+            canvas.translate(x, y)
+            canvas.scale(boatScale, boatScale)
+            sprites.draw(canvas, R.drawable.sailboat_sail, -35f, -50f, SpriteScale.SCENE_UNITS)
+            sprites.draw(canvas, R.drawable.sailboat_hull, -42f, 8f, SpriteScale.SCENE_UNITS)
+            canvas.restore()
     }
 
     private fun drawHillLayers(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase) {
@@ -2443,10 +2463,9 @@ class PaperRenderer(
             // two-face split just above, adapted for a continuous wavy shape where a left/right
             // split doesn't apply. Built once per layer (not per tile-offset copy below) since
             // layerTop/layerHeight don't change across those copies and only X gets translated.
-            // Reference's own `Hills` class (decompiled `SegmentedPlane` subclass) is flat
-            // vertex-colored geometry too, same as mountains -- no texture to convert here,
-            // this is a procedural stand-in for the same visual effect batches 1-3's baked
-            // sprite mottling gives everything else.
+            // The hillside is flat vertex-coloured geometry, same as the mountains -- there is
+            // no texture to convert here, so this is a procedural stand-in for the same visual
+            // effect batches 1-3's baked sprite mottling gives everything else.
             val hillHighlight = ColorUtils.blendARGB(color, 0xFFFFFFFF.toInt(), 0.12f)
             val gradientBottom = layerTop + layerHeight * 0.35f
 
@@ -2488,9 +2507,8 @@ class PaperRenderer(
 
     /**
      * Builds one hill layer's skyline as a true sine wave, wide enough to cover two
-     * screen-widths, anchored at the wrappedShift=0 reference position -- matching the reference
-     * app's own decompiled `Hills` class exactly: `getHeightData()` there is
-     * `(1 - amp) + amp * sin(f * 4π)`, a perfectly smooth, perfectly periodic wave (2 full cycles
+     * screen-widths, anchored at the wrappedShift=0 reference position. The skyline is
+     * `(1 - amp) + amp * sin(f * 4π)`: a perfectly smooth, perfectly periodic wave (2 full cycles
      * across one hill tile), not independent random rolls per segment smoothed with bezier
      * curves. The previous per-segment-random approach, even after narrowing its range in the
      * v49 pass, could still land two adjacent segments' rolls asymmetrically and read as an
@@ -2524,9 +2542,8 @@ class PaperRenderer(
         val width = screenWidth * 2f
         val startX = -screenWidth * 0.5f
 
-        // "Hills Variation" (user-editable, 0..1) scales the sine's amplitude, exactly matching
-        // the reference's own `ampNormalized` being a user-adjustable parameter there --
-        // variation=1 reproduces the full [0.04, 0.22] range, variation=0 collapses the amplitude
+        // "Hills Variation" (user-editable, 0..1) scales the sine's amplitude:
+        // variation=1 gives the full [0.04, 0.22] range, variation=0 collapses the amplitude
         // to 0 (a perfectly flat hill at the center line). Never scaled *up* past 1 here
         // specifically so it can never exceed the proven-safe range -- the UI clamps to 0..1 too.
         val v = hillsVariation.coerceIn(0f, 1f)

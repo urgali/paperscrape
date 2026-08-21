@@ -4,13 +4,37 @@ Operational plan only. What shipped and why lives in `RELEASE_HISTORY.md`; how t
 code works lives in `ARCHITECTURE.md`; the visual rules live in `DESIGN_NOTES.md`;
 the rules that always apply live in `AI_PROJECT_RULES.md`.
 
-**Nothing below is approved except where a row says so explicitly. Ask before starting
-anything else.** As of v2.16 exactly one item is approved: **D13**, the in-app updater
-stuck on `Downloading`, which is the next task.
+**Nothing below is approved. Ask before starting any of it.** The v3.0 batch closed everything
+that was.
 
 ---
 
 ## Current status
+
+**v3.0 Stable — the updater works, the lake has depth, Live Weather knows how it is finding you,
+the scene is under golden-image test, and PaperScrape stands on its own.**
+
+`versionCode = 21`, `versionName = "3.0"`. Tag `v3.0`. Five pieces of work, each verified on an
+Android 17 emulator through MCP as well as by tests:
+
+1. **D13 closed — the updater.** The hang was a `LaunchedEffect` keyed on the state its own body
+   cleared: ~30 ms after starting, Compose cancelled the download it had just launched and nothing
+   ever moved the UI off `Downloading`. Proven with instrumentation, not inferred. Fixed, plus a
+   `Verifying` state and a guarantee that a cancelled download can never leave the screen stuck.
+   Run end to end against the real v2.15 → v2.16 releases.
+2. **The lake.** Four boats were mapped onto three lanes by a `% 6` that folded, so two shared a
+   line and slid through each other; and the water was painted in candidate order rather than by
+   depth. `LakeLanes` gives every candidate its own lane and paints far-to-near.
+3. **Live Weather location** split into **GPS / Network-Cell / Custom**. Network never touches the
+   GNSS receiver -- verified from `dumpsys location`, which shows the GPS provider `OFF` and
+   unstarted in that mode. Continuous tracking replaced by one bounded request per refresh, with a
+   cached fix preferred and the last saved position as the fallback.
+4. **Golden-image tests.** 13 scenes rendered through `CanvasSceneTarget` and compared with
+   committed PNGs. Shown to have teeth: reverting the lake fix fails exactly the two lake goldens.
+5. **The external reference is gone.** Every operational dependency removed; the history left
+   alone deliberately (`AI_PROJECT_RULES.md` §3).
+
+The README now opens with the maintainer's own note about how the app was built.
 
 **v2.16 Stable — the build stack was brought to the current stable line, and nothing else.**
 
@@ -77,7 +101,7 @@ producing an APK. **Seen running on a Pixel 9** (Android 16, gesture navigation,
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -85,17 +109,8 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 
 ## Known broken
 
-| ID | Symptom | State |
-|---|---|---|
-| **D13** | **The in-app updater hangs on `Downloading`.** Reported against v2.15: the update flow enters `UpdateUiState.Downloading` and stays there indefinitely — the download never completes, and the user has to fetch the APK from the GitHub Releases page by hand. *Checking* for an update is unaffected and was seen working on an Android 17 emulator during v2.16's verification; it is the download step that hangs. | **Open. Not fixed in v2.16, and not investigated.** No cause is recorded, because none has been established — the updater's code was not read, instrumented or modified during the v2.16 upgrade, deliberately, so that v2.16 is exactly one thing. This is the **next approved task**. |
-
-**How D13 must be closed.** Not by reasoning about the code and declaring it fixed. Reproduce the
-hang first, on an emulator, driven through MCP, against a **real GitHub release** — not a fixture,
-not a mocked response — then fix it, then run the whole flow end to end on that same real release:
-check, download, verify the SHA-256, hand the APK to the installer, and come back to an installed
-newer build. Publishing v2.16 is what makes that possible: v2.15 → v2.16 is the first pair of real
-releases this project has had available to update *between*, which is precisely what item 7 of the
-old priority list had been waiting for.
+Nothing. **D13** -- the in-app updater hanging on `Downloading` -- was the only entry and is closed
+in v3.0; see Completed for what it actually was.
 
 ---
 
@@ -103,20 +118,16 @@ old priority list had been waiting for.
 
 | # | Item | Why it is here |
 |---|---|---|
-| 1 | **D13 — the in-app updater hangs on `Downloading`** *(approved; see Known broken above)* | The only item on this list that is approved to start. It also absorbs what used to sit at number 7 — "no APK has ever been fetched from a real release and installed" — because closing D13 properly requires exactly that run. |
-| 2 | **Device pass on v2.0's theme defaults** | Every built-in theme's defaults were reviewed and corrected: the winter family now enables the winter presentation (roof snow, snow-capped trees, winter clothing), Autumn enables Fall Colors and pumpkins, umbrellas leave the cold themes, the tundra lake loses its yachts and dolphins, Beach stands on sand, Desert gets palms, City is built rather than settled. Winter and Christmas are now two independent flags, so a snowy scene without fairy lights and a lit scene without snow are both expressible. Winter and Christmas snow by default. A fresh install now looks materially different per theme, and v2.0 shipped without any of it having been seen rendering. |
-| 3 | **Star-field cost, if it still matters** | Most stars became single `drawCircle` points shortly before v1.0, which cut the per-frame count to roughly a third. Whether the remainder is still worth attention is a question for a device, not for a static count. |
-| 4 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
-| 5 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
-| 6 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
-| 7 | **Device pass on the parts v2.14 did not reach** | v2.14 saw the five destinations, the colour scheme and the settings shells rendering on a Pixel 9, which closes the bottom-spacing half of this. Still unseen: the twelve mini-scene previews (verified by rasterising the scene description the code produces, not by the app drawing it), and v2.12's sun/moon and people work. The updater's end-to-end run moved out of this row and into **D13**. |
-| 8 | **README / lint / KDoc tidying** | `UseKtx`, `ObsoleteSdkInt`, `DataExtractionRules`, and KDoc that has accumulated layers across releases. |
+| 1 | **Device pass on v2.0's theme defaults** | Every built-in theme's defaults were reviewed and corrected: the winter family now enables the winter presentation (roof snow, snow-capped trees, winter clothing), Autumn enables Fall Colors and pumpkins, umbrellas leave the cold themes, the tundra lake loses its yachts and dolphins, Beach stands on sand, Desert gets palms, City is built rather than settled. Winter and Christmas are now two independent flags, so a snowy scene without fairy lights and a lit scene without snow are both expressible. Winter and Christmas snow by default. A fresh install now looks materially different per theme, and v2.0 shipped without any of it having been seen rendering. |
+| 2 | **Star-field cost, if it still matters** | Most stars became single `drawCircle` points shortly before v1.0, which cut the per-frame count to roughly a third. Whether the remainder is still worth attention is a question for a device, not for a static count. |
+| 3 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
+| 4 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
+| 5 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
+| 6 | **Device pass on the parts v2.14 did not reach** | v2.14 saw the five destinations, the colour scheme and the settings shells rendering on a Pixel 9, which closes the bottom-spacing half of this. Still unseen: the twelve mini-scene previews (verified by rasterising the scene description the code produces, not by the app drawing it), and v2.12's sun/moon and people work. The updater's end-to-end run left this row for **D13** and was done in v3.0. |
+| 7 | **README / lint / KDoc tidying** | `UseKtx`, `ObsoleteSdkInt`, `DataExtractionRules`, and KDoc that has accumulated layers across releases. |
 
-**After D13 comes Live Weather's location modes.** The agreed sequence is D13 first, then
-splitting Live Weather's location into **GPS / Network-Cell / Custom** — a coarse,
-`ACCESS_COARSE_LOCATION`, network-provider mode alongside the two that exist, cached and
-refreshed rarely, with Custom staying the zero-cost option. It is planned, not approved, and
-deliberately not started: it is a feature, and D13 is a defect that reaches users first.
+**Both of the items that used to sit above this list shipped in v3.0** — the updater fix and Live
+Weather's GPS / Network-Cell / Custom modes. Nothing on the list below is approved.
 
 **Localisation is explicitly out of scope.** PaperScrape is English-only by decision;
 about seventy UI strings remain inline in Compose rather than in `strings.xml`, and
@@ -131,7 +142,6 @@ Genuinely open, genuinely not worth doing yet.
 | ID | Item | Why deferred |
 |---|---|---|
 | **B5** | The renderer, wallpaper engine, preferences layer and Compose UI cannot be unit tested without being decoupled from `Canvas`/`Context`. | The reason engine fixes are verified on a device rather than by a test. Decoupling is a large refactor with no user-visible result; it earns its place only if engine bugs start recurring. |
-| **D1** | The README states the project is not a decompilation of any third-party product; some source comments imply otherwise. | Deferred by the maintainer. Recorded, no action. |
 | **D4** | Whether the `MULTIPLY` tint's colour-fidelity trade-off is acceptable. | Accepted in practice across the whole V2 set and never reported as a problem. |
 | **D10** | `targetSdk` is 36 while `compileSdk` is 37. Android 17's behaviour changes are not opted into. | Deliberate. The Phase 2 dependency upgrade raised `compileSdk` because `core 1.19` and Compose `1.12` require it, and left `targetSdk` alone so the upgrade could not change how the app runs. Raising it is a behaviour change and needs its own device pass — lint's `OldTargetApi` warning is the reminder, not a defect. |
 | **D11** | Three lint findings that only appeared once the tooling was current: `ConfigurationScreenWidthHeight` on `SettingsInsets.kt:115`, and three `AutoboxingStateCreation` hints on `SettingsComponents.kt`. | New checks over unchanged code, not regressions. `SettingsInsets` is the file that closed v2.14's dialog-sizing bug, so swapping `Configuration.screenHeightDp` for `LocalWindowInfo.current.containerSize` is a change to the one thing that bug turned on — worth doing deliberately, with a device pass, not as a lint tidy-up. |
@@ -143,6 +153,12 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v3.0 Stable** — the updater fixed and proven against real releases, the lake given lanes and
+  depth order, Live Weather's location split into GPS / Network-Cell / Custom with one bounded
+  request per refresh instead of a standing subscription, 13 golden-image tests over the scene, and
+  the external reference removed from everything operational. **D13 closed**, **D1 closed** (the
+  README's provenance statement and the source comments no longer disagree, because the comments
+  no longer cite anything).
 - **v2.16 Stable** — the Android/build component upgrade, and nothing else. Gradle, AGP, Kotlin
   and the whole AndroidX/Compose/DataStore/Coroutines set on the current stable line;
   `compileSdk 37` with `targetSdk` held at 36; no Kotlin source changed; verified statically

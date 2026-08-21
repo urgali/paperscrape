@@ -50,8 +50,8 @@ import androidx.annotation.DrawableRes
  *
  * `drawable-nodpi` (not a density-specific bucket like `drawable-xxhdpi`) is deliberate -- these
  * sprites are drawn at a fixed "sprite pixels per unit" scale via an explicit `canvas.scale()` at
- * draw time (see each `drawXxx` function's own comment), the same way the reference app's own
- * asset folder (also literally named `drawable-nodpi` in its decompiled resources) avoids
+ * draw time (see each `drawXxx` function's own comment). Keeping the assets out of a density
+ * bucket avoids
  * Android's automatic density upscaling working against that explicit scale.
  */
 object SpriteCache {

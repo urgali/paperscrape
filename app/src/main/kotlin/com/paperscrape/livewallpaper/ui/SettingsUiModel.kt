@@ -1,5 +1,7 @@
 package com.paperscrape.livewallpaper.ui
 
+import com.paperscrape.livewallpaper.location.DeviceLocationKind
+
 /**
  * Which location source is in use, as one choice instead of two switches.
  *
@@ -11,7 +13,7 @@ package com.paperscrape.livewallpaper.ui
  * the pair can actually be in, and [SettingsUiModel.locationFlags] maps back to exactly the same
  * pair of writes the two switches performed.
  */
-enum class LocationMode { OFF, PHONE, CUSTOM }
+enum class LocationMode { OFF, GPS, NETWORK, CUSTOM }
 
 /**
  * Which seasonal palette the current theme is wearing, as one choice instead of two switches.
@@ -35,13 +37,24 @@ enum class SeasonalPalette { NONE, AUTUMN, WINTER }
 object SettingsUiModel {
 
     /**
-     * Reads the pair of stored flags as one mode.
+     * Reads the stored flags and the stored positioning kind as one mode.
      *
      * The device flag is checked first only as a tie-break for a state the preferences layer does
      * not produce (both true); it cannot arise through either setter.
+     *
+     * An install from before v3.0 has no stored kind, and `WallpaperSettings` defaults it to
+     * `NETWORK` -- which is what the single old "Phone" mode already used in practice, so those
+     * users find the control on Network rather than on a mode they never chose.
      */
-    fun locationMode(useDeviceLocation: Boolean, useCustomLocation: Boolean): LocationMode = when {
-        useDeviceLocation -> LocationMode.PHONE
+    fun locationMode(
+        useDeviceLocation: Boolean,
+        useCustomLocation: Boolean,
+        deviceKind: DeviceLocationKind = DeviceLocationKind.NETWORK,
+    ): LocationMode = when {
+        useDeviceLocation -> when (deviceKind) {
+            DeviceLocationKind.GPS -> LocationMode.GPS
+            DeviceLocationKind.NETWORK -> LocationMode.NETWORK
+        }
         useCustomLocation -> LocationMode.CUSTOM
         else -> LocationMode.OFF
     }
@@ -49,14 +62,21 @@ object SettingsUiModel {
     /**
      * The flag pair a given mode means: `(useDeviceLocation, useCustomLocation)`.
      *
-     * `PHONE` and `CUSTOM` each set their own flag and rely on the setter to clear the other --
-     * exactly what tapping the corresponding switch did before. `OFF` clears both, which is the
-     * state a fresh install starts in.
+     * Both device modes set the same device flag -- which of the two systems it means is
+     * [deviceKindFor], stored alongside rather than folded into this pair. `OFF` clears both,
+     * which is the state a fresh install starts in.
      */
     fun locationFlags(mode: LocationMode): Pair<Boolean, Boolean> = when (mode) {
         LocationMode.OFF -> false to false
-        LocationMode.PHONE -> true to false
+        LocationMode.GPS, LocationMode.NETWORK -> true to false
         LocationMode.CUSTOM -> false to true
+    }
+
+    /** The positioning system a mode means, or `null` for the two that use no device sensor. */
+    fun deviceKindFor(mode: LocationMode): DeviceLocationKind? = when (mode) {
+        LocationMode.GPS -> DeviceLocationKind.GPS
+        LocationMode.NETWORK -> DeviceLocationKind.NETWORK
+        LocationMode.OFF, LocationMode.CUSTOM -> null
     }
 
     /** Reads the pair of stored palette flags as one choice. */

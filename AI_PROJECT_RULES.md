@@ -27,88 +27,61 @@ end of it.
 
 ---
 
-## 2. Use of external reference material
+## 2. PaperScrape is a standalone project
 
-2.1. Two reference archives are provided privately for comparison purposes:
-one containing an external project's source, one containing its sprite/shader
-assets. **They are reference material only.**
+2.1. **PaperScrape has no reference project, and no work on it may acquire one.**
+Until v3.0 an external product was consulted for behavioural questions -- relative
+proportions, depth ordering, which categories were recolourable, animation
+cadence -- and its name was a forbidden string that had to be scanned for before
+every release. That dependency is closed. Every question those comparisons used
+to answer now has an answer inside this repository, in `DESIGN_NOTES.md` and in
+the code's own comments.
 
-2.2. **The name of that external reference is forbidden inside this repository
-and inside every artifact produced from it.** See section 3 for the full rule.
+2.2. **Design decisions stand on their own.** A comment must describe what the
+code does and why, in terms a reader with nothing but this repository can act on.
+Write `// Depth band 0.27-0.375 keeps objects clear of the road`, never
+`// because product X does it this way`. An appeal to an outside product is not
+a reason; it is a reason someone else had, which nobody here can check.
 
-2.3. Never copy code, assets, resource names, file names, package names or
-architecture from the reference. PaperScrape uses a fundamentally different
-rendering architecture (2D `Canvas`, Kotlin) from the reference (OpenGL ES,
-Java); code-level transfer is neither legal-risk-free nor technically useful.
+2.3. Do not introduce a new external reference -- decompiled, downloaded or
+otherwise -- as an input to a fix or a feature. If a question genuinely cannot be
+answered from this project, from Android's own documentation, or from looking at
+the app running, raise it with the maintainer rather than resolving it against
+somebody else's product.
 
-2.4. Reference material may be consulted for **behavioural** questions only —
-relative proportions, depth ordering, which object categories are recolourable
-versus fixed-art, animation cadence. Record the *conclusion* in
-`DESIGN_NOTES.md`, expressed as a PaperScrape design rule.
+2.4. All assets shipped in this repository are original work produced by this
+project's own asset pipeline (`tools/assets/`). Nothing is dropped in, traced or
+pixel-matched from anywhere else.
 
-2.5. **Never write provenance into source comments.** A comment must describe
-what the code does and why, in terms a reader with no access to the reference
-can act on. Write `// Depth band 0.27-0.375 keeps objects clear of the road`,
-never `// ported from the reference's decompiled Scene.java`.
+2.5. The **visual identity** is `Paper Cutout 2D`: flat, two-dimensional,
+cut-paper shapes, simple and clean, no 3D perspective and no rendering style
+foreign to it. The **app's UI** is Material 3. Those two sentences are the whole
+of the style rule, and neither of them needs an outside product to be understood.
 
-2.6. All assets shipped in this repository must be original work produced by
-this project's own asset pipeline. Reference sprites are never dropped in,
-traced, or pixel-matched.
-
----
-
-## 3. The forbidden reference name
-
-3.1. The external reference's real name must **never** appear in: source code,
-comments, package names, namespaces, resource names, file names, folder names,
-README files, documentation, workflow files, Git-related files, metadata,
-strings, assets, visible UI text, scripts, build outputs, commit messages,
-branch names, tags, or any other versioned or distributed artifact.
-
-3.2. It may be used only:
-- in private conversation with the maintainer, to identify which reference is
-  being discussed;
-- inside the local, ignored and untracked `CLAUDE.md`, solely so Claude can
-  perform the mandatory compliance scan.
-`CLAUDE.md` is the single authorized project-local storage location for the
-forbidden reference name.
-
-3.3. **Before every release**, run a global, case-insensitive search of the
-whole project (including binary files, hidden directories, filenames and
-directory names) for the forbidden name.
-The search must use the value stored in the local `CLAUDE.md` declaration.
-The intentional declaration inside `CLAUDE.md` itself is the only permitted
-occurrence and must be excluded from the compliance result.
-If the forbidden name appears anywhere else, remove or reword it before the
-release is considered complete.
-
-3.4. When rewording an occurrence, replace it with a neutral, descriptive
-phrase — for example "the classic paper-cutout style" — never with a thin
-disguise, an initialism, or a codename that still identifies the reference.
-
-3.5. Remember that `release-notes/*.md` are **published**: the release workflow
+2.6. Remember that `release-notes/*.md` are **published**: the release workflow
 uses them as the GitHub Release body, and the in-app update dialog renders that
 same body. Text placed there reaches end users.
 
-3.6. **The forbidden reference name has exactly one project-local storage
-location: the ignored and untracked `CLAUDE.md`.**
-It must never be duplicated into any tracked file or distributed artifact.
-`CLAUDE.md` may contain the value because it is intentionally local and is
-used to initialize future Claude sessions.
-Do not copy the value into:
-- `AI_PROJECT_RULES.md`;
-- source code;
-- comments;
-- documentation;
-- release notes;
-- workflows;
-- Git metadata;
-- asset names;
-- filenames;
-- directory names;
-- build outputs;
-- any other tracked or distributed artifact.
-The name must never be revealed in user-facing Claude responses.
+---
+
+## 3. Historical references
+
+3.1. `CHANGELOG.md` and the pre-v2.0 files under `release-notes/` are a record of
+what was done at the time, including work that was done by comparison with an
+external product. **They are history and are left as written.** Rewriting a
+published release note to say something other than what it said would be
+falsifying the record, which is worse than the reference being visible in it.
+
+3.2. `RELEASE_HISTORY.md` is the same: earlier entries describe earlier reasoning
+and stay as they are. New entries follow section 2.
+
+3.3. What was removed in v3.0 is every reference that was **operational** -- a
+comment presenting an outside product as the authority for a current design
+decision, a rule requiring material from it, a scan the release depended on.
+Nothing that only *records* the past was touched.
+
+3.4. If a residual reference is found that looks legal rather than editorial in
+nature, raise it with the maintainer instead of deleting it unilaterally.
 
 ---
 
@@ -459,10 +432,11 @@ pre-release" banner automatically for dotted tags; do not write one by hand.
 explicitly requested. Ensure instead that the repository contains everything
 needed for the Git/GitHub Actions build to produce it.
 
-11.13. A release is not complete until the forbidden-name search (3.3) has been
-run against the project using the locally stored forbidden name and has come
-back clean, with the intentional declaration inside `CLAUDE.md` excluded from
-the result.
+11.13. **Retired in v3.0.** A release used to require a global search for an
+external product's name before it could be called complete. PaperScrape is
+standalone (section 2) and the scan has nothing left to find, so it is no longer
+a release gate. What replaces it is section 2.3: do not acquire a new external
+reference in the first place.
 
 ---
 
@@ -504,7 +478,6 @@ Do **not** run `test`, `lintDebug` or `assembleDebug`. Run instead:
 - internal references;
 - Git state and `.gitignore`;
 - hidden files intact;
-- forbidden-name scan;
 - release ZIP completeness.
 
 **Level 2 — Normal code change. This is the default.** The change touches Kotlin

@@ -19,7 +19,7 @@
     <!-- Live Weather -->
     <string name="live_weather_title">Live Weather</string>
     <string name="live_weather_desc">Real current conditions replace each theme\'s manual rain/snow/cloud settings automatically, refreshed hourly. While on, this theme\'s own Clouds/Precipitation screens switch to read-only.</string>
-    <string name="live_weather_needs_location">Needs one of the two location toggles above turned on first, so it knows where to check the weather for.</string>
+    <string name="live_weather_needs_location">Pick a location above first - GPS, Network or Custom - so it knows where to check the weather for.</string>
     <string name="live_weather_fallback_notice">Location unavailable — showing this theme\'s own weather instead.</string>
 
     <!-- Updates -->

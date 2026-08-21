@@ -6,8 +6,11 @@ import android.os.Looper
 import android.service.wallpaper.WallpaperService
 import android.view.SurfaceHolder
 import com.paperscrape.livewallpaper.location.DeviceLocationFix
+import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.location.DeviceLocationProvider
 import com.paperscrape.livewallpaper.location.LocationSource
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
@@ -65,6 +68,36 @@ class PaperWallpaperService : WallpaperService() {
      * callbacks and `onTrimMemory` are both delivered there.
      */
     private val engines = mutableListOf<PaperEngine>()
+
+    /**
+     * One position request for the whole service, not one per engine.
+     *
+     * A wallpaper service commonly runs two engines at once -- the one drawing the home screen and
+     * the one drawing the picker's preview -- and each has its own settings collector, so each
+     * would ask the device where it is at the same moment. Measured on an Android 17 emulator:
+     * three simultaneous registrations against the GPS provider for one user action. They were
+     * short and bounded, but they were the same question asked three times, which is exactly the
+     * kind of waste the location rework exists to remove.
+     *
+     * The provider and the lock live here, on the service, so the second and third callers wait
+     * for the first answer instead of starting their own.
+     */
+    private var sharedLocationProvider: DeviceLocationProvider? = null
+    private val locationRequestLock = Mutex()
+
+    /**
+     * The device's position, asked for at most once at a time across every engine.
+     *
+     * Whoever gets the lock makes the request; anyone who arrives while it is held waits and then
+     * makes their own call, which by then finds a cached fix younger than
+     * [DeviceLocationProvider.FRESH_ENOUGH_MS] and returns it without touching the radio.
+     */
+    private suspend fun deviceFix(kind: DeviceLocationKind): DeviceLocationFix? =
+        locationRequestLock.withLock {
+            val provider = (sharedLocationProvider ?: DeviceLocationProvider(applicationContext))
+                .also { sharedLocationProvider = it }
+            provider.currentFix(kind)
+        }
 
     private fun onEngineVisibilityChanged(nowVisible: Boolean, wasVisible: Boolean) {
         if (nowVisible == wasVisible) return
@@ -134,7 +167,6 @@ class PaperWallpaperService : WallpaperService() {
         /** Reused by the fallback path so the indirection adds no per-frame allocation. */
         private val canvasTarget = CanvasSceneTarget()
 
-        private var locationProvider: DeviceLocationProvider? = null
         private var sunriseHour = 6f
         private var sunsetHour = 20f
         private var hasFixLocation = false
@@ -305,9 +337,10 @@ class PaperWallpaperService : WallpaperService() {
                         lastWeatherFetchMillis = 0L
                     }
                     if (newSettings.useLocationForSunTimes) {
-                        maybeStartLocationUpdates()
+                        // A fix is asked for here and nowhere else on a timer: the weather loop
+                        // asks again when it is about to fetch, and that is the only other time.
+                        if (!hasFixLocation) launch { refreshDeviceFix(requestedSource) }
                     } else {
-                        stopLocationUpdates()
                         hasFixLocation = false
                         if (!newSettings.useCustomLocation) lastLocationFix = null
                     }
@@ -334,6 +367,19 @@ class PaperWallpaperService : WallpaperService() {
             // available while Live Weather is on) -- see those constants' own doc comments.
             scope.launch {
                 while (true) {
+                    // **The only recurring reason to ask the device where it is.**
+                    //
+                    // A refresh is due, so the position behind it might be stale -- and this is
+                    // the one moment in the app's life when a new fix is worth what it costs.
+                    // `currentFix` still prefers a cached answer, so most of these cost nothing at
+                    // all; a fix is only actually requested when the system's own cache has gone
+                    // stale too, which puts an upper bound of one request per refresh interval.
+                    val source = LocationSource.of(settings)
+                    if (settings.liveWeatherEnabled && source.deviceKind != null &&
+                        System.currentTimeMillis() - lastWeatherFetchMillis >= WEATHER_REFRESH_INTERVAL_MS
+                    ) {
+                        refreshDeviceFix(source)
+                    }
                     val fix = lastLocationFix
                     // Two reasons to fetch, not one. The hourly timer is about the conditions
                     // going stale; a *different place* is about them being the wrong conditions
@@ -499,7 +545,8 @@ class PaperWallpaperService : WallpaperService() {
             glThread?.shutdown()
             glThread = null
             engineJob.cancel()
-            stopLocationUpdates()
+            // Nothing to unsubscribe from: since v3.0 a position is asked for once and the request
+            // ends with itself, so cancelling the engine's job is the whole of the teardown.
         }
 
         /**
@@ -638,18 +685,45 @@ class PaperWallpaperService : WallpaperService() {
             scope.launch { prefs.setLiveWeatherStatus(status) }
         }
 
-        private fun maybeStartLocationUpdates() {
+        /**
+         * Asks the device where it is, once, and only when something needs the answer.
+         *
+         * There is no subscription any more (see [DeviceLocationProvider]), so this is called at
+         * the two moments a position actually matters: when the source changes, and when a weather
+         * refresh is due. In between, nothing wakes the positioning stack at all.
+         *
+         * When the provider cannot answer -- permission refused, radio off, no signal -- the last
+         * saved fix is used instead. That is the whole fallback: a town does not move, and last
+         * hour's coordinates give a far better scene than a default somewhere else.
+         */
+        private suspend fun refreshDeviceFix(source: LocationSource) {
+            val kind = source.deviceKind ?: return
+            val fix = deviceFix(kind)
+            if (fix != null) {
+                updateSunTimesFromLocation(fix, isDeviceFix = true)
+                return
+            }
+            // Nothing new. Fall back to the saved position, but only once -- if a fix is already
+            // held there is nothing to restore.
             if (hasFixLocation) return
-            val provider = (locationProvider ?: DeviceLocationProvider(applicationContext)).also { locationProvider = it }
-            if (!provider.hasPermission()) return
-            provider.start { fix -> updateSunTimesFromLocation(fix, isGpsFix = true) }
+            val saved = savedDeviceFix()
+            if (saved != null) updateSunTimesFromLocation(saved, isDeviceFix = false)
         }
 
-        private fun stopLocationUpdates() {
-            locationProvider?.stop()
+        /**
+         * The position saved by the last successful fix, if there is one.
+         *
+         * Deliberately has no expiry. An old fix is still a place, and the alternative when the
+         * provider is unavailable is not a better position -- it is no position, and a scene that
+         * silently stops following the weather.
+         */
+        private fun savedDeviceFix(): DeviceLocationFix? {
+            val latitude = settings.resolvedGpsLatitude ?: return null
+            val longitude = settings.resolvedGpsLongitude ?: return null
+            return DeviceLocationFix(latitude.toDouble(), longitude.toDouble())
         }
 
-        private fun updateSunTimesFromLocation(fix: DeviceLocationFix, isGpsFix: Boolean = false) {
+        private fun updateSunTimesFromLocation(fix: DeviceLocationFix, isDeviceFix: Boolean = false) {
             val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
             // getOffset(instant) — not rawOffset — because rawOffset is explicitly the
             // *standard* (non-DST) offset; using it directly made every sunrise/sunset an hour
@@ -677,11 +751,12 @@ class PaperWallpaperService : WallpaperService() {
             // A fix arriving is exactly as much a reason to re-evaluate as the preference
             // changing, so it signals the same conflated channel.
             weatherWakeUp.trySend(Unit)
-            // Only the GPS path persists its resolved coordinates back to WallpaperPrefs -- the
-            // custom-location path's fix is built directly from settings.customLocationLatitude/
-            // Longitude, which Settings already has without any round trip through this service.
-            // (See WallpaperSettings.resolvedGpsLatitude/Longitude's own doc comment.)
-            if (isGpsFix) {
+            // Only a *fresh device* fix is persisted. The custom-location path builds its fix
+            // straight from settings.customLocationLatitude/Longitude, which Settings already has
+            // without any round trip through this service; and a fix restored from the cache must
+            // not be written back, or its timestamp would keep renewing itself and the saved
+            // position would always look as if it had just been taken.
+            if (isDeviceFix) {
                 scope.launch { prefs.setResolvedGpsLocation(fix.latitude.toFloat(), fix.longitude.toFloat()) }
             }
         }

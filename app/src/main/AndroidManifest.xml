@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Optional: only used if the user enables "sync sunrise/sunset with my location" -->
+    <!-- Location is optional and off by default. Two permissions because there are two
+         separate modes, and the app asks for exactly the one the chosen mode needs:
+
+         COARSE  -> "Network / Cell": cell towers and Wi-Fi only, accurate to a neighbourhood,
+                    which is all a weather grid cell needs. The GNSS receiver is never started.
+         FINE    -> "GPS": only requested if the user picks that mode explicitly.
+
+         Neither is required to run the wallpaper, and "Custom" needs no location permission at
+         all. See location/DeviceLocationKind.kt. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <!-- Only used by the in-app update checker (ui.SettingsActivity), once per app launch, to
          fetch the latest release tag from the public GitHub Releases API, and by Live Weather

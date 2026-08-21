@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.PeopleDensity
 import com.paperscrape.livewallpaper.engine.MountainLayerConfig
@@ -42,11 +44,21 @@ data class WallpaperSettings(
     // sunset now, Live Weather once point 6 lands) read whichever of the two is actually active;
     // see WallpaperPrefs.setUseCustomLocation/setUseLocation for how the exclusivity is enforced.
     val useCustomLocation: Boolean = false,
+    /**
+     * Which of the device's positioning systems [useLocationForSunTimes] means.
+     *
+     * Stored separately from the on/off flag rather than as a third value of it, so an install
+     * from before v3.0 -- which had one "Phone" setting and no key for this -- reads as
+     * [DeviceLocationKind.NETWORK]. That is not an arbitrary default: the old provider asked for
+     * the network provider first and only reached for GPS if it was disabled, so NETWORK is what
+     * those users were already getting, and their behaviour and their permission both stay put.
+     */
+    val deviceLocationKind: DeviceLocationKind = DeviceLocationKind.NETWORK,
     val customLocationLatitude: Float = 45.4642f, // Milan -- an arbitrary but real default so a
     val customLocationLongitude: Float = 9.19f, // freshly-enabled toggle isn't at (0,0) in the ocean
     val customLocationLabel: String = "",
     // Live Weather: global (not per-theme, like useLocationForSunTimes/useCustomLocation above)
-    // since it needs one of those two location toggles active to know where to fetch conditions
+    // since it needs one of the location modes active to know where to fetch conditions
     // for. liveWeatherApiKey is the user's own Open-Meteo key, if they entered one -- always
     // takes priority over the build's own baked-in key (see WeatherRepository.resolveApiKey);
     // blank means "use the app's own key, or the free keyless tier if that's blank too".
@@ -101,23 +113,30 @@ data class WallpaperSettings(
     // they resolved to, not just raw coordinates. Null until the very first GPS fix arrives.
     val resolvedGpsLatitude: Float? = null,
     val resolvedGpsLongitude: Float? = null,
+    /**
+     * When the saved device fix above was taken, as epoch millis; 0 when there has never been one.
+     *
+     * The fix is the fallback the whole device-location path leans on -- if the provider cannot
+     * answer, the scene keeps using where the device last was rather than snapping to a default
+     * somewhere else. Knowing *when* is what makes that honest: the settings screen can say the
+     * position is an old one, and the engine can decide a saved fix is too old to be worth reusing
+     * instead of quietly trusting it forever.
+     */
+    val deviceFixTimestampMillis: Long = 0L,
     val fixedHour: Float = 18f, // used only when syncWithRealTime == false
     val parallaxStrength: Float = 1f, // 0.5 .. 2.0 -- also labeled "Scroll Speed" in the UI's
-    // Scrolling section: this is the same underlying mechanism (how much the scenery shifts per
-    // unit of home-screen swipe) a reference app's own decompiled source uses for its own
-    // "Scroll Speed" setting, so it's reused here rather than adding a second, redundant slider.
+    // Scrolling section: one mechanism (how much the scenery shifts per unit of home-screen
+    // swipe) behind one slider, rather than two sliders that would fight over the same motion.
     // Scroll behavior below is deliberately global (not per-theme), matching that same reference
-    // app's convention observed for at least Swipe Scroll (`saveWithTheme = false` in its
-    // decompiled source) -- these are interaction/engine preferences, not part of a theme's
-    // visual identity the way hill colors or which decorations are visible are.
+    // -- these are interaction/engine preferences, not part of a theme's visual identity the way
+    // hill colors or which decorations are visible are.
     val scrollBackground: Boolean = false, // whether sun/moon/sky scroll with the parallax hills
     val swipeScroll: Boolean = true, // whether swiping between home screens scrolls the wallpaper at all
-    // Continuous auto-scroll, independent of swiping entirely -- confirmed against a reference
-    // app's decompiled source: its `scrollSpeed` multiplies a per-frame *time delta*
-    // (`onUpdate(float f)`, a classic game-loop pattern), not a swipe offset -- a genuinely
+    // Continuous auto-scroll, independent of swiping entirely: this speed multiplies a per-frame
+    // *time delta* rather than a swipe offset, which is a genuinely
     // different mechanism from PaperScrape's existing `parallaxStrength` (which scales how far
-    // layers move *relative to swiping*). Defaults to a slow constant drift (matching that
-    // reference's own "Very Slow" default), not off -- this is an engine-level behavior in the
+    // layers move *relative to swiping*). Defaults to a slow constant drift rather than off --
+    // this is an engine-level behavior in the
     // same spirit as parallaxStrength already defaulting to on, not an opt-in decorative extra.
     val scrollSpeed: Float = 0.15f,
     val autoThemeByDate: Boolean = false, // opt-in: overrides themeId during known seasonal windows
@@ -196,6 +215,8 @@ class WallpaperPrefs(private val context: Context) {
         val AUTOMATIC_UPDATE_CHECK = booleanPreferencesKey("automatic_update_check")
         val RESOLVED_GPS_LAT = floatPreferencesKey("resolved_gps_lat")
         val RESOLVED_GPS_LON = floatPreferencesKey("resolved_gps_lon")
+        val DEVICE_FIX_AT = longPreferencesKey("device_fix_at")
+        val DEVICE_LOCATION_KIND = stringPreferencesKey("device_location_kind")
         val FIXED_HOUR = floatPreferencesKey("fixed_hour")
         val PARALLAX_STRENGTH = floatPreferencesKey("parallax_strength")
         val AUTO_THEME_BY_DATE = booleanPreferencesKey("auto_theme_by_date")
@@ -293,6 +314,7 @@ class WallpaperPrefs(private val context: Context) {
             syncWithRealTime = prefs[Keys.SYNC_REAL_TIME] ?: true,
             useLocationForSunTimes = prefs[Keys.USE_LOCATION] ?: false,
             useCustomLocation = prefs[Keys.USE_CUSTOM_LOCATION] ?: false,
+            deviceLocationKind = DeviceLocationKind.fromStorageId(prefs[Keys.DEVICE_LOCATION_KIND]),
             customLocationLatitude = prefs[Keys.CUSTOM_LOCATION_LAT] ?: 45.4642f,
             customLocationLongitude = prefs[Keys.CUSTOM_LOCATION_LON] ?: 9.19f,
             customLocationLabel = prefs[Keys.CUSTOM_LOCATION_LABEL] ?: "",
@@ -304,6 +326,7 @@ class WallpaperPrefs(private val context: Context) {
             automaticUpdateCheckEnabled = prefs[Keys.AUTOMATIC_UPDATE_CHECK] ?: false,
             resolvedGpsLatitude = prefs[Keys.RESOLVED_GPS_LAT],
             resolvedGpsLongitude = prefs[Keys.RESOLVED_GPS_LON],
+            deviceFixTimestampMillis = prefs[Keys.DEVICE_FIX_AT] ?: 0L,
             fixedHour = prefs[Keys.FIXED_HOUR] ?: 18f,
             parallaxStrength = prefs[Keys.PARALLAX_STRENGTH] ?: 1f,
             scrollBackground = prefs[Keys.SCROLL_BACKGROUND] ?: false,
@@ -423,12 +446,27 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setSyncWithRealTime(enabled: Boolean) =
         context.dataStore.edit { it[Keys.SYNC_REAL_TIME] = enabled }
 
-    /** Mutually exclusive with [setUseCustomLocation] -- enabling phone-location mode always
+    /** Mutually exclusive with [setUseCustomLocation] -- enabling device-location mode always
      * turns custom location off in the same edit. */
     suspend fun setUseLocation(enabled: Boolean) =
         context.dataStore.edit {
             it[Keys.USE_LOCATION] = enabled
             if (enabled) it[Keys.USE_CUSTOM_LOCATION] = false
+        }
+
+    /**
+     * Turns on device location and says which positioning system it may use, in one edit.
+     *
+     * One call rather than two because the pair is one decision. Written separately, a moment
+     * would exist where device location is on and the kind is still the previous one, and the
+     * engine watches those settings -- it would start a fix from the wrong system and then throw
+     * it away. Custom location is cleared here for the same reason [setUseLocation] clears it.
+     */
+    suspend fun setDeviceLocation(kind: DeviceLocationKind) =
+        context.dataStore.edit {
+            it[Keys.DEVICE_LOCATION_KIND] = kind.storageId
+            it[Keys.USE_LOCATION] = true
+            it[Keys.USE_CUSTOM_LOCATION] = false
         }
 
     /** Mutually exclusive with [setUseLocation] -- see that function's own doc comment. */
@@ -472,10 +510,19 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setLiveWeatherStatus(status: LiveWeatherStatus) =
         context.dataStore.edit { it[Keys.LIVE_WEATHER_STATUS] = status.storageId }
 
+    /**
+     * Saves the position the device reported, with the moment it was saved.
+     *
+     * This is the cache the whole device-location path falls back to. It survives a reboot, a
+     * revoked permission and a spell with no signal, which is the difference between a scene that
+     * keeps showing the right town's weather and one that jumps somewhere else the first time the
+     * provider is slow.
+     */
     suspend fun setResolvedGpsLocation(latitude: Float, longitude: Float) =
         context.dataStore.edit {
             it[Keys.RESOLVED_GPS_LAT] = latitude
             it[Keys.RESOLVED_GPS_LON] = longitude
+            it[Keys.DEVICE_FIX_AT] = System.currentTimeMillis()
         }
 
     suspend fun setFixedHour(hour: Float) = context.dataStore.edit { it[Keys.FIXED_HOUR] = hour }

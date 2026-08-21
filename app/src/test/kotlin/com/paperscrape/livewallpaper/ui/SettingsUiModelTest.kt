@@ -1,5 +1,7 @@
 package com.paperscrape.livewallpaper.ui
 
+import com.paperscrape.livewallpaper.location.DeviceLocationKind
+
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import org.junit.Assert.assertEquals
@@ -27,11 +29,41 @@ class SettingsUiModelTest {
         )
     }
 
+    /**
+     * An install from before v3.0 stored the device flag and nothing about *which* system it
+     * meant. It must read as Network, not GPS: the old single mode asked the network provider
+     * first and only reached for GPS if it was disabled, so Network is the behaviour -- and the
+     * permission -- those users already had.
+     */
     @Test
-    fun `device flag reads as phone`() {
+    fun `a device flag with no stored kind reads as network, not GPS`() {
         assertEquals(
-            LocationMode.PHONE,
+            LocationMode.NETWORK,
             SettingsUiModel.locationMode(useDeviceLocation = true, useCustomLocation = false),
+        )
+    }
+
+    @Test
+    fun `each device kind reads as its own mode`() {
+        assertEquals(
+            LocationMode.GPS,
+            SettingsUiModel.locationMode(true, false, DeviceLocationKind.GPS),
+        )
+        assertEquals(
+            LocationMode.NETWORK,
+            SettingsUiModel.locationMode(true, false, DeviceLocationKind.NETWORK),
+        )
+    }
+
+    @Test
+    fun `only the two device modes name a positioning system`() {
+        assertEquals(DeviceLocationKind.GPS, SettingsUiModel.deviceKindFor(LocationMode.GPS))
+        assertEquals(DeviceLocationKind.NETWORK, SettingsUiModel.deviceKindFor(LocationMode.NETWORK))
+        assertEquals(null, SettingsUiModel.deviceKindFor(LocationMode.OFF))
+        assertEquals(
+            "Custom must never reach a positioning system: it needs no permission at all",
+            null,
+            SettingsUiModel.deviceKindFor(LocationMode.CUSTOM),
         )
     }
 
@@ -49,9 +81,9 @@ class SettingsUiModelTest {
      * it is the one the wallpaper service actually resolves coordinates from.
      */
     @Test
-    fun `both location flags set resolve to phone rather than throwing`() {
+    fun `both location flags set resolve to a device mode rather than throwing`() {
         assertEquals(
-            LocationMode.PHONE,
+            LocationMode.NETWORK,
             SettingsUiModel.locationMode(useDeviceLocation = true, useCustomLocation = true),
         )
     }
@@ -59,23 +91,32 @@ class SettingsUiModelTest {
     @Test
     fun `location modes write the same flag pairs the two switches wrote`() {
         assertEquals(false to false, SettingsUiModel.locationFlags(LocationMode.OFF))
-        assertEquals(true to false, SettingsUiModel.locationFlags(LocationMode.PHONE))
+        assertEquals(true to false, SettingsUiModel.locationFlags(LocationMode.GPS))
+        assertEquals(true to false, SettingsUiModel.locationFlags(LocationMode.NETWORK))
         assertEquals(false to true, SettingsUiModel.locationFlags(LocationMode.CUSTOM))
     }
 
     @Test
-    fun `every location mode round-trips through its flags`() {
+    fun `every location mode round-trips through its flags and kind`() {
         for (mode in LocationMode.entries) {
             val (device, custom) = SettingsUiModel.locationFlags(mode)
-            assertEquals(mode, SettingsUiModel.locationMode(device, custom))
+            val kind = SettingsUiModel.deviceKindFor(mode) ?: DeviceLocationKind.NETWORK
+            assertEquals(mode, SettingsUiModel.locationMode(device, custom, kind))
         }
     }
 
+    /**
+     * The segmented control indexes its options by [LocationMode.ordinal], so the enum's order
+     * *is* the on-screen order. Reordering the enum without reordering the labels would silently
+     * put the user on a different mode from the one they tapped.
+     */
     @Test
     fun `location option order matches the segmented control labels`() {
         assertEquals(0, LocationMode.OFF.ordinal) // "Off"
-        assertEquals(1, LocationMode.PHONE.ordinal) // "Phone"
-        assertEquals(2, LocationMode.CUSTOM.ordinal) // "Custom"
+        assertEquals(1, LocationMode.GPS.ordinal) // "GPS"
+        assertEquals(2, LocationMode.NETWORK.ordinal) // "Network"
+        assertEquals(3, LocationMode.CUSTOM.ordinal) // "Custom"
+        assertEquals(4, LocationMode.entries.size)
     }
 
     @Test

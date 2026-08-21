@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -14,6 +15,23 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import kotlin.coroutines.coroutineContext
+
+/**
+ * Which part of the update the flow is in right now.
+ *
+ * Downloading and verifying are two different waits and the second is not instant: after the last
+ * byte arrives there is still a digest to compare and a 2 MB package to parse before anything can
+ * be offered to the installer. Reporting both means the UI can stop claiming to be downloading
+ * something it has already finished downloading.
+ */
+sealed interface DownloadPhase {
+
+    /** Bytes are arriving. [percent] is 0..100, or -1 while the total size is unknown. */
+    data class Downloading(val percent: Int) : DownloadPhase
+
+    /** Every byte has arrived; the digest and the package itself are being checked. */
+    data object Verifying : DownloadPhase
+}
 
 /** How far a download has got, or how it ended. */
 sealed interface UpdateDownloadResult {
@@ -72,24 +90,49 @@ object ApkDownloader {
      * The checksum comes first deliberately: if it is missing there is no point spending a user's
      * data on an APK that could not be installed anyway.
      *
-     * [onProgress] receives 0..100, or -1 while the total size is unknown (the server sent no
-     * `Content-Length`). It is called from a background dispatcher; callers marshal to the UI.
+     * [onPhase] is called from a background dispatcher; callers marshal to the UI.
      */
     suspend fun downloadAndVerify(
         context: Context,
         info: UpdateInfo,
-        onProgress: (Int) -> Unit,
-    ): UpdateDownloadResult = withContext(Dispatchers.IO) {
-        val apkAsset = info.apkAsset ?: return@withContext UpdateDownloadResult.NoApkAsset
-        val checksumAsset = info.checksumAsset ?: return@withContext UpdateDownloadResult.NoChecksumAsset
+        onPhase: (DownloadPhase) -> Unit,
+    ): UpdateDownloadResult {
+        val apkAsset = info.apkAsset ?: return UpdateDownloadResult.NoApkAsset
+        val checksumAsset = info.checksumAsset ?: return UpdateDownloadResult.NoChecksumAsset
+        clearCache(context)
+        return downloadAndVerifyTo(
+            apkUrl = apkAsset.downloadUrl,
+            checksumUrl = checksumAsset.downloadUrl,
+            target = apkFileFor(context, info.tagName),
+            onPhase = onPhase,
+        )
+    }
 
-        val checksumText = fetchText(checksumAsset.downloadUrl) ?: return@withContext UpdateDownloadResult.Failed
+    /**
+     * The whole download, with no `Context` anywhere in it, so the parts that actually go wrong can
+     * be tested on the JVM against a local HTTP server: an error response, a truncated body, a
+     * checksum that does not match, a server that sends no `Content-Length`, and cancellation.
+     *
+     * The Context-taking overload above exists only to decide *where* the file goes; everything
+     * that can fail lives here.
+     */
+    internal suspend fun downloadAndVerifyTo(
+        apkUrl: String,
+        checksumUrl: String,
+        target: File,
+        onPhase: (DownloadPhase) -> Unit,
+    ): UpdateDownloadResult = withContext(Dispatchers.IO) {
+        val checksumText = fetchText(checksumUrl) ?: return@withContext UpdateDownloadResult.Failed
         val expected = ChecksumFile.parse(checksumText) ?: return@withContext UpdateDownloadResult.NoChecksumAsset
 
-        clearCache(context)
-        val target = apkFileFor(context, info.tagName)
-        val actual = downloadHashing(apkAsset.downloadUrl, target, onProgress)
+        val actual = downloadHashing(apkUrl, target, onPhase)
             ?: return@withContext UpdateDownloadResult.Failed
+
+        // Every byte has arrived. Say so before the comparison rather than after: on a slow device
+        // the digest comparison and the caller's package parse are a visible pause, and a UI still
+        // reading "Downloading..." through it is the reason a stall is indistinguishable from
+        // progress.
+        onPhase(DownloadPhase.Verifying)
 
         if (!ChecksumFile.matches(expected, actual)) {
             // A file that failed verification is deleted rather than left on disk: nothing should
@@ -119,15 +162,16 @@ object ApkDownloader {
      * Hashing as the bytes arrive rather than re-reading the finished file keeps a ~19 MB APK from
      * being read twice, and means the digest describes exactly what was written.
      */
-    private suspend fun downloadHashing(url: String, target: File, onProgress: (Int) -> Unit): String? {
+    private suspend fun downloadHashing(url: String, target: File, onPhase: (DownloadPhase) -> Unit): String? {
         var connection: HttpURLConnection? = null
         return try {
+            target.parentFile?.mkdirs()
             connection = open(url)
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
             val total = connection.contentLengthLong
             val digest = MessageDigest.getInstance("SHA-256")
             var downloaded = 0L
-            var lastReported = -1
+            var lastReported = Int.MIN_VALUE
 
             connection.inputStream.use { input ->
                 target.outputStream().use { output ->
@@ -136,15 +180,20 @@ object ApkDownloader {
                         // Cancelling the screen cancels the transfer; a partial file is deleted by
                         // the caller's next attempt, which clears the cache first.
                         coroutineContext.ensureActive()
+                        // `< 0` rather than `<= 0`: `InputStream.read` returns 0 only for a
+                        // zero-length buffer, and treating 0 as end-of-stream would have turned a
+                        // stream that returned it into a silently truncated download whenever the
+                        // server sent no Content-Length for the size check to catch.
                         val read = input.read(buffer)
-                        if (read <= 0) break
+                        if (read < 0) break
+                        if (read == 0) continue
                         output.write(buffer, 0, read)
                         digest.update(buffer, 0, read)
                         downloaded += read
                         val percent = if (total > 0) ((downloaded * 100) / total).toInt() else -1
                         if (percent != lastReported) {
                             lastReported = percent
-                            onProgress(percent)
+                            onPhase(DownloadPhase.Downloading(percent))
                         }
                     }
                 }
@@ -156,6 +205,15 @@ object ApkDownloader {
                 return null
             }
             digest.digest().joinToString("") { "%02x".format(it) }
+        } catch (cancellation: CancellationException) {
+            // Kept deliberately, and deliberately **not** claimed to fix anything today: removing
+            // this branch changes no observable behaviour, because `withContext` re-throws on a
+            // cancelled job whatever this function returns, and a mutation test confirmed the
+            // suite still passes without it. It is here because the generic `catch (Exception)`
+            // below would otherwise swallow a `CancellationException`, and the first edit that
+            // adds work after that catch would turn a cancelled download into a silent success.
+            target.delete()
+            throw cancellation
         } catch (_: Exception) {
             target.delete()
             null

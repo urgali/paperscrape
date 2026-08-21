@@ -13,8 +13,8 @@ import kotlin.math.pow
  * at once. Rain was falling out of a summer afternoon.
  *
  * **Why this is not the old behaviour returning.** An earlier release had clouds darken toward
- * black as their density slider climbed, and that was removed on purpose: the reference app uses a
- * flat day/night colour pair with no density blending, and density is not weather. What is
+ * black as their density slider climbed, and that was removed on purpose: a cloud's colour is the
+ * theme's day/night pair, and how many clouds there are is not what colour they are. What is
  * reinstated here is different in all three respects — it is driven by the *forecast* rather than
  * by a slider, it is a blend rather than a palette substitution, and it is derived from the theme's
  * own colour rather than from a fixed storm palette, so a theme keeps its identity while getting

@@ -19,8 +19,7 @@ enum class SceneObjectType {
  * depth.
  *
  * [depthFraction] (0..1, 0=farthest/smallest, 1=nearest/largest) replaces what used to be a
- * discrete `layer: Int` row index (0..8) -- the reference app's own decompiled `Scene.
- * createBuildingsRanged`/`createTreesRanged` place every single object at its own continuous
+ * discrete `layer: Int` row index (0..8). Placing every object at its own continuous
  * fraction (`(index - rangeStart) / (rangeEnd - rangeStart)`, within whatever index sub-range
  * that category was given) rather than snapping to one of a fixed number of discrete slots, and
  * scale each one's size continuously too (`index / totalCount` there). PaperScrape's version
@@ -49,12 +48,10 @@ data class StaticSceneObject(
     val scale: Float = 1f,
 )
 
-/** The 4 vehicle types that can appear on the road, matching the reference's own real vehicle
- * sprites (plain car, police car, taxi, fire truck). Only [PLAIN] is user-recolorable via the
- * "Cars" category color pickers -- the other 3 use fixed, real-world-associated colors (a police
- * car isn't "your theme's accent color", it's black-and-white) exactly like the reference's own
- * taxi/fire-truck/police-car sprites are fixed-color, non-tintable art (see the reference app's sprite
- * export's own MANIFEST.md, `road1.png` entry, for the source this was checked against). */
+/** The 4 vehicle types that can appear on the road: plain car, police car, taxi, fire truck.
+ * Only [PLAIN] is user-recolorable via the "Cars" category color pickers -- the other 3 use fixed,
+ * real-world-associated colors, because a police car isn't "your theme's accent color", it's
+ * black-and-white. Their sprites are drawn as finished, non-tintable art for that reason. */
 /**
  * The vehicles on the road.
  *
@@ -215,9 +212,8 @@ object SceneObjectCatalog {
      *
      * [depthRange] is a continuous sub-range of the overall 0..1 depth band (see
      * [StaticSceneObject.depthFraction]'s own doc comment) -- candidate `i` of [n] gets
-     * `depthRange.start + (i/(n-1)) * (depthRange.end - depthRange.start)`, matching the
-     * reference's own continuous within-range placement fraction rather than snapping to a fixed
-     * number of discrete rows.
+     * `depthRange.start + (i/(n-1)) * (depthRange.end - depthRange.start)` -- a continuous
+     * within-range placement fraction rather than snapping to a fixed number of discrete rows.
      */
     private fun generateStaticCandidates(
         type: SceneObjectType,
@@ -252,8 +248,8 @@ object SceneObjectCatalog {
      * Same as [generateStaticCandidates], but alternates candidates between two depth sub-bands
      * instead of spreading all of them across one continuous range.
      *
-     * This mirrors the reference app's own decompiled placement mechanism for houses/buildings:
-     * `Scene.createBuildingsRanged` is called twice per theme, once with `RangeType.Top` (a band
+     * Houses and buildings are placed the same way, from two bands rather than one: once with a
+     * far band (`RangeType.Top`, a band
      * *behind* the tree zone, closer to the hill crest) and once with `RangeType.Bottom` (a band
      * *in front of* the tree zone, closer to the road) -- `Scene.onSceneSizeChanged` computes
      * `buildingRangeTop`/`buildingRangeBottom` as genuinely separate vertical spans that sandwich
@@ -394,7 +390,7 @@ object SceneObjectCatalog {
      * visibility/density/color entirely controlled by the user via the "Seasonal Decorations"
      * screen (separate from "Scene Objects", since these are opt-in extras rather than a
      * structural part of every scene) -- see [SceneCustomization]. All default to *invisible*
-     * (matching the reference app's own default-unchecked convention), so nothing changes for a
+     * so nothing changes for a
      * theme until the user explicitly turns something on -- but once turned on, it now shows up
      * on every theme, not just its old "traditional" one, which is the whole point: nothing stops
      * a user from wanting pumpkins at Christmas or snowmen on the beach.
