@@ -19,6 +19,207 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.1 — a corrupt preferences file no longer kills the wallpaper, and four smaller lies fixed
+
+**Stable / latest.** `versionCode = 22`, `versionName = "3.1"`. Tag `v3.1`.
+
+A deliberately narrow hardening release. Everything below comes from the full static + runtime
+assessment of v3.0 on an Android 17 emulator; nothing else was touched, no feature was added, and
+the four items the assessment classified as v3.2 or later (CI emulator goldens, an offscreen
+`GlSceneTarget` test, the weather-provider work, and the P2-3..P2-8 group) were deliberately left
+alone.
+
+### P0-1 closed: one damaged preferences file took the whole wallpaper down
+
+**The failure.** None of the three `preferencesDataStore` declarations passed a `corruptionHandler`,
+and none of the three read paths caught anything -- a search of the v3.0 source found no `.catch`,
+no `corruptionHandler`, no `emptyPreferences`. The settings collector lives in
+`PaperEngine.onCreate`, inside `CoroutineScope(Dispatchers.Main + engineJob)` with no
+`CoroutineExceptionHandler`, so a `CorruptionException` reached the process's default handler and
+killed the process that draws the wallpaper. Android answered by swapping PaperScrape for
+`ImageWallpaper`, and the crash repeated on every restart. The only user-reachable remedy was
+"clear app data", which destroys all three stores including the two that were fine.
+
+**The fix, three parts, deliberately not one.**
+
+- `PrefsRecovery.replacingCorruptFile()` -- a `ReplaceFileCorruptionHandler` on each of the three
+  declarations. Corruption is unrecoverable and would throw identically forever, so the file is
+  rewritten empty **once** and the store comes up on its declared defaults. Each store owns its own
+  file, so this can only ever destroy the file that was already unreadable.
+- `PrefsRecovery.recoveringFromReadErrors()` -- `.catch { if (it is IOException) emit(emptyPreferences()) else throw it }`
+  on `WallpaperPrefs.settingsFlow`, `CustomThemeStore.dataFlow` and `UpdatePrefs.readSnoozeState`.
+  This is the *transient* path: defaults for that emission, nothing written, the real settings back
+  on the next successful read. Deliberately different from the corruption path -- overwriting here
+  would turn a busy disk into permanent data loss.
+- Anything that is neither is rethrown. The engine scope became `SupervisorJob` +
+  `CoroutineExceptionHandler`, so a collector that fails no longer cancels its siblings and no
+  longer reaches the default handler. That is a backstop for the *next* collector somebody adds, not
+  a substitute for the two rules above.
+
+**Tests.** `PrefsRecoveryTest` (JVM, 5 cases) pins the IOException/other split, including that an
+unexpected exception still propagates. `PrefsCorruptionRecoveryTest` (instrumented, 4 cases) writes
+39 non-proto bytes into files carrying the real store names and asserts: the store reads as unset,
+the bytes were replaced, the replacement is durable, the store is writable again, a healthy store is
+never rewritten by being opened, and -- for each of the three stores in turn -- that corrupting one
+leaves the other two byte-identical. It opens each store through
+`PreferenceDataStoreFactory.create` with the production handler and shuts it down again, because
+`preferencesDataStore` caches per process: a test that read the app's own warm store would pass
+whether or not the fix existed.
+
+**Runtime proof (Android 17 emulator, debug build set as the live wallpaper).** All three files
+corrupted with the same 39 bytes the assessment used:
+
+- `paperscrape_prefs` corrupted, app relaunched -> no `FATAL`, no `CorruptionException`, settings
+  back to defaults, and the saved custom theme still listed ("12 built-in, 1 saved" survived).
+- `paperscrape_custom_themes` corrupted, **device rebooted** -> `dumpsys wallpaper` still reports
+  `com.paperscrape.livewallpaper.debug/...PaperWallpaperService` after the cold start, the scene is
+  drawing, the corrupt store is empty, and `paperscrape_prefs` / `paperscrape_update_prefs` keep
+  their exact byte counts and mtimes.
+- `paperscrape_update_prefs` corrupted -> no crash, store reset, the other two unaffected.
+
+A reboot, not `am force-stop`, is the faithful restart here: `WallpaperManagerService` logs
+`Wallpaper uninstalled, removing` for a force-stopped package and reverts the wallpaper by design,
+which is a property of force-stop rather than of the app.
+
+### P1-1 closed: Live Weather could be left on, greyed out, with no way to turn it off
+
+`WeatherTimeScreen` gated the switch on `syncWithRealTime && locationMode != OFF` while
+`WorldSceneScreen` gated Clouds and Rain and snow on `settings.liveWeatherEnabled` alone. Turning
+Live Weather on and then setting Location to Off (or turning off "Follow real time") produced a
+persistent state with no exit: the weather controls said "turn Live Weather off in Weather & time",
+and there the switch was disabled while reading on -- it did not even appear among the accessibility
+tree's clickable elements.
+
+`SettingsUiModel.liveWeather(...)` now returns a `LiveWeatherUiState` that separates the four things
+the one boolean was doing:
+
+| | means |
+|---|---|
+| `configuredOn` | what the user asked for |
+| `canBeTurnedOn` | whether the prerequisites for a fetch are in place |
+| `switchIsInteractive` | `canBeTurnedOn \|\| configuredOn` -- **an on switch is always off-able** |
+| `drivingTheScene` | `configuredOn && status.isDrivingTheScene` (`OK` or `STALE`) |
+
+`drivingTheScene`, not the stored flag, is what now makes Clouds/Precipitation read-only and what
+"Driven by Live Weather" is allowed to claim. Two banners were corrected with it: the `OFF` status
+used to share the `OK` branch and announce that the forecast was in charge and the screens locked,
+in a state where neither was true.
+
+One thing the fix surfaced and did **not** change: the engine's fetch loop never consulted
+`syncWithRealTime`, so Live Weather really does keep running over a frozen clock even though the UI
+will not let it be switched on in that state. The switch's supporting line was rewritten to stop
+claiming otherwise and to leave "is a forecast in effect" to the status banner, which reads it from
+what the engine actually did. Changing the engine's gate would be a behaviour change and is out of
+scope for this batch.
+
+`SettingsUiModelTest` gained 7 cases, including an exhaustive sweep asserting that **every**
+combination of prerequisites and status leaves an enabled switch interactive.
+
+**Runtime proof.** Case A (Custom -> Live Weather on -> Location Off): switch present in the
+clickable tree, Rain and snow fully editable, both screens agreeing on the theme's own weather.
+Case B (Live Weather on -> Follow real time off): switch tappable, tapped, Live Weather off. GPS
+mode re-tested end to end afterwards -- "Milano, Italy", status OK, "Driven by Live Weather" shown
+only then.
+
+### P1-2 closed: a leaping dolphin was painted across a sailboat's sail
+
+`LakeLanes.orderByDepth` sorted on the lane, i.e. the waterline, while `drawSailboat` puts
+`sailboat_sail` 50 local units above its placement point -- about 82 px on a 2424 px screen, against
+a lane spacing of roughly 22 px at high lake settings. A sail is therefore about four lanes tall,
+and a dolphin one lane nearer than a boat -- painted after it, correctly by lane -- crossed the sail
+in mid-air.
+
+**`LakeLanes` was not rewritten.** The lane system, the pool sizes and the far-to-near pass are
+untouched. What was added is one pure function:
+
+```kotlin
+fun depthOf(laneY: Float, heightAboveLane: Float): Float = laneY - heightAboveLane
+```
+
+Boats pass `0f`, so nothing about them moves. A dolphin passes its current climb, so its depth is
+where its body actually is: it recedes as it rises, drops behind the boat whose waterline it has
+climbed past, and returns in front as it lands. Three properties make it safe and
+`LakeLanesTest` pins all three -- boats are untouched, a dolphin's depth only ever decreases, and a
+farther dolphin cannot overtake a nearer one at realistic lane spacing.
+
+**The assessment's own first suggestion was evaluated and rejected.** Sorting boats by
+`laneY - sailHeight` as well would subtract a constant from every boat, pushing all of them behind
+dolphins up to four lanes further out -- a far dolphin painted over a near boat's hull, which is a
+worse defect than the one being fixed. Only the dolphin half of that suggestion is implemented.
+
+**Golden.** `lake-dolphin-leap` at `sceneSeconds = 200.0`, solved for rather than picked: dolphin
+candidate 0 is at `sin = 1.000`, its exact apex, six pixels horizontally from sailboat 0, with
+candidate 2 repeating the situation half way up its own arc on the other side of the frame; lake
+height 1.0 so the eight lanes are about 6 px apart at the golden's frame size, which is the
+proportion a phone renders at its own lake settings.
+
+Because a dolphin covers about 160 px and `MAX_DIFFERING_FRACTION` of a 360x800 frame is 576, the
+whole-frame rule cannot see this sprite at all. `GoldenScene.focus` was added for it: named
+rectangles compared a second time on their own area at `MAX_FOCUS_DIFFERING_FRACTION`. Verified to
+have teeth -- reverting `depthOf` to plain lane ordering moves 99 pixels, passes the whole-frame
+check at 0.03%, and fails the focused check at 6.19% against a 2% limit.
+
+`lake-busy` was regenerated: the same change moves 57 pixels in it (one dolphin now passing behind a
+sail). It still passed the committed v3.0 image, so this is a deliberate refresh rather than a
+forced one.
+
+**Runtime proof.** Lake at 100% height with both densities at 100%, 45 frames captured from the
+running wallpaper: a dolphin mid-leap is clipped by the sail it overlaps, and two overlapping boats
+still read as one passing in front of the other.
+
+### P2-1 closed: "You're up to date" was shown when nothing had been checked
+
+`UpdateChecker.checkForUpdate` returned `UpdateInfo?` and `AdvancedScreen` mapped every null --
+offline, DNS, timeout, 403, unexpected JSON -- to `UpToDate`. Right for the silent launch check,
+false for a button the user just pressed.
+
+It now returns `UpdateCheckResult`: `Available`, `UpToDate`, or `Unreachable(reason)` with
+`NO_CONNECTION` / `SERVER_ERROR` / `UNREADABLE_RESPONSE`, each carrying its own sentence.
+`SettingsScreen`'s launch check acts on `Available` and ignores the rest, unchanged in behaviour;
+`AdvancedScreen` reports all three through a new `UpdateUiState.CheckFailed`.
+
+`UpdateCheckOutcomeTest` runs the real checker against a `com.sun.net.httpserver.HttpServer` on a
+loopback port -- a 200 with releases, a 200 with none, five HTTP error codes, a non-JSON body, and a
+port with nothing listening -- so the exception-to-outcome mapping is exercised rather than mocked.
+`checkForUpdate` gained a test-only `apiUrl` parameter for it.
+
+**Runtime proof.** Online and current -> "You're up to date (v3.0)". Aeroplane mode -> "Couldn't
+check - no connection. Your version may or may not be current." A build temporarily stamped `2.9`
+against the real v3.0 release -> both the launch dialog and the button offered the update.
+
+### P2-2 closed: coordinates followed the device's locale
+
+Four call sites used `"%.3f, %.3f".format(...)`, which uses the default locale, so an Italian,
+French or German phone rendered `45,464, 9,190` -- one comma separating the pair and one inside each
+number. `location/Coordinates.kt` formats them with `Locale.US`; `CityGeocoder.coordinatesText` and
+the three `WeatherTimeScreen` sites go through it.
+
+`WorldSceneScreen`'s `"%.1fx"` speed multiplier is deliberately left localised -- it is a quantity
+read as language, not an identifier -- and `CoordinateFormatTest` has a case that fails if a future
+tidy-up "fixes" it too. Also covered: it/en/fr/de/es, a locale with non-ASCII numerals, negatives,
+and the coarse two-decimal form.
+
+**Runtime proof.** App locale set to `it-IT`: the custom-location rows and every city-search result
+read `45.464, 9.190`, `47.833, 26.600`, `-29.447, 27.708`.
+
+### Verification
+
+- **753 JVM tests**, 0 failures (715 in v3.0; +38).
+- **18 instrumented tests** on Pixel_9 / Android 17, 0 failures (13 in v3.0; +4 DataStore, +1 golden).
+- `lintDebug`: 0 errors, 32 warnings/notes -- none in any file this release touched.
+- `assembleDebug` and `assembleRelease` (R8, `isMinifyEnabled`) both produce APKs.
+- Logcat across the whole runtime pass: no `FATAL`, no `CorruptionException`, no ANR, no application
+  error. The only `E` lines naming the package are `WallpaperManagerService: Wallpaper uninstalled,
+  removing` and its `InputDispatcher` consequences, both produced by the test's own `am force-stop`.
+
+### Known limitations carried forward
+
+Unchanged from v3.0 and explicitly out of scope here: golden tests still do not run in CI (P1-3),
+`GlSceneTarget` still has no visual coverage (P1-4), and P2-3 through P2-8 are untouched. See
+`ROADMAP.md`.
+
+---
+
 ## v3.0 — the updater fixed at the root, the lake given depth, location split three ways, and the scene put under golden test
 
 **Stable / latest.** `versionCode = 21`, `versionName = "3.0"`. Tag `v3.0`.

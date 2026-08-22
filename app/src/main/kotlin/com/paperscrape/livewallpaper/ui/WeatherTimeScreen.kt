@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.layout.size
 import com.paperscrape.livewallpaper.location.CityGeocoder
+import com.paperscrape.livewallpaper.location.Coordinates
 import com.paperscrape.livewallpaper.location.CitySearchResult
 import com.paperscrape.livewallpaper.location.GeocodedCity
 import kotlinx.coroutines.delay
@@ -91,7 +92,12 @@ internal fun WeatherTimeScreen(
         settings.deviceLocationKind,
     )
     val locationEnabled = settings.syncWithRealTime
-    val liveWeatherAvailable = locationEnabled && locationMode != LocationMode.OFF
+    val liveWeather = SettingsUiModel.liveWeather(
+        liveWeatherEnabled = settings.liveWeatherEnabled,
+        followRealTime = settings.syncWithRealTime,
+        locationMode = locationMode,
+        status = settings.liveWeather,
+    )
 
     SettingsSubScreen(title = "Weather & time", onBack = onBack) {
         SettingsSectionHeader("Time of day")
@@ -208,6 +214,19 @@ internal fun WeatherTimeScreen(
             SettingsSwitchRow(
                 title = stringResource(R.string.live_weather_title),
                 supporting = when {
+                    // Said first when it is on, because in that state the sentence the user needs
+                    // is "you can switch this off", not "here is what it would need to work".
+                    //
+                    // Deliberately silent about whether the forecast is currently in effect: that
+                    // is what the status banner immediately below reports, from what the engine
+                    // actually did, and it is not the same question as whether the switch could be
+                    // turned back on. (The two genuinely differ -- the fetch loop does not consult
+                    // "Follow real time" at all, so Live Weather keeps running over a frozen clock
+                    // even though this screen will not let it be switched on in that state.)
+                    settings.liveWeatherEnabled && !liveWeather.canBeTurnedOn ->
+                        "On. Switching it off here hands clouds and rain back to this theme's own " +
+                            "settings; switching it back on needs the scene to follow real time, " +
+                            "and a location."
                     !settings.syncWithRealTime ->
                         "Needs the scene to follow real time, and a location to check the weather for."
                     locationMode == LocationMode.OFF -> stringResource(R.string.live_weather_needs_location)
@@ -215,7 +234,11 @@ internal fun WeatherTimeScreen(
                 },
                 icon = Icons.Outlined.Cloud,
                 checked = settings.liveWeatherEnabled,
-                enabled = liveWeatherAvailable,
+                // Not `canBeTurnedOn`. Gating on the prerequisites alone is what made a switch
+                // that was already on impossible to turn off once its location was removed, and
+                // World & scene's own controls were locked behind that same switch -- a state with
+                // no way out from inside the app. See [LiveWeatherUiState.switchIsInteractive].
+                enabled = liveWeather.switchIsInteractive,
                 onCheckedChange = { scope.launch { prefs.setLiveWeatherEnabled(it) } },
             )
             SettingsNavigationRow(
@@ -253,9 +276,24 @@ internal fun WeatherTimeScreen(
                         "the last conditions it fetched.",
                     isError = true,
                 )
-                LiveWeatherStatus.OK, LiveWeatherStatus.OFF -> SettingsBanner(
-                    "While Live Weather is on, cloud and precipitation amounts come from the forecast and " +
-                        "their screens are read-only. Their colours stay editable.",
+                LiveWeatherStatus.OK -> SettingsBanner(
+                    "Real conditions are driving this scene's clouds and precipitation, so their " +
+                        "screens are read-only. Their colours stay editable.",
+                )
+                // OFF while the switch is on means the engine has not reported yet -- either it
+                // has not had a chance, or the prerequisites are missing and it never will. Both
+                // are "the theme's own weather is what you are looking at", which is the opposite
+                // of what this branch used to say: it was grouped with OK and claimed the forecast
+                // was in charge and the controls locked, in a state where neither was true.
+                LiveWeatherStatus.OFF -> SettingsBanner(
+                    if (liveWeather.canBeTurnedOn) {
+                        "Waiting for the first forecast. Until it arrives the scene is on this " +
+                            "theme's own weather."
+                    } else {
+                        "Not running: it needs the scene to follow real time, and a location. The " +
+                            "scene is on this theme's own weather, and the Clouds and Rain and snow " +
+                            "screens stay editable while that is the case."
+                    },
                 )
             }
         }
@@ -343,7 +381,7 @@ private fun LocationRow(latitude: Float?, longitude: Float?, loadingText: String
         isLoading -> loadingText
         label != null -> label
         // geocoding failed -- raw coordinates as a fallback, never a blank row
-        else -> "%.2f, %.2f".format(latitude, longitude)
+        else -> Coordinates.formatCoarse(latitude, longitude)
     }
     if (text != null) {
         SettingsRow(title = text, supporting = supporting, icon = Icons.Filled.LocationOn)
@@ -357,10 +395,10 @@ private fun LocationRow(latitude: Float?, longitude: Float?, loadingText: String
  */
 @Composable
 private fun SelectedCustomLocationRow(label: String, latitude: Float, longitude: Float) {
-    val title = label.ifBlank { "%.3f, %.3f".format(latitude, longitude) }
+    val title = label.ifBlank { Coordinates.format(latitude, longitude) }
     SettingsRow(
         title = title,
-        supporting = "Selected location - %.3f, %.3f".format(latitude, longitude),
+        supporting = "Selected location - " + Coordinates.format(latitude, longitude),
         icon = Icons.Filled.LocationOn,
     )
 }

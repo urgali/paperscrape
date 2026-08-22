@@ -47,6 +47,7 @@ import com.paperscrape.livewallpaper.update.ApkInstaller
 import com.paperscrape.livewallpaper.update.ApkSafety
 import com.paperscrape.livewallpaper.update.DownloadPhase
 import com.paperscrape.livewallpaper.update.InstallVerdict
+import com.paperscrape.livewallpaper.update.UpdateCheckResult
 import com.paperscrape.livewallpaper.update.UpdateChecker
 import com.paperscrape.livewallpaper.update.UpdateDownloadResult
 import com.paperscrape.livewallpaper.update.UpdateInfo
@@ -206,6 +207,7 @@ internal fun AdvancedScreen(
                 },
                 supporting = when (val state = updateState) {
                     is UpdateUiState.UpToDate -> "You're up to date (v${BuildConfig.VERSION_NAME})"
+                    is UpdateUiState.CheckFailed -> UpdateCheckResult.Unreachable(state.reason).message
                     is UpdateUiState.Available -> "Update available - PaperScrape ${state.info.tagName}"
                     is UpdateUiState.Downloading -> "Downloading..."
                     is UpdateUiState.Verifying -> "Verifying..."
@@ -314,6 +316,16 @@ private sealed interface UpdateUiState {
     data object Idle : UpdateUiState
     data object Checking : UpdateUiState
     data object UpToDate : UpdateUiState
+
+    /**
+     * The check could not be completed, so nothing is known.
+     *
+     * A state of its own rather than an [Error]: nothing broke, nothing was downloaded and there is
+     * nothing to clean up -- the question simply was not answered. It is also not [UpToDate], which
+     * is the whole point (see [checkForUpdate]).
+     */
+    data class CheckFailed(val reason: UpdateCheckResult.Unreachable.Reason) : UpdateUiState
+
     data class Available(val info: UpdateInfo) : UpdateUiState
 
     /** [percent] is -1 while the size is unknown. */
@@ -330,11 +342,25 @@ private sealed interface UpdateUiState {
         get() = this !is Checking && this !is Downloading && this !is Verifying
 }
 
-private suspend fun checkForUpdate(onUpdateFound: (UpdateInfo) -> Unit): UpdateUiState {
-    val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME) ?: return UpdateUiState.UpToDate
-    onUpdateFound(update)
-    return UpdateUiState.Available(update)
-}
+/**
+ * The explicit check -- the one behind the button the user just pressed.
+ *
+ * All three of [UpdateCheckResult]'s answers are reported, and that is the v3.1 change: this used
+ * to read a nullable and call every null "You're up to date", so in aeroplane mode the app
+ * confidently told the user their version was current without having asked anybody. The automatic
+ * check at launch (`SettingsScreen`) still ignores the failure -- silence is right for a question
+ * nobody asked -- which is the whole reason the two outcomes had to become distinguishable rather
+ * than the failure simply being reported everywhere.
+ */
+private suspend fun checkForUpdate(onUpdateFound: (UpdateInfo) -> Unit): UpdateUiState =
+    when (val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)) {
+        is UpdateCheckResult.Available -> {
+            onUpdateFound(result.info)
+            UpdateUiState.Available(result.info)
+        }
+        UpdateCheckResult.UpToDate -> UpdateUiState.UpToDate
+        is UpdateCheckResult.Unreachable -> UpdateUiState.CheckFailed(result.reason)
+    }
 
 /**
  * Turns a finished download into the next state, including the last safety check.
@@ -405,7 +431,11 @@ private fun UpdateProgressSection(
     onDismiss: () -> Unit,
 ) {
     when (state) {
+        // Nothing to offer, nothing to clean up. A failed check belongs here rather than with the
+        // errors below: the row's own supporting line already says what happened, and there is no
+        // action to put in front of the user beyond pressing the same button again.
         UpdateUiState.Idle, UpdateUiState.Checking, UpdateUiState.UpToDate -> Unit
+        is UpdateUiState.CheckFailed -> Unit
 
         is UpdateUiState.Available -> Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(

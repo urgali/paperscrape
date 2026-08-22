@@ -5,9 +5,20 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.paperscrape.livewallpaper.prefs.PrefsRecovery
+import com.paperscrape.livewallpaper.prefs.PrefsRecovery.recoveringFromReadErrors
 import kotlinx.coroutines.flow.first
 
-private val Context.updateDataStore by preferencesDataStore(name = "paperscrape_update_prefs")
+/** Shared with the instrumented recovery test, which corrupts this exact file. */
+internal const val UPDATE_PREFS_STORE_NAME = "paperscrape_update_prefs"
+
+// Its own file and its own handler. A corrupt snooze file is the cheapest of the three to lose --
+// it costs one "remind me later" -- but it used to be just as fatal as the other two, because the
+// crash was in the read, not in the value. See [PrefsRecovery].
+private val Context.updateDataStore by preferencesDataStore(
+    name = UPDATE_PREFS_STORE_NAME,
+    corruptionHandler = PrefsRecovery.replacingCorruptFile(),
+)
 
 /**
  * Persists the "remind me later" choice for the update prompt. Read once per app launch (not a
@@ -28,7 +39,10 @@ class UpdatePrefs(private val context: Context) {
     data class SnoozeState(val untilMillis: Long, val versionTag: String?)
 
     suspend fun readSnoozeState(): SnoozeState {
-        val prefs = context.updateDataStore.data.first()
+        // `first()` on a flow that can throw is the one read in the app that has no collector to
+        // fall back on, so the recovery goes on the flow before the terminal operator rather than
+        // around the call site.
+        val prefs = context.updateDataStore.data.recoveringFromReadErrors().first()
         return SnoozeState(
             untilMillis = prefs[Keys.SNOOZE_UNTIL_MILLIS] ?: 0L,
             versionTag = prefs[Keys.SNOOZED_VERSION_TAG],

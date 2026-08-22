@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.ui
 
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
+import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 
 /**
  * Which location source is in use, as one choice instead of two switches.
@@ -25,6 +26,34 @@ enum class LocationMode { OFF, GPS, NETWORK, CUSTOM }
  * whatever the trees look like and stay an independent switch.
  */
 enum class SeasonalPalette { NONE, AUTUMN, WINTER }
+
+
+/**
+ * The four separate things "Live Weather" used to mean at once.
+ *
+ * v3.0 had one boolean doing all four jobs, and the jobs disagreed. `Weather & time` disabled the
+ * switch whenever a live fetch was impossible, `World & scene` locked clouds and precipitation
+ * whenever the switch was *on*, and neither asked what the scene was actually drawing. The
+ * reachable, persistent result was a switch stuck on, greyed out, that the user was told to turn
+ * off -- with the weather controls locked behind it and a banner on the other screen already
+ * admitting the forecast was not in effect.
+ *
+ * @property configuredOn what the user asked for -- the stored `liveWeatherEnabled` flag.
+ * @property canBeTurnedOn whether the prerequisites for a live fetch are in place right now.
+ * @property switchIsInteractive whether the Live Weather switch accepts a tap. **Always true when
+ *   [configuredOn] is true**: a setting that is on must be turn-off-able, whatever else is
+ *   missing. This is the property that makes the dead end unreachable, and it is the one
+ *   `SettingsUiModelTest` exists to keep true.
+ * @property drivingTheScene whether real conditions are what the scene is drawing. This -- not
+ *   [configuredOn] -- is what makes the theme's own cloud and precipitation controls read-only,
+ *   and what the "Driven by Live Weather" label is allowed to claim.
+ */
+data class LiveWeatherUiState(
+    val configuredOn: Boolean,
+    val canBeTurnedOn: Boolean,
+    val switchIsInteractive: Boolean,
+    val drivingTheScene: Boolean,
+)
 
 /**
  * The translation layer between the settings UI's grouped choices and the preference flags that
@@ -77,6 +106,33 @@ object SettingsUiModel {
         LocationMode.GPS -> DeviceLocationKind.GPS
         LocationMode.NETWORK -> DeviceLocationKind.NETWORK
         LocationMode.OFF, LocationMode.CUSTOM -> null
+    }
+
+
+    /**
+     * Reads the stored Live Weather flag, the two prerequisites and the status the wallpaper
+     * service published as the four distinct answers the UI needs.
+     *
+     * @param followRealTime `syncWithRealTime`. A fixed-hour scene has no "now" to fetch for.
+     * @param status what the engine last reported it was doing. [LiveWeatherStatus.OFF] here means
+     *   "the engine has not said yet" as well as "it is off", which is why the scene is treated as
+     *   theme-driven until it says otherwise -- the honest answer while nothing is known.
+     */
+    fun liveWeather(
+        liveWeatherEnabled: Boolean,
+        followRealTime: Boolean,
+        locationMode: LocationMode,
+        status: LiveWeatherStatus,
+    ): LiveWeatherUiState {
+        val canBeTurnedOn = followRealTime && locationMode != LocationMode.OFF
+        return LiveWeatherUiState(
+            configuredOn = liveWeatherEnabled,
+            canBeTurnedOn = canBeTurnedOn,
+            // `|| liveWeatherEnabled` is the whole of the P1-1 fix: the prerequisites decide
+            // whether it can be switched *on*, never whether it can be switched off.
+            switchIsInteractive = canBeTurnedOn || liveWeatherEnabled,
+            drivingTheScene = liveWeatherEnabled && status.isDrivingTheScene,
+        )
     }
 
     /** Reads the pair of stored palette flags as one choice. */

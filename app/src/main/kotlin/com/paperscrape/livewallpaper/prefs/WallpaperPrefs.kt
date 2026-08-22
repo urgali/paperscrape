@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.paperscrape.livewallpaper.prefs.PrefsRecovery.recoveringFromReadErrors
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.PeopleDensity
@@ -32,7 +33,20 @@ import com.paperscrape.livewallpaper.weather.WeatherProviderId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.dataStore by preferencesDataStore(name = "paperscrape_prefs")
+/**
+ * The name of this store's file, shared with the instrumented recovery test so the test corrupts
+ * the same bytes the app reads rather than a path it copied by hand.
+ */
+internal const val WALLPAPER_PREFS_STORE_NAME = "paperscrape_prefs"
+
+// `corruptionHandler` is the difference between a wallpaper that comes up on its defaults after a
+// bad shutdown and one that kills its own process on every restart until the user clears app data.
+// See [PrefsRecovery] for why corruption, I/O failure and unexpected errors get three different
+// answers -- and for why replacing this file cannot cost the user their custom themes.
+private val Context.dataStore by preferencesDataStore(
+    name = WALLPAPER_PREFS_STORE_NAME,
+    corruptionHandler = PrefsRecovery.replacingCorruptFile(),
+)
 
 /** Immutable snapshot of all user-configurable wallpaper settings. */
 data class WallpaperSettings(
@@ -298,7 +312,7 @@ class WallpaperPrefs(private val context: Context) {
             colorNight2 = prefs[Keys.colorNight2(category)] ?: default.colorNight2,
         )
 
-    val settingsFlow: Flow<WallpaperSettings> = context.dataStore.data.map { prefs ->
+    val settingsFlow: Flow<WallpaperSettings> = context.dataStore.data.recoveringFromReadErrors().map { prefs ->
         // Falls back to whichever theme's pending edit is currently tagged (see
         // PENDING_CUSTOMIZATION_THEME_ID) -- crucial for seasonal categories specifically:
         // editing just one (e.g. turning snowmen off for Christmas) must NOT silently reset every

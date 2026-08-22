@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
 import android.service.wallpaper.WallpaperService
+import android.util.Log
 import android.view.SurfaceHolder
 import com.paperscrape.livewallpaper.location.DeviceLocationFix
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
@@ -17,9 +18,10 @@ import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import com.paperscrape.livewallpaper.weather.LiveWeatherInputs
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import com.paperscrape.livewallpaper.weather.WeatherRepository
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -31,6 +33,9 @@ import java.util.TimeZone
 // because PaperEngine is an *inner* class (needs implicit access to the outer Service's
 // Context) — Kotlin does not allow companion objects inside inner classes.
 private const val FRAME_INTERVAL_MS = 33L
+// Logcat tag for the engine's own backstop handler. File-scoped for the same reason
+// FRAME_INTERVAL_MS is: PaperEngine is an inner class and cannot hold a companion object.
+private const val TAG = "PaperEngine"
 // Once an hour, matching aa's own explicit choice -- weather doesn't change fast enough to
 // justify more frequent network calls (or the battery/data cost of them) on something that's
 // running continuously as a live wallpaper, unlike a foreground app a user only glances at.
@@ -137,8 +142,35 @@ class PaperWallpaperService : WallpaperService() {
     inner class PaperEngine : Engine() {
 
         private val handler = Handler(Looper.getMainLooper())
-        private val engineJob = Job()
-        private val scope = CoroutineScope(Dispatchers.Main + engineJob)
+
+        /**
+         * **The engine survives its own coroutines failing, and the wallpaper survives with it.**
+         *
+         * Two deliberate choices, both added in v3.1 after a corrupt preferences file was shown to
+         * take the whole process down (see [com.paperscrape.livewallpaper.prefs.PrefsRecovery]):
+         *
+         * - [SupervisorJob], so one collector dying does not cancel its siblings. With a plain
+         *   `Job` a failed settings read also stopped the theme collector, the weather loop and
+         *   the location refresh -- the wallpaper kept drawing, but it had gone deaf.
+         * - A [CoroutineExceptionHandler], so a failure that nothing else caught is logged and
+         *   ends there instead of reaching the default handler, which kills the process. The
+         *   process here is the one drawing the wallpaper, and Android answers its death by
+         *   replacing the live wallpaper with the static system image -- an outcome the user
+         *   cannot undo from inside the app, because the app has crashed too.
+         *
+         * This is a backstop, not a substitute for handling errors where they happen: the three
+         * preference stores each recover on their own, and this exists so the *next* collector
+         * somebody adds cannot repeat the same failure.
+         */
+        private val engineJob = SupervisorJob()
+        private val engineExceptionHandler = CoroutineExceptionHandler { _, error ->
+            Log.e(
+                TAG,
+                "Engine coroutine failed; the wallpaper keeps drawing on the state it already has",
+                error,
+            )
+        }
+        private val scope = CoroutineScope(Dispatchers.Main + engineJob + engineExceptionHandler)
         private lateinit var prefs: WallpaperPrefs
 
         private var renderer: PaperRenderer? = null

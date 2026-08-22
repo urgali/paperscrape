@@ -48,7 +48,7 @@ data class GeocodedCity(
 
     /** The coordinates, for the user to verify -- shown small, never as the primary label. */
     val coordinatesText: String
-        get() = "%.3f, %.3f".format(latitude, longitude)
+        get() = Coordinates.format(latitude, longitude)
 }
 
 /** What a search produced. Failure and emptiness are different answers and are kept apart. */

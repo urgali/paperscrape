@@ -3,6 +3,19 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
 
 /**
+ * A rectangle of a golden frame that the golden is specifically *about*, in the frame's own pixels.
+ *
+ * The whole-frame tolerance is a fraction of the whole frame, and that makes it blind to a small
+ * sprite: a dolphin at this frame size covers about 160 px, while [SceneGolden.MAX_DIFFERING_FRACTION]
+ * of a 360x800 frame is 576. A scene whose whole point is where one small sprite is painted
+ * therefore has to be measured over the patch it is painted in, or it passes whatever happens
+ * there. Naming that patch is [GoldenScene.focus].
+ */
+class GoldenFocus(val left: Int, val top: Int, val right: Int, val bottom: Int, val label: String) {
+    val area: Int get() = (right - left) * (bottom - top)
+}
+
+/**
  * One reproducible frame: a name, everything the renderer needs to draw it, and nothing else.
  *
  * A scene is a data description rather than a lambda over a live renderer so the *inputs* to a
@@ -18,6 +31,11 @@ class GoldenScene(
     private val themeId: String = "sunset",
     private val weather: LiveWeatherSnapshot? = null,
     private val customise: (SceneCustomization) -> SceneCustomization = { it },
+    /**
+     * Patches of the frame checked a second time, on their own much smaller area, *in addition* to
+     * the whole-frame comparison every golden gets. Empty for a golden about the whole picture.
+     */
+    val focus: List<GoldenFocus> = emptyList(),
 ) {
 
     fun configure(renderer: PaperRenderer) {

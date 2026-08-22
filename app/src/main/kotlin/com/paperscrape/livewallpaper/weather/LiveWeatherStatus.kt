@@ -52,6 +52,20 @@ enum class LiveWeatherStatus(val storageId: String) {
     val isRunningOnThemeWeather: Boolean
         get() = this == NO_LOCATION || this == MISSING_API_KEY || this == FAILED
 
+    /**
+     * True when real conditions are what the scene is actually drawing -- the only two states in
+     * which a forecast is in effect, [OK] and [STALE].
+     *
+     * **The stored `liveWeatherEnabled` flag is not this.** That flag says what the user asked
+     * for; this says what is happening. Until v3.1 the World & scene screen used the flag to
+     * label clouds and precipitation "Driven by Live Weather" and to make them read-only, which
+     * meant that with the switch on and no location the app said the forecast was driving the
+     * scene on one screen while the other screen's own banner said the opposite -- and the
+     * controls the user needed were locked in service of the claim that was false.
+     */
+    val isDrivingTheScene: Boolean
+        get() = this == OK || this == STALE
+
     companion object {
         fun fromStorageId(id: String?): LiveWeatherStatus =
             entries.firstOrNull { it.storageId == id } ?: OFF

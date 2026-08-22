@@ -44,6 +44,24 @@ internal object LakeLanes {
     fun laneIndex(candidate: Int, isDolphin: Boolean): Int = candidate * 2 + if (isDolphin) 1 else 0
 
     /**
+     * The value [orderByDepth] sorts on: how far down the screen a thing's own base is drawn.
+     *
+     * For everything that stays on the water that is just its lane, and [heightAboveLane] is zero.
+     * It is not zero for a dolphin in mid-leap, and that is the whole of the v3.1 fix: sorting an
+     * airborne animal by the lane it left reads its depth from a point its body is no longer at.
+     * A sail stands roughly four lane widths above its own waterline while lanes are one lane
+     * width apart, so a dolphin a single lane nearer than a sailboat -- painted after it,
+     * correctly, by lane -- crossed the sail in mid-air.
+     *
+     * Ordering by the base instead makes one rule cover both: a dolphin recedes as it rises, drops
+     * behind the boat whose waterline it has climbed past, and comes back in front as it lands.
+     * Nothing else changes -- boats keep the lane they always had, so the far-to-near reading of
+     * two overlapping hulls that v3.0 established is untouched, and because [heightAboveLane] is
+     * never negative nothing is ever pulled *forward* of where its lane put it.
+     */
+    fun depthOf(laneY: Float, heightAboveLane: Float): Float = laneY - heightAboveLane
+
+    /**
      * Fills [order] with `0 until count`, sorted so that the smallest [depths] value comes first:
      * far to near, which is the order the water has to be painted in.
      *

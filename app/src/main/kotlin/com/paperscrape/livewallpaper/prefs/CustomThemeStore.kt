@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.paperscrape.livewallpaper.prefs.PrefsRecovery.recoveringFromReadErrors
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.customThemeDataFromJsonString
@@ -11,7 +12,15 @@ import com.paperscrape.livewallpaper.engine.toJsonString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.customThemeDataStore by preferencesDataStore(name = "paperscrape_custom_themes")
+/** Shared with the instrumented recovery test, which corrupts this exact file. */
+internal const val CUSTOM_THEME_STORE_NAME = "paperscrape_custom_themes"
+
+// Its own file and its own handler, so a corrupt theme blob costs the user their saved themes and
+// leaves every other store untouched. See [PrefsRecovery].
+private val Context.customThemeDataStore by preferencesDataStore(
+    name = CUSTOM_THEME_STORE_NAME,
+    corruptionHandler = PrefsRecovery.replacingCorruptFile(),
+)
 
 /**
  * Persists two things, both editable from the "Manage Themes" screen:
@@ -30,9 +39,11 @@ class CustomThemeStore(private val context: Context) {
         val DATA_JSON = stringPreferencesKey("custom_theme_data_json")
     }
 
-    val dataFlow: Flow<CustomThemeData> = context.customThemeDataStore.data.map { prefs ->
-        customThemeDataFromJsonString(prefs[Keys.DATA_JSON])
-    }
+    val dataFlow: Flow<CustomThemeData> = context.customThemeDataStore.data
+        .recoveringFromReadErrors()
+        .map { prefs ->
+            customThemeDataFromJsonString(prefs[Keys.DATA_JSON])
+        }
 
     private suspend fun update(transform: (CustomThemeData) -> CustomThemeData) {
         context.customThemeDataStore.edit { prefs ->

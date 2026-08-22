@@ -2088,7 +2088,7 @@ class PaperRenderer(
                 seedSalt = EffectId.DOLPHINS, isDolphin = true,
             )
         }
-        LakeLanes.orderByDepth(lakeItemY, lakeItems, lakeDrawOrder)
+        LakeLanes.orderByDepth(lakeItemDepth, lakeItems, lakeDrawOrder)
         for (n in 0 until lakeItems) {
             val slot = lakeDrawOrder[n]
             if (lakeItemIsDolphin[slot]) {
@@ -2104,6 +2104,16 @@ class PaperRenderer(
     // per-frame allocation, which is exactly what the CPU audit exists to keep out.
     private val lakeItemX = FloatArray(LakeLanes.LANE_COUNT)
     private val lakeItemY = FloatArray(LakeLanes.LANE_COUNT)
+
+    /**
+     * What each item is sorted on, which is **not** always [lakeItemY].
+     *
+     * For everything sitting on the water it is the lane: a hull further down the band is nearer
+     * and is painted later, and that is what makes two overlapping boats read as one passing in
+     * front of the other. For a dolphin *in the air* it is the lane minus how far it has risen,
+     * because the animal's body is no longer at its lane -- see [gatherLakeDecorations].
+     */
+    private val lakeItemDepth = FloatArray(LakeLanes.LANE_COUNT)
     private val lakeItemPhase = FloatArray(LakeLanes.LANE_COUNT)
     private val lakeItemIsDolphin = BooleanArray(LakeLanes.LANE_COUNT)
     private val lakeDrawOrder = IntArray(LakeLanes.LANE_COUNT)
@@ -2278,9 +2288,46 @@ class PaperRenderer(
             lakeItemY[count] = y
             lakeItemPhase[count] = phase
             lakeItemIsDolphin[count] = isDolphin
+            // **A leaping dolphin is sorted by where its body is, not by where its lane is.**
+            //
+            // The lane is the right depth for everything that stays on the water, and v3.0's
+            // far-to-near pass over it is not in question here -- two overlapping hulls read
+            // correctly. What it could not answer is that these sprites are not the same height:
+            // a sail stands about four lane widths above its own waterline while lanes are one
+            // lane width apart, so a dolphin one lane nearer than a sailboat -- painted after it,
+            // correctly, by lane -- crossed that sail in mid-air. It did not read as "in front":
+            // it read as a dolphin flying through a sail.
+            //
+            // Subtracting the climb makes the rule uniform instead of special-casing the pair:
+            // an item's depth is the rendered height of its own base, so a dolphin recedes as it
+            // rises and slips behind the boat whose waterline it has climbed above, then comes
+            // back in front as it re-enters the water. Three properties make this safe, and
+            // `LakeLanesTest` pins all three:
+            //  - boats are untouched, so no boat can ever fall behind a farther anything;
+            //  - a dolphin's depth only ever *decreases*, so nothing is pulled forward;
+            //  - a farther dolphin cannot pass a nearer one, since climb is never negative.
+            lakeItemDepth[count] = LakeLanes.depthOf(
+                laneY = y,
+                heightAboveLane = if (isDolphin) dolphinClimb(phase, elapsedSeconds) else 0f,
+            )
             count++
         }
         return count
+    }
+
+    /**
+     * How far above its own lane a dolphin's body is right now, in screen pixels; zero whenever it
+     * is under water.
+     *
+     * One function rather than two copies of the arithmetic, because the depth ordering in
+     * [gatherLakeDecorations] and the placement in [drawDolphin] have to agree exactly: a sort key
+     * that disagreed with where the sprite is actually drawn would be worse than no sort at all.
+     */
+    private fun dolphinClimb(phase: Float, elapsedSeconds: SceneTime): Float {
+        val arc = elapsedSeconds.sinAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
+        if (arc <= 0f) return 0f
+        return arc * SceneSpace.DOLPHIN_LEAP_METRES * SceneSpace.LAKE_PIXELS_PER_METRE *
+            SceneSpace.sceneScale(screenHeight.toFloat())
     }
 
     /** One dolphin, mid-leap or mid-splash, at the point [gatherLakeDecorations] placed it. */
@@ -2345,7 +2392,7 @@ class PaperRenderer(
             if (arc <= 0f && splashProgress < 0f) return
 
             if (arc > 0f) {
-                val climb = arc * SceneSpace.DOLPHIN_LEAP_METRES * SceneSpace.LAKE_PIXELS_PER_METRE * lakeScale
+                val climb = dolphinClimb(phase, elapsedSeconds)
                 val slope = elapsedSeconds.cosAt(DOLPHIN_LEAP_RATE, phase * 6.28f)
                 canvas.save()
                 canvas.translate(x, y - climb)

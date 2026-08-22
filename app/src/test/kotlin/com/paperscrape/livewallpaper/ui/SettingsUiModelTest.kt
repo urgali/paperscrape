@@ -4,7 +4,10 @@ import com.paperscrape.livewallpaper.location.DeviceLocationKind
 
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -191,5 +194,101 @@ class SettingsUiModelTest {
             SeasonalPalette.NONE,
             SettingsUiModel.seasonalPalette(defaults.fallColorsEnabled, defaults.winterColorsEnabled),
         )
+    }
+
+    // -- Live Weather (P1-1) -------------------------------------------------------------------
+    //
+    // The bug these pin was reachable and persistent: Live Weather on, then Location set to Off
+    // (or "Follow real time" switched off). The switch went disabled while reading on, World &
+    // scene locked clouds and precipitation behind it, and every instruction on screen told the
+    // user to do the one thing the UI would not let them do.
+
+    private fun liveWeather(
+        enabled: Boolean = true,
+        followRealTime: Boolean = true,
+        mode: LocationMode = LocationMode.GPS,
+        status: LiveWeatherStatus = LiveWeatherStatus.OK,
+    ) = SettingsUiModel.liveWeather(enabled, followRealTime, mode, status)
+
+    @Test
+    fun `a Live Weather switch that is on can always be switched off`() {
+        // Every way the prerequisites can fail, with the setting already on. There is no
+        // combination in which the user is locked in.
+        for (followRealTime in listOf(true, false)) {
+            for (mode in LocationMode.entries) {
+                for (status in LiveWeatherStatus.entries) {
+                    assertTrue(
+                        "on + followRealTime=$followRealTime, $mode, $status must stay switchable",
+                        liveWeather(enabled = true, followRealTime = followRealTime, mode = mode, status = status)
+                            .switchIsInteractive,
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `case A - location switched off with Live Weather on`() {
+        val state = liveWeather(enabled = true, mode = LocationMode.OFF, status = LiveWeatherStatus.NO_LOCATION)
+
+        assertFalse("nothing to fetch for", state.canBeTurnedOn)
+        assertTrue("but the way out has to stay open", state.switchIsInteractive)
+        assertFalse("and the scene is on the theme's own weather", state.drivingTheScene)
+    }
+
+    @Test
+    fun `case B - follow real time switched off with Live Weather on`() {
+        val state = liveWeather(enabled = true, followRealTime = false, status = LiveWeatherStatus.OK)
+
+        assertFalse(state.canBeTurnedOn)
+        assertTrue(state.switchIsInteractive)
+    }
+
+    @Test
+    fun `a Live Weather switch that is off stays gated on its prerequisites`() {
+        assertFalse(
+            "turning it on with no location would produce exactly the state we just made escapable",
+            liveWeather(enabled = false, mode = LocationMode.OFF, status = LiveWeatherStatus.OFF).switchIsInteractive,
+        )
+        assertFalse(
+            liveWeather(enabled = false, followRealTime = false, status = LiveWeatherStatus.OFF).switchIsInteractive,
+        )
+        assertTrue(
+            liveWeather(enabled = false, mode = LocationMode.CUSTOM, status = LiveWeatherStatus.OFF).switchIsInteractive,
+        )
+    }
+
+    @Test
+    fun `only a forecast actually in effect may claim to be driving the scene`() {
+        // OK and STALE are the two states with a snapshot behind them; the rest are the states in
+        // which LiveWeatherStatus itself already says the theme's weather is showing.
+        assertTrue(liveWeather(status = LiveWeatherStatus.OK).drivingTheScene)
+        assertTrue(liveWeather(status = LiveWeatherStatus.STALE).drivingTheScene)
+        for (status in listOf(
+            LiveWeatherStatus.OFF,
+            LiveWeatherStatus.NO_LOCATION,
+            LiveWeatherStatus.MISSING_API_KEY,
+            LiveWeatherStatus.FAILED,
+        )) {
+            assertFalse("$status is not a forecast", liveWeather(status = status).drivingTheScene)
+        }
+    }
+
+    @Test
+    fun `driving the scene and running on the theme's weather are exact opposites while on`() {
+        // The contradiction the two screens used to show at once: World & scene said "Driven by
+        // Live Weather" while Weather & time showed the fallback banner. They now read one fact.
+        for (status in LiveWeatherStatus.entries) {
+            val driving = liveWeather(status = status).drivingTheScene
+            if (status == LiveWeatherStatus.OFF) continue // "not reported yet", claimed by neither
+            assertEquals("$status", status.isRunningOnThemeWeather, !driving)
+        }
+    }
+
+    @Test
+    fun `the switch being off means nothing is driving the scene, whatever the last status said`() {
+        for (status in LiveWeatherStatus.entries) {
+            assertFalse(liveWeather(enabled = false, status = status).drivingTheScene)
+        }
     }
 }

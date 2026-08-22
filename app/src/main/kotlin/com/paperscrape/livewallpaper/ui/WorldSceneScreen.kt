@@ -73,7 +73,21 @@ internal fun WorldSceneScreen(
     onBack: () -> Unit,
 ) {
     var activeSection by remember { mutableStateOf<String?>(null) }
-    val liveWeatherEnabled = settings.liveWeatherEnabled
+    // **What the forecast is actually doing, not what the switch says.** These two rows and their
+    // sub-screens used to read `settings.liveWeatherEnabled`, so with the switch on and no
+    // location they announced "Driven by Live Weather" and went read-only while Weather & time's
+    // own banner said the scene was running on this theme's weather -- and the theme's weather was
+    // the truthful one. See [LiveWeatherUiState.drivingTheScene].
+    val liveWeatherDriving = SettingsUiModel.liveWeather(
+        liveWeatherEnabled = settings.liveWeatherEnabled,
+        followRealTime = settings.syncWithRealTime,
+        locationMode = SettingsUiModel.locationMode(
+            settings.useLocationForSunTimes,
+            settings.useCustomLocation,
+            settings.deviceLocationKind,
+        ),
+        status = settings.liveWeather,
+    ).drivingTheScene
 
     SettingsSubScreen(title = "World & scene", onBack = onBack) {
         WorldScenePreview(theme = theme, customization = customization)
@@ -105,24 +119,24 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Clouds",
-                supporting = if (liveWeatherEnabled) {
+                supporting = if (liveWeatherDriving) {
                     "Driven by Live Weather"
                 } else {
                     densitySummary(customization.clouds.visible, customization.clouds.density)
                 },
                 icon = Icons.Outlined.Cloud,
-                supportingIsAccent = liveWeatherEnabled,
+                supportingIsAccent = liveWeatherDriving,
                 onClick = { activeSection = "clouds" },
             )
             SettingsNavigationRow(
                 title = "Rain and snow",
-                supporting = if (liveWeatherEnabled) {
+                supporting = if (liveWeatherDriving) {
                     "Driven by Live Weather"
                 } else {
                     densitySummary(customization.precipitation.visible, customization.precipitation.intensity)
                 },
                 icon = Icons.Outlined.WaterDrop,
-                supportingIsAccent = liveWeatherEnabled,
+                supportingIsAccent = liveWeatherDriving,
                 onClick = { activeSection = "precipitation" },
             )
             SettingsNavigationRow(
@@ -253,8 +267,8 @@ internal fun WorldSceneScreen(
         "sunmoon" -> SunMoonSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "sky" -> SkySubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "stars" -> StarsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
-        "clouds" -> CloudsSubScreen(customization, forThemeId, prefs, scope, liveWeatherEnabled) { activeSection = null }
-        "precipitation" -> PrecipitationSubScreen(customization, forThemeId, prefs, scope, liveWeatherEnabled) { activeSection = null }
+        "clouds" -> CloudsSubScreen(customization, forThemeId, prefs, scope, liveWeatherDriving) { activeSection = null }
+        "precipitation" -> PrecipitationSubScreen(customization, forThemeId, prefs, scope, liveWeatherDriving) { activeSection = null }
         "rainbow" -> RainbowSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "cities" -> CitiesSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "hills" -> HillsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
@@ -381,17 +395,22 @@ private fun StarsSubScreen(customization: SceneCustomization, forThemeId: String
 }
 
 @Composable
-private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, liveWeatherEnabled: Boolean, onBack: () -> Unit) {
+private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, liveWeatherDriving: Boolean, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Clouds", onBack) {
-        // Live Weather (Weather & time) fully drives cloud density from real conditions while it
-        // is on -- see PaperRenderer.drawClouds' own doc comment on exactly how that override
-        // works. Visibility/density read-only here so a manual edit can't silently do nothing (or
-        // worse, look like it worked and then get overwritten on the next hourly fetch); colors
-        // stay editable since Live Weather never touches those.
-        if (liveWeatherEnabled) {
+        // Live Weather (Weather & time) fully drives cloud density from real conditions while a
+        // forecast is actually in effect -- see PaperRenderer.drawClouds' own doc comment on
+        // exactly how that override works. Visibility/density read-only *then*, so a manual edit
+        // can't silently do nothing (or worse, look like it worked and then get overwritten on the
+        // next hourly fetch); colors stay editable since Live Weather never touches those.
+        //
+        // v3.1: "then", not "whenever the switch is on". With the switch on but no forecast in
+        // effect -- no location, no API key, a fetch that failed with nothing cached -- this
+        // theme's own settings *are* what the scene is drawing, so locking them locked the only
+        // controls that still did anything.
+        if (liveWeatherDriving) {
             Text(
-                "Live Weather is on, so cloud density is driven by real conditions. Turn Live Weather off in Weather & time to set this manually.",
+                "Live Weather is driving cloud density from real conditions right now. Turn Live Weather off in Weather & time to set this manually.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -399,7 +418,7 @@ private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: Strin
         SettingSwitchRow(
             title = "Show Clouds", subtitle = "",
             checked = customization.clouds.visible,
-            enabled = !liveWeatherEnabled,
+            enabled = !liveWeatherDriving,
             onCheckedChange = { scope.launch { prefs.setCloudsVisible(it, forThemeId) } },
         )
         PreferenceSlider(
@@ -407,7 +426,7 @@ private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: Strin
             value = customization.clouds.density,
             onCommit = { committed -> scope.launch { prefs.setCloudsDensity(committed, forThemeId) } },
             valueRange = 0f..1f,
-            enabled = !liveWeatherEnabled,
+            enabled = !liveWeatherDriving,
         )
         ColorSwatchRow("Day Color", customization.clouds.colorDay) {
             editingTarget = ColorEditTarget("Clouds - Day Color", customization.clouds.colorDay) { c -> scope.launch { prefs.setCloudsColorDay(c, forThemeId) } }
@@ -423,16 +442,16 @@ private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: Strin
 }
 
 @Composable
-private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, liveWeatherEnabled: Boolean, onBack: () -> Unit) {
+private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, liveWeatherDriving: Boolean, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     val precip = customization.precipitation
     SettingsFormSubScreen("Rain and snow", onBack) {
         // See CloudsSubScreen's own comment on this same pattern -- Live Weather fully drives
         // visibility/type/intensity/thunderstorm here (PaperRenderer.drawPrecipitation's own doc
         // comment), so those controls are read-only while it is on. Colors stay editable.
-        if (liveWeatherEnabled) {
+        if (liveWeatherDriving) {
             Text(
-                "Live Weather is on, so rain/snow/thunderstorm are driven by real conditions. Turn Live Weather off in Weather & time to set this manually.",
+                "Live Weather is driving rain/snow/thunderstorm from real conditions right now. Turn Live Weather off in Weather & time to set this manually.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -440,14 +459,14 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
         SettingSwitchRow(
             title = "Show Rain/Snow", subtitle = "",
             checked = precip.visible,
-            enabled = !liveWeatherEnabled,
+            enabled = !liveWeatherDriving,
             onCheckedChange = { scope.launch { prefs.setPrecipitationVisible(it, forThemeId) } },
         )
         Text("Type", style = MaterialTheme.typography.bodyMedium)
         SettingsSegmentedChoice(
             options = listOf("Rain", "Snow"),
             selectedIndex = if (precip.type == PrecipitationType.SNOW) 1 else 0,
-            enabled = !liveWeatherEnabled,
+            enabled = !liveWeatherDriving,
             onSelect = { index ->
                 val type = if (index == 1) PrecipitationType.SNOW else PrecipitationType.RAIN
                 scope.launch { prefs.setPrecipitationType(type, forThemeId) }
@@ -458,7 +477,7 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
             value = precip.intensity,
             onCommit = { committed -> scope.launch { prefs.setPrecipitationIntensity(committed, forThemeId) } },
             valueRange = 0f..1f,
-            enabled = !liveWeatherEnabled,
+            enabled = !liveWeatherDriving,
         )
         SectionTitle("Rain Colors")
         ColorSwatchRow("Day Color", precip.rainColorDay) {
@@ -478,7 +497,7 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
         SettingSwitchRow(
             title = "Thunderstorm", subtitle = "Occasional lightning flashes (only while Rain is selected)",
             checked = precip.thunderstorm,
-            enabled = !liveWeatherEnabled,
+            enabled = !liveWeatherDriving,
             onCheckedChange = { scope.launch { prefs.setPrecipitationThunderstorm(it, forThemeId) } },
         )
     }

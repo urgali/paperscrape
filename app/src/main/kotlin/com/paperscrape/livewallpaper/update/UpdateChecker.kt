@@ -3,6 +3,7 @@ package com.paperscrape.livewallpaper.update
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -63,6 +64,56 @@ data class UpdateInfo(
 }
 
 /**
+ * What a check for updates actually found out, which is three answers and not two.
+ *
+ * Until v3.1 this was a nullable [UpdateInfo], and null meant both "there is nothing newer" and
+ * "the question was never answered" -- offline, DNS failure, timeout, 403, unexpected JSON. For
+ * the silent check at launch those collapse correctly: neither is a reason to interrupt anybody.
+ * For the button the user has just pressed they do not, and the screen said **"You're up to
+ * date"** in aeroplane mode, which is a claim the app had no basis for.
+ */
+sealed interface UpdateCheckResult {
+
+    /** A newer release exists. */
+    data class Available(val info: UpdateInfo) : UpdateCheckResult
+
+    /** GitHub answered, and nothing there is newer than what is installed. */
+    data object UpToDate : UpdateCheckResult
+
+    /**
+     * The check did not complete, so nothing at all is known about whether an update exists.
+     *
+     * [reason] is carried so the explicit path can say *which* wall it hit -- "no connection" and
+     * "GitHub answered 403" send the user to different places -- while the automatic path can go
+     * on ignoring all of them equally.
+     */
+    data class Unreachable(val reason: Reason) : UpdateCheckResult {
+
+        enum class Reason {
+            /** No network, DNS failure, connection refused, or a timeout. */
+            NO_CONNECTION,
+
+            /** A reply arrived and it was not 200: rate limiting, a renamed repo, an outage. */
+            SERVER_ERROR,
+
+            /** A 200 whose body was not the JSON this expects. */
+            UNREADABLE_RESPONSE,
+        }
+
+        /** One sentence for the settings row, in the app's own voice. */
+        val message: String
+            get() = when (reason) {
+                Reason.NO_CONNECTION ->
+                    "Couldn't check - no connection. Your version may or may not be current."
+                Reason.SERVER_ERROR ->
+                    "Couldn't check - GitHub didn't answer. Try again in a few minutes."
+                Reason.UNREADABLE_RESPONSE ->
+                    "Couldn't check - the reply from GitHub wasn't readable."
+            }
+    }
+}
+
+/**
  * Checks the public GitHub Releases API for a newer version than the one currently installed.
  *
  * IMPORTANT: [OWNER]/[REPO] must match your actual GitHub repository, or this will either find
@@ -86,15 +137,31 @@ object UpdateChecker {
     private const val MAX_COMBINED_NOTES_CHARS = 6000
 
     /**
-     * Returns [UpdateInfo] if a newer version is available, or null if not (including on any
-     * network/parsing failure — this must never crash or interrupt app startup, so every failure
-     * mode just means "no update prompt this time" rather than an error shown to the user).
+     * Asks GitHub which is the newest release, and says which of the three things happened.
+     *
+     * Never throws: every failure is an [UpdateCheckResult.Unreachable] with a reason, so a caller
+     * that wants to stay silent can, and a caller that has to answer the user can say something
+     * true. The two callers do exactly that -- `SettingsScreen`'s launch check acts on
+     * [UpdateCheckResult.Available] and ignores everything else, `AdvancedScreen`'s button reports
+     * all three.
      */
-    suspend fun checkForUpdate(currentVersionName: String): UpdateInfo? = withContext(Dispatchers.IO) {
-        val current = AppVersion.parse(currentVersionName) ?: return@withContext null
+    suspend fun checkForUpdate(
+        currentVersionName: String,
+        /**
+         * Overridden only by `UpdateCheckOutcomeTest`, which stands a `HttpServer` on a loopback
+         * port so the three outcomes can be produced for real -- a 200 with releases, a 403, a
+         * body that is not JSON, and a port with nothing listening -- rather than asserted about
+         * a mock of this function. Every caller in the app uses the default.
+         */
+        apiUrl: String = API_URL,
+    ): UpdateCheckResult = withContext(Dispatchers.IO) {
+        // An unparsable installed version is not a network problem and not "up to date": there is
+        // nothing to compare against, so no update can be offered and none can be ruled out.
+        val current = AppVersion.parse(currentVersionName)
+            ?: return@withContext UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.UNREADABLE_RESPONSE)
         var connection: HttpURLConnection? = null
         try {
-            connection = (URL(API_URL).openConnection() as HttpURLConnection).apply {
+            connection = (URL(apiUrl).openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = CONNECT_TIMEOUT_MS
                 readTimeout = READ_TIMEOUT_MS
@@ -104,7 +171,9 @@ object UpdateChecker {
                 setRequestProperty("Accept", "application/vnd.github+json")
             }
 
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) return@withContext null
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                return@withContext UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR)
+            }
 
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             val releases = JSONArray(body)
@@ -138,10 +207,13 @@ object UpdateChecker {
                 }.orEmpty()
                 ParsedRelease(version, tagName, htmlUrl, notes, assets)
             }
-            if (parsed.isEmpty()) return@withContext null
+            // A 200 with no release this parser recognises is not an error and not an update:
+            // it is a repository with nothing published under the `vMAJOR.MINOR` scheme, which is
+            // exactly "there is nothing newer than what you have".
+            if (parsed.isEmpty()) return@withContext UpdateCheckResult.UpToDate
 
-            val latest = parsed.maxByOrNull { it.version } ?: return@withContext null
-            if (latest.version <= current) return@withContext null
+            val latest = parsed.maxByOrNull { it.version } ?: return@withContext UpdateCheckResult.UpToDate
+            if (latest.version <= current) return@withContext UpdateCheckResult.UpToDate
 
             // Every release strictly newer than what the user has, newest first -- each one's
             // own release-notes/vMAJOR.MINOR.md content (see .github/workflows/android-build.yml),
@@ -154,18 +226,25 @@ object UpdateChecker {
                 .take(MAX_COMBINED_NOTES_CHARS)
                 .ifBlank { null }
 
-            UpdateInfo(
-                tagName = latest.tagName,
-                version = latest.version,
-                releasePageUrl = latest.htmlUrl,
-                releaseNotes = combinedNotes,
-                apkAsset = ReleaseAssets.findApk(latest.tagName, latest.assets),
-                checksumAsset = ReleaseAssets.findChecksum(latest.tagName, latest.assets),
+            UpdateCheckResult.Available(
+                UpdateInfo(
+                    tagName = latest.tagName,
+                    version = latest.version,
+                    releasePageUrl = latest.htmlUrl,
+                    releaseNotes = combinedNotes,
+                    apkAsset = ReleaseAssets.findApk(latest.tagName, latest.assets),
+                    checksumAsset = ReleaseAssets.findChecksum(latest.tagName, latest.assets),
+                ),
             )
+        } catch (_: IOException) {
+            // No network, DNS failure, connection refused, a socket timeout: the request never
+            // got an answer. Kept apart from the parse failure below because it is the one the
+            // user can do something about, and the one aeroplane mode produces.
+            UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.NO_CONNECTION)
         } catch (_: Exception) {
-            // No internet, DNS failure, GitHub down, unexpected JSON shape, etc. -- all treated
-            // the same: skip the prompt this launch, try again next time.
-            null
+            // A reply arrived and could not be read -- unexpected JSON shape, a truncated body.
+            // Still "nothing is known", still never a crash, but not the user's connection.
+            UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.UNREADABLE_RESPONSE)
         } finally {
             connection?.disconnect()
         }

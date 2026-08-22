@@ -59,6 +59,18 @@ object SceneGolden {
     const val CHANNEL_TOLERANCE = 8
     const val MAX_DIFFERING_FRACTION = 0.002
 
+    /**
+     * The same rule applied to a [GoldenFocus], with a looser fraction and a far smaller area.
+     *
+     * Looser per pixel because a small patch is mostly edges -- a sail is a diagonal, and diagonals
+     * are where anti-aliasing differs between Skia builds -- and far stricter in absolute terms:
+     * 2% of a 900-pixel patch is 18 pixels, where 0.2% of the whole frame is 576. That difference
+     * is the point. A dolphin covers about 160 pixels at this frame size, so a golden about which
+     * side of a sail a dolphin is on cannot be measured against the whole-frame budget: the sprite
+     * could move anywhere, or vanish, and the frame would still pass.
+     */
+    const val MAX_FOCUS_DIFFERING_FRACTION = 0.02
+
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
     private fun updating(): Boolean =
@@ -114,11 +126,10 @@ object SceneGolden {
             return
         }
 
-        val differing = countDiffering(expected, actual)
+        val differing = countDiffering(expected, actual, 0, 0, WIDTH, HEIGHT)
         val fraction = differing.toDouble() / (WIDTH * HEIGHT)
         if (fraction > MAX_DIFFERING_FRACTION) {
-            write(actual, File(outputDir(), "${scene.name}-actual.png"))
-            write(diffImage(expected, actual), File(outputDir(), "${scene.name}-diff.png"))
+            reject(scene, actual, expected)
             fail(
                 "Golden '${scene.name}' changed: $differing pixels differ by more than " +
                     "$CHANNEL_TOLERANCE per channel (${"%.3f".format(fraction * 100)}%, limit " +
@@ -126,17 +137,43 @@ object SceneGolden {
                     "diff are in ${outputDir()}. If the change was intended, say why before " +
                     "regenerating the golden.",
             )
+            return
+        }
+
+        // The second, tighter pass, for scenes that are about one small part of the picture. See
+        // [MAX_FOCUS_DIFFERING_FRACTION].
+        for (focus in scene.focus) {
+            val inFocus = countDiffering(expected, actual, focus.left, focus.top, focus.right, focus.bottom)
+            val focusFraction = inFocus.toDouble() / focus.area
+            if (focusFraction > MAX_FOCUS_DIFFERING_FRACTION) {
+                reject(scene, actual, expected)
+                fail(
+                    "Golden '${scene.name}' changed inside '${focus.label}' " +
+                        "(${focus.left},${focus.top})-(${focus.right},${focus.bottom}): $inFocus of " +
+                        "${focus.area} pixels differ (${"%.2f".format(focusFraction * 100)}%, limit " +
+                        "${"%.2f".format(MAX_FOCUS_DIFFERING_FRACTION * 100)}%). This is the part of " +
+                        "the frame the golden is about; the whole frame passed. The rendered frame " +
+                        "and a diff are in ${outputDir()}.",
+                )
+                return
+            }
         }
     }
 
-    private fun countDiffering(expected: Bitmap, actual: Bitmap): Int {
-        val row = IntArray(WIDTH)
-        val otherRow = IntArray(WIDTH)
+    private fun reject(scene: GoldenScene, actual: Bitmap, expected: Bitmap) {
+        write(actual, File(outputDir(), "${scene.name}-actual.png"))
+        write(diffImage(expected, actual), File(outputDir(), "${scene.name}-diff.png"))
+    }
+
+    private fun countDiffering(expected: Bitmap, actual: Bitmap, left: Int, top: Int, right: Int, bottom: Int): Int {
+        val width = right - left
+        val row = IntArray(width)
+        val otherRow = IntArray(width)
         var differing = 0
-        for (y in 0 until HEIGHT) {
-            expected.getPixels(row, 0, WIDTH, 0, y, WIDTH, 1)
-            actual.getPixels(otherRow, 0, WIDTH, 0, y, WIDTH, 1)
-            for (x in 0 until WIDTH) {
+        for (y in top until bottom) {
+            expected.getPixels(row, 0, width, left, y, width, 1)
+            actual.getPixels(otherRow, 0, width, left, y, width, 1)
+            for (x in 0 until width) {
                 if (!closeEnough(row[x], otherRow[x])) differing++
             }
         }

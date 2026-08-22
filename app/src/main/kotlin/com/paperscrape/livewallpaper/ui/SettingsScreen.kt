@@ -60,6 +60,7 @@ import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.update.UpdateCheckResult
 import com.paperscrape.livewallpaper.update.UpdateChecker
 import com.paperscrape.livewallpaper.update.UpdateInfo
 import com.paperscrape.livewallpaper.update.UpdatePrefs
@@ -106,7 +107,12 @@ fun SettingsScreen(
     LaunchedEffect(settings.automaticUpdateCheckEnabled) {
         if (!settings.automaticUpdateCheckEnabled) return@LaunchedEffect
         val snooze = updatePrefs.readSnoozeState()
-        val update = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME) ?: return@LaunchedEffect
+        // Deliberately only the one outcome. A check nobody asked for has nothing to say about a
+        // network that was not there -- the button in Advanced & about is what reports that (see
+        // `AdvancedScreen.checkForUpdate`), and reporting it here would turn opening the settings
+        // screen on a train into an error message.
+        val update = (UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME) as? UpdateCheckResult.Available)
+            ?.info ?: return@LaunchedEffect
         val isSnoozedForThisVersion = snooze.versionTag == update.tagName && System.currentTimeMillis() < snooze.untilMillis
         if (!isSnoozedForThisVersion) {
             availableUpdate = update

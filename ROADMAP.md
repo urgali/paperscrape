@@ -4,12 +4,43 @@ Operational plan only. What shipped and why lives in `RELEASE_HISTORY.md`; how t
 code works lives in `ARCHITECTURE.md`; the visual rules live in `DESIGN_NOTES.md`;
 the rules that always apply live in `AI_PROJECT_RULES.md`.
 
-**Nothing below is approved. Ask before starting any of it.** The v3.0 batch closed everything
+**Nothing below is approved. Ask before starting any of it.** The v3.1 batch closed everything
 that was.
 
 ---
 
 ## Current status
+
+**v3.1 Stable — a damaged preferences file no longer takes the wallpaper down, Live Weather always
+has a way out, and a leaping dolphin stops flying through sails.**
+
+`versionCode = 22`, `versionName = "3.1"`. Tag `v3.1`. A deliberately narrow hardening batch: the
+five items the v3.0 assessment classified P0/P1/P2 as fixable now, and nothing else. No feature was
+added and no working behaviour was changed.
+
+1. **P0-1 — DataStore corruption.** A `CorruptionException` from any of the three preference files
+   reached the process's default handler and killed the process that draws the wallpaper; Android
+   then replaced PaperScrape with the static system image, and the crash repeated on every restart.
+   Each store now carries a `ReplaceFileCorruptionHandler`, each read path answers an `IOException`
+   with defaults *without writing*, anything else still propagates, and the engine scope is a
+   `SupervisorJob` with a `CoroutineExceptionHandler`. Corrupting one store costs that store and
+   nothing else -- proven by corrupting all three in turn, including across a device reboot.
+2. **P1-1 — Live Weather with no way out.** An enabled switch is now always disableable, and
+   Clouds/Precipitation go read-only on the *effective* state (`OK`/`STALE`) rather than on the
+   stored flag, so "Driven by Live Weather" can only be said when it is true.
+3. **P1-2 — dolphin over sail.** `LakeLanes.depthOf` sorts a leaping dolphin by where its body
+   actually is instead of by the lane it left. `LakeLanes` itself is otherwise untouched; boats do
+   not move at all. New golden `lake-dolphin-leap`, with a focused comparison because a dolphin is
+   too small for the whole-frame tolerance to see.
+4. **P2-1 — updater offline.** `UpdateChecker` returns three outcomes instead of a nullable. The
+   explicit button reports "couldn't check"; the launch check still fails silently.
+5. **P2-2 — coordinates and locale.** Coordinates are formatted `Locale.US`. Speed multipliers stay
+   localised, deliberately, with a test that says so.
+
+753 JVM tests, 18 instrumented tests, `lintDebug` 0 errors, debug and R8 release APKs, and a full
+runtime pass on an Android 17 emulator with a clean logcat. See `RELEASE_HISTORY.md`.
+
+---
 
 **v3.0 Stable — the updater works, the lake has depth, Live Weather knows how it is finding you,
 the scene is under golden-image test, and PaperScrape stands on its own.**
@@ -101,7 +132,7 @@ producing an APK. **Seen running on a Pixel 9** (Android 16, gesture navigation,
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21, v3.1 → 22 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -110,11 +141,34 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 ## Known broken
 
 Nothing. **D13** -- the in-app updater hanging on `Downloading` -- was the only entry and is closed
-in v3.0; see Completed for what it actually was.
+in v3.0; see Completed for what it actually was. The v3.0 assessment's five P0/P1/P2-now items are
+closed in v3.1.
 
 ---
 
 ## Next priorities
+
+**From the v3.0 assessment, in order.** These are the items it identified and this batch
+deliberately did not start; they are the next approved-shaped work, not yet approved.
+
+| # | ID | Item | Why it is here |
+|---|---|---|---|
+| A | **P1-3** | Golden tests never run in CI | `android-build.yml` runs `lint`, `test` and `assembleDebug`; nothing runs `connectedAndroidTest`. The 18 instrumented tests are pulled only by hand. Wants a separate `reactivecircus/android-emulator-runner` job, SHA-pinned like every other action here, on the API level the goldens were taken at, uploading `golden-output/` on failure -- and not gating `release` until it has proven stable. |
+| B | **P1-4** | `GlSceneTarget` has no visual coverage | All 18 goldens render through `CanvasSceneTarget`, which is the right choice; the consequence is that 686 lines of hand tessellation, batching and premultiplied blending are what actually draws the wallpaper on every device where EGL works, and nothing pins their output. Wants one instrumented test rendering `day`, `lake-busy` and `thunderstorm` through the shipped `GlSceneTarget` on an offscreen EGL pbuffer, at a wider tolerance. |
+| C | **P2-3** | Sunrise and sunset are truncated rather than wrapped to the next day | `SunPositionCalculator.approximateSunriseSunset` coerces both into the device's civil day. |
+| D | **P2-4** | `LocationLabelResolver` can hang forever on API 33+ | No timeout on the async geocoder callback. |
+| E | **P2-5** | The Canvas backend allocates `Shader` objects inside the draw path | Against the CPU rules the project holds itself to. |
+| F | **P2-6** | Three scene fields shared across threads without synchronisation | |
+| G | **P2-7** | The README documents a removed feature | |
+| H | **P2-8** | `ARCHITECTURE.md`'s validity stamp is twenty releases behind | |
+
+Deliberately **not** in v3.1 and not scheduled: any weather-provider change (OpenWeather,
+WeatherAPI, Tomorrow.io, a Visual Crossing migration), `targetSdk 37`, and any refactor of
+`PaperRenderer`, `SceneObjectRenderer` or `ThemePreviewScene`.
+
+---
+
+## Older priorities
 
 | # | Item | Why it is here |
 |---|---|---|
@@ -153,6 +207,12 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v3.1 Stable** — the five items from the v3.0 assessment: DataStore corruption recovery that
+  costs only the damaged store (**P0-1**), a Live Weather switch that can always be turned off and
+  labels that describe the effective state rather than the stored flag (**P1-1**), depth ordering
+  that follows a leaping dolphin's body instead of the lane it left (**P1-2**), an update check that
+  distinguishes "up to date" from "could not check" (**P2-1**), and locale-independent coordinates
+  (**P2-2**). Nothing else was touched.
 - **v3.0 Stable** — the updater fixed and proven against real releases, the lake given lanes and
   depth order, Live Weather's location split into GPS / Network-Cell / Custom with one bounded
   request per refresh instead of a standing subscription, 13 golden-image tests over the scene, and
