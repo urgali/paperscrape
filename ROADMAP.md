@@ -11,6 +11,43 @@ that was.
 
 ## Current status
 
+**v3.6 prepared — the emulator CI job is gone, the Canvas backend stopped rebuilding the same three
+gradients every frame, and the three unsynchronised scene fields became one published snapshot.**
+
+`versionCode = 27`, `versionName = "3.6"`. **No tag, no push, no GitHub Release.**
+
+Three items, and deliberately nothing else.
+
+1. **The `instrumented` CI job is removed.** It never once produced a signal about PaperScrape's
+   code. Every hosted run it was given failed for a different environment-level reason — SDK
+   provisioning (v3.3), a boot/install race (v3.4), and finally a shell syntax error inside the
+   action's own wrapper after the AVD had booted, with the diagnostics step then hanging until the
+   45-minute timeout so it could not even upload the evidence it exists to collect. The workflow is
+   now `build` and `release`, `release` needing only `build`. **The tests themselves are untouched**:
+   `app/src/androidTest` still holds all 21 (now 24) of them, and they are run locally against a
+   device. `AI_PROJECT_RULES.md` 10.12 is rewritten to describe the CI that exists.
+2. **P2-5 closed — Canvas `Shader` allocation in the draw path.** Measured before assuming: a
+   counter on the three constructor sites of the pre-v3.6 backend, on an API 37 device, reported
+   **180 `Shader` objects built over 60 frames and 900 over 300 scrolling frames, for 3 distinct
+   gradients**. `GradientShaderCache` reuses them; the same run now builds **3**. The plausible
+   guess that the hill wrap-tile loop asked for three copies per frame was checked and is false —
+   its own culling rejects two — so the waste was entirely frame-to-frame. No visual change: all 17
+   golden frames pass unregenerated.
+3. **P2-6 closed — three scene fields shared across threads.** `sunriseHour`, `sunsetHour` and
+   `hasFixLocation` on the wallpaper engine, written by the location path on the main thread and
+   read by `renderScene` on the render thread, with nothing ordering the two — while every one of
+   their neighbours already carried `@Volatile`. Marking them `@Volatile` would have fixed only
+   half of it: three writes are three publications, so a reader can still take the new sunrise with
+   the old sunset. Demonstrated deterministically, with the fields *already* `@Volatile`: a fix
+   moving Florence → Reykjavík yields a 14.0 h day, against 9.5 h and 20.5 h for the two real ones.
+   They are now one immutable `SolarDay` behind a single `@Volatile` reference. 200 000 sampled
+   reads under unsynchronised hammering: 0 incoherent.
+
+791 JVM tests, 24 instrumented tests on a Pixel 9 / Android 17, `lintDebug` 0 errors and the same 32
+warnings, debug + R8 release APKs, and a runtime pass with a clean logcat. See `RELEASE_HISTORY.md`.
+
+---
+
 **v3.5 prepared — a race in PaperScrape's own test, fixed; the emulator job confirmed unable to hold
 up a release.**
 
@@ -256,11 +293,10 @@ closed in v3.1, and its two P1 test-infrastructure items plus P2-3, P2-4 and P2-
 
 | # | ID | Item | Why it is here |
 |---|---|---|---|
-| A | — | **Promote the CI emulator job to a gate** | Still `continue-on-error: true` and still absent from `release.needs`, deliberately. It has now failed twice on hosted runners for two different environmental reasons — SDK provisioning (fixed in v3.3) and a boot/install race (fixed in v3.4) — and both fixes were verified locally, never on a hosted runner, because executing Actions requires a push and §10.A forbids it. Upstream reached the same conclusion about API 37 on hosted runners and has an open Google bug (524601393). Promotion needs several consecutive green real runs first; it is then two lines: drop `continue-on-error`, add `instrumented` to `release.needs`. If it proves flaky instead, say so here rather than deleting the job quietly. |
-| B | **P2-5** | The Canvas backend allocates `Shader` objects inside the draw path | Against the CPU rules the project holds itself to. |
-| C | **P2-6** | Three scene fields shared across threads without synchronisation | |
-| D | **P2-8** | `ARCHITECTURE.md`'s validity stamp is twenty releases behind | It is now two releases further behind, and v3.2 added a whole test surface (`GlGolden`, the EGL pbuffer path, `SharedGoldenScenes`) that it does not mention. |
-| E | — | **A GL regression below the driver floor is invisible** | Measured in v3.2: two correct GL drivers differ by 0.12% of pixels at `>=16`, and two of the four deliberate regressions moved fewer pixels than that. Not fixable by lowering a threshold. If it ever matters, the answer is a targeted assertion on a region (as `GoldenScene.focus` does for the Canvas suite), not a tighter global limit. |
+| A | **P2-8** | `ARCHITECTURE.md`'s validity stamp is twenty-odd releases behind | Its stamp still reads *"v75 … current as of v1.0 Stable (`versionCode = 1`)"* against a `versionCode` of 27. v3.2 added a whole test surface (`GlGolden`, the EGL pbuffer path, `SharedGoldenScenes`) it does not mention, and v3.6 added `GradientShaderCache` and `SolarDay` and removed a CI job. Its *Workflows* section happens to be correct again as of v3.6, having described `build` and `release` and never the emulator job. |
+| B | — | **A GL regression below the driver floor is invisible** | Measured in v3.2: two correct GL drivers differ by 0.12% of pixels at `>=16`, and two of the four deliberate regressions moved fewer pixels than that. Not fixable by lowering a threshold. If it ever matters, the answer is a targeted assertion on a region (as `GoldenScene.focus` does for the Canvas suite), not a tighter global limit. |
+| C | — | **`AI_PROJECT_RULES.md` §12.3 is stale** | It still says *"No emulator or device is available in this environment"*, which is false: v3.6's P2-5 measurement, its 24 instrumented tests and its runtime pass were all taken on a local Pixel 9 / Android 17 emulator. A future session could read that line and skip runtime verification. Flagged since v3.2 and still out of scope each time. |
+| D | — | **The instrumented tests have no automated trigger at all** | Removing the `instrumented` job is what v3.6 decided; the consequence is that `app/src/androidTest` now runs only when somebody runs it. That is an improvement over a job that failed on every hosted run and gated nothing, but it is not nothing. If an E2E job is ever attempted again, `AI_PROJECT_RULES.md` 10.12 states the two properties it must satisfy first. **Not scheduled** — recorded so the trade-off stays visible rather than forgotten. |
 
 Deliberately **not** scheduled: any weather-provider change (OpenWeather, WeatherAPI, Tomorrow.io, a
 Visual Crossing migration), `targetSdk 37`, and any refactor of `PaperRenderer`,
@@ -307,6 +343,11 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v3.6 prepared** — the `instrumented` emulator job removed from CI after failing on every hosted
+  run it was ever given; **P2-5**, the Canvas backend's per-frame `Shader` construction (measured at
+  180 objects over 60 frames for 3 distinct gradients, now 3), closed by `GradientShaderCache`; and
+  **P2-6**, the three unsynchronised engine fields, closed by publishing them as one immutable
+  `SolarDay` behind a single `@Volatile`. No golden regenerated, no renderer refactored.
 - **v3.5 prepared** — the race in `AwaitOnceTest` that failed the v3.4 build (the test never joined
   the threads it started), and `AI_PROJECT_RULES.md` 10.12 making the release's independence from
   `instrumented` a permanent, checkable rule. Workflow unchanged; no application code changed.

@@ -352,23 +352,32 @@ carries the standard public debug credentials and exists so every build is
 signed with the same certificate. This exception must never be extended to a
 release keystore.
 
-10.12. **The instrumented job must never be able to block or hold up a release.** It runs an
-emulator, which is the slowest and least predictable thing in this pipeline, and it exists to
-diagnose regressions rather than to authorise shipping. Two independent properties, both required:
+10.12. **No auxiliary CI job may ever block or hold up a release.** An auxiliary job is one that
+exists to *diagnose* — an emulator or end-to-end suite, a benchmark, a scan — as opposed to `build`,
+which authorises shipping. If such a job is ever added back, two independent properties are
+required, and neither implies the other:
 
-- **Failure independence** — `instrumented` failing must leave `release` able to complete.
-- **Runtime independence** — `instrumented` still running must not make `release` wait.
+- **Failure independence** — the auxiliary job failing must leave `release` able to complete.
+- **Runtime independence** — the auxiliary job still running must not make `release` wait.
 
 `continue-on-error: true` alone delivers only the first. The second is a property of the graph, so
-the rule is about the graph: **`release` must not reach `instrumented` by any path.** Before
-changing the workflow, check all of them, not just a literal `needs: instrumented` — direct `needs`,
-the transitive closure of `needs`, `needs.instrumented.*` in an `if` or an expression, declared
-`outputs`, an artifact `release` downloads that `instrumented` uploads, and any third job that
-depends on one and is depended on by the other. A job-level `success()` evaluates only the jobs in
-that job's own `needs`, so it does not couple them either.
+the rule is about the graph: **`release` must not reach an auxiliary job by any path.** Check all of
+them, not just a literal `needs:` — direct `needs`, the transitive closure of `needs`,
+`needs.<job>.*` in an `if` or an expression, declared `outputs`, an artifact `release` downloads
+that the auxiliary job uploads, and any third job that depends on one and is depended on by the
+other. A job-level `success()` evaluates only the jobs in that job's own `needs`, so it does not
+couple them either.
 
-`instrumented` must keep existing and keep running its tests. Making a release green by disabling
-it, or by hiding its failures, is not what this rule permits.
+**As of v3.6 the workflow has no auxiliary job at all**, which is the strongest form of both
+properties: `build` and `release`, with `release` reaching only `build`. The `instrumented`
+emulator job that this rule was originally written for was removed in v3.6 after failing on every
+hosted run it was ever given — three distinct environment-level causes in a row, the last a shell
+syntax error inside the action's own wrapper after the AVD had booted — while never once producing
+a signal about PaperScrape's code. Its tests were not deleted: `app/src/androidTest` is intact and
+is run locally against a device.
+
+A future E2E job earns its place by being observed green on hosted runners before it gates
+anything, and it may never be made green by disabling it or hiding its failures.
 
 ### 10.A Claude never publishes
 

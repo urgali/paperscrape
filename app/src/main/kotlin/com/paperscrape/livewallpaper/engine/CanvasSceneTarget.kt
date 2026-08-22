@@ -1,13 +1,9 @@
 package com.paperscrape.livewallpaper.engine
 
 import android.graphics.Canvas
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.RadialGradient
 import android.graphics.RectF
-import android.graphics.Shader
-import androidx.core.graphics.ColorUtils
 
 /**
  * The `android.graphics.Canvas` backend: every [SceneCanvas] operation maps to the Canvas call the
@@ -29,6 +25,16 @@ class CanvasSceneTarget : SceneCanvas {
 
     /** Paints owned here because the gradient entry points carry their stops as arguments. */
     private val gradientPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    /**
+     * The gradients themselves, reused across calls and across frames (**P2-5**).
+     *
+     * Owned per target rather than globally so it needs no synchronisation; see
+     * [GradientShaderCache] for why the hit rate is what it is. Exposed rather than private so
+     * `CanvasGradientAllocationTest` can read [GradientShaderCache.built] and check the claim
+     * against what the real renderer asks for.
+     */
+    internal val gradientCache = GradientShaderCache()
     private val spritePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val wedgePath = Path()
     private val scratchRect = RectF()
@@ -111,9 +117,7 @@ class CanvasSceneTarget : SceneCanvas {
         bottomColor: Int,
         alpha: Int,
     ) {
-        gradientPaint.shader = LinearGradient(
-            0f, gradientTopY, 0f, gradientBottomY, topColor, bottomColor, Shader.TileMode.CLAMP,
-        )
+        gradientPaint.shader = gradientCache.linear(gradientTopY, gradientBottomY, topColor, bottomColor)
         gradientPaint.alpha = alpha
         require().drawPath(shape.asPath(), gradientPaint)
         gradientPaint.shader = null
@@ -128,20 +132,13 @@ class CanvasSceneTarget : SceneCanvas {
         topColor: Int,
         bottomColor: Int,
     ) {
-        gradientPaint.shader = LinearGradient(
-            0f, top, 0f, bottom, topColor, bottomColor, Shader.TileMode.CLAMP,
-        )
+        gradientPaint.shader = gradientCache.linear(top, bottom, topColor, bottomColor)
         require().drawRect(left, top, right, bottom, gradientPaint)
         gradientPaint.shader = null
     }
 
     override fun drawRadialGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int) {
-        gradientPaint.shader = RadialGradient(
-            cx, cy, radius,
-            ColorUtils.setAlphaComponent(color, centerAlpha),
-            ColorUtils.setAlphaComponent(color, 0),
-            Shader.TileMode.CLAMP,
-        )
+        gradientPaint.shader = gradientCache.radial(cx, cy, radius, color, centerAlpha)
         require().drawCircle(cx, cy, radius, gradientPaint)
         gradientPaint.shader = null
     }

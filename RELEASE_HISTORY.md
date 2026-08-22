@@ -19,6 +19,209 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.6 — the emulator CI job is gone, the Canvas backend stops rebuilding its gradients, and three engine fields become one snapshot
+
+**Prepared, not published.** `versionCode = 27`, `versionName = "3.6"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D).
+
+Three items, scoped in advance and nothing else. Two of them touch `app/src/main`: this is the first
+release since v3.1 that changes application code.
+
+---
+
+### 1. The `instrumented` CI job is removed
+
+**What it cost and what it returned.** The job was added in v3.2 to run the golden suite on a real
+emulator. Across v3.2 → v3.5 it ran on hosted runners repeatedly and **never once produced a signal
+about PaperScrape's code.** Every failure was environmental, and each one was a different
+environment:
+
+| release | hosted failure |
+|---|---|
+| v3.2 | `sdkmanager` asked for `platforms;android-37`, a package that does not exist |
+| v3.3 | `pm install-create` threw out of `StorageStatsService`: `sys.boot_completed` fires before the framework can install |
+| v3.5 | `Syntax error: end of file unexpected (expecting "done")` — inside the action's own wrapper, after the AVD had booted |
+
+The v3.5 run added a second, separate defect: after the test step failed, **`Collect device
+diagnostics` hung**. It is a sequence of `adb` calls with `|| true` throughout, which cannot fail but
+can block, and it sat there past the 45-minute job timeout — so the `device-diagnostics` artefact
+added in v3.4 for exactly this situation was never uploaded. The job could no longer even report
+why it had failed.
+
+Upstream reached the same conclusion independently: the action's own maintainers attempted API 37 in
+`ReactiveCircus/android-emulator-runner#476`, hit an emulator-level problem on hosted runners, filed
+Google issue 524601393, and closed the PR unmerged.
+
+**What was removed**, all of it inside the job — the workflow now contains no reference to an
+emulator at all (`grep -niE 'instrumented|emulator|android-emulator-runner|device-diagnostics|api-level|avd|adb|connected|kvm|system-image'` returns nothing):
+
+- the `instrumented` job (210 lines);
+- the `reactivecircus/android-emulator-runner` action and its API 37 / `google_apis` / AVD
+  configuration;
+- the Enable-KVM step and the pre-emulator APK assembly, both of which existed only for it;
+- the `instrumented-test-report` and `device-diagnostics` artefacts and the steps producing them.
+
+**What was not removed.** `app/src/androidTest` is untouched: 14 Canvas goldens, 3 GL goldens, 4
+`PrefsCorruptionRecoveryTest`, plus v3.6's 3 new ones. The committed goldens, `GlGolden`,
+`SharedGoldenScenes` and `GoldenScene` all stay. `assembleDebugAndroidTest` is part of this release's
+verification, so the suite is kept compiling, and it was run on a Pixel 9 / Android 17: **24/24
+green.** What changed is the trigger, not the tests.
+
+**The workflow after v3.6** is two jobs:
+
+```
+build     needs: (none)     lint, test, assembleDebug, artifact upload
+release   needs: [build]    if: success() && push && refs/tags/v*
+```
+
+`AI_PROJECT_RULES.md` **10.12** was rewritten. It described a job that no longer exists; the general
+property it was really about — that no auxiliary job may block or hold up a release, by failing *or*
+by still running — is kept, stated abstractly, and now also records that the strongest form of it is
+the one in force: there is no auxiliary job.
+
+**`build` deliberately still does not run `assembleRelease`.** It has `contents: read` and never sees
+the signing secrets, which is the property that makes it safe to run on fork PRs; the R8 release
+build lives in `release`, where the keystore is. Adding it to `build` would either duplicate the R8
+work on every PR or move secrets into the job that is exposed to untrusted code.
+
+---
+
+### 2. P2-5 closed — the Canvas backend rebuilt the same gradients every frame
+
+**Measured before anything was changed.** `CanvasSceneTarget`'s three gradient entry points each
+built a `LinearGradient` or `RadialGradient` unconditionally, on every call — three straight-line
+constructor invocations, no branch, no reuse. A counter was put on those three sites in the
+pre-v3.6 backend and the real `PaperRenderer` was driven on an API 37 device:
+
+| run | `Shader` objects built | distinct gradients requested |
+|---|---|---|
+| 60 animated frames | **180** | **3** |
+| 300 scrolling frames | **900** | **3** |
+
+At the render loop's 30 fps that is **90 native-backed objects a second, of which three are needed**,
+and after the first frame every single one duplicates an object built ~33 ms earlier. The reason is
+that the arguments barely move: `SunPositionCalculator.currentHour24` quantises the clock to the
+minute, so `dayBlend`, `celestialX` and `celestialY` hold still for ~1800 consecutive frames, and the
+palette and storm strength change more slowly again.
+
+**Two plausible assumptions were checked and one was wrong.** The hill layers' `-1, 0, +1` wrap-tile
+loop reads as three copies of one gradient per frame — the first version of the measurement test
+asserted exactly that, and the device refused it: the loop's own culling `continue` rejects two of
+the three at every scroll offset sampled, so one copy is drawn and the per-frame count is three, not
+five. Scrolling was also checked and changes nothing, the gradient being vertical and the scroll
+horizontal. **The waste is entirely frame-to-frame, not within-frame**, and only the measurement
+established that.
+
+**The fix.** `GradientShaderCache`, built on a new `IntKeyLruSlots` — the same shape as
+`TintFilterCache` on `IntLruSlots`, which is the pattern this project already uses for exactly this
+problem, and for the same reason: a `HashMap` would box its key on every lookup and grow for as long
+as the wallpaper runs. Keys are compared exactly, component by component, rather than hashed: a
+cache that returned a near-match would hand the renderer somebody else's gradient, which is a silent
+wrong-colour bug on a path with no assertion in it.
+
+It is owned per `CanvasSceneTarget` rather than being a global, so — unlike `TintFilterCache` — it
+needs no `@Synchronized` and a draw call takes no monitor. A target is used by one thread by
+construction: the engine's fallback target by the main looper, the settings preview's by the Compose
+UI thread.
+
+**After**, on the identical 60-frame run: **180 requests, 3 distinct, 3 objects built.** In steady
+state the cost goes to zero; a miss costs exactly what the old code paid on every call, and happens
+at a minute boundary or on a dawn/dusk colour step.
+
+**No visual change, and it was not asserted, it was tested.** All 17 golden frames — 14 Canvas, 3 GL
+— pass **unregenerated**, which is the strongest available statement that the picture is identical:
+the Canvas goldens are rendered through this exact backend. Plus a runtime pass on the emulator over
+the twelve theme previews and the running wallpaper.
+
+`IntLruSlots` and `TintFilterCache` were **not** touched. Widening the existing class would have made
+every tint lookup — the hottest loop in the renderer — pay for four comparisons it does not need.
+
+---
+
+### 3. P2-6 closed — three engine fields shared across threads
+
+**The three fields**, all on `PaperWallpaperService.PaperEngine`:
+
+```
+sunriseHour     Float     6f
+sunsetHour      Float     20f
+hasFixLocation  Boolean   false
+```
+
+**The access model.** Written together by `updateSunTimesFromLocation`, reached from the location
+callbacks and the settings collector on `Dispatchers.Main`; invalidated in three more places in that
+same collector. Read by `renderScene`, which `GlRenderThread` calls **once per frame on the render
+thread**, and also by `refreshDeviceFix` on the main thread. Plain fields: no `@Volatile`, no
+`synchronized`, and not routed through `queueEvent`. Every one of their neighbours on the same class
+— `settings`, `lastLocationFix`, `lastWeatherFetchMillis`, `lastWeatherFetchLocation`,
+`publishedWeatherStatus` — already carried `@Volatile` with a comment saying why. These three were
+simply missed.
+
+**Two defects, and the second is the one that matters.**
+
+- **Visibility.** Nothing established a happens-before edge between the write and the read. The
+  render thread reads them in a hot loop, so it may keep observing the stale defaults. (`inferred`
+  from the memory model; not separately reproduced, because a JIT-dependent staleness demonstration
+  would be a coincidence rather than a proof.)
+- **Coherence, which `@Volatile` on each field would not have fixed.** Three writes are three
+  publications however they are marked, so a reader can land between them and take the new sunrise
+  beside the old sunset.
+
+**The second one is demonstrated deterministically**, in `SolarDayPublicationTest`, with the fields
+*already* marked `@Volatile` so that the demonstration is about the shape and not about a missing
+annotation. A `CyclicBarrier` parks the reader between the writer's two stores — an interleaving the
+scheduler is free to produce and the test simply chooses — while a fix moves Florence → Reykjavík:
+
+```
+observed sunrise=3.0 (Reykjavik)  sunset=17.0 (Florence)  ->  dayLength = 14.0 h
+real:  Florence 9.5 h     Reykjavik 20.5 h
+```
+
+A 14-hour day belonging to no location, feeding `dayLengthHours` and through it the whole day/night
+blend, the sun's arc and the terminator.
+
+**The fix is publication of an immutable snapshot**, not annotations and not locks. The three fields
+become one `SolarDay` — a value object holding both hours and the has-fix flag, with `NONE` carrying
+the same 6:00/20:00 defaults the read site used to substitute — behind a single `@Volatile`
+reference. One volatile write publishes all three at once; one volatile read consumes them. Under
+the identical barrier the reader sees a whole Florence day; under 200 000 unsynchronised sampled
+reads while a writer alternates as fast as it can, **0 incoherent observations**.
+
+**Why not `queueEvent`.** The renderer's own scene state goes through `GlRenderThread.queueEvent`,
+that model is good, and it is untouched. These three are not renderer state — they are engine state
+the frame callback consults on its way into the renderer, and the main thread reads them too.
+Routing them through the render thread would stop the main thread asking "do we have a fix yet"
+without a round trip, and buy nothing an immutable snapshot does not already give.
+
+**Draw-path impact: one volatile read per frame in place of three plain reads, and no lock
+anywhere.** One allocation per location fix, which arrives at most every few minutes.
+
+---
+
+### Verification
+
+| check | result |
+|---|---|
+| `./gradlew test` | **791 tests, 0 failures** (773 in v3.5; +18) |
+| `./gradlew lint` | **0 errors**, 32 warnings/hints — *identical* to v3.5, none in any file this release touched |
+| `./gradlew assembleDebug` | pass |
+| `./gradlew assembleDebugAndroidTest` | pass — the suite is kept compiling now that CI no longer builds it |
+| `./gradlew assembleRelease` (R8) | pass |
+| `connectedDebugAndroidTest` on Pixel 9 / Android 17 | **24 tests, 0 failures** (21 in v3.5; +3 for P2-5) |
+| Goldens | **17/17 pass, none regenerated** |
+| Build + test from the extracted ZIP | pass |
+| Runtime | wallpaper set and running on Android 17; settings preview, twelve theme previews, system live-wallpaper preview, a custom location applied; logcat clean — no `FATAL`, no ANR, no application error |
+
+### Known limitations carried forward
+
+`P2-8` (`ARCHITECTURE.md`'s validity stamp), the GL driver-floor sensitivity and
+`AI_PROJECT_RULES.md` §12.3's stale "no emulator available" line are untouched, as are the
+weather-provider work and `targetSdk 37`. The instrumented tests now have no automated trigger at
+all — a deliberate consequence of item 1, recorded in `ROADMAP.md` rather than left implicit. See
+`ROADMAP.md`.
+
+---
+
 ## v3.5 — a race in PaperScrape's own test, and the rule that the emulator job cannot hold up a release
 
 **Prepared, not published.** `versionCode = 26`, `versionName = "3.5"`. No tag, no push, no GitHub

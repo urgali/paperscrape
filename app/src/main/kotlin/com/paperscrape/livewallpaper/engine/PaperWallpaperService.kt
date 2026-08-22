@@ -199,9 +199,17 @@ class PaperWallpaperService : WallpaperService() {
         /** Reused by the fallback path so the indirection adds no per-frame allocation. */
         private val canvasTarget = CanvasSceneTarget()
 
-        private var sunriseHour = 6f
-        private var sunsetHour = 20f
-        private var hasFixLocation = false
+        /**
+         * Today's sunrise, sunset and whether they came from a real position (**P2-6**).
+         *
+         * These were three plain fields — `sunriseHour`, `sunsetHour`, `hasFixLocation` — written
+         * here on the main thread and read by [renderScene] on the *render* thread, with nothing
+         * ordering the two. One `@Volatile` reference to an immutable [SolarDay] replaces them, so
+         * the reader gets the visibility edge and the three values arrive as one. See [SolarDay]
+         * for why three `@Volatile` fields would have fixed only half of it.
+         */
+        @Volatile
+        private var solarDay: SolarDay = SolarDay.NONE
         // The exact same fix updateSunTimesFromLocation just derived sunrise/sunset from --
         // stored separately so the weather-refresh loop below can reuse it for
         // WeatherRepository.fetchCurrentConditions without re-deriving or re-fetching location
@@ -245,8 +253,8 @@ class PaperWallpaperService : WallpaperService() {
          * Which of the two mutually exclusive location sources the current [lastLocationFix] came
          * from.
          *
-         * Exists because `hasFixLocation` alone cannot answer "is this fix still the right kind" --
-         * see the collector for the bug that produced.
+         * Exists because [solarDay]'s `hasFix` alone cannot answer "is this fix still the right
+         * kind" -- see the collector for the bug that produced.
          */
         private var locationSource: LocationSource = LocationSource.NONE
         private var lastAppliedThemeId = "sunset"
@@ -356,9 +364,10 @@ class PaperWallpaperService : WallpaperService() {
                         renderer?.scrollSpeed = newSettings.scrollSpeed
                         if (changed) requestRedraw()
                     }
-                    // **A fix belongs to the source it came from.** `hasFixLocation` used to be
-                    // set by both the GPS and the custom paths, so switching Custom -> Phone found
-                    // it already true, returned from maybeStartLocationUpdates without ever
+                    // **A fix belongs to the source it came from.** The "we have a fix" flag (now
+                    // [solarDay]'s `hasFix`) used to be set by both the GPS and the custom paths, so
+                    // switching Custom -> Phone found it already true, returned from
+                    // maybeStartLocationUpdates without ever
                     // starting the provider, and left `lastLocationFix` holding the *custom*
                     // coordinates -- measured on a Pixel 9, where selecting Phone kept fetching
                     // Florence's weather. Treating a source change as an invalidation is what
@@ -366,7 +375,7 @@ class PaperWallpaperService : WallpaperService() {
                     val requestedSource = LocationSource.of(newSettings)
                     if (requestedSource != locationSource) {
                         locationSource = requestedSource
-                        hasFixLocation = false
+                        solarDay = SolarDay.NONE
                         lastLocationFix = null
                         // The conditions on screen are the old source's. Nothing about them is
                         // worth keeping, so the next pass must fetch rather than compare.
@@ -376,9 +385,9 @@ class PaperWallpaperService : WallpaperService() {
                     if (newSettings.useLocationForSunTimes) {
                         // A fix is asked for here and nowhere else on a timer: the weather loop
                         // asks again when it is about to fetch, and that is the only other time.
-                        if (!hasFixLocation) launch { refreshDeviceFix(requestedSource) }
+                        if (!solarDay.hasFix) launch { refreshDeviceFix(requestedSource) }
                     } else {
-                        hasFixLocation = false
+                        solarDay = SolarDay.NONE
                         if (!newSettings.useCustomLocation) lastLocationFix = null
                     }
                     // Mutually exclusive with the phone-GPS path above (enforced at the
@@ -393,7 +402,7 @@ class PaperWallpaperService : WallpaperService() {
                             ),
                         )
                     } else if (!newSettings.useLocationForSunTimes) {
-                        hasFixLocation = false
+                        solarDay = SolarDay.NONE
                         lastLocationFix = null
                     }
                 }
@@ -697,10 +706,13 @@ class PaperWallpaperService : WallpaperService() {
                 settings.fixedHour
             }
 
+            // One read of one reference, so the two hours below provably belong to the same fix.
+            // SolarDay.NONE already carries the 6/20 defaults this used to substitute here.
+            val today = solarDay
             val dayPhase = SunPositionCalculator.compute(
                 hour24 = hour,
-                sunriseHour = if (hasFixLocation) sunriseHour else 6f,
-                sunsetHour = if (hasFixLocation) sunsetHour else 20f,
+                sunriseHour = today.sunriseHour,
+                sunsetHour = today.sunsetHour,
             )
 
             renderer?.draw(target, dayPhase, elapsedSeconds, deltaSeconds)
@@ -742,7 +754,7 @@ class PaperWallpaperService : WallpaperService() {
             }
             // Nothing new. Fall back to the saved position, but only once -- if a fix is already
             // held there is nothing to restore.
-            if (hasFixLocation) return
+            if (solarDay.hasFix) return
             val saved = savedDeviceFix()
             if (saved != null) updateSunTimesFromLocation(saved, isDeviceFix = false)
         }
@@ -773,9 +785,8 @@ class PaperWallpaperService : WallpaperService() {
                 dayOfYear = dayOfYear,
                 utcOffsetHours = utcOffsetHours,
             )
-            sunriseHour = sunrise
-            sunsetHour = sunset
-            hasFixLocation = true
+            // Published as one object, not three stores: see SolarDay.
+            solarDay = SolarDay.located(sunrise, sunset)
             lastLocationFix = fix
             // The weather loop's condition has two inputs, and until now only one of them woke
             // it. v76.4 made the *preference* wake it, which is why switching Live Weather on
