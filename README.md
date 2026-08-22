@@ -47,8 +47,7 @@ moving on its own.
   needed) or Visual Crossing (free account, own API key). If no location is available,
   or the chosen provider needs a key it does not have, it says so and falls back to the
   theme's own weather rather than quietly asking the other service.
-- **Occasional visitors.** Santa's sleigh, fireworks, lightning, birds, and a bird you
-  can summon by tapping.
+- **Occasional visitors.** Santa's sleigh, fireworks, lightning and birds.
 
 ---
 

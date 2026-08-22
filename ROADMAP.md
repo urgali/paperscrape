@@ -4,12 +4,45 @@ Operational plan only. What shipped and why lives in `RELEASE_HISTORY.md`; how t
 code works lives in `ARCHITECTURE.md`; the visual rules live in `DESIGN_NOTES.md`;
 the rules that always apply live in `AI_PROJECT_RULES.md`.
 
-**Nothing below is approved. Ask before starting any of it.** The v3.1 batch closed everything
+**Nothing below is approved. Ask before starting any of it.** The v3.2 batch closed everything
 that was.
 
 ---
 
 ## Current status
+
+**v3.2 prepared — the golden tests run themselves, the GL backend is under test, a solar day may
+cross midnight, and the geocoder cannot hang.**
+
+`versionCode = 23`, `versionName = "3.2"`. **No tag, no push, no GitHub Release.** From this batch
+onward publication is the maintainer's act (`AI_PROJECT_RULES.md` §10.A / §11.D) and what Claude
+delivers is a verified ZIP (§12.F). v3.2 exists as a local commit and `PaperScrape_v3_2.zip`; it is
+not on GitHub until the maintainer puts it there.
+
+1. **P1-3 — golden tests in CI.** A new `instrumented` job runs `connectedDebugAndroidTest` on an
+   API 37 emulator, artefacts uploaded on failure, SHA-pinned action. **Deliberately gates
+   nothing** (`continue-on-error`, absent from `release.needs`) until it has a track record.
+   Its first real run belongs to the maintainer — Claude cannot execute Actions without pushing.
+2. **P1-4 — `GlSceneTarget` under visual test.** An offscreen EGL pbuffer renders the shipped GL
+   backend through the real `PaperRenderer`; `day`, `lake-busy` and `thunderstorm` are checked both
+   against committed GL goldens and against the Canvas goldens. Every threshold measured against
+   two GL drivers; four deliberate regressions run, two caught on all three scenes and two shown to
+   be below the driver-to-driver floor.
+3. **P2-3 — a solar day may cross midnight.** Sunrise and sunset wrap onto the clock instead of
+   being clamped into it, `dayLengthHours` reads a day as an arc, and `compute()` classifies day and
+   night circularly. Ordinary locations are bit-for-bit unaffected.
+4. **P2-4 — the geocoder cannot hang.** The full `GeocodeListener` (the lambda implemented only
+   `onGeocode`, so every error was silently dropped), a 6 s bound, resume-exactly-once, correct
+   cancellation, and the legacy blocking path off the main thread.
+5. **P2-7 — bird/tap leftover removed** from the README and from `PaperEngine.onCreate`.
+
+Plus **Fase 0**: the permanent Git-publication and delivery-ZIP rules, in `AI_PROJECT_RULES.md`
+§10.A / §11.D / §12.F and `CLAUDE.md` §2 / §5.6.
+
+773 JVM tests, 21 instrumented tests, `lintDebug` 0 errors, debug and R8 release APKs, a runtime
+pass on an Android 17 emulator and a clean logcat. See `RELEASE_HISTORY.md`.
+
+---
 
 **v3.1 Stable — a damaged preferences file no longer takes the wallpaper down, Live Weather always
 has a way out, and a leaping dolphin stops flying through sails.**
@@ -132,7 +165,7 @@ producing an APK. **Seen running on a Pixel 9** (Android 16, gesture navigation,
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21, v3.1 → 22 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21, v3.1 → 22, v3.2 → 23 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -141,30 +174,26 @@ that shape, so the pre-release history's bare integer tags cannot be misread as 
 ## Known broken
 
 Nothing. **D13** -- the in-app updater hanging on `Downloading` -- was the only entry and is closed
-in v3.0; see Completed for what it actually was. The v3.0 assessment's five P0/P1/P2-now items are
-closed in v3.1.
+in v3.0; see Completed for what it actually was. The v3.0 assessment's five P0/P1/P2-now items were
+closed in v3.1, and its two P1 test-infrastructure items plus P2-3, P2-4 and P2-7 in v3.2.
 
 ---
 
 ## Next priorities
 
-**From the v3.0 assessment, in order.** These are the items it identified and this batch
-deliberately did not start; they are the next approved-shaped work, not yet approved.
+**What is left of the v3.0 assessment**, plus the one thing v3.2 created. None of it is approved.
 
 | # | ID | Item | Why it is here |
 |---|---|---|---|
-| A | **P1-3** | Golden tests never run in CI | `android-build.yml` runs `lint`, `test` and `assembleDebug`; nothing runs `connectedAndroidTest`. The 18 instrumented tests are pulled only by hand. Wants a separate `reactivecircus/android-emulator-runner` job, SHA-pinned like every other action here, on the API level the goldens were taken at, uploading `golden-output/` on failure -- and not gating `release` until it has proven stable. |
-| B | **P1-4** | `GlSceneTarget` has no visual coverage | All 18 goldens render through `CanvasSceneTarget`, which is the right choice; the consequence is that 686 lines of hand tessellation, batching and premultiplied blending are what actually draws the wallpaper on every device where EGL works, and nothing pins their output. Wants one instrumented test rendering `day`, `lake-busy` and `thunderstorm` through the shipped `GlSceneTarget` on an offscreen EGL pbuffer, at a wider tolerance. |
-| C | **P2-3** | Sunrise and sunset are truncated rather than wrapped to the next day | `SunPositionCalculator.approximateSunriseSunset` coerces both into the device's civil day. |
-| D | **P2-4** | `LocationLabelResolver` can hang forever on API 33+ | No timeout on the async geocoder callback. |
-| E | **P2-5** | The Canvas backend allocates `Shader` objects inside the draw path | Against the CPU rules the project holds itself to. |
-| F | **P2-6** | Three scene fields shared across threads without synchronisation | |
-| G | **P2-7** | The README documents a removed feature | |
-| H | **P2-8** | `ARCHITECTURE.md`'s validity stamp is twenty releases behind | |
+| A | — | **Promote the CI emulator job to a gate** | v3.2 added `instrumented` with `continue-on-error: true` and left it out of `release.needs`, deliberately: a new emulator job has no track record. Claude has never seen it run — executing Actions requires a push, which §10.A forbids — so the first data points are the maintainer's. Once several real runs are green and the duration is known, the promotion is two lines: drop `continue-on-error`, add `instrumented` to `release.needs`. If it proves flaky instead, say so here rather than deleting the job quietly. |
+| B | **P2-5** | The Canvas backend allocates `Shader` objects inside the draw path | Against the CPU rules the project holds itself to. |
+| C | **P2-6** | Three scene fields shared across threads without synchronisation | |
+| D | **P2-8** | `ARCHITECTURE.md`'s validity stamp is twenty releases behind | It is now two releases further behind, and v3.2 added a whole test surface (`GlGolden`, the EGL pbuffer path, `SharedGoldenScenes`) that it does not mention. |
+| E | — | **A GL regression below the driver floor is invisible** | Measured in v3.2: two correct GL drivers differ by 0.12% of pixels at `>=16`, and two of the four deliberate regressions moved fewer pixels than that. Not fixable by lowering a threshold. If it ever matters, the answer is a targeted assertion on a region (as `GoldenScene.focus` does for the Canvas suite), not a tighter global limit. |
 
-Deliberately **not** in v3.1 and not scheduled: any weather-provider change (OpenWeather,
-WeatherAPI, Tomorrow.io, a Visual Crossing migration), `targetSdk 37`, and any refactor of
-`PaperRenderer`, `SceneObjectRenderer` or `ThemePreviewScene`.
+Deliberately **not** scheduled: any weather-provider change (OpenWeather, WeatherAPI, Tomorrow.io, a
+Visual Crossing migration), `targetSdk 37`, and any refactor of `PaperRenderer`,
+`SceneObjectRenderer` or `ThemePreviewScene`.
 
 ---
 
@@ -207,6 +236,12 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v3.2 prepared** — the last two P1s and three P2s from the v3.0 assessment: the instrumented
+  suite runs in CI (**P1-3**, non-gating for now), the shipped GL backend has visual coverage
+  through an offscreen EGL pbuffer (**P1-4**), a solar day may cross the device's midnight
+  (**P2-3**), the geocoder always finishes (**P2-4**), and the bird/tap leftover is gone from the
+  README and from the engine (**P2-7**). Also the permanent rules that publication is the
+  maintainer's and delivery is a verified ZIP.
 - **v3.1 Stable** — the five items from the v3.0 assessment: DataStore corruption recovery that
   costs only the damaged store (**P0-1**), a Live Weather switch that can always be turned off and
   labels that describe the effective state rather than the stored flag (**P1-1**), depth ordering

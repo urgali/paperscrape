@@ -307,7 +307,12 @@ class PaperWallpaperService : WallpaperService() {
 
         override fun onCreate(surfaceHolder: SurfaceHolder) {
             super.onCreate(surfaceHolder)
-            setTouchEventsEnabled(true)
+            // **No `setTouchEventsEnabled(true)`, deliberately.** It was here for a tap-to-summon-a-
+            // bird gesture that no longer exists; nothing overrides `onTouchEvent` or `onCommand`,
+            // so every event the system was dispatching to this engine was being discarded on
+            // arrival. Asking the window manager to deliver touches to a wallpaper that ignores
+            // them costs IPC on every finger movement over the home screen and buys nothing. Turn
+            // it back on in the same change that adds a handler, not before.
             prefs = WallpaperPrefs(applicationContext)
             val customThemeStore = CustomThemeStore(applicationContext)
             scope.launch {

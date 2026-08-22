@@ -21,10 +21,11 @@ class SceneGoldenTest {
 
     // -- Time of day ------------------------------------------------------------------------
 
+    // Three of the fourteen scenes are defined in [SharedGoldenScenes] rather than here, because
+    // [GlSceneGoldenTest] renders those same three through the GL backend and compares them
+    // against these same PNGs. See that object for why they are shared rather than copied.
     @Test
-    fun day() = SceneGolden.assertMatches(
-        GoldenScene(name = "day", dayPhase = GoldenScene.day()),
-    )
+    fun day() = SceneGolden.assertMatches(SharedGoldenScenes.day())
 
     @Test
     fun night() = SceneGolden.assertMatches(
@@ -77,13 +78,7 @@ class SceneGoldenTest {
      * a picture.
      */
     @Test
-    fun thunderstorm() = SceneGolden.assertMatches(
-        GoldenScene(
-            name = "thunderstorm",
-            dayPhase = GoldenScene.day(),
-            weather = weather(cloud = 1f, type = PrecipitationType.RAIN, intensity = 1f, storm = true),
-        ),
-    )
+    fun thunderstorm() = SceneGolden.assertMatches(SharedGoldenScenes.thunderstorm())
 
     // -- The lake -----------------------------------------------------------------------------
 
@@ -104,24 +99,7 @@ class SceneGoldenTest {
      * were sharing lanes and painting over each other by index before [LakeLanes] existed.
      */
     @Test
-    fun lakeBusy() = SceneGolden.assertMatches(
-        GoldenScene(
-            name = "lake-busy",
-            dayPhase = GoldenScene.day(),
-            customise = {
-                it.copy(
-                    lake = it.lake.copy(
-                        visible = true,
-                        height = 0.8f,
-                        sailboatsVisible = true,
-                        sailboatsDensity = 1f,
-                        dolphinsVisible = true,
-                        dolphinsDensity = 1f,
-                    ),
-                )
-            },
-        ),
-    )
+    fun lakeBusy() = SceneGolden.assertMatches(SharedGoldenScenes.lakeBusy())
 
     /** Boats alone, at a scene time where several are close together across the water. */
     @Test

@@ -19,6 +19,190 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.2 — the golden tests run themselves, the GL backend is under test, and a solar day may cross midnight
+
+**Prepared, not published.** `versionCode = 23`, `versionName = "3.2"`. No tag, no push, no GitHub
+Release: from v3.2 onward publication is the maintainer's act and Claude's deliverable is a verified
+ZIP (`AI_PROJECT_RULES.md` §10.A, §11.D, §12.F, added in this batch).
+
+The remaining P1 and two of the P2 items from the v3.0 assessment, and nothing else.
+
+### Permanent rules added first (Fase 0)
+
+`AI_PROJECT_RULES.md` §10.A forbids Claude from pushing, tagging, releasing or uploading anything,
+and from reaching GitHub with any of the maintainer's credentials — SSH keys included, and
+explicitly forbids working around a refused HTTPS push rather than stopping at it. §11.D splits
+release preparation from release publication and says which half is whose. §12.F makes a verified
+delivery ZIP the deliverable of every modifying batch, with what it must and must not contain and
+the order the checks run in. `CLAUDE.md` §2 and §5.6 carry the operational form of the same rules,
+including the specific trap on this machine: `~/.ssh/id_rsa` authenticates as the maintainer and
+*will* let a push through, which is exactly why it is not to be touched.
+
+### P1-3 closed: the instrumented tests now run in CI
+
+`android-build.yml` ran `lint`, `test` and `assembleDebug`; nothing ran `connectedAndroidTest`, so
+the only defence against a visual regression was somebody remembering to pull it by hand.
+
+A new `instrumented` job runs the whole suite on an emulator: `reactivecircus/android-emulator-runner`
+pinned to `a421e43` (v2.38.0) like every other action here, **API 37 `google_apis` x86_64** —
+matching the platform the goldens were taken on, and available as a stable image, which was checked
+rather than assumed — `pixel_6`, headless, `-gpu swiftshader_indirect`, KVM enabled by the runner's
+own udev rule, 45-minute cap, and `androidTest-results` plus the rejected frames uploaded on failure.
+
+**It gates nothing.** `continue-on-error: true`, and `release.needs` is still `build` alone. An
+emulator job is the flakiest thing in an Android CI and a new one has no track record; promoting it
+is a deliberate later change and `ROADMAP.md` records it as such. It also skips pull requests.
+
+**Not observed running.** Claude cannot execute GitHub Actions without pushing, which §10.A forbids,
+so the job is statically valid (YAML parsed, every action SHA-pinned, `release.needs` confirmed
+unchanged) and its Gradle task is proven locally — but its first real run, and therefore its true
+duration and flakiness, belong to the maintainer. This is stated as an outstanding item rather than
+folded into the pass.
+
+### P1-4 closed: the shipped GL backend has visual coverage
+
+All fourteen goldens rendered through `CanvasSceneTarget`, which is right and stays. The
+consequence was that `GlSceneTarget` — ~690 lines of hand tessellation, batching, atlas UVs and
+premultiplied blending, and what actually draws the wallpaper wherever EGL works — had nothing
+pinning a single pixel.
+
+`GlGolden` stands up an **offscreen EGL pbuffer**, hands the real `GlSceneTarget` to the real
+`PaperRenderer` through the same `SceneCanvas` seam the wallpaper uses, and reads the framebuffer
+back. No second renderer: every pixel comes from shipped code. The config is `GlRenderThread`'s own
+— 8888, no depth, no stencil, 4x MSAA with a fallback — differing only in `EGL_PBUFFER_BIT`.
+
+Three scenes, `day`, `lake-busy` and `thunderstorm`, and their definitions moved into
+`SharedGoldenScenes` so both suites render provably the same objects. Two comparisons per scene:
+
+| | against | channel | limit | healthy |
+|---|---|---|---|---|
+| GL golden | committed `gl-<name>.png` | >=16 | 0.50% | 0.12% |
+| Canvas cross-check | the Canvas golden | >=64 / >=32 | 1.0% / 2.0% | 0.21% / 1.01% |
+
+**Every threshold is measured.** Rendering the three scenes under two very different GL drivers —
+the host-GPU translator and `swiftshader_indirect` — showed they differ from each other by only
+0.12% of pixels at `>=16`, while GL differs from Canvas by 1.01% at `>=32`. That gap is what lets
+the GL golden be four times tighter than the cross-check. The committed GL goldens were generated
+under `swiftshader_indirect`, the driver CI uses, and then verified to still pass under the
+host-GPU driver — so the portability the numbers imply was checked, not assumed.
+
+Both comparisons are kept because they fail differently: the GL golden is sensitive but pins only
+this backend against itself, so on the day a driver change forces a regeneration it would bless a
+real bug at the same time; the cross-check is what stands in the way of that.
+
+**Teeth, with the negative results reported too.** Four deliberate regressions:
+
+| mutation | caught | numbers |
+|---|---|---|
+| premultiplied blend function swapped for the non-premultiplied one | **yes, 3/3 scenes** | 3.75% / 2.09% / 1.74% against a 0.50% limit |
+| orthographic projection shifted one pixel | **yes, 3/3 scenes** | 1.74%–2.75% against 0.50% |
+| `drawRadialGlow`'s fan reduced to a single triangle | **no** | max delta 15/255; 0.47% at `>=8` where two correct drivers already differ by 0.88% |
+| hill gradient highlight flattened | **no** | max delta 17/255; 0.128% at `>=16` against a 0.12% driver floor |
+
+The last two are not gaps to be closed by lowering a threshold: both effects are low-contrast by
+design (the glow is alpha 90 over a bright sky), and both move fewer pixels than two correct GL
+drivers move between themselves. A limit under that floor would fail on the next emulator instead of
+on the next bug. Recorded here rather than omitted, per §12.11.
+
+Under the earlier design — cross-check only — the blend regression was caught on **one** scene of
+three, by 5.18% against a 5.0% limit. Adding the GL golden is what took it to three of three.
+
+### P2-3 closed: a solar day may cross the device's midnight
+
+`solarNoon = 12 - longitude/15 + utcOffset` is not pinned to 12:00, and a long day on top of a late
+solar noon puts sunset past 24:00 — Ísafjörður in June, Nome in June, anywhere keeping a timezone
+far from its geography. `approximateSunriseSunset` closed both values inside `0..23.98`, which does
+not move such a day: it deletes the end that did not fit. Kiritimati (UTC+14 at 157W, solar noon
+near 36:30) came out as a zero-length day at midnight, two degrees from the equator.
+
+Fixed along the whole path, not at the `coerceIn`:
+
+- **The calculation** wraps onto the clock instead of clamping into it. The two poles are answered
+  before any wrapping can blur them — `2 * hourAngleHours >= 24` returns the literal `(0, 24)`,
+  `<= 0` returns `(noon, noon)` — because after wrapping a 24-hour day and a 0-hour day are the same
+  pair, and they mean opposite things.
+- **`dayLengthHours(sunrise, sunset)`** is new and public: a day is an arc on a circle, so its length
+  is `sunset - sunrise` only when the two share a date.
+- **`compute()`** classifies day and night circularly (`wrap24(hour - sunrise) <= dayLength`) and
+  measures both arcs around the clock. For a window that does not wrap this is arithmetically
+  identical to the subtraction it replaces, which is why no ordinary location moved.
+
+Fourteen new JVM cases: the three reference cities pinned to real ranges (Mountain View 05:51/20:26,
+New York 05:28/20:24, Tokyo 04:29/18:54, none wrapping), a sunset after midnight, a sunrise before
+it, a solar noon past the end of the clock, both poles, and a 1 470-combination sweep of
+latitude x longitude x offset x day-of-year asserting every result is a real clock time with a
+duration between 0 and 24 hours. Both halves are load-bearing: restoring the clamp fails three
+tests, restoring the linear day/night test fails two.
+
+**Runtime A/B on the device.** Custom location Kiritimati, clock frozen at 05:00, everything else
+identical: v3.2 draws daylight with the sun near the horizon, v3.1 draws night with the moon. The
+light window is 18:28 -> 06:31 in device-clock terms and 05:00 is inside it. Milan at 13:00 and
+03:00 is unchanged — day and night respectively.
+
+### P2-4 closed: the geocoder cannot hang
+
+`LocationLabelResolver` passed a **lambda** to `Geocoder.getFromLocation(..., GeocodeListener)`.
+That interface declares `onGeocode` *and* `onError`; a SAM conversion implements the first only, so
+every error the platform reported arrived at a method nobody had written, the continuation was never
+resumed, and there was no timeout either. Upstream: a settings row on "Locating..." for the life of
+the screen.
+
+Three changes, and each closes a different way to hang:
+
+- The full `Geocoder.GeocodeListener` is implemented, so the error path reaches the coroutine.
+- `awaitOnceOrNull` (new, pure Kotlin, no Android imports) bounds the wait at 6 s, guarantees the
+  continuation resumes exactly once whatever the platform does, resumes immediately if the platform
+  call throws synchronously, and stays cancellable. No polling.
+- The pre-API-33 branch, which is synchronous and was running on the main thread from a
+  `LaunchedEffect`, moved to `Dispatchers.IO` — without which the timeout would bound nothing, since
+  `withTimeoutOrNull` can only give up at a suspension point.
+- `CancellationException` is rethrown rather than swallowed by the `catch (Exception)`.
+
+Eight JVM cases on the bridge: result, error, no callback at all, a late callback after the timeout,
+a double callback, four threads racing, a synchronous throw, and outer cancellation. Removing the
+timeout fails two of them — and the "never comes" test carries its own outer bound specifically so
+that removal produces a red assertion instead of a hung suite.
+
+**Reported rather than claimed:** removing the `AtomicBoolean` once-only guard does *not* fail the
+suite, because `continuation.isActive` alone covers the sequential case and the 200-thread race did
+not reproduce the window. The guard stays — the check-then-resume pair is genuinely not atomic — but
+it is protection the tests cannot force. §12.11.
+
+**Runtime.** Reverse lookup resolves ("Milano, Italia") with no stuck loading state. City search
+online returns results; in aeroplane mode it reports *"Couldn't reach the city search — check your
+connection and try again. Your current location is unchanged."* and settles there. The platform
+geocoder's own `onError` could **not** be provoked on this emulator, which answers from a local
+dataset even with the radios off; that path is covered by the JVM tests only.
+
+### P2-7 closed: the bird that could be tapped for is gone from the README, and so is the leftover
+
+The README advertised a bird summoned by tapping. The gesture was removed releases ago.
+`setTouchEventsEnabled(true)` was still in `PaperEngine.onCreate` with nothing overriding
+`onTouchEvent` or `onCommand`, so the window manager was dispatching every touch over the home
+screen to an engine that discarded it. Both removed; a comment marks the absence as deliberate so
+the call is not restored without a handler. A global search for `setTouchEventsEnabled`,
+`onTouchEvent`, `MotionEvent`, `onCommand` and "summon" across sources and documentation finds only
+that comment. Twelve taps on the running wallpaper: nothing happens, nothing logs, the scene keeps
+drawing.
+
+### Verification
+
+- **773 JVM tests**, 0 failures (765 in v3.1; +8 geocoder, +14 sun, and three v3.1 sun tests
+  subsumed).
+- **21 instrumented tests** on Pixel_9 / Android 17, 0 failures (18 in v3.1; +3 GL).
+- `lintDebug`: 0 errors, 32 warnings/notes — unchanged, none in any file this release touched.
+- `assembleDebug` and `assembleRelease` (R8) both produce APKs.
+- Runtime pass on an Android 17 emulator; logcat clean — no `FATAL`, no ANR, no application error.
+- GL goldens generated under `swiftshader_indirect` and re-verified under the host-GPU driver.
+
+### Known limitations carried forward
+
+`P2-5` (Canvas `Shader` allocation in the draw path), `P2-6` (three scene fields shared across
+threads), `P2-8` (`ARCHITECTURE.md`'s validity stamp) are untouched, as are the weather-provider
+work and `targetSdk 37`. The CI emulator job has not been observed running. See `ROADMAP.md`.
+
+---
+
 ## v3.1 — a corrupt preferences file no longer kills the wallpaper, and four smaller lies fixed
 
 **Stable / latest.** `versionCode = 22`, `versionName = "3.1"`. Tag `v3.1`.

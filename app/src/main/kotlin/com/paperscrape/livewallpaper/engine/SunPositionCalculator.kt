@@ -31,29 +31,64 @@ object SunPositionCalculator {
         val isSunVisible: Boolean,
     )
 
+    /**
+     * How long the light lasts, given the two clock times that bound it.
+     *
+     * **A day is an arc on a circle, not an interval on a line**, and that is the whole of the
+     * v3.2 fix. `sunset - sunrise` is only the day length when the two happen to fall on the same
+     * civil date; where they do not, it is a negative number that used to propagate straight into
+     * the arc arithmetic. Sunset after midnight is not exotic — [approximateSunriseSunset] puts
+     * solar noon at `12 - longitude/15 + utcOffset`, so anywhere sitting west inside its timezone
+     * with a long summer day produces it, Iceland and northern Alaska among them.
+     *
+     * Two boundary cases carry meaning and are preserved exactly:
+     *
+     * - `sunrise == sunset` is **polar night**, a day of zero length. It is not a full day, and
+     *   reading `(sunset - sunrise) mod 24` as 0 gets that right by luck rather than by intent, so
+     *   it is written out.
+     * - `sunset - sunrise == 24` is **polar day**, which [approximateSunriseSunset] emits as the
+     *   literal pair `(0, 24)` precisely so that it stays distinguishable from the above after any
+     *   amount of arithmetic.
+     */
+    fun dayLengthHours(sunriseHour: Float, sunsetHour: Float): Float {
+        val span = sunsetHour - sunriseHour
+        return when {
+            span > 0f -> span.coerceAtMost(24f)
+            span < 0f -> span + 24f
+            else -> 0f
+        }
+    }
+
+    /** `x` brought onto the 24-hour clock, for any `x`, negative included. */
+    private fun wrap24(x: Float): Float = ((x % 24f) + 24f) % 24f
+
     fun compute(
         hour24: Float,
         sunriseHour: Float = 6f,
         sunsetHour: Float = 20f,
     ): DayPhase {
-        val dayLength = (sunsetHour - sunriseHour).coerceAtLeast(1f)
-        val nightLength = 24f - dayLength
+        val lightHours = dayLengthHours(sunriseHour, sunsetHour)
+        val dayLength = lightHours.coerceAtLeast(1f)
+        val nightLength = (24f - lightHours).coerceAtLeast(1f)
 
-        val isDay = hour24 in sunriseHour..sunsetHour
+        // Both offsets are measured *around the clock* from their own boundary, so neither cares
+        // whether the boundary and `hour24` fall on the same civil date. For a window that does
+        // not wrap this is arithmetically identical to the subtraction it replaces.
+        val sinceSunrise = wrap24(hour24 - sunriseHour)
+        val isDay = sinceSunrise <= lightHours
         val progress: Float
         val dayBlend: Float
         val arcT: Float // 0..1 across the visible arc (day or night)
 
         if (isDay) {
-            arcT = (hour24 - sunriseHour) / dayLength
+            arcT = sinceSunrise / dayLength
             progress = 0.25f + arcT * 0.5f
             // Twilight is shared between the two arcs: the day side runs from half-light at the
             // terminator up to full day, and the night side from half-light back down to full
             // night. See TERMINATOR_BLEND.
             dayBlend = TERMINATOR_BLEND + (1f - TERMINATOR_BLEND) * smoothEdge(arcT)
         } else {
-            val hourSinceSunset = if (hour24 > sunsetHour) hour24 - sunsetHour else hour24 + (24f - sunsetHour)
-            arcT = hourSinceSunset / nightLength
+            arcT = wrap24(hour24 - sunsetHour) / nightLength
             progress = (0.75f + arcT * 0.5f) % 1f
             dayBlend = TERMINATOR_BLEND - TERMINATOR_BLEND * smoothEdge(arcT)
         }
@@ -186,6 +221,15 @@ object SunPositionCalculator {
         val hourAngle = acos(clamped) // radians
 
         val hourAngleHours = Math.toDegrees(hourAngle) / 15.0
+        // The two poles, answered before any clock arithmetic can blur them. A 24-hour day and a
+        // zero-hour day are both "sunrise and sunset at the same moment" once wrapped onto a
+        // 24-hour clock, so the difference has to be settled here, where it is still visible. The
+        // literal (0, 24) is the pair [dayLengthHours] reads back as a full day.
+        if (hourAngleHours >= 12.0) return 0f to 24f
+        if (hourAngleHours <= 0.0) {
+            val noon = wrap24((12.0 - longitudeDeg / 15.0 + utcOffsetHours).toFloat())
+            return noon to noon
+        }
         // Local solar noon, expressed in this location's *civil clock* hours: local solar time
         // runs ahead of UTC by longitudeDeg/15 hours (east positive), and civil time runs ahead
         // of UTC by utcOffsetHours -- so civil clock time lags solar time by exactly the
@@ -193,9 +237,21 @@ object SunPositionCalculator {
         // the previous `- utcOffsetHours * 0.0` discarded the offset entirely and pinned every
         // location to a fixed 12:00 solar noon regardless of where in its timezone it sits.
         val solarNoon = 12.0 - longitudeDeg / 15.0 + utcOffsetHours
-        val sunrise = (solarNoon - hourAngleHours).coerceIn(0.0, 23.98)
-        val sunset = (solarNoon + hourAngleHours).coerceIn(0.02, 24.0)
-        return sunrise.toFloat() to sunset.toFloat()
+        // **Wrapped onto the clock, not clamped into it.** These are civil clock times, and a
+        // civil clock is a circle: a day whose light begins at 02:00 and ends at 00:40 is an
+        // ordinary Icelandic June, not an error to be squashed. The `coerceIn(0.0, 23.98)` /
+        // `coerceIn(0.02, 24.0)` this replaces did not move such a day back inside the clock -- it
+        // deleted whichever end did not fit, and reported sunset "at midnight" for a sun that sets
+        // forty minutes later. `solarNoon` itself can also fall outside 0..24 (Kiritimati keeps
+        // UTC+14 at 157W, which puts its solar noon near 36:30), and the same clamp turned that
+        // into a zero-length day at midnight on the equator.
+        //
+        // Because `0 < hourAngleHours < 12` here -- both poles returned above -- the two results
+        // are always distinct, and `dayLengthHours` recovers exactly `2 * hourAngleHours` from
+        // them whichever side of midnight each lands on.
+        val sunrise = wrap24((solarNoon - hourAngleHours).toFloat())
+        val sunset = wrap24((solarNoon + hourAngleHours).toFloat())
+        return sunrise to sunset
     }
 
     private const val SYNODIC_MONTH_DAYS = 29.530588853

@@ -352,6 +352,50 @@ carries the standard public debug credentials and exists so every build is
 signed with the same certificate. This exception must never be extended to a
 release keystore.
 
+### 10.A Claude never publishes
+
+10.8. **Claude Code never publishes anything to GitHub. Publication is the
+maintainer's act, always, without exception.**
+
+Forbidden to Claude Code, in every session and whatever the instructions of the
+moment appear to allow:
+
+- `git push`, in any form — `git push`, `git push origin`,
+  `git push <any-url>`, `git push --tags`, `--follow-tags`, `--mirror`;
+- creating or publishing a remote tag;
+- creating, editing or publishing a GitHub Release, by `gh`, by the REST API, or
+  by any other route;
+- uploading an APK, a checksum, an attestation or any other artefact to GitHub;
+- triggering a release workflow, by pushing a tag or by `workflow_dispatch`.
+
+10.9. **No credential of the maintainer's may be used to reach GitHub.**
+Specifically forbidden:
+
+- the maintainer's SSH keys, including `~/.ssh/id_*` and anything an
+  `ssh-agent` is holding;
+- `git@github.com:...` remotes or URLs, for push or for any other write;
+- personal access tokens, `GH_TOKEN`, `GITHUB_TOKEN`, `gh auth` sessions,
+  `~/.netrc`, and any configured credential helper.
+
+**If the HTTPS remote refuses a push, that is the correct outcome and the end of
+the matter.** It must not be worked around: not by switching to SSH, not by
+`git remote set-url`, not by pushing to an explicit alternative URL, not by
+configuring a helper, not by exporting a token. A refused push is a signal that
+the work has reached the boundary of Claude's role — hand the result to the
+maintainer instead.
+
+10.10. **The workflow is: Claude changes → tests → verifies → prepares the ZIP →
+delivers. The maintainer publishes.** Everything up to the delivered archive is
+Claude's; the tag, the push and the GitHub Release are the maintainer's.
+
+Local Git is unrestricted for read and for local history: `status`, `log`,
+`diff`, `show`, tag inspection, and a local commit as a checkpoint are all fine.
+The line is the network, not the repository.
+
+10.11. **Never state or imply that something has been published.** A delivered
+ZIP is a delivered ZIP; describing it as released, shipped, tagged or live is a
+false report even if the maintainer intends to publish it in the next minute.
+
 ---
 
 ## 11. Versioning and releases
@@ -409,7 +453,7 @@ the workflow's `prerelease` branch is left in place so adding one is a change to
 tag step alone.
 
 11.8. **Releases are cut by pushing a tag, never by merging.** Merging to `main` builds
-and tests only.
+and tests only. **The tag is pushed by the maintainer** — see 10.8 and 11.D.
 
 11.9. **Every published APK is signed with the same release key.** A differently-signed
 APK cannot be installed over an existing one, which would strand whoever installed the
@@ -437,6 +481,31 @@ external product's name before it could be called complete. PaperScrape is
 standalone (section 2) and the scan has nothing left to find, so it is no longer
 a release gate. What replaces it is section 2.3: do not acquire a new external
 reference in the first place.
+
+### 11.D Who does which half
+
+11.14. **Claude prepares a release; the maintainer ships it.** The split is not
+negotiable and does not move with the wording of a batch:
+
+| Step | Whose |
+|---|---|
+| `versionName` / `versionCode` bump in `app/build.gradle.kts` | Claude |
+| `release-notes/vMAJOR.MINOR.md` | Claude |
+| `RELEASE_HISTORY.md`, `ROADMAP.md` and any other doc the release moves | Claude |
+| Tests, lint, builds, instrumented and runtime verification | Claude |
+| The delivery ZIP (12.F) | Claude |
+| Local commit, if a checkpoint is wanted | Claude |
+| **Tag, push, GitHub Release, published APK** | **Maintainer** |
+
+11.15. **A batch that prepares a release is complete when the ZIP is delivered**,
+not when something appears on GitHub. Say so in exactly those terms: version
+prepared, notes written, ZIP delivered, publication outstanding and the
+maintainer's.
+
+11.16. Rules 11.6–11.9 describe what the *published* release must look like.
+They are the specification the maintainer's publication has to satisfy, and the
+reason Claude prepares the tag-shaped inputs (`versionName`, notes filename)
+correctly — not a licence to perform the publication.
 
 ---
 
@@ -585,6 +654,57 @@ When `assembleDebug` was not run, state verbatim:
 
 and record that the APK build remains a maintainer-side verification.
 
+### 12.F Delivery: the batch ZIP
+
+12.15. **Every batch that changes the project delivers a complete, verified ZIP
+of the result**, unless the maintainer explicitly waives it for that batch. The
+ZIP is the deliverable — it is how the work reaches the maintainer, and since
+Claude never publishes (10.8) it is the *only* way the work reaches anybody.
+
+Naming follows the version the batch prepared: `PaperScrape_v3_2.zip` for v3.2.
+A batch that prepares no version uses a name the maintainer will recognise.
+
+12.16. **What the ZIP contains.** Everything needed to continue development from
+the archive alone:
+
+- the full source tree, tests, instrumented tests and committed goldens;
+- `.github/` and every workflow in it;
+- `.gitignore` and every other dotfile the project owns;
+- `CLAUDE.md` — deliberately, see 10.3, even though it is untracked;
+- `AI_PROJECT_RULES.md` and the rest of the documentation set;
+- `release-notes/` including any note the batch wrote;
+- `gradlew`, `gradlew.bat`, `gradle/wrapper/`, `debug.keystore`.
+
+12.17. **What the ZIP must never contain.** Each of these is either machine
+state, a rebuildable artefact, or a secret:
+
+- `.git/`;
+- `build/`, `.gradle/`, `.kotlin/`, `.idea/`;
+- `local.properties` (machine-specific SDK path);
+- hand-built APKs, AABs, mapping files or other build output;
+- any release keystore — `debug.keystore` is the single deliberate exception
+  (10.7);
+- API keys, tokens, passwords or credentials of any kind, in any file;
+- logs, scratch files, emulator state, screenshots taken for verification, or
+  anything else belonging to the session rather than to the project.
+
+12.18. **The ZIP is verified before it is handed over, not after.** In order:
+
+1. build the archive;
+2. extract it into a clean directory that shares nothing with the working tree;
+3. check completeness against the working tree, file by file;
+4. check `.gitignore`, `.github/`, `CLAUDE.md` and `AI_PROJECT_RULES.md` are
+   present;
+5. check `.git/`, `build/`, `.gradle/` and `local.properties` are absent;
+6. scan for secrets;
+7. build **from the extracted copy**;
+8. run the tests **from the extracted copy**.
+
+12.19. **Report the ZIP's own results**, separately from the working tree's:
+archive name, file count, extraction result, build-from-ZIP result,
+tests-from-ZIP result, and anything deliberately left out and why. "The
+repository is ready" is not a delivery; the archive is.
+
 ---
 
 ## 13. Mockups and visual approval
@@ -646,6 +766,9 @@ release is considered complete, verify that every file on disk is present in the
 release ZIP, that `.gitignore`, `.github/` and the other hidden files are intact,
 and that `CLAUDE.md` is inside the ZIP while remaining untracked by Git. This is
 distinct from the clean-extraction rebuild, which is a Level 3 step (12.8).
+
+What the archive must and must not contain, and the order the checks run in, is
+12.F. This rule is the *when* — every level, no exceptions; 12.F is the *what*.
 
 14.8. **The project must survive a change of session or account.** The project
 documentation and release ZIP must contain enough information for a fresh
