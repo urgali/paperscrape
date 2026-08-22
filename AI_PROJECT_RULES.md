@@ -352,6 +352,24 @@ carries the standard public debug credentials and exists so every build is
 signed with the same certificate. This exception must never be extended to a
 release keystore.
 
+10.12. **The instrumented job must never be able to block or hold up a release.** It runs an
+emulator, which is the slowest and least predictable thing in this pipeline, and it exists to
+diagnose regressions rather than to authorise shipping. Two independent properties, both required:
+
+- **Failure independence** — `instrumented` failing must leave `release` able to complete.
+- **Runtime independence** — `instrumented` still running must not make `release` wait.
+
+`continue-on-error: true` alone delivers only the first. The second is a property of the graph, so
+the rule is about the graph: **`release` must not reach `instrumented` by any path.** Before
+changing the workflow, check all of them, not just a literal `needs: instrumented` — direct `needs`,
+the transitive closure of `needs`, `needs.instrumented.*` in an `if` or an expression, declared
+`outputs`, an artifact `release` downloads that `instrumented` uploads, and any third job that
+depends on one and is depended on by the other. A job-level `success()` evaluates only the jobs in
+that job's own `needs`, so it does not couple them either.
+
+`instrumented` must keep existing and keep running its tests. Making a release green by disabling
+it, or by hiding its failures, is not what this rule permits.
+
 ### 10.A Claude never publishes
 
 10.8. **Claude Code never publishes anything to GitHub. Publication is the

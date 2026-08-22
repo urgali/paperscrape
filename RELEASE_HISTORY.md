@@ -19,6 +19,90 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.5 — a race in PaperScrape's own test, and the rule that the emulator job cannot hold up a release
+
+**Prepared, not published.** `versionCode = 26`, `versionName = "3.5"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D).
+
+**No application code changed.** The only source file touched is one test.
+
+### What failed
+
+The v3.4 build failed its `build` job on `./gradlew test`:
+
+```
+773 tests completed, 1 failed
+AwaitOnceTest > two threads racing to complete resume once FAILED
+    expected:<200> but was:<199>   (AwaitOnceTest.kt:119)
+```
+
+`release` never ran, because `release.needs: build` — which is correct and is not what this release
+changes.
+
+### The cause: a race in the test, not in the code under test
+
+The test starts four threads per iteration, each doing `calls.incrementAndGet()` then `complete(i)`,
+and after fifty iterations asserts the counter is 200. **It never joined them.**
+`awaitOnceOrNull` returns on the *first* completion — that is its contract — so the other three
+threads of an iteration may not have incremented yet when the loop moves on, and on the last
+iteration they are still in flight when the assert reads the counter. 199 means exactly one
+straggler; the reachable range is 197..200.
+
+Established before changing anything:
+
+- **`v3.4` and `main` are the same commit**, `16c7a3de`. "Green on main, red on v3.4" is one commit
+  producing two outcomes, which rules out any code, toolchain or configuration difference. The seven
+  relevant files were fetched from that SHA and compared byte for byte against the working tree:
+  identical.
+- The failure is **not** in `awaitOnceOrNull`. Its resume-once guarantee is checked by the *other*
+  assert in the same test (`value in 0..3`, line 117), which has never failed.
+- Modelling the same structure without the join produced 199 in **299 of 300** trials and 198 in
+  one. Adding the join produced 200 in **300 of 300**. That is the whole difference.
+- The real test passed 40/40 in isolation on a 16-core machine; CI runs on four vCPU alongside the
+  Gradle and Kotlin daemons, which is where the window opens.
+
+### The fix
+
+`app/src/test/kotlin/com/paperscrape/livewallpaper/location/AwaitOnceTest.kt`, and nothing else:
+the racer list is hoisted so the caller can reach it, and each iteration joins the threads it
+started before the loop continues.
+
+Nothing was relaxed. No sleep, no retry, no widened timeout, no softened threshold, nothing
+disabled, and `AwaitOnce.kt` untouched. The assert is *stronger* afterwards: `assertEquals(200, ...)`
+was previously true by luck and is now deterministic.
+
+Verified: the test ran **30 times in isolation, 30 green**, and the full suite is **773 tests, 0
+failures**.
+
+### The CI rule, written down
+
+`AI_PROJECT_RULES.md` gains **10.12**: the `instrumented` job must never block a release by failing,
+nor hold one up by still running, and — because `continue-on-error` only delivers the first of those
+— `release` must not reach `instrumented` by *any* path in the graph.
+
+**The workflow was verified and left unchanged**, because it already satisfies this. Every coupling
+was checked, not just a literal `needs:`:
+
+| path | present |
+|---|---|
+| `instrumented` in `release.needs` | no |
+| `instrumented` in the transitive closure of `release.needs` (`{build}`) | no |
+| `needs.instrumented.*` in an expression | no |
+| `outputs` declared by `instrumented` | none |
+| an artifact `release` downloads that `instrumented` uploads | `release` downloads nothing |
+| a third job bridging the two | the workflow has three jobs; none bridges |
+| a `concurrency:` key serialising runs | none |
+
+A job-level `success()` evaluates only the jobs in that job's own `needs`, so `release`'s `if` does
+not couple them either.
+
+- 773 JVM tests, 0 failures.
+- `lintDebug` 0 errors, 32 warnings/notes — unchanged.
+- `assembleDebug`, `assembleDebugAndroidTest` and `assembleRelease` (R8) all produce artefacts.
+- Nothing under `app/src/main` changed; nothing under `app/src/test` changed except this one test.
+
+---
+
 ## v3.4 — the CI emulator job waits until the device can actually install a package
 
 **Prepared, not published.** `versionCode = 25`, `versionName = "3.4"`. No tag, no push, no GitHub

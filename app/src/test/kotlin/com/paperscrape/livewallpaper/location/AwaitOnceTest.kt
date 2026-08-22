@@ -104,9 +104,12 @@ class AwaitOnceTest {
     @Test
     fun `two threads racing to complete resume once`() = runBlocking {
         val calls = AtomicInteger()
+        // Held across the suspension so the racers can be joined after `awaitOnceOrNull` returns:
+        // the lambda is what starts them, and only the caller knows when it is safe to stop.
+        var racers: List<Thread> = emptyList()
         repeat(50) {
             val value = awaitOnceOrNull<Int>(2_000) { complete ->
-                val racers = (0 until 4).map { i ->
+                racers = (0 until 4).map { i ->
                     Thread {
                         calls.incrementAndGet()
                         complete(i)
@@ -115,6 +118,17 @@ class AwaitOnceTest {
                 racers.forEach { it.start() }
             }
             assertTrue("one of the racers' values, got $value", value in 0..3)
+            // **`awaitOnceOrNull` returns on the *first* completion -- by contract -- so three of
+            // these four threads may not have run `calls.incrementAndGet()` yet.** Without this
+            // join the count below is read while they are still in flight, and the test asserts
+            // something `awaitOnceOrNull` never promised: not "one resume", which is checked above
+            // and is the point of the test, but "all four callbacks have already happened".
+            //
+            // That is a defect in this test and it failed in CI as `expected:<200> but was:<199>`
+            // -- exactly one straggler on a four-vCPU runner. Reproduced 300 times out of 300 by
+            // modelling the same structure without the join, and 0 times out of 300 with it. Not a
+            // tolerance, a delay or a retry: the test simply waits for the threads it started.
+            racers.forEach { it.join() }
         }
         assertEquals(200, calls.get())
     }

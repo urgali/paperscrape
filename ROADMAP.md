@@ -4,12 +4,35 @@ Operational plan only. What shipped and why lives in `RELEASE_HISTORY.md`; how t
 code works lives in `ARCHITECTURE.md`; the visual rules live in `DESIGN_NOTES.md`;
 the rules that always apply live in `AI_PROJECT_RULES.md`.
 
-**Nothing below is approved. Ask before starting any of it.** The v3.4 batch closed everything
+**Nothing below is approved. Ask before starting any of it.** The v3.5 batch closed everything
 that was.
 
 ---
 
 ## Current status
+
+**v3.5 prepared — a race in PaperScrape's own test, fixed; the emulator job confirmed unable to hold
+up a release.**
+
+`versionCode = 26`, `versionName = "3.5"`. **No tag, no push, no GitHub Release.**
+
+**No application code changed.** The application baseline is still v3.2. The only source file
+touched is `AwaitOnceTest.kt`.
+
+v3.4's `build` job failed on `./gradlew test`: `AwaitOnceTest > two threads racing to complete resume
+once`, `expected:<200> but was:<199>`. The test starts four threads per iteration and never joined
+them, while `awaitOnceOrNull` returns on the first completion by contract — so the counter was read
+with stragglers still in flight. Diagnosed first: `v3.4` and `main` are the *same commit*
+(`16c7a3de`), and the structure without the join reproduces 199 in 299 of 300 trials while the join
+gives 200 in 300 of 300. The test now joins the threads it starts; nothing was relaxed and
+`AwaitOnce.kt` is untouched. 30 isolated runs green, full suite 773/0.
+
+`AI_PROJECT_RULES.md` **10.12** now states permanently that `instrumented` must neither block a
+release by failing nor hold one up by running, and that `release` must not reach it by any path in
+the graph. The workflow already satisfies this and was **left unchanged**; every coupling was
+checked. See `RELEASE_HISTORY.md`.
+
+---
 
 **v3.4 prepared — the CI emulator job waits until the device can actually install a package.**
 
@@ -213,7 +236,7 @@ producing an APK. **Seen running on a Pixel 9** (Android 16, gesture navigation,
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21, v3.1 → 22, v3.2 → 23, v3.3 → 24, v3.4 → 25 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21, v3.1 → 22, v3.2 → 23, v3.3 → 24, v3.4 → 25, v3.5 → 26 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -284,6 +307,9 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v3.5 prepared** — the race in `AwaitOnceTest` that failed the v3.4 build (the test never joined
+  the threads it started), and `AI_PROJECT_RULES.md` 10.12 making the release's independence from
+  `instrumented` a permanent, checkable rule. Workflow unchanged; no application code changed.
 - **v3.4 prepared** — the CI emulator job's boot/install race, and nothing else: both APKs are built
   before the emulator starts, and the script waits for a real install/uninstall transaction to
   succeed before running the tests. Failure-only device diagnostics added. No application code
