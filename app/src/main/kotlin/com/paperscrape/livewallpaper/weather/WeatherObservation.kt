@@ -3,8 +3,8 @@ package com.paperscrape.livewallpaper.weather
 /**
  * What a provider says the sky is doing, in this app's own vocabulary rather than any provider's.
  *
- * This is the normalisation boundary: Open-Meteo's WMO integers and Visual Crossing's icon slugs
- * and `preciptype` arrays both arrive here, and nothing downstream ever sees either. Every field
+ * This is the normalisation boundary: Open-Meteo's WMO integers and WeatherAPI.com's numeric
+ * condition codes both arrive here, and nothing downstream ever sees either. Every field
  * is nullable because "the provider did not report this" and "the provider reported zero" are
  * different facts and the mapping in [WeatherSnapshotMapper] depends on telling them apart -- a
  * provider that omits `showers` must not be read as one reporting no showers.
@@ -21,7 +21,7 @@ data class WeatherObservation(
     /**
      * The showers part, where the provider reports showers as a category of their own.
      *
-     * Open-Meteo does; Visual Crossing does not, and leaves this null rather than zero. A shower
+     * Open-Meteo does; WeatherAPI.com does not, and leaves this null rather than zero. A shower
      * that reports `rain: 0.0` with the millimetres in `showers` is the exact case that made a
      * Florence downpour render as a dry hour before v2.13, so the distinction is load-bearing.
      */

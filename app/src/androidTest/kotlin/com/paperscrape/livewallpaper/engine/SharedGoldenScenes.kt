@@ -20,7 +20,25 @@ import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
  */
 object SharedGoldenScenes {
 
-    fun day() = GoldenScene(name = "day", dayPhase = GoldenScene.day())
+    /**
+     * The sun's glow, named as a region so the GL suite can measure it on its own (v3.7 Filone E).
+     *
+     * `drawRadialGlow` is the one effect the whole-frame gates provably cannot police: it is drawn
+     * at alpha 90 over a bright sky, so destroying its shape entirely moves no pixel by more than
+     * 15/255 and reaches only 0.47% of the frame at `>=8` -- under the 0.88% two correct drivers
+     * already differ by. Measured against the glow's own bounding box instead of the frame's, the
+     * same regression is an order of magnitude clear of the noise.
+     *
+     * The rectangle is the disc the renderer actually draws, read off the call the scene makes:
+     * centre (180,160) with radius 127 at this frame size, clamped to the frame.
+     */
+    private val SUN_GLOW = GoldenFocus(left = 53, top = 33, right = 307, bottom = 287, label = "sun glow")
+
+    fun day() = GoldenScene(
+        name = "day",
+        dayPhase = GoldenScene.day(),
+        focus = listOf(SUN_GLOW),
+    )
 
     /** Every lane occupied, which is where depth ordering and batching are both under load. */
     fun lakeBusy() = GoldenScene(

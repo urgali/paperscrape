@@ -89,13 +89,13 @@ data class WallpaperSettings(
      */
     val weatherProviderId: String = WeatherProviderId.DEFAULT.storageId,
     /**
-     * The user's Visual Crossing key. Never compiled in, never logged, never sent anywhere but
-     * Visual Crossing -- unlike Open-Meteo's, whose free tier makes a shipped key sensible.
+     * The user's WeatherAPI.com key. Never compiled in, never logged, never sent anywhere but
+     * WeatherAPI.com -- unlike Open-Meteo's, whose free tier makes a shipped key sensible.
      *
      * Kept apart from [liveWeatherApiKey] so that switching provider and back does not lose
      * either one.
      */
-    val visualCrossingApiKey: String = "",
+    val weatherApiComApiKey: String = "",
     /**
      * What Live Weather is actually doing, as a [LiveWeatherStatus.storageId].
      *
@@ -171,14 +171,14 @@ data class WallpaperSettings(
      * The key the **selected** provider should be called with.
      *
      * Each provider keeps its own, so switching back and forth loses neither. Open-Meteo's may be
-     * blank, which its free keyless tier accepts; Visual Crossing's may not, and a blank one there
+     * blank, which its free keyless tier accepts; WeatherAPI.com's may not, and a blank one there
      * is what produces [com.paperscrape.livewallpaper.weather.WeatherFetchResult.MissingApiKey]
      * instead of a request.
      */
     val apiKeyForWeatherProvider: String
         get() = when (weatherProvider) {
             WeatherProviderId.OPEN_METEO -> liveWeatherApiKey
-            WeatherProviderId.VISUAL_CROSSING -> visualCrossingApiKey
+            WeatherProviderId.WEATHER_API_COM -> weatherApiComApiKey
         }
 
     /** [liveWeatherStatus] resolved. */
@@ -224,7 +224,12 @@ class WallpaperPrefs(private val context: Context) {
         val LIVE_WEATHER_ENABLED = booleanPreferencesKey("live_weather_enabled")
         val LIVE_WEATHER_API_KEY = stringPreferencesKey("live_weather_api_key")
         val WEATHER_PROVIDER = stringPreferencesKey("weather_provider")
-        val VISUAL_CROSSING_API_KEY = stringPreferencesKey("visual_crossing_api_key")
+        // v3.7 renamed this from `visual_crossing_api_key` when that provider was removed. A key
+        // for a service the app no longer talks to is not worth migrating: it would not
+        // authenticate anywhere. The old entry is simply left unread, and the stored
+        // `weather_provider` value `visual_crossing` no longer matches an id, so
+        // `WeatherProviderId.fromStorageId` returns the default -- see WeatherProviderSelectionTest.
+        val WEATHER_API_COM_API_KEY = stringPreferencesKey("weatherapi_com_api_key")
         val LIVE_WEATHER_STATUS = stringPreferencesKey("live_weather_status")
         val AUTOMATIC_UPDATE_CHECK = booleanPreferencesKey("automatic_update_check")
         val RESOLVED_GPS_LAT = floatPreferencesKey("resolved_gps_lat")
@@ -335,7 +340,7 @@ class WallpaperPrefs(private val context: Context) {
             liveWeatherEnabled = prefs[Keys.LIVE_WEATHER_ENABLED] ?: false,
             liveWeatherApiKey = prefs[Keys.LIVE_WEATHER_API_KEY] ?: "",
             weatherProviderId = prefs[Keys.WEATHER_PROVIDER] ?: WeatherProviderId.DEFAULT.storageId,
-            visualCrossingApiKey = prefs[Keys.VISUAL_CROSSING_API_KEY] ?: "",
+            weatherApiComApiKey = prefs[Keys.WEATHER_API_COM_API_KEY] ?: "",
             liveWeatherStatus = prefs[Keys.LIVE_WEATHER_STATUS] ?: LiveWeatherStatus.OFF.storageId,
             automaticUpdateCheckEnabled = prefs[Keys.AUTOMATIC_UPDATE_CHECK] ?: false,
             resolvedGpsLatitude = prefs[Keys.RESOLVED_GPS_LAT],
@@ -507,8 +512,8 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setWeatherProvider(provider: WeatherProviderId) =
         context.dataStore.edit { it[Keys.WEATHER_PROVIDER] = provider.storageId }
 
-    suspend fun setVisualCrossingApiKey(apiKey: String) =
-        context.dataStore.edit { it[Keys.VISUAL_CROSSING_API_KEY] = apiKey }
+    suspend fun setWeatherApiComApiKey(apiKey: String) =
+        context.dataStore.edit { it[Keys.WEATHER_API_COM_API_KEY] = apiKey }
 
     /**
      * Records whether Live Weather has fallen back to the theme's manual weather.

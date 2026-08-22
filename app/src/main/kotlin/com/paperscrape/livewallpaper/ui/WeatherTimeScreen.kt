@@ -84,7 +84,7 @@ internal fun WeatherTimeScreen(
     onBack: () -> Unit,
 ) {
     var showApiKey by remember { mutableStateOf(false) }
-    var showVisualCrossingKey by remember { mutableStateOf(false) }
+    var showWeatherApiComKey by remember { mutableStateOf(false) }
     val provider = settings.weatherProvider
     val locationMode = SettingsUiModel.locationMode(
         settings.useLocationForSunTimes,
@@ -330,14 +330,14 @@ internal fun WeatherTimeScreen(
                 onClick = { showApiKey = true },
             )
             SettingsNavigationRow(
-                title = "Visual Crossing API key",
-                supporting = if (settings.visualCrossingApiKey.isBlank()) {
+                title = "WeatherAPI.com API key",
+                supporting = if (settings.weatherApiComApiKey.isBlank()) {
                     "Required - not set"
                 } else {
                     "Set"
                 },
                 icon = Icons.Filled.Key,
-                onClick = { showVisualCrossingKey = true },
+                onClick = { showWeatherApiComKey = true },
             )
         }
     }
@@ -350,11 +350,11 @@ internal fun WeatherTimeScreen(
         )
     }
 
-    if (showVisualCrossingKey) {
-        VisualCrossingApiKeyScreen(
-            apiKey = settings.visualCrossingApiKey,
-            onApply = { key -> scope.launch { prefs.setVisualCrossingApiKey(key) } },
-            onBack = { showVisualCrossingKey = false },
+    if (showWeatherApiComKey) {
+        WeatherApiComApiKeyScreen(
+            apiKey = settings.weatherApiComApiKey,
+            onApply = { key -> scope.launch { prefs.setWeatherApiComApiKey(key) } },
+            onBack = { showWeatherApiComKey = false },
         )
     }
 }
@@ -673,21 +673,21 @@ private const val SEARCH_DEBOUNCE_MS = 500L
  * under "Advanced", rather than in the main flow where v2.8 put it.
  */
 /**
- * Visual Crossing's key, which unlike Open-Meteo's is **required**: there is no anonymous tier, so
+ * WeatherAPI.com's key, which unlike Open-Meteo's is **required**: there is no anonymous tier, so
  * without one the provider makes no request at all and the settings screen says so.
  *
- * The key is stored in this install's own DataStore and sent only to Visual Crossing. Nothing
+ * The key is stored in this install's own DataStore and sent only to WeatherAPI.com. Nothing
  * about it is compiled into the app, written to the build, or logged -- the field is masked here
  * for the same reason.
  */
 @Composable
-private fun VisualCrossingApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
+private fun WeatherApiComApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
     var text by remember(apiKey) { mutableStateOf(apiKey) }
-    SettingsFormSubScreen(title = "Visual Crossing API key", onBack = onBack) {
+    SettingsFormSubScreen(title = "WeatherAPI.com API key", onBack = onBack) {
         Text(
-            "Required for the Visual Crossing provider: it has no keyless tier. A free account " +
-                "gives 1,000 weather records a day, which is far more than one hourly refresh " +
-                "needs. Get one at visualcrossing.com, then paste it here.",
+            "Required for the WeatherAPI.com provider: it has no keyless tier. A free account " +
+                "needs an email and no payment card, and gives 100,000 calls a month -- far more " +
+                "than one hourly refresh needs. Get one at weatherapi.com, then paste it here.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -703,7 +703,7 @@ private fun VisualCrossingApiKeyScreen(apiKey: String, onApply: (String) -> Unit
             Text("Save API key")
         }
         Text(
-            "Stored on this device only and sent only to Visual Crossing.",
+            "Stored on this device only and sent only to WeatherAPI.com.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

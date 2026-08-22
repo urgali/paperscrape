@@ -37,28 +37,23 @@ class ThunderstormTest {
     }
 
     /**
-     * Visual Crossing has no thunder value in its free icon set, so the `conditions` text carries
-     * it. Both fields are lowercased by `parse` before they reach this function -- that is its
-     * contract, and these calls honour it exactly as the parser does.
+     * WeatherAPI.com names thunder in five separate codes -- one "nearby" and four that also say
+     * what is falling. All five must reach the same place, including the two that name snow: the
+     * scene draws one headline and a thunderstorm is it.
      */
     @Test
     fun `the other provider reaches the same condition`() {
-        assertEquals(
-            WeatherCondition.THUNDERSTORM,
-            VisualCrossingProvider.condition("rain", "rain, thunderstorm, overcast", listOf("rain")),
-        )
-        assertEquals(
-            WeatherCondition.THUNDERSTORM,
-            VisualCrossingProvider.condition("thunder-showers-day", "", listOf("rain")),
-        )
+        for (code in listOf(1087, 1273, 1276, 1279, 1282)) {
+            assertEquals("code $code", WeatherCondition.THUNDERSTORM, WeatherApiComProvider.condition(code))
+        }
     }
 
-    /** End to end through the parser, which is what does the lowercasing in production. */
+    /** End to end through the parser, which is what production runs. */
     @Test
-    fun `a Visual Crossing thunderstorm storms and rains`() {
-        val body = "{\"currentConditions\":{\"temp\":22.0,\"precip\":6.0,\"preciptype\":[\"rain\"]," +
-            "\"cloudcover\":100.0,\"conditions\":\"Rain, Thunderstorm, Overcast\",\"icon\":\"rain\"}}"
-        val snapshot = WeatherSnapshotMapper.toSnapshot(VisualCrossingProvider.parse(body)!!)
+    fun `a WeatherAPI thunderstorm storms and rains`() {
+        val body = "{\"current\":{\"temp_c\":22.0,\"precip_mm\":6.0,\"cloud\":100," +
+            "\"condition\":{\"text\":\"Moderate or heavy rain in area with thunder\",\"code\":1276}}}"
+        val snapshot = WeatherSnapshotMapper.toSnapshot(WeatherApiComProvider.parse(body)!!)
         assertTrue(snapshot.isThunderstorm)
         assertEquals(PrecipitationType.RAIN, snapshot.precipitationType)
     }

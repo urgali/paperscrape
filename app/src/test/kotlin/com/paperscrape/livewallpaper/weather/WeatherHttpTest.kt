@@ -16,7 +16,7 @@ class WeatherHttpTest {
         assertEquals(WeatherFailure.UNAUTHORIZED, WeatherHttp.statusToFailure(403))
     }
 
-    /** Visual Crossing's free plan is 1,000 records a day; 429 is what running out looks like. */
+    /** WeatherAPI.com's free plan is 100,000 calls a month; 429 is what running out looks like. */
     @Test
     fun `a spent request budget is its own failure`() {
         assertEquals(WeatherFailure.RATE_LIMITED, WeatherHttp.statusToFailure(429))

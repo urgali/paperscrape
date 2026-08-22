@@ -1135,14 +1135,14 @@ eye: the last row of Weather & time moved from y = 2380 — inside the gesture b
 
 ## 24. Two weather providers, and no silent substitution
 
-Live Weather can fetch from Open-Meteo or Visual Crossing. The choice is the user's and the app
+Live Weather can fetch from Open-Meteo or WeatherAPI.com. The choice is the user's and the app
 does not revise it: if the selected provider fails, the failure is reported and the selection
 stands. Quietly answering with the other service would make "which provider am I using"
 unanswerable, and the existing behaviour on failure — keep the last good reading, and otherwise
 let the theme's own weather run — is already the right one.
 
 The two differ in one way that reaches the UI. Open-Meteo has a keyless free tier, so a blank key
-is a working state and the key screen says "optional". Visual Crossing has none, so a blank key is
+is a working state and the key screen says "optional". WeatherAPI.com has none, so a blank key is
 a **configured state with a name**: the provider stays selected, the settings screen says a key is
 required, and **no request is made** — an app that sends a call it knows will be rejected has
 spent a round trip to learn nothing and reports it as a network problem.

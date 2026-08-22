@@ -246,17 +246,17 @@ class DryCodeRegressionTest {
     // -- the other provider reaches the same answer --------------------------------------------------
 
     /**
-     * Visual Crossing's equivalent: an icon that says rain with a `precip` of zero. Same rule, same
-     * result -- the normalisation is what makes that true, not two parallel implementations.
+     * WeatherAPI.com's equivalent: a code that says rain with a `precip_mm` of zero. Same rule,
+     * same result -- the normalisation is what makes that true, not two parallel implementations.
      */
     @Test
-    fun `a rain icon with zero precipitation is also dry`() {
+    fun `a rain code with zero precipitation is also dry`() {
         val body = """
-            {"latitude":43.77925,"longitude":11.24626,"timezone":"Europe/Rome",
-             "currentConditions":{"temp":25.3,"precip":0.0,"preciptype":["rain"],"snow":0.0,
-                                  "cloudcover":100.0,"conditions":"Rain, Overcast","icon":"rain"}}
+            {"location":{"name":"Florence","lat":43.78,"lon":11.25},
+             "current":{"temp_c":25.3,"precip_mm":0.0,"cloud":100,
+                        "condition":{"text":"Light rain","code":1183}}}
         """.trimIndent()
-        val observation = VisualCrossingProvider.parse(body)!!
+        val observation = WeatherApiComProvider.parse(body)!!
         val snapshot = WeatherSnapshotMapper.toSnapshot(observation)
         assertNull(snapshot.precipitationType)
         assertEquals(1f, snapshot.cloudCoverFraction, 0.0001f)

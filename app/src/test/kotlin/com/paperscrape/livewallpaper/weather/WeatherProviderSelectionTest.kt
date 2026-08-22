@@ -13,10 +13,45 @@ import org.junit.Test
  */
 class WeatherProviderSelectionTest {
 
+    /**
+     * **Open-Meteo is the default, and this is the test that says so.**
+     *
+     * Three separate statements, because they can drift apart: the enum's `DEFAULT`, what a
+     * default-constructed settings object resolves to, and -- the one that actually reaches a user
+     * -- that the default provider needs no key, so Live Weather works on a fresh install without
+     * anybody registering anywhere.
+     */
     @Test
     fun `a fresh install uses the keyless provider`() {
         assertEquals(WeatherProviderId.OPEN_METEO, WeatherProviderId.DEFAULT)
         assertEquals(WeatherProviderId.OPEN_METEO, WallpaperSettings().weatherProvider)
+        assertTrue(
+            "the default provider must be usable without a key",
+            !WeatherRepository.providerFor(WallpaperSettings().weatherProvider).requiresApiKey,
+        )
+        assertEquals("", WallpaperSettings().apiKeyForWeatherProvider)
+    }
+
+    /**
+     * An install that had chosen Visual Crossing, upgrading to v3.7 where that provider is gone.
+     *
+     * The stored id no longer names anything, so it reads as the default -- which is Open-Meteo,
+     * which needs no key. The upgrade therefore lands on a working configuration rather than on a
+     * provider that cannot run, and no migration code is needed to make that true.
+     */
+    @Test
+    fun `an install that had chosen the removed provider falls back to Open-Meteo`() {
+        val upgraded = WallpaperSettings(weatherProviderId = "visual_crossing")
+        assertEquals(WeatherProviderId.OPEN_METEO, upgraded.weatherProvider)
+        assertTrue(!WeatherRepository.providerFor(upgraded.weatherProvider).requiresApiKey)
+    }
+
+    /** The removed provider must not be reachable by any id, including its old one. */
+    @Test
+    fun `the removed provider is gone from the registry`() {
+        assertTrue(WeatherProviderId.entries.none { it.storageId == "visual_crossing" })
+        assertTrue(WeatherProviderId.entries.none { it.displayName.contains("Visual Crossing") })
+        assertEquals(2, WeatherProviderId.entries.size)
     }
 
     /**
@@ -27,7 +62,7 @@ class WeatherProviderSelectionTest {
     @Test
     fun `storage ids are stable`() {
         assertEquals("open_meteo", WeatherProviderId.OPEN_METEO.storageId)
-        assertEquals("visual_crossing", WeatherProviderId.VISUAL_CROSSING.storageId)
+        assertEquals("weatherapi_com", WeatherProviderId.WEATHER_API_COM.storageId)
     }
 
     @Test
@@ -76,12 +111,12 @@ class WeatherProviderSelectionTest {
             customLocationLabel = "Florence, Italy",
             liveWeatherEnabled = true,
             liveWeatherApiKey = "open-meteo-key",
-            visualCrossingApiKey = "visual-crossing-key",
+            weatherApiComApiKey = "weatherapi-com-key",
             weatherProviderId = WeatherProviderId.OPEN_METEO.storageId,
         )
-        val after = before.copy(weatherProviderId = WeatherProviderId.VISUAL_CROSSING.storageId)
+        val after = before.copy(weatherProviderId = WeatherProviderId.WEATHER_API_COM.storageId)
 
-        assertEquals(WeatherProviderId.VISUAL_CROSSING, after.weatherProvider)
+        assertEquals(WeatherProviderId.WEATHER_API_COM, after.weatherProvider)
         assertEquals(before.useCustomLocation, after.useCustomLocation)
         assertEquals(before.useLocationForSunTimes, after.useLocationForSunTimes)
         assertEquals(before.customLocationLatitude, after.customLocationLatitude)
@@ -89,29 +124,29 @@ class WeatherProviderSelectionTest {
         assertEquals(before.customLocationLabel, after.customLocationLabel)
         assertEquals(before.liveWeatherEnabled, after.liveWeatherEnabled)
         assertEquals(before.liveWeatherApiKey, after.liveWeatherApiKey)
-        assertEquals(before.visualCrossingApiKey, after.visualCrossingApiKey)
+        assertEquals(before.weatherApiComApiKey, after.weatherApiComApiKey)
     }
 
     @Test
     fun `each provider is called with its own key`() {
         val settings = WallpaperSettings(
             liveWeatherApiKey = "open-meteo-key",
-            visualCrossingApiKey = "visual-crossing-key",
+            weatherApiComApiKey = "weatherapi-com-key",
         )
         assertEquals(
             "open-meteo-key",
             settings.copy(weatherProviderId = WeatherProviderId.OPEN_METEO.storageId).apiKeyForWeatherProvider,
         )
         assertEquals(
-            "visual-crossing-key",
-            settings.copy(weatherProviderId = WeatherProviderId.VISUAL_CROSSING.storageId).apiKeyForWeatherProvider,
+            "weatherapi-com-key",
+            settings.copy(weatherProviderId = WeatherProviderId.WEATHER_API_COM.storageId).apiKeyForWeatherProvider,
         )
     }
 
-    /** Open-Meteo's key may be blank and still work; Visual Crossing's may not. */
+    /** Open-Meteo's key may be blank and still work; WeatherAPI.com's may not. */
     @Test
     fun `only one of the two providers can run without a key`() {
-        assertTrue(WeatherRepository.providerFor(WeatherProviderId.VISUAL_CROSSING).requiresApiKey)
+        assertTrue(WeatherRepository.providerFor(WeatherProviderId.WEATHER_API_COM).requiresApiKey)
         assertTrue(!WeatherRepository.providerFor(WeatherProviderId.OPEN_METEO).requiresApiKey)
     }
 
@@ -122,14 +157,14 @@ class WeatherProviderSelectionTest {
         assertNull(WeatherRepository.snapshotOf(WeatherFetchResult.MissingApiKey))
         assertNull(
             WeatherRepository.snapshotOf(
-                WeatherFetchResult.Failed(WeatherFailure.NETWORK, WeatherProviderId.VISUAL_CROSSING),
+                WeatherFetchResult.Failed(WeatherFailure.NETWORK, WeatherProviderId.WEATHER_API_COM),
             ),
         )
         val observation = WeatherObservation(
             cloudCoverPercent = 50,
             condition = WeatherCondition.PARTLY_CLOUDY,
             observedAtMillis = 1L,
-            source = WeatherProviderId.VISUAL_CROSSING,
+            source = WeatherProviderId.WEATHER_API_COM,
         )
         assertEquals(
             0.5f,
@@ -141,8 +176,8 @@ class WeatherProviderSelectionTest {
     /** A failure names the provider it came from, so a report can attribute it. */
     @Test
     fun `a failure carries its provider`() {
-        val failure = WeatherFetchResult.Failed(WeatherFailure.RATE_LIMITED, WeatherProviderId.VISUAL_CROSSING)
-        assertEquals(WeatherProviderId.VISUAL_CROSSING, failure.provider)
+        val failure = WeatherFetchResult.Failed(WeatherFailure.RATE_LIMITED, WeatherProviderId.WEATHER_API_COM)
+        assertEquals(WeatherProviderId.WEATHER_API_COM, failure.provider)
         assertNotEquals(WeatherProviderId.OPEN_METEO, failure.provider)
     }
 }

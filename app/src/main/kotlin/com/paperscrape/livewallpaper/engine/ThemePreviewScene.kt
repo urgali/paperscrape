@@ -499,15 +499,35 @@ object ThemePreviewScenes {
         return parts
     }
 
-    /** Trunk at (-5,-44); the canopy blits at (-41,-80) under the renderer's `translate(0,-38)`. */
+    /**
+     * Read from [TreeSpriteLayout] rather than copied, which is the v3.7 Filone C fix.
+     *
+     * These were four hand-copied numbers, and the snow cap's pair had drifted: it was
+     * `(-38,-116)` against the wallpaper's `(-41,-118)`, so a winter preview drew its snow 3 units
+     * right and 2 down from where the wallpaper puts it. The renderer's numbers are unchanged; the
+     * preview now takes them from the same place instead of restating them.
+     */
     private fun tree(leaf: Int, winter: Boolean, halloween: Boolean): List<PreviewSprite> {
-        val parts = mutableListOf(PreviewSprite(R.drawable.tree_trunk, -5f, -44f))
+        val parts = mutableListOf(
+            PreviewSprite(R.drawable.tree_trunk, TreeSpriteLayout.TRUNK_X, TreeSpriteLayout.TRUNK_Y),
+        )
         if (halloween) {
-            parts += PreviewSprite(R.drawable.tree_dead_branches, -41f, -118f)
+            parts += PreviewSprite(
+                R.drawable.tree_dead_branches,
+                TreeSpriteLayout.FLAT_DEAD_BRANCHES_X, TreeSpriteLayout.FLAT_DEAD_BRANCHES_Y,
+            )
             return parts
         }
-        parts += PreviewSprite(R.drawable.tree_canopy, -41f, -118f, leaf)
-        if (winter) parts += PreviewSprite(R.drawable.tree_canopy_snowcap, -38f, -116f)
+        parts += PreviewSprite(
+            R.drawable.tree_canopy,
+            TreeSpriteLayout.FLAT_CANOPY_X, TreeSpriteLayout.FLAT_CANOPY_Y, leaf,
+        )
+        if (winter) {
+            parts += PreviewSprite(
+                R.drawable.tree_canopy_snowcap,
+                TreeSpriteLayout.FLAT_SNOWCAP_X, TreeSpriteLayout.FLAT_SNOWCAP_Y,
+            )
+        }
         return parts
     }
 

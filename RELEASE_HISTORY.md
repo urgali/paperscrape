@@ -19,6 +19,290 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.7 — a new second weather provider, a road that was already right, and a GL gate that can see what the others could not
+
+**Prepared, not published.** `versionCode = 28`, `versionName = "3.7"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D).
+
+Eight strands in one release, each assessed before anything was changed. **Three closed as "no fix
+needed"** with the measurements on record; five produced changes.
+
+---
+
+### 1. Weather: Visual Crossing out, WeatherAPI.com in — Open-Meteo still the default
+
+**Open-Meteo remains the default and that was never in question.** It is the only candidate needing
+no key at all, which means no credential ships in the app, none is asked of the user, and Live
+Weather works the moment a location exists. `WeatherProviderId.DEFAULT` is `OPEN_METEO`, and
+`WeatherProviderSelectionTest` now asserts three separate things about it: the enum's default, what
+a default-constructed settings object resolves to, and that the resolved provider needs no key.
+
+**The comparative**, from official sources at the time of writing:
+
+| | Open-Meteo | WeatherAPI.com | OpenWeather |
+|---|---|---|---|
+| key required | **no** | yes | yes |
+| payment card to register | no | **no** | **yes** for One Call 3.0, which is where current conditions now live |
+| free allowance | 10 000/day, 300 000/month | 100 000/month | 1 000/day on One Call 3.0 |
+| commercial use on the free tier | **no** — non-commercial only | **yes**, with attribution | per plan |
+| licence / attribution | CC-BY 4.0 | link-back requested | per plan |
+| current conditions in one call | yes | yes | yes |
+| precipitation detail | rain / showers / snowfall split | one `precip_mm`, no snow depth in realtime | rain/snow 1h |
+| condition vocabulary | WMO integers, published | **60 codes, published as machine-readable JSON** | numeric ids, documented in prose |
+| over quota | may block abusive IPs | stops returning data | per plan |
+
+**Why WeatherAPI.com and not OpenWeather.** Two reasons, both disqualifying rather than
+preferential. OpenWeather's current product line routes current conditions through One Call 3.0,
+which **requires a credit card on file** even to use the free daily allowance — not a reasonable
+thing to ask of a wallpaper's users. And WeatherAPI publishes `conditions.json`: 60 codes with
+their English text, machine-readable. That file is committed at
+`app/src/test/resources/weather/weatherapi-conditions.json`, fetched verbatim, and
+`WeatherApiComProviderTest` walks every entry — asserting not merely that each code resolves, but
+that it resolves to the right *side*, judged against the official text (anything naming snow, sleet,
+blizzard or ice must land frozen; anything naming rain or drizzle, liquid; thunder wins over both).
+
+**That is the point, and it is precisely deferred item D8.** D8 said Visual Crossing's parser was
+tested against fixtures built from a published field list rather than a captured live response,
+with no account available to do better. A replacement with the same weakness would have been no
+replacement. This one cannot be *live*-verified either — no key is available and none may be
+committed — but its mapping is checkable against the vendor's own machine-readable source, which
+Visual Crossing's icon slugs never were. **D8 closes with the provider it was about.**
+
+One thing the test caught: an early version asserted that any text containing "freezing" must map to
+`FREEZING_RAIN`. Code 1147 is *Freezing fog*, which is an obscuration and not something falling.
+The provider was right and the test was wrong; the heuristic now requires a liquid to be named too.
+
+**What was removed.** `VisualCrossingProvider` and its test, the enum entry, the registry entry, the
+`visual_crossing` storage id, the `visual_crossing_api_key` DataStore key, the settings row and key
+screen, and every operational mention in `README.md`, `DESIGN_NOTES.md` and `ARCHITECTURE.md`.
+Historical mentions in `CHANGELOG.md` and the older release notes stay, per §3.
+
+**No migration code was needed, and that is by design.** Provider selection is stored as a string
+id and an unknown one reads as the default, so an install that had chosen Visual Crossing lands on
+Open-Meteo — which needs no key, so it lands on a *working* configuration rather than on a keyed
+provider whose key is gone. `WeatherProviderSelectionTest` asserts exactly that. The old key entry
+is left unread rather than migrated: a Visual Crossing key would not authenticate anywhere.
+
+**No key is compiled in for the new provider**, and a test asserts that an empty key produces an
+empty key parameter. There is still **no automatic fallback between providers**: the selection
+stands and the failure is reported, because silently answering from a different service makes
+"which provider am I using" unanswerable.
+
+---
+
+### 2. Road width — measured, and left alone
+
+The report was perceptual, so the geometry was measured rather than adjusted. At the reference
+2400 px height, derived from `SceneSpace`'s own constants and the arithmetic `drawCar` performs:
+
+| quantity | value |
+|---|---|
+| lane spacing | 67.2 px |
+| painted road band | 145.2 px |
+| car height, far / near lane | 61.2 / 70.7 px |
+| fire engine height, near lane | 141.4 px |
+| **laneSpacing / carHeight** | **1.10 far, 0.95 near** |
+| **roadBand / carHeight** | **2.37 far, 2.05 near** |
+| **roadBand / fireEngineHeight** | **1.03** |
+
+`ROAD_LANE_NEAR_Y_FRACTION`'s own comment states the design target — *"two lanes have to be about a
+vehicle apart, not comfortably more"* — and the measured ratio is 0.95 to 1.10. The carriageway is
+twice a car tall and the tallest vehicle that drives on it still fits inside the band.
+
+**Confirmed on a device**, on a clean full-screen frame with real traffic: band 146 px, a near-lane
+car 55 px of visible body, ratio 2.65, and the car sits **98% inside the tarmac**.
+
+**Classification E — the geometry is correct and no fix was made.** What the eye is probably reading
+is the one asymmetry the measurements do show, and it is inherent: a vehicle rises from its own
+wheel line, so a near-lane car sits entirely inside the tarmac while a far-lane car's roof clears
+the top edge by about a third of its height (22.2 px of 61.2). Closing that means sinking the far
+lane or widening the strip until it dominates the scene vertically — the exact regression the v76.6
+tuning pass narrowed the spacing to fix. `RoadVehicleGeometryTest` pins the ratios as design intent
+with bounds wide enough that a deliberate retune passes and a mistake fails.
+
+**A coverage gap was found doing this and is recorded, not fixed:** no golden contains a vehicle.
+Car `progress` starts at `-startDelaySeconds`, i.e. negative, and every golden renders one frame
+with `deltaSeconds = 0`, so no car has ever entered a golden frame. All seventeen have ~92% uniform
+tarmac.
+
+---
+
+### 3. `ThemePreviewScene` — classification C, and the minimal refactor
+
+`ThemePreviewScenes` builds its objects from the same sprites at the same offsets as
+`SceneObjectRenderer`, **by hand** — its own doc says the offsets are copied from the renderer's
+draw functions. All of them were compared: **71 preview offset pairs, 64 distinct drawables, 59
+shared with the renderer, 56 in exact agreement** once the renderer's nested transforms are folded
+in (`tree_canopy` at `(-41,-80)` under `translate(0,-38)` is the preview's `(-41,-118)`, and so on).
+
+**One had drifted.** The winter tree's snow cap: `(-38,-116)` in the preview against `(-41,-118)` in
+the wallpaper — 3 units right and 2 down. The renderer's origin had been corrected at some point and
+the copy had not moved with it.
+
+**What was not done.** The duplication was not removed wholesale. The preview is a flat 320x240 data
+description with no perspective, no candidate system and no scroll; routing it through the
+wallpaper's renderer means giving it all three, which is a refactor of `SceneObjectRenderer` that no
+evidence supports and that the brief forbids without one.
+
+**What was done.** The hand copy for the one object that actually drifted is gone:
+`TreeSpriteLayout` states the trunk, crown, snow cap, bare branches and the canopy lift once, and
+both callers read it. **The renderer's numbers are unchanged** — the goldens are the proof, and none
+was regenerated — so the wallpaper draws exactly what it drew and the *preview* is what moved.
+`PreviewRendererAgreementTest` guards 59 tree sprite placements across 12 themes.
+
+**Found and deliberately not fixed:** the snow cap is 76 units wide on an 82-unit crown and the
+wallpaper blits it at the crown's *left edge*, so it reaches the left shoulder and falls 6 units
+short of the right — contradicting its own comment, which says it reaches both. Correcting that
+changes what the wallpaper draws and needs a golden regeneration and a visual decision. Recorded in
+`ROADMAP.md`.
+
+---
+
+### 4. `ARCHITECTURE.md` — P2-8 closed
+
+Re-read in full against the source. The validity stamp had said *"v75 … current as of v1.0 Stable
+(`versionCode = 1`)"* for twenty-seven releases; it now reads v3.7 / `versionCode = 28`.
+
+- **Fourteen `engine/` files were never mentioned at all** — `SceneSpace`, `SceneTime`, `SolarDay`,
+  `LakeLanes`, `CandidateNoise`, `CloudCoverage`, `PeopleDensity`, `TreeSpriteLayout`,
+  `SpriteCacheIndex`, `MemoryPressurePolicy`, `TintFilterCache`, `IntLruSlots`,
+  `GradientShaderCache`, `IntKeyLruSlots` — and all now are.
+- The weather section describes Open-Meteo as the default with its non-commercial licensing, the new
+  provider, and why there is no cross-provider fallback and no migration code.
+- The testing section is split into its **JVM** and **instrumented** layers, with the instrumented
+  one stated plainly as *not run by CI* and required before a release.
+- *Workflows* records the removed emulator job as history, with why.
+- Weakness 10's claim that *"no automated test in this project observes a rendered frame on either
+  backend"* was false since v3.2 and is corrected; P2-5 and P2-6 are marked resolved.
+- *Environment requirements* now says an emulator is required to release, and that two GL drivers
+  are worth having.
+
+`AI_PROJECT_RULES.md` **§12.3** was corrected in the same spirit: it had claimed *"No emulator or
+device is available in this environment"* for five releases, which was false and risked a session
+skipping verification it could have done.
+
+---
+
+### 5. GL golden sensitivity — a region gate, with the matrix
+
+**The problem, restated exactly.** v3.2 measured that two correct GL drivers differ by 0.88% of the
+frame at a channel delta of 8, and that reducing `drawRadialGlow`'s triangle fan to a single
+triangle — destroying the glow's shape — reaches only 0.47%. No whole-frame limit can separate
+those, at any fraction. Lowering the global threshold fails on the next emulator instead of the
+next bug.
+
+**Why a region works, and it is arithmetic rather than tuning.** Driver disagreement is *spread*: it
+is anti-aliased edges, and there are edges everywhere, so it lands at a similar rate in any patch.
+A regression in one effect is *concentrated*: it moves a large share of one small region and nothing
+outside it. Divided by the frame the two are indistinguishable; divided by the effect's own
+bounding box they are two orders of magnitude apart.
+
+The implementation reuses `GoldenFocus`, which the Canvas suite already has for exactly this reason
+— no new abstraction. `SharedGoldenScenes.day()` names the sun's glow (254x254 = 64 516 px, the disc
+the renderer actually draws), and `GlGolden` checks it against the committed GL golden at channel 4
+with a 0.50% limit.
+
+**Every number measured on an Android 17 emulator**, the "different driver" column by rendering the
+same frame under `swiftshader_indirect` (the software rasteriser the goldens were taken with) and
+under the host-GPU translator on a Mesa/radeonsi AMD card:
+
+| channel | healthy, goldens' driver | healthy, **different** driver | glow at half intensity | glow fan → triangle |
+|---|---|---|---|---|
+| 2 | 0.0000% | 0.3116% | 8.2584% | 10.4160% |
+| 3 | 0.0000% | 0.1116% | 5.3134% | 8.6010% |
+| **4** | **0.0000%** | **0.0512%** | **2.8164%** | **7.0215%** |
+| 6 | 0.0000% | 0.0140% | 0.4449% | 4.2207% |
+| 8 | 0.0000% | 0.0031% | 0.0186% | 1.8631% |
+| 16 | 0.0000% | 0.0000% | 0.0000% | 0.0000% |
+
+The `>=16` row is why the gate had to exist: at the channel the whole-frame gate uses, destroying
+the glow completely is worth exactly zero pixels.
+
+**The required matrix, run end to end under the harder (different) driver:**
+
+| case | GL suite | region |
+|---|---|---|
+| correct render, goldens' own driver | **PASS** | 0.000% |
+| legitimate driver variation (AMD host GPU vs swiftshader) | **PASS** | 0.051% |
+| deliberate regression — glow fan reduced to a triangle | **FAIL** | 7.088% |
+| deliberate regression — glow at half intensity | **FAIL** | 2.711% |
+
+Both regressions pass **every** whole-frame gate, before and after. The limit sits roughly ten times
+above the measured driver floor and five times below the subtler regression. **No global threshold
+was lowered and no test was made permissive**; a gate was added where the signal actually is.
+
+---
+
+### 6. Cache lifecycle — no fix needed, and the premise was wrong
+
+| cache | owner | lifetime | bound | trim hook | verdict |
+|---|---|---|---|---|---|
+| `SpriteCache` | global `object` | the process | ~33 MB of `Bitmap` | **yes** | **A** — correct |
+| `SpriteCacheIndex` | **`private val` of `SpriteCache`** | its owner's | four `IntArray`s, ~4 KB | inherits: `clear()` calls `index.clear()` | **A** — the premise was wrong |
+| `TintFilterCache` | global `object` | the process | 64 filters + two `IntArray(64)` | **yes**, on `RELEASE_ALL` | **A** — correct |
+| `GradientShaderCache` | field of one `CanvasSceneTarget` | its owner's | 32 shaders + **768 bytes** | none, none needed | **A** — correct |
+
+`SpriteCacheIndex` is not an independent cache: it is bookkeeping the bitmap cache owns privately,
+and it is emptied by the very `clear()` the memory-pressure path already calls. It accounts for
+60 MB of pixels using ~4 KB of its own. `GradientShaderCache` is per-instance, bounded by
+construction, and dies with its target; a hook for it would mean giving the engine a registry of
+live targets to release a few hundred bytes.
+
+**No `onTrimMemory` was added.** Symmetry is not a reason. `CacheLifecycleTest` pins the bounds the
+verdict rests on: both key tables stay at capacity under 100 000 distinct keys, and the magnitudes
+are three orders of magnitude apart.
+
+---
+
+### 7. The deprecated icon
+
+`Icons.Outlined.DirectionsWalk` → `Icons.AutoMirrored.Outlined.DirectionsWalk` in
+`WorldSceneScreen.kt`. One import, one call site. The compiler warning is gone, lint is unchanged at
+32 issues and 0 errors, and the People row was checked on screen — the `AutoMirrored` variant is the
+same glyph in LTR, which is the point of it.
+
+---
+
+### 8. The `Collect device diagnostics` lesson — documented, not rebuilt
+
+`AI_PROJECT_RULES.md` **10.13**. The step's `|| true` suffixes bounded each `adb` call's *exit
+status*, and the failure mode of `adb` against a wedged device is not a non-zero exit but **not
+returning**: on the v3.5 run it hung until the job's 45-minute timeout cancelled it, so the upload
+that would have carried the evidence was skipped. Four requirements are recorded for any future E2E
+job — a per-invocation timeout, a total budget, upload before the budget rather than after the work,
+and that the step may never be the reason the job dies — under the general form *a step that exists
+to explain a failure must be incapable of causing one*.
+
+**Nothing was reintroduced.** No `device-diagnostics`, no `adb` diagnostics, no
+`reactivecircus/android-emulator-runner`, no E2E job. The workflow is still `build` → `release`, and
+`grep` for any of those terms across `.github/` returns nothing.
+
+---
+
+### Verification
+
+| check | result |
+|---|---|
+| `./gradlew test` | **815 tests, 0 failures** (791 in v3.6; +24) |
+| `./gradlew lint` | **0 errors**, 32 warnings/hints — *identical* to v3.6 |
+| `./gradlew assembleDebug` | pass |
+| `./gradlew assembleDebugAndroidTest` | pass |
+| `./gradlew assembleRelease` (R8) | pass |
+| `connectedDebugAndroidTest` on Pixel 9 / Android 17 | **24 tests, 0 failures**, under *both* GL drivers |
+| Goldens | **17/17 pass, none regenerated** |
+| GL regression matrix | 2 healthy cases pass, 2 deliberate regressions fail |
+| Build + test from the extracted ZIP | pass |
+| Runtime | settings, theme gallery, Weather & time with **Open-Meteo selected by default**, provider switch persisted as `weatherapi_com`, World & scene with the new icon, system wallpaper preview with traffic on the road; logcat clean — no `FATAL`, no ANR, no application error |
+
+### Known limitations carried forward
+
+No golden contains a vehicle; preview/renderer offset agreement is guarded for the tree only; the
+wallpaper's own snow cap is 3 units off-centre; the instrumented tests have no automated trigger.
+`B5`, `D4`, `D7`, `D10`, `D11`, `D12` unchanged. `targetSdk 37` remains a v4.0 project. See
+`ROADMAP.md`.
+
+---
+
 ## v3.6 — the emulator CI job is gone, the Canvas backend stops rebuilding its gradients, and three engine fields become one snapshot
 
 **Prepared, not published.** `versionCode = 27`, `versionName = "3.6"`. No tag, no push, no GitHub

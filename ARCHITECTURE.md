@@ -5,11 +5,16 @@ describes the **current** implementation, including its known weaknesses.
 Planned work belongs in `ROADMAP.md`; visual and design decisions belong in
 `DESIGN_NOTES.md`.
 
-Last fully verified against **v75**, by reading the source and running a complete
-`assembleDebug` + `lintDebug` + `test` build. Sections touched after that — the depth
-model, the sprite blitting conventions and the ground geometry — were updated as the
-work landed and are current as of **v1.0 Stable** (`versionCode = 1`). Anything not
-listed there has not been re-read against the source since v75.
+**Last fully verified against v3.7** (`versionCode = 28`), by reading the source and running
+`test` + `lintDebug` + `assembleDebug` + `assembleRelease` and the instrumented suite on an
+Android 17 device.
+
+This stamp had said *"v75 … current as of v1.0 Stable (`versionCode = 1`)"* for twenty-seven
+releases, which is the whole of **P2-8**: sections were updated as work landed, so most of the
+document was in fact current, but nothing said which — and a validity stamp nobody can trust is
+worse than none. v3.7 re-read the document against the source in full and closed the item. Every
+file in `engine/` now appears in the table below; fourteen did not before, including four the same
+release added.
 
 ---
 
@@ -70,7 +75,7 @@ PaperScrape/
 | `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, buildings, trees, parasols, seasonal decorations), the road, cars and people. |
 | `SpriteBlitter.kt` | The single sprite-blitting path, shared by both renderers, plus the `SpriteScale` convention selector and the one definition of `SPRITE_PIXELS_PER_UNIT`. |
 | `SceneCanvas.kt` | The drawing interface both renderers target, plus `SceneShape`, the closed polygon that replaced `Path`. |
-| `CanvasSceneTarget.kt` | `SceneCanvas` over `android.graphics.Canvas`: the settings preview and the fallback. |
+| `CanvasSceneTarget.kt` | `SceneCanvas` over `android.graphics.Canvas`: the settings preview and the EGL fallback. Owns a `GradientShaderCache`, so its three gradient entry points reuse shaders instead of building one per call. |
 | `GlSceneTarget.kt` | `SceneCanvas` over OpenGL ES 2.0: transform stack, tessellation, batching. |
 | `GlSpriteProgram.kt` | The one shader program; sprites and flat fills share it. |
 | `GlTextureCache.kt` | Drawable resource id → texture handle, UV rectangle and pixel size. Routes each sprite to the atlas or to a texture of its own. |
@@ -91,6 +96,18 @@ PaperScrape/
 | `SeasonalThemeRules.kt` | Date-based automatic theme selection (includes a Computus implementation for Easter). |
 | `SunPositionCalculator.kt` | Day phase, sun/moon arc position, moon phase, simplified sunrise/sunset. |
 | `FireworkEffect.kt`, `SantaSleighEffect.kt` | Self-contained timed effects. |
+| `SceneSpace.kt` | **The one place the world's size is stated.** The horizon, the ground plane's projection, the road's lanes and edges, and every category's real height in metres against the local units its art occupies. Every base scale is derived here, so the ratios between objects cannot be edited one at a time. |
+| `SceneTime.kt` | Scene time as a `@JvmInline value class` over `Double`, with every read bounded at the point of use. Replaces a `Float` accumulator that stopped advancing after ~12 days of visible uptime. |
+| `SolarDay.kt` | Today's sunrise, sunset and whether they came from a real position, as one immutable value (**P2-6**, v3.6). Published through a single `@Volatile` reference on the engine so the render thread cannot read a sunrise from one location beside a sunset from another — which three separate fields, `@Volatile` or not, allow. |
+| `LakeLanes.kt` | Which lane each lake decoration occupies and how deep it sits, so boats cannot share a line and a leaping dolphin sorts by where its body is rather than by the lane it left. |
+| `CandidateNoise.kt` | The stable per-candidate pseudo-random values the stateless candidate model is built on: same slot, same value, every frame, with density thinning and colour-variant assignment deliberately drawn from uncorrelated streams. |
+| `CloudCoverage.kt` | How many clouds a cover fraction means, shared by the theme's own setting and Live Weather's. |
+| `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern. |
+| `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview (v3.7 Filone C). The preview builds its objects from the same sprites at the same offsets by hand, and the snow cap's copy had drifted 3 units right and 2 down; both now read from here. |
+| `SpriteCache.kt` / `SpriteCacheIndex.kt` | The bitmap cache and its bookkeeping. The index is `SpriteCache`'s own `private val` — ids, byte counts and LRU order in `IntArray`s, deliberately free of Android types so the eviction logic is unit-testable, and cleared by the same `clear()` the memory-pressure path calls. |
+| `MemoryPressurePolicy.kt` | What an `onTrimMemory` level means for a wallpaper, as a pure decision. Notably `TRIM_MEMORY_UI_HIDDEN` is *not* treated as pressure, though its numeric value sits above `RUNNING_CRITICAL`: for a wallpaper it only means the settings screen closed. |
+| `TintFilterCache.kt` / `IntLruSlots.kt` | A bounded, exact-LRU cache of `PorterDuffColorFilter`s keyed by colour, so a tinted blit does not allocate a filter per sprite per frame. Global, and therefore `@Synchronized`; released on `RELEASE_ALL`. |
+| `GradientShaderCache.kt` / `IntKeyLruSlots.kt` | The same pattern for gradient `Shader`s (**P2-5**, v3.6), with a multi-component key because a gradient is four or five numbers rather than one. Owned **per `CanvasSceneTarget`** rather than globally, so a draw call takes no monitor. Measured: the Canvas backend built 180 `Shader` objects over 60 frames for 3 distinct gradients, and now builds 3. |
 
 ### Other packages
 
@@ -127,11 +144,25 @@ PaperScrape/
     cover, precipitation, rain, showers, snowfall, a normalised `WeatherCondition`, a timestamp,
     and the provider it came from. Every field is nullable because "not reported" and "reported
     zero" are different facts the mapping depends on.
-  - `OpenMeteoProvider.kt` — the default. Keyless free tier; a key only upgrades the endpoint.
-    Splits precipitation into rain/showers/snowfall, which is why the model has room for it.
-  - `VisualCrossingProvider.kt` — the Timeline API. **Requires a key** (no anonymous tier), which
-    is why `WeatherFetchResult.MissingApiKey` exists: without one no request is made at all. No
-    key for it is compiled into the app.
+  - `OpenMeteoProvider.kt` — **the default, and the reason Live Weather works out of the box.**
+    Keyless free tier; a key only upgrades the endpoint, and neither state is a failure. Splits
+    precipitation into rain/showers/snowfall, which is why the model has room for it. Its free
+    service is licensed CC-BY 4.0 for **non-commercial** use, which is the one thing the second
+    provider exists to give an alternative to.
+  - `WeatherApiComProvider.kt` — WeatherAPI.com's `/v1/current.json`, the second provider since
+    v3.7, replacing Visual Crossing. **Requires a key** (no anonymous tier), which is why
+    `WeatherFetchResult.MissingApiKey` exists: without one no request is made at all. No key for it
+    is compiled into the app; the user's own lives in their DataStore. Chosen because its condition
+    vocabulary is published as machine-readable JSON — committed as a test fixture, with every one
+    of its 60 codes walked by a test — where the provider it replaced had icon slugs mapped from
+    prose that nothing could check (deferred item **D8**). Reports one `precip_mm` and no snow
+    depth in the realtime object, so `showersMm` and `snowfallCm` stay null rather than zero.
+  - **Provider selection is a string id, and an unknown one reads as the default.** An install that
+    had chosen Visual Crossing therefore lands on Open-Meteo after upgrading, with no migration
+    code and no broken state — a keyed provider whose key is gone would be worse than the keyless
+    one. There is deliberately **no automatic fallback between providers** at fetch time: the
+    selection stands and the failure is reported, because silently answering from a different
+    service makes "which provider am I using" unanswerable.
   - `WeatherSnapshotMapper.kt` — observation → `LiveWeatherSnapshot`, the renderer's vocabulary.
     **A measurement, where one exists, is the answer.** The summary code only chooses the *kind*
     when a positive total has no breakdown to explain it, and only decides whether anything falls
@@ -1188,6 +1219,15 @@ upgrade (Compose BOM `2026.08.00`, `core-ktx 1.19.0`, `appcompat 1.8.0`,
   `versionName`, not `versionCode` -- this paragraph said `versionCode` and was
   describing a rule the workflow had already stopped enforcing.
 
+There is **no third job**. An `instrumented` emulator job existed from v3.2 to v3.5 and was
+removed in v3.6: it ran on hosted runners repeatedly and never once produced a signal about this
+app's code — every failure was environmental, and each was a different environment (a missing SDK
+package, a device not yet able to install, and finally a shell syntax error inside the action's own
+wrapper). On its last run its diagnostics step hung until the job timed out, so it could not even
+upload the evidence. `AI_PROJECT_RULES.md` 10.12 states what any future auxiliary job must satisfy
+before it gates anything, and 10.13 records why bounding a diagnostic's exit status is not the same
+as bounding its time. **The instrumented tests themselves were not removed** — see *Testing* above.
+
 Neither workflow needed a change for the Phase 2 upgrade. JDK 17 still builds
 AGP 9.3.1 / Gradle 9.7.1 (checked locally on a Temurin 17 that matches the
 `setup-java` step, not inferred), the wrapper jar matches the SHA-256 Gradle
@@ -1220,9 +1260,22 @@ Lint warning breakdown: `UseKtx` ×33, `UnusedResources` ×23,
 
 ### Testing
 
-Unit tests live in `app/src/test/kotlin/`, mirroring the main source package
-layout. They are plain JVM tests: every class currently under test has zero
-Android imports.
+There are **two layers**, and the split is deliberate: what can be answered without a device is
+answered without one.
+
+**JVM tests** live in `app/src/test/kotlin/`, mirroring the main source package layout. They are
+plain JVM tests: every class currently under test has zero Android imports, and where a class does
+hold Android types the *testable half* is split out into one that does not — `IntLruSlots` under
+`TintFilterCache`, `IntKeyLruSlots` under `GradientShaderCache`, `SpriteCacheIndex` under
+`SpriteCache`, `SceneTransform` and `SceneShape` under the backends. **These are the tests CI
+runs.**
+
+**Instrumented tests** live in `app/src/androidTest/kotlin/` and need a device. Since v3.6 **CI does
+not run them** — see *Workflows* below for why the emulator job was removed — so they are run
+locally against an Android 17 emulator before a release. They are not optional and not decorative:
+they are the only thing in the project that looks at a rendered frame.
+
+The table below is the JVM layer; the instrumented layer follows it.
 
 | Test class | Covers |
 |---|---|
@@ -1239,6 +1292,13 @@ Android imports.
 | `SunPositionCalculatorTest` | Day/night classification, `progress` and `dayBlend` contracts, the celestial arc, sunrise/sunset approximation (equinox day length, hemispheric asymmetry, polar clamping, longitude offset), moon phase cycling, and the clock reading that replaced a per-frame `Calendar` — pinned against that `Calendar` at tolerance `0f` across eight time zones, a year of non-hour-aligned samples, and pre-epoch instants |
 | `SeasonalThemeRulesTest` | Computus against published Easter dates 1900–2100, the Sunday and 22 Mar–25 Apr invariants across 1900–2200, window boundaries and precedence, and that every rule resolves to an id present in `ThemeCatalog` |
 | `CustomThemeDataJsonTest` | Serialisation round trips (including all built-in themes), schema versioning and legacy compatibility, and defensive parsing of corrupt input |
+| `IntKeyLruSlotsTest` | The multi-component key table `GradientShaderCache` runs on: exactness (a difference in *any* of the five components, including the zero padding, must miss), the capacity bound under a continuous stream of new keys, exact LRU order, slot recycling, and that two floats one ULP apart are distinct keys |
+| `SolarDayPublicationTest` | **P2-6.** That three separately-published fields can be read half-updated — demonstrated deterministically with a barrier, and with the fields already `@Volatile`, so it is a statement about the shape and not about a missing annotation — and that one immutable snapshot behind one `@Volatile` cannot be, under the identical interleaving and under 200 000 unsynchronised sampled reads |
+| `RoadVehicleGeometryTest` | **Filone B.** The road/vehicle ratios measured from `SceneSpace`'s own constants: lanes about one vehicle apart, the carriageway between 1.5 and 4 car-heights deep, the fire engine fitting inside it, the strip symmetric about the lane pair, and a degenerate lane pair still painting a full-width road |
+| `CacheLifecycleTest` | **Filone F.** The memory bound of every cache in the render path, which is what the "no `onTrimMemory` needed" verdict rests on: both key tables bounded whatever they are fed, the gradient cache's bookkeeping under a kilobyte, and `SpriteCacheIndex` accounting for megabytes of pixels it does not hold and releasing them on `clear()` |
+| `PreviewRendererAgreementTest` | **Filone C.** That the gallery preview and the wallpaper place a tree's parts identically — 59 sprite placements across 12 themes — after an audit found the snow cap's hand-copied offset had drifted from the renderer's |
+| `WeatherApiComProviderTest` | The second weather provider: every one of the 60 published condition codes resolves, and resolves to the right *side* (frozen / liquid / thunder / obscuring) as judged against the official English text, walked from the committed `conditions.json`; parsing of a full response, a sparse one, an error body and a snow code; and that a blank key makes no request |
+| `WeatherProviderSelectionTest` | **That Open-Meteo is the default**, that the default needs no key, that an install which had chosen the removed provider falls back to it, and that switching provider disturbs no other weather setting |
 
 One non-obvious dependency: `org.json` ships inside the Android framework, so
 under local unit tests it resolves against the *mockable* `android.jar` where
@@ -1260,13 +1320,37 @@ solely so it can be asserted against known dates directly — testing it only
 through `themeForDate` would not catch an off-by-one, since the Easter window
 spans three days either side.
 
+#### The instrumented layer
+
+| Suite | Covers |
+|---|---|
+| `SceneGoldenTest` | 14 committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel. `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable. `GoldenFocus` re-checks named patches on their own much smaller area, because 0.2% of a 360x800 frame is 576 pixels and a dolphin covers 160. |
+| `GlSceneGoldenTest` | Three of the same scenes rendered through the shipped `GlSceneTarget` on an offscreen EGL pbuffer, configured exactly as `GlRenderThread` configures it, MSAA included. Three gates: against its own committed `gl-*.png`, against the Canvas golden (the claim that the two backends still draw the same picture), and — since v3.7 — **against a named region**. |
+| `PrefsCorruptionRecoveryTest` | That a damaged preferences file costs that store its contents and nothing else, including across a process restart. |
+| `CanvasGradientAllocationTest` | **P2-5.** Records the full argument tuple of every gradient the real renderer asks for over 60 animated frames, and checks the cache builds one `Shader` per *distinct* gradient rather than one per request. |
+
+**The region gate is the v3.7 addition, and it exists because the whole-frame gates provably could
+not see one class of regression.** Driver-to-driver disagreement is *spread* — it is anti-aliased
+edges, and there are edges everywhere — while a regression in one effect is *concentrated*. Divided
+by the whole frame the two are indistinguishable; divided by the effect's own bounding box they are
+two orders of magnitude apart. Measured inside the sun's glow at a channel delta of 4: two
+genuinely different GL drivers differ by 0.051%, reducing the glow's triangle fan to a triangle
+differs by 7.02%, and halving its intensity by 2.71%. Both of those pass every whole-frame gate.
+The limit is 0.50%. See `GlGolden.Tolerance` for the full table.
+
 ### Environment requirements
 
 Building requires a full JDK (17 recommended, matching CI), the Android SDK
 with platform 37 (Android 17) and build-tools 36, and network access to Google
 Maven and Maven Central. Platform 37 is what `compileSdk` links against;
-build-tools stays at 36.0.0, which is what AGP 9.3.1 selects by default. See `CLAUDE.md` for the reproducible setup procedure used in
-ephemeral environments.
+build-tools stays at 36.0.0, which is what AGP 9.3.1 selects by default. See `CLAUDE.md` for the
+reproducible setup procedure used in ephemeral environments.
+
+**An Android 17 emulator is also required to release**, because the instrumented layer above is not
+run by CI and a release is not verified without it. Two GL drivers are worth having available:
+`swiftshader_indirect`, the software rasteriser the committed GL goldens were taken under, and the
+host-GPU translator — v3.7's region thresholds were set by measuring the same frame under both, and
+that comparison is the only way to tell a driver difference from a regression.
 
 ---
 
@@ -1297,6 +1381,12 @@ sequencing live in `ROADMAP.md`.
    `onTrimMemory` response plus LRU eviction. The transparent padding inside those
    bitmaps was 18.3 MB and is now 2.15 MB (Phase 3.3), so the cache holds roughly
    half of what it used to for the same scene.
+7b. ~~**`Shader` allocation in the Canvas draw path.**~~ Resolved in v3.6 (**P2-5**):
+   `GradientShaderCache` reuses gradient shaders instead of building one per call. Measured at 180
+   objects over 60 frames for 3 distinct gradients; now 3.
+7c. ~~**Three scene fields shared across threads without synchronisation.**~~ Resolved in v3.6
+   (**P2-6**): sunrise, sunset and the has-fix flag are one immutable `SolarDay` behind a single
+   `@Volatile`, so a frame cannot mix two locations' days.
 8. **People are outside the scene systems.** Fixed screen-height anchor, fixed
    scale, no depth scaling, no ground anchoring, no road awareness, no
    visibility or density control.
@@ -1304,18 +1394,18 @@ sequencing live in `ROADMAP.md`.
    2.4: the copy range is derived from the tiling period and the object's own
    extent instead of being a fixed `-1..1`, and the per-object setup the cull
    depends on is computed once rather than per copy.
-10. **Test coverage is narrow.** 278 unit tests now cover the pure
-    deterministic logic (sun/moon position, seasonal date rules, custom-theme
-    serialisation, bounded LRU eviction, culling geometry, slider drag
-    handover, structural change classification). Everything stateful or
-    Android-dependent — the renderer,
-    the engine lifecycle, the preferences layer, the Compose UI — remains
-    untested, and cannot be unit tested in its current shape without being
-    decoupled from `Canvas` and `Context` first. The GPU migration narrowed this
-    slightly rather than widening it: `SceneTransform` and `SceneShape` are pure and
-    covered, but `GlSceneTarget` needs a GL context to do anything and so is not.
-    **No automated test in this project observes a rendered frame on either
-    backend**, which is why visual parity is a maintainer-side check.
+10. **Test coverage is narrow, but less so than this entry used to claim.** The JVM suite
+    covers the pure deterministic logic, and the sentence that stood here for many releases —
+    *"no automated test in this project observes a rendered frame on either backend"* — has been
+    false since v3.2: 14 Canvas goldens and 3 GL goldens do exactly that, and v3.7 added a
+    region-targeted GL gate. What remains true is the shape of the gap. The engine lifecycle, the
+    preferences layer and the Compose UI are still untested and still cannot be unit tested
+    without being decoupled from `Canvas` and `Context` first, which is deferred item **B5**.
+    Two narrower gaps worth naming, both found in v3.7 and neither scheduled:
+    **no golden contains a vehicle** (car `progress` starts negative and the goldens render one
+    frame with `deltaSeconds = 0`, so no car has entered the frame), and the preview/renderer
+    sprite-offset agreement is pinned for the tree only — the other 55 shared sprites were checked
+    by hand once and nothing guards them.
 11. **The atlas cannot reclaim space.** Shelf packing wastes area against a real bin
     packer and has no way to free a single entry; it is only ever added to, and reset
     wholesale. It also fills in first-draw order, so a scene whose sprite set exceeds

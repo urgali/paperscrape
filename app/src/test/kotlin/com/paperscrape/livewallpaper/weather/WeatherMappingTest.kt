@@ -154,7 +154,7 @@ class WeatherMappingTest {
 
     /**
      * A provider that does not report showers at all leaves the field null, and null must not be
-     * read as "no showers". Visual Crossing is that provider; the only thing that keeps its
+     * read as "no showers". WeatherAPI.com is that provider; the only thing that keeps its
      * readings correct is that null and 0.0 stay distinguishable all the way to here.
      */
     @Test

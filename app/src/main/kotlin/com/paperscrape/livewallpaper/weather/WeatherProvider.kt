@@ -8,12 +8,19 @@ package com.paperscrape.livewallpaper.weather
  */
 enum class WeatherProviderId(val storageId: String, val displayName: String) {
     OPEN_METEO("open_meteo", "Open-Meteo"),
-    VISUAL_CROSSING("visual_crossing", "Visual Crossing"),
+    WEATHER_API_COM("weatherapi_com", "WeatherAPI.com"),
     ;
 
     companion object {
 
-        /** What a fresh install uses: the keyless provider, so Live Weather works out of the box. */
+        /**
+         * What a fresh install uses: the keyless provider, so Live Weather works out of the box.
+         *
+         * **Open-Meteo is the default and stays the default.** It is the only candidate that needs
+         * no key at all, which means no credential ships in the app, none is asked of the user, and
+         * Live Weather works the moment a location exists. Everything else here is an alternative,
+         * never a replacement for that.
+         */
         val DEFAULT = OPEN_METEO
 
         /** Unknown or absent ids read as [DEFAULT] rather than crashing an install forward. */
@@ -37,9 +44,9 @@ interface WeatherProvider {
     /**
      * Whether this provider cannot be called at all without a key.
      *
-     * Open-Meteo can (its free tier is keyless, and a key only upgrades the endpoint), Visual
-     * Crossing cannot. The difference is why [WeatherFetchResult.MissingApiKey] exists instead of
-     * a provider quietly returning a failure that looks like a network problem.
+     * Open-Meteo can (its free tier is keyless, and a key only upgrades the endpoint),
+     * WeatherAPI.com cannot. The difference is why [WeatherFetchResult.MissingApiKey] exists
+     * instead of a provider quietly returning a failure that looks like a network problem.
      */
     val requiresApiKey: Boolean
 

@@ -44,7 +44,7 @@ moving on its own.
   road, dressed for the season.
 - **Weather.** Rain, snow and cloud cover per theme — or Live Weather, which replaces
   them with the real conditions where you are, fetched from Open-Meteo (no account
-  needed) or Visual Crossing (free account, own API key). If no location is available,
+  needed) or WeatherAPI.com (free account, own API key). If no location is available,
   or the chosen provider needs a key it does not have, it says so and falls back to the
   theme's own weather rather than quietly asking the other service.
 - **Occasional visitors.** Santa's sleigh, fireworks, lightning and birds.
@@ -127,7 +127,7 @@ app/src/main/kotlin/com/paperscrape/livewallpaper/
               theme-preview scene descriptions
   ui/         Compose settings UI, one file per destination
   prefs/      DataStore preferences
-  weather/    Live Weather: the provider interface, Open-Meteo, Visual Crossing,
+  weather/    Live Weather: the provider interface, Open-Meteo, WeatherAPI.com,
               and the normalised model they both produce
   location/   optional location for sunrise/sunset and weather
   update/     GitHub release check

@@ -1,0 +1,306 @@
+{
+  "_source": "https://www.weatherapi.com/docs/conditions.json",
+  "_note": "Fetched verbatim from the official URL above. Trimmed to code + English day/night text; the published file also carries 20+ translations, which this project does not use (it is English-only by decision). No code or text is edited. WeatherApiComProviderTest walks every entry and asserts WeatherApiComProvider.condition resolves it.",
+  "conditions": [
+    {
+      "code": 1000,
+      "day": "Sunny",
+      "night": "Clear"
+    },
+    {
+      "code": 1003,
+      "day": "Partly Cloudy",
+      "night": "Partly Cloudy"
+    },
+    {
+      "code": 1006,
+      "day": "Cloudy",
+      "night": "Cloudy"
+    },
+    {
+      "code": 1009,
+      "day": "Overcast",
+      "night": "Overcast"
+    },
+    {
+      "code": 1012,
+      "day": "Haze",
+      "night": "Haze"
+    },
+    {
+      "code": 1015,
+      "day": "Dust haze",
+      "night": "Dust haze"
+    },
+    {
+      "code": 1018,
+      "day": "Blowing dust",
+      "night": "Blowing dust"
+    },
+    {
+      "code": 1021,
+      "day": "Dust storm",
+      "night": "Dust storm"
+    },
+    {
+      "code": 1024,
+      "day": "Sandstorm",
+      "night": "Sandstorm"
+    },
+    {
+      "code": 1027,
+      "day": "Severe sandstorm",
+      "night": "Severe sandstorm"
+    },
+    {
+      "code": 1030,
+      "day": "Mist",
+      "night": "Mist"
+    },
+    {
+      "code": 1033,
+      "day": "Smoke",
+      "night": "Smoke"
+    },
+    {
+      "code": 1036,
+      "day": "Smoky haze",
+      "night": "Smoky haze"
+    },
+    {
+      "code": 1039,
+      "day": "Smog",
+      "night": "Smog"
+    },
+    {
+      "code": 1042,
+      "day": "Severe smog",
+      "night": "Severe smog"
+    },
+    {
+      "code": 1045,
+      "day": "Saharan dust",
+      "night": "Saharan dust"
+    },
+    {
+      "code": 1048,
+      "day": "Dust",
+      "night": "Dust"
+    },
+    {
+      "code": 1063,
+      "day": "Patchy rain nearby",
+      "night": "Patchy rain nearby"
+    },
+    {
+      "code": 1066,
+      "day": "Patchy snow nearby",
+      "night": "Patchy snow nearby"
+    },
+    {
+      "code": 1069,
+      "day": "Patchy sleet nearby",
+      "night": "Patchy sleet nearby"
+    },
+    {
+      "code": 1072,
+      "day": "Patchy freezing drizzle nearby",
+      "night": "Patchy freezing drizzle nearby"
+    },
+    {
+      "code": 1087,
+      "day": "Thundery outbreaks in nearby",
+      "night": "Thundery outbreaks in nearby"
+    },
+    {
+      "code": 1114,
+      "day": "Blowing snow",
+      "night": "Blowing snow"
+    },
+    {
+      "code": 1117,
+      "day": "Blizzard",
+      "night": "Blizzard"
+    },
+    {
+      "code": 1135,
+      "day": "Fog",
+      "night": "Fog"
+    },
+    {
+      "code": 1147,
+      "day": "Freezing fog",
+      "night": "Freezing fog"
+    },
+    {
+      "code": 1150,
+      "day": "Patchy light drizzle",
+      "night": "Patchy light drizzle"
+    },
+    {
+      "code": 1153,
+      "day": "Light drizzle",
+      "night": "Light drizzle"
+    },
+    {
+      "code": 1168,
+      "day": "Freezing drizzle",
+      "night": "Freezing drizzle"
+    },
+    {
+      "code": 1171,
+      "day": "Heavy freezing drizzle",
+      "night": "Heavy freezing drizzle"
+    },
+    {
+      "code": 1180,
+      "day": "Patchy light rain",
+      "night": "Patchy light rain"
+    },
+    {
+      "code": 1183,
+      "day": "Light rain",
+      "night": "Light rain"
+    },
+    {
+      "code": 1186,
+      "day": "Moderate rain at times",
+      "night": "Moderate rain at times"
+    },
+    {
+      "code": 1189,
+      "day": "Moderate rain",
+      "night": "Moderate rain"
+    },
+    {
+      "code": 1192,
+      "day": "Heavy rain at times",
+      "night": "Heavy rain at times"
+    },
+    {
+      "code": 1195,
+      "day": "Heavy rain",
+      "night": "Heavy rain"
+    },
+    {
+      "code": 1198,
+      "day": "Light freezing rain",
+      "night": "Light freezing rain"
+    },
+    {
+      "code": 1201,
+      "day": "Moderate or heavy freezing rain",
+      "night": "Moderate or heavy freezing rain"
+    },
+    {
+      "code": 1204,
+      "day": "Light sleet",
+      "night": "Light sleet"
+    },
+    {
+      "code": 1207,
+      "day": "Moderate or heavy sleet",
+      "night": "Moderate or heavy sleet"
+    },
+    {
+      "code": 1210,
+      "day": "Patchy light snow",
+      "night": "Patchy light snow"
+    },
+    {
+      "code": 1213,
+      "day": "Light snow",
+      "night": "Light snow"
+    },
+    {
+      "code": 1216,
+      "day": "Patchy moderate snow",
+      "night": "Patchy moderate snow"
+    },
+    {
+      "code": 1219,
+      "day": "Moderate snow",
+      "night": "Moderate snow"
+    },
+    {
+      "code": 1222,
+      "day": "Patchy heavy snow",
+      "night": "Patchy heavy snow"
+    },
+    {
+      "code": 1225,
+      "day": "Heavy snow",
+      "night": "Heavy snow"
+    },
+    {
+      "code": 1237,
+      "day": "Ice pellets",
+      "night": "Ice pellets"
+    },
+    {
+      "code": 1240,
+      "day": "Light rain shower",
+      "night": "Light rain shower"
+    },
+    {
+      "code": 1243,
+      "day": "Moderate or heavy rain shower",
+      "night": "Moderate or heavy rain shower"
+    },
+    {
+      "code": 1246,
+      "day": "Torrential rain shower",
+      "night": "Torrential rain shower"
+    },
+    {
+      "code": 1249,
+      "day": "Light sleet showers",
+      "night": "Light sleet showers"
+    },
+    {
+      "code": 1252,
+      "day": "Moderate or heavy sleet showers",
+      "night": "Moderate or heavy sleet showers"
+    },
+    {
+      "code": 1255,
+      "day": "Light snow showers",
+      "night": "Light snow showers"
+    },
+    {
+      "code": 1258,
+      "day": "Moderate or heavy snow showers",
+      "night": "Moderate or heavy snow showers"
+    },
+    {
+      "code": 1261,
+      "day": "Light showers of ice pellets",
+      "night": "Light showers of ice pellets"
+    },
+    {
+      "code": 1264,
+      "day": "Moderate or heavy showers of ice pellets",
+      "night": "Moderate or heavy showers of ice pellets"
+    },
+    {
+      "code": 1273,
+      "day": "Patchy light rain in area with thunder",
+      "night": "Patchy light rain in area with thunder"
+    },
+    {
+      "code": 1276,
+      "day": "Moderate or heavy rain in area with thunder",
+      "night": "Moderate or heavy rain in area with thunder"
+    },
+    {
+      "code": 1279,
+      "day": "Patchy light snow in area with thunder",
+      "night": "Patchy light snow in area with thunder"
+    },
+    {
+      "code": 1282,
+      "day": "Moderate or heavy snow in area with thunder",
+      "night": "Moderate or heavy snow in area with thunder"
+    }
+  ]
+}

@@ -379,6 +379,35 @@ is run locally against a device.
 A future E2E job earns its place by being observed green on hosted runners before it gates
 anything, and it may never be made green by disabling it or hiding its failures.
 
+10.13. **Diagnostics must be bounded. `|| true` is not a timeout.** The lesson from the step that
+was removed with the `instrumented` job in v3.6, recorded here so it is not relearned rather than
+so the step is rebuilt — **nothing in this rule asks for a diagnostics step, an emulator job or an
+`adb` call to come back.**
+
+`Collect device diagnostics` was a sequence of `adb` invocations, every one of them suffixed
+`|| true` so that collecting evidence about a failure could never become a second failure of its
+own. That reasoning was right and the implementation was not: `|| true` bounds an `adb` call's
+*exit status*, and the failure mode of `adb` against a wedged or absent device is not a non-zero
+exit, it is **not returning**. On the v3.5 run the step hung, was still hanging when the job's
+45-minute `timeout-minutes` cancelled it, and the upload step that followed was therefore skipped —
+so the artefact that existed specifically to explain that failure was never produced. The job spent
+forty minutes failing to say why it had failed.
+
+If an end-to-end job is ever added back, its diagnostics must satisfy all four:
+
+- **A per-invocation timeout.** Every command that talks to a device gets one — `timeout 10 adb …`
+  — so no single call can absorb the budget. `|| true` after it is fine, and is not a substitute
+  for it.
+- **A total budget.** The collection as a whole gets its own bound, well under the job's
+  `timeout-minutes`, so the upload that follows is always reached.
+- **Upload before the budget, not after the work.** Whatever has been collected is uploaded even
+  if collection was cut short. A partial artefact is worth far more than none.
+- **The step may not be the reason the job dies.** A diagnostics step that can consume the job has
+  inverted its own purpose.
+
+The general form: **a step that exists to explain a failure must be incapable of causing one**, and
+that means bounding its time, not only its exit codes.
+
 ### 10.A Claude never publishes
 
 10.8. **Claude Code never publishes anything to GitHub. Publication is the
@@ -552,10 +581,27 @@ existed last time may be absent now.
 SDK, build tools, Gradle, and any analysis tool to be used. Install only what is
 genuinely necessary and compatible.
 
-12.3. **Never describe as observed anything that was not observed.** No emulator
-or device is available in this environment, so visual behaviour, tactile
-behaviour, battery and thermal behaviour are *never* Claude-verified. State them
-as outstanding, not as confirmed.
+12.3. **Never describe as observed anything that was not observed.** The rule is
+unchanged; what it says about the environment is not.
+
+**An Android emulator is available** and has been used for real verification
+since v3.0 — golden suites, the P2-5 allocation measurement, the v3.7 GL
+region thresholds under two different GL drivers, and runtime passes through
+MCP. This paragraph said *"No emulator or device is available in this
+environment"* from before that was arranged until v3.7, which was false for
+five releases and risked a session reading it and skipping verification it
+could have done. Corrected here rather than left as a footnote in `ROADMAP.md`.
+
+What still holds, and is the actual point of the rule:
+
+- **Check, in the current session, that the emulator is really there.** The
+  environment is not guaranteed; `adb devices` costs nothing.
+- **An emulator is not a phone.** Battery, thermal and tactile behaviour are
+  *never* Claude-verified whatever is running, and a software rasteriser is not
+  a GPU. State those as outstanding.
+- Everything else — what is drawn, what is logged, what a test reports — is
+  observable, and where it was observed it must be labelled `verified` with the
+  device it was seen on, and where it was not, it must not be.
 
 12.4. Read the warnings, not just the exit code.
 

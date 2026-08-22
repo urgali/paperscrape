@@ -7,11 +7,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.SwipeLeft
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.Filter
 import androidx.compose.material.icons.outlined.FilterDrama
 import androidx.compose.material.icons.outlined.Flare
@@ -198,7 +198,7 @@ internal fun WorldSceneScreen(
             SettingsNavigationRow(
                 title = "People",
                 supporting = densitySummary(customization.people.visible, customization.people.density),
-                icon = Icons.Outlined.DirectionsWalk,
+                icon = Icons.AutoMirrored.Outlined.DirectionsWalk,
                 onClick = { activeSection = "people" },
             )
             SettingsNavigationRow(

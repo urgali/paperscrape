@@ -1376,7 +1376,7 @@ class SceneObjectRenderer(
         // at (27,132) -- 44 units tall against the rect's 38, which is not a discrepancy to
         // correct: the canopy's own content bottom lands at -44 too, so the two pieces meet
         // exactly where the library drew them to.
-        drawSprite(canvas, R.drawable.tree_trunk, -5f, -44f)
+        drawSprite(canvas, R.drawable.tree_trunk, TreeSpriteLayout.TRUNK_X, TreeSpriteLayout.TRUNK_Y)
         val leafColor = when {
             customization.fallColorsEnabled -> fallLeafColorFor(r)
             else -> customization.colorFor(r.spec, dayBlend)
@@ -1395,14 +1395,20 @@ class SceneObjectRenderer(
         // which no longer has anything in it. Neither the winter flag nor the Christmas flag is
         // read or changed here; they simply have nothing to draw on a tree with no foliage.
         if (customization.halloweenEnabled) {
-            drawSprite(canvas, R.drawable.tree_dead_branches, -41f, -80f)
+            drawSprite(
+                canvas, R.drawable.tree_dead_branches,
+                TreeSpriteLayout.DEAD_BRANCHES_X, TreeSpriteLayout.DEAD_BRANCHES_Y,
+            )
             canvas.restore()
             return
         }
         // canopy: local bbox (-45,-84)-(45,0), refreshed in the aesthetic pass to a 5-lobe
         // silhouette (was a single blob) with its attachment point at local y=0 so it sits
         // flush on the trunk regardless of sway.
-        drawTintedSprite(canvas, R.drawable.tree_canopy, -41f, -80f, leafColor)
+        drawTintedSprite(
+            canvas, R.drawable.tree_canopy,
+            TreeSpriteLayout.CANOPY_X, TreeSpriteLayout.CANOPY_Y, leafColor,
+        )
         if (customization.winterColorsEnabled) {
             // The cap is cut to this canopy's own outline: its top edge repeats the crown's
             // upper vertices exactly, so the snow reaches both shoulders and the ridge instead
@@ -1411,7 +1417,10 @@ class SceneObjectRenderer(
             // above the snow and bare green corners either side of it. Redrawn at 234x126 with
             // an origin derived from the crown rather than guessed; if the canopy art changes,
             // both move together.
-            drawSprite(canvas, R.drawable.tree_canopy_snowcap, -41f, -80f)
+            drawSprite(
+                canvas, R.drawable.tree_canopy_snowcap,
+                TreeSpriteLayout.SNOWCAP_X, TreeSpriteLayout.SNOWCAP_Y,
+            )
         }
         // Inside the canopy's own transform, and scattered across the canopy's own measured
         // content: `tree_canopy` is 270x252 px with content at (12,12)-(258,234), which is

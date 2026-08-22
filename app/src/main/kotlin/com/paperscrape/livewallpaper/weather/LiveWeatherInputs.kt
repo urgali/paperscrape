@@ -31,5 +31,5 @@ object LiveWeatherInputs {
         previous.liveWeatherEnabled != next.liveWeatherEnabled ||
             previous.weatherProviderId != next.weatherProviderId ||
             previous.liveWeatherApiKey != next.liveWeatherApiKey ||
-            previous.visualCrossingApiKey != next.visualCrossingApiKey
+            previous.weatherApiComApiKey != next.weatherApiComApiKey
 }

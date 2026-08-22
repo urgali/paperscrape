@@ -11,6 +11,64 @@ that was.
 
 ## Current status
 
+**v3.7 prepared — Visual Crossing replaced, the road measured and left alone, the preview/renderer
+drift closed, `ARCHITECTURE.md` brought current, and the GL goldens given a gate that can see what
+the whole-frame ones provably could not.**
+
+`versionCode = 28`, `versionName = "3.7"`. **No tag, no push, no GitHub Release.**
+
+Eight strands, assessed first and then implemented where the problem was demonstrated. Three closed
+as *no fix needed*, with the measurements on record rather than an opinion.
+
+1. **Weather providers.** **Open-Meteo remains the default and is not in question** — it is the only
+   candidate needing no key, so nothing ships a credential and nothing is asked of the user. Visual
+   Crossing is **removed from every operational path**; **WeatherAPI.com** replaces it as the
+   optional keyed alternative. Chosen over OpenWeather because OpenWeather routes current
+   conditions through One Call 3.0, which requires a **credit card** even for the free allowance,
+   and because WeatherAPI publishes its condition vocabulary as machine-readable JSON — committed
+   as a fixture, all 60 codes walked by a test. That is the specific defect **D8** named about the
+   provider being removed, and it is why D8 closes rather than moves.
+2. **Road width — no fix needed (E).** Measured, not adjusted: lanes are **0.95–1.10 car heights**
+   apart against a documented target of "about one", the carriageway is **2.05–2.37 car heights**
+   deep, and even the fire engine fits inside it (1.03). Confirmed on a device against real
+   traffic: a near-lane car sits 98% inside the tarmac. What the eye reads is the inherent
+   asymmetry that a far-lane car's roof clears the top edge by about a third of its height; closing
+   that would mean widening the strip until it dominates, which is the regression v76.6 narrowed
+   the spacing to fix.
+3. **`ThemePreviewScene` — C, minimal refactor done.** The preview copies the renderer's sprite
+   offsets by hand: **71 pairs, 59 sprites shared, 56 in exact agreement** once the renderer's
+   nested transforms are folded in — and one drifted. The winter tree's snow cap sat 3 units right
+   and 2 down from where the wallpaper draws it. The duplication was **not** removed wholesale
+   (the preview is a flat 320x240 description with no perspective, candidates or scroll; unifying
+   means refactoring `SceneObjectRenderer`, which nothing supports); the hand copy for the one
+   object that actually drifted was, via `TreeSpriteLayout`, and 59 placements across 12 themes are
+   now guarded.
+4. **`ARCHITECTURE.md` — P2-8 closed.** Re-read in full against the source: stamp now v3.7, the
+   fourteen `engine/` files it never mentioned added, the weather section rewritten, the testing
+   section split into its JVM and instrumented layers, the removed CI job recorded as history, and
+   the false claim that *"no automated test observes a rendered frame"* corrected.
+5. **GL golden sensitivity — closed.** A **region-targeted** gate, reusing the `GoldenFocus`
+   mechanism the Canvas suite already has. Inside the sun's glow at channel 4: two genuinely
+   different GL drivers differ by **0.051%**, reducing the glow's fan to a triangle by **7.02%**,
+   halving its intensity by **2.71%**. Limit 0.50%. Both regressions pass every whole-frame gate,
+   which is exactly the blind spot v3.2 documented and could not close.
+6. **Cache lifecycle — no fix needed (A for all four).** The flagged asymmetry rested on a false
+   premise: `SpriteCacheIndex` is not an independent cache but `SpriteCache`'s own `private val`,
+   cleared by the same `clear()` the trim path calls. `GradientShaderCache` is per-instance, 768
+   bytes of bookkeeping, and dies with its owner. **No `onTrimMemory` hook was added for symmetry.**
+7. **Deprecated `DirectionsWalk`** replaced with the `AutoMirrored` variant. Verified on screen.
+8. **The `Collect device diagnostics` lesson** is documented as `AI_PROJECT_RULES.md` **10.13** —
+   `|| true` bounds an exit status, not a runtime — and **no E2E job, emulator or `adb` diagnostic
+   was reintroduced.**
+
+Also corrected: `AI_PROJECT_RULES.md` **§12.3**, which had claimed for five releases that no
+emulator was available.
+
+815 JVM tests, 24 instrumented on Pixel 9 / Android 17, `lintDebug` 0 errors and the same 32
+warnings, debug + R8 release APKs, and a runtime pass with a clean logcat. See `RELEASE_HISTORY.md`.
+
+---
+
 **v3.6 prepared — the emulator CI job is gone, the Canvas backend stopped rebuilding the same three
 gradients every frame, and the three unsynchronised scene fields became one published snapshot.**
 
@@ -293,14 +351,14 @@ closed in v3.1, and its two P1 test-infrastructure items plus P2-3, P2-4 and P2-
 
 | # | ID | Item | Why it is here |
 |---|---|---|---|
-| A | **P2-8** | `ARCHITECTURE.md`'s validity stamp is twenty-odd releases behind | Its stamp still reads *"v75 … current as of v1.0 Stable (`versionCode = 1`)"* against a `versionCode` of 27. v3.2 added a whole test surface (`GlGolden`, the EGL pbuffer path, `SharedGoldenScenes`) it does not mention, and v3.6 added `GradientShaderCache` and `SolarDay` and removed a CI job. Its *Workflows* section happens to be correct again as of v3.6, having described `build` and `release` and never the emulator job. |
-| B | — | **A GL regression below the driver floor is invisible** | Measured in v3.2: two correct GL drivers differ by 0.12% of pixels at `>=16`, and two of the four deliberate regressions moved fewer pixels than that. Not fixable by lowering a threshold. If it ever matters, the answer is a targeted assertion on a region (as `GoldenScene.focus` does for the Canvas suite), not a tighter global limit. |
-| C | — | **`AI_PROJECT_RULES.md` §12.3 is stale** | It still says *"No emulator or device is available in this environment"*, which is false: v3.6's P2-5 measurement, its 24 instrumented tests and its runtime pass were all taken on a local Pixel 9 / Android 17 emulator. A future session could read that line and skip runtime verification. Flagged since v3.2 and still out of scope each time. |
-| D | — | **The instrumented tests have no automated trigger at all** | Removing the `instrumented` job is what v3.6 decided; the consequence is that `app/src/androidTest` now runs only when somebody runs it. That is an improvement over a job that failed on every hosted run and gated nothing, but it is not nothing. If an E2E job is ever attempted again, `AI_PROJECT_RULES.md` 10.12 states the two properties it must satisfy first. **Not scheduled** — recorded so the trade-off stays visible rather than forgotten. |
+| A | — | **No golden contains a vehicle** | Found while measuring the road in v3.7. Car `progress` starts at `-startDelaySeconds`, i.e. negative, and every golden renders one frame with `deltaSeconds = 0`, so no car has entered the frame in any of the seventeen. The road/vehicle relationship is covered by arithmetic (`RoadVehicleGeometryTest`) and was confirmed on a device, but nothing pins it in pixels. Closing it means giving `GoldenScene` warm-up frames, and doing that without making the goldens non-deterministic needs care — the lightning timer only advances with `deltaSeconds`. **Not scheduled.** |
+| B | — | **Preview/renderer offset agreement is guarded for the tree only** | v3.7 checked all 59 shared sprites by hand and pinned the four that make up a tree. The other 55 agree today and nothing stops them drifting tomorrow. A general guard would have to encode each renderer draw function's nested transforms, which is a second copy of the thing being checked — so the honest options are "leave it" or "unify the preview with the renderer", and the second is the refactor v3.7 declined. **Not scheduled.** |
+| C | — | **The winter tree's snow cap is 3 units off-centre in the wallpaper** | Noticed while closing Filone C and deliberately not fixed. The cap is 76 units wide on an 82-unit crown and is blitted at the crown's left edge, so it reaches the left shoulder and falls short of the right — which contradicts its own code comment. Correcting it changes what the wallpaper draws and would require regenerating `theme-winter` and `snow`, i.e. a visual decision and a golden update, neither of which this batch asked for. |
+| D | — | **The instrumented tests have no automated trigger at all** | The consequence of removing the emulator job in v3.6: `app/src/androidTest` runs only when somebody runs it. An improvement over a job that failed on every hosted run and gated nothing, but not nothing. `AI_PROJECT_RULES.md` 10.12 states what a future E2E job must satisfy first, and 10.13 what its diagnostics must. **Not scheduled** — recorded so the trade-off stays visible. |
 
-Deliberately **not** scheduled: any weather-provider change (OpenWeather, WeatherAPI, Tomorrow.io, a
-Visual Crossing migration), `targetSdk 37`, and any refactor of `PaperRenderer`,
-`SceneObjectRenderer` or `ThemePreviewScene`.
+Deliberately **not** scheduled: any further weather-provider change (the v3.7 comparative assessed
+Open-Meteo, OpenWeather and WeatherAPI.com and is settled — **Open-Meteo stays the default**),
+`targetSdk 37`, and any refactor of `PaperRenderer`, `SceneObjectRenderer` or `ThemePreviewScene`.
 
 ---
 
@@ -336,13 +394,19 @@ Genuinely open, genuinely not worth doing yet.
 | **D10** | `targetSdk` is 36 while `compileSdk` is 37. Android 17's behaviour changes are not opted into. | Deliberate. The Phase 2 dependency upgrade raised `compileSdk` because `core 1.19` and Compose `1.12` require it, and left `targetSdk` alone so the upgrade could not change how the app runs. Raising it is a behaviour change and needs its own device pass — lint's `OldTargetApi` warning is the reminder, not a defect. |
 | **D11** | Three lint findings that only appeared once the tooling was current: `ConfigurationScreenWidthHeight` on `SettingsInsets.kt:115`, and three `AutoboxingStateCreation` hints on `SettingsComponents.kt`. | New checks over unchanged code, not regressions. `SettingsInsets` is the file that closed v2.14's dialog-sizing bug, so swapping `Configuration.screenHeightDp` for `LocalWindowInfo.current.containerSize` is a change to the one thing that bug turned on — worth doing deliberately, with a device pass, not as a lint tidy-up. |
 | **D12** | Every `OutlinedButton` changed colour in the upgrade. Material3 `1.4.0` moved the default content colour from `primary` to `onSurfaceVariant` and the default border from `outline` to `outlineVariant`, so "Reset this theme's scene to defaults" and the other six outlined buttons now read grey-brown with a pale border instead of orange with a mid border. Verified on an Android 17 emulator by sampling the pixels: the new values are exactly this project's own `onSurfaceVariant` (`0xFF54443A`) and `outlineVariant` (`0xFFD9C7B7`). `TextButton` and filled `Button` are unchanged. | This is Material 3's own current default, and rule 3 says the app follows Material 3 — so it was **left as Material draws it** rather than pinned back, which would mean hard-coding a superseded default into seven call sites. It is nevertheless the one user-visible change the whole upgrade produced, and whether the quieter outlined button reads well is a judgement to make while looking at the app. Pinning it back is one argument: `colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)` plus `border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)`. |
-| **D8** | Visual Crossing is not verified end to end: no account was available, so its parser is tested against fixtures built from the published field list rather than against a captured live response. | Needs a free API key. The missing-key path, the failure path and the request URL are all verified on the device; only a *successful* response is not. Worth closing the next time a key is to hand, not worth blocking on. |
 | **D7** | The V2 artwork retired four user-visible colour behaviours (sun colour reaching only the glow, theme star colour reaching nothing, Fall Colors not reaching palm fronds, per-building window lighting). | Approved as consequences of the redesign. Whether each reads well is a judgement to make while looking at the app, and nothing has been reported. |
 
 ---
 
 ## Completed
 
+- **v3.7 prepared** — Visual Crossing removed and **WeatherAPI.com** put in its place with
+  **Open-Meteo still the default**; the road measured and left alone; the one drifted
+  preview/renderer sprite offset closed via `TreeSpriteLayout`; **P2-8** closed by re-reading
+  `ARCHITECTURE.md` against the source; a region-targeted GL gate that catches two regressions
+  every whole-frame gate misses; the cache-lifecycle question answered *no fix needed* with the
+  bounds measured; `DirectionsWalk` de-deprecated; and the diagnostics lesson written down as rule
+  10.13 without reintroducing any job. **D8** closes with the provider it was about.
 - **v3.6 prepared** — the `instrumented` emulator job removed from CI after failing on every hosted
   run it was ever given; **P2-5**, the Canvas backend's per-frame `Shader` construction (measured at
   180 objects over 60 frames for 3 distinct gradients, now 3), closed by `GradientShaderCache`; and

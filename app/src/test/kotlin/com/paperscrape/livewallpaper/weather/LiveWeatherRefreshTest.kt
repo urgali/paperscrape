@@ -46,20 +46,20 @@ class LiveWeatherRefreshTest {
     fun `switching provider forces a fetch`() {
         val on = withLocation.copy(liveWeatherEnabled = true)
         assertTrue(
-            LiveWeatherInputs.changed(on, on.copy(weatherProviderId = WeatherProviderId.VISUAL_CROSSING.storageId)),
+            LiveWeatherInputs.changed(on, on.copy(weatherProviderId = WeatherProviderId.WEATHER_API_COM.storageId)),
         )
     }
 
     /**
      * The regression this exists to prevent. v2.13 compared the toggle and Open-Meteo's key, which
-     * was complete then; entering the Visual Crossing key -- the one thing that turns "no requests
+     * was complete then; entering the WeatherAPI.com key -- the one thing that turns "no requests
      * are being made" into "requests can be made" -- would have been missed.
      */
     @Test
     fun `entering either provider's key forces a fetch`() {
         val on = withLocation.copy(liveWeatherEnabled = true)
         assertTrue(LiveWeatherInputs.changed(on, on.copy(liveWeatherApiKey = "k")))
-        assertTrue(LiveWeatherInputs.changed(on, on.copy(visualCrossingApiKey = "k")))
+        assertTrue(LiveWeatherInputs.changed(on, on.copy(weatherApiComApiKey = "k")))
     }
 
     @Test

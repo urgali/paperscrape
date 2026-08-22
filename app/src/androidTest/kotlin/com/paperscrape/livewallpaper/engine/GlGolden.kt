@@ -113,6 +113,54 @@ object GlGolden {
             const val MAX_FRACTION = 0.005
         }
 
+        /**
+         * Against the committed GL golden, **inside a named region only** (v3.7 Filone E).
+         *
+         * This is what the whole-frame gates structurally cannot do, and the reason is arithmetic
+         * rather than tuning. Driver-to-driver disagreement is *spread*: it is anti-aliased edges,
+         * and there are edges everywhere, so it lands at a similar rate in any patch of the frame
+         * you choose. A regression in one effect is *concentrated*: it moves a large share of one
+         * small region and nothing outside it. Divided by the whole frame, 0.47% of a broken glow
+         * is indistinguishable from 0.88% of legitimate driver noise; divided by the glow's own
+         * bounding box, the same regression is an order of magnitude above it.
+         *
+         * [CHANNEL] is deliberately **4**, a quarter of the 16 the whole-frame gate uses, because
+         * the blind spot this closes is an effect whose largest error is 15/255. A threshold that
+         * low over the whole frame would be unusable — it sits far under the 0.88% whole-frame
+         * driver floor — and over a region it is not, which is the entire point.
+         *
+         * **Both numbers are measured.** Every row below is the share of the sun-glow region
+         * (254x254 = 64 516 px) whose maximum channel delta reaches the stated level, taken on an
+         * Android 17 emulator against the committed `gl-day.png`:
+         *
+         * | channel | healthy, goldens' own driver | healthy, **different** driver | glow at half intensity | glow fan reduced to a triangle |
+         * |---|---|---|---|---|
+         * | 2 | 0.0000% | 0.3116% | 8.2584% | 10.4160% |
+         * | 3 | 0.0000% | 0.1116% | 5.3134% | 8.6010% |
+         * | **4** | **0.0000%** | **0.0512%** | **2.8164%** | **7.0215%** |
+         * | 6 | 0.0000% | 0.0140% | 0.4449% | 4.2207% |
+         * | 8 | 0.0000% | 0.0031% | 0.0186% | 1.8631% |
+         * | 16 | 0.0000% | 0.0000% | 0.0000% | 0.0000% |
+         *
+         * The "different driver" column is not an estimate: the same frame was rendered under
+         * `swiftshader_indirect`, the software rasteriser the goldens were taken with, and under
+         * the host-GPU translator on a Mesa/radeonsi AMD card — two genuinely different
+         * implementations of the same backend.
+         *
+         * At channel 4 the legitimate variation is 0.0512% and the two deliberate regressions are
+         * 2.82% and 7.02%: a factor of 55 and 137. [MAX_FRACTION] is set at **0.50%**, roughly ten
+         * times the measured driver floor and five times below the subtler of the two regressions.
+         * That is the headroom, stated rather than hoped for.
+         *
+         * **The `>=16` row is why this gate had to exist.** At the channel the whole-frame gate
+         * uses, destroying the glow completely is worth exactly zero pixels. No global limit, at
+         * any fraction, could ever have seen it.
+         */
+        object Region {
+            const val CHANNEL = 4
+            const val MAX_FRACTION = 0.005
+        }
+
         /** Against the Canvas golden: same picture, deliberately different arithmetic. */
         object CanvasCross {
             const val COARSE_CHANNEL = 64
@@ -259,6 +307,7 @@ object GlGolden {
             return
         }
         assertMatchesGlGolden(scene, result)
+        assertRegionsUnchanged(scene, result)
         assertMatchesCanvasGolden(scene, result)
     }
 
@@ -286,6 +335,45 @@ object GlGolden {
                     "unlikely to be a driver difference -- look at the frame and the diff in " +
                     "${outputDir()} before regenerating anything.",
             )
+        }
+    }
+
+    /**
+     * Region-targeted, against the committed GL golden (v3.7 Filone E).
+     *
+     * Uses the scene's own [GoldenScene.focus] list -- the same mechanism the Canvas suite already
+     * has for a sprite too small for a whole-frame budget to see. A scene with no focus region is
+     * simply not covered by this gate, which is correct: naming a region is a claim about what the
+     * scene is *for*, and inventing one for every scene would produce assertions nobody could
+     * justify.
+     */
+    private fun assertRegionsUnchanged(scene: GoldenScene, result: Result) {
+        if (scene.focus.isEmpty()) return
+        val expected = readAsset("gl-${scene.name}.png") ?: return
+        for (focus in scene.focus) {
+            val differing = countAtLeastIn(expected, result.bitmap, Tolerance.Region.CHANNEL, focus)
+            val fraction = differing / focus.area.toDouble()
+            // Always on the record, pass or fail: the headroom is the evidence the gate works.
+            android.util.Log.i(
+                "GLREGION",
+                "${scene.name}/${focus.label}: ${"%.3f".format(fraction * 100)}% of " +
+                    "${focus.area}px differ by >=${Tolerance.Region.CHANNEL} " +
+                    "(limit ${"%.3f".format(Tolerance.Region.MAX_FRACTION * 100)}%)",
+            )
+            if (fraction > Tolerance.Region.MAX_FRACTION) {
+                reject(scene, result, expected, Tolerance.Region.CHANNEL)
+                throw AssertionError(
+                    "The GL backend changed inside '${focus.label}' of '${scene.name}' " +
+                        "(${focus.left},${focus.top})-(${focus.right},${focus.bottom}): " +
+                        "$differing of ${focus.area} pixels differ by " +
+                        ">=${Tolerance.Region.CHANNEL} per channel " +
+                        "(${"%.3f".format(fraction * 100)}%, limit " +
+                        "${"%.3f".format(Tolerance.Region.MAX_FRACTION * 100)}%). ${describe(result)}. " +
+                        "This gate exists to catch a regression confined to one effect, which the " +
+                        "whole-frame limits cannot see. Look at the frame and the diff in " +
+                        "${outputDir()} before regenerating anything.",
+                )
+            }
         }
     }
 
@@ -336,6 +424,20 @@ object GlGolden {
             expected.getPixels(row, 0, WIDTH, 0, y, WIDTH, 1)
             actual.getPixels(glRow, 0, WIDTH, 0, y, WIDTH, 1)
             for (x in 0 until WIDTH) if (channelDelta(row[x], glRow[x]) >= channel) count++
+        }
+        return count
+    }
+
+    /** [countAtLeast] restricted to one rectangle. */
+    private fun countAtLeastIn(expected: Bitmap, actual: Bitmap, channel: Int, focus: GoldenFocus): Int {
+        val width = focus.right - focus.left
+        val row = IntArray(width)
+        val glRow = IntArray(width)
+        var count = 0
+        for (y in focus.top until focus.bottom) {
+            expected.getPixels(row, 0, width, focus.left, y, width, 1)
+            actual.getPixels(glRow, 0, width, focus.left, y, width, 1)
+            for (x in 0 until width) if (channelDelta(row[x], glRow[x]) >= channel) count++
         }
         return count
     }
