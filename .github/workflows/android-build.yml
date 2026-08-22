@@ -135,7 +135,23 @@ jobs:
           # meant to absorb a whole platform version. `google_apis` rather than
           # `google_apis_playstore`: nothing under test needs Play services, and the plain image
           # boots faster and is the one the SDK publishes for every arch.
-          api-level: 37
+          #
+          # **`'37.0'`, not `37`, and the quotes are load-bearing.** This input is not a number:
+          # the action interpolates it verbatim into the SDK package identifiers, both
+          # `platforms;android-<api-level>` and -- via `system-image-api-level`, which defaults to
+          # this value -- `system-images;android-<api-level>;<target>;<arch>`. From Android 36.1
+          # onwards the platform packages carry their minor version, so the SDK publishes
+          # `platforms;android-36`, `android-36.1`, `android-37.0`, `android-37.1` and no bare
+          # `android-37` at all. v3.2 passed `37`, `sdkmanager` answered
+          # `Warning: Failed to find package 'platforms;android-37'` and exited 1, and the job died
+          # before the emulator was ever started.
+          #
+          # The quotes stop YAML reading `37.0` as a float, which would risk it reaching the action
+          # as the string "37" and putting the bug straight back.
+          #
+          # `platforms;android-37.0` and `build-tools;37.0.0` are already on the `ubuntu-latest`
+          # image, so this install is a no-op for them and only the system image is fetched.
+          api-level: '37.0'
           target: google_apis
           arch: x86_64
           profile: pixel_6

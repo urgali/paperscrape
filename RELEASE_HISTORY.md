@@ -19,6 +19,136 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.3 — the CI emulator job asks the SDK for a package that exists
+
+**Prepared, not published.** `versionCode = 24`, `versionName = "3.3"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D).
+
+**No application code changed.** The diff is one workflow input, the two version numbers, and the
+documentation. v3.2 remains the application baseline; this release exists because build
+configuration changed and every change gets its own version, not because anything the app does moved.
+
+### What failed
+
+The first real GitHub Actions run of the `instrumented` job added in v3.2 died before the emulator
+was created:
+
+```
+/usr/bin/sh -c sdkmanager --install 'build-tools;37.0.0' platform-tools 'platforms;android-37'
+Warning: Failed to find package 'platforms;android-37'
+adb -s emulator-5554 emu kill
+error: could not connect to TCP port 5554: Connection refused
+The process '/usr/bin/sh' failed with exit code 1
+```
+
+`/usr/bin/sh` was not missing and ran fine; it returned 1 because `sdkmanager` did. The `emu kill`
+line underneath is the action's own cleanup running against an emulator that was never started, not
+a second fault.
+
+### Why `platforms;android-37` does not exist
+
+**Android platform packages carry their minor version from 36.1 onwards.** Reading the SDK
+repository through `sdkmanager --list`, what is published is:
+
+```
+platforms;android-35   platforms;android-36   platforms;android-36.1
+platforms;android-37.0 platforms;android-37.1 platforms;android-37.2
+```
+
+There is no bare `platforms;android-37`, and there never was — 37 exists only as `37.0`, `37.1`,
+`37.2`. GitHub's own `runner-images` manifest for `ubuntu-24.04` (which is `ubuntu-latest`) agrees:
+it lists `android-37.0 (rev 2)`, `android-37.1`, `android-37.2-beta*`, `android-36.1`, `android-36`
+as preinstalled, and no `android-37`. The platform the job needs was already on the runner; the job
+was asking for a name that names nothing.
+
+### Which part of the action produced it
+
+`reactivecircus/android-emulator-runner`, at the pinned `a421e43` (v2.38.0), `src/sdk-installer.ts`:
+
+```ts
+sdkmanager --install 'build-tools;${BUILD_TOOLS_VERSION}' platform-tools 'platforms;android-${apiLevel}'
+```
+
+and `src/emulator-manager.ts`:
+
+```ts
+avdmanager create avd --package 'system-images;android-${systemImageApiLevel};${target};${arch}'
+```
+
+`apiLevel` is `core.getInput('api-level')` — **a plain string, interpolated verbatim, never parsed
+as a number** anywhere in the action (`input-validator.ts` validates `emulator-build` and
+`disk-size` numerically; `api-level` is not among them). The action's own input documentation says
+as much: *"API level of the platform and system image - e.g. 23, 33, 35-ext15, Baklava"*. It is a
+package-name fragment, not an integer, and v3.2 handed it a fragment that names no package.
+
+### The fix
+
+One value, quoted:
+
+```yaml
+api-level: '37.0'
+```
+
+`system-image-api-level` is left unset and defaults to it, so the same string feeds all three
+commands and there is one place to change:
+
+```
+sdkmanager --install 'build-tools;37.0.0' platform-tools 'platforms;android-37.0'
+sdkmanager --install 'system-images;android-37.0;google_apis;x86_64'
+avdmanager create avd --package 'system-images;android-37.0;google_apis;x86_64' --device pixel_6
+```
+
+**The quotes are load-bearing.** Unquoted, `37.0` is a YAML float, and a float that reaches the
+action's string input as `"37"` would reinstate the bug silently. Quoting removes the question.
+
+Options A and D were evaluated and rejected on evidence. **A** — a fixed release of the action —
+does not exist: `main` still carries the identical line, and v2.38.0 (2026-07-05) is the newest
+release, which is already what is pinned. **D** — replacing the action — has no justification when
+the action's own documented string input expresses the correct package. **B** partly applies and is
+noted above: the platform is already on the runner, so the install is now a no-op for it and only
+the system image is fetched.
+
+### Verification
+
+**The failure was reproduced and the fix proven at the level of the failing command**, using the
+exact command-line tools the action downloads (`commandlinetools-linux-14742923`, newer than the
+locally installed set, which is why a stale local `sdkmanager` returns 0 where CI returns 1):
+
+| command | exit |
+|---|---|
+| `... 'platforms;android-37'` | **1**, `Warning: Failed to find package` — the CI log, reproduced |
+| `... 'platforms;android-37.0'` | 0 |
+| `... 'system-images;android-37.0;google_apis;x86_64'` | 0 |
+| `... 'system-images;android-37;google_apis;x86_64'` | **1** — the counter-proof: the next command would have failed too |
+
+That last row matters. Fixing only the platform name would have moved the failure one step later;
+because both derive from the same input, one change fixes both.
+
+**The whole CI path was then reproduced locally**: an AVD created with the action's own command
+(`avdmanager create avd --force -n ci-api37 --package 'system-images;android-37.0;google_apis;x86_64'
+--device pixel_6`), booted with the workflow's own emulator options
+(`-no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none`), and
+shut down with the action's own `adb -s emulator-5554 emu kill`.
+
+The device reported `ro.build.version.sdk=37`, `release=17`, `preview_sdk=0` — a **stable** API 37
+image, not the `37.2-beta3` preview the goldens were originally taken on. All 21 tests passed there:
+14 `SceneGoldenTest`, 3 `GlSceneGoldenTest`, 4 `PrefsCorruptionRecoveryTest`, 0 failures, 0 errors.
+The emulator shut down cleanly in about six seconds with no leftover process.
+
+- 773 JVM tests, 0 failures — unchanged from v3.2.
+- `lintDebug` 0 errors, 32 warnings/notes — unchanged.
+- `assembleDebug` and `assembleRelease` (R8) both produce APKs.
+- No golden was regenerated and no test was modified.
+
+### Unchanged, deliberately
+
+`release.needs` is still `build` alone and the job still carries `continue-on-error: true`: it has
+now been shown to work, not shown to be stable, and promoting it to a gate stays a separate later
+decision (`ROADMAP.md`). The action is still pinned to the same SHA, permissions are still
+`contents: read`, and no secret was added.
+
+---
+
 ## v3.2 — the golden tests run themselves, the GL backend is under test, and a solar day may cross midnight
 
 **Prepared, not published.** `versionCode = 23`, `versionName = "3.2"`. No tag, no push, no GitHub
