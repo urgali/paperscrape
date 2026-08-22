@@ -19,6 +19,149 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.4 — the CI emulator job waits until the device can actually install a package
+
+**Prepared, not published.** `versionCode = 25`, `versionName = "3.4"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D).
+
+**No application code changed.** The diff is the `instrumented` job, the two version numbers and the
+documentation. Nothing under `app/src` was touched and no golden was regenerated.
+
+### What failed
+
+With v3.3's provisioning fix in place, CI reached the emulator for the first time and then ran no
+tests at all:
+
+```
+Failed to install split APK(s)
+java.lang.SecurityException: android from uid 1000 not allowed to perform GET_USAGE_STATS
+    at StorageStatsService.checkStatsPermission / enforceStatsPermission / getCacheBytes
+    at StorageManager.getAllocatableBytes
+    at InstallLocationUtils.checkFitOnVolume / resolveInstallVolume
+    at PackageInstallerService.createSessionInternal   (pm install-create)
+Starting 0 tests
+Finished 0 tests
+```
+
+### What it is not, and how that was established
+
+The `GET_USAGE_STATS` in the message invites the conclusion that PaperScrape wants a permission it
+does not have. It does not, and no manifest change was made. Each of the obvious suspects was ruled
+out by running the real thing locally against **component versions identical to the ones CI
+installs** — emulator 37.1.11, platform-tools 37.0.1, `platforms;android-37.0` rev 2,
+`system-images;android-37.0;google_apis;x86_64` rev 6, with `sdkmanager` reporting no updates
+available for any of them:
+
+| suspect | result |
+|---|---|
+| the app or its APK | `adb install -r -t app-debug.apk` -> **Success** |
+| the ddmlib/UTP session path | `cmd package install-create -r --bypass-low-target-sdk-block -t --user 0`, then `install-write`, then `install-commit` -> **Success** |
+| the API 37 image | identical revision, `connectedDebugAndroidTest` -> **21/21** |
+| a first-ever boot | `-wipe-data` cold boot, install immediately after `boot_completed` -> **Success** |
+| disk pressure | 4.5 GB free on `/data`; the partition is dynamic and could not be constrained |
+| memory | the emulator forces Android 17's 4 GB minimum regardless of the AVD, and even against an explicit `-memory 2048` (`Increasing RAM size to 4096MB` in its own log) |
+
+### The actual cause, reproduced
+
+**`sys.boot_completed` is not the same as "ready to install a package".** The action starts its
+script the instant that property turns 1, while `PackageManagerService`, `AppOpsService` and
+`UsageStatsService` are still initialising behind it.
+
+Until v3.3 the gap was covered by accident: the script's first act was `./gradlew
+connectedDebugAndroidTest`, whose first act was a full Kotlin compile lasting minutes. v3.3 fixed the
+provisioning, CI reached this point for the first time with a warm Gradle cache, and the install
+arrived seconds after boot instead. Appops answered from a half-initialised state — a non-default
+mode for `GET_USAGE_STATS` — `StorageStatsService` threw, and the session was never created.
+
+Reproduced locally on a freshly created API 37 AVD, running the job's script the moment the device
+answered:
+
+```
+Starting 0 tests on ci-api37(AVD) - 17
+Finished 0 tests on ci-api37(AVD) - 17
+[Failure [DELETE_FAILED_INTERNAL_ERROR]]
+```
+
+A different service caught mid-initialisation — the uninstall rather than the install — and the same
+outcome: zero tests. **The identical command on the same device a few seconds later ran 21/21
+green.** That is the whole bug.
+
+### The fix
+
+Two changes to the `instrumented` job, both purely CI.
+
+**1. Both APKs are built before the emulator step.** A new `./gradlew assembleDebug
+assembleDebugAndroidTest` step runs before `android-emulator-runner`. The emulator is then alive only
+for the install and the tests — seconds — instead of for a multi-minute compile, and an Android 17
+guest holding its mandatory 4 GB no longer sits alongside a Gradle daemon, a Kotlin daemon and AGP's
+workers for the duration. The work is the same work, moved.
+
+**2. The script waits for a real installer transaction, not a signal.** Before invoking Gradle it
+installs and uninstalls the app APK in a bounded retry loop, and only proceeds once both succeed:
+
+```sh
+for i in $(seq 1 60); do
+  if adb install -r -t "$APK" >/dev/null 2>&1 && adb uninstall "$PKG" >/dev/null 2>&1; then
+    ready=1; break
+  fi
+  sleep 2
+done
+```
+
+**A query is not sufficient and that was tested.** An earlier version of this fix probed with
+`cmd package list packages`; it answered after 7 s on a device that then still failed the install.
+An install followed by an uninstall exercises both halves of what `connectedDebugAndroidTest` does
+first, so when the probe succeeds the operation that used to fail cannot. If it never succeeds the
+job fails loudly with the last attempt's output rather than waiting out its 45-minute cap or going
+green having tested nothing.
+
+**3. Diagnostics on failure.** v3.3's failure arrived as one stack trace with no device state, which
+is why the investigation had to be done by rebuilding the whole environment locally. A new
+failure-only step now collects SDK component revisions, device properties, `/proc/meminfo`,
+`df /data`, `dumpsys diskstats`, the `GET_USAGE_STATS` appop, the package list, host memory and disk,
+and full logcat, and uploads them as an artefact.
+
+### Verification
+
+Three consecutive cycles, each starting from an AVD **created from scratch** with the action's own
+command and cold-booted with the workflow's own emulator options:
+
+| cycle | installer ready after | tests |
+|---|---|---|
+| 1 | ~16 s | 21/21 |
+| 2 | ~16 s | 21/21 |
+| 3 | ~16 s | 21/21 |
+
+The ~16 s is the measurement of the race window: for the first fourteen seconds after the device
+answered, it could not complete an install/uninstall pair. That is precisely where v3.3 was landing.
+
+Each run: `sdk=37`, `release=17`, `preview_sdk=0` (stable image, not the `37.2-beta3` preview the
+goldens were first taken on), 14 `SceneGoldenTest` + 3 `GlSceneGoldenTest` + 4
+`PrefsCorruptionRecoveryTest` = 21, 0 failures, 0 errors, clean `adb emu kill` shutdown.
+
+- 773 JVM tests, 0 failures — unchanged.
+- `lintDebug` 0 errors, 32 warnings/notes — unchanged.
+- `assembleDebug` and `assembleRelease` (R8) both produce APKs.
+- No golden regenerated, no test modified, nothing under `app/src` touched.
+
+### Upstream context
+
+The action's own maintainers attempted API 37 in `ReactiveCircus/android-emulator-runner#476`. They
+reached the same `'37.0'` string form v3.3 arrived at independently, then hit a separate
+emulator-level problem on hosted runners ("device seems to remain offline after 5 minutes"), filed
+it with Google as issue 524601393, and **closed the PR without merging**. API 37 on GitHub-hosted
+runners is therefore not known-good upstream, which is the standing reason this job still gates
+nothing.
+
+### Unchanged, deliberately
+
+`release.needs` is still `build` alone; `continue-on-error: true` remains; the action is still pinned
+to the same SHA; permissions are still `contents: read`; no secret was added. No `PACKAGE_USAGE_STATS`
+was added to the manifest, no AppOps was granted, no PackageInstaller check was disabled, and the job
+was not moved to API 36.
+
+---
+
 ## v3.3 — the CI emulator job asks the SDK for a package that exists
 
 **Prepared, not published.** `versionCode = 24`, `versionName = "3.3"`. No tag, no push, no GitHub

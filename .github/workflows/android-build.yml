@@ -126,6 +126,20 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # **Both APKs are built before the emulator exists, and that is the point.**
+      #
+      # Until v3.4 the emulator step's script was `./gradlew connectedDebugAndroidTest`, which
+      # compiles the whole project *while the emulator is running*. That put an Android 17 guest --
+      # which the emulator forces to at least 4 GB of RAM, whatever the AVD asks for; verified in
+      # its own log, `Increasing RAM size to 4096MB`, even against an explicit `-memory 2048` --
+      # next to a Gradle daemon, a Kotlin daemon and AGP's workers on a 16 GB runner, for the
+      # several minutes a cold compile takes.
+      #
+      # Assembling first means the emulator is only alive for the install and the tests, which take
+      # seconds. It does not make the build slower: the work is the same work, moved.
+      - name: Build app and test APKs
+        run: ./gradlew assembleDebug assembleDebugAndroidTest
+
       - name: Run instrumented tests
         # Pinned to a commit SHA like every other action here (AI_PROJECT_RULES.md 10.5).
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
@@ -161,7 +175,51 @@ jobs:
           # (v3.2, P1-4) renders to its own offscreen pbuffer through the same driver.
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest
+          # **`sys.boot_completed` is not the same as "ready to install a package", and that gap is
+          # the whole of the v3.4 bug.**
+          #
+          # The action starts this script the moment `sys.boot_completed` turns 1, while
+          # `PackageManagerService`, `AppOpsService` and `UsageStatsService` are still coming up.
+          # Until v3.3 the gap was covered by accident: the script's first act was a full Kotlin
+          # compile, which took minutes. v3.3 fixed the SDK provisioning, CI reached this point for
+          # the first time with a warm Gradle cache, Gradle asked for `pm install-create` seconds
+          # after boot, and the framework answered from a half-initialised state -- appops returned
+          # a non-default mode for `GET_USAGE_STATS`, `StorageStatsService` threw, and the run
+          # reported `Starting 0 tests`.
+          #
+          # Reproduced locally on a freshly created API 37 AVD: the same 0-test failure, with
+          # `DELETE_FAILED_INTERNAL_ERROR` instead -- a different service caught mid-initialisation,
+          # the same race -- and the identical command a few seconds later ran 21/21 green.
+          #
+          # **The probe performs the transactions Gradle is about to perform.** A query like
+          # `cmd package list packages` is not enough and was tried: it answered after 7 s on a
+          # device that still could not complete an install or an uninstall. An install followed by
+          # an uninstall exercises both halves of what `connectedDebugAndroidTest` does first, so
+          # when it succeeds the thing that used to fail cannot. The loop is bounded and the
+          # unguarded retry after it makes a genuinely broken device fail the job loudly, rather
+          # than the job waiting out its 45-minute cap or going green having tested nothing.
+          script: |
+            set -e
+            PKG=com.paperscrape.livewallpaper.debug
+            APK=app/build/outputs/apk/debug/app-debug.apk
+            adb wait-for-device
+            ready=0
+            for i in $(seq 1 60); do
+              if adb install -r -t "$APK" > /dev/null 2>&1 \
+                 && adb uninstall "$PKG" > /dev/null 2>&1; then
+                ready=1
+                echo "package installer completed a full transaction after ~$((i * 2))s"
+                break
+              fi
+              sleep 2
+            done
+            if [ "$ready" -ne 1 ]; then
+              echo "::error::The package installer never became usable. Last attempt:"
+              adb install -r -t "$APK" || true
+              adb uninstall "$PKG" || true
+              exit 1
+            fi
+            ./gradlew connectedDebugAndroidTest
 
       # The goldens write the rendered frame and a black/white diff next to it when one fails, and
       # those two images are the whole of the diagnosis. Without this they die with the runner and
@@ -174,6 +232,54 @@ jobs:
           path: |
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # **So that the next failure is diagnosable instead of a stack trace with no context.**
+      #
+      # v3.3's failure was one `SecurityException` out of `pm install-create` and nothing else: no
+      # device state, no free space, no package-service log, no versions. Everything below was
+      # needed to investigate it and none of it existed, so the investigation had to be done by
+      # reproducing the whole environment locally. `|| true` throughout: this step exists to
+      # collect evidence about a failure that has already happened and must never become a second
+      # failure of its own, nor mask the first.
+      - name: Collect device diagnostics
+        if: failure()
+        run: |
+          mkdir -p device-diagnostics
+          {
+            echo "=== emulator / sdk versions ==="
+            "$ANDROID_HOME/emulator/emulator" -version 2>&1 | head -2 || true
+            adb version || true
+            for p in emulator platform-tools "platforms/android-37.0" \
+                     "system-images/android-37.0/google_apis/x86_64"; do
+              echo "--- $p"; cat "$ANDROID_HOME/$p/source.properties" 2>/dev/null || true
+            done
+            echo "=== device ==="
+            adb devices -l || true
+            adb shell getprop ro.build.version.sdk || true
+            adb shell getprop ro.build.version.release || true
+            adb shell getprop ro.build.fingerprint || true
+            adb shell getprop sys.boot_completed || true
+            echo "=== memory / storage ==="
+            adb shell cat /proc/meminfo || true
+            adb shell df -h /data || true
+            adb shell dumpsys diskstats || true
+            echo "=== the services the failing install goes through ==="
+            adb shell cmd appops get android GET_USAGE_STATS || true
+            adb shell cmd package list packages || true
+            echo "=== host ==="
+            free -m || true
+            df -h || true
+          } > device-diagnostics/device-state.txt 2>&1
+          adb logcat -d > device-diagnostics/logcat.txt 2>&1 || true
+
+      - name: Upload device diagnostics
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: device-diagnostics
+          path: device-diagnostics/
           retention-days: 7
           if-no-files-found: ignore
 

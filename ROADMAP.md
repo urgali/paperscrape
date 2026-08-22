@@ -4,12 +4,37 @@ Operational plan only. What shipped and why lives in `RELEASE_HISTORY.md`; how t
 code works lives in `ARCHITECTURE.md`; the visual rules live in `DESIGN_NOTES.md`;
 the rules that always apply live in `AI_PROJECT_RULES.md`.
 
-**Nothing below is approved. Ask before starting any of it.** The v3.3 batch closed everything
+**Nothing below is approved. Ask before starting any of it.** The v3.4 batch closed everything
 that was.
 
 ---
 
 ## Current status
+
+**v3.4 prepared — the CI emulator job waits until the device can actually install a package.**
+
+`versionCode = 25`, `versionName = "3.4"`. **No tag, no push, no GitHub Release.**
+
+**No application code changed.** The application baseline is still v3.2; the diff is the
+`instrumented` job, the two version numbers and the documentation.
+
+v3.3's provisioning fix got CI as far as the emulator, and then no test ran: `Starting 0 tests`,
+because `pm install-create` threw a `SecurityException` out of `StorageStatsService`. The cause is
+not a missing app permission — it is that **`sys.boot_completed` fires seconds before the framework
+can install a package**, and v3.3 removed the accidental delay (a multi-minute compile) that used to
+cover the gap. Reproduced locally on a freshly created API 37 AVD, where the same race produced a
+`DELETE_FAILED_INTERNAL_ERROR` and the identical command seconds later ran 21/21.
+
+The job now builds both APKs before the emulator starts, and waits for a real install/uninstall
+transaction to succeed before invoking Gradle — measured at ~16 s on a fresh AVD, over three
+consecutive from-scratch cycles, each 21/21 with a clean shutdown. Failure-only diagnostics
+(component revisions, device state, memory, storage, appops, logcat) are now uploaded as an
+artefact, which v3.3's failure had none of.
+
+The job still gates nothing: upstream considers API 37 on hosted runners unproven, with an open
+Google bug. See `RELEASE_HISTORY.md`.
+
+---
 
 **v3.3 prepared — the CI emulator job asks the SDK for a package that exists.**
 
@@ -188,7 +213,7 @@ producing an APK. **Seen running on a Pixel 9** (Android 16, gesture navigation,
 
 **Versioning.** Tags are `vMAJOR.MINOR` and must equal `versionName`; `versionCode` is
 Android's install counter and only has to increase, independently. v1.0 → 1, v1.1 → 2,
-v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21, v3.1 → 22, v3.2 → 23, v3.3 → 24 — 3 is unused because no v1.2 was released,
+v2.0 → 4, v2.1 → 5, v2.2 → 6, v2.3 → 7, v2.4 → 8, v2.5 → 9, v2.6 → 10, v2.7 → 11, v2.8 → 12, v2.9 → 13, v2.10 → 14, v2.11 → 15, v2.12 → 16, v2.13 → 17, v2.14 → 18, v2.15 → 19, v2.16 → 20, v3.0 → 21, v3.1 → 22, v3.2 → 23, v3.3 → 24, v3.4 → 25 — 3 is unused because no v1.2 was released,
 and the counter has no obligation to be contiguous. No pre-release tag form exists yet. `UpdateChecker` compares `MAJOR.MINOR` and ignores any tag that is not
 that shape, so the pre-release history's bare integer tags cannot be misread as newer.
 
@@ -208,7 +233,7 @@ closed in v3.1, and its two P1 test-infrastructure items plus P2-3, P2-4 and P2-
 
 | # | ID | Item | Why it is here |
 |---|---|---|---|
-| A | — | **Promote the CI emulator job to a gate** | Still `continue-on-error: true` and still absent from `release.needs`, deliberately. Its first real run (v3.2) failed on SDK provisioning and v3.3 fixed that; the whole path has since been reproduced locally on a stable API 37 image with 21/21 green and a clean shutdown, but *stability over repeated GitHub-hosted runs is still unmeasured* — Claude cannot execute Actions without a push, which §10.A forbids. Once several real runs are green and the duration is known, the promotion is two lines: drop `continue-on-error`, add `instrumented` to `release.needs`. If it proves flaky instead, say so here rather than deleting the job quietly. |
+| A | — | **Promote the CI emulator job to a gate** | Still `continue-on-error: true` and still absent from `release.needs`, deliberately. It has now failed twice on hosted runners for two different environmental reasons — SDK provisioning (fixed in v3.3) and a boot/install race (fixed in v3.4) — and both fixes were verified locally, never on a hosted runner, because executing Actions requires a push and §10.A forbids it. Upstream reached the same conclusion about API 37 on hosted runners and has an open Google bug (524601393). Promotion needs several consecutive green real runs first; it is then two lines: drop `continue-on-error`, add `instrumented` to `release.needs`. If it proves flaky instead, say so here rather than deleting the job quietly. |
 | B | **P2-5** | The Canvas backend allocates `Shader` objects inside the draw path | Against the CPU rules the project holds itself to. |
 | C | **P2-6** | Three scene fields shared across threads without synchronisation | |
 | D | **P2-8** | `ARCHITECTURE.md`'s validity stamp is twenty releases behind | It is now two releases further behind, and v3.2 added a whole test surface (`GlGolden`, the EGL pbuffer path, `SharedGoldenScenes`) that it does not mention. |
@@ -259,6 +284,10 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v3.4 prepared** — the CI emulator job's boot/install race, and nothing else: both APKs are built
+  before the emulator starts, and the script waits for a real install/uninstall transaction to
+  succeed before running the tests. Failure-only device diagnostics added. No application code
+  changed.
 - **v3.3 prepared** — the CI emulator job's SDK provisioning, and nothing else: `api-level` is now
   `'37.0'`, the package identifier that exists, instead of `37`, which names nothing. No application
   code changed.
