@@ -16,10 +16,16 @@ android {
     defaultConfig {
         applicationId = "com.paperscrape.livewallpaper"
         minSdk = 26 // Android 8.0 - required for adaptive icons & modern WallpaperService features
-        // Deliberately one behind `compileSdk`. Raising this opts the app into Android 17's
-        // behaviour changes, which is a change to how the app runs and needs its own device
-        // pass -- it is not part of a dependency upgrade. See ROADMAP.md.
-        targetSdk = 36
+        // **Raised to 37 in v4.0**, which is the whole point of that release: the app now opts
+        // into Android 17's behaviour changes rather than running under Android 16's rules.
+        // Assessed change by change against this app's actual code in v3.8 and again from the
+        // v3.9 baseline in v4.0 -- see RELEASE_HISTORY.md. Nothing needed a fix: no reflection, no
+        // LAN access, no native libraries, no notifications, no SMS/contacts/audio/Bluetooth, no
+        // orientation or resizability declarations, and every `startActivity` is from a visible
+        // Activity. The two that are not decidable by reading code -- certificate transparency
+        // enforced by default, and ECH -- are network behaviour on the five HTTPS hosts Live
+        // Weather, the city geocoder and the updater use, and were exercised at runtime.
+        targetSdk = 37
         // **Two numbers doing two different jobs — see AI_PROJECT_RULES.md §11.A.**
         //
         // `versionName` names the release and is what a Git tag must equal: CI reads it out of
@@ -33,8 +39,8 @@ android {
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 30
-        versionName = "3.9"
+        versionCode = 31
+        versionName = "4.0"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets

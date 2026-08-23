@@ -19,6 +19,207 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.0 — targetSdk 37, and a location row that names the place
+
+**Prepared, not published.** `versionCode = 31`, `versionName = "4.0"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D). **`compileSdk` was already 37 and is unchanged.**
+
+Two strands. Nothing else was touched: no renderer work, no weather change, no new provider, no
+dependency upgrade, no golden regenerated, no UI redesign.
+
+---
+
+### 1. `targetSdk 36 -> 37`
+
+`compileSdk` has been 37 since the Phase 2 dependency upgrade; `targetSdk` lagged deliberately
+because raising it is what actually opts the app into Android 17's behaviour, and that is a change
+to how the app *runs*. v3.8 assessed it and trialled it; v4.0 does it from the v3.9 baseline and
+re-validates rather than inheriting that verdict.
+
+#### Behaviour changes, against this app's real code
+
+Assessed by reading `app/src/main` and the manifest, not against a generic checklist. `verified` by
+inspection unless stated.
+
+| behaviour change | verdict | evidence in this codebase |
+|---|---|---|
+| Lock-free `MessageQueue` | `NOT_APPLICABLE` | `Handler`/`Looper` used normally; nothing reflects into queue internals |
+| `static final` no longer writable by reflection | `NOT_APPLICABLE` | **no `java.lang.reflect`, `Class.forName` or `isAccessible` anywhere in `app/src/main`** |
+| Accessibility for complex IME physical keyboards | `NOT_APPLICABLE` | plain Compose text fields; the API is additive |
+| **Certificate transparency enforced by default** | `SAFE` | five HTTPS hosts, all exercised at `targetSdk 37` — see §2 |
+| **ECH on TLS connections** | `SAFE` | same five hosts; nothing in the app configures TLS |
+| `ACCESS_LOCAL_NETWORK` now required | `NOT_APPLICABLE` | no LAN, localhost, multicast or NSD; the five hosts are all public internet |
+| Passwords hidden from physical keyboards | `NOT_APPLICABLE` | the two API-key fields already use `PasswordVisualTransformation`; this is a platform display behaviour |
+| OTP SMS protection | `NOT_APPLICABLE` | no SMS permission, no SMS code |
+| Background activity start hardening | `NOT_APPLICABLE` | **every** `startActivity` is from a visible Activity (`SettingsActivity`) or a Compose click inside it; `ApkDownloader.launchInstall` is reached only from a user tap. The wallpaper service starts no activity |
+| Foreground-service / job / alarm changes | `NOT_APPLICABLE` | **no `startForeground`, no `JobScheduler`, no `WorkManager`, no `AlarmManager`** — the weather loop is a coroutine inside the wallpaper engine |
+| Notification behaviour | `NOT_APPLICABLE` | **no `NotificationManager`, no `NotificationCompat`, no `POST_NOTIFICATIONS`** — the app posts none |
+| Package visibility | `NOT_APPLICABLE` | the only `getPackageInfo` call is for `context.packageName`; no `<queries>`, no `queryIntentActivities` |
+| Safer native dynamic code loading | `NOT_APPLICABLE` | no native libraries, no `System.load`, no `DexClassLoader` |
+| CP2 PII columns / strict SQL | `NOT_APPLICABLE` | no contacts access; storage is DataStore only |
+| Background audio hardening | `NOT_APPLICABLE` | no audio |
+| Orientation/resizability ignored on large screens | `NOT_APPLICABLE` | no `screenOrientation`, `resizeableActivity` or `maxAspectRatio` declared |
+| `BluetoothSocket.read()` | `NOT_APPLICABLE` | no Bluetooth |
+| `WallpaperService` / engine lifecycle | `SAFE` | the engine overrides only the documented callbacks (`onCreate`, `onSurfaceCreated/Changed/Destroyed`, `onVisibilityChanged`, `onOffsetsChanged`, `onDestroy`); no change in 17 touches them, and persistence across a reboot was verified |
+| Location | `SAFE` | `LocationManager.getCurrentLocation` (API 30+) with the pre-30 `requestLocationUpdates` fallback, one provider at a time, permissions unchanged |
+| Storage / DataStore | `SAFE` | app-private DataStore only; no scoped-storage surface, no `MANAGE_EXTERNAL_STORAGE` |
+| Permissions | `SAFE` | `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION`, `INTERNET`, `REQUEST_INSTALL_PACKAGES` — all runtime-requested where required, none newly restricted in 17 |
+
+**`REQUIRES_CHANGE`: none.** No code was modified for the target bump — the diff for this strand is
+one line plus its comment.
+
+**The flag demonstrably took effect**, which matters because a `targetSdk` that silently failed to
+apply would make every check above meaningless: `lintDebug` drops from **32 issues to 31**, and the
+one that disappears is `OldTargetApi` — the warning that exists precisely *because* the target lags
+the compile SDK. `verified`.
+
+#### 2. Certificate transparency and ECH
+
+The two v3.8 called out as not decidable by reading code. Exercised on a device running the
+`targetSdk 37` build, through the app's **own** `HttpURLConnection` path (`WeatherHttp`'s shape, same
+headers and timeouts), on every HTTPS host the app uses:
+
+```
+open-meteo            -> HTTP 200
+geocoding-open-meteo  -> HTTP 200
+weatherapi            -> HTTP 401   (key revoked; the handshake succeeded)
+openweather           -> HTTP 401   (key revoked; the handshake succeeded)
+github-updater        -> HTTP 200
+```
+
+**Every host returned an HTTP status, which is the whole point:** a CT or ECH failure aborts the TLS
+handshake and surfaces as an exception, never as a status code. A `401` is as good as a `200` for
+this question — the connection was established and the server answered.
+
+**Nothing was worked around.** The app has no `SSLContext`, no `TrustManager`, no
+`HostnameVerifier`, no `network_security_config` and no cleartext permission; CT and ECH apply as
+platform defaults with nothing in the app fighting them, which is the state that makes this a real
+result rather than a suppressed one.
+
+**This is `pending` on real hardware and is not claimed otherwise.** No physical device was
+available. v3.8's judgement — that an emulator's network stack, CA store and system image are not a
+phone's — is unchanged, and this evidence narrows the risk without closing it.
+
+---
+
+### 3. The location row now names the place *and* keeps the coordinates
+
+#### What was actually wrong
+
+Reverse geocoding was **already there** and already ran for GPS and Network — `LocationRow` has
+called `LocationLabelResolver` since v3.2. The defect was in what it did with the answer:
+
+```kotlin
+val text = when {
+    isLoading   -> loadingText                        // "Finding your location..."
+    label != null -> label                             // "Milano, Italia"
+    else -> Coordinates.formatCoarse(latitude, longitude)   // "45.46, 9.19"
+}
+```
+
+One title, three mutually exclusive states — so **the name and the coordinates were never on screen
+at the same time**, and the coordinates disappeared the instant a name arrived. A user who wanted to
+check the numbers had no way back to them.
+
+The Custom row had had the right shape all along: name as the title, coordinates underneath. v4.0
+gives the device rows the same shape.
+
+```
+Milano, Italia
+45.46, 9.19 - Resolved from the GPS receiver
+```
+
+Coordinates stay `Coordinates.formatCoarse` — two decimals, the precision this row has always used
+and the precision a network fix actually has. The `"Finding your location..."` placeholder is gone:
+it said the wrong thing (the *location* was found; the *name* was pending) and the honest
+alternative is to show the coordinates already known, which is also what removes the empty state.
+
+#### Fallback, and why a geocoder failure is not a location failure
+
+`title = name ?: coordinates`. There is no instant at which the row cannot answer "where does the
+app think I am". A geocoder that is offline, absent, slow or simply has no address for the position
+costs the name and nothing else.
+
+`verified` at runtime, not only by test: a build with `resolveCityLabel` forced to return null shows
+
+```
+45.46, 9.19
+Resolved from the GPS receiver
+```
+
+with no error text anywhere on the screen — and Live Weather stayed `OK` throughout, which is the
+§16 guarantee that the label is display-only and cannot touch the position the weather uses.
+
+#### `LocalityLabelCache` — the new file, and the only new logic
+
+A pure, JVM-testable policy for *when* a fix is worth geocoding. The lookup stays in
+`LocationLabelResolver`; this owns only the policy, because the policy is the part that quietly
+turns into a request per fix.
+
+| decision | value | why |
+|---|---|---|
+| significant move | **1 km** | Must exceed **Network-mode jitter** — a stationary device on cell/Wi-Fi can report positions hundreds of metres apart, and that is the mode generating the most redundant lookups. It also equals the row's own two-decimal resolution, so **the cache can never hide a change the row would display**. A test asserts that relationship rather than the number. |
+| success expiry | **none** | The name of a place at a fixed coordinate does not change, and the cache is in-memory, so it is at most one process old regardless. |
+| failure | **not cached as a label; retried after 60 s** | Offline/timeout are transient. Long enough to stop an offline screen retrying on every recomposition, short enough that coming back online is noticed. |
+| superseded lookup | **dropped** | A monotonic request counter: a result is stored only if it is still the newest. `LaunchedEffect` cancellation does *not* cover this, because the cache outlives the composition. |
+
+Distance is haversine rather than Euclidean-on-degrees: a degree of longitude is ~111 km at the
+equator and ~55 km at 60°N, so a metre threshold computed from raw degree differences would mean
+two different things in Nairobi and in Bergen.
+
+**Nothing polls.** Every lookup is caused by a fix arriving or the user opening the screen; this
+class only ever suppresses work. Threading is unchanged — the API-33+ path is listener-based and the
+pre-33 blocking path was already on `Dispatchers.IO` behind a 6 s timeout.
+
+#### The label format, now stated once and tested
+
+`LocationLabelResolver.format` was extracted from the `Address` handling so the choice is pinned by
+tests instead of by whichever city the device happens to be standing in. Format is
+`"<place>, <country>"`, never more than two parts, where place is the narrowest field the geocoder
+filled: `locality` → `subAdminArea` → `adminArea`. Names come through untransformed, in the device's
+locale, because the `Geocoder` was constructed with `Locale.getDefault()`; the coordinates beside
+them stay `Locale.US` for the reasons `Coordinates` already gives.
+
+`"Milano, Milano, Italia"` is structurally impossible — exactly one place field is ever chosen. The
+duplication that *can* happen is the city-state, where place and country are the same word, and
+`"Singapore, Singapore"` is collapsed to one.
+
+#### Custom is untouched
+
+It already carries a name the user chose or searched for, so nothing is looked up. `verified` on
+screen: still `45.464, 9.190` (three decimals, `Coordinates.format`) with
+`"Selected location - 45.464, 9.190"` beneath, and the city search unchanged.
+
+---
+
+### 4. Verification
+
+| check | result |
+|---|---|
+| `./gradlew test` | **875 tests, 0 failures** (850 in v3.9, **+25**) |
+| `./gradlew lint` | **0 errors**, **31** issues — one fewer than v3.9, `OldTargetApi` gone |
+| `assembleDebug` / `assembleDebugAndroidTest` / `assembleRelease` (R8) | pass |
+| `connectedDebugAndroidTest` on Pixel 9 / Android 17 | **37 tests, 0 failures** |
+| Mutation check on the new tests | **5 of 5 caught** — caching removed, sequencing guard removed, haversine flattened, duplicate suppression removed, blank-field handling removed |
+| Runtime, GPS | `Milano, Italia` + `45.46, 9.19 - Resolved from the GPS receiver` |
+| Runtime, Network | `Milano, Italia` + `45.46, 9.19 - Approximate, from cell towers and Wi-Fi` |
+| Runtime, Custom | unchanged |
+| Runtime, forced geocoder failure | coordinates retained, no error, Live Weather still `OK` |
+| Runtime, wallpaper | set, renders with traffic, **survives a reboot**, survives lock/unlock |
+| Runtime, updater | "You're up to date (v4.0)" — `api.github.com` reached at `targetSdk 37` |
+| Runtime, weather | **Open-Meteo `OK`**; the two keyed providers reached but `401` (keys revoked — see below) |
+| logcat | no `FATAL`, no ANR, no compat/enforcement notice |
+
+**The two keyed weather providers could not be driven end to end.** Both API keys supplied for the
+v3.9 session return `401` now, and that is not an app fact: `curl` from the host gets the same `401`
+with the same keys. Only Open-Meteo, the keyless default, could be taken all the way to a successful
+fetch. Both keyed hosts were still *reached*, which is what the CT/ECH question actually turns on.
+
+**No real device was available in this session.** Everything above marked "runtime" is the Pixel 9 /
+Android 17 emulator. §18's real-hardware pass is outstanding and is the maintainer's.
+
+---
+
 ## v3.9 — a rejected key is not an unreachable service, and one build-script deprecation
 
 **Prepared, not published.** `versionCode = 30`, `versionName = "3.9"`. No tag, no push, no GitHub

@@ -11,6 +11,69 @@ that was.
 
 ## Current status
 
+**v4.0 prepared -- `targetSdk 37`, and the location row now names the place. Two strands, nothing else.**
+
+`versionCode = 31`, `versionName = "4.0"`. **No tag, no push, no GitHub Release.**
+
+```
+v4.0 [x]
+ |- targetSdk 37
+ \- location locality/city for GPS and Network
+
+(nothing scheduled after this)
+```
+
+1. **`targetSdk 36 -> 37`.** `compileSdk` was already 37 and is unchanged. Every Android 17
+   behaviour change was re-assessed against this app's real code from the v3.9 baseline, not
+   against a generic list: **none required a fix**, and most are `NOT_APPLICABLE` because the
+   capability simply is not used -- no reflection, no notifications, no foreground service, no
+   alarms or jobs, no native libraries or dynamic class loading, no local-network access, no SMS,
+   contacts, audio or Bluetooth, no orientation or resizability declarations, and every
+   `startActivity` is from a visible Activity or a Compose click. Lint confirms the flag took
+   effect: `OldTargetApi` is gone and the count drops 32 -> 31.
+2. **Certificate transparency and ECH, the two the emulator could not close in v3.8, were
+   exercised at `targetSdk = 37`.** All five HTTPS hosts -- `api.open-meteo.com`,
+   `geocoding-api.open-meteo.com`, `api.weatherapi.com`, `api.openweathermap.org`,
+   `api.github.com` -- completed the TLS handshake through the app's own `HttpURLConnection` path
+   on a device running the new build. Nothing in the app touches `SSLContext`, `TrustManager`,
+   `HostnameVerifier` or a network security config, so there is no workaround in place and none
+   was added. **Still `pending` on real hardware** -- see below.
+3. **The location row shows the place name *and* the coordinates.** Reverse geocoding already
+   existed and already ran for GPS and Network; what it did was *replace* the coordinates, so the
+   two facts were never on screen together and the numbers vanished as soon as a name arrived. The
+   name is now the title and the coordinates sit under it, the shape the Custom row has always
+   used. A geocoder that fails, times out or is absent costs the name only -- the coordinates are
+   the title in that case, and it is never reported as a location failure.
+4. **`LocalityLabelCache`** is the new part: a pure, JVM-tested policy for *when* a fix is worth
+   geocoding. 1 km threshold, chosen because it exceeds Network-mode jitter and matches the row's
+   own two-decimal display, so the cache can never hide a change the row would show. Successes do
+   not expire (a place name at a fixed coordinate does not change, and the cache is in-memory);
+   failures are not cached as labels and are retried after 60 s. A superseded lookup cannot
+   overwrite a newer one.
+
+**Custom is deliberately untouched** -- it already carries a name the user chose, and nothing is
+looked up for it.
+
+875 JVM tests (850 in v3.9, +25), `lintDebug` 0 errors and 31 issues, debug + androidTest + R8
+release APKs, 37 instrumented tests on Pixel 9 / Android 17, and a runtime pass covering GPS,
+Network, Custom, a forced geocoder failure, wallpaper persistence across a reboot, lock/unlock and
+the updater. Five deliberate mutations confirm the new tests fail when the code is broken. See
+`RELEASE_HISTORY.md`.
+
+**Two things v4.0 does not close, and must not be reported as closed:**
+
+- **Real-hardware verification.** No physical device was available in this session; everything
+  runtime above is the Pixel 9 / Android 17 **emulator**. CT and ECH in particular were called out
+  in v3.8 as *not* closeable on an emulator, and that judgement stands -- an emulator's network
+  stack, CA store and system image are not a phone's.
+- **OpenWeather and WeatherAPI.com end-to-end.** Both API keys supplied for the v3.9 session had
+  been revoked by the time of this one -- confirmed independently with `curl` from the host, which
+  gets the same `401` -- so only Open-Meteo, the keyless default, could be driven to a successful
+  fetch. Both keyed hosts were still reached and answered, which is what the CT/ECH question turns
+  on.
+
+---
+
 **v3.9 prepared -- a corrective release, strictly two items.**
 
 `versionCode = 30`, `versionName = "3.9"`. **No tag, no push, no GitHub Release.**
@@ -434,15 +497,16 @@ closed in v3.1, and its two P1 test-infrastructure items plus P2-3, P2-4 and P2-
 
 | # | ID | Item | Why it is here |
 |---|---|---|---|
-| A | — | **`v4.0`: raise `targetSdk` 36 → 37** | The one scheduled piece of work. v3.8's assessment found **no fix is required**: no reflection, no LAN access, no native libraries, no orientation or resizability declarations, no background activity starts, no SMS, contacts, audio or Bluetooth — and the app built, tested and ran clean at 37 in a trial that was then reverted. What v4.0 still owes is its own device pass and release notes, not code. **v4.0 is now prepared from the v3.9 baseline** (`versionCode 30`) rather than from v3.8; v3.9 changed nothing that bears on the assessment. Two behaviour changes are worth re-checking on a real device rather than an emulator: **certificate transparency enforced by default** and **ECH**, both of which touch the four HTTPS hosts Live Weather and the updater use. |
+| A | — | **Real-hardware verification of v4.0** | `targetSdk 37` shipped in v4.0 and every check that an emulator can perform passed. What an emulator **cannot** settle is **certificate transparency** and **ECH**: its network stack, CA store and system image are not a phone's, and a CT or ECH failure would present as a plain connection failure on real hardware while passing here. All five HTTPS hosts connected at `targetSdk = 37` on the emulator, and no workaround was added, so this is a confirmation rather than an open risk — but it is the maintainer's to confirm. **Also outstanding: OpenWeather and WeatherAPI.com end to end**, which v4.0 could not drive because both supplied keys had been revoked (`401` from `curl` on the host as well as from the app). |
 | B | — | **Preview/renderer offset agreement is guarded for two groups** | The tree and the tower. The other 47 shared sprites agree today as plain literals and nothing stops them drifting. v3.8 checked all of them and found no third case worth the indirection; the guard would have to encode each renderer draw function's nested transforms, which is a second copy of the thing being checked. **Not scheduled.** |
 | C | — | **The lit night facade's placement is unverified against the artwork** | v3.8 made the preview follow the renderer, which is documented intent (*"laid over it at the same origin"*) and is confirmed by the Christmas window-light grid hanging at the same `+5`. What was *not* possible was measuring it the way the snow cap was: the wall sprite is a plain tintable rectangle with no detectable window grid, so there is no artwork feature to align against. **Not scheduled** — recorded so the basis for the choice stays visible. |
 | D | — | **The instrumented tests have no automated trigger** | Unchanged since v3.6. `AI_PROJECT_RULES.md` 10.12 and 10.13 state what a future E2E job must satisfy. **Not scheduled.** |
 
 Deliberately **not** scheduled: any further weather-provider change — the three the comparative
 assessed are all now implemented and **Open-Meteo stays the default** — and any refactor of
-`PaperRenderer`, `SceneObjectRenderer` or `ThemePreviewScene`. `targetSdk 37` **is** scheduled, as
-item A above, and belongs to v4.0.
+`PaperRenderer`, `SceneObjectRenderer` or `ThemePreviewScene`. `targetSdk 37` shipped in v4.0 and is no
+longer scheduled work; what remains of it is item A's confirmation on real hardware. **D10 is
+closed by v4.0** -- `targetSdk` and `compileSdk` are both 37 now.
 
 ---
 
@@ -475,7 +539,7 @@ Genuinely open, genuinely not worth doing yet.
 |---|---|---|
 | **B5** | The renderer, wallpaper engine, preferences layer and Compose UI cannot be unit tested without being decoupled from `Canvas`/`Context`. | The reason engine fixes are verified on a device rather than by a test. Decoupling is a large refactor with no user-visible result; it earns its place only if engine bugs start recurring. |
 | **D4** | Whether the `MULTIPLY` tint's colour-fidelity trade-off is acceptable. | Accepted in practice across the whole V2 set and never reported as a problem. |
-| **D10** | `targetSdk` is 36 while `compileSdk` is 37. Android 17's behaviour changes are not opted into. | Deliberate. The Phase 2 dependency upgrade raised `compileSdk` because `core 1.19` and Compose `1.12` require it, and left `targetSdk` alone so the upgrade could not change how the app runs. Raising it is a behaviour change and needs its own device pass — lint's `OldTargetApi` warning is the reminder, not a defect. |
+| **D10** | ~~`targetSdk` is 36 while `compileSdk` is 37.~~ **CLOSED in v4.0**: both are 37 and the behaviour changes are opted into. Kept here for the reasoning only. | Was deliberate. The Phase 2 dependency upgrade raised `compileSdk` because `core 1.19` and Compose `1.12` require it, and left `targetSdk` alone so the upgrade could not change how the app runs. Raising it is a behaviour change and needs its own device pass — lint's `OldTargetApi` warning is the reminder, not a defect. |
 | **D11** | Three lint findings that only appeared once the tooling was current: `ConfigurationScreenWidthHeight` on `SettingsInsets.kt:115`, and three `AutoboxingStateCreation` hints on `SettingsComponents.kt`. | New checks over unchanged code, not regressions. `SettingsInsets` is the file that closed v2.14's dialog-sizing bug, so swapping `Configuration.screenHeightDp` for `LocalWindowInfo.current.containerSize` is a change to the one thing that bug turned on — worth doing deliberately, with a device pass, not as a lint tidy-up. |
 | **D12** | Every `OutlinedButton` changed colour in the upgrade. Material3 `1.4.0` moved the default content colour from `primary` to `onSurfaceVariant` and the default border from `outline` to `outlineVariant`, so "Reset this theme's scene to defaults" and the other six outlined buttons now read grey-brown with a pale border instead of orange with a mid border. Verified on an Android 17 emulator by sampling the pixels: the new values are exactly this project's own `onSurfaceVariant` (`0xFF54443A`) and `outlineVariant` (`0xFFD9C7B7`). `TextButton` and filled `Button` are unchanged. | This is Material 3's own current default, and rule 3 says the app follows Material 3 — so it was **left as Material draws it** rather than pinned back, which would mean hard-coding a superseded default into seven call sites. It is nevertheless the one user-visible change the whole upgrade produced, and whether the quieter outlined button reads well is a judgement to make while looking at the app. Pinning it back is one argument: `colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)` plus `border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)`. |
 | **D7** | The V2 artwork retired four user-visible colour behaviours (sun colour reaching only the glow, theme star colour reaching nothing, Fall Colors not reaching palm fronds, per-building window lighting). | Approved as consequences of the redesign. Whether each reads well is a judgement to make while looking at the app, and nothing has been reported. |
@@ -484,6 +548,11 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v4.0 prepared** — **`targetSdk 36 -> 37`**, with every Android 17 behaviour change re-assessed
+  against the real code and none needing a fix, and CT/ECH exercised across all five HTTPS hosts at
+  the new target; and the **location row now shows the place name together with the coordinates**
+  for GPS and Network, backed by a new JVM-tested caching policy (`LocalityLabelCache`) and a
+  documented label format. Custom unchanged, weather unchanged, renderer unchanged.
 - **v3.9 prepared** — the two-item corrective release. **OpenWeather's "could not be reached" traced
   to an HTTP 401 being reported as a transport failure**, not to the provider: with a real key the
   provider fetched correctly at runtime and `OpenWeatherProvider.kt` was not changed. A rejected key

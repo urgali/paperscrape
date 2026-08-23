@@ -83,13 +83,58 @@ object LocationLabelResolver {
             null
         } ?: return null
 
-        val city = address.locality ?: address.subAdminArea ?: address.adminArea
-        val country = address.countryName
+        return format(
+            locality = address.locality,
+            subAdminArea = address.subAdminArea,
+            adminArea = address.adminArea,
+            countryName = address.countryName,
+        )
+    }
+
+    /**
+     * The one place the label's shape is decided. Pure, so the choice can be tested against the
+     * field combinations real devices actually return.
+     *
+     * **Format: `"<place>, <country>"`, and never more than two parts.** The row it fills sits
+     * next to an icon under a settings toggle, so a full postal address would not fit and would
+     * not answer the question being asked, which is only *which place did this resolve to*.
+     *
+     * **The place is the narrowest field the geocoder filled in**, in this order:
+     *
+     * | field | why it is where it is |
+     * |---|---|
+     * | `locality` | the city or town. What a resident would say. Almost always present. |
+     * | `subAdminArea` | typically the county/province. The usual answer outside a town. |
+     * | `adminArea` | the region or state. Coarse, but better than a bare coordinate. |
+     *
+     * Both names come from the geocoder untransformed — no title-casing, no translation, no
+     * abbreviation. The [Geocoder] was constructed with [Locale.getDefault], so a device set to
+     * Italian gets *"Milano, Italia"* and one set to English gets *"Milan, Italy"*; that is the
+     * platform's answer for that device and it is not this app's business to override it. The
+     * coordinates beside it are the opposite case and stay [Locale.US] — see [Coordinates].
+     *
+     * **Duplication is suppressed rather than assumed away.** `"Milano, Milano, Italia"` cannot
+     * arise because exactly one place field is ever chosen, but `"Singapore, Singapore"` can and
+     * does: in a city-state the place field and the country name are the same word. Where they
+     * match, the label is that word once.
+     */
+    internal fun format(
+        locality: String?,
+        subAdminArea: String?,
+        adminArea: String?,
+        countryName: String?,
+    ): String? {
+        val place = locality?.trimmedOrNull()
+            ?: subAdminArea?.trimmedOrNull()
+            ?: adminArea?.trimmedOrNull()
+        val country = countryName?.trimmedOrNull()
         return when {
-            city != null && country != null -> "$city, $country"
-            city != null -> city
-            country != null -> country
-            else -> null
+            place != null && country != null && !place.equals(country, ignoreCase = true) ->
+                "$place, $country"
+            place != null -> place
+            else -> country
         }
     }
+
+    private fun String.trimmedOrNull(): String? = trim().takeIf { it.isNotEmpty() }
 }

@@ -12,8 +12,19 @@ Android 17 device.
 **v3.9 (`versionCode = 30`) is a two-item corrective release and this document was *not* re-read in
 full for it.** What it changed here is one line: `LiveWeatherStatus` gained `REJECTED_API_KEY`
 (§ Weather, below). Nothing else in the architecture moved — no provider, no renderer, no build
-configuration beyond swapping one deprecated Gradle source-set call for its replacement, and
-`targetSdk` is still 36.
+configuration beyond swapping one deprecated Gradle source-set call for its replacement.
+
+**v4.0 (`versionCode = 31`) is likewise two strands, and this document was not re-read in full for
+it either.** Two things changed here:
+
+- **`targetSdk` is now 37**, equal to `compileSdk`. The paragraph below that described them as
+  deliberately one apart is history now — the app opts into Android 17's behaviour changes, none of
+  which required a code change. `RELEASE_HISTORY.md` carries the change-by-change assessment.
+- **`LocalityLabelCache`** joins the location package: the policy deciding when a device fix is
+  worth reverse-geocoding, and the row that shows the result now shows the place name *and* the
+  coordinates rather than one in place of the other. The renderer, the weather pipeline and the
+  location *acquisition* path are all unchanged — this is display only, and cannot affect the
+  position Live Weather uses.
 
 This stamp had said *"v75 … current as of v1.0 Stable (`versionCode = 1`)"* for twenty-seven
 releases, which is the whole of **P2-8**: sections were updated as work landed, so most of the
@@ -136,7 +147,16 @@ PaperScrape/
   The engine invalidates the fix when the source changes; without it a custom location survived a
   switch to phone location and Live Weather kept querying the old coordinates.
 - `location/LocationLabelResolver.kt` — reverse geocoding through the platform `Geocoder`, which
-  needs no network where a device supports it.
+  needs no network where a device supports it. Its `format` is separated out and pure: the label is
+  `"<place>, <country>"`, place being the narrowest field the geocoder filled
+  (`locality` → `subAdminArea` → `adminArea`), names untransformed in the device's locale, and a
+  city-state's duplicate collapsed to one word.
+- `location/LocalityLabelCache.kt` — **v4.0.** *When* a fix is worth geocoding, kept apart from
+  *how* it is geocoded so the policy is JVM-testable. A 1 km threshold (above Network-mode jitter,
+  and equal to the row's own two-decimal display so the cache cannot hide a change the row would
+  show), successes that never expire, failures retried after 60 s and never stored as labels, and a
+  request counter so a slow lookup for the previous position cannot overwrite the current one.
+  Nothing here polls; it only ever suppresses work.
 - `location/CityGeocoder.kt` — forward search by city name, through Open-Meteo's keyless geocoding
   API (the same provider Live Weather uses, and the same `HttpURLConnection` style). The response
   parser and the small in-memory search cache are separated from the network call so both are
@@ -1211,17 +1231,23 @@ exists as a counter to work around this.
 | Kotlin Compose plugin | 2.2.21 |
 | Kotlin | AGP built-in, driven by the Compose plugin version above -- 2.2.21 (the `org.jetbrains.kotlin.android` plugin is intentionally not applied) |
 | `compileSdk` | 37 |
-| `targetSdk` | 36 |
+| `targetSdk` | **37** (raised from 36 in v4.0) |
 | `minSdk` | 26 |
 | Java compatibility | 17 |
 
-**`compileSdk` and `targetSdk` are deliberately one apart.** `compileSdk 37` says
-only which `android.jar` the code links against; it is what `androidx.core 1.19`
-and the Compose `1.12` line require (`minCompileSdk=37` in their AAR metadata) and
-it changes nothing about how the app runs. The platform's behaviour gates read
-`targetSdk`, which stays at 36 so the dependency upgrade could not move the app's
-behaviour. Raising `targetSdk` to 37 is its own change with its own device pass --
-see `ROADMAP.md`.
+**`compileSdk` and `targetSdk` are both 37 as of v4.0**, and the distinction is
+still worth knowing because they were one apart for six releases and for a reason.
+`compileSdk 37` says only which `android.jar` the code links against; it is what
+`androidx.core 1.19` and the Compose `1.12` line require (`minCompileSdk=37` in
+their AAR metadata) and it changes nothing about how the app runs. **The platform's
+behaviour gates read `targetSdk`**, which is why it was held at 36 through the
+Phase 2 dependency upgrade -- so that the upgrade could not move the app's
+behaviour -- and why raising it was its own release with its own assessment and
+device pass rather than a line changed in passing. That assessment is in
+`RELEASE_HISTORY.md` under v4.0: every Android 17 behaviour change against this
+app's real code, and no fix required. `lint` is the check that the flag actually
+took: `OldTargetApi` exists precisely because the target lags the compile SDK, and
+it is gone.
 
 Dependencies are declared as hardcoded version strings; there is no Gradle
 version catalog. They were brought to the current stable line in the Phase 2

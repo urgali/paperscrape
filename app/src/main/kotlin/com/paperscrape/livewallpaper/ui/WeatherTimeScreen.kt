@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.R
+import com.paperscrape.livewallpaper.location.LocalityLabelCache
 import com.paperscrape.livewallpaper.location.LocationLabelResolver
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
@@ -185,7 +186,6 @@ internal fun WeatherTimeScreen(
                 LocationRow(
                     latitude = settings.resolvedGpsLatitude,
                     longitude = settings.resolvedGpsLongitude,
-                    loadingText = "Finding your location...",
                     supporting = if (locationMode == LocationMode.GPS) {
                         "Resolved from the GPS receiver"
                     } else {
@@ -430,32 +430,63 @@ private fun OpenWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, o
 }
 
 /**
- * Reverse-geocodes a lat/long into a short city label ("Florence, Italy") and shows it as a
- * standing confirmation under the location choice -- aa's own explicit ask was that the location
- * settings visibly report *which place* they resolved to, not just that some coordinates are set.
- * Re-resolves whenever the coordinates actually change (`latitude`/`longitude` as the
- * LaunchedEffect key), not on every recomposition.
+ * Where the device says it is: the **place name and the coordinates, together**.
+ *
+ * v4.0 changed what this row shows, not how it finds it. Before, the resolved name *replaced* the
+ * coordinates -- the row's title was the city name when geocoding succeeded and the coordinates
+ * when it failed, so the two facts were never on screen at once and a user who wanted to check the
+ * numbers lost them the moment the name arrived. Now the name is the title and the coordinates sit
+ * under it, which is the shape [SelectedCustomLocationRow] has always used for the manual case.
+ *
+ * **The coordinates are never lost, at any instant.** Before the name arrives, and if it never
+ * does, the title *is* the coordinates -- so there is no state in which this row fails to answer
+ * "where does the app think I am". A geocoder that is offline, absent or slow costs the name and
+ * nothing else: it is not a location failure and is never reported as one.
+ *
+ * That is also why there is no longer a "Finding your location..." placeholder. It said the wrong
+ * thing -- the location was already found, it was the *name* that was pending -- and the honest
+ * alternative is to show the coordinates that were already known.
+ *
+ * Coordinates stay [Coordinates.formatCoarse], two decimals: the precision this row has always
+ * used, and the precision a network fix actually has.
+ *
+ * Lookups go through [LocalityLabelCache], which is what keeps re-entering this screen or taking a
+ * new fix a few metres away from being a new geocode. Re-resolves on the coordinates changing
+ * (`latitude`/`longitude` as the `LaunchedEffect` key), never on recomposition.
  */
 @Composable
-private fun LocationRow(latitude: Float?, longitude: Float?, loadingText: String, supporting: String) {
+private fun LocationRow(latitude: Float?, longitude: Float?, supporting: String) {
     val context = LocalContext.current
-    var label by remember(latitude, longitude) { mutableStateOf<String?>(null) }
-    var isLoading by remember(latitude, longitude) { mutableStateOf(latitude != null && longitude != null) }
+    // Seeded from the cache so that re-entering the screen with a known position paints the name
+    // on the first frame instead of flashing the coordinates and replacing them a moment later.
+    var label by remember(latitude, longitude) {
+        mutableStateOf(
+            if (latitude == null || longitude == null) {
+                null
+            } else {
+                LocalityLabelCache.shared.cachedLabel(latitude.toDouble(), longitude.toDouble())
+            },
+        )
+    }
     LaunchedEffect(latitude, longitude) {
         if (latitude == null || longitude == null) return@LaunchedEffect
-        label = LocationLabelResolver.resolveCityLabel(context, latitude.toDouble(), longitude.toDouble())
-        isLoading = false
+        if (label != null) return@LaunchedEffect
+        label = LocalityLabelCache.shared.labelFor(
+            latitude = latitude.toDouble(),
+            longitude = longitude.toDouble(),
+            nowMillis = System.currentTimeMillis(),
+        ) { lat, lon -> LocationLabelResolver.resolveCityLabel(context, lat, lon) }
     }
-    val text = when {
-        latitude == null || longitude == null -> null
-        isLoading -> loadingText
-        label != null -> label
-        // geocoding failed -- raw coordinates as a fallback, never a blank row
-        else -> Coordinates.formatCoarse(latitude, longitude)
-    }
-    if (text != null) {
-        SettingsRow(title = text, supporting = supporting, icon = Icons.Filled.LocationOn)
-    }
+    if (latitude == null || longitude == null) return
+    val coordinates = Coordinates.formatCoarse(latitude, longitude)
+    val name = label
+    SettingsRow(
+        title = name ?: coordinates,
+        // With a name, the coordinates move here and keep their place beside what produced them.
+        // Without one, they are already the title and repeating them would say nothing.
+        supporting = if (name != null) "$coordinates - $supporting" else supporting,
+        icon = Icons.Filled.LocationOn,
+    )
 }
 
 /**
