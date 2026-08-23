@@ -9,6 +9,12 @@ Planned work belongs in `ROADMAP.md`; visual and design decisions belong in
 `test` + `lintDebug` + `assembleDebug` + `assembleRelease` and the instrumented suite on an
 Android 17 device.
 
+**v3.9 (`versionCode = 30`) is a two-item corrective release and this document was *not* re-read in
+full for it.** What it changed here is one line: `LiveWeatherStatus` gained `REJECTED_API_KEY`
+(§ Weather, below). Nothing else in the architecture moved — no provider, no renderer, no build
+configuration beyond swapping one deprecated Gradle source-set call for its replacement, and
+`targetSdk` is still 36.
+
 This stamp had said *"v75 … current as of v1.0 Stable (`versionCode = 1`)"* for twenty-seven
 releases, which is the whole of **P2-8**: sections were updated as work landed, so most of the
 document was in fact current, but nothing said which — and a validity stamp nobody can trust is
@@ -185,7 +191,12 @@ PaperScrape/
   - `WeatherRepository.kt` — dispatches to the selected provider. **No silent fallback between
     providers:** a failure is reported as one and the selection stands.
   - `LiveWeatherStatus.kt` — what Live Weather is actually doing (`OFF`, `OK`, `NO_LOCATION`,
-    `MISSING_API_KEY`, `FAILED`, `STALE`), written by the service and read by the settings screen.
+    `MISSING_API_KEY`, `REJECTED_API_KEY`, `FAILED`, `STALE`), written by the service and read by
+    the settings screen. `REJECTED_API_KEY` is v3.9's: an HTTP 401/403 is a provider that answered
+    and refused the credential, which is not the same fact as one that could not be reached, and
+    folding the two together is what made a not-yet-active OpenWeather key report itself as a
+    network failure. It sits before the "is a snapshot still in effect" question, like
+    `MISSING_API_KEY`, because an old observation on screen does not change what the user must do.
   - `LiveWeatherInputs.kt` — which settings force an immediate fetch rather than waiting for the
     hourly refresh. Pure, so the list cannot quietly fall behind the settings again.
   - `WeatherHttp.kt` — the one `HttpURLConnection` JSON GET both providers share, and the pure

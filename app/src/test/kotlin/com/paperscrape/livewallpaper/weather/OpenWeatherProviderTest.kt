@@ -339,6 +339,122 @@ class OpenWeatherProviderTest {
         assertTrue("One Call is deliberately not used", !url.contains("onecall"))
     }
 
+    /**
+     * **The v3.9 fix, from this provider's end.** A key OpenWeather refuses is a *rejection*, not
+     * an unreachable service, and the state the settings screen is given has to say so.
+     *
+     * Demonstrated against the live API rather than assumed: the identical request that answers
+     * `200` for a valid key answers `401 {"cod":401, "message": "Invalid API key. ..."}` for an
+     * invalid one. v3.8 turned both of those, and a dropped connection, into the one sentence
+     * *"OpenWeather could not be reached"* — which is true of exactly one of them.
+     *
+     * This matters far more for OpenWeather than for the other two keyed paths, because
+     * OpenWeather's own error-401 FAQ says a newly created free key takes a couple of hours to
+     * become active: the most likely holder of a rejected OpenWeather key is a user whose key is
+     * completely correct.
+     */
+    @Test
+    fun `a key OpenWeather refuses is reported as a rejection, not as unreachable`() {
+        val rejected = WeatherFetchResult.Failed(WeatherHttp.statusToFailure(401), WeatherProviderId.OPEN_WEATHER)
+        assertEquals(
+            LiveWeatherStatus.REJECTED_API_KEY,
+            LiveWeatherStatus.of(true, true, rejected, hasSnapshotInEffect = false, previous = LiveWeatherStatus.OK),
+        )
+        // A genuine transport failure is still exactly what it was in v3.8.
+        val dropped = WeatherFetchResult.Failed(WeatherFailure.NETWORK, WeatherProviderId.OPEN_WEATHER)
+        assertEquals(
+            LiveWeatherStatus.FAILED,
+            LiveWeatherStatus.of(true, true, dropped, hasSnapshotInEffect = false, previous = LiveWeatherStatus.OK),
+        )
+    }
+
+    // -- units, end to end -------------------------------------------------------------------------
+
+    /**
+     * **Cross-provider unit agreement**, which is the regression the mm→cm division actually
+     * guards against.
+     *
+     * [WeatherObservation] fixes the units once for every provider: [WeatherObservation.snowfallCm]
+     * is centimetres and [WeatherObservation.precipitationMm] is millimetres. Open-Meteo reports
+     * `snowfall` in centimetres and it is read straight through; OpenWeather reports `snow.1h` in
+     * **millimetres whatever `units` says** and is divided by ten. So the same physical snowfall
+     * has to arrive as the same number from both, and that — not the arithmetic in isolation — is
+     * what a future edit could quietly break.
+     *
+     * 12 mm/h of snow = 1.2 cm/h.
+     */
+    @Test
+    fun `the same snowfall reads the same from OpenWeather and Open-Meteo`() {
+        val openWeather = OpenWeatherProvider.parse(
+            rainBody
+                .replace("\"id\":501,\"main\":\"Rain\",\"description\":\"moderate rain\"", "\"id\":601,\"main\":\"Snow\",\"description\":\"snow\"")
+                .replace("\"rain\":{\"1h\":2.4}", "\"snow\":{\"1h\":12.0}"),
+        )!!
+        val openMeteo = OpenMeteoProvider.parse(
+            """
+            {"current":{"temperature_2m":-1.0,"precipitation":12.0,"rain":0.0,"showers":0.0,
+             "snowfall":1.2,"weather_code":73,"cloud_cover":95}}
+            """.trimIndent(),
+        )!!
+
+        assertEquals(
+            "the two providers must agree on how deep 12 mm/h of snow is",
+            openMeteo.snowfallCm!!,
+            openWeather.snowfallCm!!,
+            0.0001,
+        )
+        assertEquals(
+            "and on the total, which is millimetres on both sides",
+            openMeteo.precipitationMm!!,
+            openWeather.precipitationMm!!,
+            0.0001,
+        )
+    }
+
+    /**
+     * The same figures through [WeatherSnapshotMapper], because a unit is only correct where it is
+     * finally read.
+     *
+     * `precipitationMm` is what sets intensity, so it has to be millimetres: 12 mm/h is past the
+     * mapper's 8 mm/h full-intensity cap and must saturate. `snowfallCm` decides the *kind*.
+     */
+    @Test
+    fun `snow reaches the scene with the intensity its millimetres imply`() {
+        val body = rainBody
+            .replace("\"id\":501,\"main\":\"Rain\",\"description\":\"moderate rain\"", "\"id\":601,\"main\":\"Snow\",\"description\":\"snow\"")
+            .replace("\"rain\":{\"1h\":2.4}", "\"snow\":{\"1h\":12.0}")
+        val snapshot = WeatherSnapshotMapper.toSnapshot(OpenWeatherProvider.parse(body)!!)
+        assertEquals(PrecipitationType.SNOW, snapshot.precipitationType)
+        assertEquals("12 mm/h is past the 8 mm/h cap", 1f, snapshot.precipitationIntensity, 0.0001f)
+
+        // A light fall, to prove the intensity really does track the millimetres rather than
+        // being pinned by the cap: 2 mm/h is a quarter of the way to full.
+        val light = body.replace("\"snow\":{\"1h\":12.0}", "\"snow\":{\"1h\":2.0}")
+        val lightSnapshot = WeatherSnapshotMapper.toSnapshot(OpenWeatherProvider.parse(light)!!)
+        assertEquals(PrecipitationType.SNOW, lightSnapshot.precipitationType)
+        assertEquals(0.25f, lightSnapshot.precipitationIntensity, 0.0001f)
+        assertEquals("2 mm of snow is 0.2 cm", 0.2, OpenWeatherProvider.parse(light)!!.snowfallCm!!, 0.0001)
+    }
+
+    /**
+     * Rain's millimetres are **not** converted, and that asymmetry is the one a tidying edit would
+     * remove: `rain.1h` and `snow.1h` are both millimetres on the wire, but only one of the two
+     * fields they land in is measured in centimetres.
+     */
+    @Test
+    fun `rain millimetres are not divided by anything`() {
+        val o = OpenWeatherProvider.parse(rainBody)!!
+        assertEquals("2.4 mm of rain stays 2.4", 2.4, o.rainMm!!, 0.0001)
+        assertEquals(2.4, o.precipitationMm!!, 0.0001)
+        assertNull("rain is not snow", o.snowfallCm)
+        assertEquals(
+            "and it drives intensity as millimetres",
+            (2.4 / 8.0).toFloat(),
+            WeatherSnapshotMapper.toSnapshot(o).precipitationIntensity,
+            0.0001f,
+        )
+    }
+
     /** Nothing about this provider may be compiled into the app. */
     @Test
     fun `no api key is baked in for this provider`() {

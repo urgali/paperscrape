@@ -11,6 +11,49 @@ that was.
 
 ## Current status
 
+**v3.9 prepared -- a corrective release, strictly two items.**
+
+`versionCode = 30`, `versionName = "3.9"`. **No tag, no push, no GitHub Release.**
+**`targetSdk` is still 36** -- v3.9 changed nothing about it, deliberately, and must not.
+
+```
+v3.9 [x]
+ |- OpenWeather fix
+ \- Gradle warning fix
+
+v4.0 (next)
+ \- targetSdk 37
+```
+
+1. **OpenWeather reported a rejected key as an unreachable service, and now does not.** The device
+   report was *"OpenWeather could not be reached"* while Open-Meteo and WeatherAPI.com worked.
+   Reproduced on the emulator and isolated: **the provider is correct.** With a valid key the
+   endpoint, URL, query parameters, HTTP transport, TLS, parser, unit conversions and condition
+   mapping all work and were verified at runtime -- **nothing in `OpenWeatherProvider.kt` was
+   changed.** What produced the message was `LiveWeatherStatus.of` folding every
+   `WeatherFetchResult.Failed` into `FAILED`/`STALE`, whose banner claims unreachability, so an
+   **HTTP 401** -- a service that answered and refused the credential -- was reported as a network
+   problem. `WeatherHttp` already classified 401/403 as `UNAUTHORIZED` "because the settings screen
+   can say so"; nothing consumed it. One new status, `REJECTED_API_KEY`, and one banner now keep
+   that promise. It bites OpenWeather and not the other two because OpenWeather's own error-401 FAQ
+   says a newly created free key takes a couple of hours to activate -- so its rejected keys are
+   usually *correct* keys.
+2. **The `srcDirs` build-script deprecation is gone.** `app/build.gradle.kts` used
+   `java.srcDirs("src/androidTest/kotlin")`, which AGP 9.3.1 marks
+   `@Deprecated("Use `directories` mutable set instead")` -- confirmed by reading the annotation off
+   the packaged API, not from the message alone. Now `java.directories.add(...)`, whose getter
+   carries no deprecation. The resolved source directories were printed before and after and are
+   identical.
+
+**Open-Meteo is still the default**, still asserted three ways, and no provider's fetch path was
+touched. **Visual Crossing stays removed.** Everything v3.8 closed is intact.
+
+850 JVM tests (842 in v3.8, +8), `lintDebug` 0 errors, debug + androidTest + R8 release APKs, 37
+instrumented tests on Pixel 9 / Android 17, and a runtime pass in which **all three providers
+fetched successfully with real keys**. See `RELEASE_HISTORY.md`.
+
+---
+
 **v3.8 prepared — a third weather provider, goldens that finally contain traffic, the preview/renderer
 sharing extended exactly as far as the evidence went, and a v3.7 claim retracted.**
 
@@ -391,7 +434,7 @@ closed in v3.1, and its two P1 test-infrastructure items plus P2-3, P2-4 and P2-
 
 | # | ID | Item | Why it is here |
 |---|---|---|---|
-| A | — | **`v4.0`: raise `targetSdk` 36 → 37** | The one scheduled piece of work. v3.8's assessment found **no fix is required**: no reflection, no LAN access, no native libraries, no orientation or resizability declarations, no background activity starts, no SMS, contacts, audio or Bluetooth — and the app built, tested and ran clean at 37 in a trial that was then reverted. What v4.0 still owes is its own device pass and release notes, not code. Two behaviour changes are worth re-checking on a real device rather than an emulator: **certificate transparency enforced by default** and **ECH**, both of which touch the four HTTPS hosts Live Weather and the updater use. |
+| A | — | **`v4.0`: raise `targetSdk` 36 → 37** | The one scheduled piece of work. v3.8's assessment found **no fix is required**: no reflection, no LAN access, no native libraries, no orientation or resizability declarations, no background activity starts, no SMS, contacts, audio or Bluetooth — and the app built, tested and ran clean at 37 in a trial that was then reverted. What v4.0 still owes is its own device pass and release notes, not code. **v4.0 is now prepared from the v3.9 baseline** (`versionCode 30`) rather than from v3.8; v3.9 changed nothing that bears on the assessment. Two behaviour changes are worth re-checking on a real device rather than an emulator: **certificate transparency enforced by default** and **ECH**, both of which touch the four HTTPS hosts Live Weather and the updater use. |
 | B | — | **Preview/renderer offset agreement is guarded for two groups** | The tree and the tower. The other 47 shared sprites agree today as plain literals and nothing stops them drifting. v3.8 checked all of them and found no third case worth the indirection; the guard would have to encode each renderer draw function's nested transforms, which is a second copy of the thing being checked. **Not scheduled.** |
 | C | — | **The lit night facade's placement is unverified against the artwork** | v3.8 made the preview follow the renderer, which is documented intent (*"laid over it at the same origin"*) and is confirmed by the Christmas window-light grid hanging at the same `+5`. What was *not* possible was measuring it the way the snow cap was: the wall sprite is a plain tintable rectangle with no detectable window grid, so there is no artwork feature to align against. **Not scheduled** — recorded so the basis for the choice stays visible. |
 | D | — | **The instrumented tests have no automated trigger** | Unchanged since v3.6. `AI_PROJECT_RULES.md` 10.12 and 10.13 state what a future E2E job must satisfy. **Not scheduled.** |
@@ -441,6 +484,14 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v3.9 prepared** — the two-item corrective release. **OpenWeather's "could not be reached" traced
+  to an HTTP 401 being reported as a transport failure**, not to the provider: with a real key the
+  provider fetched correctly at runtime and `OpenWeatherProvider.kt` was not changed. A rejected key
+  is now its own state, `REJECTED_API_KEY`, and says what OpenWeather actually answered — which
+  matters because OpenWeather does not accept a newly created key for a couple of hours, so a
+  rejected key there is usually a *correct* one. The `srcDirs` build-script deprecation was replaced
+  with `directories`, with the resolved source set proven unchanged. **Open-Meteo still the default,
+  `targetSdk` still 36.**
 - **v3.8 prepared** — **OpenWeather** added as a third provider on the keyless-signup Current
   Weather API, with **Open-Meteo still the default**; `traffic-day` and `traffic-night`, the first
   goldens containing a vehicle, with five deliberate regressions shown to fail them; the

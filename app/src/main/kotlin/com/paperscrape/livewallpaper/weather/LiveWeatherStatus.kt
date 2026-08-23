@@ -36,6 +36,25 @@ enum class LiveWeatherStatus(val storageId: String) {
      */
     MISSING_API_KEY("missing_api_key"),
 
+    /**
+     * The selected provider **answered**, and rejected the key it was given (HTTP 401/403).
+     *
+     * The sibling of [MISSING_API_KEY], and separated from [FAILED]/[STALE] for the reason
+     * [WeatherHttp.statusToFailure] already gives for classifying 401 apart from a transport
+     * error: the service was reached, it gave a definite answer, and no amount of waiting or
+     * retrying changes it -- only the user can. Collapsing it into [FAILED] is what made a
+     * rejected key report itself as *"could not be reached"*, which says the opposite of what
+     * happened and sends the user looking at their connection instead of at their key.
+     *
+     * This is not a hypothetical state. **OpenWeather does not accept a newly created free key
+     * immediately** -- its own error-401 FAQ says a new key takes a couple of hours to become
+     * active -- so a user who has just signed up, pasted a perfectly correct key and turned the
+     * provider on gets a 401 for a key that is not wrong, merely not live yet. Open-Meteo needs no
+     * key at all and WeatherAPI.com's works the moment it is issued, which is why this only ever
+     * bit OpenWeather in practice.
+     */
+    REJECTED_API_KEY("rejected_api_key"),
+
     /** The last fetch failed and there is no previous snapshot, so the theme's weather is showing. */
     FAILED("failed"),
 
@@ -50,7 +69,8 @@ enum class LiveWeatherStatus(val storageId: String) {
 
     /** True when the scene is running on the theme's own weather rather than on real conditions. */
     val isRunningOnThemeWeather: Boolean
-        get() = this == NO_LOCATION || this == MISSING_API_KEY || this == FAILED
+        get() = this == NO_LOCATION || this == MISSING_API_KEY || this == REJECTED_API_KEY ||
+            this == FAILED
 
     /**
      * True when real conditions are what the scene is actually drawing -- the only two states in
@@ -74,8 +94,9 @@ enum class LiveWeatherStatus(val storageId: String) {
          * The status a single loop pass implies.
          *
          * Pure, and separated from the service, because it is the rule that decides what the
-         * settings screen says and it has six outcomes that are easy to get subtly wrong -- in
-         * particular, that a failure with a snapshot still in effect is [STALE] and not [FAILED].
+         * settings screen says and it has seven outcomes that are easy to get subtly wrong -- in
+         * particular, that a failure with a snapshot still in effect is [STALE] and not [FAILED],
+         * and that a rejected key is [REJECTED_API_KEY] whether or not one is.
          */
         fun of(
             enabled: Boolean,
@@ -87,6 +108,11 @@ enum class LiveWeatherStatus(val storageId: String) {
             !enabled -> OFF
             !hasLocation -> NO_LOCATION
             result is WeatherFetchResult.MissingApiKey -> MISSING_API_KEY
+            // Before the snapshot question, exactly as MISSING_API_KEY is: whether an old
+            // observation happens to still be on screen does not change the fact the user has to
+            // act on, and it is that fact the settings screen has to be able to state.
+            result is WeatherFetchResult.Failed && result.reason == WeatherFailure.UNAUTHORIZED ->
+                REJECTED_API_KEY
             result is WeatherFetchResult.Success -> OK
             result is WeatherFetchResult.Failed -> if (hasSnapshotInEffect) STALE else FAILED
             // No fetch was due this pass, so nothing new is known. Carrying the previous status

@@ -19,6 +19,175 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.9 — a rejected key is not an unreachable service, and one build-script deprecation
+
+**Prepared, not published.** `versionCode = 30`, `versionName = "3.9"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D). **`targetSdk` is still 36 and was not touched.**
+
+A deliberately small corrective release: two items, and nothing else. Everything v3.8 closed is
+intact and unmodified.
+
+---
+
+### 1. OpenWeather — the report, and what it actually was
+
+**The report.** On the device, with Live Weather on and a location set:
+
+```
+Open-Meteo      = works
+WeatherAPI.com  = works
+OpenWeather     = "OpenWeather could not be reached"
+```
+
+**Treated as a real bug and reproduced before anything was changed.** It was reproduced, and the
+provider was cleared, in that order.
+
+#### What was ruled out, at runtime, with a real key
+
+Not by reading the code. An instrumented probe was run **on the emulator, inside the app's own
+process**, calling each provider through its shipped code path with a real key supplied as an
+instrumentation argument (never a file, never a commit). All three answered:
+
+| provider | result |
+|---|---|
+| Open-Meteo | `Success(temperatureCelsius=30.0, cloudCoverPercent=0, condition=CLEAR)` |
+| **OpenWeather** | **`Success(temperatureCelsius=30.2, cloudCoverPercent=0, condition=CLEAR)`** |
+| WeatherAPI.com | `Success(temperatureCelsius=28.6, cloudCoverPercent=0, condition=CLEAR)` |
+
+and the raw transport under `WeatherHttp` returned a 500-byte OpenWeather body. So on the same
+device, the same network and the same build: **endpoint, URL, query parameters, `appid`, `units`,
+`lat`/`lon`, timeouts, HTTP client, TLS, status handling, parser, unit conversion and condition
+mapping are all correct.** `/data/2.5/weather` returns HTTP 200 for this project's plain free tier
+and remains the right endpoint; One Call still answers `401` demanding its own subscription, which
+is why v3.8 chose Current Weather and why v3.9 does not move.
+
+Then the whole flow was driven through the UI — location, Live Weather on, wallpaper set, provider
+switched — and OpenWeather reached `OK` and drove the scene.
+
+#### What the message actually was
+
+Setting the OpenWeather key to a value the service refuses reproduces the reported sentence
+exactly:
+
+```
+OpenWeather could not be reached. The scene is still showing the last conditions it fetched.
+```
+
+and the request behind it is not a failed one:
+
+```
+HTTP 401  {"cod":401, "message": "Invalid API key. Please see .../faq#error401 for more info."}
+```
+
+**The service was reached. It answered in milliseconds. It refused the key.** The app said the
+opposite.
+
+The defect is in `LiveWeatherStatus.of`: it folded every `WeatherFetchResult.Failed` into `FAILED`
+or `STALE` — the two states whose banner claims the provider could not be reached — discarding
+`WeatherFailure` entirely. `WeatherHttp.statusToFailure` has always classified 401/403 as
+`UNAUTHORIZED`, and its own comment says why:
+
+> 401 and 403 both mean "this key will not work", which is worth separating from a transient error
+> **because the settings screen can say so** and the loop need not keep trying.
+
+The settings screen had no such state, so the classification was computed on every failure and
+thrown away. The promise in the comment was never kept.
+
+#### Why this only ever bit OpenWeather
+
+Because OpenWeather is the only one of the three that can return 401 for a **correct** key.
+Open-Meteo needs no key at all. A WeatherAPI.com key works the moment it is issued. OpenWeather's
+own error-401 FAQ states that a newly created free key takes a couple of hours to become active —
+so the most likely holder of a rejected OpenWeather key is a user who has just signed up, pasted a
+perfectly good key, and been told their network is broken. That asymmetry is the whole reason the
+three providers behaved differently, and it is a reporting asymmetry, not a fetching one.
+
+#### The fix
+
+One new status and one banner. **`OpenWeatherProvider.kt` was not modified**, nor was
+`WeatherApiComProvider.kt`, `OpenMeteoProvider.kt`, `WeatherHttp.kt`, `WeatherRepository.kt`,
+`WeatherObservation.kt` or `WeatherSnapshotMapper.kt`.
+
+- `LiveWeatherStatus.REJECTED_API_KEY`, derived from `Failed(UNAUTHORIZED)` and placed **before**
+  the snapshot question, exactly as `MISSING_API_KEY` is: whether an old observation is still on
+  screen does not change what the user has to do.
+- The settings banner says the key was rejected, and names the activation delay, because for
+  OpenWeather that is the likeliest explanation and it is unguessable.
+- **Every other failure is untouched.** `NETWORK`, `RATE_LIMITED`, `HTTP_ERROR` and
+  `MALFORMED_RESPONSE` still produce `STALE`/`FAILED` and still say "could not be reached", which
+  for those is true. A test asserts exactly that, so the change cannot spread.
+
+#### Units and mapping — verified, and pinned harder
+
+Checked rather than assumed, because §6 of the brief is right that `units=metric` does not
+transform everything:
+
+| field | on the wire | in `WeatherObservation` | handling |
+|---|---|---|---|
+| `main.temp` | °C under `units=metric` | `temperatureCelsius` | straight through |
+| `rain.1h` | **mm/h whatever `units` says** | `rainMm` (mm) | straight through |
+| `snow.1h` | **mm/h whatever `units` says** | `snowfallCm` (**cm**) | **÷ 10** |
+| both | mm | `precipitationMm` (mm) | summed, **not** divided |
+
+The asymmetry is the trap: two fields that arrive in the same unit land in fields measured in
+different ones. New tests pin it three ways — that 12 mm/h of snow arrives as **the same number**
+from OpenWeather and from Open-Meteo (whose `snowfall` is already centimetres), that rain's
+millimetres are divided by nothing, and that the figures survive `WeatherSnapshotMapper` with the
+intensity their millimetres imply (12 mm/h saturates the 8 mm/h cap; 2 mm/h gives 0.25). The v3.8
+mapping — group by hundreds digit plus the four named exceptions, 511, 611–616, 520–531, 620–622 —
+was correct and is unchanged.
+
+---
+
+### 2. The `srcDirs` build-script deprecation
+
+`app/build.gradle.kts` declared the androidTest Kotlin source root with
+`java.srcDirs("src/androidTest/kotlin")`. Confirmed deprecated by reading the annotation off the
+packaged AGP 9.3.1 API rather than trusting the message:
+
+```
+public abstract java.lang.Object srcDirs(java.lang.Object...);
+  Deprecated: true
+  kotlin.Deprecated(message="Use `directories` mutable set instead")
+
+public abstract java.util.Set<java.lang.String> getDirectories();      <- no deprecation
+```
+
+Now `java.directories.add("src/androidTest/kotlin")`. Both append to the set the source set already
+carries, and the resolved directories were printed before and after the edit:
+
+```
+before: ANDROIDTEST_JAVA_DIRS=[src/androidTest/java, src/androidTest/kotlin]
+after:  ANDROIDTEST_JAVA_DIRS=[src/androidTest/java, src/androidTest/kotlin]
+```
+
+**One thing to record for the next session, because it cost time here:** Gradle does **not** print
+build-script Kotlin deprecation warnings on the command line. Proven, not assumed — a deliberately
+`@Deprecated` function declared and called in `app/build.gradle.kts` produced no output at all, with
+the Kotlin DSL script cache cleared and `--warning-mode=all`. The `srcDirs` warning is an
+**IDE/Kotlin-DSL editor diagnostic**, so "the warning is gone" is verified structurally — the
+deprecated API is no longer called, and the replacement carries no deprecation — and not by watching
+a console line disappear. No other Gradle configuration, dependency or warning was touched.
+
+---
+
+### 3. What v3.9 deliberately did not do
+
+`targetSdk` stays **36**. No provider's fetch path was changed. Open-Meteo is still the default and
+still the only keyless provider, asserted three ways. Visual Crossing stays removed. No dependency
+was upgraded, no generic warning cleanup was done, and nothing closed in v3.1–v3.8 was reopened.
+
+### Verification
+
+850 JVM tests (842 in v3.8, +8), 0 failures. `lintDebug` 0 errors. `assembleDebug`,
+`assembleDebugAndroidTest` and R8 `assembleRelease` all pass. 37 instrumented tests on Pixel 9 /
+Android 17. Runtime pass on the emulator with real keys: **Open-Meteo, WeatherAPI.com and
+OpenWeather all fetched successfully**, provider switching and both keys persisted, the rejected-key
+path reproduced and recovered from. No API key appears in the repository, the ZIP, the tests, the
+build config or the manifest.
+
+---
+
 ## v3.8 — a third weather provider, goldens that finally contain traffic, and a v3.7 finding retracted
 
 **Prepared, not published.** `versionCode = 29`, `versionName = "3.8"`. No tag, no push, no GitHub

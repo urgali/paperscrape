@@ -223,6 +223,90 @@ class LiveWeatherRefreshTest {
         assertTrue(LiveWeatherStatus.FAILED.isRunningOnThemeWeather)
     }
 
+    /**
+     * **The v3.9 fix.** A rejected key is not an unreachable service.
+     *
+     * v3.8 folded every [WeatherFetchResult.Failed] into [LiveWeatherStatus.FAILED]/[STALE],
+     * whose banner says the provider "could not be reached" -- so an HTTP 401, which is a service
+     * that answered promptly and refused the credential, was reported as a connection problem.
+     * That is what "OpenWeather could not be reached" meant on the device: the request reached
+     * OpenWeather, OpenWeather returned 401, and the app blamed the network.
+     *
+     * Reproduced with a real key: the identical request that returns 200 for a valid key returns
+     * `401 {"cod":401, "message": "Invalid API key..."}` for an invalid one, and v3.8 rendered
+     * both failure kinds with the same sentence.
+     */
+    @Test
+    fun `a rejected key is its own state, not an unreachable provider`() {
+        val rejected = WeatherFetchResult.Failed(WeatherFailure.UNAUTHORIZED, WeatherProviderId.OPEN_WEATHER)
+
+        // Whether an earlier observation happens to still be on screen does not change what the
+        // user has to do, so -- exactly like MISSING_API_KEY -- it does not change the state.
+        assertEquals(
+            LiveWeatherStatus.REJECTED_API_KEY,
+            LiveWeatherStatus.of(true, true, rejected, hasSnapshotInEffect = false, previous = LiveWeatherStatus.OK),
+        )
+        assertEquals(
+            LiveWeatherStatus.REJECTED_API_KEY,
+            LiveWeatherStatus.of(true, true, rejected, hasSnapshotInEffect = true, previous = LiveWeatherStatus.OK),
+        )
+
+        // And it is emphatically neither of the two states whose banner claims unreachability.
+        assertNotEquals(LiveWeatherStatus.FAILED, LiveWeatherStatus.of(true, true, rejected, false, LiveWeatherStatus.OK))
+        assertNotEquals(LiveWeatherStatus.STALE, LiveWeatherStatus.of(true, true, rejected, true, LiveWeatherStatus.OK))
+    }
+
+    /**
+     * 403 is the same fact as 401 -- the key will not work -- so it must reach the same state, and
+     * it does because [WeatherHttp.statusToFailure] already maps both to
+     * [WeatherFailure.UNAUTHORIZED]. The classification existed in v3.8; nothing consumed it.
+     */
+    @Test
+    fun `both rejection statuses reach the rejected-key state`() {
+        for (status in intArrayOf(401, 403)) {
+            val result = WeatherFetchResult.Failed(WeatherHttp.statusToFailure(status), WeatherProviderId.OPEN_WEATHER)
+            assertEquals(
+                "HTTP $status",
+                LiveWeatherStatus.REJECTED_API_KEY,
+                LiveWeatherStatus.of(true, true, result, hasSnapshotInEffect = false, previous = LiveWeatherStatus.OK),
+            )
+        }
+    }
+
+    /**
+     * The other failures keep v3.8's behaviour exactly. A rejected key is the only one that
+     * changed, because it is the only one where "could not be reached" was false.
+     */
+    @Test
+    fun `every other failure still reports as a failure`() {
+        val untouched = listOf(
+            WeatherFailure.NETWORK,
+            WeatherFailure.RATE_LIMITED,
+            WeatherFailure.HTTP_ERROR,
+            WeatherFailure.MALFORMED_RESPONSE,
+        )
+        for (reason in untouched) {
+            val result = WeatherFetchResult.Failed(reason, WeatherProviderId.OPEN_WEATHER)
+            assertEquals(
+                reason.name,
+                LiveWeatherStatus.STALE,
+                LiveWeatherStatus.of(true, true, result, hasSnapshotInEffect = true, previous = LiveWeatherStatus.OK),
+            )
+            assertEquals(
+                reason.name,
+                LiveWeatherStatus.FAILED,
+                LiveWeatherStatus.of(true, true, result, hasSnapshotInEffect = false, previous = LiveWeatherStatus.OK),
+            )
+        }
+    }
+
+    /** The scene is not being driven by a provider that is refusing to answer. */
+    @Test
+    fun `a rejected key is not driving the scene`() {
+        assertFalse(LiveWeatherStatus.REJECTED_API_KEY.isDrivingTheScene)
+        assertTrue(LiveWeatherStatus.REJECTED_API_KEY.isRunningOnThemeWeather)
+    }
+
     @Test
     fun `a success is ok`() {
         val success = WeatherFetchResult.Success(

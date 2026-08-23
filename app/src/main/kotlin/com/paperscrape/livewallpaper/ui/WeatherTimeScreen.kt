@@ -262,6 +262,19 @@ internal fun WeatherTimeScreen(
                         "Enter a key below, or switch back to Open-Meteo, which needs none.",
                     isError = true,
                 )
+                // Deliberately not "could not be reached": the provider *was* reached and said
+                // no. Saying otherwise sends the user to check their connection over a problem
+                // that is entirely in the key -- and for OpenWeather the key is very often not
+                // even wrong, just not yet active, which is the one thing this banner has to be
+                // able to tell them.
+                LiveWeatherStatus.REJECTED_API_KEY -> SettingsBanner(
+                    text = "${provider.displayName} rejected this API key. Check that it is " +
+                        "correct - and if you have only just created it, a new key can take a " +
+                        "couple of hours to become active, which looks exactly like a wrong one. " +
+                        "Nothing more is fetched until it is accepted; the scene is showing the " +
+                        "last conditions it had, or this theme's own weather.",
+                    isError = true,
+                )
                 LiveWeatherStatus.NO_LOCATION -> SettingsBanner(
                     text = stringResource(R.string.live_weather_fallback_notice),
                     isError = true,
