@@ -28,6 +28,29 @@ class GoldenScene(
     val dayPhase: SunPositionCalculator.DayPhase,
     /** Fixed scene clock. Everything that moves is a function of this and nothing else. */
     val sceneSeconds: Double = 120.0,
+    /**
+     * Frames drawn and discarded before the one that is compared (**v3.8**).
+     *
+     * Zero for every scene that existed before v3.8, which is why none of their frames moved.
+     *
+     * **Why this had to exist.** A car's `progress` starts at `-startDelaySeconds`, i.e. *negative*
+     * — off the left of the screen, waiting its turn — and only advances inside
+     * `SceneObjectRenderer.update(deltaSeconds)`. Every golden drew exactly one frame with
+     * `deltaSeconds = 0`, so no car had ever entered a golden frame and the whole traffic system
+     * was unpinned. The v3.7 road measurement found it; this closes it.
+     *
+     * **Why it stays deterministic.** Each warm-up frame advances the scene clock and the frame
+     * delta by exactly [warmUpDeltaSeconds], both of which are pure inputs, so the same scene and
+     * the same count always produce the same pixels. The one thing in the renderer that draws from
+     * an unseeded `Random` is the lightning timer, and `updateLightning` only touches it while a
+     * storm is active — so a warmed-up scene must not be a storm, which
+     * [SceneGolden.assertMatches] has no way to check and [SharedGoldenScenes] therefore does not
+     * do. Everything else that moves is seeded (`Random(42)` for the star field) or is a pure
+     * function of the clock.
+     */
+    val warmUpFrames: Int = 0,
+    /** One frame at the render loop's own 30 fps cadence, which is what the wallpaper runs at. */
+    val warmUpDeltaSeconds: Float = 1f / 30f,
     private val themeId: String = "sunset",
     private val weather: LiveWeatherSnapshot? = null,
     private val customise: (SceneCustomization) -> SceneCustomization = { it },

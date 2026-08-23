@@ -11,6 +11,46 @@ that was.
 
 ## Current status
 
+**v3.8 prepared — a third weather provider, goldens that finally contain traffic, the preview/renderer
+sharing extended exactly as far as the evidence went, and a v3.7 claim retracted.**
+
+`versionCode = 29`, `versionName = "3.8"`. **No tag, no push, no GitHub Release.**
+**`targetSdk` is still 36** — v3.8 changed nothing about it, deliberately.
+
+1. **OpenWeather added as a third provider.** **Open-Meteo remains the default** and is asserted to
+   be, three ways. OpenWeather uses the plain **Current Weather Data** API (`/data/2.5/weather`),
+   not One Call: One Call requires a payment card even for its free allowance, which was the reason
+   v3.7 rejected the provider outright. Its condition ids are *structured* by hundreds digit, so the
+   mapping is a group rule plus four named exceptions and is checked over all 700 ids in the space,
+   not only the 55 that exist. No key is compiled in; the user's lives in their own DataStore.
+2. **Traffic goldens.** `traffic-day` and `traffic-night`, the first frames in this project's
+   history to contain a vehicle. `GoldenScene.warmUpFrames` closes the structural gap; 390 frames
+   was measured, not guessed. Presence is asserted off the finished pixels, and five deliberate
+   regressions — a car moved by one frame, cars off, density halved, cars 10% taller, the near lane
+   moved — all fail the goldens while a healthy render passes.
+3. **Preview/renderer agreement extended to the skyscraper, and to nothing else.** The audit found
+   **55 shared drawables, all 55 in exact agreement**; the tower is the only group with a folded
+   expression *and* a real divergence, and it now reads `SkyscraperSpriteLayout`. Unifying the other
+   47 would guard against nothing, which the brief called artificial and the evidence agrees with.
+4. **Snowcap: v3.7's claim was wrong and is retracted.** Measured from the shipped PNGs, **0 of
+   17 182 cap pixels fall off the crown** at the offset the renderer uses. The "3 units off-centre"
+   finding came from comparing canvas widths instead of content; centring the cap by canvas width
+   would push 442 pixels of snow into open sky. Nothing was changed, and a test now pins it.
+5. **A layout defect this release introduced, and fixed.** Three providers do not fit a segmented
+   control at full name length: "WeatherAPI.com" wrapped and drew outside the control's outline.
+   The selector uses a short name, and the shared component now bounds its label to one line so the
+   fourth option cannot find the same edge.
+
+**`targetSdk 37` readiness: READY.** Assessed, and tried — build, lint, 842 tests, 37 instrumented
+tests and a runtime pass all clean at `targetSdk = 37`, then reverted. See `RELEASE_HISTORY.md` for
+the behaviour-change-by-behaviour-change assessment. **v4.0 can be prepared from this baseline with
+no intermediate v3.9.**
+
+842 JVM tests, 37 instrumented on Pixel 9 / Android 17, `lintDebug` 0 errors and the same 32
+warnings, debug + R8 release APKs, and a runtime pass with a clean logcat. See `RELEASE_HISTORY.md`.
+
+---
+
 **v3.7 prepared — Visual Crossing replaced, the road measured and left alone, the preview/renderer
 drift closed, `ARCHITECTURE.md` brought current, and the GL goldens given a gate that can see what
 the whole-frame ones provably could not.**
@@ -351,14 +391,15 @@ closed in v3.1, and its two P1 test-infrastructure items plus P2-3, P2-4 and P2-
 
 | # | ID | Item | Why it is here |
 |---|---|---|---|
-| A | — | **No golden contains a vehicle** | Found while measuring the road in v3.7. Car `progress` starts at `-startDelaySeconds`, i.e. negative, and every golden renders one frame with `deltaSeconds = 0`, so no car has entered the frame in any of the seventeen. The road/vehicle relationship is covered by arithmetic (`RoadVehicleGeometryTest`) and was confirmed on a device, but nothing pins it in pixels. Closing it means giving `GoldenScene` warm-up frames, and doing that without making the goldens non-deterministic needs care — the lightning timer only advances with `deltaSeconds`. **Not scheduled.** |
-| B | — | **Preview/renderer offset agreement is guarded for the tree only** | v3.7 checked all 59 shared sprites by hand and pinned the four that make up a tree. The other 55 agree today and nothing stops them drifting tomorrow. A general guard would have to encode each renderer draw function's nested transforms, which is a second copy of the thing being checked — so the honest options are "leave it" or "unify the preview with the renderer", and the second is the refactor v3.7 declined. **Not scheduled.** |
-| C | — | **The winter tree's snow cap is 3 units off-centre in the wallpaper** | Noticed while closing Filone C and deliberately not fixed. The cap is 76 units wide on an 82-unit crown and is blitted at the crown's left edge, so it reaches the left shoulder and falls short of the right — which contradicts its own code comment. Correcting it changes what the wallpaper draws and would require regenerating `theme-winter` and `snow`, i.e. a visual decision and a golden update, neither of which this batch asked for. |
-| D | — | **The instrumented tests have no automated trigger at all** | The consequence of removing the emulator job in v3.6: `app/src/androidTest` runs only when somebody runs it. An improvement over a job that failed on every hosted run and gated nothing, but not nothing. `AI_PROJECT_RULES.md` 10.12 states what a future E2E job must satisfy first, and 10.13 what its diagnostics must. **Not scheduled** — recorded so the trade-off stays visible. |
+| A | — | **`v4.0`: raise `targetSdk` 36 → 37** | The one scheduled piece of work. v3.8's assessment found **no fix is required**: no reflection, no LAN access, no native libraries, no orientation or resizability declarations, no background activity starts, no SMS, contacts, audio or Bluetooth — and the app built, tested and ran clean at 37 in a trial that was then reverted. What v4.0 still owes is its own device pass and release notes, not code. Two behaviour changes are worth re-checking on a real device rather than an emulator: **certificate transparency enforced by default** and **ECH**, both of which touch the four HTTPS hosts Live Weather and the updater use. |
+| B | — | **Preview/renderer offset agreement is guarded for two groups** | The tree and the tower. The other 47 shared sprites agree today as plain literals and nothing stops them drifting. v3.8 checked all of them and found no third case worth the indirection; the guard would have to encode each renderer draw function's nested transforms, which is a second copy of the thing being checked. **Not scheduled.** |
+| C | — | **The lit night facade's placement is unverified against the artwork** | v3.8 made the preview follow the renderer, which is documented intent (*"laid over it at the same origin"*) and is confirmed by the Christmas window-light grid hanging at the same `+5`. What was *not* possible was measuring it the way the snow cap was: the wall sprite is a plain tintable rectangle with no detectable window grid, so there is no artwork feature to align against. **Not scheduled** — recorded so the basis for the choice stays visible. |
+| D | — | **The instrumented tests have no automated trigger** | Unchanged since v3.6. `AI_PROJECT_RULES.md` 10.12 and 10.13 state what a future E2E job must satisfy. **Not scheduled.** |
 
-Deliberately **not** scheduled: any further weather-provider change (the v3.7 comparative assessed
-Open-Meteo, OpenWeather and WeatherAPI.com and is settled — **Open-Meteo stays the default**),
-`targetSdk 37`, and any refactor of `PaperRenderer`, `SceneObjectRenderer` or `ThemePreviewScene`.
+Deliberately **not** scheduled: any further weather-provider change — the three the comparative
+assessed are all now implemented and **Open-Meteo stays the default** — and any refactor of
+`PaperRenderer`, `SceneObjectRenderer` or `ThemePreviewScene`. `targetSdk 37` **is** scheduled, as
+item A above, and belongs to v4.0.
 
 ---
 
@@ -400,6 +441,13 @@ Genuinely open, genuinely not worth doing yet.
 
 ## Completed
 
+- **v3.8 prepared** — **OpenWeather** added as a third provider on the keyless-signup Current
+  Weather API, with **Open-Meteo still the default**; `traffic-day` and `traffic-night`, the first
+  goldens containing a vehicle, with five deliberate regressions shown to fail them; the
+  preview/renderer sharing extended to the skyscraper and deliberately no further; v3.7's snowcap
+  misalignment claim **retracted** after measuring 0 of 17 182 pixels off the crown; and a segmented
+  label overflow this release introduced, found on the device and fixed. `targetSdk 37` assessed as
+  **READY** without being changed.
 - **v3.7 prepared** — Visual Crossing removed and **WeatherAPI.com** put in its place with
   **Open-Meteo still the default**; the road measured and left alone; the one drifted
   preview/renderer sprite offset closed via `TreeSpriteLayout`; **P2-8** closed by re-reading

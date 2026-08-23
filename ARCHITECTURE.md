@@ -5,7 +5,7 @@ describes the **current** implementation, including its known weaknesses.
 Planned work belongs in `ROADMAP.md`; visual and design decisions belong in
 `DESIGN_NOTES.md`.
 
-**Last fully verified against v3.7** (`versionCode = 28`), by reading the source and running
+**Last fully verified against v3.8** (`versionCode = 29`), by reading the source and running
 `test` + `lintDebug` + `assembleDebug` + `assembleRelease` and the instrumented suite on an
 Android 17 device.
 
@@ -103,7 +103,8 @@ PaperScrape/
 | `CandidateNoise.kt` | The stable per-candidate pseudo-random values the stateless candidate model is built on: same slot, same value, every frame, with density thinning and colour-variant assignment deliberately drawn from uncorrelated streams. |
 | `CloudCoverage.kt` | How many clouds a cover fraction means, shared by the theme's own setting and Live Weather's. |
 | `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern. |
-| `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview (v3.7 Filone C). The preview builds its objects from the same sprites at the same offsets by hand, and the snow cap's copy had drifted 3 units right and 2 down; both now read from here. |
+| `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview (v3.7). The preview builds its objects from the same sprites at the same offsets by hand, and the snow cap's copy had drifted 3 units right and 2 down; both now read from here. |
+| `SkyscraperSpriteLayout.kt` | The same for a tower (v3.8). The only other group that earned it: its roof snow carried the renderer's four-term offset as a folded sum, and its lit night facade sat six units off the wall it is documented to lie exactly on. An audit of all 55 shared drawables found no third case — the rest are plain literals that agree, and hoisting those would guard against nothing. |
 | `SpriteCache.kt` / `SpriteCacheIndex.kt` | The bitmap cache and its bookkeeping. The index is `SpriteCache`'s own `private val` — ids, byte counts and LRU order in `IntArray`s, deliberately free of Android types so the eviction logic is unit-testable, and cleared by the same `clear()` the memory-pressure path calls. |
 | `MemoryPressurePolicy.kt` | What an `onTrimMemory` level means for a wallpaper, as a pure decision. Notably `TRIM_MEMORY_UI_HIDDEN` is *not* treated as pressure, though its numeric value sits above `RUNNING_CRITICAL`: for a wallpaper it only means the settings screen closed. |
 | `TintFilterCache.kt` / `IntLruSlots.kt` | A bounded, exact-LRU cache of `PorterDuffColorFilter`s keyed by colour, so a tinted blit does not allocate a filter per sprite per frame. Global, and therefore `@Synchronized`; released on `RELEASE_ALL`. |
@@ -157,6 +158,17 @@ PaperScrape/
     of its 60 codes walked by a test — where the provider it replaced had icon slugs mapped from
     prose that nothing could check (deferred item **D8**). Reports one `precip_mm` and no snow
     depth in the realtime object, so `showersMm` and `snowfallCm` stay null rather than zero.
+  - `OpenWeatherProvider.kt` — OpenWeather's **Current Weather Data** API (`/data/2.5/weather`), the
+    third provider since v3.8. **Requires a key**, and none is compiled in. Deliberately *not* One
+    Call: that product requires a payment card on file even for its free allowance, and everything
+    it adds over this endpoint is data the scene has no use for. Its condition ids are
+    **structured** — the hundreds digit is the category — so the mapping is a `when` over `id / 100`
+    plus four named exceptions (511 freezing rain inside the Rain group, 611-616 sleet inside Snow,
+    and the two shower ranges), and an id the vendor adds later still lands in the right group.
+    One unit trap: `rain.1h` and `snow.1h` are documented as always millimetres per hour whatever
+    `units` says, while the model's `snowfallCm` is centimetres, so the snow figure is divided by
+    ten.
+  - **Three providers, one default, no fallback.** The renderer never learns which one answered.
   - **Provider selection is a string id, and an unknown one reads as the default.** An install that
     had chosen Visual Crossing therefore lands on Open-Meteo after upgrading, with no migration
     code and no broken state — a keyed provider whose key is gone would be worse than the keyless
@@ -1324,10 +1336,22 @@ spans three days either side.
 
 | Suite | Covers |
 |---|---|
-| `SceneGoldenTest` | 14 committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel. `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable. `GoldenFocus` re-checks named patches on their own much smaller area, because 0.2% of a 360x800 frame is 576 pixels and a dolphin covers 160. |
+| `SceneGoldenTest` | 16 committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel. `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable. `GoldenFocus` re-checks named patches on their own much smaller area, because 0.2% of a 360x800 frame is 576 pixels and a dolphin covers 160. |
 | `GlSceneGoldenTest` | Three of the same scenes rendered through the shipped `GlSceneTarget` on an offscreen EGL pbuffer, configured exactly as `GlRenderThread` configures it, MSAA included. Three gates: against its own committed `gl-*.png`, against the Canvas golden (the claim that the two backends still draw the same picture), and — since v3.7 — **against a named region**. |
 | `PrefsCorruptionRecoveryTest` | That a damaged preferences file costs that store its contents and nothing else, including across a process restart. |
 | `CanvasGradientAllocationTest` | **P2-5.** Records the full argument tuple of every gradient the real renderer asks for over 60 animated frames, and checks the cache builds one `Shader` per *distinct* gradient rather than one per request. |
+| `TrafficGoldenTest` | **v3.8.** That the two traffic goldens actually contain traffic, measured off the finished frame by `VehiclePresence` rather than inferred, that both lanes are occupied, that the frame is bit-identical across two renders, and that three plausible traffic regressions each move more of the frame than the golden's own budget. |
+| `TreeArtworkAlignmentTest` | **v3.8.** That the winter tree's snow cap lands entirely on the crown — 0 of 17 182 opaque pixels off it — which disproves v3.7's report of a 3-unit misalignment. An assertion about the *artwork*, which nothing else checks. |
+
+**`GoldenScene.warmUpFrames` is the v3.8 addition.** A car's `progress` starts negative and only
+advances inside `SceneObjectRenderer.update(deltaSeconds)`, so a golden drawn as one frame with
+`deltaSeconds = 0` could never contain one — and for seventeen releases none did. Two scenes now
+warm up 390 frames (thirteen seconds at 30 fps, the count chosen by measuring vehicle coverage from
+0 to 600) before the frame that is compared, which puts four vehicles in the band with none clipped
+by a frame edge. Warm-up is deterministic because the clock and the delta are pure inputs and
+neither scene is a storm — the lightning timer is the only unseeded `Random` in the renderer and
+`updateLightning` leaves it alone unless a storm is active. Every pre-v3.8 scene warms up zero
+frames and regenerates byte-identical.
 
 **The region gate is the v3.7 addition, and it exists because the whole-frame gates provably could
 not see one class of regression.** Driver-to-driver disagreement is *spread* — it is anti-aliased

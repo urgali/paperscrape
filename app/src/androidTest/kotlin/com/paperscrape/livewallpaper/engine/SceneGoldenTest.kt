@@ -80,6 +80,36 @@ class SceneGoldenTest {
     @Test
     fun thunderstorm() = SceneGolden.assertMatches(SharedGoldenScenes.thunderstorm())
 
+    // -- Traffic ------------------------------------------------------------------------------
+
+    /**
+     * **Two scenes with cars actually on the road** (v3.8 Filone 3).
+     *
+     * Until v3.8 **not one golden contained a vehicle**, and none could: a car's `progress` starts
+     * at `-startDelaySeconds`, i.e. negative and off-screen, and only advances inside
+     * `SceneObjectRenderer.update(deltaSeconds)` — while every golden drew a single frame with
+     * `deltaSeconds = 0`. All seventeen frames had ~92% uniform tarmac. The v3.7 road measurement
+     * found it; [GoldenScene.warmUpFrames] is what closes it.
+     *
+     * **Why 390 frames.** Measured, not guessed. The count was swept from 0 to 600 and the vehicle
+     * coverage of the road band read off each frame: 0 and 150 give no vehicles at all, and 390 —
+     * thirteen seconds at the render loop's own 30 fps — puts **four** of them in the band, none
+     * touching either edge of the frame. A clipped vehicle is a poor regression surface, because
+     * half of "it moved" is invisible off the side.
+     *
+     * **Why these are deterministic.** Each warm-up frame advances the scene clock and the frame
+     * delta by exactly the same amount, and both are pure inputs. Neither scene is a storm, which
+     * matters: the lightning timer is the one thing in the renderer that draws from an unseeded
+     * `Random`, and `updateLightning` leaves it alone unless a storm is active. The star field is
+     * `Random(42)`. Nothing else that moves is random at all.
+     */
+    @Test
+    fun trafficDay() = SceneGolden.assertMatches(SharedGoldenScenes.trafficDay())
+
+    /** The same traffic after dark, where the vehicles are lit shapes against a dark road. */
+    @Test
+    fun trafficNight() = SceneGolden.assertMatches(SharedGoldenScenes.trafficNight())
+
     // -- The lake -----------------------------------------------------------------------------
 
     @Test

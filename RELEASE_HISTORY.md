@@ -19,6 +19,299 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v3.8 — a third weather provider, goldens that finally contain traffic, and a v3.7 finding retracted
+
+**Prepared, not published.** `versionCode = 29`, `versionName = "3.8"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D). **`targetSdk` is still 36** — see §6.
+
+---
+
+### 1. OpenWeather, as a third provider — and Open-Meteo still the default
+
+```
+WeatherRepository
+   +-- Open-Meteo      DEFAULT, keyless
+   +-- WeatherAPI.com  alternative, user's key
+   +-- OpenWeather     alternative, user's key      <- new in v3.8
+```
+
+**Open-Meteo remains the default and that is not in question.** `WeatherProviderSelectionTest` now
+asserts it three ways — the enum's `DEFAULT`, what a default-constructed settings object resolves
+to, and that **exactly one** provider can run without a key and it is that one. The last is written
+as "exactly one" rather than as a list so that adding a fourth keyless provider, which would quietly
+make the default's keylessness unremarkable, has to be a deliberate edit.
+
+**Why `/data/2.5/weather` and not One Call.** The scene needs the conditions at one point, right
+now. The Current Weather Data API is exactly that, on the plain free tier: registration takes an
+email and **no payment card**, and the free rate is 60 calls a minute. **One Call requires a card on
+file** even to use its free daily allowance — which is precisely why v3.7 rejected OpenWeather
+outright — and everything it adds (minutely, hourly, daily, alerts, history) is data this app has no
+use for. Using the simpler endpoint is what makes the provider viable.
+
+**Its ids are structured, and that changes how it is mapped.** OpenWeather's condition ids are
+grouped by their hundreds digit — 2xx thunderstorm, 3xx drizzle, 5xx rain, 6xx snow, 7xx atmosphere,
+800 clear, 80x clouds — so the mapping is a `when` over `id / 100` with four named exceptions rather
+than a 55-entry table. WeatherAPI's flat vocabulary has no such property. The exceptions are the
+cases a group-only rule gets wrong, and each is asserted individually:
+
+| id | why it is an exception |
+|---|---|
+| 511 | `freezing rain`, filed under **Rain** rather than with the frozen codes |
+| 611–616 | sleet and rain-and-snow, filed under **Snow** but neither plain snow nor plain rain |
+| 520–531 | the shower forms of rain, kept apart from steady rain as Open-Meteo's own codes are |
+| 620–622 | the shower forms of snow, likewise |
+
+**The fixture is a transcription, and the suite says so.** OpenWeather publishes its table as HTML,
+not JSON, so `openweather-conditions.json` was transcribed rather than downloaded — a transcription
+can be wrong in a way a download cannot. `OpenWeatherProviderTest` therefore checks the mapping
+twice: against the fixture, and **structurally over all 700 ids from 200 to 899**, most of which
+have never been issued. An id OpenWeather adds to the 5xx range later is rain whether or not anyone
+updates the file.
+
+**One unit trap, and a test for it.** `rain.1h` and `snow.1h` are documented as always millimetres
+per hour *whatever `units` says*, while `WeatherObservation.snowfallCm` is centimetres. Read
+straight through, every snowfall would be ten times deeper than reported — the sort of error that
+looks like a rendering bug for a long time before anyone suspects the parser. It is divided by ten,
+and `snow millimetres become centimetres` pins it.
+
+**Keys.** No key for either alternative is compiled into the app, in `BuildConfig`, in the manifest
+or in a test; each provider's key is its own DataStore entry, so switching provider and back loses
+neither, and `no two providers share a key` asserts that. A blank key means **no request is made at
+all**, not a request known to be rejected. No test touches the network.
+
+**No automatic fallback between providers**, unchanged: the selection stands and the failure is
+reported, because silently answering from a different service makes "which provider am I using"
+unanswerable.
+
+**Visual Crossing is absent**, as of v3.7 — no provider, client, URL, parser, id, key or settings
+row. Only historical mentions in `CHANGELOG.md` and the older release notes remain, per §3.
+
+---
+
+### 2. Traffic goldens — the first frames in this project that contain a vehicle
+
+**The gap, restated.** A car's `progress` starts at `-startDelaySeconds`, i.e. negative and
+off-screen, and advances only inside `SceneObjectRenderer.update(deltaSeconds)`. Every golden drew
+one frame with `deltaSeconds = 0`. So no car had ever entered a golden frame, and all seventeen had
+~92% uniform tarmac. Measured again here: `day` and `night` still report **0 vehicle runs**.
+
+**`GoldenScene.warmUpFrames`** draws N real frames before the one that is compared, advancing the
+scene clock and the frame delta by the same amount each time. Both harnesses use one helper, so a
+scene warms up identically whichever backend draws it — the GL suite's cross-check against the
+Canvas golden means nothing if the two ran the scene for different lengths of time.
+
+**390 frames was measured, not chosen.** The count was swept and the vehicle coverage of the road
+band read off each frame:
+
+| frames | seconds | tarmac uniformity | vehicle runs | note |
+|---|---|---|---|---|
+| 0 | 0 | 92.2% | 0 | the gap |
+| 150 | 5 | 92.2% | 0 | first car still off-screen left |
+| 300 | 10 | 85.6% | 2 | |
+| 360 | 12 | 81.0% | 3 | |
+| **390** | **13** | **79.0%** | **4** | **none clipped by a frame edge** |
+| 450 | 15 | 78.1% | 4 | one clipped at x=0 |
+| 480 | 16 | 74.5% | 2 | two merged into one run |
+
+A clipped vehicle is a poor regression surface — half of "it moved" is invisible off the side.
+
+**Determinism.** Each warm-up frame's inputs are pure. The one thing in the renderer that draws from
+an unseeded `Random` is the lightning timer, and `updateLightning` leaves it alone unless a storm is
+active — so neither traffic scene is a storm. The star field is `Random(42)`. `theWarmedUpFrameIsDeterministic`
+renders the scene twice and asserts the two frames are bit-identical.
+
+**The pre-v3.8 goldens are untouched.** Warm-up defaults to zero, and all fourteen Canvas goldens
+regenerate **byte-identical** — checked by regenerating the whole set and comparing.
+
+**Presence is asserted off the pixels.** `VehiclePresence` reads the finished frame and counts what
+is not tarmac in the road band; it shares no arithmetic with the renderer, so it cannot agree with a
+bug by inheriting it. Both goldens report **4 vehicle runs** and **both lanes occupied**.
+
+**Regression value, demonstrated both ways.** Scene-level perturbations, measured against the
+golden's own 0.200% budget:
+
+| perturbation | frame differs | caught |
+|---|---|---|
+| traffic advanced by **one frame** | 0.591% | 3x the budget |
+| car density halved | 0.423% | 2x |
+| cars switched off | 6.498% | 32x |
+
+And renderer-level deliberate regressions, run against the committed goldens:
+
+| mutation | `traffic-day` | `traffic-night` |
+|---|---|---|
+| healthy | **pass** | **pass** |
+| cars 10% taller (`CAR_METRES_TALL` 1.45 → 1.60) | **FAIL** | **FAIL** |
+| near lane moved 0.008 (`ROAD_LANE_NEAR_Y_FRACTION`) | **FAIL** | **FAIL** |
+| near speed +2% (`CAR_SPEED_NEAR`) | **FAIL** | **FAIL** |
+
+Between them these cover the brief's list: a car moved, a car gone, the wrong size, the wrong lane,
+a vehicle drawn wrong. No road geometry was changed to make the golden possible.
+
+**One harness change beyond warm-up.** Regenerated frames are now also emitted to logcat as base64.
+The file the harness writes goes to the app's external files directory, which `shell` cannot read
+since Android 11 and which AGP deletes when it uninstalls the app after `connectedAndroidTest` — so
+a regenerated golden was not retrievable at all. That is the same failure mode as the v3.4
+diagnostics artefact, and `AI_PROJECT_RULES.md` 10.13 is about exactly it. Only runs under
+`-e updateGoldens true`.
+
+---
+
+### 3. Preview/renderer agreement — extended to the skyscraper, and to nothing else
+
+**The audit, redone in full.** 55 drawables are used by both `ThemePreviewScenes` and the renderers,
+and **all 55 agree exactly**. They are plain literals on both sides. There are exactly **two**
+offsets in `SceneObjectRenderer` stated as arithmetic rather than as a literal, and both are the
+skyscraper's — which is not a coincidence: an expression is what a copy flattens, and a flattened
+copy is what stops tracking the original.
+
+**The tower earned the treatment twice:**
+
+1. **A folded expression.** The renderer places the roof snow at `-height - 32f + 6f - 8f + 3f`,
+   spelling out where the setback's block starts and how far the cap reaches above the roofline it
+   is cut for. The preview carried the sum, `-height - 31f`. Equal today; silently wrong the moment
+   one of those four terms moves. This is the tree's exact failure mode.
+2. **A real divergence.** The lit night facade sat at `(-39, -height + 6)` in the preview against
+   `(-width/2, -height)` in the wallpaper — six units right and six down. `drawSkyscraperBuilding`
+   states the intent in as many words: the night grid is *"laid over it at the same origin"*. The
+   Christmas window-light grid beside it confirms the arithmetic, hanging its lights at
+   `-width/2 + 5`, which is exactly where the lit sprite's own content begins. The renderer is right
+   and the preview was the copy that drifted.
+
+Both now read `SkyscraperSpriteLayout`. **The renderer's numbers are unchanged** — the goldens are
+the proof, and none was regenerated for this — so the wallpaper draws what it drew and the preview
+is what moved. `PreviewRendererAgreementTest` guards 74 tower placements across 12 themes, on top of
+the tree's 59.
+
+**The other 47 were deliberately left alone**, and a test says so: `only the two groups with
+demonstrated risk are shared`. Hoisting literals that already agree, with no transform to fold,
+would add indirection guarding nothing.
+
+**Vertical offsets are shared as deltas, not absolutes.** The renderer draws one tower height; the
+preview varies its own, because a gallery card needs a skyline rather than a row of identical
+blocks. Only the x offsets and the deltas from the tower's top are shared. Asserting the absolute y
+would be the artificial constraint this work was told to avoid.
+
+---
+
+### 4. The snow cap — v3.7's finding was wrong, and is retracted
+
+v3.7 reported that the wallpaper draws the winter tree's snow cap 3 units off-centre: the cap is 76
+scene units wide, the crown is 82, both are blitted at the crown's origin, so on width arithmetic
+the cap looks left-aligned. **That was wrong.** The mistake was comparing *canvas widths* instead of
+measuring *content*.
+
+Measured from the shipped PNGs, compositing the cap onto the crown:
+
+| offset | cap pixels off the crown |
+|---|---|
+| **the renderer's, both at the crown's origin** | **0 of 17 182 (0.00%)** |
+| centred by canvas width (v3.7's suggestion) | 442 (2.57%) |
+| the pre-v3.7 preview offset | 57 (0.33%) |
+
+The two sprites were authored on one canvas — their top rows are pixel-identical, `row 0: x 69..164`
+in both — and the cap is a narrower canvas only because it is 37 units tall and stops before the
+crown reaches its widest point. **"Fixing" it would have pushed 442 pixels of snow into open sky.**
+
+So **nothing was changed**, and `TreeArtworkAlignmentTest` now pins it: the 0-pixel fit, the two
+worse alternatives kept as tests so the claim stays disproved rather than merely corrected, and the
+shared upper silhouette that explains why. **No golden was affected**, and `theme-winter` and `snow`
+are byte-identical to v3.7.
+
+The v3.7 preview fix was right and stands: it moved the preview from the 0.33%-off position onto the
+exact one.
+
+---
+
+### 5. A defect this release introduced, found on the device and fixed
+
+Three providers do not fit a segmented control at full name length. "WeatherAPI.com" wrapped to two
+lines and its label drew **outside the control's outline**, over its neighbours' borders. Two
+provider options had fitted; three did not.
+
+Fixed in two places, both minimal:
+
+- `WeatherProviderId` gains a `shortName`, used only by the selector — "WeatherAPI" there,
+  "WeatherAPI.com" everywhere the width is not the constraint, such as the key screen's title.
+- `SettingsSegmentedChoice` now bounds its label to one line with an ellipsis. A segmented button
+  gives its label a fixed share of the width and does not clip it; bounding it is what stops the
+  fourth option finding the same edge.
+
+Found by looking at the running app, which is the only place it was visible.
+
+---
+
+### 6. `targetSdk 37` readiness — **READY**, and unchanged in v3.8
+
+**`targetSdk` is still 36 in this release.** The assessment below informs v4.0 and changed nothing.
+
+Every behaviour change that applies only to apps targeting Android 17, against this app:
+
+| behaviour change | applies? | why |
+|---|---|---|
+| Lock-free `MessageQueue` | **no** | uses `Handler`/`Looper` normally; no reflection into queue internals |
+| `static final` fields unmodifiable by reflection | **no** | no `java.lang.reflect` anywhere in `app/src/main` |
+| Accessibility for complex IME physical keyboards | **no** | standard Compose text fields; additive API |
+| ECH enabled | **watch** | four HTTPS hosts; functionally transparent, but network behaviour |
+| **`ACCESS_LOCAL_NETWORK` required** | **no** | no LAN, localhost, multicast or NSD anywhere |
+| Passwords hidden from physical keyboards | **no** | key fields already masked; a platform display setting |
+| OTP SMS protection | **no** | no SMS |
+| Background activity start hardening | **no** | every `startActivity` is from an Activity or a Compose click; the wallpaper service starts none |
+| Certificate transparency by default | **watch** | same four hosts, all major public services |
+| Safer native DCL | **no** | no native libraries, no `System.load` |
+| CP2 PII columns / strict SQL | **no** | no contacts access |
+| Background audio hardening | **no** | no audio |
+| Orientation/resizability ignored on large screens | **no** | no `screenOrientation`, `resizeableActivity` or `maxAspectRatio` declared |
+| `BluetoothSocket.read()` | **no** | no Bluetooth |
+
+**And it was tried, not only read about.** `targetSdk` was temporarily set to 37:
+
+| check at `targetSdk = 37` | result |
+|---|---|
+| `test` | 842 tests, 0 failures |
+| `lint` | 0 errors, **31** issues — one fewer, because `OldTargetApi` is the warning that exists *because* the target lags |
+| `assembleDebug` / `assembleRelease` | pass |
+| `connectedDebugAndroidTest` | 37 tests, 0 failures |
+| runtime | settings, gallery, wallpaper with traffic all correct; logcat clean, no `FATAL`, no ANR, no enforcement notice |
+
+Then **reverted**, and the revert verified by `OldTargetApi` reappearing.
+
+```
+v4.0 readiness = READY
+```
+
+**No fix is required for v4.0.** What it still owes is its own device pass and release notes, not
+code. Two items are worth re-checking on real hardware rather than an emulator — **certificate
+transparency** and **ECH**, both of which touch Live Weather's and the updater's HTTPS calls — and
+they are recorded in `ROADMAP.md` as part of item A rather than as blockers. **No intermediate v3.9
+is needed.**
+
+---
+
+### Verification
+
+| check | result |
+|---|---|
+| `./gradlew test` | **842 tests, 0 failures** (815 in v3.7; +27) |
+| `./gradlew lint` | **0 errors**, 32 warnings/hints — *identical* to v3.7 |
+| `./gradlew assembleDebug` | pass |
+| `./gradlew assembleDebugAndroidTest` | pass |
+| `./gradlew assembleRelease` (R8) | pass |
+| `connectedDebugAndroidTest` on Pixel 9 / Android 17 | **37 tests, 0 failures** (24 in v3.7; +13) |
+| Goldens | **19**: 16 Canvas + 3 GL. The 17 that existed are byte-identical; **2 are new** |
+| Traffic regression matrix | healthy passes; 3 scene perturbations and 3 renderer mutations all caught |
+| Build + test from the extracted ZIP | pass |
+| Runtime | Open-Meteo selected by default; provider switched to OpenWeather and persisted as `open_weather`; both key screens; the corrected selector; the winter and Christmas previews; the wallpaper running with traffic; logcat clean |
+
+### Known limitations carried forward
+
+The preview/renderer guard covers two groups of the fifty-five; the lit facade's placement follows
+documented intent rather than a measurement against the artwork, because the wall sprite carries no
+detectable window grid to align against; the instrumented tests still have no automated trigger.
+`B5`, `D4`, `D7`, `D10`, `D11`, `D12` unchanged. See `ROADMAP.md`.
+
+---
+
 ## v3.7 — a new second weather provider, a road that was already right, and a GL gate that can see what the others could not
 
 **Prepared, not published.** `versionCode = 28`, `versionName = "3.7"`. No tag, no push, no GitHub

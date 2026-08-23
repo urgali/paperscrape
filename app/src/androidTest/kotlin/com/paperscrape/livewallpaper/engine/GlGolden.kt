@@ -217,8 +217,20 @@ object GlGolden {
             val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
             scene.configure(renderer)
 
+            // Warmed up through the same helper the Canvas harness uses, so a scene that needs
+            // frames to bring its traffic on screen gets the same number of them on both backends.
+            // Each warm-up frame is a real begin/draw/end, because a half-frame is not a state the
+            // wallpaper is ever in.
+            var clock = SceneTime(scene.sceneSeconds)
+            repeat(scene.warmUpFrames) {
+                clock += scene.warmUpDeltaSeconds
+                gl.beginFrame()
+                renderer.draw(gl, scene.dayPhase, clock, scene.warmUpDeltaSeconds)
+                gl.endFrame()
+            }
+
             gl.beginFrame()
-            renderer.draw(gl, scene.dayPhase, SceneTime(scene.sceneSeconds), 0f)
+            renderer.draw(gl, scene.dayPhase, clock, 0f)
             gl.endFrame()
             GLES20.glFinish()
 

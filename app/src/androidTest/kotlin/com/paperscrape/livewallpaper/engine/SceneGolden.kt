@@ -87,13 +87,35 @@ object SceneGolden {
      * The renderer is built fresh for every scene so nothing -- scroll accumulation, lightning
      * timer, cached paths -- carries from one golden into the next.
      */
+    /**
+     * Runs [GoldenScene.warmUpFrames] frames into [target] and returns the scene clock they left.
+     *
+     * The frames are drawn rather than simulated, because "advance the renderer without drawing"
+     * is not a state a running wallpaper is ever in and a golden built from one would be pinning
+     * something the app never does. They land on the same bitmap and are painted over by the frame
+     * that follows, the scene repainting its whole background every frame.
+     *
+     * Shared by both golden harnesses so a scene warms up identically whichever backend draws it —
+     * the GL suite's cross-check against the Canvas golden means nothing if the two ran the scene
+     * for different lengths of time.
+     */
+    fun warmUp(renderer: PaperRenderer, target: SceneCanvas, scene: GoldenScene): SceneTime {
+        var clock = SceneTime(scene.sceneSeconds)
+        repeat(scene.warmUpFrames) {
+            clock += scene.warmUpDeltaSeconds
+            renderer.draw(target, scene.dayPhase, clock, scene.warmUpDeltaSeconds)
+        }
+        return clock
+    }
+
     fun render(scene: GoldenScene): Bitmap {
         val bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
         val target = CanvasSceneTarget()
         target.bind(Canvas(bitmap))
         val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
         scene.configure(renderer)
-        renderer.draw(target, scene.dayPhase, SceneTime(scene.sceneSeconds), 0f)
+        val clock = warmUp(renderer, target, scene)
+        renderer.draw(target, scene.dayPhase, clock, 0f)
         target.unbind()
         return bitmap
     }
@@ -165,6 +187,16 @@ object SceneGolden {
         write(diffImage(expected, actual), File(outputDir(), "${scene.name}-diff.png"))
     }
 
+    /**
+     * The share of the whole frame on which two renders disagree, by the same rule a golden uses.
+     *
+     * Exposed so `TrafficGoldenTest` can show that a plausible traffic regression moves more than
+     * [MAX_DIFFERING_FRACTION] — i.e. that the golden would actually catch it — rather than
+     * asserting that it would.
+     */
+    fun differingFraction(expected: Bitmap, actual: Bitmap): Double =
+        countDiffering(expected, actual, 0, 0, WIDTH, HEIGHT) / (WIDTH * HEIGHT).toDouble()
+
     private fun countDiffering(expected: Bitmap, actual: Bitmap, left: Int, top: Int, right: Int, bottom: Int): Int {
         val width = right - left
         val row = IntArray(width)
@@ -210,5 +242,35 @@ object SceneGolden {
 
     private fun write(bitmap: Bitmap, file: File) {
         file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        emitToLogcat(bitmap, file.name)
     }
+
+    /**
+     * Also emits a regenerated frame to logcat, base64 in chunks (**v3.8**).
+     *
+     * **Because the file on the device is not retrievable.** The frames are written to the app's
+     * external files directory, which since Android 11 the `shell` user cannot read — and AGP
+     * uninstalls the app after `connectedAndroidTest` anyway, taking the directory with it. A
+     * regenerated golden that nobody can fetch is the same failure the v3.4 diagnostics artefact
+     * had, and `AI_PROJECT_RULES.md` 10.13 is about exactly that: evidence that cannot be
+     * retrieved is not evidence.
+     *
+     * Only ever runs under `-e updateGoldens true`, so a normal run pays nothing.
+     */
+    private fun emitToLogcat(bitmap: Bitmap, name: String) {
+        val bytes = java.io.ByteArrayOutputStream()
+            .also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            .toByteArray()
+        val encoded = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        val chunk = 3000
+        val chunks = (encoded.length + chunk - 1) / chunk
+        android.util.Log.i(GOLDEN_TAG, "BEGIN $name ${bytes.size} $chunks")
+        for (i in 0 until chunks) {
+            val part = encoded.substring(i * chunk, minOf((i + 1) * chunk, encoded.length))
+            android.util.Log.i(GOLDEN_TAG, "$name $i $part")
+        }
+        android.util.Log.i(GOLDEN_TAG, "END $name")
+    }
+
+    private const val GOLDEN_TAG = "GOLDENPNG"
 }

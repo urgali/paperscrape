@@ -6,9 +6,22 @@ package com.paperscrape.livewallpaper.weather
  * Stored by its [storageId] rather than by ordinal, so reordering or inserting a provider cannot
  * silently reinterpret an existing install's preference.
  */
-enum class WeatherProviderId(val storageId: String, val displayName: String) {
+enum class WeatherProviderId(
+    val storageId: String,
+    val displayName: String,
+    /**
+     * What the three-way selector shows.
+     *
+     * Separate from [displayName] because a segmented control gives each option a third of the
+     * width, and "WeatherAPI.com" does not fit in a third: it wrapped to two lines and the label
+     * overflowed the control's own outline. Prose still says the full name -- the key screen is
+     * titled "WeatherAPI.com API key" -- because there the width is not the constraint.
+     */
+    val shortName: String = displayName,
+) {
     OPEN_METEO("open_meteo", "Open-Meteo"),
-    WEATHER_API_COM("weatherapi_com", "WeatherAPI.com"),
+    WEATHER_API_COM("weatherapi_com", "WeatherAPI.com", shortName = "WeatherAPI"),
+    OPEN_WEATHER("open_weather", "OpenWeather"),
     ;
 
     companion object {
@@ -44,9 +57,9 @@ interface WeatherProvider {
     /**
      * Whether this provider cannot be called at all without a key.
      *
-     * Open-Meteo can (its free tier is keyless, and a key only upgrades the endpoint),
-     * WeatherAPI.com cannot. The difference is why [WeatherFetchResult.MissingApiKey] exists
-     * instead of a provider quietly returning a failure that looks like a network problem.
+     * Open-Meteo can (its free tier is keyless, and a key only upgrades the endpoint); the other
+     * two cannot. The difference is why [WeatherFetchResult.MissingApiKey] exists instead of a
+     * provider quietly returning a failure that looks like a network problem.
      */
     val requiresApiKey: Boolean
 

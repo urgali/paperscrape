@@ -468,14 +468,37 @@ object ThemePreviewScenes {
     }
 
     private fun skyscraper(wall: Int, height: Float, snow: Boolean, lit: Boolean): List<PreviewSprite> {
+        // Read from [SkyscraperSpriteLayout] rather than copied, which is the v3.8 Filone 4 fix.
+        // Two of these were wrong: the lit facade sat 6 units right and 6 down of the wall it is
+        // meant to lie exactly on top of, and the roof snow carried the *sum* of the renderer's
+        // four-term offset instead of the terms. See that object for both.
         val parts = mutableListOf(
-            PreviewSprite(R.drawable.skyscraper_canopy, -55f, -6f),
-            PreviewSprite(R.drawable.skyscraper_wall, -45f, -height, wall),
+            PreviewSprite(
+                R.drawable.skyscraper_canopy,
+                SkyscraperSpriteLayout.CANOPY_X, SkyscraperSpriteLayout.CANOPY_Y,
+            ),
+            PreviewSprite(R.drawable.skyscraper_wall, SkyscraperSpriteLayout.WALL_X, -height, wall),
         )
-        if (lit) parts += PreviewSprite(R.drawable.skyscraper_wall_lit, -39f, -height + 6f)
-        parts += PreviewSprite(R.drawable.skyscraper_entrance, -16f, -32f)
-        parts += PreviewSprite(R.drawable.skyscraper_setback, -30f, -height - 32f, wall)
-        if (snow) parts += PreviewSprite(R.drawable.skyscraper_roof_snow, -28f, -height - 31f)
+        if (lit) {
+            parts += PreviewSprite(
+                R.drawable.skyscraper_wall_lit,
+                SkyscraperSpriteLayout.WALL_LIT_X, -height + SkyscraperSpriteLayout.WALL_LIT_DY,
+            )
+        }
+        parts += PreviewSprite(
+            R.drawable.skyscraper_entrance,
+            SkyscraperSpriteLayout.ENTRANCE_X, SkyscraperSpriteLayout.ENTRANCE_Y,
+        )
+        parts += PreviewSprite(
+            R.drawable.skyscraper_setback,
+            SkyscraperSpriteLayout.SETBACK_X, -height + SkyscraperSpriteLayout.SETBACK_DY, wall,
+        )
+        if (snow) {
+            parts += PreviewSprite(
+                R.drawable.skyscraper_roof_snow,
+                SkyscraperSpriteLayout.ROOF_SNOW_X, -height + SkyscraperSpriteLayout.ROOF_SNOW_DY,
+            )
+        }
         return parts
     }
 

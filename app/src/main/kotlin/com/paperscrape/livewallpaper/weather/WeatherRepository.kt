@@ -18,6 +18,7 @@ object WeatherRepository {
     private val providers: Map<WeatherProviderId, WeatherProvider> = mapOf(
         WeatherProviderId.OPEN_METEO to OpenMeteoProvider,
         WeatherProviderId.WEATHER_API_COM to WeatherApiComProvider,
+        WeatherProviderId.OPEN_WEATHER to OpenWeatherProvider,
     )
 
     fun providerFor(id: WeatherProviderId): WeatherProvider = providers.getValue(id)

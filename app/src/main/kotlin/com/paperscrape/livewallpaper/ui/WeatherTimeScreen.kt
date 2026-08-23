@@ -85,6 +85,7 @@ internal fun WeatherTimeScreen(
 ) {
     var showApiKey by remember { mutableStateOf(false) }
     var showWeatherApiComKey by remember { mutableStateOf(false) }
+    var showOpenWeatherKey by remember { mutableStateOf(false) }
     val provider = settings.weatherProvider
     val locationMode = SettingsUiModel.locationMode(
         settings.useLocationForSunTimes,
@@ -308,7 +309,7 @@ internal fun WeatherTimeScreen(
             )
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
                 SettingsSegmentedChoice(
-                    options = WeatherProviderId.entries.map { it.displayName },
+                    options = WeatherProviderId.entries.map { it.shortName },
                     selectedIndex = WeatherProviderId.entries.indexOf(provider),
                     onSelect = { index ->
                         scope.launch { prefs.setWeatherProvider(WeatherProviderId.entries[index]) }
@@ -339,6 +340,16 @@ internal fun WeatherTimeScreen(
                 icon = Icons.Filled.Key,
                 onClick = { showWeatherApiComKey = true },
             )
+            SettingsNavigationRow(
+                title = "OpenWeather API key",
+                supporting = if (settings.openWeatherApiKey.isBlank()) {
+                    "Required - not set"
+                } else {
+                    "Set"
+                },
+                icon = Icons.Filled.Key,
+                onClick = { showOpenWeatherKey = true },
+            )
         }
     }
 
@@ -355,6 +366,52 @@ internal fun WeatherTimeScreen(
             apiKey = settings.weatherApiComApiKey,
             onApply = { key -> scope.launch { prefs.setWeatherApiComApiKey(key) } },
             onBack = { showWeatherApiComKey = false },
+        )
+    }
+
+    if (showOpenWeatherKey) {
+        OpenWeatherApiKeyScreen(
+            apiKey = settings.openWeatherApiKey,
+            onApply = { key -> scope.launch { prefs.setOpenWeatherApiKey(key) } },
+            onBack = { showOpenWeatherKey = false },
+        )
+    }
+}
+
+/**
+ * OpenWeather's key. Required, like WeatherAPI.com's: there is no anonymous tier, so without one
+ * the provider makes no request at all and the settings screen says so.
+ *
+ * Stored in this install's own DataStore and sent only to OpenWeather. Nothing about it is compiled
+ * into the app, written to the build, or logged -- the field is masked here for the same reason.
+ */
+@Composable
+private fun OpenWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
+    var text by remember(apiKey) { mutableStateOf(apiKey) }
+    SettingsFormSubScreen(title = "OpenWeather API key", onBack = onBack) {
+        Text(
+            "Required for the OpenWeather provider: it has no keyless tier. A free account needs " +
+                "an email and no payment card, and gives 60 calls a minute on the Current Weather " +
+                "API -- far more than one hourly refresh needs. Get one at openweathermap.org, " +
+                "then paste it here. A new key can take a little while to become active.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            label = { Text("API key") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(onClick = { onApply(text); onBack() }, modifier = Modifier.fillMaxWidth()) {
+            Text("Save API key")
+        }
+        Text(
+            "Stored on this device only and sent only to OpenWeather.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

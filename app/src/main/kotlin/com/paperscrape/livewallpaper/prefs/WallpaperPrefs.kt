@@ -97,6 +97,12 @@ data class WallpaperSettings(
      */
     val weatherApiComApiKey: String = "",
     /**
+     * The user's OpenWeather key. Same rules as [weatherApiComApiKey]: never compiled in, never
+     * logged, never sent anywhere but OpenWeather, and kept apart so switching provider and back
+     * loses neither.
+     */
+    val openWeatherApiKey: String = "",
+    /**
      * What Live Weather is actually doing, as a [LiveWeatherStatus.storageId].
      *
      * v2.13 had a boolean here that could only say "running on the theme's own weather". With a
@@ -179,6 +185,7 @@ data class WallpaperSettings(
         get() = when (weatherProvider) {
             WeatherProviderId.OPEN_METEO -> liveWeatherApiKey
             WeatherProviderId.WEATHER_API_COM -> weatherApiComApiKey
+            WeatherProviderId.OPEN_WEATHER -> openWeatherApiKey
         }
 
     /** [liveWeatherStatus] resolved. */
@@ -230,6 +237,7 @@ class WallpaperPrefs(private val context: Context) {
         // `weather_provider` value `visual_crossing` no longer matches an id, so
         // `WeatherProviderId.fromStorageId` returns the default -- see WeatherProviderSelectionTest.
         val WEATHER_API_COM_API_KEY = stringPreferencesKey("weatherapi_com_api_key")
+        val OPEN_WEATHER_API_KEY = stringPreferencesKey("open_weather_api_key")
         val LIVE_WEATHER_STATUS = stringPreferencesKey("live_weather_status")
         val AUTOMATIC_UPDATE_CHECK = booleanPreferencesKey("automatic_update_check")
         val RESOLVED_GPS_LAT = floatPreferencesKey("resolved_gps_lat")
@@ -341,6 +349,7 @@ class WallpaperPrefs(private val context: Context) {
             liveWeatherApiKey = prefs[Keys.LIVE_WEATHER_API_KEY] ?: "",
             weatherProviderId = prefs[Keys.WEATHER_PROVIDER] ?: WeatherProviderId.DEFAULT.storageId,
             weatherApiComApiKey = prefs[Keys.WEATHER_API_COM_API_KEY] ?: "",
+            openWeatherApiKey = prefs[Keys.OPEN_WEATHER_API_KEY] ?: "",
             liveWeatherStatus = prefs[Keys.LIVE_WEATHER_STATUS] ?: LiveWeatherStatus.OFF.storageId,
             automaticUpdateCheckEnabled = prefs[Keys.AUTOMATIC_UPDATE_CHECK] ?: false,
             resolvedGpsLatitude = prefs[Keys.RESOLVED_GPS_LAT],
@@ -514,6 +523,9 @@ class WallpaperPrefs(private val context: Context) {
 
     suspend fun setWeatherApiComApiKey(apiKey: String) =
         context.dataStore.edit { it[Keys.WEATHER_API_COM_API_KEY] = apiKey }
+
+    suspend fun setOpenWeatherApiKey(apiKey: String) =
+        context.dataStore.edit { it[Keys.OPEN_WEATHER_API_KEY] = apiKey }
 
     /**
      * Records whether Live Weather has fallen back to the theme's manual weather.

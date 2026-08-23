@@ -1706,16 +1706,22 @@ class SceneObjectRenderer(
      * and with it the per-building variation. See the overlay's own comment below.
      */
     private fun drawSkyscraperBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        val height = 150f
-        val width = 90f
+        val height = SkyscraperSpriteLayout.HEIGHT
+        val width = SkyscraperSpriteLayout.WIDTH
         val wallColor = customization.colorFor(r.spec, dayBlend)
         val trimColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
 
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
 
         drawGroundShadow(canvas, width * 0.6f)
-        drawSprite(canvas, R.drawable.skyscraper_canopy, -55f, -6f)
-        drawTintedSprite(canvas, R.drawable.skyscraper_wall, -width / 2f, -height, wallColor)
+        drawSprite(
+            canvas, R.drawable.skyscraper_canopy,
+            SkyscraperSpriteLayout.CANOPY_X, SkyscraperSpriteLayout.CANOPY_Y,
+        )
+        drawTintedSprite(
+            canvas, R.drawable.skyscraper_wall,
+            SkyscraperSpriteLayout.WALL_X, -height, wallColor,
+        )
         // The daytime window grid is drawn into `skyscraper_wall` itself now, and the night one
         // is a second full-wall drawing laid over it at the same origin -- both 270x450, so the
         // origin is shared rather than re-derived. This replaces a nested loop that rebuilt ~24
@@ -1723,11 +1729,18 @@ class SceneObjectRenderer(
         // lit/dark roll. The roll is what is lost: every building's night facade now shows the
         // same lit pattern. That is the trade the asset set makes, and it removes the last
         // per-frame vector work from this building style.
-        drawSpriteFaded(canvas, R.drawable.skyscraper_wall_lit, -width / 2f, -height, litWindowAlpha(nightGlow))
+        drawSpriteFaded(
+            canvas, R.drawable.skyscraper_wall_lit,
+            SkyscraperSpriteLayout.WALL_LIT_X, -height + SkyscraperSpriteLayout.WALL_LIT_DY,
+            litWindowAlpha(nightGlow),
+        )
         // **The entrance, on the ground the building and the people stand on.** Blitted after the
         // wall so it sits in the hall band the facade draws, and with its own bottom edge on y=0:
         // the canopy straddles the ground line and is a plinth, not a floor to stand a door on.
-        drawSprite(canvas, R.drawable.skyscraper_entrance, -16f, -32f)
+        drawSprite(
+            canvas, R.drawable.skyscraper_entrance,
+            SkyscraperSpriteLayout.ENTRANCE_X, SkyscraperSpriteLayout.ENTRANCE_Y,
+        )
         // The tower's windows are painted into its wall, so there is no per-window call site to
         // hang a string from. The grid is stated by the artwork: four rows of four 14-unit windows
         // at a 27 pitch from the top, stopping clear of the 32-unit hall. Twelve of the sixteen
@@ -1747,13 +1760,19 @@ class SceneObjectRenderer(
                 }
             }
         }
-        drawTintedSprite(canvas, R.drawable.skyscraper_setback, -30f, -height - 32f, wallColor)
+        drawTintedSprite(
+            canvas, R.drawable.skyscraper_setback,
+            SkyscraperSpriteLayout.SETBACK_X, -height + SkyscraperSpriteLayout.SETBACK_DY, wallColor,
+        )
         // The setback's roof is the only horizontal surface of a tower a viewer sees, so it is
         // where the snow goes. Its own block starts 6 units down its canvas, and the cap carries 8
         // units above the roofline it is cut for, hence the offset. Drawn before the mast, so the
         // mast rises out of the drift. See [drawSmallHouse] for why this is a layer and not a tint.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.skyscraper_roof_snow, -28f, -height - 32f + 6f - 8f + 3f)
+            drawSprite(
+                canvas, R.drawable.skyscraper_roof_snow,
+                SkyscraperSpriteLayout.ROOF_SNOW_X, -height + SkyscraperSpriteLayout.ROOF_SNOW_DY,
+            )
         }
         strokePaint.color = trimColor
         strokePaint.strokeWidth = 2f

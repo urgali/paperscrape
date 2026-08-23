@@ -1,0 +1,281 @@
+{
+  "_source": "https://docs.openweather.co.uk/weather-conditions",
+  "_note": "Transcribed from the official Weather conditions table at the URL above. OpenWeather publishes it as an HTML table rather than as machine-readable JSON, so unlike weatherapi-conditions.json this file is a transcription and not a download -- which is why OpenWeatherProviderTest also checks the mapping structurally, by group, rather than trusting this list alone. Icon suffixes (d/n) are omitted: they do not affect the condition.",
+  "conditions": [
+    {
+      "id": 200,
+      "main": "Thunderstorm",
+      "description": "thunderstorm with light rain"
+    },
+    {
+      "id": 201,
+      "main": "Thunderstorm",
+      "description": "thunderstorm with rain"
+    },
+    {
+      "id": 202,
+      "main": "Thunderstorm",
+      "description": "thunderstorm with heavy rain"
+    },
+    {
+      "id": 210,
+      "main": "Thunderstorm",
+      "description": "light thunderstorm"
+    },
+    {
+      "id": 211,
+      "main": "Thunderstorm",
+      "description": "thunderstorm"
+    },
+    {
+      "id": 212,
+      "main": "Thunderstorm",
+      "description": "heavy thunderstorm"
+    },
+    {
+      "id": 221,
+      "main": "Thunderstorm",
+      "description": "ragged thunderstorm"
+    },
+    {
+      "id": 230,
+      "main": "Thunderstorm",
+      "description": "thunderstorm with light drizzle"
+    },
+    {
+      "id": 231,
+      "main": "Thunderstorm",
+      "description": "thunderstorm with drizzle"
+    },
+    {
+      "id": 232,
+      "main": "Thunderstorm",
+      "description": "thunderstorm with heavy drizzle"
+    },
+    {
+      "id": 300,
+      "main": "Drizzle",
+      "description": "light intensity drizzle"
+    },
+    {
+      "id": 301,
+      "main": "Drizzle",
+      "description": "drizzle"
+    },
+    {
+      "id": 302,
+      "main": "Drizzle",
+      "description": "heavy intensity drizzle"
+    },
+    {
+      "id": 310,
+      "main": "Drizzle",
+      "description": "light intensity drizzle rain"
+    },
+    {
+      "id": 311,
+      "main": "Drizzle",
+      "description": "drizzle rain"
+    },
+    {
+      "id": 312,
+      "main": "Drizzle",
+      "description": "heavy intensity drizzle rain"
+    },
+    {
+      "id": 313,
+      "main": "Drizzle",
+      "description": "shower rain and drizzle"
+    },
+    {
+      "id": 314,
+      "main": "Drizzle",
+      "description": "heavy shower rain and drizzle"
+    },
+    {
+      "id": 321,
+      "main": "Drizzle",
+      "description": "shower drizzle"
+    },
+    {
+      "id": 500,
+      "main": "Rain",
+      "description": "light rain"
+    },
+    {
+      "id": 501,
+      "main": "Rain",
+      "description": "moderate rain"
+    },
+    {
+      "id": 502,
+      "main": "Rain",
+      "description": "heavy intensity rain"
+    },
+    {
+      "id": 503,
+      "main": "Rain",
+      "description": "very heavy rain"
+    },
+    {
+      "id": 504,
+      "main": "Rain",
+      "description": "extreme rain"
+    },
+    {
+      "id": 511,
+      "main": "Rain",
+      "description": "freezing rain"
+    },
+    {
+      "id": 520,
+      "main": "Rain",
+      "description": "light intensity shower rain"
+    },
+    {
+      "id": 521,
+      "main": "Rain",
+      "description": "shower rain"
+    },
+    {
+      "id": 522,
+      "main": "Rain",
+      "description": "heavy intensity shower rain"
+    },
+    {
+      "id": 531,
+      "main": "Rain",
+      "description": "ragged shower rain"
+    },
+    {
+      "id": 600,
+      "main": "Snow",
+      "description": "light snow"
+    },
+    {
+      "id": 601,
+      "main": "Snow",
+      "description": "snow"
+    },
+    {
+      "id": 602,
+      "main": "Snow",
+      "description": "heavy snow"
+    },
+    {
+      "id": 611,
+      "main": "Snow",
+      "description": "sleet"
+    },
+    {
+      "id": 612,
+      "main": "Snow",
+      "description": "light shower sleet"
+    },
+    {
+      "id": 613,
+      "main": "Snow",
+      "description": "shower sleet"
+    },
+    {
+      "id": 615,
+      "main": "Snow",
+      "description": "light rain and snow"
+    },
+    {
+      "id": 616,
+      "main": "Snow",
+      "description": "rain and snow"
+    },
+    {
+      "id": 620,
+      "main": "Snow",
+      "description": "light shower snow"
+    },
+    {
+      "id": 621,
+      "main": "Snow",
+      "description": "shower snow"
+    },
+    {
+      "id": 622,
+      "main": "Snow",
+      "description": "heavy shower snow"
+    },
+    {
+      "id": 701,
+      "main": "Mist",
+      "description": "mist"
+    },
+    {
+      "id": 711,
+      "main": "Smoke",
+      "description": "smoke"
+    },
+    {
+      "id": 721,
+      "main": "Haze",
+      "description": "haze"
+    },
+    {
+      "id": 731,
+      "main": "Dust",
+      "description": "sand/dust whirls"
+    },
+    {
+      "id": 741,
+      "main": "Fog",
+      "description": "fog"
+    },
+    {
+      "id": 751,
+      "main": "Sand",
+      "description": "sand"
+    },
+    {
+      "id": 761,
+      "main": "Dust",
+      "description": "dust"
+    },
+    {
+      "id": 762,
+      "main": "Ash",
+      "description": "volcanic ash"
+    },
+    {
+      "id": 771,
+      "main": "Squall",
+      "description": "squalls"
+    },
+    {
+      "id": 781,
+      "main": "Tornado",
+      "description": "tornado"
+    },
+    {
+      "id": 800,
+      "main": "Clear",
+      "description": "clear sky"
+    },
+    {
+      "id": 801,
+      "main": "Clouds",
+      "description": "few clouds: 11-25%"
+    },
+    {
+      "id": 802,
+      "main": "Clouds",
+      "description": "scattered clouds: 25-50%"
+    },
+    {
+      "id": 803,
+      "main": "Clouds",
+      "description": "broken clouds: 51-84%"
+    },
+    {
+      "id": 804,
+      "main": "Clouds",
+      "description": "overcast clouds: 85-100%"
+    }
+  ]
+}

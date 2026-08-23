@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -269,7 +270,17 @@ internal fun SettingsSegmentedChoice(
                 enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
             ) {
-                Text(label, style = MaterialTheme.typography.labelLarge)
+                // One line, ellipsised. A segmented button gives its label a fixed share of the
+                // width and does not clip it: a label too long for its share wraps and draws
+                // outside the control's own outline, over its neighbours' borders. Adding a third
+                // weather provider is what found that; bounding it here is what stops the fourth
+                // finding it again.
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

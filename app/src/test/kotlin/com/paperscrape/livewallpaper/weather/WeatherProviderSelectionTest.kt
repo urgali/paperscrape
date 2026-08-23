@@ -51,7 +51,7 @@ class WeatherProviderSelectionTest {
     fun `the removed provider is gone from the registry`() {
         assertTrue(WeatherProviderId.entries.none { it.storageId == "visual_crossing" })
         assertTrue(WeatherProviderId.entries.none { it.displayName.contains("Visual Crossing") })
-        assertEquals(2, WeatherProviderId.entries.size)
+        assertEquals(3, WeatherProviderId.entries.size)
     }
 
     /**
@@ -63,6 +63,7 @@ class WeatherProviderSelectionTest {
     fun `storage ids are stable`() {
         assertEquals("open_meteo", WeatherProviderId.OPEN_METEO.storageId)
         assertEquals("weatherapi_com", WeatherProviderId.WEATHER_API_COM.storageId)
+        assertEquals("open_weather", WeatherProviderId.OPEN_WEATHER.storageId)
     }
 
     @Test
@@ -143,11 +144,54 @@ class WeatherProviderSelectionTest {
         )
     }
 
-    /** Open-Meteo's key may be blank and still work; WeatherAPI.com's may not. */
+    /**
+     * Open-Meteo's key may be blank and still work; neither alternative's may.
+     *
+     * Written as "exactly one" rather than as a list, so adding a fourth keyless provider -- which
+     * would quietly make the default's keylessness unremarkable -- is a deliberate edit here.
+     */
     @Test
-    fun `only one of the two providers can run without a key`() {
-        assertTrue(WeatherRepository.providerFor(WeatherProviderId.WEATHER_API_COM).requiresApiKey)
-        assertTrue(!WeatherRepository.providerFor(WeatherProviderId.OPEN_METEO).requiresApiKey)
+    fun `exactly one provider can run without a key, and it is the default`() {
+        val keyless = WeatherProviderId.entries.filter { !WeatherRepository.providerFor(it).requiresApiKey }
+        assertEquals(listOf(WeatherProviderId.OPEN_METEO), keyless)
+        assertEquals(WeatherProviderId.DEFAULT, keyless.single())
+    }
+
+    /**
+     * **The three-way selection the task requires**, stated as one test: the default resolves to
+     * Open-Meteo, and each explicit choice resolves to itself and to its own key.
+     */
+    @Test
+    fun `each explicit choice resolves to its own provider and key`() {
+        val settings = WallpaperSettings(
+            liveWeatherApiKey = "open-meteo-key",
+            weatherApiComApiKey = "weatherapi-com-key",
+            openWeatherApiKey = "open-weather-key",
+        )
+        assertEquals(WeatherProviderId.OPEN_METEO, settings.weatherProvider)
+        assertEquals("open-meteo-key", settings.apiKeyForWeatherProvider)
+
+        val viaWeatherApi = settings.copy(weatherProviderId = WeatherProviderId.WEATHER_API_COM.storageId)
+        assertEquals(WeatherProviderId.WEATHER_API_COM, viaWeatherApi.weatherProvider)
+        assertEquals("weatherapi-com-key", viaWeatherApi.apiKeyForWeatherProvider)
+
+        val viaOpenWeather = settings.copy(weatherProviderId = WeatherProviderId.OPEN_WEATHER.storageId)
+        assertEquals(WeatherProviderId.OPEN_WEATHER, viaOpenWeather.weatherProvider)
+        assertEquals("open-weather-key", viaOpenWeather.apiKeyForWeatherProvider)
+    }
+
+    /** Every provider's key is its own: switching cannot leak one service's key to another. */
+    @Test
+    fun `no two providers share a key`() {
+        val settings = WallpaperSettings(
+            liveWeatherApiKey = "a",
+            weatherApiComApiKey = "b",
+            openWeatherApiKey = "c",
+        )
+        val keys = WeatherProviderId.entries.map {
+            settings.copy(weatherProviderId = it.storageId).apiKeyForWeatherProvider
+        }
+        assertEquals(keys.toSet().size, keys.size)
     }
 
     // -- results ------------------------------------------------------------------------------------

@@ -58,6 +58,31 @@ object SharedGoldenScenes {
         },
     )
 
+    /**
+     * Thirteen seconds of wallpaper, which is what it takes for traffic to reach the road.
+     *
+     * Shared rather than declared inside `SceneGoldenTest` because [VehiclePresence] and the
+     * deliberate-regression checks in `TrafficGoldenTest` have to describe the *same* frame the
+     * golden pins — two copies that drifted by a frame would compare different pictures.
+     *
+     * See `SceneGoldenTest.trafficDay` for why the count is 390 and why it is deterministic.
+     */
+    const val TRAFFIC_WARM_UP_FRAMES = 390
+
+    /** Midday, with four vehicles on the road and none of them clipped by a frame edge. */
+    fun trafficDay() = GoldenScene(
+        name = "traffic-day",
+        dayPhase = GoldenScene.day(),
+        warmUpFrames = TRAFFIC_WARM_UP_FRAMES,
+    )
+
+    /** The same traffic at night: the road is darker and the vehicles carry their own lit parts. */
+    fun trafficNight() = GoldenScene(
+        name = "traffic-night",
+        dayPhase = GoldenScene.night(),
+        warmUpFrames = TRAFFIC_WARM_UP_FRAMES,
+    )
+
     /** The storm minus the bolt: darkened sky, darkened cloud band, attenuated sun, full rain. */
     fun thunderstorm() = GoldenScene(
         name = "thunderstorm",
