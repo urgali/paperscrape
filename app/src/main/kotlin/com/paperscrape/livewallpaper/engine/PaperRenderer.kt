@@ -221,7 +221,7 @@ class PaperRenderer(
      */
     private val cloudCoverage = CloudCoverage()
 
-    private var objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor), sceneCustomization, context)
+    private var objectRenderer = SceneObjectRenderer(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor), sceneCustomization, context, theme.id)
     private var objectRendererThemeId = theme.id
     private var objectRendererGeneration = CustomThemeRegistry.generation()
     private var objectRendererConfig = sceneCustomization
@@ -276,6 +276,7 @@ class PaperRenderer(
                 SceneObjectCatalog.layoutFor(theme.id, theme.accentColor),
                 sceneCustomization,
                 context,
+                theme.id,
             )
             objectRendererThemeId = theme.id
             objectRendererGeneration = currentGeneration

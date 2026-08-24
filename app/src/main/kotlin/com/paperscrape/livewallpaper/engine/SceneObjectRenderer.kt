@@ -33,6 +33,15 @@ class SceneObjectRenderer(
     private val layout: SceneObjectLayout,
     customization: SceneCustomization = SceneCustomization.DEFAULT,
     private val context: Context,
+    /**
+     * The theme this scene belongs to, used only to seed the people system.
+     *
+     * Hashed exactly the way every other effect's seed is (`theme.id.hashCode()`, whose value the
+     * Java language specifies exactly), so a theme produces the same street on every device and
+     * every run. Defaulted so that the many tests constructing a renderer directly keep compiling;
+     * the two production call sites in [PaperRenderer] both pass the real id.
+     */
+    private val themeId: String = "",
 ) {
 
     /**
@@ -211,22 +220,12 @@ class SceneObjectRenderer(
          * them has its content reaching the canvas's bottom edge, so one pair of numbers covers
          * the set rather than a per-sprite table.
          */
-        /**
-         * How many pedestrians the scene carries.
-         *
-         * Not a density control. People are the one category with no visibility or density
-         * setting of their own -- that is decision D3, still open -- so this is a constant rather
-         * than a preference, named here instead of sitting inline in the draw loop.
-         */
-        const val PEDESTRIAN_COUNT = 4
-
-        /**
-         * Decorrelates the pedestrians' density thresholds from every other category's.
-         *
-         * Without a salt of its own the same candidate index would drop out of two categories at
-         * the same setting, which reads as the scene emptying in steps rather than thinning.
-         */
-        const val PEDESTRIAN_THRESHOLD_SALT = 6151
+        // v4.1 removed `PEDESTRIAN_COUNT` and `PEDESTRIAN_THRESHOLD_SALT` from here. The pool size
+        // is now [PedestrianPopulation.GROUP_COUNT] -- the same four slots, but each one yields a
+        // group rather than a single person -- and the threshold offset is
+        // [PedestrianPopulation.THRESHOLD_OFFSET], which documents why the old salt was wrong.
+        // The stale doc comment on the old count claimed people had no density setting; they have
+        // had one (`config.density` plus `peopleNightDensity`) since well before this release.
 
         /** Half a walk sprite's own width, in local units, for the wrap-tile cull. */
         const val PERSON_HALF_WIDTH_UNITS = 21.5f
@@ -733,6 +732,104 @@ class SceneObjectRenderer(
         intArrayOf(R.drawable.person_boy_summer_head_window, R.drawable.person_boy_winter_head_window),
         intArrayOf(R.drawable.person_girl_summer_head_window, R.drawable.person_girl_winter_head_window),
     )
+
+    /**
+     * The walking sprites again, with a skin-tone axis: `[kind][season][skin][frame]`.
+     *
+     * Parallel to [personWalkDrawables] rather than a replacement for it, and deliberately so.
+     * That table is still what `ThemePreviewScene` draws, and leaving it alone is what makes
+     * "the settings preview is unchanged" a fact about the code rather than a claim.
+     *
+     * The frames are the same four slots with the same third-slot sharing; only the paint
+     * differs. `tools/generate_skin_variants.py` produced every entry from the sprite in
+     * [personWalkDrawables] by moving one flat colour and nothing else, and verifies that every
+     * other colour keeps its exact pixel mask -- so clothes, hair, eyes, outlines, silhouette and
+     * animation are identical across the skin axis by construction.
+     *
+     * A tone is chosen once per person and then indexes this table like any other sprite lookup.
+     * There is no per-pixel work anywhere in the draw path.
+     */
+    private val personWalkSkinDrawables = arrayOf(
+        // man
+        arrayOf(
+            arrayOf(
+                intArrayOf(R.drawable.person_man_summer_walk0_skin0, R.drawable.person_man_summer_walk1_skin0, R.drawable.person_man_summer_walk2_skin0, R.drawable.person_man_summer_walk1_skin0),
+                intArrayOf(R.drawable.person_man_summer_walk0_skin1, R.drawable.person_man_summer_walk1_skin1, R.drawable.person_man_summer_walk2_skin1, R.drawable.person_man_summer_walk1_skin1),
+                intArrayOf(R.drawable.person_man_summer_walk0_skin2, R.drawable.person_man_summer_walk1_skin2, R.drawable.person_man_summer_walk2_skin2, R.drawable.person_man_summer_walk1_skin2),
+            ),
+            arrayOf(
+                intArrayOf(R.drawable.person_man_winter_walk0_skin0, R.drawable.person_man_winter_walk1_skin0, R.drawable.person_man_winter_walk2_skin0, R.drawable.person_man_winter_walk1_skin0),
+                intArrayOf(R.drawable.person_man_winter_walk0_skin1, R.drawable.person_man_winter_walk1_skin1, R.drawable.person_man_winter_walk2_skin1, R.drawable.person_man_winter_walk1_skin1),
+                intArrayOf(R.drawable.person_man_winter_walk0_skin2, R.drawable.person_man_winter_walk1_skin2, R.drawable.person_man_winter_walk2_skin2, R.drawable.person_man_winter_walk1_skin2),
+            ),
+        ),
+        // woman
+        arrayOf(
+            arrayOf(
+                intArrayOf(R.drawable.person_woman_summer_walk0_skin0, R.drawable.person_woman_summer_walk1_skin0, R.drawable.person_woman_summer_walk2_skin0, R.drawable.person_woman_summer_walk1_skin0),
+                intArrayOf(R.drawable.person_woman_summer_walk0_skin1, R.drawable.person_woman_summer_walk1_skin1, R.drawable.person_woman_summer_walk2_skin1, R.drawable.person_woman_summer_walk1_skin1),
+                intArrayOf(R.drawable.person_woman_summer_walk0_skin2, R.drawable.person_woman_summer_walk1_skin2, R.drawable.person_woman_summer_walk2_skin2, R.drawable.person_woman_summer_walk1_skin2),
+            ),
+            arrayOf(
+                intArrayOf(R.drawable.person_woman_winter_walk0_skin0, R.drawable.person_woman_winter_walk1_skin0, R.drawable.person_woman_winter_walk2_skin0, R.drawable.person_woman_winter_walk1_skin0),
+                intArrayOf(R.drawable.person_woman_winter_walk0_skin1, R.drawable.person_woman_winter_walk1_skin1, R.drawable.person_woman_winter_walk2_skin1, R.drawable.person_woman_winter_walk1_skin1),
+                intArrayOf(R.drawable.person_woman_winter_walk0_skin2, R.drawable.person_woman_winter_walk1_skin2, R.drawable.person_woman_winter_walk2_skin2, R.drawable.person_woman_winter_walk1_skin2),
+            ),
+        ),
+        // boy
+        arrayOf(
+            arrayOf(
+                intArrayOf(R.drawable.person_boy_summer_walk0_skin0, R.drawable.person_boy_summer_walk1_skin0, R.drawable.person_boy_summer_walk2_skin0, R.drawable.person_boy_summer_walk1_skin0),
+                intArrayOf(R.drawable.person_boy_summer_walk0_skin1, R.drawable.person_boy_summer_walk1_skin1, R.drawable.person_boy_summer_walk2_skin1, R.drawable.person_boy_summer_walk1_skin1),
+                intArrayOf(R.drawable.person_boy_summer_walk0_skin2, R.drawable.person_boy_summer_walk1_skin2, R.drawable.person_boy_summer_walk2_skin2, R.drawable.person_boy_summer_walk1_skin2),
+            ),
+            arrayOf(
+                intArrayOf(R.drawable.person_boy_winter_walk0_skin0, R.drawable.person_boy_winter_walk1_skin0, R.drawable.person_boy_winter_walk2_skin0, R.drawable.person_boy_winter_walk1_skin0),
+                intArrayOf(R.drawable.person_boy_winter_walk0_skin1, R.drawable.person_boy_winter_walk1_skin1, R.drawable.person_boy_winter_walk2_skin1, R.drawable.person_boy_winter_walk1_skin1),
+                intArrayOf(R.drawable.person_boy_winter_walk0_skin2, R.drawable.person_boy_winter_walk1_skin2, R.drawable.person_boy_winter_walk2_skin2, R.drawable.person_boy_winter_walk1_skin2),
+            ),
+        ),
+        // girl
+        arrayOf(
+            arrayOf(
+                intArrayOf(R.drawable.person_girl_summer_walk0_skin0, R.drawable.person_girl_summer_walk1_skin0, R.drawable.person_girl_summer_walk2_skin0, R.drawable.person_girl_summer_walk1_skin0),
+                intArrayOf(R.drawable.person_girl_summer_walk0_skin1, R.drawable.person_girl_summer_walk1_skin1, R.drawable.person_girl_summer_walk2_skin1, R.drawable.person_girl_summer_walk1_skin1),
+                intArrayOf(R.drawable.person_girl_summer_walk0_skin2, R.drawable.person_girl_summer_walk1_skin2, R.drawable.person_girl_summer_walk2_skin2, R.drawable.person_girl_summer_walk1_skin2),
+            ),
+            arrayOf(
+                intArrayOf(R.drawable.person_girl_winter_walk0_skin0, R.drawable.person_girl_winter_walk1_skin0, R.drawable.person_girl_winter_walk2_skin0, R.drawable.person_girl_winter_walk1_skin0),
+                intArrayOf(R.drawable.person_girl_winter_walk0_skin1, R.drawable.person_girl_winter_walk1_skin1, R.drawable.person_girl_winter_walk2_skin1, R.drawable.person_girl_winter_walk1_skin1),
+                intArrayOf(R.drawable.person_girl_winter_walk0_skin2, R.drawable.person_girl_winter_walk1_skin2, R.drawable.person_girl_winter_walk2_skin2, R.drawable.person_girl_winter_walk1_skin2),
+            ),
+        ),
+    )
+
+    /**
+     * Window occupants, with the same skin axis: `[kind][season][skin]`.
+     *
+     * Separate from [personWindowHeadDrawables], which **car passengers** still read. Cars are
+     * out of scope for this change, so they keep pointing at the original artwork and their
+     * occupants are provably unaffected by anything here.
+     */
+    private val personWindowHeadSkinDrawables = arrayOf(
+        arrayOf(
+            intArrayOf(R.drawable.person_man_summer_head_window_skin0, R.drawable.person_man_summer_head_window_skin1, R.drawable.person_man_summer_head_window_skin2),
+            intArrayOf(R.drawable.person_man_winter_head_window_skin0, R.drawable.person_man_winter_head_window_skin1, R.drawable.person_man_winter_head_window_skin2),
+        ),
+        arrayOf(
+            intArrayOf(R.drawable.person_woman_summer_head_window_skin0, R.drawable.person_woman_summer_head_window_skin1, R.drawable.person_woman_summer_head_window_skin2),
+            intArrayOf(R.drawable.person_woman_winter_head_window_skin0, R.drawable.person_woman_winter_head_window_skin1, R.drawable.person_woman_winter_head_window_skin2),
+        ),
+        arrayOf(
+            intArrayOf(R.drawable.person_boy_summer_head_window_skin0, R.drawable.person_boy_summer_head_window_skin1, R.drawable.person_boy_summer_head_window_skin2),
+            intArrayOf(R.drawable.person_boy_winter_head_window_skin0, R.drawable.person_boy_winter_head_window_skin1, R.drawable.person_boy_winter_head_window_skin2),
+        ),
+        arrayOf(
+            intArrayOf(R.drawable.person_girl_summer_head_window_skin0, R.drawable.person_girl_summer_head_window_skin1, R.drawable.person_girl_summer_head_window_skin2),
+            intArrayOf(R.drawable.person_girl_winter_head_window_skin0, R.drawable.person_girl_winter_head_window_skin1, R.drawable.person_girl_winter_head_window_skin2),
+        ),
+    )
+
     private val personCarHeadDrawables = arrayOf(
         intArrayOf(R.drawable.person_man_summer_head_car, R.drawable.person_man_winter_head_car),
         intArrayOf(R.drawable.person_woman_summer_head_car, R.drawable.person_woman_winter_head_car),
@@ -777,13 +874,14 @@ class SceneObjectRenderer(
         val config = customization.people
         if (!config.visible) return
         val seasonIdx = if (customization.winterColorsEnabled) 1 else 0
-        val candidateCount = PEDESTRIAN_COUNT
         val sceneScale = SceneSpace.sceneScale(screenHeight)
         // Density thins the same candidate pool the same way every other category's does, through
         // the shared threshold rather than by rounding a count -- so lowering it removes a
         // particular pedestrian and leaves the rest exactly where they were, instead of
         // reshuffling everybody.
-        val effectOffset = CandidateThreshold.offsetFor(PEDESTRIAN_THRESHOLD_SALT)
+        // v4.1: the offset is the people system's own constant. See
+        // [PedestrianPopulation.THRESHOLD_OFFSET] for why `offsetFor(PEDESTRIAN_THRESHOLD_SALT)`
+        // was wrong -- it returned 683.5, and its fractional part was MOUNTAINS_BACK's offset.
         // Day and night have their own populations, crossfaded by the scene's own dayBlend --
         // the same value the colours blend with, so the street empties over the length of dusk
         // instead of four people vanishing between two frames. Because the threshold below is
@@ -794,39 +892,43 @@ class SceneObjectRenderer(
             nightDensity = customization.peopleNightDensity,
             dayBlend = dayBlend,
         )
-        val fallbackIndex = CandidateThreshold.fallbackIndexFor(density, candidateCount, effectOffset)
-        for (i in 0 until candidateCount) {
-            if (!CandidateThreshold.isPresent(i, density, effectOffset, fallbackIndex)) continue
-            val reverse = i % 2 == 1
-            // Two pavement rows, on the strip of ground between the buildings and the road. Both
-            // the row's y and the speed at it come
-            // from [SceneSpace]: a pedestrian on the near row is nearer than one on the far row,
-            // so it is drawn larger and crosses the screen faster, by the same ratio the two
-            // ground lines imply. People used to sit at a hardcoded 0.83 of screen height at a
-            // fixed scale with a hand-rolled speed ladder -- outside the projection entirely,
-            // which is the failure class `DESIGN_NOTES.md` 6 records against them.
-            val near = i % 2 == 0
-            val rowYFraction = if (near) SceneSpace.PAVEMENT_NEAR_Y_FRACTION else SceneSpace.PAVEMENT_FAR_Y_FRACTION
-            val speed = if (near) SceneSpace.PEDESTRIAN_SPEED_NEAR else SceneSpace.PEDESTRIAN_SPEED_FAR
-            val phase = i * 0.27f
+        // The population arrives already sorted far-to-near, so drawing it in order puts the
+        // nearest figure on top. v4.0 walked candidate indices instead, and because the pavement
+        // row alternated with that index the far figure was drawn *after* the near one and covered
+        // it -- the reported overlap defect. Depth now comes from the figure's own baseline; see
+        // [PedestrianPopulation].
+        val population = PedestrianPopulation.build(
+            seed = themeId.hashCode(),
+            density = density,
+            nearRowYFraction = SceneSpace.PAVEMENT_NEAR_Y_FRACTION,
+            farRowYFraction = SceneSpace.PAVEMENT_FAR_Y_FRACTION,
+        )
+        for ((personIndex, person) in population.withIndex()) {
+            // Both the row's y and the speed at it come from [SceneSpace]: a pedestrian on the
+            // near row is nearer than one on the far row, so it is drawn larger and crosses the
+            // screen faster, by the same ratio the two ground lines imply. People used to sit at a
+            // hardcoded 0.83 of screen height at a fixed scale with a hand-rolled speed ladder --
+            // outside the projection entirely, which is the failure class `DESIGN_NOTES.md` 6
+            // records against them.
+            val rowYFraction = person.rowYFraction
+            val nearer = rowYFraction > (SceneSpace.PAVEMENT_NEAR_Y_FRACTION + SceneSpace.PAVEMENT_FAR_Y_FRACTION) / 2f
+            val speed = if (nearer) SceneSpace.PEDESTRIAN_SPEED_NEAR else SceneSpace.PEDESTRIAN_SPEED_FAR
             val y = screenHeight * rowYFraction
-            val dir = if (reverse) -1f else 1f
+            val dir = person.direction
             val s = SceneSpace.PERSON_BASE_SCALE * SceneSpace.perspectiveScaleAt(rowYFraction) * sceneScale
 
             // The walk, as a position on the ground rather than on the screen. `cycle` returns
-            // 0..1 over one loop, which is a whole tile of walking; the start offset spreads the
-            // four of them out so they are not a column.
-            val walk = elapsedSeconds.cycle(speed, phase)
-            val startFraction = (i + 0.5f) / candidateCount
-            var tileFraction = (startFraction + dir * walk) % 1f
+            // 0..1 over one loop, which is a whole tile of walking; the start offset spreads them
+            // out so they are not a column.
+            val walk = elapsedSeconds.cycle(speed, person.phase)
+            var tileFraction = (person.startFraction + dir * walk) % 1f
             if (tileFraction < 0f) tileFraction += 1f
 
             var x = geom.shiftXWrapped + tileFraction * geom.tileWidth
             if (x < -geom.tileWidth * 0.5f) x += geom.tileWidth
 
-            val kindIdx = i % personKinds.size
-            val frame = elapsedSeconds.frameIndex(3.2f, i.toFloat(), 4)
-            val resId = personWalkDrawables[kindIdx][seasonIdx][frame]
+            val frame = elapsedSeconds.frameIndex(3.2f, personIndex.toFloat(), 4)
+            val resId = personWalkSkinDrawables[person.kindIndex][seasonIdx][person.skinIndex][frame]
             val halfWidth = PERSON_HALF_WIDTH_UNITS * s
 
             val firstTile = firstVisibleTileOffset(x, halfWidth, geom.tileWidth)
@@ -1162,9 +1264,12 @@ class SceneObjectRenderer(
         // 20-unit door centred on 0, all sit clear of each other on a wall running -35..35.
         drawSprite(canvas, R.drawable.house_shared_window, -37f, -45f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -37f, -46f, litWindowAlpha(nightGlow))
-        drawWindowOccupant(canvas, r, -37f, -46f, 22f, 22f)
+        drawWindowOccupant(canvas, r, -37f, -46f, 22f, 22f, WindowBuildingKind.HOUSE, 0)
         drawSprite(canvas, R.drawable.house_shared_window, 15f, -45f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 15f, -46f, litWindowAlpha(nightGlow))
+        // v4.1: the second window was drawn but never populated -- one of the two panes on this
+        // elevation could not hold anybody at all.
+        drawWindowOccupant(canvas, r, 15f, -46f, 22f, 22f, WindowBuildingKind.HOUSE, 1)
         if (customization.christmasDecorationsEnabled) {
             drawWindowLights(canvas, r, elapsed, -37f, -24f, 22f)
             drawWindowLights(canvas, r, elapsed, 15f, -24f, 22f)
@@ -1211,11 +1316,15 @@ class SceneObjectRenderer(
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -46f, -85f, litAlpha)
         drawSprite(canvas, R.drawable.house_shared_window, 24f, -84f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -85f, litAlpha)
-        drawWindowOccupant(canvas, r, -46f, -85f, 22f, 22f)
+        // v4.1: all four panes are candidates now. Only the upper-left one ever was.
+        drawWindowOccupant(canvas, r, -46f, -85f, 22f, 22f, WindowBuildingKind.HOUSE, 0)
+        drawWindowOccupant(canvas, r, 24f, -85f, 22f, 22f, WindowBuildingKind.HOUSE, 1)
         drawSprite(canvas, R.drawable.house_shared_window, -46f, -44f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -46f, -45f, litAlpha)
         drawSprite(canvas, R.drawable.house_shared_window, 24f, -44f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -45f, litAlpha)
+        drawWindowOccupant(canvas, r, -46f, -45f, 22f, 22f, WindowBuildingKind.HOUSE, 2)
+        drawWindowOccupant(canvas, r, 24f, -45f, 22f, 22f, WindowBuildingKind.HOUSE, 3)
         if (customization.christmasDecorationsEnabled) {
             val sills = floatArrayOf(-46f, -63f, 24f, -63f, -46f, -23f, 24f, -23f)
             for (i in 0 until 4) {
@@ -1270,12 +1379,25 @@ class SceneObjectRenderer(
      * elapsed-time component since a person shouldn't pop in and out every frame the way a
      * lit-window flicker can. About 1 in 3 houses gets an occupant.
      */
-    private fun drawWindowOccupant(canvas: SceneCanvas, r: StaticRuntime, winX: Float, winY: Float, winW: Float, winH: Float) {
-        val seed = kotlin.math.abs((r.spec.tileFractionX * 9973f + winX).toInt())
-        if (seed % 3 != 0) return
+    private fun drawWindowOccupant(
+        canvas: SceneCanvas,
+        r: StaticRuntime,
+        winX: Float,
+        winY: Float,
+        winW: Float,
+        winH: Float,
+        kind: WindowBuildingKind,
+        windowIndex: Int,
+    ) {
+        // The building's own stable identity. `tileFractionX` is its position along the ground
+        // tile, which is fixed for the life of the scene, so an occupant does not move house
+        // between frames.
+        val buildingSeed = (r.spec.tileFractionX * 100_003f).toInt()
+        val seed = themeId.hashCode()
+        if (!WindowOccupants.isOccupied(seed, buildingSeed, windowIndex, kind)) return
         val seasonIdx = if (customization.winterColorsEnabled) 1 else 0
-        val kindIdx = seed % personKinds.size
-        val resId = personWindowHeadDrawables[kindIdx][seasonIdx]
+        val occupant = WindowOccupants.occupantAt(seed, buildingSeed, windowIndex)
+        val resId = personWindowHeadSkinDrawables[occupant.kindIndex][seasonIdx][occupant.skinIndex]
         // Placed from the sprite's declared anchor, not by centring its canvas -- the same
         // correction v76.1 made to the car driver, applied here for the same reason. The window
         // heads are 60x54 local units anchored CONTENT_BOTTOM_CENTRE, so centring the canvas put
@@ -1760,6 +1882,23 @@ class SceneObjectRenderer(
                 }
             }
         }
+        // **v4.1: people at tower windows.** The grid is the one the comment above states, and it
+        // is read here rather than redefined: four rows of four 14-unit windows at a 27 pitch from
+        // the top, at a 20 pitch across from `-width/2 + 5`. Nothing about the window changes --
+        // the panes are painted into `skyscraper_wall` and are not redrawn here. This only stands
+        // a bust on a sill, at a low per-window rate so a tower does not become a wall of faces.
+        for (row in 0 until 4) {
+            for (column in 0 until 4) {
+                val index = row * 4 + column
+                drawWindowOccupant(
+                    canvas, r,
+                    -width / 2f + 5f + column * 20f,
+                    -height + 5f + row * 27f,
+                    14f, 14f,
+                    WindowBuildingKind.SKYSCRAPER, index,
+                )
+            }
+        }
         drawTintedSprite(
             canvas, R.drawable.skyscraper_setback,
             SkyscraperSpriteLayout.SETBACK_X, -height + SkyscraperSpriteLayout.SETBACK_DY, wallColor,
@@ -1847,9 +1986,12 @@ class SceneObjectRenderer(
         // The upper storey's windows, the same drawable the houses use so a shop's first floor
         // cannot drift from a house's.
         val barLit = litWindowAlpha((1f - dayBlend).coerceIn(0f, 1f))
-        for (wx in floatArrayOf(-34f, -11f, 12f)) {
+        for ((wi, wx) in floatArrayOf(-34f, -11f, 12f).withIndex()) {
             drawSprite(canvas, R.drawable.house_shared_window, wx, -82f)
             drawSpriteFaded(canvas, R.drawable.house_window_lit, wx, -83f, barLit)
+            // v4.1: commercial frontage can hold somebody. The window drawing above is byte for
+            // byte what it was; this only adds a bust standing at its sill.
+            drawWindowOccupant(canvas, r, wx, -83f, 22f, 22f, WindowBuildingKind.COMMERCIAL, wi)
         }
         if (customization.christmasDecorationsEnabled) {
             for ((i, wx) in floatArrayOf(-34f, -11f, 12f).withIndex()) {

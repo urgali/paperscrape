@@ -37,8 +37,31 @@ class SpriteGeometryTest {
      * ceiling is set just above the current figure rather than at a round number, so an asset
      * pass that adds a large sprite has to come here and say so -- which is the point, since the
      * budget is what a memory-pressure policy and a texture atlas are both sized against.
+     *
+     * **Raised from 16 MB to 26 MB by v4.1's skin-tone batch, and this is the decision the old
+     * comment demanded be made here rather than waved through.** Three real skin tones for four
+     * characters across two seasons and four sprite slots is 96 variant PNGs, and a variant is
+     * the same canvas as its source: the whole set goes from 14.79 MB to 25.67 MB. No choice of
+     * tone count fits under the old ceiling -- even two tones would clear it -- so the growth is
+     * inherent to shipping real variant artwork rather than recolouring at runtime. The ceiling
+     * is set just above the measured figure, as before, so the next asset pass has to come here
+     * and say so too.
+     *
+     * A fourth tone was generated, measured at 29.29 MB, and then dropped -- on how it looked
+     * rather than on what it cost. See `PedestrianPopulation.SKIN_TONE_COUNT`.
+     *
+     * **What this costs.** A live wallpaper runs in a process the system kills freely under
+     * pressure, and this doubles the worst case that sizing assumes. It is a worst case rather
+     * than a resident figure -- sprites decode on demand, and no frame draws four tones of the
+     * same character -- but the budget deliberately measures the ceiling, and the ceiling moved.
+     *
+     * **The alternative, for whoever revisits this.** Recolouring one flat colour into a cached
+     * bitmap at load time would give the same tones with zero growth here, at the cost of a
+     * one-off per-pixel pass per tone actually used. It was not taken because the batch that
+     * requested this asked for real variant PNGs; it remains the cheaper answer if memory
+     * pressure is ever measured to be a problem on real devices.
      */
-    private val decodedByteBudget = 16L * 1024L * 1024L
+    private val decodedByteBudget = 26L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {

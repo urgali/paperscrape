@@ -19,6 +19,102 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.1 — the people system
+
+**Prepared, not published.** `versionCode = 32`, `versionName = "4.1"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain 37, untouched.
+
+One subject: the figures walking the pavement and standing at the windows. Cars, roads, traffic
+and window *rendering* were not opened.
+
+### The defect, which was one defect and not four
+
+A user reported four symptoms from two device screenshots: overlapping pedestrians drawn in the
+wrong depth order; one direction of travel always a man and a boy and the other always a woman and
+a girl; skin tones apparently tied to direction; and no visible difference between 20% and 100%
+density. All four came from the same place. Every attribute of a pedestrian was a function of its
+candidate index, and the pool held exactly as many candidates as there were sprite kinds:
+
+```kotlin
+val reverse = i % 2 == 1              // direction
+val near    = i % 2 == 0              // pavement row
+val kindIdx = i % personKinds.size    // which of man/woman/boy/girl
+```
+
+`PEDESTRIAN_COUNT == 4 == personKinds.size`, so the periods 2 and 4 lock: `i=0` man/near/right,
+`i=1` woman/far/left, `i=2` boy/near/right, `i=3` girl/far/left. The composition *was* the
+direction — arithmetic, not an unlucky seed, and identical on every device and in every theme. The
+skin report is that same table seen through the artwork, each sprite carrying its own baked
+palette. And the draw loop ran in index order, so candidate 1 on the **far** row was drawn after
+candidate 0 on the near row and covered it.
+
+### What replaced it
+
+`PedestrianPopulation` — pure Kotlin, no Android dependency, so the whole generative system is
+testable without a device. The density pool still holds four slots so the slider keeps its
+meaning, but a surviving slot now yields a group of one to three. Group size, direction and row
+are per-group; age, sex and skin per member; each on its own `CandidateNoise` channel, addressed
+rather than consumed, so no attribute can perturb another. The population is returned sorted
+far-to-near on the figures' own baselines, with a `(groupIndex, memberIndex)` tie-break, and the
+renderer draws it in that order. Because the sort sees a flat list, ordering *within* a group of
+three is correct for the same reason ordering between groups is.
+
+`WindowOccupants` — presence and identity on separate channels. v4.0 read both from one truncated
+float (`% 3` for presence, `% 4` for identity), so who appeared was entangled with whether anyone
+appeared, and `winX` was a compile-time constant per building type so the only varying input was
+one float that truncation had already gutted.
+
+### Decisions
+
+- **D-4.1-A — the threshold offset was fixed inside the people system, not in `EffectId`.**
+  `CandidateThreshold.offsetFor(PEDESTRIAN_THRESHOLD_SALT)` was passed `6151` where it expects an
+  `EffectId` ordinal; it returned `683.5`, which survived only because thresholds take a
+  fractional part — and `frac(683.5)` is exactly `0.5`, `MOUNTAINS_BACK`'s offset. The salt whose
+  stated job was to decorrelate pedestrians from every other category had pinned them to one. The
+  clean-looking fix (add an ordinal, bump `EffectId.COUNT`) was rejected: `offsetFor` divides by
+  that count, so raising it moves clouds, birds, sailboats and dolphins in every theme. A
+  people-owned constant keeps the blast radius inside the release's scope.
+- **D-4.1-B — the group pool stayed at four slots.** Widening it would have changed what every
+  existing density setting means. Groups deliver the requested variety without touching the
+  parameter's semantics.
+- **D-4.1-C — skin tone was wired but not widened** in the first batch. Superseded by D-4.1-D.
+- **D-4.1-D — real variant PNGs were chosen over a runtime recolour, and the memory budget moved
+  to pay for it.** The art is flat: each character's skin is one colour, so a variant is an exact
+  recolour rather than a tint, and the generator verifies that every other colour keeps its pixel
+  mask. The cost is that a variant is the same canvas as its source, so the set grew from
+  14.79 MB to 25.67 MB decoded and `SpriteGeometryTest`'s ceiling went from 16 MB to 26 MB --
+  which that test explicitly requires be a recorded decision rather than a test fix. No tone
+  count fits under the old ceiling; even two would clear it. Recolouring into a cached bitmap at
+  load is the zero-growth alternative and is documented in that test for whoever revisits it.
+  Skin remains unconfigurable by the user, which `SkinToneAssetsTest` enforces against the
+  sources.
+
+### Known limitations
+
+- **Skin tone: closed by a follow-up batch in the same release.** The first pass shipped
+  `SKIN_TONE_COUNT = 1` with the honest note that flat raster art with baked palettes could not
+  express more. The follow-up made the artwork: 96 variants, three tones per character, generated
+  by `tools/generate_skin_variants.py` and verified pixel-mask-exact against their sources. See
+  decision D-4.1-D. A fourth tone was made and dropped on how it looked, not what it cost.
+- **No frame of this release was ever rendered.** The build environment had no emulator and no
+  `/dev/kvm`. The seven people goldens are written down in `PeopleGoldenTest` with their focus
+  rectangles and their reasons, and they compile, but they are `@Ignore`d because committing
+  assertions without their PNGs would leave a red suite and committing PNGs produced any other way
+  would be committing a fiction.
+- **The instrumented suite was compiled, not executed**, for the same reason.
+
+### Regression
+
+All 875 tests that existed at v4.0 still pass. 55 were added (20 pedestrian, 14 window occupant,
+21 skin tone), for 930 green. Exactly one existing test was edited: `SpriteGeometryTest`'s byte
+budget, per D-4.1-D. `AUTO = INVARIATO`: no file on the vehicle, road or traffic path was
+opened, and the pedestrian sort is a `sortWith` on a list the people system owns — no shared
+sorting utility was introduced that could reach the car loop. `WINDOW RENDERING = INVARIATO`: no
+window sprite, size, position, colour, lit state or draw call changed; `drawWindowOccupant` stands
+a bust at a sill and has no opinion about the window behind it.
+
+---
+
 ## v4.0 — targetSdk 37, and a location row that names the place
 
 **Prepared, not published.** `versionCode = 31`, `versionName = "4.0"`. No tag, no push, no GitHub

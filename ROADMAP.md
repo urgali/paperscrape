@@ -11,17 +11,38 @@ that was.
 
 ## Current status
 
-**v4.0 prepared -- `targetSdk 37`, and the location row now names the place. Two strands, nothing else.**
+**v4.1 prepared -- the people system, and nothing else.**
 
-`versionCode = 31`, `versionName = "4.0"`. **No tag, no push, no GitHub Release.**
+`versionCode = 32`, `versionName = "4.1"`. **No tag, no push, no GitHub Release.**
 
 ```
-v4.0 [x]
- |- targetSdk 37
- \- location locality/city for GPS and Network
+v4.1 [x]
+ |- pedestrian depth ordering from the baseline, not the list index
+ |- groups of 1-3, with age, sex, direction and row on independent channels
+ |- density's real meaning restated and left applied
+ |- threshold offset unpinned from MOUNTAINS_BACK
+ \- people at commercial and skyscraper windows, not just two house panes
 
 (nothing scheduled after this)
 ```
+
+The skin-tone gap the first batch declared is now **closed**: three real tones per
+character, 96 variant PNGs, chosen automatically from the seed and configurable by nobody.
+
+Two threads remain open, both recorded rather than scheduled:
+
+- **A fourth, deeper skin tone needs an art pass, not a recolour.** It was generated and
+  dropped: at the depth that reads as distinct it converged on the woman's brown hair and
+  on the shared outline. Widening the range means revisiting hair and outline colours.
+- **The sprite memory budget doubled**, from 14.79 MB to 25.67 MB decoded, and
+  `SpriteGeometryTest`'s ceiling moved from 16 MB to 26 MB. Recolouring into a cached
+  bitmap at load would give the same tones with no growth; it is the cheaper answer if
+  device memory pressure is ever measured to be a real problem.
+
+Also unverified rather than unfinished: **no frame of v4.1 was ever rendered.** The people
+goldens are written down in `PeopleGoldenTest` but are `@Ignore`d, because the environment
+that built this release had no emulator and no `/dev/kvm`. Taking those pictures on a device
+is the one step between the golden scenes and a real visual regression net.
 
 1. **`targetSdk 36 -> 37`.** `compileSdk` was already 37 and is unchanged. Every Android 17
    behaviour change was re-assessed against this app's real code from the v3.9 baseline, not
