@@ -833,6 +833,37 @@ the same scene on every device and every run.
 Nothing here is cached, so nothing needs invalidating: a theme, size or
 customization change simply produces different values on the next frame.
 
+### Stratified selection, for the pools too small for a coin (v4.2)
+
+`CandidateNoise` answers "what value does this slot get" with an independent
+hash, which is correct when a pool has forty members and wrong when it has four.
+The candidate system already knew that -- it is why density uses a low-discrepancy
+threshold instead of a hashed one -- but the *attributes* kept flipping coins, and
+the people system is the one place where the pool is four groups, the sample is
+under a dozen people, and **the seed never changes for as long as a theme is
+selected**. A clump there is not an unlucky frame; it is what that theme looks
+like for ever.
+
+`engine/SeededBalance.kt` is the correction. Two functions, no state:
+
+- `rankOf(seed, channel, slot, slotCount, addressStride, addressOffset)` -- where a
+  slot falls in a seeded ordering of its whole pool, computed for one slot at a
+  time so it costs `slotCount` hashes and allocates nothing. Handing values out
+  by rank makes a split exact rather than merely expected: with four groups and
+  two values, two get each, always.
+- `drawCount(seed, channel, index, slotCount, rate)` -- how many of a pool are
+  drawn at a rate, as `floor(slotCount × rate + u)` for one seeded `u`. The mean
+  is exactly `slotCount × rate`, so a declared rate is preserved, but the "none of
+  them" tail is gone.
+
+Both keep the addressing the callers already had, so this changed which value a
+slot receives and nothing about which slot is which. `PedestrianPopulation` deals
+the four person kinds, the three group sizes, the three skin tones, the two
+directions and the two pavement rows; `WindowOccupants` deals a building's
+occupant count across its own panes. The stability contract is untouched:
+a slot's value is still a pure function of `(seed, slot)`, so lowering a density
+still removes particular slots and leaves the rest exactly as they were.
+
 ### Theme previews
 
 `engine/ThemePreviewScene.kt` describes what one theme's gallery card contains: sky colours, the

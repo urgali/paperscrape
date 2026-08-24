@@ -11,38 +11,51 @@ that was.
 
 ## Current status
 
-**v4.1 prepared -- the people system, and nothing else.**
+**v4.2 prepared -- two runtime defects in the people system, and nothing else.**
 
-`versionCode = 32`, `versionName = "4.1"`. **No tag, no push, no GitHub Release.**
+`versionCode = 33`, `versionName = "4.2"`. **No tag, no push, no GitHub Release.**
 
 ```
-v4.1 [x]
- |- pedestrian depth ordering from the baseline, not the list index
- |- groups of 1-3, with age, sex, direction and row on independent channels
- |- density's real meaning restated and left applied
- |- threshold offset unpinned from MOUNTAINS_BACK
- \- people at commercial and skyscraper windows, not just two house panes
+v4.2 [x]
+ |- stratified selection replaces the per-slot coin, so the twelve shipped seeds
+ |  each produce an adult of each sex, a child of each sex, all three tones,
+ |  both directions and groups of one, two and three
+ |- the restaurant frontage takes occupants at last -- it had no call site, and on
+ |  beach, new_year and spring there is no bar, so commercial people were
+ |  unrenderable on the theme the defect was reported from
+ |- window occupancy deals a count across a building's panes instead of flipping a
+ |  coin at each, so a three-pane frontage is never empty
+ |- the walk-frame stagger no longer follows the depth-sorted list index (found by
+ |  a pixel measurement, not reported)
+ \- eight people goldens rendered, looked at and committed; the sixteen stale
+    Canvas goldens regenerated, with the delta proved to be people-only
 
 (nothing scheduled after this)
 ```
 
-The skin-tone gap the first batch declared is now **closed**: three real tones per
-character, 96 variant PNGs, chosen automatically from the seed and configurable by nobody.
+**The people goldens are no longer `@Ignore`d.** v4.1's one real gap is closed: this
+release had an emulator, every people-golden PNG was rendered by the shipped drawing
+code and inspected before being committed, and the whole instrumented suite -- 48
+tests including 27 goldens -- is green on a Pixel 9 / API 37 emulator.
 
-Two threads remain open, both recorded rather than scheduled:
+Threads still open, recorded rather than scheduled:
 
-- **A fourth, deeper skin tone needs an art pass, not a recolour.** It was generated and
-  dropped: at the depth that reads as distinct it converged on the woman's brown hair and
-  on the shared outline. Widening the range means revisiting hair and outline colours.
-- **The sprite memory budget doubled**, from 14.79 MB to 25.67 MB decoded, and
+- **A fourth, deeper skin tone needs an art pass, not a recolour.** Unchanged from v4.1:
+  at the depth that reads as distinct it converged on the woman's brown hair and on the
+  shared outline.
+- **The sprite memory budget doubled** in v4.1, from 14.79 MB to 25.67 MB decoded, and
   `SpriteGeometryTest`'s ceiling moved from 16 MB to 26 MB. Recolouring into a cached
-  bitmap at load would give the same tones with no growth; it is the cheaper answer if
-  device memory pressure is ever measured to be a real problem.
-
-Also unverified rather than unfinished: **no frame of v4.1 was ever rendered.** The people
-goldens are written down in `PeopleGoldenTest` but are `@Ignore`d, because the environment
-that built this release had no emulator and no `/dev/kvm`. Taking those pictures on a device
-is the one step between the golden scenes and a real visual regression net.
+  bitmap at load would give the same tones with no growth. Unchanged here.
+- **A pedestrian can paint over the top row of a car.** `drawPeople` runs after the
+  vehicle loop and the near pavement row sits 1-2 px above the far lane. Pre-existing
+  since v4.0; measured at 1 and 8 pixels in the two traffic goldens. Fixing it means
+  opening the vehicle draw path, which needs its own approved batch.
+- **A thinned street can still be one-toned.** At 65% only two of the four group slots
+  survive, so two survivors can share a skin tone; `desert` at 65% is four people on
+  tone 2. Deliberate -- see D-4.2-D in `RELEASE_HISTORY.md` for the variety this buys.
+- **The committed goldens are device-specific.** They were taken on a Pixel 9 / API 37
+  emulator. Nothing says they will match a different Skia build, and the sixteen
+  pre-existing ones did not match this one.
 
 1. **`targetSdk 36 -> 37`.** `compileSdk` was already 37 and is unchanged. Every Android 17
    behaviour change was re-assessed against this app's real code from the v3.9 baseline, not

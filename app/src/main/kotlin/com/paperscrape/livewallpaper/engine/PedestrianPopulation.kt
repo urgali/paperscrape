@@ -184,12 +184,36 @@ internal object PedestrianPopulation {
     private const val CH_DIRECTION = 22
     private const val CH_ROW = 23
     private const val CH_START = 24
-    private const val CH_AGE = 25
-    private const val CH_SEX = 26
+    private const val CH_KIND = 25
     private const val CH_SKIN = 27
     private const val CH_MEMBER_PHASE = 28
     private const val CH_MEMBER_OFFSET = 29
     private const val CH_MEMBER_ROW = 30
+
+    // v4.2. The two axes whose value count does not divide the slot count evenly need one more
+    // draw to say *which* value gets the spare slot -- otherwise the spare would always fall on
+    // value 0 and every street would carry an extra person of the palest tone.
+    private const val CH_SKIN_ROTATION = 31
+    private const val CH_SIZE_ROTATION = 32
+
+    /**
+     * How many of the four group slots take the first of a two-valued attribute.
+     *
+     * Two, so direction, row, age and sex each split the pool exactly in half. This is the whole
+     * of "both directions always occur" and "an adult of each sex always occurs": it is a property
+     * of the arithmetic rather than something a seed has to be lucky enough to produce.
+     */
+    private const val HALF_OF_POOL = GROUP_COUNT / 2
+
+    /**
+     * How many of the four sprite kinds are adults, in [Pedestrian.kindIndex]'s own order.
+     *
+     * That order is `[man, woman, boy, girl]`, so the first two are the adults and the even
+     * indices are the males. A kind rank can therefore be read straight back as an age and a sex
+     * without a lookup table -- and `Pedestrian.kindIndex` recomputes exactly the rank it came
+     * from, which is what keeps the projection honest.
+     */
+    private const val ADULT_KINDS = 2
 
     /** How far apart, as a fraction of a ground tile, members of one group walk. */
     private const val MEMBER_SPACING = 0.018f
@@ -223,24 +247,44 @@ internal object PedestrianPopulation {
     ): List<Pedestrian> {
         if (density <= 0f) return emptyList()
         val fallbackIndex = CandidateThreshold.fallbackIndexFor(density, GROUP_COUNT, THRESHOLD_OFFSET)
+        // Which of the three sizes gets the fourth slot, and which of the three tones gets the
+        // spare in each stratum. Seeded, so it is not always the same one.
+        val sizeRotation = (CandidateNoise.value(seed, 0, CH_SIZE_ROTATION) * MAX_GROUP_SIZE)
+            .toInt().coerceIn(0, MAX_GROUP_SIZE - 1)
         val people = ArrayList<Pedestrian>(GROUP_COUNT * MAX_GROUP_SIZE)
         for (g in 0 until GROUP_COUNT) {
             if (!CandidateThreshold.isPresent(g, density, THRESHOLD_OFFSET, fallbackIndex)) continue
-            val size = 1 + (CandidateNoise.value(seed, g, CH_GROUP_SIZE) * MAX_GROUP_SIZE).toInt()
-                .coerceIn(0, MAX_GROUP_SIZE - 1)
-            // Direction is its own coin, read from its own channel. It is deliberately used for
+            // Sizes are dealt from {1, 2, 3} across the four slots rather than rolled per slot, so
+            // a street always shows a lone walker, a pair and a trio instead of, as `autumn` and
+            // `christmas` did, four groups that happen to be only ones and threes.
+            val size = 1 + (sizeRotation + rankAmongGroups(seed, CH_GROUP_SIZE, g)) % MAX_GROUP_SIZE
+            // Direction is its own rank, read from its own channel. It is deliberately used for
             // nothing else in this function: that is the whole of `direction != composition`.
-            val direction = if (CandidateNoise.value(seed, g, CH_DIRECTION) < 0.5f) 1f else -1f
-            val groupRow = if (CandidateNoise.value(seed, g, CH_ROW) < 0.5f) nearRowYFraction else farRowYFraction
+            // Two groups walk each way, which is what `tundra` -- ten people, all rightward --
+            // could not manage when each group flipped its own coin.
+            val direction = if (rankAmongGroups(seed, CH_DIRECTION, g) < HALF_OF_POOL) 1f else -1f
+            val groupRow =
+                if (rankAmongGroups(seed, CH_ROW, g) < HALF_OF_POOL) nearRowYFraction else farRowYFraction
             val groupStart = CandidateNoise.value(seed, g, CH_START)
             for (m in 0 until size) {
                 // Each member gets its own address in the noise, so member 2's sex is not a
                 // function of member 1's and a group of three is not three copies of a pattern.
+                // The four groups' m-th members form one stratum, and each attribute is dealt
+                // across that stratum: the four group leaders are always two adults and two
+                // children, two male and two female, and carry all three tones between them.
                 val addr = g * MAX_GROUP_SIZE + m
-                val age = if (CandidateNoise.value(seed, addr, CH_AGE) < 0.5f) PersonAge.ADULT else PersonAge.CHILD
-                val sex = if (CandidateNoise.value(seed, addr, CH_SEX) < 0.5f) PersonSex.MALE else PersonSex.FEMALE
-                val skin = (CandidateNoise.value(seed, addr, CH_SKIN) * SKIN_TONE_COUNT).toInt()
-                    .coerceIn(0, SKIN_TONE_COUNT - 1)
+                // One rank, four kinds, four slots: each stratum deals `[man, woman, boy, girl]`
+                // out whole, so every street carries an adult of each sex and a child of each sex
+                // however few people it has. Age and sex are read back off that deal, which makes
+                // them *exactly* independent -- each is 50/50 and their joint is 25% by
+                // construction -- where two separate half-and-half deals left the pairing to
+                // chance and produced a boy-less `beach`, `autumn` and `easter`.
+                val kind = rankAmongMembers(seed, CH_KIND, g, m)
+                val age = if (kind < ADULT_KINDS) PersonAge.ADULT else PersonAge.CHILD
+                val sex = if (kind % 2 == 0) PersonSex.MALE else PersonSex.FEMALE
+                val skinRotation = (CandidateNoise.value(seed, m, CH_SKIN_ROTATION) * SKIN_TONE_COUNT)
+                    .toInt().coerceIn(0, SKIN_TONE_COUNT - 1)
+                val skin = (skinRotation + rankAmongMembers(seed, CH_SKIN, g, m)) % SKIN_TONE_COUNT
                 // Members trail the group's anchor along its own direction of travel, so a group
                 // walking left is not mirrored into walking backwards.
                 val spread = CandidateNoise.range(seed, addr, CH_MEMBER_OFFSET, 0.6f, 1.4f)
@@ -272,4 +316,27 @@ internal object PedestrianPopulation {
         people.sortWith(compareBy({ it.depth }, { it.groupIndex }, { it.memberIndex }))
         return people
     }
+
+    /**
+     * Group [g]'s place in a seeded ordering of the four group slots, on [channel].
+     *
+     * The address is the group index, exactly the address v4.1 hashed. What changed is that the
+     * value is compared against its peers instead of against a constant.
+     */
+    private fun rankAmongGroups(seed: Int, channel: Int, g: Int): Int =
+        SeededBalance.rankOf(seed, channel, g, GROUP_COUNT, addressStride = 1, addressOffset = 0)
+
+    /**
+     * The place of group [g]'s member [m] among the four groups' *m*-th members, on [channel].
+     *
+     * The stratum is deliberate. A group's size is not known when its members' attributes are
+     * chosen -- and must not be, or size would bias composition -- so the pool an attribute is
+     * dealt across has to be one that exists whatever the sizes turn out to be. The four leaders
+     * always exist, so dealing across them guarantees the balance where it is always visible;
+     * strata 1 and 2 are dealt the same way among however many groups reach them.
+     *
+     * The address is `g * MAX_GROUP_SIZE + m`, exactly v4.1's.
+     */
+    private fun rankAmongMembers(seed: Int, channel: Int, g: Int, m: Int): Int =
+        SeededBalance.rankOf(seed, channel, g, GROUP_COUNT, addressStride = MAX_GROUP_SIZE, addressOffset = m)
 }

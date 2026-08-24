@@ -227,6 +227,42 @@ class SceneObjectRenderer(
         // The stale doc comment on the old count claimed people had no density setting; they have
         // had one (`config.density` plus `peopleNightDensity`) since well before this release.
 
+        // How many windows each building kind offers an occupant, which v4.2's occupancy needs
+        // because it deals a count across a building's panes instead of flipping one coin at each.
+        // These are counts of the `drawWindowOccupant` call sites below, not of drawn windows: the
+        // restaurant draws one wide pane, the bar three, the tower sixteen painted into its wall.
+        const val SMALL_HOUSE_WINDOWS = 2
+        const val LARGE_HOUSE_WINDOWS = 4
+        const val BAR_WINDOWS = 3
+        const val RESTAURANT_WINDOWS = 2
+        const val SKYSCRAPER_WINDOWS = 16
+
+        /**
+         * Where a bust stands behind the restaurant's shopfront.
+         *
+         * `restaurant_window` is blitted at (-35, -45) and is 30x22 local units, and its artwork
+         * is **two glass panes** either side of a mullion -- glass at sprite pixels 8..39 and
+         * 50..81, which is local x -32.3..-22.0 and -18.7..-8.0. Their centres are the two numbers
+         * below, so an occupant stands behind a pane rather than behind the frame between them.
+         *
+         * The occupant *box* stays [OCCUPANT_BOX_UNITS] wide, the same as a house's and the bar's,
+         * because that box drives the bust's size: scaling it to a single 10.7-unit pane instead
+         * would draw a head half the height of the glass it is behind. The two busts therefore
+         * touch at the mullion, which is what two people at a restaurant window do.
+         */
+        const val RESTAURANT_PANE_A_CENTRE_X = -27.2f
+        const val RESTAURANT_PANE_B_CENTRE_X = -13.3f
+        const val RESTAURANT_WINDOW_Y = -45f
+
+        /**
+         * The occupant box every populatable window except the tower's uses, in local units.
+         *
+         * A house window is 22 units and the bar's are the same drawable, so this is not a new
+         * number -- it is the one those call sites already pass, named here because the restaurant
+         * now has to state it away from its own pane width.
+         */
+        const val OCCUPANT_BOX_UNITS = 22f
+
         /** Half a walk sprite's own width, in local units, for the wrap-tile cull. */
         const val PERSON_HALF_WIDTH_UNITS = 21.5f
 
@@ -903,7 +939,7 @@ class SceneObjectRenderer(
             nearRowYFraction = SceneSpace.PAVEMENT_NEAR_Y_FRACTION,
             farRowYFraction = SceneSpace.PAVEMENT_FAR_Y_FRACTION,
         )
-        for ((personIndex, person) in population.withIndex()) {
+        for (person in population) {
             // Both the row's y and the speed at it come from [SceneSpace]: a pedestrian on the
             // near row is nearer than one on the far row, so it is drawn larger and crosses the
             // screen faster, by the same ratio the two ground lines imply. People used to sit at a
@@ -927,7 +963,18 @@ class SceneObjectRenderer(
             var x = geom.shiftXWrapped + tileFraction * geom.tileWidth
             if (x < -geom.tileWidth * 0.5f) x += geom.tileWidth
 
-            val frame = elapsedSeconds.frameIndex(3.2f, personIndex.toFloat(), 4)
+            // **v4.2: the walk frame is staggered by the figure's own address, not by where it
+            // happens to sit in the sorted list.** v4.1 passed the list position, and the list is
+            // sorted by depth -- so inserting one pedestrian shifted the position of every
+            // pedestrian sorted behind it and stepped all of their legs to a different frame. That
+            // made moving the People slider by one notch re-animate the survivors, which is the
+            // stability contract `CandidateThreshold` exists to keep and which
+            // `PedestrianPopulationTest` could not see, being a test about the population rather
+            // than about the frame. The address is `groupIndex * MAX_GROUP_SIZE + memberIndex`,
+            // the same one the population itself is addressed by, so it is fixed for a figure
+            // whatever else is on the street.
+            val walkStagger = person.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + person.memberIndex
+            val frame = elapsedSeconds.frameIndex(3.2f, walkStagger.toFloat(), 4)
             val resId = personWalkSkinDrawables[person.kindIndex][seasonIdx][person.skinIndex][frame]
             val halfWidth = PERSON_HALF_WIDTH_UNITS * s
 
@@ -1264,12 +1311,12 @@ class SceneObjectRenderer(
         // 20-unit door centred on 0, all sit clear of each other on a wall running -35..35.
         drawSprite(canvas, R.drawable.house_shared_window, -37f, -45f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -37f, -46f, litWindowAlpha(nightGlow))
-        drawWindowOccupant(canvas, r, -37f, -46f, 22f, 22f, WindowBuildingKind.HOUSE, 0)
+        drawWindowOccupant(canvas, r, -37f, -46f, 22f, 22f, WindowBuildingKind.HOUSE, 0, SMALL_HOUSE_WINDOWS)
         drawSprite(canvas, R.drawable.house_shared_window, 15f, -45f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 15f, -46f, litWindowAlpha(nightGlow))
         // v4.1: the second window was drawn but never populated -- one of the two panes on this
         // elevation could not hold anybody at all.
-        drawWindowOccupant(canvas, r, 15f, -46f, 22f, 22f, WindowBuildingKind.HOUSE, 1)
+        drawWindowOccupant(canvas, r, 15f, -46f, 22f, 22f, WindowBuildingKind.HOUSE, 1, SMALL_HOUSE_WINDOWS)
         if (customization.christmasDecorationsEnabled) {
             drawWindowLights(canvas, r, elapsed, -37f, -24f, 22f)
             drawWindowLights(canvas, r, elapsed, 15f, -24f, 22f)
@@ -1317,14 +1364,14 @@ class SceneObjectRenderer(
         drawSprite(canvas, R.drawable.house_shared_window, 24f, -84f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -85f, litAlpha)
         // v4.1: all four panes are candidates now. Only the upper-left one ever was.
-        drawWindowOccupant(canvas, r, -46f, -85f, 22f, 22f, WindowBuildingKind.HOUSE, 0)
-        drawWindowOccupant(canvas, r, 24f, -85f, 22f, 22f, WindowBuildingKind.HOUSE, 1)
+        drawWindowOccupant(canvas, r, -46f, -85f, 22f, 22f, WindowBuildingKind.HOUSE, 0, LARGE_HOUSE_WINDOWS)
+        drawWindowOccupant(canvas, r, 24f, -85f, 22f, 22f, WindowBuildingKind.HOUSE, 1, LARGE_HOUSE_WINDOWS)
         drawSprite(canvas, R.drawable.house_shared_window, -46f, -44f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, -46f, -45f, litAlpha)
         drawSprite(canvas, R.drawable.house_shared_window, 24f, -44f)
         drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -45f, litAlpha)
-        drawWindowOccupant(canvas, r, -46f, -45f, 22f, 22f, WindowBuildingKind.HOUSE, 2)
-        drawWindowOccupant(canvas, r, 24f, -45f, 22f, 22f, WindowBuildingKind.HOUSE, 3)
+        drawWindowOccupant(canvas, r, -46f, -45f, 22f, 22f, WindowBuildingKind.HOUSE, 2, LARGE_HOUSE_WINDOWS)
+        drawWindowOccupant(canvas, r, 24f, -45f, 22f, 22f, WindowBuildingKind.HOUSE, 3, LARGE_HOUSE_WINDOWS)
         if (customization.christmasDecorationsEnabled) {
             val sills = floatArrayOf(-46f, -63f, 24f, -63f, -46f, -23f, 24f, -23f)
             for (i in 0 until 4) {
@@ -1388,13 +1435,17 @@ class SceneObjectRenderer(
         winH: Float,
         kind: WindowBuildingKind,
         windowIndex: Int,
+        windowCount: Int,
     ) {
         // The building's own stable identity. `tileFractionX` is its position along the ground
         // tile, which is fixed for the life of the scene, so an occupant does not move house
         // between frames.
         val buildingSeed = (r.spec.tileFractionX * 100_003f).toInt()
         val seed = themeId.hashCode()
-        if (!WindowOccupants.isOccupied(seed, buildingSeed, windowIndex, kind)) return
+        // v4.2 passes how many windows this building has, because occupancy is now a count dealt
+        // across the building's own panes rather than a coin flipped at each one. See
+        // [WindowOccupants.occupantCount] for the tail that removes.
+        if (!WindowOccupants.isOccupied(seed, buildingSeed, windowIndex, windowCount, kind)) return
         val seasonIdx = if (customization.winterColorsEnabled) 1 else 0
         val occupant = WindowOccupants.occupantAt(seed, buildingSeed, windowIndex)
         val resId = personWindowHeadSkinDrawables[occupant.kindIndex][seasonIdx][occupant.skinIndex]
@@ -1895,7 +1946,7 @@ class SceneObjectRenderer(
                     -width / 2f + 5f + column * 20f,
                     -height + 5f + row * 27f,
                     14f, 14f,
-                    WindowBuildingKind.SKYSCRAPER, index,
+                    WindowBuildingKind.SKYSCRAPER, index, SKYSCRAPER_WINDOWS,
                 )
             }
         }
@@ -1947,6 +1998,32 @@ class SceneObjectRenderer(
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
         val windowColor = ColorUtils.blendARGB(0xFFB9CBD9.toInt(), 0xFFFFE79A.toInt(), nightGlow)
         drawTintedSprite(canvas, R.drawable.restaurant_window, -35f, -45f, windowColor)
+        // **v4.2: the restaurant's frontage can hold somebody.** This call site is the whole of
+        // the reported "no people in commercial buildings": a restaurant is one of the two
+        // non-residential street-level buildings the scene draws, it is the *more* common of the
+        // two -- two to four per theme against roughly one bar, and `beach`, `new_year` and
+        // `spring` have no bar at all -- and v4.1 gave it no occupant call at all. Its window was
+        // therefore unpopulatable on every theme, which no count of "3/3 populatable panes" on the
+        // bar could reveal.
+        //
+        // The frontage is one 30x22-unit sprite carrying two glass panes, so it takes two
+        // occupants -- see [RESTAURANT_PANE_A_CENTRE_X] for the measurement and for why the
+        // occupant box is not the pane's own width. Two slots also matter for *how often* anybody
+        // is there: occupancy is a count dealt across a building's panes, and a one-pane building
+        // degenerates back to the single coin flip v4.2 exists to remove. The window drawing above
+        // is untouched -- this only stands busts behind glass that was already being painted.
+        drawWindowOccupant(
+            canvas, r,
+            RESTAURANT_PANE_A_CENTRE_X - OCCUPANT_BOX_UNITS / 2f, RESTAURANT_WINDOW_Y,
+            OCCUPANT_BOX_UNITS, OCCUPANT_BOX_UNITS,
+            WindowBuildingKind.COMMERCIAL, 0, RESTAURANT_WINDOWS,
+        )
+        drawWindowOccupant(
+            canvas, r,
+            RESTAURANT_PANE_B_CENTRE_X - OCCUPANT_BOX_UNITS / 2f, RESTAURANT_WINDOW_Y,
+            OCCUPANT_BOX_UNITS, OCCUPANT_BOX_UNITS,
+            WindowBuildingKind.COMMERCIAL, 1, RESTAURANT_WINDOWS,
+        )
         if (customization.christmasDecorationsEnabled) {
             drawWindowLights(canvas, r, elapsed, -35f, -22f, 30f)
         }
@@ -1991,7 +2068,7 @@ class SceneObjectRenderer(
             drawSpriteFaded(canvas, R.drawable.house_window_lit, wx, -83f, barLit)
             // v4.1: commercial frontage can hold somebody. The window drawing above is byte for
             // byte what it was; this only adds a bust standing at its sill.
-            drawWindowOccupant(canvas, r, wx, -83f, 22f, 22f, WindowBuildingKind.COMMERCIAL, wi)
+            drawWindowOccupant(canvas, r, wx, -83f, 22f, 22f, WindowBuildingKind.COMMERCIAL, wi, BAR_WINDOWS)
         }
         if (customization.christmasDecorationsEnabled) {
             for ((i, wx) in floatArrayOf(-34f, -11f, 12f).withIndex()) {

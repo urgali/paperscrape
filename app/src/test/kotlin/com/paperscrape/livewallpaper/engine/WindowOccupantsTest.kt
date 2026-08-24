@@ -16,13 +16,24 @@ class WindowOccupantsTest {
 
     private fun seeds(n: Int) = (0 until n).map { "theme-$it".hashCode() }
 
+    /**
+     * A pane count for the rate sweep.
+     *
+     * v4.2 made occupancy a count dealt across a building's own windows, so how many a building
+     * has is now an input rather than an irrelevance: eight is a plain, kind-neutral pool that
+     * keeps the sweep measuring the rate itself.
+     */
+    private companion object {
+        const val WINDOWS = 8
+    }
+
     private fun occupants(kind: WindowBuildingKind, windowsPerBuilding: Int, buildings: Int = 60) =
         buildList {
             for (seed in seeds(40)) {
                 for (b in 0 until buildings) {
                     val buildingSeed = b * 100_003
                     for (w in 0 until windowsPerBuilding) {
-                        if (WindowOccupants.isOccupied(seed, buildingSeed, w, kind)) {
+                        if (WindowOccupants.isOccupied(seed, buildingSeed, w, windowsPerBuilding, kind)) {
                             add(WindowOccupants.occupantAt(seed, buildingSeed, w))
                         }
                     }
@@ -53,9 +64,9 @@ class WindowOccupantsTest {
             var total = 0
             for (seed in seeds(60)) {
                 for (b in 0 until 200) {
-                    for (w in 0 until 8) {
+                    for (w in 0 until WINDOWS) {
                         total++
-                        if (WindowOccupants.isOccupied(seed, b * 100_003, w, kind)) occupied++
+                        if (WindowOccupants.isOccupied(seed, b * 100_003, w, WINDOWS, kind)) occupied++
                     }
                 }
             }
@@ -109,7 +120,7 @@ class WindowOccupantsTest {
             for (b in 0 until 40) {
                 val buildingSeed = b * 100_003
                 val here = (0 until 16)
-                    .filter { WindowOccupants.isOccupied(seed, buildingSeed, it, WindowBuildingKind.SKYSCRAPER) }
+                    .filter { WindowOccupants.isOccupied(seed, buildingSeed, it, 16, WindowBuildingKind.SKYSCRAPER) }
                     .map { WindowOccupants.occupantAt(seed, buildingSeed, it).kindIndex }
                 if (here.distinct().size > 1) { found = true; break }
             }
@@ -183,9 +194,9 @@ class WindowOccupantsTest {
         for (seed in seeds(300)) {
             for (b in 0 until 20) {
                 val bs = b * 100_003
-                for (w in 0 until 8) {
+                for (w in 0 until WINDOWS) {
                     everyWindow += WindowOccupants.occupantAt(seed, bs, w).kindIndex
-                    if (WindowOccupants.isOccupied(seed, bs, w, WindowBuildingKind.HOUSE)) {
+                    if (WindowOccupants.isOccupied(seed, bs, w, WINDOWS, WindowBuildingKind.HOUSE)) {
                         occupiedOnly += WindowOccupants.occupantAt(seed, bs, w).kindIndex
                     }
                 }
@@ -211,14 +222,14 @@ class WindowOccupantsTest {
     @Test
     fun `the same seed puts the same people at the same windows`() {
         for (seed in seeds(50)) {
-            for (w in 0 until 8) {
+            for (w in 0 until WINDOWS) {
                 assertEquals(
                     WindowOccupants.occupantAt(seed, 3 * 100_003, w),
                     WindowOccupants.occupantAt(seed, 3 * 100_003, w),
                 )
                 assertEquals(
-                    WindowOccupants.isOccupied(seed, 3 * 100_003, w, WindowBuildingKind.HOUSE),
-                    WindowOccupants.isOccupied(seed, 3 * 100_003, w, WindowBuildingKind.HOUSE),
+                    WindowOccupants.isOccupied(seed, 3 * 100_003, w, WINDOWS, WindowBuildingKind.HOUSE),
+                    WindowOccupants.isOccupied(seed, 3 * 100_003, w, WINDOWS, WindowBuildingKind.HOUSE),
                 )
             }
         }
@@ -235,12 +246,12 @@ class WindowOccupantsTest {
     /** Occupants must not depend on the clock, or a face would flicker between frames. */
     @Test
     fun `occupancy does not depend on the clock`() {
-        val before = (0 until 8).map {
-            WindowOccupants.isOccupied(999, 100_003, it, WindowBuildingKind.SKYSCRAPER)
+        val before = (0 until 16).map {
+            WindowOccupants.isOccupied(999, 100_003, it, 16, WindowBuildingKind.SKYSCRAPER)
         }
         Thread.sleep(5)
-        val after = (0 until 8).map {
-            WindowOccupants.isOccupied(999, 100_003, it, WindowBuildingKind.SKYSCRAPER)
+        val after = (0 until 16).map {
+            WindowOccupants.isOccupied(999, 100_003, it, 16, WindowBuildingKind.SKYSCRAPER)
         }
         assertEquals(before, after)
     }

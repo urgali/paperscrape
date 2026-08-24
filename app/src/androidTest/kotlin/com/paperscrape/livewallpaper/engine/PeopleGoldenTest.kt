@@ -1,55 +1,33 @@
 package com.paperscrape.livewallpaper.engine
 
-import org.junit.Ignore
 import org.junit.Test
 
 /**
  * Visual regression for the people system.
  *
- * ### Why every test here is `@Ignore`d, and what it would take to enable them
+ * ### These were `@Ignore`d, and are not any more
  *
- * A golden is an assertion against a *committed PNG*, and the only way to produce that PNG is to
- * render the scene on a device — [SceneGolden] says why at length: the frame has to come from the
- * shipped `CanvasSceneTarget` writing into a real `android.graphics.Bitmap`, because a golden
- * produced by a second, JVM-only drawing path would prove nothing about the drawing code that
- * ships.
+ * v4.1 wrote these scenes and parked every assertion behind `@Ignore`, because a golden is an
+ * assertion against a *committed PNG* and the only honest way to produce one is to render on a
+ * device -- which that session had none of. v4.2 was done with an emulator, so **every PNG in
+ * `androidTest/assets/golden/people-*.png` was rendered by this code on that emulator and looked
+ * at before being committed.** The class-level note about how to take them still applies to
+ * whoever regenerates them next; what has changed is that there is now something to regenerate
+ * *from*.
  *
- * The v4.1 work was done in an environment with no emulator and no `/dev/kvm`, so **no frame of
- * this release was ever rendered.** Committing these tests without their PNGs would leave a red
- * suite; committing PNGs produced any other way would be committing a fiction. So the scenes are
- * written down — which is the part that needs judgement and review — and the assertions are parked
- * behind `@Ignore` until somebody with a device can take the pictures.
+ * ### What the eight scenes pin
  *
- * **To enable them**, on a device or emulator:
- *
- * ```
- * ./gradlew :app:connectedDebugAndroidTest \
- *     -Pandroid.testInstrumentationRunnerArguments.class=\
- * com.paperscrape.livewallpaper.engine.PeopleGoldenTest \
- *     -Pandroid.testInstrumentationRunnerArguments.updateGoldens=true
- * ```
- *
- * then pull `golden-output/` from the device's external files dir, **look at every frame** — that
- * is the whole point, and `SceneGolden`'s own note is blunt about it: a golden that changed
- * without a reason in the diff is a regression that has just been blessed — commit the PNGs to
- * `app/src/androidTest/assets/golden/`, and delete the `@Ignore` annotations.
- *
- * ### Why these scenes
- *
- * Each one pins a claim v4.1 makes that a unit test can only make about numbers:
- *
- *  - **people-single / people-group** — that density selects *groups*, so a low setting yields a
- *    lone figure and a high one yields clusters, rather than the four evenly-spaced walkers v4.0
- *    always drew.
- *  - **people-overlap** — the reported defect, as a picture. The focus band is the pavement, so
- *    the assertion is about the figures rather than about the sky above them.
- *  - **people-mixed** — that a frame contains adults and children of both sexes at once, which is
- *    exactly what the old index-locked table could not produce.
- *  - **people-window / people-commercial / people-skyscraper** — that busts appear at house,
- *    shopfront and tower windows, and that the windows themselves are unchanged behind them.
- *  - **people-skin** — that more than one skin tone reaches the street in a single frame. Added
- *    by the skin batch; it is the only one of these a numeric test cannot stand in for, because
- *    what it pins is a colour rather than a position.
+ *  - **people-single / people-group** -- that density selects *groups*, so a low setting yields a
+ *    lone figure or a small cluster and a high one fills the pavement.
+ *  - **people-overlap** -- the reported depth defect, as a picture. `PeopleOcclusionTest` measures
+ *    the ordering; this is the frame a human looks at to see that it reads correctly.
+ *  - **people-mixed** -- adults and children of both sexes in one frame, which the v4.0 index-locked
+ *    table could not produce and which v4.1 produced only on some themes.
+ *  - **people-window / people-commercial / people-skyscraper** -- busts at house, shopfront and
+ *    tower windows. `people-commercial` is the one v4.1 could not have passed: its theme's
+ *    commercial frontage had no occupant call site at all.
+ *  - **people-skin** -- that more than one tone reaches one frame. The only one of the eight a
+ *    numeric test cannot stand in for, because what it pins is a colour rather than a position.
  *
  * ### The pavement band
  *
@@ -57,8 +35,23 @@ import org.junit.Test
  * [SceneSpace.PAVEMENT_FAR_Y_FRACTION] and [SceneSpace.PAVEMENT_NEAR_Y_FRACTION] at
  * [SceneGolden.HEIGHT], opened upward far enough to contain a standing figure's full height. A
  * whole-frame tolerance is blind to a person: [SceneGolden.MAX_DIFFERING_FRACTION] of a 360x800
- * frame is 576 pixels, and a pedestrian at this scale covers rather fewer. Measured against this
- * band instead, a figure that moves, vanishes or swaps places with another one fails.
+ * frame is 576 pixels, and a pedestrian at this frame size covers rather fewer. Measured against
+ * this band instead, a figure that moves, vanishes or swaps places with another one fails.
+ *
+ * ### Regenerating
+ *
+ * ```
+ * ./gradlew :app:installDebug :app:installDebugAndroidTest
+ * adb shell am instrument -w \
+ *     -e class com.paperscrape.livewallpaper.engine.PeopleGoldenTest \
+ *     -e updateGoldens true \
+ *     com.paperscrape.livewallpaper.debug.test/androidx.test.runner.AndroidJUnitRunner
+ * ```
+ *
+ * The frames are also emitted to logcat under the `GOLDENPNG` tag, base64 in chunks, because the
+ * app's external files directory is not readable by the `shell` user -- see [SceneGolden] for why
+ * that path exists. **Look at every frame** before committing it: a golden that changed without a
+ * reason in the diff is a regression that has just been blessed.
  */
 class PeopleGoldenTest {
 
@@ -82,40 +75,60 @@ class PeopleGoldenTest {
             label = "facades",
         )
 
-        fun people(density: Float, themeId: String = "sunset", name: String) = GoldenScene(
-            name = name,
-            dayPhase = GoldenScene.day(),
-            themeId = themeId,
-            customise = { base ->
-                base.copy(
-                    people = base.people.copy(visible = true, density = density),
-                    peopleNightDensity = density,
-                )
-            },
-            focus = listOf(PAVEMENT),
+        /**
+         * The `desert` restaurant's shopfront, and nothing else.
+         *
+         * Measured off the rendered frame: the pane sits at x 291..302, y 565..578, and the bust
+         * behind it covers roughly 70 of this rectangle's 360 pixels. That ratio is the point.
+         * [SceneGolden.MAX_FOCUS_DIFFERING_FRACTION] of a rectangle this small is seven pixels, so
+         * the occupant vanishing fails by an order of magnitude -- where the same loss measured
+         * against the whole facade band, let alone the whole frame, would pass comfortably. This
+         * is the assertion v4.1 had no way to make: on every theme its restaurants were empty.
+         */
+        val RESTAURANT_FRONT = GoldenFocus(
+            left = 288, top = 562, right = 306, bottom = 582, label = "restaurant frontage",
         )
+
+        /** The two `city` towers whose window grids hold busts, one rectangle each. */
+        val TOWER_LEFT = GoldenFocus(left = 154, top = 506, right = 184, bottom = 532, label = "left tower windows")
+        val TOWER_RIGHT = GoldenFocus(left = 218, top = 536, right = 234, bottom = 562, label = "right tower windows")
+
+        fun people(density: Float, themeId: String = "sunset", name: String, focus: List<GoldenFocus> = listOf(PAVEMENT)) =
+            GoldenScene(
+                name = name,
+                dayPhase = GoldenScene.day(),
+                themeId = themeId,
+                customise = { base ->
+                    base.copy(
+                        people = base.people.copy(visible = true, density = density),
+                        peopleNightDensity = density,
+                    )
+                },
+                focus = focus,
+            )
     }
 
     /** A thinned street. Density this low selects a single group. */
-    @Ignore("No golden PNG committed -- see the class comment for how to take it.")
     @Test
     fun `people-single`() = SceneGolden.assertMatches(people(0.2f, name = "people-single"))
 
-    /** A full street: every group slot present, so clusters of two and three appear. */
-    @Ignore("No golden PNG committed -- see the class comment for how to take it.")
+    /**
+     * A full street, on the same theme as `people-single`.
+     *
+     * The pair is the 20%-versus-100% evidence: two frames of one theme differing only in the
+     * density, so the difference between them *is* what the setting does. v4.1 could only argue
+     * this from a simulated threshold table.
+     */
     @Test
     fun `people-group`() = SceneGolden.assertMatches(people(1f, name = "people-group"))
 
     /**
-     * Two skin tones in one frame, which is the claim the v4.1 skin batch adds.
+     * More than one skin tone in one frame.
      *
-     * The seed is the theme id's hash, so a theme fixes the street; `beach` at full density is
-     * chosen because its population spans more than one tone -- `SkinToneTest` proves tones vary
-     * across seeds, and this is the frame where that becomes visible rather than statistical.
-     * The pavement focus is what makes it measurable: a tone change repaints the skin of every
-     * figure in the band, far past the focus tolerance, while leaving clothes and outlines alone.
+     * `beach` is chosen deliberately: it is the theme the defect was reported from, and the theme
+     * whose six pedestrians were, under v4.1, five girls and a boy on tone 2 with no adult of
+     * either sex. This frame is what that street looks like now.
      */
-    @Ignore("No golden PNG committed -- see the class comment for how to take it.")
     @Test
     fun `people-skin`() =
         SceneGolden.assertMatches(people(1f, themeId = "beach", name = "people-skin"))
@@ -123,59 +136,69 @@ class PeopleGoldenTest {
     /**
      * Ages and sexes mixed in one frame.
      *
-     * Distinguished from `people-group` by its theme, and therefore by its seed: the two frames
-     * draw different streets from the same code, which is the claim about variety that a single
-     * frame cannot make on its own.
+     * A different theme from `people-skin`, and therefore a different seed and a different street:
+     * two frames drawn by one piece of code is the claim about variety that no single frame can
+     * make. `winter` carries the evenest mix the catalogue produces -- three men, two women, two
+     * boys and two girls.
      */
-    @Ignore("No golden PNG committed -- see the class comment for how to take it.")
     @Test
     fun `people-mixed`() =
-        SceneGolden.assertMatches(people(1f, themeId = "beach", name = "people-mixed"))
+        SceneGolden.assertMatches(people(1f, themeId = "winter", name = "people-mixed"))
 
     /**
      * Overlap and depth, as a picture.
      *
-     * At full density the street carries enough figures that some of them cross, and the pavement
-     * focus is where that shows. This is the frame that would have caught the reported defect.
+     * `new_year` at 80% is the same scene `PeopleOcclusionTest` measures: the three figures
+     * arriving between 40% and 80% all stand nearer than the three already there, and they cover
+     * pixels those three had painted. This is that frame, so the numeric claim and the picture are
+     * about the same street rather than two different ones.
      */
-    @Ignore("No golden PNG committed -- see the class comment for how to take it.")
     @Test
     fun `people-overlap`() =
-        SceneGolden.assertMatches(people(1f, themeId = "city", name = "people-overlap"))
+        SceneGolden.assertMatches(people(0.8f, themeId = "new_year", name = "people-overlap"))
 
-    /** Busts at house windows, measured on the facades rather than the whole frame. */
-    @Ignore("No golden PNG committed -- see the class comment for how to take it.")
+    /**
+     * Busts at house windows, measured on the facades rather than the whole frame.
+     *
+     * On `spring` rather than `sunset`, which is what `people-group` already draws: two goldens of
+     * one frame under two names would double the maintenance and halve the coverage, and the first
+     * version of this file did exactly that -- the two PNGs came out byte-identical.
+     */
     @Test
     fun `people-window`() = SceneGolden.assertMatches(
         GoldenScene(
             name = "people-window",
             dayPhase = GoldenScene.day(),
-            themeId = "sunset",
+            themeId = "spring",
             focus = listOf(FACADES),
         ),
     )
 
-    /** Busts at shopfront windows — a building kind that could not hold anybody before v4.1. */
-    @Ignore("No golden PNG committed -- see the class comment for how to take it.")
+    /**
+     * Somebody behind commercial glass -- the frame v4.1 could not have produced.
+     *
+     * `desert`'s restaurant at tile fraction 0.433 holds a woman on tone 0, and the focus is her
+     * pane rather than the facade band, because a golden about one bust has to be measured over
+     * the bust. Against v4.1 this rectangle contains an empty window.
+     */
     @Test
     fun `people-commercial`() = SceneGolden.assertMatches(
         GoldenScene(
             name = "people-commercial",
             dayPhase = GoldenScene.day(),
-            themeId = "beach",
-            focus = listOf(FACADES),
+            themeId = "desert",
+            focus = listOf(RESTAURANT_FRONT),
         ),
     )
 
-    /** Busts in a tower's window grid — likewise new in v4.1, at a deliberately sparse rate. */
-    @Ignore("No golden PNG committed -- see the class comment for how to take it.")
+    /** Busts in a tower's window grid, at a deliberately sparse rate: four faces over two towers. */
     @Test
     fun `people-skyscraper`() = SceneGolden.assertMatches(
         GoldenScene(
             name = "people-skyscraper",
             dayPhase = GoldenScene.day(),
             themeId = "city",
-            focus = listOf(FACADES),
+            focus = listOf(TOWER_LEFT, TOWER_RIGHT),
         ),
     )
 }

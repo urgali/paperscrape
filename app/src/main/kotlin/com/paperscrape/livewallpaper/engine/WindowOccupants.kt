@@ -77,6 +77,9 @@ internal object WindowOccupants {
     private const val CH_SEX = 43
     private const val CH_SKIN = 44
 
+    /** v4.2: how many of a building's windows are occupied, as opposed to which. */
+    private const val CH_PRESENT_COUNT = 45
+
     /**
      * Roughly how many of a house's windows have someone at them.
      *
@@ -112,10 +115,37 @@ internal object WindowOccupants {
      * constant `winX` could not express.
      */
     private fun address(buildingSeed: Int, windowIndex: Int): Int =
-        buildingSeed * 31 + windowIndex * 7 + 13
+        buildingSeed * BUILDING_ADDRESS_STRIDE + windowIndex * WINDOW_ADDRESS_STRIDE + ADDRESS_BIAS
+
+    // The three parts of [address], named so that [isOccupied] can hand the same arithmetic to
+    // [SeededBalance.rankOf] instead of restating it. The values are v4.1's, unchanged: a window's
+    // address is what it always was, and only the decision made with it has moved.
+    private const val BUILDING_ADDRESS_STRIDE = 31
+    private const val WINDOW_ADDRESS_STRIDE = 7
+    private const val ADDRESS_BIAS = 13
+
+    /**
+     * How many of a building's [windowCount] windows are occupied.
+     *
+     * Separate from *which* ones, and that separation is the v4.2 fix. v4.1 rolled one coin per
+     * window at [rateFor], which is unbiased on average and empty far too often in the small: a
+     * three-pane frontage came out with nobody 21.6% of the time, a two-window cottage 43.6% of
+     * the time, and since there is roughly one bar per theme that tail is most of the reason no
+     * one was ever seen behind commercial glass. Drawing the count first and then dealing it out
+     * keeps the declared rate exactly -- `windowCount * rate` on average, which is what
+     * `WindowOccupantsTest` pins -- while removing the empty tail: three panes at 40% now hold one
+     * or two people and never none.
+     */
+    fun occupantCount(seed: Int, buildingSeed: Int, windowCount: Int, kind: WindowBuildingKind): Int =
+        SeededBalance.drawCount(seed, CH_PRESENT_COUNT, buildingSeed, windowCount, rateFor(kind))
 
     /**
      * Whether this window has someone at it.
+     *
+     * The [windowCount] windows are ranked on [CH_PRESENT] and the first [occupantCount] of them
+     * are occupied -- a seeded permutation of a fixed count rather than a coin per pane. Which
+     * window a given seed picks is as free as it was; how many it picks is no longer left to a
+     * handful of independent draws.
      *
      * Never consults the clock, so an occupant does not flicker in and out between frames the way
      * a lit-window flicker legitimately can.
@@ -124,8 +154,22 @@ internal object WindowOccupants {
         seed: Int,
         buildingSeed: Int,
         windowIndex: Int,
+        windowCount: Int,
         kind: WindowBuildingKind,
-    ): Boolean = CandidateNoise.value(seed, address(buildingSeed, windowIndex), CH_PRESENT) < rateFor(kind)
+    ): Boolean {
+        if (windowIndex < 0 || windowIndex >= windowCount) return false
+        val occupied = occupantCount(seed, buildingSeed, windowCount, kind)
+        if (occupied <= 0) return false
+        if (occupied >= windowCount) return true
+        return SeededBalance.rankOf(
+            seed,
+            CH_PRESENT,
+            windowIndex,
+            windowCount,
+            addressStride = WINDOW_ADDRESS_STRIDE,
+            addressOffset = buildingSeed * BUILDING_ADDRESS_STRIDE + ADDRESS_BIAS,
+        ) < occupied
+    }
 
     /**
      * Who is at this window.

@@ -233,7 +233,7 @@ class SkinToneTest {
                 for (b in 0 until 40) {
                     val buildingSeed = b * 100_003
                     for (w in 0 until 8) {
-                        if (WindowOccupants.isOccupied(seed, buildingSeed, w, kind)) {
+                        if (WindowOccupants.isOccupied(seed, buildingSeed, w, 8, kind)) {
                             tones += WindowOccupants.occupantAt(seed, buildingSeed, w).skinIndex
                         }
                     }
@@ -255,7 +255,7 @@ class SkinToneTest {
                     val tone = WindowOccupants.occupantAt(seed, bs, w).skinIndex
                     byWindow.getOrPut(w) { IntArray(PedestrianPopulation.SKIN_TONE_COUNT) }[tone]++
                     everyWindow[tone]++
-                    if (WindowOccupants.isOccupied(seed, bs, w, WindowBuildingKind.HOUSE)) {
+                    if (WindowOccupants.isOccupied(seed, bs, w, 8, WindowBuildingKind.HOUSE)) {
                         occupiedOnly[tone]++
                     }
                 }

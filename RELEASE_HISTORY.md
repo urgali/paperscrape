@@ -19,6 +19,93 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.2 — the street the seeds actually produce
+
+**Prepared, not published.** `versionCode = 33`, `versionName = "4.2"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain 37, untouched.
+Baseline is the **published v4.1 tag**, not a local checkpoint.
+
+Two defects, both reported from a phone running v4.1, both about the gap between a value being
+*reachable* and a value being *produced*.
+
+### Defect 1 — the distribution was right on average and frozen wrong in fact
+
+v4.1 chose age, sex, skin, direction, row and group size by comparing one hashed value against a
+constant. Over hundreds of synthetic seeds that is a perfect distribution, which is what v4.1's
+tests measured and why they passed. But the app draws **one** seed — `themeId.hashCode()`, fixed
+for as long as the theme is selected — and one seed yields at most twelve people. A fair coin
+flipped six times clumps, and a frozen seed freezes the clump.
+
+Measured on the twelve shipped theme ids, `beach` — the theme the report came from — produced
+`girl/skin2 ×5` and one `boy/skin2`: no adult of either sex, one tone, permanently, on every
+device. Ten of the twelve themes were missing at least one of {adult male, adult female, boy, girl,
+a skin tone, a direction}: `tundra` walked all ten of its people rightward, `sunset` and `new_year`
+had no girl, `winter` no adult male, `desert` and `easter` no adult female. Eight of twelve never
+showed one of the three group sizes. Across the whole catalogue **no adult male ever walked alone**.
+
+### Defect 2 — "3/3 populatable panes" was true and about the wrong building
+
+The three panes are the **bar's**. The scene draws two street-level businesses and the other is the
+**restaurant** — two to four per theme against the bar's roughly one — and `drawRestaurantBuilding`
+had no `drawWindowOccupant` call at all. `beach`, `new_year` and `spring` have no bar in their
+layout, so on the reporting user's own theme the number of commercial windows that could hold
+anybody was **zero**, and four of twelve themes had no commercial occupant anywhere. No test over
+`WindowOccupants` could see it: the object was never asked.
+
+### What replaced them
+
+`SeededBalance` — stratified selection. The multiset of values dealt across a small pool is fixed;
+the seed decides which slot gets which. `rankOf` orders a pool on a channel and hands values out by
+rank; `drawCount` deals a whole number of occupants across a building's panes at exactly the
+declared rate. Both are allocation-free and keep v4.1's addressing, so only the decision moved.
+This is the argument `CandidateThreshold` already makes for density, applied to the axis that was
+missed.
+
+`drawRestaurantBuilding` now places two occupants, one behind each of the two glass panes its
+window sprite actually carries (measured: sprite pixels 8..39 and 50..81 of a 30×22-unit window).
+The window drawing is byte for byte what it was.
+
+### Found while measuring: the walk frame followed the sort order
+
+`frameIndex(3.2f, personIndex.toFloat(), 4)` staggered the walk cycle by a figure's index **in the
+depth-sorted list**, so inserting one pedestrian renumbered everybody behind it and stepped their
+legs to a different frame. Moving the People slider by one notch re-animated the survivors — the
+stability `CandidateThreshold` exists to give, broken in the one place nothing checked. The stagger
+now comes from the figure's own address.
+
+### Decisions
+
+- **D-4.2-A — stratification, not correction.** Nothing counts the people already produced and
+  nothing forces "a male every N". A slot's value is a pure function of `(seed, slot)`, which is
+  what keeps the density stability contract intact. A corrective pass would have broken it.
+- **D-4.2-B — the four person kinds are dealt as one set, not as two independent halves.** Dealing
+  age and sex separately still left three themes without a boy and one without an adult female,
+  because the *pairing* of two balanced halves is itself a coin. Dealing `[man, woman, boy, girl]`
+  whole makes age and sex exactly independent — each 50/50, their joint exactly 25% — and
+  guarantees all four on every street.
+- **D-4.2-C — stratified occupancy applies to houses and towers too.** A rule that applied only to
+  shopfronts would be the special case this release exists to remove. Rates are unchanged and are
+  still what `WindowOccupantsTest` pins.
+- **D-4.2-D — low densities keep their variety rather than their tidiness.** At 65% only two of the
+  four group slots survive, so two survivors can share a tone, and `desert` at 65% is four people
+  on tone 2. Forcing a balanced *prefix* of the survival order would make the two-valued attributes
+  alternate along it, leaving two possible direction patterns across four groups instead of six.
+  Every theme defaults to 100%; the residue is left, named, and tested for what is achievable.
+- **D-4.2-E — the sixteen Canvas goldens were regenerated, and the regeneration was proved.** They
+  were stale from v4.1, which changed the people and never re-took them; thirteen were already
+  failing the moment an emulator existed. Every differing pixel across all sixteen lies between
+  rows 509 and 654 — the band the pedestrians and window busts occupy — and intersecting the
+  traffic goldens' diffs with the vehicles' own pixel mask leaves 1 pixel of 18 712 in one frame
+  and 8 of 18 712 in the other, on the row where a pedestrian's feet meet a car's roofline.
+
+### Known and not fixed
+
+- **A pedestrian can paint over the top row of a car.** `drawPeople` runs after the vehicle loop,
+  and the near pavement row sits 1–2 px above the far lane, so a figure's feet can land on a car's
+  topmost anti-aliased row. Pre-existing since v4.0 and untouched here: correcting it means opening
+  the vehicle draw path, which this release's scope forbids.
+- **The `desert` street at 65% is one skin tone.** See D-4.2-D.
+
 ## v4.1 — the people system
 
 **Prepared, not published.** `versionCode = 32`, `versionName = "4.1"`. No tag, no push, no GitHub
