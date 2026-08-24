@@ -558,6 +558,61 @@ fun CustomThemeData.toJsonString(): String {
     return root.toString()
 }
 
+/**
+ * Puts the cars back into a built-in override that was saved without any.
+ *
+ * ### What it repairs, and why it has to exist
+ *
+ * Until this release, saving a theme wrote `rawLayout.cars.filter { keepCar(it) }` into the entry, so a
+ * theme saved while the Cars density was low -- or while Cars were switched off -- was stored with
+ * an **empty car list**. `SceneObjectRenderer.hasRoad` is `layout.cars.isNotEmpty()`, so that
+ * theme lost its road and all its traffic permanently: raising the density afterwards filters a
+ * list that has nothing left in it, while the settings screen goes on reporting "On - 100%"
+ * because the *customization* is intact. It is the layout that was damaged.
+ *
+ * The save path no longer does that. This repairs the installs where it already happened, which
+ * the fix alone cannot reach.
+ *
+ * ### The guard, which is deliberately narrow
+ *
+ * All three must hold, or the entry is returned untouched:
+ *
+ *  1. it is a **built-in override** -- the key of the `overrides` map, not a standalone theme;
+ *  2. its `layout.cars` is **empty**;
+ *  3. the **built-in it overrides still defines cars** ([SceneObjectCatalog.builtinCarsFor],
+ *     which reads the original and not the override).
+ *
+ * Together those mean the theme provably used to have a road and provably cannot get one back on
+ * its own. Anything less certain is left alone: a standalone custom theme has no canonical layout
+ * to compare against, so **it is never speculatively repaired**, and a built-in whose own
+ * definition has no cars is not given any.
+ *
+ * ### What it does not touch
+ *
+ * Only `layout.cars`. Not the customization -- so the density, the visibility and every colour the
+ * user chose survive exactly, and a theme repaired while its density was 10% still shows 10% of
+ * the traffic, now on a road. Not the name, not the theme colours, not the static objects.
+ *
+ * ### Idempotent by construction
+ *
+ * After a repair, condition 2 no longer holds, so running it again is a no-op. That is what makes
+ * it safe to run on **every load** rather than as a one-off migration -- see
+ * [customThemeDataFromJsonString], which is the single funnel every reader of this data goes
+ * through, including the wallpaper service starting with no UI in sight.
+ */
+fun CustomThemeData.repairBuiltInOverrides(): CustomThemeData {
+    if (overrides.isEmpty()) return this
+    var changed = false
+    val repaired = overrides.mapValues { (builtinId, entry) ->
+        if (entry.layout.cars.isNotEmpty()) return@mapValues entry
+        val canonical = SceneObjectCatalog.builtinCarsFor(builtinId, entry.theme.accentColor)
+        if (canonical.isEmpty()) return@mapValues entry
+        changed = true
+        entry.copy(layout = entry.layout.copy(cars = SceneObjectCatalog.canonicaliseTraffic(canonical)))
+    }
+    return if (changed) copy(overrides = repaired) else this
+}
+
 fun customThemeDataFromJsonString(raw: String?): CustomThemeData {
     if (raw.isNullOrBlank()) return CustomThemeData.EMPTY
     return try {
@@ -571,7 +626,11 @@ fun customThemeDataFromJsonString(raw: String?): CustomThemeData {
         }
         val customArray = root.optJSONArray("customThemes") ?: JSONArray()
         val customThemes = (0 until customArray.length()).map { customThemeEntryFromJson(customArray.getJSONObject(it)) }
-        CustomThemeData(overrides = overrides, customThemes = customThemes)
+        // Repaired on the way out, never on the way in: the bytes on disk are left as they are and
+        // the fix is applied to what the app uses. That is one fewer write on a startup path, it
+        // covers data that arrives later from a backup import just as well, and being idempotent
+        // it needs no schema bump and no migration entry. See [repairBuiltInOverrides].
+        CustomThemeData(overrides = overrides, customThemes = customThemes).repairBuiltInOverrides()
     } catch (_: Exception) {
         // Corrupt/unexpected data should never crash the wallpaper -- fall back to "nothing saved".
         CustomThemeData.EMPTY

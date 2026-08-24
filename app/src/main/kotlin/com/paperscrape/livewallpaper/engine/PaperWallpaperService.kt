@@ -303,6 +303,7 @@ class PaperWallpaperService : WallpaperService() {
                 themeId = effectiveId,
                 pendingCustomization = settings.pendingCustomization,
                 pendingThemeId = settings.pendingCustomizationThemeId,
+                themeCustomizations = settings.themeCustomizations,
             )
             val changed = effectiveId != lastAppliedThemeId || resolvedCustomization != lastAppliedCustomization
             renderer?.theme = ThemeCatalog.byId(effectiveId)

@@ -202,6 +202,21 @@ object SceneObjectCatalog {
         return SceneObjectLayout(staticObjects = emptyList(), cars = emptyList())
     }
 
+    /**
+     * The cars the **built-in** [themeId] defines, ignoring any override the user has saved.
+     *
+     * [layoutFor] deliberately prefers a saved override, which is right for rendering and wrong
+     * for repair: a damaged override is exactly what needs comparing against the original. This
+     * is the only way to ask "what did this theme ship with", and it exists for
+     * [repairBuiltInOverrides] and for nothing else.
+     *
+     * Empty for an id that is not a built-in, which is what makes the repair's guard trivially
+     * safe: a standalone custom theme has no canonical layout to fall back to and so is never
+     * touched.
+     */
+    internal fun builtinCarsFor(themeId: String, accentColor: Int): List<CarObject> =
+        builtinLayoutFor(themeId, accentColor)?.cars.orEmpty()
+
     // --- Uniform candidate generation for the 6 customizable categories --------------------
 
     /**

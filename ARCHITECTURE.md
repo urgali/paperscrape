@@ -864,6 +864,50 @@ occupant count across its own panes. The stability contract is untouched:
 a slot's value is still a pure function of `(seed, slot)`, so lowering a density
 still removes particular slots and leaves the rest exactly as they were.
 
+### Where a user's own settings live (v4.3)
+
+Three tiers, and until v4.3 only two of them were persistent.
+
+| what | store | scope |
+|---|---|---|
+| Global preferences | `paperscrape_prefs`, flat keys | one set, theme-independent |
+| **A theme's own customization** | `paperscrape_prefs`, one JSON key per theme (`theme_customization_<id>`) | **one per theme, unlimited** |
+| The live edit | `paperscrape_prefs`, the flat per-theme keys plus `pending_customization_theme_id` | exactly one theme at a time |
+| Saved themes: built-in overrides and standalone custom themes | `paperscrape_custom_themes`, one JSON blob | unlimited |
+| Updater state | `paperscrape_update_prefs` | excluded from backup |
+
+The middle tier is the one v4.3 added, and the defect it fixes is worth stating plainly: the live
+edit is a **single flat key set shared by every theme**, and `ensureFreshPendingTheme` wipes it
+whenever a setter arrives for a different theme. That guard exists for a real reason -- without it
+one theme's values leak into the next, which is what v2.12 was fixing -- but it meant that below
+"Save this theme as...", a customization survived only until the user touched a second theme.
+
+The guard now **archives before it wipes**: the outgoing theme's state is serialised into its own
+key, and the incoming theme's is restored into the scratch space if it has one. `resolveActiveCustomization`
+reads, in order: the live edit if it is this theme's, then this theme's archive, then a saved
+entry's baked-in customization, then the theme's default.
+
+The archive uses `SceneCustomization.toJson`, the same serialisation `CustomThemeStore` persists
+saved themes with -- so a customised built-in and a saved theme are the same bytes in two places
+rather than two formats to keep in step, and the backup format gets both for free.
+
+### Backup and theme-share formats (v4.3)
+
+Two documents, `prefs/AppBackup.kt` and `prefs/ThemeShare.kt`, with **separate schema versions and
+separate `kind` markers**. They are not variants of one format: a backup is one user's whole app
+and carries their API keys; a theme file is one look meant for a stranger and carries nothing
+personal. Merging their versions would mean neither could change alone, and importing one where
+the other is expected is refused by name rather than by a parse failure.
+
+Both parse into a whole document or an error, never a partial one, so validation and application
+are separate steps. `prefs/BackupRepository.kt` supplies what DataStore cannot: the two stores have
+no shared transaction, so an import snapshots the current state, writes both, and writes the
+snapshot back if the second write fails.
+
+A shared theme carries the **resolved** scene and layout rather than a built-in id, so a theme
+exported today still renders when that built-in is redrawn; `sourceThemeId` is provenance for
+display and is never resolved against.
+
 ### Theme previews
 
 `engine/ThemePreviewScene.kt` describes what one theme's gallery card contains: sky colours, the

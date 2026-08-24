@@ -11,51 +11,41 @@ that was.
 
 ## Current status
 
-**v4.2 prepared -- two runtime defects in the people system, and nothing else.**
+**v4.3 prepared -- a data-loss fix, a proportion fix, and two file formats.**
 
-`versionCode = 33`, `versionName = "4.2"`. **No tag, no push, no GitHub Release.**
+`versionCode = 34`, `versionName = "4.3"`. **No tag, no push, no GitHub Release.**
 
 ```
-v4.2 [x]
- |- stratified selection replaces the per-slot coin, so the twelve shipped seeds
- |  each produce an adult of each sex, a child of each sex, all three tones,
- |  both directions and groups of one, two and three
- |- the restaurant frontage takes occupants at last -- it had no call site, and on
- |  beach, new_year and spring there is no bar, so commercial people were
- |  unrenderable on the theme the defect was reported from
- |- window occupancy deals a count across a building's panes instead of flipping a
- |  coin at each, so a three-pane frontage is never empty
- |- the walk-frame stagger no longer follows the depth-sorted list index (found by
- |  a pixel measurement, not reported)
- \- eight people goldens rendered, looked at and committed; the sixteen stale
-    Canvas goldens regenerated, with the delta proved to be people-only
-
-(nothing scheduled after this)
+v4.3 [x]
+ |- a per-theme customization is archived instead of deleted when another theme is
+ |  touched, so beach, winter and city each keep their own look across a theme
+ |  switch, a restart and an install-over-install
+ |- PERSON_METRES_TALL is the 1.75 m its own comment always documented, which puts a
+ |  far-lane car back above a far-pavement pedestrian where the ground plane puts it
+ |- app backup: every preference, every theme customization, every saved theme, no
+ |  runtime state, SAF, validate-then-apply with rollback across the two stores
+ |- theme sharing: one self-contained theme per file, nothing personal in it, always
+ |  imported as a new independent theme
+ \- saving a theme no longer freezes the traffic density into the terrain, and a
+    built-in override already damaged that way gets its cars back on load
 ```
-
-**The people goldens are no longer `@Ignore`d.** v4.1's one real gap is closed: this
-release had an emulator, every people-golden PNG was rendered by the shipped drawing
-code and inspected before being committed, and the whole instrumented suite -- 48
-tests including 27 goldens -- is green on a Pixel 9 / API 37 emulator.
 
 Threads still open, recorded rather than scheduled:
 
-- **A fourth, deeper skin tone needs an art pass, not a recolour.** Unchanged from v4.1:
-  at the depth that reads as distinct it converged on the woman's brown hair and on the
-  shared outline.
-- **The sprite memory budget doubled** in v4.1, from 14.79 MB to 25.67 MB decoded, and
-  `SpriteGeometryTest`'s ceiling moved from 16 MB to 26 MB. Recolouring into a cached
-  bitmap at load would give the same tones with no growth. Unchanged here.
-- **A pedestrian can paint over the top row of a car.** `drawPeople` runs after the
-  vehicle loop and the near pavement row sits 1-2 px above the far lane. Pre-existing
-  since v4.0; measured at 1 and 8 pixels in the two traffic goldens. Fixing it means
-  opening the vehicle draw path, which needs its own approved batch.
-- **A thinned street can still be one-toned.** At 65% only two of the four group slots
-  survive, so two survivors can share a skin tone; `desert` at 65% is four people on
-  tone 2. Deliberate -- see D-4.2-D in `RELEASE_HISTORY.md` for the variety this buys.
-- **The committed goldens are device-specific.** They were taken on a Pixel 9 / API 37
-  emulator. Nothing says they will match a different Skia build, and the sixteen
-  pre-existing ones did not match this one.
+- **A pedestrian can paint over the top row of a car** (1-8 px measured). Pre-existing since
+  v4.0; `drawPeople` runs after the vehicle loop and the near pavement sits 1-2 px above the far
+  lane. Fixing it means opening the vehicle draw path, which needs its own approved batch.
+- **A thinned street can still be one-toned.** `desert` at 65% is four people on tone 2. See
+  D-4.2-D: the alternative costs real variety at the default density.
+- **A fourth, deeper skin tone needs an art pass**, unchanged from v4.1.
+- **The sprite memory budget doubled in v4.1** (14.79 -> 25.67 MB decoded, ceiling 26 MB).
+- **The committed goldens are device-specific.** Taken on a Pixel 9 / API 37 emulator; the
+  pre-v4.2 set did not match it. CI or another device may need its own regeneration pass.
+- **The golden net is blind to a whole-population resize.** All 24 goldens *passed* v4.3's
+  pedestrian change at 0.025-0.136% against a 0.2% tolerance. `VehicleScalePixelTest` measures
+  instead of comparing, which is the shape that catches it.
+- **"Replace my built-in with this shared theme" is designed for but not built.** The theme format
+  records `sourceThemeId` so it is possible later; an import today is always a new theme.
 
 1. **`targetSdk 36 -> 37`.** `compileSdk` was already 37 and is unchanged. Every Android 17
    behaviour change was re-assessed against this app's real code from the v3.9 baseline, not

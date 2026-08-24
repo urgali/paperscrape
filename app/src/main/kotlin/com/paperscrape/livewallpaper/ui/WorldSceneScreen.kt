@@ -246,7 +246,7 @@ internal fun WorldSceneScreen(
         OutlinedButton(
             onClick = {
                 scope.launch {
-                    prefs.resetAllCategories()
+                    prefs.resetAllCategories(forThemeId)
                     // "Reset everything to defaults" clearing only the in-progress scratch edit
                     // wasn't enough on its own: resolveActiveCustomization() checks a *saved*
                     // override for this theme *before* the scratch space, so if this built-in

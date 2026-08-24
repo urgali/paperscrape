@@ -85,6 +85,16 @@ class CustomThemeStore(private val context: Context) {
         data.copy(customThemes = data.customThemes.filterNot { it.id == id })
     }
 
+    /**
+     * Replaces every saved theme at once -- both overrides and standalone themes.
+     *
+     * Backup import's half of the two-store write, and its own rollback. The whole blob is one
+     * DataStore value, so this is a single atomic replacement by construction.
+     */
+    suspend fun replaceAll(data: CustomThemeData) = context.customThemeDataStore.edit { prefs ->
+        prefs[Keys.DATA_JSON] = data.toJsonString()
+    }
+
     companion object {
         /** New unique id for a fully independent custom theme. */
         fun newCustomThemeId(): String = "custom:${System.currentTimeMillis()}"

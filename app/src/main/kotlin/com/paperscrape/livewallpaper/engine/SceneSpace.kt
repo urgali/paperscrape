@@ -497,9 +497,28 @@ object SceneSpace {
      * inside their 84-unit canvas.
      *
      * The children are drawn shorter *within the same canvas* -- 62 units against the adults' 80
-     * -- so one scale gives them their own 0.77 of adult height with no second entry here.
+     * -- so one scale gives them their own 0.77 of adult height with no second entry here. At
+     * 1.75 m that puts a child at 1.36 m; at the 1.9 m this constant used to carry, 1.47 m.
+     *
+     * **v4.3: the constant said `1.9f` while this comment three lines above it said 1.75 m.** The
+     * comment was right and the number was not, and the 8.6% it added to every pedestrian was the
+     * whole of the reported "cars look too small next to the people walking behind them". Nothing
+     * else was wrong: measured on rendered frames, both draw paths reproduce this model to within
+     * a pixel of antialiasing, and `CAR_METRES_TALL` over [CAR_SPRITE_UNITS_TALL] is an honest
+     * roof-to-wheel-contact reading of the artwork.
+     *
+     * What the extra 8.6% did was invert one comparison. A car in the **far lane** stands nearer
+     * the viewer than a pedestrian on the **far pavement**, so it must be drawn larger; at 1.9 m
+     * the pedestrian won that comparison (62.7 reference px against the car's 61.1) and a car
+     * with a person visible behind it read as a toy. At the documented 1.75 m the ordering is the
+     * one the ground plane implies -- 57.7 against 61.1 -- and `VehiclePedestrianScaleTest` fails
+     * if it ever inverts again.
+     *
+     * The busts behind a windscreen are governed by this too, without being mentioned in it:
+     * `CAR_HEAD_SCALE` sizes them against the glass, and 47.7 sprite units at 0.30 is 0.43 m of
+     * head and shoulders -- right for a 1.75 m adult, slightly short for a 1.9 m one.
      */
-    const val PERSON_METRES_TALL = 1.9f
+    const val PERSON_METRES_TALL = 1.75f
     const val PERSON_SPRITE_UNITS_TALL = 80f
 
     /** Base scale for a walking person. */

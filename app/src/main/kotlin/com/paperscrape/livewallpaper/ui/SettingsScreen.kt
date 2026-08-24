@@ -126,6 +126,7 @@ fun SettingsScreen(
         themeId = effectiveThemeId,
         pendingCustomization = settings.pendingCustomization,
         pendingThemeId = settings.pendingCustomizationThemeId,
+        themeCustomizations = settings.themeCustomizations,
     )
 
     ProvideSettingsBottomInset {

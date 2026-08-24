@@ -19,6 +19,106 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.3 — settings that stay, cars that read right, and files you can move
+
+**Prepared, not published.** `versionCode = 34`, `versionName = "4.3"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain 37.
+
+### 1. A per-theme customization survived nothing
+
+Reported as "the last update overwrote my saved settings for `beach`". Reproduced on an emulator
+before anything was changed, and **not an update bug**: customise `beach`, move one slider on
+`winter`, and `beach` resolves byte for byte to its factory default. Install-over-install does not
+touch DataStore, `allowBackup` is `false`, and no startup path writes a per-theme setter.
+
+The only storage a per-theme edit reached was a single flat key set with one owning-theme marker,
+which `ensureFreshPendingTheme` — added in **v2.12** to stop the opposite bug, one theme leaking
+into another — wiped on any mismatch. Below "Save this theme as…" there was no per-theme
+persistence at all.
+
+The wipe now archives the outgoing theme's state into its own JSON key first, reusing
+`CustomThemeStore`'s versioned, round-trip-tested serialisation, and restores it when that theme is
+edited again. `resolveActiveCustomization` gained the archive as a tier between the live edit and
+the saved entry. `resetAllCategories` takes the theme it resets and only clears the scratch space
+when it owns it.
+
+### 2. The pedestrian metric contradicted its own documentation
+
+`SceneSpace.PERSON_METRES_TALL` read `1.9f` while its own comment three lines above said 1.75 m.
+Measured on rendered frames, both draw paths reproduce the projection to within a pixel — the
+implementation was fine — but the 8.6% inverted the one comparison the report was about: a car in
+the far lane is nearer than a pedestrian on the far pavement and must be drawn larger, and was not
+(61.1 reference px against 62.7). At the documented 1.75 m: 61.1 against 57.7.
+
+### 3. App backup and theme sharing
+
+Two formats with separate schema versions and separate `kind` markers. The backup carries every
+preference, every theme customization and every saved theme, and no runtime state; the theme file
+carries the resolved scene and nothing personal. SAF throughout, validate-then-apply, with a
+snapshot/rollback across the two stores that have no shared transaction.
+
+### 4. A saved theme froze the traffic density into the terrain
+
+Found while validating this release. Reported on v4.2 as "beach: Cars at 100%, the road and the
+cars are both gone". Diagnosed against the v4.2 tree: not the seasonal calendar (every day of
+August 2026 resolves to `beach`; the first change is 1 September), not the night sky (the road is
+*more* contrasty at midnight than at midday), not the density (rendered at 0% the road is still
+there), and **not the persistence defect above** — that restores a theme's defaults, and `beach`'s
+default is cars on at 100%, so it would have put the road back.
+
+`snapshotEntry` wrote `rawLayout.cars.filter { keepCar(it) }` into the saved layout. `hasRoad` is
+`layout.cars.isNotEmpty()` and the lane pair comes from the same list, so a theme saved at a low
+car density — measured: 10% → 0 cars, Cars off → 0 cars — lost its road and traffic permanently.
+The car list is now saved whole, and damaged built-in overrides are repaired at load.
+
+### Decisions
+
+- **D-4.3-F — the car inventory is saved whole; every other category keeps "what you see is what
+  you save".** Static objects are still filtered, because nothing but the objects themselves is
+  derived from that list. Cars are different in kind: the road and its lane geometry are computed
+  from `layout.cars`, so filtering it makes terrain a function of a slider. Narrowed to cars
+  deliberately rather than generalised.
+- **D-4.3-G — the repair runs on load, not as a migration, and never writes.**
+  `customThemeDataFromJsonString` is the single funnel every reader goes through, including a
+  wallpaper service starting with no UI. Repairing there costs no write on a startup path, covers
+  data arriving later from a backup import, needs no schema bump, and is idempotent by
+  construction — after a repair its own precondition no longer holds. The bytes on disk are left
+  as they are; if a future release drops the repair, the damage resurfaces, which is the price of
+  not writing.
+- **D-4.3-H — the repair guard is narrow on purpose.** All three of: it is a built-in override,
+  its car list is empty, and the built-in it overrides still defines cars. A standalone custom
+  theme has no canonical layout to compare against and is never speculatively repaired; neither is
+  an override of an id that is not a built-in.
+
+- **D-4.3-A — archive rather than namespace.** Namespacing all ~60 per-theme keys was the other
+  candidate. Archiving keeps the scratch space that ~65 setters and the whole read path already
+  depend on, touches one function instead of sixty, and reuses a serialisation that is already
+  versioned and tested. The diff is a guard function, its inverse writer, one read helper, and a
+  resolution tier.
+- **D-4.3-B — the documented 1.75 m won over the shipped 1.9 m.** The alternative reading is that
+  the constant was right and the comment stale, but 1.75 m is also the standard adult figure, it
+  puts a child at 1.36 m rather than 1.47 m, and it is the value that makes the depth ordering
+  correct. Governing vehicles by *length* instead was rejected: `SceneVariant`'s own comment records
+  that it makes a person shorter than a car, which is the complaint that table exists to settle.
+- **D-4.3-C — the goldens were regenerated even though they passed.** All 24 differ by 0.025% to
+  0.136% against a 0.2% tolerance, so the golden net is blind to a whole-population resize. Every
+  differing pixel lies between rows 607 and 654 — the pedestrian band — and nothing else moved.
+  `VehicleScalePixelTest` is what actually guards this class now.
+- **D-4.3-D — a backup carries API keys; a theme file carries nothing personal.** A backup that
+  dropped the keys would not restore a working app, so it keeps them and the export dialog says so.
+  A theme file is meant for strangers, so it carries no settings, no location and no keys, asserted
+  by reading the produced JSON back.
+- **D-4.3-E — an imported theme is always new.** Never an implicit overwrite, and self-contained
+  rather than a reference to a built-in id, so a theme shared today still renders when that built-in
+  is redrawn. The format records `sourceThemeId` so a future "replace my Beach with this" is
+  possible, but it has to be asked for.
+
+### Known and not fixed
+
+- **A pedestrian can paint over the top row of a car** (1–8 px). Pre-existing since v4.0, carried
+  over from v4.2's report; fixing it means opening the vehicle draw path.
+- **The `desert` street at 65% density is one skin tone.** Carried over from v4.2, D-4.2-D.
+
 ## v4.2 — the street the seeds actually produce
 
 **Prepared, not published.** `versionCode = 33`, `versionName = "4.2"`. No tag, no push, no GitHub

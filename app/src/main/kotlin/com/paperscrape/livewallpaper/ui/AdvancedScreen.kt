@@ -5,8 +5,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SystemUpdate
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
@@ -19,13 +20,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.net.Uri
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +41,10 @@ import androidx.core.net.toUri
 import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.R
 import com.paperscrape.livewallpaper.engine.CustomThemeData
+import com.paperscrape.livewallpaper.prefs.AppBackup
+import com.paperscrape.livewallpaper.prefs.BackupImportError
+import com.paperscrape.livewallpaper.prefs.BackupParseResult
+import com.paperscrape.livewallpaper.prefs.BackupRepository
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
@@ -83,6 +89,49 @@ internal fun AdvancedScreen(
     var showSaveDialog by remember { mutableStateOf(false) }
     var confirmResetAll by remember { mutableStateOf(false) }
     var updateState by remember { mutableStateOf<UpdateUiState>(UpdateUiState.Idle) }
+    var backupMessage by remember { mutableStateOf<String?>(null) }
+    var pendingImport by remember { mutableStateOf<Pair<Uri, AppBackup>?>(null) }
+    var confirmExport by remember { mutableStateOf(false) }
+
+    val backupRepository = remember(prefs, customThemeStore) {
+        BackupRepository(prefs, customThemeStore, BuildConfig.VERSION_NAME)
+    }
+
+    // Storage Access Framework, so the app needs no filesystem permission at all: the user picks
+    // the file and the system hands back a Uri already scoped to it.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            backupMessage = runCatching {
+                val text = backupRepository.export()
+                context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                    ?: error("could not open the chosen file for writing")
+                "Backup saved."
+            }.getOrElse { "Could not save the backup: ${it.message}" }
+        }
+    }
+
+    /**
+     * Import is two steps on purpose: this launcher only *reads and validates*, and hands the
+     * result to a confirmation dialog. Nothing is written until the user has seen what the file
+     * contains and said yes.
+     */
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val raw = runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            }.getOrNull()
+            when (val parsed = backupRepository.preview(raw)) {
+                is BackupParseResult.Ok -> pendingImport = uri to parsed.backup
+                is BackupParseResult.Failed -> backupMessage = describe(parsed.error)
+            }
+        }
+    }
 
     /**
      * Downloads, verifies, and moves to whatever the verdict allows.
@@ -238,6 +287,30 @@ internal fun AdvancedScreen(
             onDismiss = { updateState = UpdateUiState.Idle },
         )
 
+        SettingsSectionHeader("Backup")
+        SettingsGroup {
+            SettingsRow(
+                title = "Export app backup",
+                supporting = "Everything: your settings, every theme you have customised, and every " +
+                    "theme you have saved. Keep the file safe -- it contains your weather API keys " +
+                    "and your custom location.",
+                icon = Icons.Outlined.Save,
+                onClick = { confirmExport = true },
+            )
+            SettingsRow(
+                title = "Import app backup",
+                supporting = "Replaces your current settings and themes with the ones in the file. " +
+                    "You will see what it contains before anything changes.",
+                icon = Icons.Outlined.Restore,
+                onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+            )
+        }
+        SettingsCaption(
+            "A backup is for moving your app to a new phone. To share one theme with somebody " +
+                "else, use \"Export theme\" on that theme in the Themes gallery -- a theme file " +
+                "contains no settings, no location and no API keys.",
+        )
+
         SettingsSectionHeader("About")
         SettingsGroup {
             SettingsRow(
@@ -269,12 +342,78 @@ internal fun AdvancedScreen(
                             effectiveThemeId,
                             settings.pendingCustomization,
                             settings.pendingCustomizationThemeId,
+                            settings.themeCustomizations,
                         ),
                     )
                 }
                 showSaveDialog = false
             },
             onDismiss = { showSaveDialog = false },
+        )
+    }
+
+    if (confirmExport) {
+        AlertDialog(
+            onDismissRequest = { confirmExport = false },
+            title = { Text("Export app backup?") },
+            text = {
+                Text(
+                    "The file will contain every setting and every theme you have customised or " +
+                        "saved -- including your weather API keys and, if you set one, your custom " +
+                        "location. Treat it like a password: anyone you send it to gets those too.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmExport = false
+                    exportLauncher.launch(backupRepository.suggestedFileName())
+                }) { Text("Export") }
+            },
+            dismissButton = { TextButton(onClick = { confirmExport = false }) { Text("Cancel") } },
+        )
+    }
+
+    pendingImport?.let { (_, backup) ->
+        AlertDialog(
+            onDismissRequest = { pendingImport = null },
+            title = { Text("Restore this backup?") },
+            text = {
+                Text(
+                    "From PaperScrape ${backup.appVersionName.ifBlank { "an earlier version" }}.\n\n" +
+                        backup.summary() +
+                        "\n\nThis replaces your current settings and themes. It cannot be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val uri = pendingImport?.first
+                    pendingImport = null
+                    scope.launch {
+                        val raw = runCatching {
+                            uri?.let { context.contentResolver.openInputStream(it) }
+                                ?.bufferedReader()?.use { it.readText() }
+                        }.getOrNull()
+                        backupMessage = when (val result = backupRepository.import(raw)) {
+                            is BackupRepository.ImportResult.Applied -> "Backup restored."
+                            is BackupRepository.ImportResult.Refused -> describe(result.error)
+                            is BackupRepository.ImportResult.RolledBack ->
+                                "The restore failed and your previous settings were put back. Nothing changed."
+                            is BackupRepository.ImportResult.Broken ->
+                                "The restore failed and could not be undone. Import your backup file again."
+                        }
+                    }
+                }) { Text("Restore") }
+            },
+            dismissButton = { TextButton(onClick = { pendingImport = null }) { Text("Cancel") } },
+        )
+    }
+
+    backupMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { backupMessage = null },
+            title = { Text("Backup") },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = { backupMessage = null }) { Text("OK") } },
         )
     }
 
@@ -526,4 +665,22 @@ private fun UpdateProgressSection(
             }
         }
     }
+}
+
+/** Each refusal, as a sentence a non-technical user can act on. */
+internal fun describe(error: BackupImportError): String = when (error) {
+    BackupImportError.NotJson ->
+        "That file is not a PaperScrape backup -- it could not be read at all. Nothing changed."
+    is BackupImportError.WrongKind ->
+        if (error.found == "paperscrape-theme") {
+            "That is a shared theme file, not a whole-app backup. Import it from the Themes " +
+                "gallery instead. Nothing changed."
+        } else {
+            "That file is not a PaperScrape backup. Nothing changed."
+        }
+    is BackupImportError.TooNew ->
+        "That backup was made by a newer version of PaperScrape (format ${error.fileVersion}, " +
+            "this build reads ${error.supported}). Update the app and try again. Nothing changed."
+    is BackupImportError.Malformed ->
+        "That backup is incomplete or damaged (${error.what}). Nothing changed."
 }

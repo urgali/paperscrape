@@ -50,6 +50,18 @@ import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.paperscrape.livewallpaper.prefs.uniqueThemeName
+import com.paperscrape.livewallpaper.prefs.toJsonString
+import com.paperscrape.livewallpaper.prefs.parseThemeShare
+import com.paperscrape.livewallpaper.prefs.ThemeShare
+import com.paperscrape.livewallpaper.prefs.ThemeParseResult
+import com.paperscrape.livewallpaper.prefs.ThemeImportError
+import com.paperscrape.livewallpaper.BuildConfig
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.outlined.FileOpen
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.net.Uri
 
 /**
  * Every theme, built-in and saved, as a grid of previews.
@@ -77,6 +89,51 @@ internal fun ThemeGalleryScreen(
     var renameTarget by remember { mutableStateOf<CustomThemeEntry?>(null) }
     var confirmReset by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf<CustomThemeEntry?>(null) }
+    // (themeId, displayName) of the theme the user asked to export, held until the file is chosen.
+    var exportTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var pendingThemeImport by remember { mutableStateOf<Pair<Uri, ThemeShare>?>(null) }
+    var themeMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+
+    val themeExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        val target = exportTarget
+        exportTarget = null
+        if (uri == null || target == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            themeMessage = runCatching {
+                val (id, name) = target
+                // Package what this theme looks like *now*, resolved the way the wallpaper resolves
+                // it, so the file is the theme the user is actually looking at.
+                val look = CustomThemeRegistry.resolveActiveCustomization(
+                    id, settings.pendingCustomization, settings.pendingCustomizationThemeId,
+                    settings.themeCustomizations,
+                )
+                val text = ThemeShare
+                    .of(id, name, look, BuildConfig.VERSION_NAME, System.currentTimeMillis())
+                    .toJsonString()
+                context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                    ?: error("could not open the chosen file for writing")
+                "Theme exported. The file contains only the look -- no settings, no location, no API keys."
+            }.getOrElse { "Could not export the theme: ${it.message}" }
+        }
+    }
+
+    val themeImportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val raw = runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            }.getOrNull()
+            when (val parsed = parseThemeShare(raw)) {
+                is ThemeParseResult.Ok -> pendingThemeImport = uri to parsed.share
+                is ThemeParseResult.Failed -> themeMessage = describeTheme(parsed.error)
+            }
+        }
+    }
 
     SettingsSubScreen(title = "Themes", onBack = onBack) {
         SettingsGroup(modifier = Modifier.padding(top = 12.dp)) {
@@ -117,6 +174,7 @@ internal fun ThemeGalleryScreen(
                                 effectiveThemeId,
                                 settings.pendingCustomization,
                                 settings.pendingCustomizationThemeId,
+                                settings.themeCustomizations,
                             ),
                         )
                     }
@@ -124,11 +182,25 @@ internal fun ThemeGalleryScreen(
                 onReset = if (overrideEntry != null) ({ confirmReset = builtin.id }) else null,
                 onRename = null,
                 onDelete = null,
+                onExport = {
+                    val name = overrideEntry?.name ?: builtin.displayName
+                    exportTarget = builtin.id to name
+                    themeExportLauncher.launch(themeFileName(name))
+                },
             )
         }
 
+        SettingsSectionHeader("Saved by you")
+        SettingsGroup {
+            SettingsRow(
+                title = "Import theme",
+                supporting = "Opens a theme file somebody shared and adds it here as a new theme of " +
+                    "your own. Nothing you already have is replaced.",
+                icon = Icons.Outlined.FileOpen,
+                onClick = { themeImportLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+            )
+        }
         if (customThemeData.customThemes.isNotEmpty()) {
-            SettingsSectionHeader("Saved by you")
             ThemeGrid(items = customThemeData.customThemes) { entry ->
                 ThemeCard(
                     theme = entry.theme,
@@ -146,6 +218,7 @@ internal fun ThemeGalleryScreen(
                                     effectiveThemeId,
                                     settings.pendingCustomization,
                                     settings.pendingCustomizationThemeId,
+                                    settings.themeCustomizations,
                                 ),
                             )
                         }
@@ -153,6 +226,10 @@ internal fun ThemeGalleryScreen(
                     onReset = null,
                     onRename = { renameTarget = entry },
                     onDelete = { confirmDelete = entry },
+                    onExport = {
+                        exportTarget = entry.id to entry.name
+                        themeExportLauncher.launch(themeFileName(entry.name))
+                    },
                 )
             }
         }
@@ -168,6 +245,42 @@ internal fun ThemeGalleryScreen(
                 renameTarget = null
             },
             onDismiss = { renameTarget = null },
+        )
+    }
+
+    pendingThemeImport?.let { (_, share) ->
+        AlertDialog(
+            onDismissRequest = { pendingThemeImport = null },
+            title = { Text("Import this theme?") },
+            text = {
+                Text(
+                    share.summary() +
+                        "\n\nIt will be added as a new theme of your own. Nothing you already have " +
+                        "is changed or replaced.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingThemeImport = null
+                    scope.launch {
+                        val name = uniqueThemeName(share.name, customThemeData.customThemes.map { it.name })
+                        customThemeStore.upsertCustomTheme(
+                            share.asNewCustomTheme(CustomThemeStore.newCustomThemeId(), name),
+                        )
+                        themeMessage = "\"$name\" added to your themes."
+                    }
+                }) { Text("Import") }
+            },
+            dismissButton = { TextButton(onClick = { pendingThemeImport = null }) { Text("Cancel") } },
+        )
+    }
+
+    themeMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { themeMessage = null },
+            title = { Text("Themes") },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = { themeMessage = null }) { Text("OK") } },
         )
     }
 
@@ -239,6 +352,8 @@ private fun ThemeCard(
     onReset: (() -> Unit)?,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    /** Packages this theme as a file somebody else can import. Every theme can be exported. */
+    onExport: (() -> Unit)? = null,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -295,6 +410,12 @@ private fun ThemeCard(
                         DropdownMenuItem(
                             text = { Text("Reset to default") },
                             onClick = { menuExpanded = false; onReset() },
+                        )
+                    }
+                    if (onExport != null) {
+                        DropdownMenuItem(
+                            text = { Text("Export theme") },
+                            onClick = { menuExpanded = false; onExport() },
                         )
                     }
                     if (onRename != null) {
@@ -358,6 +479,7 @@ internal fun snapshotEntry(
     sourceThemeId: String,
     pendingCustomization: SceneCustomization,
     pendingCustomizationThemeId: String?,
+    themeCustomizations: Map<String, SceneCustomization> = emptyMap(),
 ): CustomThemeEntry {
     val theme = ThemeCatalog.byId(sourceThemeId).copy(id = targetId, displayName = targetName)
     val rawLayout = SceneObjectCatalog.layoutFor(sourceThemeId, theme.accentColor)
@@ -368,10 +490,57 @@ internal fun snapshotEntry(
         themeId = sourceThemeId,
         pendingCustomization = pendingCustomization,
         pendingThemeId = pendingCustomizationThemeId,
+        themeCustomizations = themeCustomizations,
     )
     val layout = SceneObjectLayout(
         staticObjects = rawLayout.staticObjects.filter { activeCustomization.keepCandidate(it) },
-        cars = rawLayout.cars.filter { activeCustomization.keepCar(it) },
+        // **The cars are saved whole, and deliberately not filtered.** (v4.3)
+        //
+        // A layout is an *inventory*; a customization is the *view* of it. For every other
+        // category collapsing the two is harmless, because nothing but the objects themselves is
+        // derived from the list. For cars it is not: `SceneObjectRenderer.hasRoad` is
+        // `layout.cars.isNotEmpty()` and the road's own lane pair comes from `layout.cars`, so a
+        // theme saved while the traffic was thinned out froze that thinning into the terrain.
+        // Saved at 10% or with Cars switched off, the list came out empty, `hasRoad` was false,
+        // and the road and every car vanished **permanently** -- putting the density back to 100%
+        // afterwards filters a list that no longer has anything in it. Diagnosed on v4.2 from a
+        // report of exactly that on `beach`.
+        //
+        // `SceneSpace.roadEdgeMarginFraction` already states the rule this restores: *"the lane
+        // pair must come from the theme's whole car list, never from the cars a density setting
+        // happens to have kept... the road is terrain, and terrain does not depend on how much
+        // traffic is on it."* `drawRoad` obeyed it at frame time; this obeys it at save time.
+        //
+        // **The saved theme still looks the same.** The entry carries `activeCustomization`, and
+        // `keepCar` applies it at render time to the same full list, which reproduces exactly the
+        // traffic that was on screen when the user pressed save -- `SavedThemeCarLayoutTest` pins
+        // that as an equality, not as an approximation.
+        cars = rawLayout.cars,
     )
     return CustomThemeEntry(id = targetId, name = targetName, theme = theme, layout = layout, customization = activeCustomization)
+}
+
+/** Each theme-import refusal, as a sentence. */
+internal fun describeTheme(error: ThemeImportError): String = when (error) {
+    ThemeImportError.NotJson ->
+        "That file is not a PaperScrape theme -- it could not be read at all. Nothing changed."
+    is ThemeImportError.WrongKind ->
+        if (error.found == "paperscrape-app-backup") {
+            "That is a whole-app backup, not a single theme. Restore it from Advanced & about " +
+                "instead. Nothing changed."
+        } else {
+            "That file is not a PaperScrape theme. Nothing changed."
+        }
+    is ThemeImportError.TooNew ->
+        "That theme was exported by a newer version of PaperScrape (format ${error.fileVersion}, " +
+            "this build reads ${error.supported}). Update the app and try again. Nothing changed."
+    is ThemeImportError.Malformed ->
+        "That theme file is incomplete or damaged (${error.what}). Nothing changed."
+}
+
+/** A file name a user will recognise: the theme's own name, made safe for a filesystem. */
+internal fun themeFileName(themeName: String): String {
+    val safe = themeName.lowercase().map { if (it.isLetterOrDigit()) it else '-' }
+        .joinToString("").trim('-').replace(Regex("-+"), "-")
+    return "paperscrape-theme-${safe.ifBlank { "theme" }}.json"
 }

@@ -28,8 +28,11 @@ import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.RainbowConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
+import com.paperscrape.livewallpaper.engine.sceneCustomizationFromJson
+import com.paperscrape.livewallpaper.engine.toJson
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import com.paperscrape.livewallpaper.weather.WeatherProviderId
+import org.json.JSONObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -167,6 +170,19 @@ data class WallpaperSettings(
      * where you left off), but they simply won't apply anywhere except that one theme. */
     val pendingCustomization: SceneCustomization = SceneCustomization.DEFAULT,
     val pendingCustomizationThemeId: String? = null,
+    /**
+     * Every theme that has a customization of its own on disk, keyed by theme id.
+     *
+     * **This is what makes a per-theme edit survive editing another theme.** Before v4.3 the only
+     * per-theme storage was the single flat scratch space [pendingCustomization] reads, which
+     * holds exactly one theme at a time -- so touching one control on a second theme wiped
+     * everything the user had done to the first, permanently and silently. The scratch space is
+     * still where a live edit lands, but it is now archived here on the way out instead of being
+     * deleted, and restored from here when that theme is edited again.
+     *
+     * Empty for a theme the user has never customised; that theme reads its own defaults.
+     */
+    val themeCustomizations: Map<String, SceneCustomization> = emptyMap(),
 ) {
 
     /** [weatherProviderId] resolved; an unrecognised stored id reads as the default. */
@@ -211,6 +227,9 @@ enum class ObjectCategory {
     SNOWMEN, GIFTS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS,
 }
 
+/** Key-name prefix for [WallpaperPrefs]'s per-theme customization blobs. */
+internal const val THEME_CUSTOMIZATION_KEY_PREFIX = "theme_customization_"
+
 class WallpaperPrefs(private val context: Context) {
 
     private object Keys {
@@ -248,6 +267,18 @@ class WallpaperPrefs(private val context: Context) {
         val PARALLAX_STRENGTH = floatPreferencesKey("parallax_strength")
         val AUTO_THEME_BY_DATE = booleanPreferencesKey("auto_theme_by_date")
         val PENDING_CUSTOMIZATION_THEME_ID = stringPreferencesKey("pending_customization_theme_id")
+
+        /**
+         * One theme's whole customization, as JSON, under a key named after that theme.
+         *
+         * Deliberately a JSON blob rather than ~60 more namespaced keys: the serialisation
+         * already exists, is versioned, is round-trip tested (`CustomThemeDataJsonTest`), and is
+         * the same one `CustomThemeStore` persists saved themes with -- so a saved theme and a
+         * customised built-in are the same bytes in two places rather than two formats to keep in
+         * step. Purely additive: an install that has never written one simply has no such key.
+         */
+        fun themeCustomization(themeId: String) =
+            stringPreferencesKey("$THEME_CUSTOMIZATION_KEY_PREFIX$themeId")
 
         fun visible(category: ObjectCategory) = booleanPreferencesKey("obj_${category.name}_visible")
         fun density(category: ObjectCategory) = floatPreferencesKey("obj_${category.name}_density")
@@ -335,7 +366,7 @@ class WallpaperPrefs(private val context: Context) {
         // now, which is safe since pendingCustomization is only ever consulted by
         // CustomThemeRegistry.resolveActiveCustomization when its own themeId actually matches
         // this tag.
-        val defaults = defaultCustomizationFor(prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID] ?: "sunset")
+        val pendingThemeId = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID]
         WallpaperSettings(
             themeId = prefs[Keys.THEME_ID] ?: "sunset",
             syncWithRealTime = prefs[Keys.SYNC_REAL_TIME] ?: true,
@@ -362,111 +393,282 @@ class WallpaperPrefs(private val context: Context) {
             scrollSpeed = prefs[Keys.SCROLL_SPEED] ?: 0.15f,
             autoThemeByDate = prefs[Keys.AUTO_THEME_BY_DATE] ?: false,
             pendingCustomizationThemeId = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID],
-            pendingCustomization = SceneCustomization(
-                houses = readVariantConfig(prefs, ObjectCategory.HOUSES, defaults.houses),
-                buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, defaults.buildings),
-                cars = readVariantConfig(prefs, ObjectCategory.CARS, defaults.cars),
-                parasols = readVariantConfig(prefs, ObjectCategory.PARASOLS, defaults.parasols),
-            people = readVariantConfig(prefs, ObjectCategory.PEOPLE, defaults.people),
-            peopleNightDensity = PeopleDensity.resolveNightDensity(
-                stored = prefs[Keys.PEOPLE_NIGHT_DENSITY],
-                dayDensity = prefs[Keys.density(ObjectCategory.PEOPLE)] ?: defaults.people.density,
-            ),
-                trees = readVariantConfig(prefs, ObjectCategory.TREES, defaults.trees),
-                snowmen = readVariantConfig(prefs, ObjectCategory.SNOWMEN, defaults.snowmen),
-                gifts = readVariantConfig(prefs, ObjectCategory.GIFTS, defaults.gifts),
-                penguins = readVariantConfig(prefs, ObjectCategory.PENGUINS, defaults.penguins),
-                bunnies = readVariantConfig(prefs, ObjectCategory.BUNNIES, defaults.bunnies),
-                easterEggs = readVariantConfig(prefs, ObjectCategory.EASTER_EGGS, defaults.easterEggs),
-                pumpkins = readVariantConfig(prefs, ObjectCategory.PUMPKINS, defaults.pumpkins),
-                hillsVariation = prefs[Keys.HILLS_VARIATION] ?: defaults.hillsVariation,
-                hillsColorDay = prefs[Keys.HILLS_COLOR_DAY] ?: defaults.hillsColorDay,
-                hillsColorNight = prefs[Keys.HILLS_COLOR_NIGHT] ?: defaults.hillsColorNight,
-                mountainsFront = MountainLayerConfig(
-                    visible = prefs[Keys.mountainVisible(true)] ?: defaults.mountainsFront.visible,
-                    density = prefs[Keys.mountainDensity(true)] ?: defaults.mountainsFront.density,
-                    colorDay = prefs[Keys.mountainColorDay(true)] ?: defaults.mountainsFront.colorDay,
-                    colorNight = prefs[Keys.mountainColorNight(true)] ?: defaults.mountainsFront.colorNight,
-                ),
-                mountainsBack = MountainLayerConfig(
-                    visible = prefs[Keys.mountainVisible(false)] ?: defaults.mountainsBack.visible,
-                    density = prefs[Keys.mountainDensity(false)] ?: defaults.mountainsBack.density,
-                    colorDay = prefs[Keys.mountainColorDay(false)] ?: defaults.mountainsBack.colorDay,
-                    colorNight = prefs[Keys.mountainColorNight(false)] ?: defaults.mountainsBack.colorNight,
-                ),
-                lake = LakeConfig(
-                    visible = prefs[Keys.LAKE_VISIBLE] ?: defaults.lake.visible,
-                    colorDay = prefs[Keys.LAKE_COLOR_DAY] ?: defaults.lake.colorDay,
-                    colorNight = prefs[Keys.LAKE_COLOR_NIGHT] ?: defaults.lake.colorNight,
-                    height = prefs[Keys.LAKE_HEIGHT] ?: defaults.lake.height,
-                    sailboatsVisible = prefs[Keys.LAKE_SAILBOATS_VISIBLE] ?: defaults.lake.sailboatsVisible,
-                    sailboatsDensity = prefs[Keys.LAKE_SAILBOATS_DENSITY] ?: defaults.lake.sailboatsDensity,
-                    dolphinsVisible = prefs[Keys.LAKE_DOLPHINS_VISIBLE] ?: defaults.lake.dolphinsVisible,
-                    dolphinsDensity = prefs[Keys.LAKE_DOLPHINS_DENSITY] ?: defaults.lake.dolphinsDensity,
-                ),
-                stars = StarsConfig(
-                    visible = prefs[Keys.STARS_VISIBLE] ?: defaults.stars.visible,
-                    density = prefs[Keys.STARS_DENSITY] ?: defaults.stars.density,
-                ),
-                sky = SkyConfig(
-                    colorDayHigh = prefs[Keys.SKY_COLOR_DAY_HIGH] ?: defaults.sky.colorDayHigh,
-                    colorDayLow = prefs[Keys.SKY_COLOR_DAY_LOW] ?: defaults.sky.colorDayLow,
-                    colorNightHigh = prefs[Keys.SKY_COLOR_NIGHT_HIGH] ?: defaults.sky.colorNightHigh,
-                    colorNightLow = prefs[Keys.SKY_COLOR_NIGHT_LOW] ?: defaults.sky.colorNightLow,
-                    colorSunriseLow = prefs[Keys.SKY_COLOR_SUNRISE_LOW] ?: defaults.sky.colorSunriseLow,
-                    colorSunsetLow = prefs[Keys.SKY_COLOR_SUNSET_LOW] ?: defaults.sky.colorSunsetLow,
-                    sunCloudHeight = prefs[Keys.SKY_SUN_CLOUD_HEIGHT] ?: defaults.sky.sunCloudHeight,
-                ),
-                sun = SunConfig(
-                    visible = prefs[Keys.SUN_VISIBLE] ?: defaults.sun.visible,
-                    color = prefs[Keys.SUN_COLOR] ?: defaults.sun.color,
-                ),
-                moon = MoonConfig(
-                    visible = prefs[Keys.MOON_VISIBLE] ?: defaults.moon.visible,
-                    color = prefs[Keys.MOON_COLOR] ?: defaults.moon.color,
-                    realisticPhases = prefs[Keys.MOON_REALISTIC_PHASES] ?: defaults.moon.realisticPhases,
-                ),
-                clouds = CloudsConfig(
-                    visible = prefs[Keys.CLOUDS_VISIBLE] ?: defaults.clouds.visible,
-                    density = prefs[Keys.CLOUDS_DENSITY] ?: defaults.clouds.density,
-                    colorDay = prefs[Keys.CLOUDS_COLOR_DAY] ?: defaults.clouds.colorDay,
-                    colorNight = prefs[Keys.CLOUDS_COLOR_NIGHT] ?: defaults.clouds.colorNight,
-                ),
-                birds = BirdsConfig(
-                    visible = prefs[Keys.BIRDS_VISIBLE] ?: defaults.birds.visible,
-                    density = prefs[Keys.BIRDS_DENSITY] ?: defaults.birds.density,
-                    nightBirds = prefs[Keys.BIRDS_NIGHT] ?: defaults.birds.nightBirds,
-                    colors = defaults.birds.colors.mapIndexed { index, default ->
-                        BirdColorWeight(
-                            color = prefs[Keys.birdColor(index)] ?: default.color,
-                            weight = prefs[Keys.birdWeight(index)] ?: default.weight,
-                        )
-                    },
-                ),
-                precipitation = PrecipitationConfig(
-                    visible = prefs[Keys.PRECIPITATION_VISIBLE] ?: defaults.precipitation.visible,
-                    type = prefs[Keys.PRECIPITATION_TYPE]?.let { runCatching { PrecipitationType.valueOf(it) }.getOrNull() }
-                        ?: defaults.precipitation.type,
-                    intensity = prefs[Keys.PRECIPITATION_INTENSITY] ?: defaults.precipitation.intensity,
-                    rainColorDay = prefs[Keys.PRECIPITATION_RAIN_COLOR_DAY] ?: defaults.precipitation.rainColorDay,
-                    rainColorNight = prefs[Keys.PRECIPITATION_RAIN_COLOR_NIGHT] ?: defaults.precipitation.rainColorNight,
-                    snowColorDay = prefs[Keys.PRECIPITATION_SNOW_COLOR_DAY] ?: defaults.precipitation.snowColorDay,
-                    snowColorNight = prefs[Keys.PRECIPITATION_SNOW_COLOR_NIGHT] ?: defaults.precipitation.snowColorNight,
-                    thunderstorm = prefs[Keys.PRECIPITATION_THUNDERSTORM] ?: defaults.precipitation.thunderstorm,
-                ),
-                rainbow = RainbowConfig(
-                    visible = prefs[Keys.RAINBOW_VISIBLE] ?: defaults.rainbow.visible,
-                    opacity = prefs[Keys.RAINBOW_OPACITY] ?: defaults.rainbow.opacity,
-                ),
-                fallColorsEnabled = prefs[Keys.FALL_COLORS_ENABLED] ?: defaults.fallColorsEnabled,
-                winterColorsEnabled = prefs[Keys.WINTER_COLORS_ENABLED] ?: defaults.winterColorsEnabled,
-                christmasDecorationsEnabled = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED] ?: defaults.christmasDecorationsEnabled,
-                flowersEnabled = prefs[Keys.FLOWERS_ENABLED] ?: defaults.flowersEnabled,
-                halloweenEnabled = prefs[Keys.HALLOWEEN_ENABLED] ?: defaults.halloweenEnabled,
-                horrorSkyEnabled = prefs[Keys.HORROR_SKY_ENABLED] ?: defaults.horrorSkyEnabled,
-                santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
-            ),
+            pendingCustomization = readFlatCustomization(prefs, pendingThemeId ?: "sunset"),
+            // The theme under live edit has its state in the flat scratch keys, not yet in its own
+            // archive -- that write happens when the user leaves it. Folding it in here means a
+            // reader never sees an incomplete picture, and in particular that a backup taken
+            // mid-edit contains the edit.
+            themeCustomizations = readThemeCustomizations(prefs).let { stored ->
+                if (pendingThemeId == null) stored
+                else stored + (pendingThemeId to readFlatCustomization(prefs, pendingThemeId))
+            },
         )
+    }
+
+    /**
+     * The customization the flat scratch keys currently hold, read against [themeId]'s defaults.
+     *
+     * Extracted from [settingsFlow] in v4.3 so that [switchPendingTheme] can *archive* the same
+     * value it would otherwise have thrown away. Nothing about what it reads changed.
+     */
+    private fun readFlatCustomization(prefs: Preferences, themeId: String): SceneCustomization {
+        val defaults = defaultCustomizationFor(themeId)
+        return SceneCustomization(
+            houses = readVariantConfig(prefs, ObjectCategory.HOUSES, defaults.houses),
+            buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, defaults.buildings),
+            cars = readVariantConfig(prefs, ObjectCategory.CARS, defaults.cars),
+            parasols = readVariantConfig(prefs, ObjectCategory.PARASOLS, defaults.parasols),
+        people = readVariantConfig(prefs, ObjectCategory.PEOPLE, defaults.people),
+        peopleNightDensity = PeopleDensity.resolveNightDensity(
+            stored = prefs[Keys.PEOPLE_NIGHT_DENSITY],
+            dayDensity = prefs[Keys.density(ObjectCategory.PEOPLE)] ?: defaults.people.density,
+        ),
+            trees = readVariantConfig(prefs, ObjectCategory.TREES, defaults.trees),
+            snowmen = readVariantConfig(prefs, ObjectCategory.SNOWMEN, defaults.snowmen),
+            gifts = readVariantConfig(prefs, ObjectCategory.GIFTS, defaults.gifts),
+            penguins = readVariantConfig(prefs, ObjectCategory.PENGUINS, defaults.penguins),
+            bunnies = readVariantConfig(prefs, ObjectCategory.BUNNIES, defaults.bunnies),
+            easterEggs = readVariantConfig(prefs, ObjectCategory.EASTER_EGGS, defaults.easterEggs),
+            pumpkins = readVariantConfig(prefs, ObjectCategory.PUMPKINS, defaults.pumpkins),
+            hillsVariation = prefs[Keys.HILLS_VARIATION] ?: defaults.hillsVariation,
+            hillsColorDay = prefs[Keys.HILLS_COLOR_DAY] ?: defaults.hillsColorDay,
+            hillsColorNight = prefs[Keys.HILLS_COLOR_NIGHT] ?: defaults.hillsColorNight,
+            mountainsFront = MountainLayerConfig(
+                visible = prefs[Keys.mountainVisible(true)] ?: defaults.mountainsFront.visible,
+                density = prefs[Keys.mountainDensity(true)] ?: defaults.mountainsFront.density,
+                colorDay = prefs[Keys.mountainColorDay(true)] ?: defaults.mountainsFront.colorDay,
+                colorNight = prefs[Keys.mountainColorNight(true)] ?: defaults.mountainsFront.colorNight,
+            ),
+            mountainsBack = MountainLayerConfig(
+                visible = prefs[Keys.mountainVisible(false)] ?: defaults.mountainsBack.visible,
+                density = prefs[Keys.mountainDensity(false)] ?: defaults.mountainsBack.density,
+                colorDay = prefs[Keys.mountainColorDay(false)] ?: defaults.mountainsBack.colorDay,
+                colorNight = prefs[Keys.mountainColorNight(false)] ?: defaults.mountainsBack.colorNight,
+            ),
+            lake = LakeConfig(
+                visible = prefs[Keys.LAKE_VISIBLE] ?: defaults.lake.visible,
+                colorDay = prefs[Keys.LAKE_COLOR_DAY] ?: defaults.lake.colorDay,
+                colorNight = prefs[Keys.LAKE_COLOR_NIGHT] ?: defaults.lake.colorNight,
+                height = prefs[Keys.LAKE_HEIGHT] ?: defaults.lake.height,
+                sailboatsVisible = prefs[Keys.LAKE_SAILBOATS_VISIBLE] ?: defaults.lake.sailboatsVisible,
+                sailboatsDensity = prefs[Keys.LAKE_SAILBOATS_DENSITY] ?: defaults.lake.sailboatsDensity,
+                dolphinsVisible = prefs[Keys.LAKE_DOLPHINS_VISIBLE] ?: defaults.lake.dolphinsVisible,
+                dolphinsDensity = prefs[Keys.LAKE_DOLPHINS_DENSITY] ?: defaults.lake.dolphinsDensity,
+            ),
+            stars = StarsConfig(
+                visible = prefs[Keys.STARS_VISIBLE] ?: defaults.stars.visible,
+                density = prefs[Keys.STARS_DENSITY] ?: defaults.stars.density,
+            ),
+            sky = SkyConfig(
+                colorDayHigh = prefs[Keys.SKY_COLOR_DAY_HIGH] ?: defaults.sky.colorDayHigh,
+                colorDayLow = prefs[Keys.SKY_COLOR_DAY_LOW] ?: defaults.sky.colorDayLow,
+                colorNightHigh = prefs[Keys.SKY_COLOR_NIGHT_HIGH] ?: defaults.sky.colorNightHigh,
+                colorNightLow = prefs[Keys.SKY_COLOR_NIGHT_LOW] ?: defaults.sky.colorNightLow,
+                colorSunriseLow = prefs[Keys.SKY_COLOR_SUNRISE_LOW] ?: defaults.sky.colorSunriseLow,
+                colorSunsetLow = prefs[Keys.SKY_COLOR_SUNSET_LOW] ?: defaults.sky.colorSunsetLow,
+                sunCloudHeight = prefs[Keys.SKY_SUN_CLOUD_HEIGHT] ?: defaults.sky.sunCloudHeight,
+            ),
+            sun = SunConfig(
+                visible = prefs[Keys.SUN_VISIBLE] ?: defaults.sun.visible,
+                color = prefs[Keys.SUN_COLOR] ?: defaults.sun.color,
+            ),
+            moon = MoonConfig(
+                visible = prefs[Keys.MOON_VISIBLE] ?: defaults.moon.visible,
+                color = prefs[Keys.MOON_COLOR] ?: defaults.moon.color,
+                realisticPhases = prefs[Keys.MOON_REALISTIC_PHASES] ?: defaults.moon.realisticPhases,
+            ),
+            clouds = CloudsConfig(
+                visible = prefs[Keys.CLOUDS_VISIBLE] ?: defaults.clouds.visible,
+                density = prefs[Keys.CLOUDS_DENSITY] ?: defaults.clouds.density,
+                colorDay = prefs[Keys.CLOUDS_COLOR_DAY] ?: defaults.clouds.colorDay,
+                colorNight = prefs[Keys.CLOUDS_COLOR_NIGHT] ?: defaults.clouds.colorNight,
+            ),
+            birds = BirdsConfig(
+                visible = prefs[Keys.BIRDS_VISIBLE] ?: defaults.birds.visible,
+                density = prefs[Keys.BIRDS_DENSITY] ?: defaults.birds.density,
+                nightBirds = prefs[Keys.BIRDS_NIGHT] ?: defaults.birds.nightBirds,
+                colors = defaults.birds.colors.mapIndexed { index, default ->
+                    BirdColorWeight(
+                        color = prefs[Keys.birdColor(index)] ?: default.color,
+                        weight = prefs[Keys.birdWeight(index)] ?: default.weight,
+                    )
+                },
+            ),
+            precipitation = PrecipitationConfig(
+                visible = prefs[Keys.PRECIPITATION_VISIBLE] ?: defaults.precipitation.visible,
+                type = prefs[Keys.PRECIPITATION_TYPE]?.let { runCatching { PrecipitationType.valueOf(it) }.getOrNull() }
+                    ?: defaults.precipitation.type,
+                intensity = prefs[Keys.PRECIPITATION_INTENSITY] ?: defaults.precipitation.intensity,
+                rainColorDay = prefs[Keys.PRECIPITATION_RAIN_COLOR_DAY] ?: defaults.precipitation.rainColorDay,
+                rainColorNight = prefs[Keys.PRECIPITATION_RAIN_COLOR_NIGHT] ?: defaults.precipitation.rainColorNight,
+                snowColorDay = prefs[Keys.PRECIPITATION_SNOW_COLOR_DAY] ?: defaults.precipitation.snowColorDay,
+                snowColorNight = prefs[Keys.PRECIPITATION_SNOW_COLOR_NIGHT] ?: defaults.precipitation.snowColorNight,
+                thunderstorm = prefs[Keys.PRECIPITATION_THUNDERSTORM] ?: defaults.precipitation.thunderstorm,
+            ),
+            rainbow = RainbowConfig(
+                visible = prefs[Keys.RAINBOW_VISIBLE] ?: defaults.rainbow.visible,
+                opacity = prefs[Keys.RAINBOW_OPACITY] ?: defaults.rainbow.opacity,
+            ),
+            fallColorsEnabled = prefs[Keys.FALL_COLORS_ENABLED] ?: defaults.fallColorsEnabled,
+            winterColorsEnabled = prefs[Keys.WINTER_COLORS_ENABLED] ?: defaults.winterColorsEnabled,
+            christmasDecorationsEnabled = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED] ?: defaults.christmasDecorationsEnabled,
+            flowersEnabled = prefs[Keys.FLOWERS_ENABLED] ?: defaults.flowersEnabled,
+            halloweenEnabled = prefs[Keys.HALLOWEEN_ENABLED] ?: defaults.halloweenEnabled,
+            horrorSkyEnabled = prefs[Keys.HORROR_SKY_ENABLED] ?: defaults.horrorSkyEnabled,
+            santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
+        )
+    }
+
+    /** Every theme that has a persisted customization of its own, keyed by theme id. */
+    private fun readThemeCustomizations(prefs: Preferences): Map<String, SceneCustomization> {
+        val out = HashMap<String, SceneCustomization>()
+        for ((key, value) in prefs.asMap()) {
+            val id = key.name.removePrefix(THEME_CUSTOMIZATION_KEY_PREFIX)
+            if (id === key.name || value !is String) continue
+            out[id] = sceneCustomizationFromJson(runCatching { JSONObject(value) }.getOrNull())
+        }
+        return out
+    }
+
+
+    /**
+     * Writes [c] into the flat scratch keys -- the exact inverse of [readFlatCustomization].
+     *
+     * Its correctness is not argued from inspection: `ThemeCustomizationPersistenceTest` writes a
+     * fully non-default customization through this, reads it back through [readFlatCustomization]
+     * and asserts equality, so a field added to [SceneCustomization] and forgotten here fails.
+     */
+    private fun MutablePreferences.writeFlatCustomization(c: SceneCustomization) {
+        fun variant(category: ObjectCategory, config: ObjectVariantConfig) {
+            this[Keys.visible(category)] = config.visible
+            this[Keys.density(category)] = config.density
+            this[Keys.colorDay1(category)] = config.colorDay1
+            this[Keys.colorNight1(category)] = config.colorNight1
+            this[Keys.colorDay2(category)] = config.colorDay2
+            this[Keys.colorNight2(category)] = config.colorNight2
+        }
+        variant(ObjectCategory.HOUSES, c.houses)
+        variant(ObjectCategory.BUILDINGS, c.buildings)
+        variant(ObjectCategory.CARS, c.cars)
+        variant(ObjectCategory.PARASOLS, c.parasols)
+        variant(ObjectCategory.PEOPLE, c.people)
+        variant(ObjectCategory.TREES, c.trees)
+        variant(ObjectCategory.SNOWMEN, c.snowmen)
+        variant(ObjectCategory.GIFTS, c.gifts)
+        variant(ObjectCategory.PENGUINS, c.penguins)
+        variant(ObjectCategory.BUNNIES, c.bunnies)
+        variant(ObjectCategory.EASTER_EGGS, c.easterEggs)
+        variant(ObjectCategory.PUMPKINS, c.pumpkins)
+        this[Keys.PEOPLE_NIGHT_DENSITY] = c.peopleNightDensity
+        this[Keys.HILLS_VARIATION] = c.hillsVariation
+        this[Keys.HILLS_COLOR_DAY] = c.hillsColorDay
+        this[Keys.HILLS_COLOR_NIGHT] = c.hillsColorNight
+        for ((front, m) in listOf(true to c.mountainsFront, false to c.mountainsBack)) {
+            this[Keys.mountainVisible(front)] = m.visible
+            this[Keys.mountainDensity(front)] = m.density
+            this[Keys.mountainColorDay(front)] = m.colorDay
+            this[Keys.mountainColorNight(front)] = m.colorNight
+        }
+        this[Keys.LAKE_VISIBLE] = c.lake.visible
+        this[Keys.LAKE_COLOR_DAY] = c.lake.colorDay
+        this[Keys.LAKE_COLOR_NIGHT] = c.lake.colorNight
+        this[Keys.LAKE_HEIGHT] = c.lake.height
+        this[Keys.LAKE_SAILBOATS_VISIBLE] = c.lake.sailboatsVisible
+        this[Keys.LAKE_SAILBOATS_DENSITY] = c.lake.sailboatsDensity
+        this[Keys.LAKE_DOLPHINS_VISIBLE] = c.lake.dolphinsVisible
+        this[Keys.LAKE_DOLPHINS_DENSITY] = c.lake.dolphinsDensity
+        this[Keys.STARS_VISIBLE] = c.stars.visible
+        this[Keys.STARS_DENSITY] = c.stars.density
+        this[Keys.SKY_COLOR_DAY_HIGH] = c.sky.colorDayHigh
+        this[Keys.SKY_COLOR_DAY_LOW] = c.sky.colorDayLow
+        this[Keys.SKY_COLOR_NIGHT_HIGH] = c.sky.colorNightHigh
+        this[Keys.SKY_COLOR_NIGHT_LOW] = c.sky.colorNightLow
+        this[Keys.SKY_COLOR_SUNRISE_LOW] = c.sky.colorSunriseLow
+        this[Keys.SKY_COLOR_SUNSET_LOW] = c.sky.colorSunsetLow
+        this[Keys.SKY_SUN_CLOUD_HEIGHT] = c.sky.sunCloudHeight
+        this[Keys.SUN_VISIBLE] = c.sun.visible
+        this[Keys.SUN_COLOR] = c.sun.color
+        this[Keys.MOON_VISIBLE] = c.moon.visible
+        this[Keys.MOON_COLOR] = c.moon.color
+        this[Keys.MOON_REALISTIC_PHASES] = c.moon.realisticPhases
+        this[Keys.CLOUDS_VISIBLE] = c.clouds.visible
+        this[Keys.CLOUDS_DENSITY] = c.clouds.density
+        this[Keys.CLOUDS_COLOR_DAY] = c.clouds.colorDay
+        this[Keys.CLOUDS_COLOR_NIGHT] = c.clouds.colorNight
+        this[Keys.BIRDS_VISIBLE] = c.birds.visible
+        this[Keys.BIRDS_DENSITY] = c.birds.density
+        this[Keys.BIRDS_NIGHT] = c.birds.nightBirds
+        c.birds.colors.forEachIndexed { index, weight ->
+            this[Keys.birdColor(index)] = weight.color
+            this[Keys.birdWeight(index)] = weight.weight
+        }
+        this[Keys.PRECIPITATION_VISIBLE] = c.precipitation.visible
+        this[Keys.PRECIPITATION_TYPE] = c.precipitation.type.name
+        this[Keys.PRECIPITATION_INTENSITY] = c.precipitation.intensity
+        this[Keys.PRECIPITATION_RAIN_COLOR_DAY] = c.precipitation.rainColorDay
+        this[Keys.PRECIPITATION_RAIN_COLOR_NIGHT] = c.precipitation.rainColorNight
+        this[Keys.PRECIPITATION_SNOW_COLOR_DAY] = c.precipitation.snowColorDay
+        this[Keys.PRECIPITATION_SNOW_COLOR_NIGHT] = c.precipitation.snowColorNight
+        this[Keys.PRECIPITATION_THUNDERSTORM] = c.precipitation.thunderstorm
+        this[Keys.RAINBOW_VISIBLE] = c.rainbow.visible
+        this[Keys.RAINBOW_OPACITY] = c.rainbow.opacity
+        this[Keys.FALL_COLORS_ENABLED] = c.fallColorsEnabled
+        this[Keys.WINTER_COLORS_ENABLED] = c.winterColorsEnabled
+        this[Keys.CHRISTMAS_DECORATIONS_ENABLED] = c.christmasDecorationsEnabled
+        this[Keys.FLOWERS_ENABLED] = c.flowersEnabled
+        this[Keys.HALLOWEEN_ENABLED] = c.halloweenEnabled
+        this[Keys.HORROR_SKY_ENABLED] = c.horrorSkyEnabled
+        this[Keys.SANTA_ENABLED] = c.santaEnabled
+    }
+
+
+    /**
+     * Replaces every global preference and every per-theme customization in one transaction.
+     *
+     * Used by backup import, and by its own rollback. **One `edit` block**, so a reader either
+     * sees the whole previous state or the whole new one and never a mixture — which is the half
+     * of "atomic import" this store can guarantee on its own; the other half, keeping it in step
+     * with `CustomThemeStore`, is [BackupRepository]'s job.
+     *
+     * The flat scratch keys and their marker are cleared rather than restored: they are one
+     * theme's in-progress edit, the restored per-theme blobs are the truth, and carrying a stale
+     * scratch across a restore is exactly the confusion this release exists to remove. Runtime
+     * state a backup deliberately does not carry -- the resolved GPS fix, its timestamp, the live
+     * weather status line -- is left exactly as it is on this device.
+     */
+    suspend fun replaceAll(
+        settings: AppBackup.BackupSettings,
+        themeCustomizations: Map<String, SceneCustomization>,
+    ) = context.dataStore.edit { prefs ->
+        prefs[Keys.THEME_ID] = settings.themeId
+        prefs[Keys.SYNC_REAL_TIME] = settings.syncWithRealTime
+        prefs[Keys.USE_LOCATION] = settings.useLocationForSunTimes
+        prefs[Keys.USE_CUSTOM_LOCATION] = settings.useCustomLocation
+        prefs[Keys.DEVICE_LOCATION_KIND] = settings.deviceLocationKind
+        prefs[Keys.CUSTOM_LOCATION_LAT] = settings.customLocationLatitude
+        prefs[Keys.CUSTOM_LOCATION_LON] = settings.customLocationLongitude
+        prefs[Keys.CUSTOM_LOCATION_LABEL] = settings.customLocationLabel
+        prefs[Keys.LIVE_WEATHER_ENABLED] = settings.liveWeatherEnabled
+        prefs[Keys.LIVE_WEATHER_API_KEY] = settings.liveWeatherApiKey
+        prefs[Keys.WEATHER_PROVIDER] = settings.weatherProviderId
+        prefs[Keys.WEATHER_API_COM_API_KEY] = settings.weatherApiComApiKey
+        prefs[Keys.OPEN_WEATHER_API_KEY] = settings.openWeatherApiKey
+        prefs[Keys.AUTOMATIC_UPDATE_CHECK] = settings.automaticUpdateCheckEnabled
+        prefs[Keys.FIXED_HOUR] = settings.fixedHour
+        prefs[Keys.PARALLAX_STRENGTH] = settings.parallaxStrength
+        prefs[Keys.SCROLL_BACKGROUND] = settings.scrollBackground
+        prefs[Keys.SWIPE_SCROLL] = settings.swipeScroll
+        prefs[Keys.SCROLL_SPEED] = settings.scrollSpeed
+        prefs[Keys.AUTO_THEME_BY_DATE] = settings.autoThemeByDate
+
+        prefs.clearAllThemeCustomizationKeys()
+        prefs.remove(Keys.PENDING_CUSTOMIZATION_THEME_ID)
+        for (key in prefs.asMap().keys.filter { it.name.startsWith(THEME_CUSTOMIZATION_KEY_PREFIX) }) {
+            prefs.remove(key)
+        }
+        for ((themeId, customization) in themeCustomizations) {
+            prefs[Keys.themeCustomization(themeId)] = customization.toJson().toString()
+        }
     }
 
     suspend fun setTheme(themeId: String) = context.dataStore.edit { it[Keys.THEME_ID] = themeId }
@@ -1045,16 +1247,47 @@ class WallpaperPrefs(private val context: Context) {
      * baseline, not contaminated leftovers from whatever was edited previously.
      */
     private fun MutablePreferences.ensureFreshPendingTheme(forThemeId: String) {
-        if (this[Keys.PENDING_CUSTOMIZATION_THEME_ID] != forThemeId) {
-            clearAllThemeCustomizationKeys()
+        val outgoing = this[Keys.PENDING_CUSTOMIZATION_THEME_ID]
+        if (outgoing == forThemeId) return
+        // **Archive, do not destroy.** Until v4.3 this branch called
+        // [clearAllThemeCustomizationKeys] and nothing else, which is exactly right for stopping
+        // the leak it was written for and exactly wrong for the user's data: the scratch space is
+        // the *only* place a customization lives until the user explicitly saves the theme in the
+        // gallery, so editing one control on a second theme silently deleted everything they had
+        // done to the first. Reproduced on a device: customise `beach`, touch one slider on
+        // `winter`, and `beach` resolves byte for byte to its factory default.
+        //
+        // The outgoing theme's state is now written to its own key first. The wipe still happens
+        // -- the flat keys must not carry one theme's values into another, which is the whole
+        // point of the guard -- but what it wipes has already been kept.
+        if (outgoing != null) {
+            this[Keys.themeCustomization(outgoing)] =
+                readFlatCustomization(this, outgoing).toJson().toString()
+        }
+        clearAllThemeCustomizationKeys()
+        // And the incoming theme's own archived state is restored, so re-editing a theme picks up
+        // where the user left off rather than starting from defaults.
+        this[Keys.themeCustomization(forThemeId)]?.let { stored ->
+            writeFlatCustomization(sceneCustomizationFromJson(runCatching { JSONObject(stored) }.getOrNull()))
         }
     }
 
     /** Resets every object category (structural and seasonal alike -- both are per-theme scratch
      * state now, see the [ObjectCategory] doc comment) back to defaults and clears the
      * pending-edit tag entirely. */
-    suspend fun resetAllCategories() = context.dataStore.edit { prefs ->
-        prefs.clearAllThemeCustomizationKeys()
-        prefs.remove(Keys.PENDING_CUSTOMIZATION_THEME_ID)
+    suspend fun resetAllCategories(forThemeId: String) = context.dataStore.edit { prefs ->
+        // Only if the scratch space is *this* theme's. Clearing it unconditionally would reset
+        // whichever theme happened to be under live edit -- caught by
+        // `ThemeCustomizationPersistenceTest.resetIsTheOnlyThingThatRemovesACustomization`, which
+        // resets `beach` while `city` is the theme being edited and asserts `city` is untouched.
+        if (prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID] == forThemeId) {
+            prefs.clearAllThemeCustomizationKeys()
+            prefs.remove(Keys.PENDING_CUSTOMIZATION_THEME_ID)
+        }
+        // A reset is the one place a customization is *meant* to disappear, so the archive goes
+        // too -- otherwise "reset this theme" would leave the old look waiting to be restored the
+        // next time the theme was edited. Explicit and user-driven, which is the only way a
+        // customization may now be lost.
+        prefs.remove(Keys.themeCustomization(forThemeId))
     }
 }
