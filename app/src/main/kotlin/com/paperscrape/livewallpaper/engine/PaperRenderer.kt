@@ -320,6 +320,40 @@ class PaperRenderer(
         // at density 1.0.
         const val CLOUD_POOL_SIZE = 41
         const val PRECIPITATION_POOL_SIZE = 90
+
+        /**
+         * A raindrop's and a snowflake's own size, **in pixels at
+         * [SceneSpace.REFERENCE_SCREEN_HEIGHT_PX]** -- multiplied by
+         * [SceneSpace.sceneScale] at the point of use, exactly as the road markings are.
+         *
+         * ### Why they had to move onto the scale (v4.4)
+         *
+         * They were plain canvas pixels: a 2 px stroke, a 16-26 px streak, a 2-4.5 px flake, a
+         * 14 px sway and a 40 px bottom margin, the same absolute sizes on every device. That is
+         * the one thing `SceneSpace` exists to stop -- *"object sizes used to be absolute canvas
+         * pixels while every ground line was a fraction of screen height, so the composition was
+         * only correct on one device"* -- and precipitation was the layer that never adopted it.
+         *
+         * The size the numbers were tuned at was the **golden frame's** 800 px, not the 2400 px
+         * reference, so the effect has always been drawn at three times its intended relative
+         * size in every test and a third of it on a phone. Measured on a 1080x2424 viewport
+         * against 360x800: the whole precipitation layer fell from 0.94% of the frame to 0.11%,
+         * an 8.6x loss. Snow survived that on contrast alone -- a white disc still reads against
+         * a blue sky -- while rain, a translucent `0xFF7FB3E0` hairline on a `0xFF6EC6FF` sky,
+         * did not, which is exactly the "rain is not there, snow is" that was reported.
+         *
+         * Stated at the reference height, they are the old numbers times three, so
+         * `sceneScale(800) = 1/3` reproduces the old frame **exactly** and no golden moves.
+         */
+        const val RAIN_STROKE_WIDTH_PX = 6f
+        const val RAIN_LENGTH_MIN_PX = 48f
+        const val RAIN_LENGTH_MAX_PX = 78f
+        const val SNOW_RADIUS_MIN_PX = 6f
+        const val SNOW_RADIUS_MAX_PX = 13.5f
+        const val SNOW_SWAY_PX = 42f
+
+        /** How far past the bottom edge a drop keeps falling before it wraps. Same basis. */
+        const val PRECIPITATION_BOTTOM_MARGIN_PX = 120f
         const val BIRD_POOL_SIZE = 6
         const val FALLING_LEAF_POOL_SIZE = 26
         const val MOUNTAIN_POOL_SIZE = 4
@@ -1577,6 +1611,11 @@ class PaperRenderer(
      * drive whether precipitation shows at all, which type, and how intense -- the theme's own
      * manual Rain/Snow toggle and intensity slider are not consulted at all while it's active.
      * The theme's own rain/snow color pairs are still used, though.
+     *
+     * Sized against the viewport (v4.4): every length here is a reference-height pixel value
+     * multiplied by [SceneSpace.sceneScale], the same treatment `drawRoad` gives its stroke
+     * widths. They used to be absolute canvas pixels, which made the effect correct on exactly
+     * one screen size -- see [RAIN_STROKE_WIDTH_PX] for what that cost and how it was reported.
      */
     private fun drawPrecipitation(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         val precip = sceneCustomization.precipitation
@@ -1610,14 +1649,17 @@ class PaperRenderer(
         val cloudBandTop = cloudBandTopFor(screenHeight, sceneCustomization.sky.sunCloudHeight)
         val cloudBandHeight = cloudBandHeightFor(screenHeight)
         val fallStartY = cloudBandTop + cloudBandHeight * 0.5f
-        val fallRange = (screenHeight + 40f) - fallStartY
+        // Every size below is a reference-height pixel value scaled to this viewport, the same
+        // way `drawRoad` scales its stroke widths and dash lengths. See the constants' own doc.
+        val sceneScale = SceneSpace.sceneScale(screenHeight.toFloat())
+        val fallRange = (screenHeight + PRECIPITATION_BOTTOM_MARGIN_PX * sceneScale) - fallStartY
         // Paint state that does not vary between drops, set once instead of once per drop.
         // `isRain` is fixed for the whole call, so the style, stroke width and cap were being
         // rewritten identically up to PRECIPITATION_POOL_SIZE times a frame. Only the alpha and
         // the geometry actually change per drop, and those stay in the loop.
         if (isRain) {
             precipPaint.style = Paint.Style.STROKE
-            precipPaint.strokeWidth = 2f
+            precipPaint.strokeWidth = RAIN_STROKE_WIDTH_PX * sceneScale
             precipPaint.strokeCap = Paint.Cap.ROUND
         } else {
             precipPaint.style = Paint.Style.FILL
@@ -1639,7 +1681,7 @@ class PaperRenderer(
             val fallFraction = elapsedSeconds.cycle(fallSpeed * speedVariance, phase)
             val y = fallStartY + fallFraction * fallRange
             // Snow sways gently as it falls; rain falls in a straight diagonal line (wind-angled).
-            val sway = if (isRain) 0f else elapsedSeconds.sinAt(1.3f, phase * 6.28f) * 14f
+            val sway = if (isRain) 0f else elapsedSeconds.sinAt(1.3f, phase * 6.28f) * SNOW_SWAY_PX * sceneScale
             val x = xFraction * screenWidth + sway
 
             // Fade in over the first 10% of the fall and out over the last 10% -- this alone is
@@ -1654,11 +1696,17 @@ class PaperRenderer(
 
             if (isRain) {
                 precipPaint.alpha = (190 * fadeAlpha).toInt()
-                val len = CandidateNoise.range(seed, i, CandidateNoise.CH_LENGTH, 16f, 26f)
+                val len = CandidateNoise.range(
+                    seed, i, CandidateNoise.CH_LENGTH,
+                    RAIN_LENGTH_MIN_PX * sceneScale, RAIN_LENGTH_MAX_PX * sceneScale,
+                )
                 canvas.drawLine(x, y, x - len * 0.25f, y + len, precipPaint)
             } else {
                 precipPaint.alpha = (220 * fadeAlpha).toInt()
-                val r = CandidateNoise.range(seed, i, CandidateNoise.CH_WIDTH, 2f, 4.5f)
+                val r = CandidateNoise.range(
+                    seed, i, CandidateNoise.CH_WIDTH,
+                    SNOW_RADIUS_MIN_PX * sceneScale, SNOW_RADIUS_MAX_PX * sceneScale,
+                )
                 canvas.drawCircle(x, y, r, precipPaint)
             }
         }

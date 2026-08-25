@@ -559,7 +559,7 @@ fun CustomThemeData.toJsonString(): String {
 }
 
 /**
- * Puts the cars back into a built-in override that was saved without any.
+ * Puts the cars back into a built-in override that was saved without them, or without all of them.
  *
  * ### What it repairs, and why it has to exist
  *
@@ -575,17 +575,36 @@ fun CustomThemeData.toJsonString(): String {
  *
  * ### The guard, which is deliberately narrow
  *
- * All three must hold, or the entry is returned untouched:
+ * All of these must hold, or the entry is returned untouched:
  *
  *  1. it is a **built-in override** -- the key of the `overrides` map, not a standalone theme;
- *  2. its `layout.cars` is **empty**;
- *  3. the **built-in it overrides still defines cars** ([SceneObjectCatalog.builtinCarsFor],
- *     which reads the original and not the override).
+ *  2. the **built-in it overrides still defines cars** ([SceneObjectCatalog.builtinCarsFor],
+ *     which reads the original and not the override);
+ *  3. its `layout.cars` holds **fewer cars than that canonical list**;
+ *  4. and, when the stored list is not empty, it is **exactly what the old save path would have
+ *     written** at this entry's own baked density -- see [oldSaveWouldHaveWritten].
  *
- * Together those mean the theme provably used to have a road and provably cannot get one back on
- * its own. Anything less certain is left alone: a standalone custom theme has no canonical layout
- * to compare against, so **it is never speculatively repaired**, and a built-in whose own
- * definition has no cars is not given any.
+ * Anything less certain is left alone: a standalone custom theme has no canonical layout to
+ * compare against, so **it is never speculatively repaired**, and a built-in whose own definition
+ * has no cars is not given any.
+ *
+ * ### Why a partial list is repaired too (v4.4)
+ *
+ * The empty list is the visible half of the defect. The other half is a list the old save path
+ * *thinned* rather than emptied -- measured on the real ten-car layout, saving at 65% wrote 8
+ * cars, at 50% wrote 6, at 20% wrote 1. Those keep a road, so they were not what the original
+ * report was about, but they are damaged in the same way and just as permanently: the inventory
+ * is capped for ever, so raising the density afterwards can never bring the missing traffic
+ * back, and a list thinned to a single car canonicalises onto **one** lane, which leaves the
+ * painted road derived from half a lane pair.
+ *
+ * It is repaired because it can be *proved* rather than assumed, on two independent grounds.
+ * First, by enumeration of the writers: the only thing that ever puts a layout into `overrides`
+ * is `snapshotEntry`, and a backup restore of data that came from it -- a theme *import* is
+ * always a new standalone theme and never an override -- so for a built-in override a partial
+ * car list has no author but the old save path. Second, by reconstruction:
+ * [oldSaveWouldHaveWritten] rebuilds that author's output and requires an exact match before
+ * anything is written.
  *
  * ### What it does not touch
  *
@@ -595,7 +614,7 @@ fun CustomThemeData.toJsonString(): String {
  *
  * ### Idempotent by construction
  *
- * After a repair, condition 2 no longer holds, so running it again is a no-op. That is what makes
+ * After a repair, condition 3 no longer holds, so running it again is a no-op. That is what makes
  * it safe to run on **every load** rather than as a one-off migration -- see
  * [customThemeDataFromJsonString], which is the single funnel every reader of this data goes
  * through, including the wallpaper service starting with no UI in sight.
@@ -604,14 +623,44 @@ fun CustomThemeData.repairBuiltInOverrides(): CustomThemeData {
     if (overrides.isEmpty()) return this
     var changed = false
     val repaired = overrides.mapValues { (builtinId, entry) ->
-        if (entry.layout.cars.isNotEmpty()) return@mapValues entry
         val canonical = SceneObjectCatalog.builtinCarsFor(builtinId, entry.theme.accentColor)
         if (canonical.isEmpty()) return@mapValues entry
+        val stored = entry.layout.cars
+        // A whole inventory, or more than one: nothing to put back, and nothing this understands.
+        if (stored.size >= canonical.size) return@mapValues entry
+        // A *partial* inventory is only repaired once it has been re-derived and matched. See
+        // [oldSaveWouldHaveWritten].
+        if (stored.isNotEmpty() && stored != oldSaveWouldHaveWritten(canonical, entry.customization)) {
+            return@mapValues entry
+        }
         changed = true
         entry.copy(layout = entry.layout.copy(cars = SceneObjectCatalog.canonicaliseTraffic(canonical)))
     }
     return if (changed) copy(overrides = repaired) else this
 }
+
+/**
+ * The car list the pre-v4.3 save path would have written for [canonical] under [customization],
+ * as it comes back off disk.
+ *
+ * `snapshotEntry` stored `rawLayout.cars.filter { keepCar(it) }` **and** the very customization it
+ * filtered with, in the same entry, and every load then runs the list through
+ * [SceneObjectCatalog.canonicaliseTraffic]. So a damaged entry carries its own proof: rebuilding
+ * that expression from the canonical list and the entry's own baked customization has to
+ * reproduce the stored list exactly, car for car.
+ *
+ * That is what turns the partial-inventory repair from a guess into a check. `keepCar` is a
+ * threshold on a fixed per-car fraction, so the old filter could only ever emit one of eleven
+ * nested subsets of a ten-car list; requiring an exact match against the one the entry's own
+ * density selects refuses everything else, including any list this build cannot account for. If
+ * the canonical layout is ever regenerated differently, the match simply stops succeeding and
+ * nothing is written -- the failure mode is "leave it alone", which is the right one.
+ */
+private fun oldSaveWouldHaveWritten(
+    canonical: List<CarObject>,
+    customization: SceneCustomization,
+): List<CarObject> =
+    SceneObjectCatalog.canonicaliseTraffic(canonical.filter { customization.keepCar(it) })
 
 fun customThemeDataFromJsonString(raw: String?): CustomThemeData {
     if (raw.isNullOrBlank()) return CustomThemeData.EMPTY

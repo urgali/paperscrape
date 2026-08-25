@@ -295,4 +295,177 @@ class SavedThemeCarLayoutTest {
             assertNotEquals("$id has no cars to repair from", 0, raw.cars.size)
         }
     }
+
+    // ------------------------------------------------------------------ the thinned inventory
+
+    /**
+     * An entry exactly as it comes back off disk, **without** the repair.
+     *
+     * `reload` goes through `customThemeDataFromJsonString`, which repairs on the way out; these
+     * tests need the damaged shape itself, so they serialise and parse the one entry. It is still
+     * the real serialisation and the real `canonicaliseTraffic`, which is what makes the stored
+     * list the genuine article rather than a hand-built approximation of it.
+     */
+    private fun asPersisted(entry: CustomThemeEntry): CustomThemeEntry =
+        customThemeEntryFromJson(org.json.JSONObject(entry.toJson().toString()))
+
+    private fun thinnedOverride(customization: SceneCustomization) = CustomThemeData(
+        overrides = mapOf("beach" to asPersisted(saveBeachAtTheOldWay(customization))),
+    )
+
+    /**
+     * The other half of the same defect: saved at 50%, six cars were frozen into the terrain.
+     *
+     * The road survives this one, which is why the original report was not about it — but the
+     * inventory is capped for ever all the same, and that is what the repair undoes.
+     */
+    @Test
+    fun `partialBuiltinOverrideFromTheOldSaveIsRepaired`() {
+        val damaged = thinnedOverride(atDensity(0.5f)).overrides.getValue("beach")
+        assertEquals("the fixture is not a partial list", 6, damaged.layout.cars.size)
+        assertTrue("the fixture should still have a road", hasRoad(damaged))
+
+        val repaired = thinnedOverride(atDensity(0.5f)).repairBuiltInOverrides().overrides.getValue("beach")
+        assertEquals("the whole inventory was not restored", rawBeach.cars, repaired.layout.cars)
+        assertEquals("the repair rewrote the customization", damaged.customization, repaired.customization)
+        assertEquals("static objects moved", damaged.layout.staticObjects, repaired.layout.staticObjects)
+    }
+
+    /** Every density the old path could have saved at, repaired back to the whole inventory. */
+    @Test
+    fun `theOldSaveIsRepairedAtEveryDensityItCouldHaveWritten`() {
+        for (step in 0..20) {
+            val density = step / 20f
+            val damaged = thinnedOverride(atDensity(density)).overrides.getValue("beach")
+            if (damaged.layout.cars.size == rawBeach.cars.size) continue // nothing was lost
+            val repaired = thinnedOverride(atDensity(density)).repairBuiltInOverrides().overrides.getValue("beach")
+            assertEquals("density $density was not repaired", rawBeach.cars, repaired.layout.cars)
+        }
+    }
+
+    /**
+     * **The repair restores the traffic the density actually asks for, which the damaged theme
+     * was not showing either.**
+     *
+     * Measured here, and worth stating because it was not obvious: a thinned list does not even
+     * render the cars it kept. `keepCar` thresholds a fraction derived from a car's lane and its
+     * loop slot, and `canonicaliseTraffic` reassigns both **by position in the stored list** — so
+     * six cars saved at 50% come back with six *new* fractions, and 50% of those is five. The
+     * damaged theme shows 5; the whole inventory at the same 50% shows the 6 the user chose.
+     *
+     * So the repair does change what is on screen, upward, and toward the setting. That is the
+     * fix, not a side effect of it.
+     */
+    @Test
+    fun `a repaired partial theme shows the traffic its density asks for`() {
+        val damaged = thinnedOverride(atDensity(0.5f)).overrides.getValue("beach")
+        val repaired = thinnedOverride(atDensity(0.5f)).repairBuiltInOverrides().overrides.getValue("beach")
+
+        val wanted = rawBeach.cars.count { atDensity(0.5f).keepCar(it) }
+        assertEquals("the whole inventory at 50% is not six cars", 6, wanted)
+        assertEquals(
+            "the repaired theme does not show what its density asks for",
+            wanted, repaired.layout.cars.count { repaired.customization.keepCar(it) },
+        )
+        assertEquals(
+            "the damaged fixture was already showing the right traffic",
+            5, damaged.layout.cars.count { damaged.customization.keepCar(it) },
+        )
+    }
+
+    /** And the point of it: the density slider can reach the missing cars again. */
+    @Test
+    fun `a repaired partial theme is no longer capped at the density it was saved with`() {
+        val damaged = thinnedOverride(atDensity(0.5f)).overrides.getValue("beach")
+        val repaired = thinnedOverride(atDensity(0.5f)).repairBuiltInOverrides().overrides.getValue("beach")
+        val wideOpen = atDensity(1f)
+        assertEquals(
+            "the damaged theme could already show all its traffic",
+            6, damaged.layout.cars.count { wideOpen.keepCar(it) },
+        )
+        assertEquals(
+            "the repaired theme still cannot show the traffic it lost",
+            rawBeach.cars.size, repaired.layout.cars.count { wideOpen.keepCar(it) },
+        )
+    }
+
+    /**
+     * Thinned to one car, the stored list canonicalises onto a single lane — so the road itself
+     * is painted from half a lane pair. The repair puts both lanes back.
+     */
+    @Test
+    fun `a single-car override gets its second lane back`() {
+        val damaged = thinnedOverride(atDensity(0.2f)).overrides.getValue("beach")
+        assertEquals(1, damaged.layout.cars.size)
+        assertEquals(
+            "the fixture should be degenerate",
+            1, damaged.layout.cars.map { it.laneYFraction }.distinct().size,
+        )
+        val repaired = thinnedOverride(atDensity(0.2f)).repairBuiltInOverrides().overrides.getValue("beach")
+        assertEquals(2, repaired.layout.cars.map { it.laneYFraction }.distinct().size)
+    }
+
+    /**
+     * **The guard refuses what it cannot account for.**
+     *
+     * The canonical list minus its last car is a nine-car list no density can produce — the old
+     * filter is a threshold on a fixed per-car fraction, so it drops the *highest* fraction
+     * first, not the last one in the list. A partial list this build cannot explain is left
+     * exactly as it is.
+     */
+    @Test
+    fun `a partial list the old save path cannot explain is left alone`() {
+        val invented = rawBeach.cars.dropLast(1)
+        val data = CustomThemeData(
+            overrides = mapOf(
+                "beach" to CustomThemeEntry(
+                    id = "beach", name = "Beach", theme = beach,
+                    layout = SceneObjectLayout(staticObjects = rawBeach.staticObjects, cars = invented),
+                    customization = defaults(),
+                ),
+            ),
+        )
+        assertSame("a list the repair cannot explain was rewritten anyway", data, data.repairBuiltInOverrides())
+    }
+
+    /**
+     * And it refuses a real old-save list whose baked density no longer explains it.
+     *
+     * Conservative on purpose: the reconstruction is the whole proof, so without it there is
+     * nothing left but a guess about somebody's saved theme.
+     */
+    @Test
+    fun `a partial list whose baked density does not explain it is left alone`() {
+        val real = asPersisted(saveBeachAtTheOldWay(atDensity(0.5f)))
+        val mislabelled = real.copy(customization = atDensity(1f))
+        val data = CustomThemeData(overrides = mapOf("beach" to mislabelled))
+        assertSame(data, data.repairBuiltInOverrides())
+    }
+
+    @Test
+    fun `a standalone custom theme with a partial car list is not repaired either`() {
+        val old = saveBeachAtTheOldWay(atDensity(0.5f))
+        val standalone = asPersisted(
+            old.copy(id = "custom:1700000000001", name = "Mine", theme = beach.copy(id = "custom:1700000000001")),
+        )
+        val data = CustomThemeData(customThemes = listOf(standalone))
+        assertEquals("a standalone theme was repaired on a guess", data, data.repairBuiltInOverrides())
+    }
+
+    @Test
+    fun `the partial repair is idempotent`() {
+        val once = thinnedOverride(atDensity(0.5f)).repairBuiltInOverrides()
+        val twice = once.repairBuiltInOverrides()
+        assertEquals("a second repair changed the data", once, twice)
+        assertSame("a repaired payload was rebuilt for no reason", once, twice)
+    }
+
+    /** A thinned override is repaired simply by being loaded, like the empty one. */
+    @Test
+    fun `a thinned override is repaired simply by being loaded`() {
+        val onDisk = thinnedOverride(atDensity(0.5f)).toJsonString()
+        val loaded = customThemeDataFromJsonString(onDisk).overrides.getValue("beach")
+        assertEquals(rawBeach.cars, loaded.layout.cars)
+        assertEquals(atDensity(0.5f), loaded.customization)
+    }
 }

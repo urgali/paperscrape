@@ -471,6 +471,46 @@ class BackupAndThemeShareTest {
         assertEquals(raw.cars.size, reloaded.overrides.getValue("beach").layout.cars.size)
     }
 
+    /**
+     * A backup carrying a *thinned* override is repaired on load too (v4.4).
+     *
+     * The empty list was the visible half of the defect; a list the old save path merely thinned
+     * is the other half, and a backup taken before the fix is exactly how one arrives on an
+     * install that never had the damage itself. The repair runs where every reader goes through,
+     * so restoring is enough — nothing in `BackupRepository` needs to know about it.
+     */
+    @Test
+    fun `a thinned override restored from a backup is repaired on load`() {
+        val raw = SceneObjectCatalog.layoutFor("beach", ThemeCatalog.byId("beach").accentColor)
+        val thinned = defaultCustomizationFor("beach").let { it.copy(cars = it.cars.copy(density = 0.5f)) }
+        // Exactly what the pre-v4.3 save path wrote: the filtered list and the density it filtered with.
+        val damaged = CustomThemeEntry(
+            id = "beach",
+            name = "Beach",
+            theme = ThemeCatalog.byId("beach"),
+            layout = SceneObjectLayout(
+                staticObjects = raw.staticObjects,
+                cars = raw.cars.filter { thinned.keepCar(it) },
+            ),
+            customization = thinned,
+        )
+        assertTrue("the fixture is not thinned", damaged.layout.cars.size in 1 until raw.cars.size)
+
+        val backup = AppBackup.from(
+            WallpaperSettings(),
+            CustomThemeData(overrides = mapOf("beach" to damaged)),
+            "4.4",
+            0L,
+        )
+        val parsed = (parseAppBackup(backup.toJsonString()) as BackupParseResult.Ok).backup
+        // What the next read of the store produces, which is where the repair lives.
+        val reloaded = customThemeDataFromJsonString(parsed.customThemeData.themeDataToJsonString())
+        val restored = reloaded.overrides.getValue("beach")
+        assertEquals("the thinned inventory was not restored", raw.cars.size, restored.layout.cars.size)
+        assertEquals("the restore rewrote the density", 0.5f, restored.customization.cars.density, 0.0001f)
+        assertEquals("the restore rewrote the customization", thinned, restored.customization)
+    }
+
     @Test
     fun `the two formats do not share a version number or a marker`() {
         assertNotEquals(AppBackup.DOCUMENT_KIND, ThemeShare.DOCUMENT_KIND)

@@ -713,6 +713,16 @@ lanes, both pavement rows and every vehicle and pedestrian read the same
 function, so their relative sizes and speeds follow from their ground lines with
 nothing kept in step by hand.
 
+**`sceneScale` is not only for things standing on the ground.** Anything measured
+in pixels goes through it, including the road's stroke widths and dash lengths and
+-- since v4.4 -- every raindrop and snowflake. Precipitation was the last layer
+still using absolute canvas pixels, which made it correct on exactly one screen
+size: its sizes had been tuned at the 800 px test frame rather than at the 2400 px
+reference, so on a phone the whole effect covered about a ninth of the frame share
+it did in the goldens. Sizes stated in pixels therefore state the height they are
+stated *at*, and `PaperRenderer`'s `RAIN_*`/`SNOW_*` constants carry the
+`_PX`-at-reference-height convention `SceneSpace.ROAD_*` already used.
+
 A category's base scale is **derived**, not authored: each declares the real
 height it should read as and the local-unit height its own drawing occupies
 (`SceneSpace.SceneVariant`, plus the vehicle and person constants beside it).

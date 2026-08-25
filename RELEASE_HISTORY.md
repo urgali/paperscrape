@@ -19,6 +19,106 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.4 — rain you can see, and the rest of the traffic back
+
+**Prepared, not published.** `versionCode = 35`, `versionName = "4.4"`. No tag, no push, no GitHub
+Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain 37. Baseline is
+the **published v4.3 tag** (`ff6d4c5`), verified against `origin/main` and against the delivered
+v4.3 ZIP, which is byte-identical to it outside `.git/`.
+
+Two defects, both of the shape "the setting is on and the thing is not on the screen".
+
+### 1. Precipitation was sized in absolute canvas pixels
+
+Reported as rain not rendering with Location off, Live Weather off, Clouds on and Rain on, while
+snow in the same state worked.
+
+**It is not a state defect, and that was established before anything was changed.** Rain and snow
+are one code path: the same gate, the same intensity, the same `CloudCoverage`, the same candidate
+pool, the same fall origin. They diverge only in colour, speed, mark and alpha, and there is no
+point at which one is enabled and the other is not. Measured on rendered frames, both were on
+screen on both backends — the Canvas one and the shipped GL one.
+
+What was wrong is the size. Every length in `drawPrecipitation` was an absolute canvas pixel — a
+2 px stroke, a 16–26 px streak, a 2–4.5 px flake, a 14 px sway, a 40 px bottom margin — which is
+the one thing `SceneSpace` exists to prevent, and the only layer in the scene that had never
+adopted its viewport scale. `drawRoad` scales its own dash lengths; precipitation did not.
+
+The numbers had been tuned at the **golden frame's** 800 px rather than at the 2400 px reference,
+so the effect was drawn at three times its intended relative size in every test and roughly a
+third of it on a phone. Measured on one scene at two viewports:
+
+| viewport | rain | snow |
+|---|---|---|
+| 360×800 | 0.9365% of the frame | 0.6455% |
+| 1080×2424 | **0.1083%** | **0.0786%** |
+
+Snow survived an 8.6× loss on contrast alone — a white disc reads against a blue sky. Rain, a
+translucent `0xFF7FB3E0` hairline on a `0xFF6EC6FF` sky, did not. That asymmetry is the whole of
+the report, and it is why no boolean anywhere could have explained it.
+
+Every size is now stated at `SceneSpace.REFERENCE_SCREEN_HEIGHT_PX` and multiplied by
+`SceneSpace.sceneScale`. On 1080×2424 rain went from 0.1083% to **0.7218%** of the frame, snow from
+0.0786% to 0.5744%. The constants are the old values times three and `sceneScale(800) = 1/3`, so
+the golden frame is a fixed point: 360×800 renders exactly what it rendered before and **no golden
+changed**.
+
+### 2. The other half of v4.3's car-layout repair
+
+v4.3 stopped the save path freezing a thinned car list into a theme, and repaired built-in
+overrides left with **no** cars. An override left with **some** was not repaired. Measured on the
+real ten-car layout, the pre-v4.3 save wrote 8 cars at 65%, 6 at 50% and 1 at 20%.
+
+Those keep a road, which is why they were not the reported symptom, but they carry the same
+permanent damage: the inventory is capped, so raising the density can never reach the missing
+cars. Two further consequences were measured rather than assumed. A list thinned to one car
+canonicalises onto a **single lane**, so the painted road is derived from half a lane pair. And a
+thinned theme does not even show the traffic it was saved with — `keepCar` thresholds a fraction
+derived from a car's lane and loop slot, and `canonicaliseTraffic` reassigns both *by position in
+the stored list*, so six cars saved at 50% come back with six new fractions and 50% of those is
+five.
+
+They are repaired now, behind a reconstruction rather than an assumption — see D-4.4-B.
+
+### Decisions
+
+- **D-4.4-A — precipitation joins the existing viewport scale rather than getting a scale of its
+  own.** `SceneSpace.sceneScale` is already how the road markings, the lake, the sailboats and
+  every sprite are sized. The alternative — leaving the sizes alone and darkening the default rain
+  colour — was rejected: it treats the symptom, it is a visible palette change on every theme for a
+  value the user can already edit, and it would leave snow drawn a third of its intended size on
+  every phone. The rebasing was chosen so the golden frame is a fixed point, which is what makes
+  "zero golden changes" a property (`PrecipitationScaleTest`) rather than an observation.
+- **D-4.4-B — a partial car inventory is repaired only when it can be reconstructed.** Two
+  independent grounds, and both are needed. By **enumeration of the writers**: the only thing that
+  puts a layout into `overrides` is `snapshotEntry`, plus a backup restore of data that came from
+  it — a theme *import* is always a new standalone theme and never an override — so for a built-in
+  override a partial car list has no author but the old save path. By **reconstruction**:
+  `oldSaveWouldHaveWritten` rebuilds that author's output from the canonical list and the entry's
+  own baked density, and the repair refuses unless it matches car for car. `keepCar` is a threshold
+  on a fixed per-car fraction, so the old filter could only emit one of eleven nested subsets of a
+  ten-car list; 32 of the 1022 arbitrary non-empty proper subsets would also satisfy the match, and
+  the enumeration is what rules those out as things that can exist. If the canonical layout is ever
+  regenerated differently the match simply stops succeeding and nothing is written.
+- **D-4.4-C — the empty case keeps its unconditional guard.** The reconstruction is not applied to
+  an empty list, so v4.3's behaviour is preserved exactly: an entry whose baked customization has
+  somehow been lost still gets its road back. Adding the check there would have been a regression
+  wearing the clothes of a tightening.
+- **D-4.4-D — the repair changes what is on screen, upward, and that is the fix.** A repaired
+  theme shows the traffic its density asks for, which a thinned one was not showing. Stated as an
+  assertion (`a repaired partial theme shows the traffic its density asks for`) rather than left as
+  a surprise.
+
+### Known and not fixed
+
+- **`drawFallingLeaves` has the identical defect.** Its leaf is a `drawOval(-4, -6, 4, 6)` and its
+  sway is `* 26f`, both absolute canvas pixels, so Fall Colors' leaves are a third of their
+  intended size on a phone exactly as precipitation was. Found while diagnosing this one, not
+  fixed: it is a different feature, it was not reported, and it earns its own batch rather than
+  riding along on this one.
+- **A pedestrian can paint over the top row of a car** (1–8 px). Pre-existing since v4.0.
+- **The `desert` street at 65% density is one skin tone.** Carried over, D-4.2-D.
+
 ## v4.3 — settings that stay, cars that read right, and files you can move
 
 **Prepared, not published.** `versionCode = 34`, `versionName = "4.3"`. No tag, no push, no GitHub

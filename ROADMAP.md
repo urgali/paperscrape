@@ -11,9 +11,23 @@ that was.
 
 ## Current status
 
-**v4.3 prepared -- a data-loss fix, a proportion fix, and two file formats.**
+**v4.4 prepared -- rain sized against the viewport, and the rest of a thinned car list back.**
 
-`versionCode = 34`, `versionName = "4.3"`. **No tag, no push, no GitHub Release.**
+`versionCode = 35`, `versionName = "4.4"`. **No tag, no push, no GitHub Release.**
+Baseline: the published **v4.3** tag `ff6d4c5`.
+
+```
+v4.4 [x]
+ |- every precipitation size is stated at SceneSpace's reference height and scaled to the
+ |  viewport, the same treatment drawRoad already gave its dash lengths -- rain went from
+ |  0.11% of a 1080x2424 frame to 0.72%, and the 360x800 golden frame is a fixed point of
+ |  the change, so not one golden moved
+ \- a built-in override the pre-v4.3 save path *thinned* rather than emptied gets its whole
+    car inventory back, but only when the app can rebuild what that save path would have
+    written and match it exactly
+```
+
+**v4.3 published** -- `versionCode = 34`, tag `v4.3`.
 
 ```
 v4.3 [x]
@@ -32,6 +46,11 @@ v4.3 [x]
 
 Threads still open, recorded rather than scheduled:
 
+- **`drawFallingLeaves` sizes its leaves in absolute canvas pixels**, exactly as precipitation did
+  before v4.4 -- a `drawOval(-4, -6, 4, 6)` and a `* 26f` sway, so Fall Colors' leaves are about a
+  third of their intended size on a phone. Found while diagnosing v4.4's rain defect and
+  deliberately left out of that batch: different feature, not reported, and it needs its own
+  before/after measurement and a look at whether any golden moves.
 - **A pedestrian can paint over the top row of a car** (1-8 px measured). Pre-existing since
   v4.0; `drawPeople` runs after the vehicle loop and the near pavement sits 1-2 px above the far
   lane. Fixing it means opening the vehicle draw path, which needs its own approved batch.
