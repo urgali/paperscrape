@@ -532,9 +532,15 @@ object SceneSpace {
      * one the ground plane implies -- 57.7 against 61.1 -- and `VehiclePedestrianScaleTest` fails
      * if it ever inverts again.
      *
-     * The busts behind a windscreen are governed by this too, without being mentioned in it:
-     * `CAR_HEAD_SCALE` sizes them against the glass, and 47.7 sprite units at 0.30 is 0.43 m of
-     * head and shoulders -- right for a 1.75 m adult, slightly short for a 1.9 m one.
+     * **v4.6: the busts behind a windscreen were not governed by this, and that was the rest of
+     * the same report.** `CAR_HEAD_SCALE` sizes them against the glass, which is the right thing
+     * for it to do, but nobody had checked the result against the way this artwork actually draws
+     * a person. A walk sprite gives a pedestrian a head 25.00 of its 80.67 content units tall --
+     * **31% of their own height**, a paper-cutout proportion -- so an adult's head is 0.547 m. The
+     * driver's was 0.320 m, 59% of it, on a plane nearer the viewer than the pavement; the people
+     * inside the cars read as children. See `SceneObjectRenderer`'s bust block for the fix, which
+     * is a taller pane and one rule instead of three tuned scales, and which leaves
+     * [CAR_METRES_TALL] alone.
      */
     const val PERSON_METRES_TALL = 1.75f
     const val PERSON_SPRITE_UNITS_TALL = 80f

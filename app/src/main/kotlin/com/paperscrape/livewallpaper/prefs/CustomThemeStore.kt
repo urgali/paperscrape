@@ -33,7 +33,7 @@ private val Context.customThemeDataStore by preferencesDataStore(
  * themes at most) and always read/written as a whole, so this is simpler than modeling each
  * theme as its own preference key.
  */
-class CustomThemeStore(private val context: Context) {
+open class CustomThemeStore(private val context: Context) {
 
     private object Keys {
         val DATA_JSON = stringPreferencesKey("custom_theme_data_json")
@@ -90,9 +90,17 @@ class CustomThemeStore(private val context: Context) {
      *
      * Backup import's half of the two-store write, and its own rollback. The whole blob is one
      * DataStore value, so this is a single atomic replacement by construction.
+     *
+     * **`open`, and this one method only** (v4.6): [BackupRepository]'s rollback path is only
+     * reachable when one of the two stores fails, and there is no honest way to make a real
+     * DataStore fail on demand. The instrumented test overrides this to throw. The class is `open`
+     * for the same reason and for nothing else -- it is not an extension point, and the app has
+     * exactly one implementation.
      */
-    suspend fun replaceAll(data: CustomThemeData) = context.customThemeDataStore.edit { prefs ->
-        prefs[Keys.DATA_JSON] = data.toJsonString()
+    open suspend fun replaceAll(data: CustomThemeData) {
+        context.customThemeDataStore.edit { prefs ->
+            prefs[Keys.DATA_JSON] = data.toJsonString()
+        }
     }
 
     companion object {

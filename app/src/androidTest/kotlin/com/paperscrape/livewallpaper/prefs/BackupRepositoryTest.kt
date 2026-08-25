@@ -7,7 +7,12 @@ import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -190,5 +195,125 @@ class BackupRepositoryTest {
 
         assertTrue(repo().import(themeFile) is BackupRepository.ImportResult.Refused)
         assertTrue(parseThemeShare(backupFile) is ThemeParseResult.Failed)
+    }
+
+    // ------------------------------------------------------------------ cancellation (v4.6)
+
+    /**
+     * **An import cancelled between its two writes still finishes both of them.**
+     *
+     * The staging in [BackupRepository] guards against one write throwing. It did not guard against
+     * the *caller* going away, and the caller is `rememberCoroutineScope()` — the settings screen's
+     * composition, which Compose cancels on a rotation, a back press, or the system reclaiming the
+     * Activity. A cancellation landing between the two `replaceAll`s left the preferences new and
+     * the saved themes old, and then skipped the rollback as well: the `catch` caught the
+     * `CancellationException`, the rollback suspended on a job that was already cancelled, threw
+     * immediately, and the whole thing reported `Broken` to a UI that no longer existed.
+     *
+     * The cancellation is injected **exactly where it hurts** rather than raced for: the theme
+     * store cancels the importing job on its way into the second write. Cancelling from outside and
+     * hoping to hit a window a few milliseconds wide would pass by landing before the transaction
+     * even started, which proves nothing at all.
+     */
+    @Test
+    fun anImportCancelledBetweenTheTwoWritesStillFinishesBoth() = runBlocking {
+        makeItInteresting()
+        val file = repo().export()
+
+        // A state visibly different from the file's, in *both* stores, so neither assertion below
+        // can pass by the import having done nothing.
+        prefs.setTheme("winter")
+        prefs.setScrollSpeed(0.11f)
+        store.replaceAll(com.paperscrape.livewallpaper.engine.CustomThemeData.EMPTY)
+
+        val scope = CoroutineScope(Dispatchers.Default + Job())
+        var importing: Job? = null
+        val cancelling = CancellingThemeStore(context) { importing?.cancel() }
+        importing = scope.launch { BackupRepository(prefs, cancelling, "test").import(file) }
+        importing.join()
+        scope.cancel()
+
+        assertTrue(
+            "the second store's write did not complete: the cancellation reached inside the " +
+                "transaction and took it down, which is the defect NonCancellable exists to stop",
+            cancelling.wrote,
+        )
+        val after = repo().snapshot()
+        assertEquals("the preferences did not come from the file", "beach", after.settings.themeId)
+        assertEquals(0.42f, after.settings.scrollSpeed, 0.0001f)
+        assertEquals(
+            "the second store was left behind -- this is the half-old, half-new state",
+            listOf("custom:backup-test"),
+            after.customThemeData.customThemes.map { it.id },
+        )
+        assertEquals(
+            "and the built-in override with it",
+            setOf("christmas"),
+            after.customThemeData.overrides.keys,
+        )
+    }
+
+    /**
+     * A write that fails for a real reason still rolls both stores back.
+     *
+     * The point of the change was to stop cancellation skipping the rollback, so the rollback
+     * itself has to keep working — checked by handing the repository a store whose *first* write
+     * throws and whose second, the rollback's own, does not. Nothing the user had may be lost.
+     */
+    @Test
+    fun anExplicitFailureOnTheSecondStoreRollsTheFirstOneBack() = runBlocking {
+        makeItInteresting()
+        val file = repo().export()
+
+        prefs.setTheme("winter")
+        prefs.setScrollSpeed(0.11f)
+        val before = repo().snapshot()
+
+        val poisoned = BackupRepository(prefs, FailOnceThemeStore(context), "test")
+        val result = poisoned.import(file)
+
+        assertTrue("expected a rollback, got $result", result is BackupRepository.ImportResult.RolledBack)
+        val after = repo().snapshot()
+        assertEquals("the preferences were not put back", "winter", after.settings.themeId)
+        assertEquals(0.11f, after.settings.scrollSpeed, 0.0001f)
+        assertEquals(
+            "the themes were left changed by a transaction that failed",
+            before.customThemeData.customThemes.map { it.id },
+            after.customThemeData.customThemes.map { it.id },
+        )
+    }
+
+    /**
+     * A [CustomThemeStore] that cancels the importing job on its way into the write.
+     *
+     * `replaceAll` is `open` for this and for [FailOnceThemeStore] and for nothing else — see its
+     * own doc comment. There is no honest way to make a real DataStore fail, or to be cancelled at
+     * a chosen instant, from outside.
+     */
+    private class CancellingThemeStore(
+        context: android.content.Context,
+        private val cancel: () -> Unit,
+    ) : CustomThemeStore(context) {
+        var wrote = false
+            private set
+
+        override suspend fun replaceAll(data: com.paperscrape.livewallpaper.engine.CustomThemeData) {
+            cancel()
+            super.replaceAll(data)
+            wrote = true
+        }
+    }
+
+    /** Throws on the first write and behaves on every one after it, so the rollback can complete. */
+    private class FailOnceThemeStore(context: android.content.Context) : CustomThemeStore(context) {
+        private var failed = false
+
+        override suspend fun replaceAll(data: com.paperscrape.livewallpaper.engine.CustomThemeData) {
+            if (!failed) {
+                failed = true
+                throw IllegalStateException("simulated store failure")
+            }
+            super.replaceAll(data)
+        }
     }
 }

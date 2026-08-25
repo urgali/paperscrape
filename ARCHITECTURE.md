@@ -733,6 +733,29 @@ screen, particle **count** does not. What the count has to be is a separate ques
 from what the size is, and answering it with size — 90 drops made nine times larger
 in area — is how v4.4 produced weather that was present and wrong.
 
+**The people behind glass are the one thing the size table does not govern, and v4.6 is what
+that cost.** A driver and a passenger are scaled against the *window* rather than against the
+ground plane -- they have to be, or they would not fit in it -- and nobody had checked the result
+against the way this artwork actually draws a person. A walk sprite gives a pedestrian a head 31%
+of their own height, which is a paper-cutout proportion; the busts were sized in a realistic one,
+so a driver's head came out 0.320 m against a pedestrian's 0.547 m while standing *nearer the
+viewer than the pavement*. The two conventions meet at the windscreen and disagree there, and
+there is no entry in the size table for a head, so no arithmetic could have caught it.
+
+The rule now is that **a bust's content is exactly as tall as the glass it sits behind**, and the
+glass is drawn taller than the sprite is authored -- 19 local units against 16, growing downward
+into the door to the line the police stripe and the taxi chequer are blitted at. `CAR_HEAD_SCALE`,
+`CAR_PASSENGER_SCALE` and `FIRE_TRUCK_HEAD_SCALE` are quotients rather than tuned values, so a
+future complaint about occupant size has to move the glass or the artwork and cannot be answered
+with a fourth constant. `CAR_METRES_TALL` is untouched: the vehicle was never the wrong size.
+
+**Draw order is depth order for people and traffic too (v4.6).** `drawPeople` runs *before* the
+vehicle loop. Every pavement row including its jitter is above 0.819 of screen height and every
+lane is at 0.834 or 0.862 -- `SceneObjectCatalog` snaps persisted lanes onto those two -- so a
+walking figure is always the farther object, and the old order was wrong wherever the two happened
+to coincide in x. It was worth 24 px of a 2400 px screen at the deepest figure the generator can
+produce.
+
 A category's base scale is **derived**, not authored: each declares the real
 height it should read as and the local-unit height its own drawing occupies
 (`SceneSpace.SceneVariant`, plus the vehicle and person constants beside it).
@@ -923,6 +946,25 @@ Both parse into a whole document or an error, never a partial one, so validation
 are separate steps. `prefs/BackupRepository.kt` supplies what DataStore cannot: the two stores have
 no shared transaction, so an import snapshots the current state, writes both, and writes the
 snapshot back if the second write fails.
+
+**And the staging is uncancellable (v4.6).** Snapshotting and parsing may be abandoned freely --
+they change nothing on disk -- but from the first `replaceAll` onward the only states worth being
+in are "both old" and "both new", so the two writes and the rollback are one `NonCancellable`
+region. The failure that closed was not a crash: `import` is called from the settings screen's
+`rememberCoroutineScope`, which Compose cancels on a rotation or a back press, and a cancellation
+between the two writes left half a restore behind *and* skipped the rollback, because the rollback
+then suspended on an already-cancelled job. The window is milliseconds wide and needs no crash to
+reach.
+
+**Applying a restore is not the same as showing one (v4.6).** Both stores held the new state
+immediately and correctly, and the open settings screen went on showing the old one. `SceneTheme`
+compares by `id` alone, `CustomThemeEntry` is a data class containing one, so a restored
+`CustomThemeData` whose themes keep their ids is `==` to the one it replaced and
+`collectAsState`'s default equality policy suppresses the change. `SettingsScreen` holds that state
+under `neverEqualPolicy()` and refreshes `CustomThemeRegistry` from the same collector, so the
+synchronous registry and the composition cannot disagree about which is current. The equality
+override itself is deliberately untouched -- see `CustomThemeDataEqualityTest`, which fails the day
+it is fixed properly and the workaround can go.
 
 A shared theme carries the **resolved** scene and layout rather than a built-in id, so a theme
 exported today still renders when that built-in is redrawn; `sourceThemeId` is provenance for

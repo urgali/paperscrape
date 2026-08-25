@@ -189,6 +189,104 @@ class PeopleOcclusionTest {
         )
     }
 
+    // ------------------------------------------------------------------- people behind traffic
+
+    /**
+     * **A pedestrian never paints over a car** (v4.6, P1).
+     *
+     * Same method as the two tests above, one layer up: the traffic is the thing already on the
+     * street and the people are what arrive, so any pixel the traffic had painted that the people
+     * change is a figure drawn in front of a vehicle it is standing behind.
+     *
+     * The geometry says it cannot be allowed. Every pavement row, jitter included, is above 0.819
+     * of screen height and every lane is at 0.834 or 0.862 — `PeopleTrafficDepthTest` proves both
+     * halves — so a walking figure is always the farther object. Until v4.6 `drawPeople` ran after
+     * the vehicle loop anyway, and the deepest figure the generator produces sits 24 px of a
+     * 2400 px screen below a far-lane car's roof: whenever the two coincided in x, a pedestrian's
+     * shoes were painted across a car.
+     *
+     * The scene is warmed up so the cars have actually entered the frame — without that the road is
+     * empty and the test passes on nothing, which is the trap `TrafficGoldenTest` exists to record.
+     * `traffic-day` at full density on both categories is the busiest arrangement the app offers.
+     *
+     * ### Why "the pixel changed" is not the question
+     *
+     * A vehicle has an anti-aliased outline and a translucent ground shadow, and a figure standing
+     * behind either of those **does** change the pixel — correctly, by showing through. Counting
+     * changed pixels reports those as violations: measured, thirteen of them on `city`, every one a
+     * one-pixel seam along a car's edge.
+     *
+     * What separates the two cases is *what* the pixel becomes. Where a figure was painted on top,
+     * the result is the figure's own opaque colour, identical to what it paints with no car there
+     * at all. Where the car won, the result is the car's colour, or a blend that is neither. So a
+     * violation is: the traffic painted here, a person paints here, **and the finished frame is the
+     * person's colour exactly.**
+     */
+    @Test
+    fun aPedestrianNeverPaintsOverAVehicle() {
+        var casesChecked = 0
+        for (themeId in listOf("sunset", "city", "new_year", "winter")) {
+            val bare = SceneGolden.render(trafficScene(themeId, peopleDensity = 0f, carsDensity = 0f))
+            val withCars = SceneGolden.render(trafficScene(themeId, peopleDensity = 0f))
+            val peopleOnly = SceneGolden.render(trafficScene(themeId, peopleDensity = 1f, carsDensity = 0f))
+            val withBoth = SceneGolden.render(trafficScene(themeId, peopleDensity = 1f))
+
+            val traffic = differing(withCars, bare)
+            assertTrue("$themeId put no traffic on the road to hide behind", traffic.count { it } > 200)
+            val painted = differing(peopleOnly, bare)
+            assertTrue("$themeId put nobody on the street", painted.count { it } > 100)
+
+            casesChecked++
+            val onTop = pixelsWherePersonWon(traffic, painted, peopleOnly, withBoth)
+            assertEquals(
+                "$themeId: a pedestrian painted $onTop pixels of its own colour over a vehicle it is " +
+                    "standing behind",
+                0,
+                onTop,
+            )
+        }
+        assertTrue("no theme offered traffic and people together", casesChecked > 0)
+    }
+
+    /**
+     * Pixels the traffic owns, a figure paints, and the finished frame renders in the figure's
+     * colour: the definition of one drawn in front of a vehicle it stands behind.
+     */
+    private fun pixelsWherePersonWon(
+        traffic: BooleanArray,
+        painted: BooleanArray,
+        peopleOnly: Bitmap,
+        withBoth: Bitmap,
+    ): Int {
+        var count = 0
+        val rowPeople = IntArray(SceneGolden.WIDTH)
+        val rowBoth = IntArray(SceneGolden.WIDTH)
+        for (y in 0 until SceneGolden.HEIGHT) {
+            peopleOnly.getPixels(rowPeople, 0, SceneGolden.WIDTH, 0, y, SceneGolden.WIDTH, 1)
+            withBoth.getPixels(rowBoth, 0, SceneGolden.WIDTH, 0, y, SceneGolden.WIDTH, 1)
+            for (x in 0 until SceneGolden.WIDTH) {
+                val i = y * SceneGolden.WIDTH + x
+                if (!traffic[i] || !painted[i]) continue
+                if (rowPeople[x] == rowBoth[x]) count++
+            }
+        }
+        return count
+    }
+
+    private fun trafficScene(themeId: String, peopleDensity: Float, carsDensity: Float = 1f) = GoldenScene(
+        name = "people-over-traffic-$themeId-$peopleDensity-$carsDensity",
+        dayPhase = GoldenScene.day(),
+        themeId = themeId,
+        warmUpFrames = SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES,
+        customise = {
+            it.copy(
+                cars = it.cars.copy(visible = true, density = carsDensity),
+                people = it.people.copy(visible = true, density = peopleDensity),
+                peopleNightDensity = peopleDensity,
+            )
+        },
+    )
+
     /** Four-connected components of a pixel mask, counted with an explicit stack. */
     private fun blobCount(mask: BooleanArray): Int {
         val seen = BooleanArray(mask.size)

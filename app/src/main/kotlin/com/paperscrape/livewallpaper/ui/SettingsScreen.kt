@@ -40,9 +40,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,6 +79,56 @@ import kotlinx.coroutines.launch
  */
 private enum class SettingsDestination { HOME, THEME_GALLERY, WEATHER, SEASONS, WORLD, ADVANCED }
 
+/**
+ * The saved themes, as state the settings tree can read -- **published on every emission, not
+ * only on the ones Compose considers a change** (v4.6).
+ *
+ * ### The defect
+ *
+ * `collectAsState` stores into a `mutableStateOf` with the default [structuralEqualityPolicy], so
+ * an emission that is `==` to the value already held is not a change and nothing recomposes. That
+ * is normally exactly right. It is wrong here because [com.paperscrape.livewallpaper.engine.SceneTheme]
+ * declares
+ *
+ * ```
+ * override fun equals(other: Any?): Boolean = other is SceneTheme && other.id == id
+ * ```
+ *
+ * and a `CustomThemeEntry` is a data class holding one. So two themes with the same id and
+ * *completely different colours, names and flags* compare equal, the `CustomThemeData` containing
+ * them compares equal, and the settings screen never repaints.
+ *
+ * Reproduced on a device before the fix: restore a backup whose saved theme has the same id and a
+ * different `displayName`, and the DataStore holds the new name while the open settings screen
+ * keeps showing the old one until the Activity is recreated. The backup was never the problem --
+ * it had already written both stores correctly.
+ *
+ * ### Why the fix is here and not on `SceneTheme`
+ *
+ * Widening `SceneTheme.equals` to compare content would touch every `==` in the app, on a class
+ * whose fields are `IntArray`s, to solve a problem that belongs to one screen's state holder.
+ * [neverEqualPolicy] states the actual requirement -- *this* store's emissions are always news --
+ * in the one place that needs it. A DataStore write is a rare event, so the cost is a recomposition
+ * per restore, per theme save and per rename.
+ *
+ * Updating [CustomThemeRegistry] from the same collector is the second half: it used to be a
+ * separate collector in `SettingsActivity`, which left the order of the two undefined. Here the
+ * registry is current *before* the state that triggers the recomposition is published, so a
+ * composable that reads both -- `ThemeCatalog.byId` goes to the registry, the theme grid to this
+ * state -- cannot see one of them stale.
+ */
+@Composable
+private fun rememberCustomThemeData(store: CustomThemeStore): State<CustomThemeData> {
+    val state = remember(store) { mutableStateOf(CustomThemeData.EMPTY, neverEqualPolicy()) }
+    LaunchedEffect(store) {
+        store.dataFlow.collect { data ->
+            CustomThemeRegistry.update(data)
+            state.value = data
+        }
+    }
+    return state
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -87,7 +139,7 @@ fun SettingsScreen(
     onRequestLocationPermission: (permission: String, onResult: (Boolean) -> Unit) -> Unit,
 ) {
     val settings by prefs.settingsFlow.collectAsState(initial = WallpaperSettings())
-    val customThemeData by customThemeStore.dataFlow.collectAsState(initial = CustomThemeData())
+    val savedThemes = rememberCustomThemeData(customThemeStore)
     val scope = rememberCoroutineScope()
     var destination by remember { mutableStateOf(SettingsDestination.HOME) }
 
@@ -118,6 +170,21 @@ fun SettingsScreen(
             availableUpdate = update
         }
     }
+
+    // **Read here, in this scope, deliberately.**
+    //
+    // `ThemeCatalog.byId` and `resolveActiveCustomization` both resolve through
+    // `CustomThemeRegistry`, which is an `AtomicReference` and not Compose state -- so neither call
+    // below creates a dependency Compose can see, and neither will run again just because a saved
+    // theme changed. `savedThemes` is the state that moves in step with the registry:
+    // [rememberCustomThemeData] refreshes the registry first and publishes this second.
+    //
+    // So this line is the subscription for everything under it. Inline it into its use sites and
+    // the home screen goes back to showing a restored theme's old name and old colours until the
+    // Activity is recreated, which is exactly v4.6's P2 defect -- and it comes back *narrower* than
+    // before, because the theme grid reads this state directly and would update while the row above
+    // it did not.
+    val customThemeData = savedThemes.value
 
     val calendarThemeId = if (settings.autoThemeByDate) SeasonalThemeRules.themeForDate() else null
     val effectiveThemeId = calendarThemeId ?: settings.themeId

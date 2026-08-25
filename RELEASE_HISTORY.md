@@ -19,6 +19,166 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.6 — the people you can see through a windscreen
+
+**Prepared, not published.** `versionCode = 37`, `versionName = "4.6"`. No tag, no push, no
+GitHub Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain 37.
+Baseline is the **published v4.5 tag**.
+
+Five subjects, four of them fixes and the fifth a decision to add nothing. Every measurement below
+was taken before anything was changed.
+
+### 1. P0 — the occupants of a car were 59 % of the people walking past
+
+v4.3 answered half of this report and answered it correctly: pedestrians were 8.6 % too tall,
+`PERSON_METRES_TALL` said `1.9f` where its own comment said 1.75 m, and cars beside them read as
+toys. What nobody then checked is the other half of the same sentence — *"and the people inside
+the cars look smaller than the pedestrians walking behind them"*. There is no entry in the size
+table for a head, so no arithmetic existed that could have caught it.
+
+Measured off the artwork and the draw path, before any change:
+
+| | in scene metres | against a pedestrian's head |
+|---|---|---|
+| pedestrian's head (25.00 of 80.67 sprite units — **31 % of their own height**) | 0.547 | 1.00 |
+| **driver's head** (35.33 units × 0.30 × 1.45/48) | **0.320** | **0.59** |
+| **passenger's head** | **0.321** | **0.59** |
+| fire engine driver's head | 0.422 | 0.77 |
+| a car's glass, as world height | 0.483 | — |
+
+The last row is the reason no scale could fix it alone: **the window was smaller than the head it
+had to contain.** Filling the old glass completely reached 0.358 m, 65 %, and there was nothing
+left to give. The pedestrians were not wrong and the projection was not wrong; measured on the
+frames, a car and a pedestrian are drawn at exactly the sizes their two ground lines imply.
+
+The artwork is drawn in a paper-cutout proportion — a figure roughly three and a bit heads tall —
+and the busts behind glass had been sized against the window instead, which is a realistic
+proportion. The two conventions meet at the windscreen and disagree there.
+
+**What v4.6 does.** The glass is drawn `CAR_GLASS_HEIGHT_UNITS = 19` local units instead of the 16
+`car_window` is authored at, stretched downward only, stopping exactly at y=13 where
+`police_stripe` and `taxi_checker` are blitted — the one line in the door where a taller window
+costs nothing. Then one rule replaces three tuned numbers: **a bust's content is exactly as tall as
+the glass it sits behind, standing on the sill.** `CAR_HEAD_SCALE`, `CAR_PASSENGER_SCALE` and
+`FIRE_TRUCK_HEAD_SCALE` are each their own glass height over their own sprite's content height, so
+none of them is a value anybody chose.
+
+`SceneSpace.CAR_METRES_TALL` is unchanged, and deliberately: enlarging the vehicle to make its
+occupants fit would have been resizing the wrong object.
+
+**A/B on rendered frames**, 1080×2400, same layout, same lanes, same clock, one build against the
+other. Faces found by colour and connectivity, not read back from the constants:
+
+| | v4.5 | v4.6 |
+|---|---|---|
+| driver's face, far lane | 10 px | **13 px** |
+| driver's face, near lane | 12 px | **15 px** |
+| passenger's face, far / near | 8 / 10 px | **10 / 13 px** |
+| fire engine driver, far / near | 13 / 15 px | **14 / 16 px** |
+| glass height, sedan | 15.7 / 15.6 units | **18.8 / 18.3 units** |
+| fire engine cab glass | 13.9 units | 13.9 units (untouched) |
+| **nearest pedestrian's face** | **15 px** | **15 px** |
+| plain car height, far / near lane | 61 / 71 px | 61 / 71 px |
+
+The near-lane driver's face was 12 px against a pedestrian's 15 while standing *nearer the viewer*;
+it is now 15. Nothing else in the frame moved.
+
+### 2. P1 — a pedestrian could paint over a car
+
+Recorded in `ROADMAP.md` since v4.2 as "1–8 px measured" and left for its own batch. The
+measurement was right and understated. Sweeping every theme and every density step through
+`PedestrianPopulation`, the deepest ground line a figure can stand on is 0.81856 — `new_year` at
+full density — against a far-lane car's roof at 0.80852. That is **0.0100 of screen height, 24 px
+at 2400 and 32 against a police light bar**, and `drawPeople` ran after the vehicle loop, so
+whenever the two coincided in x a figure painted its shoes across a roof.
+
+Every pavement row including its jitter is above 0.819 and every lane is at 0.834 or 0.862 —
+`SceneObjectCatalog` snaps every persisted lane onto one of those two, which
+`PersistedThemeGeometryTest` already proved — so no arrangement the app can reach puts a walking
+figure in front of a vehicle. The people are drawn first now. No road geometry, no pavement line,
+no vehicle renderer.
+
+One related measurement is **recorded rather than fixed**: the deepest figure also stands 1.9 px
+past the kerb at 2400. Clamping it would mean moving the pavement or narrowing the jitter, both of
+which change a distribution this release was not allowed to touch. `PeopleTrafficDepthTest` bounds
+it so it cannot grow unnoticed.
+
+### 3. P2 — a restored backup left the settings screen showing the old values
+
+Not a backup defect: both stores held the new state immediately and correctly. Reproduced on a
+Pixel 9 by importing a backup whose saved theme keeps its id and changes its `displayName` —
+DataStore said `ZZRenamed`, the open screen said `ZZTest`, through a navigation to the theme
+gallery and back, and until the Activity was recreated.
+
+`SceneTheme.equals` compares by `id` alone. `CustomThemeEntry` is a data class containing one, so a
+restored `CustomThemeData` whose themes keep their ids is `==` to the one it replaced, and
+`collectAsState`'s default `structuralEqualityPolicy` decides nothing has changed. This is the
+second defect that equality override has caused; `CLAUDE.md` already records the first.
+
+`SettingsScreen.rememberCustomThemeData` holds the saved themes under `neverEqualPolicy()` and
+updates `CustomThemeRegistry` from the same collector, so the registry and the composition cannot
+disagree about which is current. **`SceneTheme.equals` is untouched** — widening it would touch
+every `==` in the app, on a class with `IntArray` fields, to solve one screen's problem.
+`CustomThemeDataEqualityTest` pins the hazard and will start failing the day the equality is fixed
+properly, which is when the workaround can go.
+
+### 4. P3 — an interrupted restore could leave half of one
+
+`BackupRepository.import` stages two stores and rolls the first back if the second throws. It ran
+on `rememberCoroutineScope()` — the settings screen's composition — which Compose cancels on a
+rotation, a back press, or the system reclaiming the Activity. A cancellation between the two
+writes left the preferences new and the themes old, *and* skipped the rollback: the `catch` caught
+the `CancellationException`, the rollback suspended on an already-cancelled job and threw again,
+and the result was `Broken` reported to a UI that no longer existed.
+
+The two writes and the rollback are one `withContext(NonCancellable)` region. No journal, no
+write-ahead log, no third store, no format change. The instrumented test injects the cancellation
+*inside* the second write rather than racing for the window from outside.
+
+### 5. P4 — background location: nothing added, and why
+
+**Measured on a Pixel 9 / Android 17 emulator, with only "while in use" granted** (`appop
+mode=foreground`):
+
+| scenario | process state | capability |
+|---|---|---|
+| settings Activity visible | `TOP` (2) | `LCMNFUATI` |
+| Activity closed, wallpaper active, screen on | `BOUND_FOREGROUND_SERVICE` (5) | `LCMNFUATI` |
+| screen locked | `IMPORTANT_FOREGROUND` (6) | `LCMN-U-TI` |
+| after a reboot, Activity **never opened** | `BOUND_FOREGROUND_SERVICE` (5) | `LCMNFUATI` |
+
+The leading `L` is `PROCESS_CAPABILITY_FOREGROUND_LOCATION`, and it survives the screen going off.
+After a reboot with the app's UI never launched, the system log shows the wallpaper registering
+with the GPS provider, being delivered one fix and de-registering — 3.8 s, counted entirely as
+*foreground* duration — and the wallpaper wrote `live_weather_status = ok`. With the screen off,
+`dumpsys appops` records `FINE_LOCATION (allow)` with a `[bg-s]` access and the status was rewritten
+`ok` again.
+
+So the active-wallpaper binding already pays for what the feature needs.
+**`ACCESS_BACKGROUND_LOCATION` was not added and no foreground service was added**: either would
+cost the user a separate "Allow all the time" prompt or a permanent notification, for a capability
+the system already grants. What v4.6 adds is the proof — `BackgroundLocationManifestTest` fails if
+a later release adds either without saying why, and `BackgroundLocationContractTest` pins the
+once-an-hour cadence that makes the whole arrangement affordable.
+
+**NOT VERIFIED: the Network provider.** The emulator's network location provider is disabled
+(`enabled=false, allowed=false` — no Wi-Fi or cell infrastructure behind it), so every runtime
+figure above is GPS. The permission and the code path are shared, but that is an inference.
+
+### 6. Goldens
+
+Two regenerated, twenty-five byte-identical. `traffic-day.png` and `traffic-night.png` moved by
+**315 pixels each beyond the per-channel tolerance, 0.109 % of the frame** against a 0.200 % budget
+— which is to say they *passed* unchanged, and were regenerated anyway because they no longer
+showed what the app draws. The diff is confined to the busts and the window sills; every car,
+pedestrian, road marking and building is identical.
+
+That the frames passed is itself the point `ROADMAP.md` already records about this net: a 0.2 %
+whole-frame budget cannot see a change to something the size of a head. `VehicleOccupantScaleTest`
+measures instead of comparing, which is the shape that catches it.
+
+---
+
 ## v4.5 — weather the size of the world it falls on
 
 **Prepared, not published.** `versionCode = 36`, `versionName = "4.5"`. No tag, no push, no

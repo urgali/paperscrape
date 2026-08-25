@@ -165,26 +165,159 @@ class VehiclePedestrianScaleTest {
     // ------------------------------------------------------- the busts behind the glass
 
     /**
-     * A driver and a passenger are the right size for the person they are drawn as.
+     * **The v4.6 defect, as one number.**
      *
-     * They are the one part of the size system not derived from [SceneSpace.scaleForHeight]:
-     * `CAR_HEAD_SCALE` and `CAR_PASSENGER_SCALE` size the bust against the *glass* it sits behind,
-     * because a bust that ignored the window would not fit in it. That is legitimate, and it still
-     * has to land on a believable person -- which is checked here by converting back: the bust's
-     * drawn height, read in the car's own metres, must be a plausible head-and-shoulders for an
-     * adult of [SceneSpace.PERSON_METRES_TALL].
+     * A pedestrian's head is [PEDESTRIAN_HEAD_UNITS] of the [PEDESTRIAN_CONTENT_UNITS] their walk
+     * sprite draws -- 31% of their own height, which is the paper-cutout proportion this whole
+     * scene is drawn in -- so an adult's head reads as 0.547 m. The people behind glass were sized
+     * against the window and nobody had compared the two: a driver's head was 0.320 m, **59% of
+     * the head of the pedestrian walking past on a plane further away**, and they read as children.
+     *
+     * The band is deliberately not "equal". A head seen through glass may read a little smaller
+     * than the same head in the open -- it is behind a pane, inside a body, and a pedestrian's own
+     * head is drawn at cartoon size to carry a whole figure. What it may not do is read as a
+     * different species. 70-90% is that judgement written down; v4.5 sat at 59% and 59%.
      */
     @Test
-    fun `the busts behind a windscreen are a believable size for an adult`() {
-        val metresPerCarUnit = SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL
-        for ((label, scale) in listOf("driver" to CAR_HEAD_SCALE, "passenger" to CAR_PASSENGER_SCALE)) {
-            val metres = CAR_HEAD_CONTENT_UNITS * scale * metresPerCarUnit
-            val shareOfAPerson = metres / SceneSpace.PERSON_METRES_TALL
+    fun `a person behind glass has a head the size of the people walking past`() {
+        // The size table charges a walk sprite for 80 units and it draws 80.67, so the two agree
+        // to within a percent and the head below can be read off either.
+        assertEquals(
+            "the size table and the artwork disagree about how tall a pedestrian is",
+            SceneSpace.PERSON_SPRITE_UNITS_TALL,
+            PEDESTRIAN_CONTENT_UNITS,
+            1f,
+        )
+        val pedestrian = PEDESTRIAN_HEAD_UNITS * (SceneSpace.PERSON_METRES_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL)
+        assertEquals("a pedestrian's head, in metres", 0.547f, pedestrian, 0.005f)
+
+        for ((label, metres) in occupantHeadMetres()) {
+            val share = metres / pedestrian
             assertTrue(
-                "$label bust is ${"%.2f".format(metres)} m, ${"%.0f".format(shareOfAPerson * 100)}% of an adult",
-                shareOfAPerson in 0.20f..0.30f,
+                "$label head is ${"%.3f".format(metres)} m against a pedestrian's " +
+                    "${"%.3f".format(pedestrian)} m -- ${"%.0f".format(share * 100)}%",
+                share in 0.70f..0.90f,
             )
         }
+    }
+
+    /**
+     * Every bust's content is exactly as tall as the glass it sits behind.
+     *
+     * This is the rule that replaced three separately tuned scales, and asserting it is what stops
+     * the next size complaint being answered with a fourth. None of [CAR_HEAD_SCALE],
+     * [CAR_PASSENGER_SCALE] or [FIRE_TRUCK_HEAD_SCALE] is a number anybody chose: each is its own
+     * glass height over its own sprite's content height.
+     */
+    @Test
+    fun `a bust is exactly as tall as its glass and stands on the sill`() {
+        assertEquals(
+            "driver bust height",
+            SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
+            SceneObjectRenderer.CAR_HEAD_CONTENT_UNITS * CAR_HEAD_SCALE,
+            0.001f,
+        )
+        assertEquals(
+            "passenger bust height",
+            SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
+            SceneObjectRenderer.WINDOW_HEAD_CONTENT_UNITS * CAR_PASSENGER_SCALE,
+            0.001f,
+        )
+        assertEquals(
+            "fire engine bust height",
+            SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS,
+            SceneObjectRenderer.CAR_HEAD_CONTENT_UNITS * FIRE_TRUCK_HEAD_SCALE,
+            0.001f,
+        )
+        assertEquals(
+            "both sedan busts stand on the sill",
+            SceneObjectRenderer.CAR_SILL_Y_UNITS,
+            SceneObjectRenderer.CAR_HEAD_Y_UNITS,
+            0.001f,
+        )
+        assertEquals(
+            SceneObjectRenderer.CAR_SILL_Y_UNITS,
+            SceneObjectRenderer.CAR_PASSENGER_Y_UNITS,
+            0.001f,
+        )
+        assertEquals(
+            "the fire engine's bust stands on its own sill",
+            SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS,
+            SceneObjectRenderer.FIRE_TRUCK_HEAD_Y_UNITS,
+            0.001f,
+        )
+    }
+
+    /**
+     * The taller pane stays inside the car.
+     *
+     * Upward there is no room -- `car_body`'s roof is at y=-11 and the glass top is -6 -- so the
+     * three units go downward, and they may not reach past the line the police stripe and the taxi
+     * chequer are blitted at, or the accessory would cover the glass. That line is y=13, which is
+     * the value [SceneObjectRenderer.CAR_SILL_Y_UNITS] has to come out at.
+     */
+    @Test
+    fun `the enlarged glass stops exactly at the door accessory line`() {
+        assertEquals("the glass top has not moved", -6f, SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS, 0.001f)
+        assertEquals("the sill", 13f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.001f)
+        assertEquals(
+            "the police stripe and the taxi chequer are blitted at this y, and must still meet it",
+            SceneObjectRenderer.CAR_SILL_Y_UNITS,
+            DOOR_ACCESSORY_Y_UNITS,
+            0.001f,
+        )
+        assertTrue(
+            "the glass grew, so v4.5's 16 units is not still in force",
+            SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS > SceneObjectRenderer.CAR_GLASS_SPRITE_HEIGHT_UNITS,
+        )
+        assertEquals(
+            "the stretch is the ratio of the two",
+            SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS / SceneObjectRenderer.CAR_GLASS_SPRITE_HEIGHT_UNITS,
+            SceneObjectRenderer.CAR_GLASS_Y_SCALE,
+            0.0001f,
+        )
+    }
+
+    /**
+     * The two busts stay in their own panes, either side of the glass's painted mullion.
+     *
+     * Both grew by a third, and the passenger's is the one with no room to spare: `car_window`'s
+     * rear pane runs from the mullion's right edge at 7.33 to the glass edge at 26, which is 18.67
+     * units for a bust 18.14 wide. Asserted rather than eyeballed because the margin either side
+     * is a quarter of a unit.
+     */
+    @Test
+    fun `driver and passenger stay either side of the mullion and inside the glass`() {
+        val driver = contentSpanX(
+            placementX = SceneObjectRenderer.CAR_HEAD_X_UNITS,
+            anchorX = SceneObjectRenderer.CAR_HEAD_ANCHOR_X_UNITS,
+            scale = CAR_HEAD_SCALE,
+            contentLeftUnits = CAR_HEAD_CONTENT_LEFT_UNITS,
+            contentRightUnits = CAR_HEAD_CONTENT_RIGHT_UNITS,
+        )
+        val passenger = contentSpanX(
+            placementX = SceneObjectRenderer.CAR_PASSENGER_X_UNITS,
+            anchorX = SceneObjectRenderer.WINDOW_HEAD_ANCHOR_X_UNITS,
+            scale = CAR_PASSENGER_SCALE,
+            contentLeftUnits = WINDOW_HEAD_CONTENT_LEFT_UNITS,
+            contentRightUnits = WINDOW_HEAD_CONTENT_RIGHT_UNITS,
+        )
+        assertTrue(
+            "the driver runs off the front of the glass: ${driver.first}",
+            driver.first >= SceneObjectRenderer.CAR_GLASS_ORIGIN_X_UNITS,
+        )
+        assertTrue(
+            "the driver crosses the mullion: ${driver.second} vs $MULLION_LEFT_UNITS",
+            driver.second <= MULLION_LEFT_UNITS,
+        )
+        assertTrue(
+            "the passenger crosses the mullion: ${passenger.first} vs $MULLION_RIGHT_UNITS",
+            passenger.first >= MULLION_RIGHT_UNITS,
+        )
+        assertTrue(
+            "the passenger runs off the back of the glass: ${passenger.second} vs $GLASS_RIGHT_UNITS",
+            passenger.second <= GLASS_RIGHT_UNITS,
+        )
     }
 
     /** Service vehicles keep their own hierarchy: the fire engine's cab sits its driver higher. */
@@ -196,12 +329,75 @@ class VehiclePedestrianScaleTest {
         )
     }
 
+    /**
+     * v4.6 resized the people in the cars and **nothing else about a car**.
+     *
+     * The one thing the batch was explicitly not allowed to do is make the vehicle bigger to make
+     * its occupants fit, so the two constants that would express that are pinned here as well as
+     * in `the vehicles keep their declared heights` above -- once as a size table entry, once as a
+     * statement about this release.
+     */
+    @Test
+    fun `the fix did not quietly enlarge the car`() {
+        assertEquals(1.45f, SceneSpace.CAR_METRES_TALL, 0.0001f)
+        assertEquals(1.359375f, SceneSpace.CAR_BASE_SCALE, 0.0001f)
+        assertEquals(45f, SceneSpace.PIXELS_PER_METRE_AT_REFERENCE, 0.0001f)
+    }
+
+    /** Each occupant's head height in scene metres, by vehicle. */
+    private fun occupantHeadMetres(): List<Pair<String, Float>> {
+        val perCarUnit = SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL
+        val perTruckUnit = SceneSpace.FIRE_TRUCK_METRES_TALL / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL
+        return listOf(
+            "driver" to SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * CAR_HEAD_SCALE * perCarUnit,
+            "passenger" to SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS * CAR_PASSENGER_SCALE * perCarUnit,
+            "fire engine driver" to SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * FIRE_TRUCK_HEAD_SCALE * perTruckUnit,
+        )
+    }
+
+    /** Where a bust's own drawing lands on x, in the car's local units. `placement - anchor`. */
+    private fun contentSpanX(
+        placementX: Float,
+        anchorX: Float,
+        scale: Float,
+        contentLeftUnits: Float,
+        contentRightUnits: Float,
+    ): Pair<Float, Float> {
+        val origin = placementX - anchorX * scale
+        return (origin + contentLeftUnits * scale) to (origin + contentRightUnits * scale)
+    }
+
     private companion object {
         /** The walk sprites' child content height, against the adults' 80. */
         const val CHILD_SPRITE_UNITS_TALL = 62f
 
-        /** `person_*_head_car`'s own content height in local units, measured off the artwork. */
-        const val CAR_HEAD_CONTENT_UNITS = 47.7f
+        /**
+         * The walk sprites' own numbers, measured off the artwork rather than assumed.
+         *
+         * All twenty-four are 123x252 px. The alpha box is 242 px tall, and the head -- crown of
+         * the hair down to the chin, where the silhouette pinches into the neck -- is the top 75
+         * of those. Divided by `SpriteBlitter.SPRITE_PIXELS_PER_UNIT`.
+         */
+        const val PEDESTRIAN_CONTENT_UNITS = 242f / 3f
+        const val PEDESTRIAN_HEAD_UNITS = 75f / 3f
+
+        /** `person_*_head_car` alpha box on x: 4..119 px of a 120 px canvas. */
+        const val CAR_HEAD_CONTENT_LEFT_UNITS = 4f / 3f
+        const val CAR_HEAD_CONTENT_RIGHT_UNITS = 120f / 3f
+
+        /** `person_*_head_window` alpha box on x: 4..152 px of a 159 px canvas. */
+        const val WINDOW_HEAD_CONTENT_LEFT_UNITS = 4f / 3f
+        const val WINDOW_HEAD_CONTENT_RIGHT_UNITS = 152f / 3f
+
+        /** `car_window`'s painted mullion, in the car's local units: sprite x 72..81 px. */
+        const val MULLION_LEFT_UNITS = -20f + 72f / 3f
+        const val MULLION_RIGHT_UNITS = -20f + 82f / 3f
+
+        /** The glass's own right edge, from the same sprite. */
+        const val GLASS_RIGHT_UNITS = -20f + 138f / 3f
+
+        /** Where `police_stripe` and `taxi_checker` are blitted, from [SceneObjectRenderer.drawCar]. */
+        const val DOOR_ACCESSORY_Y_UNITS = 13f
 
         val CAR_HEAD_SCALE = SceneObjectRenderer.CAR_HEAD_SCALE
         val CAR_PASSENGER_SCALE = SceneObjectRenderer.CAR_PASSENGER_SCALE

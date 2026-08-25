@@ -39,13 +39,16 @@ private const val TAG = "PaperEngine"
 // Once an hour, matching aa's own explicit choice -- weather doesn't change fast enough to
 // justify more frequent network calls (or the battery/data cost of them) on something that's
 // running continuously as a live wallpaper, unlike a foreground app a user only glances at.
-private const val WEATHER_REFRESH_INTERVAL_MS = 60 * 60 * 1000L
+// v4.6 widened these two from `private` to `internal` and changed nothing else about them: the
+// background-location proof needs the cadence to be assertable, and a number a test cannot read is
+// a number a release can move without anybody noticing. See `BackgroundLocationContractTest`.
+internal const val WEATHER_REFRESH_INTERVAL_MS = 60 * 60 * 1000L
 // How often the refresh loop below wakes up to *check* whether an hour has passed (or whether
 // Live Weather/location just became available for the first time) -- much shorter than the
 // refresh interval itself so a freshly-enabled toggle gets its first fetch promptly instead of
 // waiting up to an hour, while the actual network call still only fires once per
 // [WEATHER_REFRESH_INTERVAL_MS].
-private const val WEATHER_CHECK_INTERVAL_MS = 2 * 60 * 1000L
+internal const val WEATHER_CHECK_INTERVAL_MS = 2 * 60 * 1000L
 
 /**
  * System-facing entry point. Android instantiates a fresh [PaperEngine] per active

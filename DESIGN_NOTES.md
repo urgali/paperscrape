@@ -471,6 +471,33 @@ shop front to ~46 for a person. A single global multiplier cannot correct that,
 which is what the old `GLOBAL_OBJECT_SCALE = 2` plus per-category base scales
 were trying and failing to do.
 
+### A head is not in the size table, and v4.6 is what that cost **[OBSERVED]**
+
+The table governs whole objects standing on the ground. It says nothing about the *parts* of one,
+and there is exactly one place in the scene where a part has to be compared against a whole object:
+the bust behind a windscreen, which is a person seen next to the people walking past.
+
+**The artwork draws a head at 31% of a figure's own height** -- 25.00 of the 80.67 local units a
+walk sprite's content occupies, so an adult's head is 0.547 m. That is a paper-cutout proportion,
+roughly a three-and-a-bit-head figure, and it is the proportion the whole cast is drawn in.
+
+The busts behind glass were sized against the *window* instead, which is the only thing they can be
+sized against -- a bust that ignored the window would not fit in it -- and the result had never
+been compared with the walking figures. A driver's head came out 0.320 m: **59% of the head of a
+pedestrian standing further away**, which is what "the people in the cars look like children" was.
+The window itself was the binding constraint, at 0.483 m of world against a 0.547 m head.
+
+The rule now is **a bust's content is exactly as tall as the glass it sits behind**, and the glass
+is drawn taller than the artwork is authored -- 19 local units against 16, downward into the door.
+The three scales are quotients, so the next complaint about occupant size has to move the glass or
+the artwork; it cannot be answered with a fourth tuned constant, which is the failure mode §2
+records five times in three releases.
+
+**What was deliberately not done:** the car was not enlarged. Its 1.45 m is an honest
+roof-to-wheel-contact reading of the artwork, the projection reproduces it to within a pixel of
+anti-aliasing, and making the vehicle bigger so its occupants would fit is resizing the wrong
+object.
+
 ### Decoration placement comes from the foliage's own content box **[OBSERVED]**
 
 A tree's Christmas lights are scattered across an ellipse the caller measures off

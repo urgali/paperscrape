@@ -204,15 +204,6 @@ class SceneObjectRenderer(
                 SceneSpace.sceneScale(screenHeightPx)
 
         /**
-         * Where a driver's bust sits, and how big it is drawn, in [drawCar]'s local space.
-         *
-         * The point is the bottom-centre of the vehicle's glass, and the sprite's declared
-         * `CONTENT_BOTTOM_CENTRE` anchor is subtracted from it at the call site, so the bust
-         * stands on the window sill instead of being centred on its own canvas. The scales are
-         * the glass height over the bust's own 47 units of content: a car's window is 16 units
-         * tall, the fire truck's cab 14.
-         */
-        /**
          * Where a walking person's sprite origin goes, so its content bottom-centre lands on the
          * pavement line it was placed at.
          *
@@ -269,22 +260,117 @@ class SceneObjectRenderer(
         const val PERSON_ANCHOR_X_UNITS = -20.5f
         const val PERSON_ANCHOR_Y_UNITS = -84f
 
+        // ---- The people behind a windscreen (v4.6) ---------------------------------------
+        //
+        // ### The defect this block is the fix for
+        //
+        // A pedestrian's head is **31% of their own height** -- 25.00 of the 80.67 local units a
+        // walk sprite's content occupies, which at [SceneSpace.PERSON_METRES_TALL] is 0.547 m.
+        // That is a paper-cutout proportion and it is the one the whole scene is drawn in.
+        //
+        // The busts behind glass were not drawn in it. They were sized to fit *inside* the window
+        // with their shoulders, which put a driver's head at 0.320 m -- 59% of the head of the
+        // pedestrian walking past, on a plane that is **nearer the viewer than the pavement**. In
+        // the reported picture the people in the cars read as children, and no amount of moving
+        // the pedestrians could fix it because the pedestrians were right.
+        //
+        // ### Why it could not be fixed by scaling the bust alone
+        //
+        // A car's glass was 16 local units, which at 1.45 m over 48 units is **0.483 m of world**
+        // -- smaller than the 0.547 m head it had to contain. Filling the old window completely
+        // reached 0.358 m, 65%, and there was nothing left to give.
+        //
+        // ### What v4.6 does
+        //
+        // The glass is drawn 19 units tall instead of the 16 the artwork is authored at, growing
+        // *downward into the door* to [CAR_SILL_Y_UNITS], which is exactly where the police
+        // stripe and the taxi chequer begin -- so no accessory is covered and none covers it. The
+        // roof line is untouched. Then one rule replaces three tuned numbers:
+        //
+        //   **a bust's content is exactly as tall as the glass it sits behind, standing on the
+        //   sill.**
+        //
+        // That is [CAR_HEAD_SCALE], [CAR_PASSENGER_SCALE] and [FIRE_TRUCK_HEAD_SCALE] below: each
+        // is its glass height over its own sprite's content height, so none of them is a number
+        // anybody chose. A driver's head becomes 0.425 m, 78% of a pedestrian's -- a head seen
+        // through glass reading slightly smaller than the same head in the open, which is what it
+        // should do. `VehiclePedestrianScaleTest` and `VehicleScalePixelTest` pin the ratio.
+        //
+        // **[SceneSpace.CAR_METRES_TALL] is deliberately unchanged.** The vehicle's own height was
+        // measured against the projection and is right; enlarging the car to make its occupants
+        // fit would have been fixing the wrong object, and 1.45 m over the lane spacing has no
+        // room to grow (see `PIXELS_PER_METRE_AT_REFERENCE`).
+
+        /** The blit origin of `car_window`, and therefore the top edge of the glass. */
+        const val CAR_GLASS_ORIGIN_X_UNITS = -20f
+        const val CAR_GLASS_ORIGIN_Y_UNITS = -6f
+
+        /** `car_window` is 138x48 px: 46 x 16 local units of authored artwork. */
+        const val CAR_GLASS_SPRITE_HEIGHT_UNITS = 16f
+
+        /**
+         * How tall the glass is actually drawn, after v4.6's stretch.
+         *
+         * Nineteen, not sixteen, and the three extra units go **downward**: `car_body`'s roof runs
+         * at y=-11 and the glass already sits 5 units below it, so there is no room upward, while
+         * below the sill the artwork is flat body colour until the beltline at y=18. Nineteen puts
+         * [CAR_SILL_Y_UNITS] at 13, which is the exact y `police_stripe` and `taxi_checker` are
+         * blitted at -- the one line in the door where a taller window costs nothing.
+         */
+        const val CAR_GLASS_HEIGHT_UNITS = 19f
+
+        /** The vertical stretch [drawCar] applies to the glass blit. Width is untouched. */
+        const val CAR_GLASS_Y_SCALE = CAR_GLASS_HEIGHT_UNITS / CAR_GLASS_SPRITE_HEIGHT_UNITS
+
+        /** The window sill: the bottom edge of the drawn glass, and where a bust stands. */
+        const val CAR_SILL_Y_UNITS = CAR_GLASS_ORIGIN_Y_UNITS + CAR_GLASS_HEIGHT_UNITS
+
+        /**
+         * The content height of `person_*_head_car`, in local units, measured off the artwork.
+         *
+         * All four are 120x144 px -- 40x48 units -- and their alpha bounding box is 143 px tall,
+         * so the drawing occupies 47.67 of the canvas's 48. The doc comment that used to sit here
+         * said 171x162, which no shipped sprite has ever been; the anchors below were always
+         * right for the real files.
+         */
+        const val CAR_HEAD_CONTENT_UNITS = 143f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+
+        /** The content height of `person_*_head_window`: 159x162 px with a 155 px alpha box. */
+        const val WINDOW_HEAD_CONTENT_UNITS = 155f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+
+        /** The head part of either bust, in its own local units: hair crown down to the neck. */
+        const val CAR_HEAD_HEAD_UNITS = 106f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+        const val WINDOW_HEAD_HEAD_UNITS = 110f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+
         const val CAR_HEAD_X_UNITS = -8f
-        const val CAR_HEAD_Y_UNITS = 10f
-        const val CAR_HEAD_SCALE = 0.30f
+        const val CAR_HEAD_Y_UNITS = CAR_SILL_Y_UNITS
+        const val CAR_HEAD_SCALE = CAR_GLASS_HEIGHT_UNITS / CAR_HEAD_CONTENT_UNITS
+
+        /**
+         * The fire engine's cab, which is painted into `firetruck_body` and cannot be stretched
+         * the way `car_window` can.
+         *
+         * Its glass is a measured 26 x 14 units at x -41..-15, y -9..5 -- and unlike the sedan's
+         * that is **0.597 m of world**, because the fire engine is 2.9 m over 68 units. A cartoon
+         * head fits in it as it stands, which is why the fire engine's driver was already the
+         * least wrong of the three at 0.422 m, and why the same rule applied here needs no
+         * artwork change at all.
+         */
+        const val FIRE_TRUCK_GLASS_HEIGHT_UNITS = 14f
+        const val FIRE_TRUCK_SILL_Y_UNITS = 5f
         const val FIRE_TRUCK_HEAD_X_UNITS = -28f
-        const val FIRE_TRUCK_HEAD_Y_UNITS = 4f
-        const val FIRE_TRUCK_HEAD_SCALE = 0.28f
+        const val FIRE_TRUCK_HEAD_Y_UNITS = FIRE_TRUCK_SILL_Y_UNITS
+        const val FIRE_TRUCK_HEAD_SCALE = FIRE_TRUCK_GLASS_HEIGHT_UNITS / CAR_HEAD_CONTENT_UNITS
 
         /**
          * The `CONTENT_BOTTOM_CENTRE` anchor the four car-driver head sprites declare, in local
          * units.
          *
-         * All four are 171x162 and anchor at y=162; on x they declare 86 px for the summer pair
-         * and 84 for the winter one, so this is the midpoint of the two. The 2 px spread is 0.67
-         * local units, which at [CAR_HEAD_SCALE] and the vehicle's own scale is well under a
-         * pixel on screen -- below the point where a per-sprite table would buy anything, and
-         * the same reasoning that lets a lookup group share one crop rectangle.
+         * All four are 120x144 and anchor at y=144, which is 48 units; on x they declare 61 px
+         * for the summer pair and 60 for the winter one, so this is the midpoint of the two. The
+         * 1 px spread is 0.33 local units, which at [CAR_HEAD_SCALE] and the vehicle's own scale
+         * is well under a pixel on screen -- below the point where a per-sprite table would buy
+         * anything, and the same reasoning that lets a lookup group share one crop rectangle.
          */
         const val CAR_HEAD_ANCHOR_X_UNITS = 20.5f
         const val CAR_HEAD_ANCHOR_Y_UNITS = 48f
@@ -293,15 +379,18 @@ class SceneObjectRenderer(
          * Where a passenger sits, and the anchor of the head they are drawn with.
          *
          * The rear pane of the glass, on the far side of its pillar from the driver. Passengers
-         * use the 180x162 window-occupant heads rather than the 171x162 driving ones, because
+         * use the 159x162 window-occupant heads rather than the 120x144 driving ones, because
          * there is no child driving head and inventing one would mean a child could be drawn in
          * a driving seat by a later edit; the two sets are deliberately not interchangeable. The
-         * anchor is the midpoint of the four heads' declared `CONTENT_BOTTOM_CENTRE` x, which
-         * spread over 8 px -- 2.7 units, under a pixel on screen after the scale.
+         * anchor is the midpoint of the four heads' declared `CONTENT_BOTTOM_CENTRE` x.
+         *
+         * The two busts stay either side of the glass's own mullion, which the artwork paints at
+         * x 4.0..7.33: at v4.6's scales the driver's content ends at -0.36 and the passenger's
+         * begins at 7.63. `VehicleScalePixelTest` measures that they do not meet.
          */
         const val CAR_PASSENGER_X_UNITS = 17f
-        const val CAR_PASSENGER_Y_UNITS = 10f
-        const val CAR_PASSENGER_SCALE = 0.29f
+        const val CAR_PASSENGER_Y_UNITS = CAR_SILL_Y_UNITS
+        const val CAR_PASSENGER_SCALE = CAR_GLASS_HEIGHT_UNITS / WINDOW_HEAD_CONTENT_UNITS
         const val WINDOW_HEAD_ANCHOR_X_UNITS = 26.8f
         const val WINDOW_HEAD_ANCHOR_Y_UNITS = 54f
 
@@ -551,7 +640,10 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Draws every static object, then the road, the cars and the people.
+     * Draws every static object, then the road, then the people, then the cars.
+     *
+     * The last two are in that order because the pavement is behind the carriageway; see the call
+     * to [drawPeople] below.
      *
      * The scene tiles horizontally, so each object exists at every whole `tileWidth` either side
      * of its anchor and the copies that land on screen must all be drawn or the wrap seam shows a
@@ -694,12 +786,29 @@ class SceneObjectRenderer(
 
         drawRoad(canvas, dayBlend, screenWidth, screenHeight, geom.shiftXWrapped, geom.tileWidth)
 
+        // **People before traffic, because every pedestrian is farther away than every car.**
+        //
+        // The pavement rows are 0.795 and 0.807 and a group member's own jitter can move one down
+        // by at most [PedestrianPopulation.MEMBER_ROW_SPREAD]; the lanes are 0.834 and 0.862, and
+        // a persisted layout cannot bring a car anywhere else because `SceneObjectCatalog` snaps
+        // every stored `laneYFraction` onto one of those two (see `PersistedThemeGeometryTest`).
+        // So the deepest pedestrian the generator can produce still stands behind the nearest edge
+        // of the road, and there is no arrangement in which a walking figure is in front of a
+        // vehicle. `PeopleTrafficDepthTest` asserts exactly that, so the day one of those
+        // constants moves the test fails instead of the picture.
+        //
+        // Until v4.6 this call came last. Nothing but the two orders differ: the deepest figure
+        // sits 0.0100 of screen height below a far-lane car's roof line -- 24 px on a 2400 px
+        // screen, 32 px against a police light bar -- and painted its shoes across the roof
+        // whenever the two happened to coincide in x. `drawPeople` draws walking pedestrians and
+        // nothing else (window occupants belong to their building, drivers and passengers to
+        // their car), so moving it changes that one relationship and no other.
+        drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend)
+
         for (c in carRuntimes) {
             if (c.progress < -0.05f || c.progress > 1.05f) continue
             drawCar(canvas, c, screenWidth, screenHeight, dayBlend)
         }
-
-        drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend)
     }
 
     private val personKinds = arrayOf("man", "woman", "boy", "girl")
@@ -2251,7 +2360,22 @@ class SceneObjectRenderer(
             // the greenhouse is not symmetric, so a centred glass runs its vertical rear edge into
             // the roof's rear curve and leaves no C-pillar while the raked front keeps a wide
             // band. Four units forward gives the glass a pillar at each end.
-            drawSprite(canvas, R.drawable.car_window, -20f, -6f)
+            //
+            // **v4.6 draws it [CAR_GLASS_HEIGHT_UNITS] tall rather than the 16 it is authored at**,
+            // stretched downward only -- see that constant for why the door is the direction with
+            // room and why 19 is where it stops. The stretch is a `scale` around the blit rather
+            // than new artwork: the sprite is two flat panes and a mullion, so a vertical stretch
+            // is exactly what a taller window of the same design looks like, and it keeps the one
+            // file the police car, the taxi and the plain car all share.
+            canvas.save()
+            canvas.scale(1f, CAR_GLASS_Y_SCALE)
+            drawSprite(
+                canvas,
+                R.drawable.car_window,
+                CAR_GLASS_ORIGIN_X_UNITS,
+                CAR_GLASS_ORIGIN_Y_UNITS / CAR_GLASS_Y_SCALE,
+            )
+            canvas.restore()
 
             when (c.spec.type) {
                 CarType.POLICE -> {
@@ -2274,12 +2398,12 @@ class SceneObjectRenderer(
         //
         // **Placed from the sprite's declared anchor, not from its canvas.** The old call site
         // read `-27f, -27f` under `scale(0.24)` at `translate(-6f, 8f)`, which centres a 60x60
-        // sprite on that point -- and the V2 head is 171x162 with a `CONTENT_BOTTOM_CENTRE`
+        // sprite on that point -- and the V2 head is 120x144 with a `CONTENT_BOTTOM_CENTRE`
         // anchor, so centring its canvas put the bust's shoulders a third of the way down the
-        // door, below the window entirely. The origin below is `placement - anchor`: the
-        // anchor is subtracted so the bust's own content bottom-centre lands on the point named
-        // by [CarType.driverHeadX]/[driverHeadY], which is the bottom-centre of that vehicle's
-        // glass. Nothing about the artwork changed to make this work.
+        // door, below the window entirely. The origin below is `placement - anchor`: the anchor
+        // is subtracted so the bust's own content bottom-centre lands on the sill, which for a
+        // sedan is [CAR_SILL_Y_UNITS] and for the fire engine [FIRE_TRUCK_SILL_Y_UNITS]. Nothing
+        // about the artwork changed to make this work, in v4.2 or in v4.6.
         // Seeded from the loop offset rather than the speed: speed is now a property of the lane,
         // so every car in a lane shares it and a speed-derived seed would give them all the same
         // driver. The offset is unique per candidate.

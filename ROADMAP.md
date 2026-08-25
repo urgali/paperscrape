@@ -11,10 +11,37 @@ that was.
 
 ## Current status
 
-**v4.5 prepared -- the atmospheric effects sized against the world they fall on.**
+**v4.6 prepared -- the people you can see through a windscreen, and three things only looking
+would have found.**
 
-`versionCode = 36`, `versionName = "4.5"`. **No tag, no push, no GitHub Release.**
-Baseline: the published **v4.4** tag `b3a7389`.
+`versionCode = 37`, `versionName = "4.6"`. **No tag, no push, no GitHub Release.**
+Baseline: the published **v4.5** tag.
+
+```
+v4.6 [x]
+ |- P0: a driver's head was 0.320 m against a pedestrian's 0.547 m -- 59%, on a plane nearer
+ |  the viewer than the pavement. The glass is drawn 19 local units instead of the 16 it is
+ |  authored at, growing downward to the door-accessory line, and a bust's content is now
+ |  exactly as tall as the glass it sits behind. One rule replaces three tuned scales.
+ |  Measured on 1080x2400 frames: a near-lane driver's face 12 px -> 15 px, the nearest
+ |  pedestrian's unchanged at 15. CAR_METRES_TALL untouched, the car the same size to the pixel
+ |- P1: people are drawn before the traffic. Every pavement row is behind every lane, so the
+ |  old order was wrong wherever the two coincided in x -- 24 px of a 2400 px screen at worst
+ |- P2: a restored backup left the open settings screen showing the old values, because
+ |  SceneTheme.equals compares by id and the restored CustomThemeData is therefore `==` to the
+ |  one it replaced. The screen holds that state under neverEqualPolicy now; equals is untouched
+ |- P3: backup import's two writes and its rollback are uncancellable. The caller is the
+ |  composition's scope, and a rotation between the two writes left half a restore behind
+ |- P4: nothing added. Measured on Android 17: the active-wallpaper binding already carries
+ |  foreground-location capability with the Activity closed and the screen off, so neither
+ |  ACCESS_BACKGROUND_LOCATION nor a foreground service buys anything. Tests freeze that
+ \- two goldens regenerated (traffic-day, traffic-night: 315 px, 0.109% of frame); the other
+    twenty-five are byte-identical
+
+v4.5 [x] published
+```
+
+**v4.5 published** -- `versionCode = 36`, tag `v4.5`.
 
 ```
 v4.5 [x]
@@ -54,9 +81,11 @@ Threads still open, recorded rather than scheduled:
   third of their intended size on a phone. Found while diagnosing v4.4's rain defect and
   deliberately left out of that batch: different feature, not reported, and it needs its own
   before/after measurement and a look at whether any golden moves.
-- **A pedestrian can paint over the top row of a car** (1-8 px measured). Pre-existing since
-  v4.0; `drawPeople` runs after the vehicle loop and the near pavement sits 1-2 px above the far
-  lane. Fixing it means opening the vehicle draw path, which needs its own approved batch.
+- ~~**A pedestrian can paint over the top row of a car**~~ -- **closed in v4.6.** The measurement
+  was right and understated: the deepest figure the generator can produce stands 0.0100 of screen
+  height below a far-lane car's roof, 24 px at 2400 and 32 against a police light bar. `drawPeople`
+  now runs before the vehicle loop. `PeopleTrafficDepthTest` proves no pedestrian can ever be
+  nearer than a lane, and `PeopleOcclusionTest` proves it on the pixels.
 - **A thinned street can still be one-toned.** `desert` at 65% is four people on tone 2. See
   D-4.2-D: the alternative costs real variety at the default density.
 - **A fourth, deeper skin tone needs an art pass**, unchanged from v4.1.

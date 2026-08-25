@@ -7,14 +7,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.lifecycle.lifecycleScope
-import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.PaperWallpaperService
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.ui.theme.PaperScrapeTheme
 import com.paperscrape.livewallpaper.update.UpdatePrefs
-import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
 
@@ -29,12 +26,13 @@ class SettingsActivity : ComponentActivity() {
         customThemeStore = CustomThemeStore(applicationContext)
         updatePrefs = UpdatePrefs(applicationContext)
 
-        // Keeps the synchronous CustomThemeRegistry warm for this process too -- needed because
-        // theme previews in the settings UI resolve through the same ThemeCatalog.byId /
-        // SceneObjectCatalog.layoutFor functions the live wallpaper engine uses.
-        lifecycleScope.launch {
-            customThemeStore.dataFlow.collect { data -> CustomThemeRegistry.update(data) }
-        }
+        // The synchronous CustomThemeRegistry is kept warm for this process too -- theme previews
+        // in the settings UI resolve through the same ThemeCatalog.byId / SceneObjectCatalog.
+        // layoutFor functions the live wallpaper engine uses -- but **that collector now lives in
+        // the composition**, next to the state it has to stay in step with. v4.6 moved it: a
+        // second, independent collector here meant the registry and the settings tree's own
+        // `customThemeData` were updated in an undefined order, so a composable reading both could
+        // see one of them stale. See `rememberCustomThemeData`.
 
         setContent {
             PaperScrapeTheme {
