@@ -319,41 +319,86 @@ class PaperRenderer(
         // whenever the slider moved. 41 keeps the same full-density sky the old formula produced
         // at density 1.0.
         const val CLOUD_POOL_SIZE = 41
-        const val PRECIPITATION_POOL_SIZE = 90
+        /**
+         * How many precipitation slots exist, of which [PrecipitationConfig.intensity] selects a
+         * share. **240 since v4.5, measured rather than chosen.**
+         *
+         * A metre is `45 x screenHeight / 2400` pixels, so the viewport shows the same 53.3 m of
+         * world however tall it is -- a fixed pool is therefore already a fixed density per square
+         * metre on every device, and the only question is whether that density reads as weather.
+         * At 90 it did not: swept at 1080x2424 with the drop at its corrected size, 90 slots put
+         * 39 streaks on the frame, filled 46 % of a 6x12 grid of the band they fall through, and
+         * left dry holes four columns of six wide. Raising the pool is what closes those holes,
+         * and it is the variable v4.4 never examined -- it inflated each drop ninefold in area
+         * instead, which is how a raindrop ended up as long as a pedestrian is tall.
+         *
+         * | pool | streaks | coverage | grid filled | widest dry hole | frame |
+         * |---|---|---|---|---|---|
+         * | 90 | 39 | 0.090 % | 46 % | 4 of 6 | 27.0 ms |
+         * | 120 | 55 | 0.128 % | 61 % | 2 of 6 | 26.9 ms |
+         * | 180 | 80 | 0.190 % | 72 % | 2 of 6 | 30.9 ms |
+         * | **240** | **108** | **0.261 %** | **86 %** | **2 of 6** | **26.6 ms** |
+         * | 300 | 136 | 0.333 % | 89 % | 2 of 6 | 29.4 ms |
+         * | 400 | 181 | 0.446 % | 93 % | 2 of 6 | 27.7 ms |
+         *
+         * 240 is the knee: the grid gains 14 points from 180 and only 3 more from 300, and the
+         * ceiling is about 93 % because the top row of the grid sits above the line drops start
+         * falling from. **The frame cost is flat across the whole sweep** -- 26.6 to 30.9 ms at
+         * 1080x2424, no trend, well inside the spread of repeated runs of the same pool -- because
+         * a `drawLine` is nothing beside the scene it is drawn over. That was measured before the
+         * pool was raised, not asserted after.
+         */
+        const val PRECIPITATION_POOL_SIZE = 240
 
         /**
-         * A raindrop's and a snowflake's own size, **in pixels at
-         * [SceneSpace.REFERENCE_SCREEN_HEIGHT_PX]** -- multiplied by
-         * [SceneSpace.sceneScale] at the point of use, exactly as the road markings are.
+         * A raindrop's and a snowflake's own size, **in scene metres**.
          *
-         * ### Why they had to move onto the scale (v4.4)
+         * ### Why metres, and not pixels at some reference height (v4.5)
          *
-         * They were plain canvas pixels: a 2 px stroke, a 16-26 px streak, a 2-4.5 px flake, a
-         * 14 px sway and a 40 px bottom margin, the same absolute sizes on every device. That is
-         * the one thing `SceneSpace` exists to stop -- *"object sizes used to be absolute canvas
-         * pixels while every ground line was a fraction of screen height, so the composition was
-         * only correct on one device"* -- and precipitation was the layer that never adopted it.
+         * Everything else in the scene declares a real size and lets [SceneSpace] turn it into
+         * pixels: a house is 5.76 m, a car 1.45 m, an adult 1.75 m. v4.4 put precipitation on the
+         * viewport scale but left it expressed as pixels-at-a-reference-height, and a pixel count
+         * cannot be checked against anything -- so the magnitude went unnoticed. Measured on a
+         * 1080x2424 frame, a v4.4 raindrop was **1.52 m long, 1.15 times the height of the
+         * pedestrian beside it**, and a snowflake was 0.48 m across, twice the width of a head.
+         * Reported from a real phone as rain and snow being far too large.
          *
-         * The size the numbers were tuned at was the **golden frame's** 800 px, not the 2400 px
-         * reference, so the effect has always been drawn at three times its intended relative
-         * size in every test and a third of it on a phone. Measured on a 1080x2424 viewport
-         * against 360x800: the whole precipitation layer fell from 0.94% of the frame to 0.11%,
-         * an 8.6x loss. Snow survived that on contrast alone -- a white disc still reads against
-         * a blue sky -- while rain, a translucent `0xFF7FB3E0` hairline on a `0xFF6EC6FF` sky,
-         * did not, which is exactly the "rain is not there, snow is" that was reported.
+         * Declared in metres the numbers answer for themselves, and the ceiling that keeps them
+         * honest is the scene's own smallest human figure: a child is 1.356 m, and a drop is held
+         * to **at most 40 % of one**. At 0.58 m the longest streak is 0.43 of a child and reads as
+         * rain; the sweep's next candidate up, 0.87 m, is 0.64 of a child and reads as a falling
+         * stick. `PrecipitationScaleTest` asserts the ceiling as well as the floor, which is the
+         * half v4.4 did not have.
          *
-         * Stated at the reference height, they are the old numbers times three, so
-         * `sceneScale(800) = 1/3` reproduces the old frame **exactly** and no golden moves.
+         * ### The sizes themselves
+         *
+         * These are stylised, not physical -- a 2 mm raindrop would be invisible -- and the
+         * project has the precedent: `SceneVariant.BUNNY` is 0.9 m rather than its real 0.55 m
+         * "because at the physical height it did not read". What matters is that the number is
+         * declared, comparable with the rest of the world, and defended by a measurement.
          */
-        const val RAIN_STROKE_WIDTH_PX = 6f
-        const val RAIN_LENGTH_MIN_PX = 48f
-        const val RAIN_LENGTH_MAX_PX = 78f
-        const val SNOW_RADIUS_MIN_PX = 6f
-        const val SNOW_RADIUS_MAX_PX = 13.5f
-        const val SNOW_SWAY_PX = 42f
+        const val RAIN_LENGTH_MIN_METRES = 0.36f
+        const val RAIN_LENGTH_MAX_METRES = 0.58f
+        const val RAIN_STROKE_WIDTH_METRES = 0.044f
 
-        /** How far past the bottom edge a drop keeps falling before it wraps. Same basis. */
-        const val PRECIPITATION_BOTTOM_MARGIN_PX = 120f
+        /**
+         * A flake is measured as a diameter, and judged against a head rather than a child: it is
+         * a disc, so its mass reads by area. At 0.30 m the largest flake is just under one head
+         * (a head is roughly 0.23 m); v4.4's 0.60 m was two.
+         *
+         * Halved from v4.4 rather than reduced to the pre-v4.4 0.20 m, because snow was the half
+         * of this that already read on a device: at 0.13-0.30 m over the new pool it keeps
+         * 0.38 % coverage against v4.4's 0.57 %, spread over 109 flakes instead of 39, with the
+         * grid filled 83 % against 50 %. Smaller *and* more legible than what shipped.
+         */
+        const val SNOW_DIAMETER_MIN_METRES = 0.13f
+        const val SNOW_DIAMETER_MAX_METRES = 0.30f
+
+        /** How far a flake drifts sideways as it falls. Scaled with the flake it belongs to. */
+        const val SNOW_SWAY_METRES = 0.31f
+
+        /** How far past the bottom edge a drop keeps falling before it wraps. */
+        const val PRECIPITATION_BOTTOM_MARGIN_METRES = 2.67f
         const val BIRD_POOL_SIZE = 6
         const val FALLING_LEAF_POOL_SIZE = 26
         const val MOUNTAIN_POOL_SIZE = 4
@@ -508,14 +553,48 @@ class PaperRenderer(
         /**
          * How far down a bolt reaches, as a fraction of screen height.
          *
-         * A quarter to two fifths of the screen was the other half of the report: at 0.26..0.40 the
-         * bolt was taller than the entire cloud band and read as a stage prop rather than as
-         * lightning. These are sized against the band instead -- roughly two thirds to one band
-         * height of visible bolt below the cloud -- which keeps it comfortably clear of the horizon
-         * at 0.62 from the highest band position.
+         * A fraction of screen height *is* a size in scene metres -- a metre is
+         * `45 x screenHeight / 2400` pixels -- so this has always scaled with the viewport and was
+         * never the pixel-constant defect precipitation had. What was wrong is the magnitude.
+         *
+         * **The oracle is the skyline, not the metre.** Measured against the size table the bolt
+         * looked defensible: 8.5 m against a 16.8 m tower is half a tower. But a tower is drawn
+         * far back, where perspective shrinks it, so what a viewer actually compares the bolt with
+         * is the *painted* building. Measured on a 1080x2424 frame the tallest painted building is
+         * 288 px, and the bolt was **325 px -- taller than anything else in the scene.**
+         *
+         * | fraction | bolt | vs the tallest painted building |
+         * |---|---|---|
+         * | 0.160 (was the max) | 381 px, 8.4 m | **1.32x** |
+         * | 0.120 | 286 px, 6.3 m | 0.99x |
+         * | 0.100 (was the min) | 236 px, 5.2 m | 0.82x |
+         * | **0.095 (new max)** | ~225 px, 4.9 m | **0.78x** |
+         * | 0.080 | 190 px, 4.2 m | 0.66x |
+         * | **0.065 (new min)** | 154 px, 3.4 m | **0.53x** |
+         *
+         * The rule this settles on is that **a bolt never out-tops the skyline it strikes behind**,
+         * with margin: at most about four fifths of the tallest painted building. The old range
+         * spanned 0.82x to 1.32x and so failed it at every roll. The spread is kept, because a
+         * storm whose every strike is identical reads as a loop.
          */
-        const val LIGHTNING_BOLT_MIN_HEIGHT_FRACTION = 0.10f
-        const val LIGHTNING_BOLT_HEIGHT_SPREAD_FRACTION = 0.06f
+        const val LIGHTNING_BOLT_MIN_HEIGHT_FRACTION = 0.065f
+        const val LIGHTNING_BOLT_HEIGHT_SPREAD_FRACTION = 0.030f
+
+        /**
+         * The white wash a strike puts over the whole frame, at its brightest.
+         *
+         * **Named, not changed (v4.5).** It was an inline `180` and is now measurable: the veil
+         * covers 100 % of the frame at 180/255 = 71 % opacity, fading at 3.0/s, so a strike blanks
+         * the scene for a third of a second. Rendered beside 120 and 90 it is plainly the
+         * strongest of the three, and at 180 the houses and trees lose their colour entirely.
+         *
+         * It is left alone all the same. This batch corrects effects that are the wrong *size*
+         * against the world, and a veil has no size to be wrong -- it is the whole frame by
+         * construction, as a real flash is. Nothing measured shows it disproportionate to
+         * anything; it is strong, which is a different claim and a decision for the maintainer
+         * rather than a defect for this batch to fix. The frames are in the report.
+         */
+        const val LIGHTNING_VEIL_MAX_ALPHA = 180f
 
         /**
          * The horror sky's four corners: near-black overhead, hard orange at the horizon.
@@ -1612,10 +1691,10 @@ class PaperRenderer(
      * manual Rain/Snow toggle and intensity slider are not consulted at all while it's active.
      * The theme's own rain/snow color pairs are still used, though.
      *
-     * Sized against the viewport (v4.4): every length here is a reference-height pixel value
-     * multiplied by [SceneSpace.sceneScale], the same treatment `drawRoad` gives its stroke
-     * widths. They used to be absolute canvas pixels, which made the effect correct on exactly
-     * one screen size -- see [RAIN_STROKE_WIDTH_PX] for what that cost and how it was reported.
+     * Sized in scene metres (v4.5): every length here is declared as a real size and converted
+     * by [SceneSpace.pixelsPerMetre], the same route a house or a car takes. v4.4 put the effect
+     * on the viewport scale but left it expressed in pixels, and the magnitude that hid inside
+     * that expression made a raindrop as long as a pedestrian -- see [RAIN_LENGTH_MAX_METRES].
      */
     private fun drawPrecipitation(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         val precip = sceneCustomization.precipitation
@@ -1649,17 +1728,24 @@ class PaperRenderer(
         val cloudBandTop = cloudBandTopFor(screenHeight, sceneCustomization.sky.sunCloudHeight)
         val cloudBandHeight = cloudBandHeightFor(screenHeight)
         val fallStartY = cloudBandTop + cloudBandHeight * 0.5f
-        // Every size below is a reference-height pixel value scaled to this viewport, the same
-        // way `drawRoad` scales its stroke widths and dash lengths. See the constants' own doc.
-        val sceneScale = SceneSpace.sceneScale(screenHeight.toFloat())
-        val fallRange = (screenHeight + PRECIPITATION_BOTTOM_MARGIN_PX * sceneScale) - fallStartY
+        // Every size below is a scene metre turned into pixels for this viewport, the same
+        // conversion every object in the scene goes through. See the constants' own doc.
+        val metrePx = SceneSpace.pixelsPerMetre(screenHeight.toFloat())
+        val fallRange = (screenHeight + PRECIPITATION_BOTTOM_MARGIN_METRES * metrePx) - fallStartY
+        // Hoisted: the pool is 240 since v4.5, so a product left inside the loop is paid 240
+        // times a frame for a value that cannot change between drops.
+        val rainLengthMin = RAIN_LENGTH_MIN_METRES * metrePx
+        val rainLengthMax = RAIN_LENGTH_MAX_METRES * metrePx
+        val snowRadiusMin = SNOW_DIAMETER_MIN_METRES * metrePx / 2f
+        val snowRadiusMax = SNOW_DIAMETER_MAX_METRES * metrePx / 2f
+        val snowSway = SNOW_SWAY_METRES * metrePx
         // Paint state that does not vary between drops, set once instead of once per drop.
         // `isRain` is fixed for the whole call, so the style, stroke width and cap were being
         // rewritten identically up to PRECIPITATION_POOL_SIZE times a frame. Only the alpha and
         // the geometry actually change per drop, and those stay in the loop.
         if (isRain) {
             precipPaint.style = Paint.Style.STROKE
-            precipPaint.strokeWidth = RAIN_STROKE_WIDTH_PX * sceneScale
+            precipPaint.strokeWidth = RAIN_STROKE_WIDTH_METRES * metrePx
             precipPaint.strokeCap = Paint.Cap.ROUND
         } else {
             precipPaint.style = Paint.Style.FILL
@@ -1681,7 +1767,7 @@ class PaperRenderer(
             val fallFraction = elapsedSeconds.cycle(fallSpeed * speedVariance, phase)
             val y = fallStartY + fallFraction * fallRange
             // Snow sways gently as it falls; rain falls in a straight diagonal line (wind-angled).
-            val sway = if (isRain) 0f else elapsedSeconds.sinAt(1.3f, phase * 6.28f) * SNOW_SWAY_PX * sceneScale
+            val sway = if (isRain) 0f else elapsedSeconds.sinAt(1.3f, phase * 6.28f) * snowSway
             val x = xFraction * screenWidth + sway
 
             // Fade in over the first 10% of the fall and out over the last 10% -- this alone is
@@ -1696,17 +1782,11 @@ class PaperRenderer(
 
             if (isRain) {
                 precipPaint.alpha = (190 * fadeAlpha).toInt()
-                val len = CandidateNoise.range(
-                    seed, i, CandidateNoise.CH_LENGTH,
-                    RAIN_LENGTH_MIN_PX * sceneScale, RAIN_LENGTH_MAX_PX * sceneScale,
-                )
+                val len = CandidateNoise.range(seed, i, CandidateNoise.CH_LENGTH, rainLengthMin, rainLengthMax)
                 canvas.drawLine(x, y, x - len * 0.25f, y + len, precipPaint)
             } else {
                 precipPaint.alpha = (220 * fadeAlpha).toInt()
-                val r = CandidateNoise.range(
-                    seed, i, CandidateNoise.CH_WIDTH,
-                    SNOW_RADIUS_MIN_PX * sceneScale, SNOW_RADIUS_MAX_PX * sceneScale,
-                )
+                val r = CandidateNoise.range(seed, i, CandidateNoise.CH_WIDTH, snowRadiusMin, snowRadiusMax)
                 canvas.drawCircle(x, y, r, precipPaint)
             }
         }
@@ -1836,7 +1916,7 @@ class PaperRenderer(
     private fun drawLightningFlash(canvas: SceneCanvas) {
         if (lightningFlashAlpha <= 0f) return
         lightningPaint.color = 0xFFFFFFFF.toInt()
-        lightningPaint.alpha = (180 * lightningFlashAlpha).toInt().coerceIn(0, 255)
+        lightningPaint.alpha = (LIGHTNING_VEIL_MAX_ALPHA * lightningFlashAlpha).toInt().coerceIn(0, 255)
         canvas.drawRect(0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), lightningPaint)
 
         // The sprite hangs from its own top edge, so the scale that gives it the rolled height is

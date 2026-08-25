@@ -713,15 +713,25 @@ lanes, both pavement rows and every vehicle and pedestrian read the same
 function, so their relative sizes and speeds follow from their ground lines with
 nothing kept in step by hand.
 
-**`sceneScale` is not only for things standing on the ground.** Anything measured
-in pixels goes through it, including the road's stroke widths and dash lengths and
--- since v4.4 -- every raindrop and snowflake. Precipitation was the last layer
-still using absolute canvas pixels, which made it correct on exactly one screen
-size: its sizes had been tuned at the 800 px test frame rather than at the 2400 px
-reference, so on a phone the whole effect covered about a ninth of the frame share
-it did in the goldens. Sizes stated in pixels therefore state the height they are
-stated *at*, and `PaperRenderer`'s `RAIN_*`/`SNOW_*` constants carry the
-`_PX`-at-reference-height convention `SceneSpace.ROAD_*` already used.
+**The weather is sized the same way the buildings are (v4.5).** Rain, snow and the
+lightning bolt declare a size in metres and convert it with
+`SceneSpace.pixelsPerMetre`, exactly as every category in the size table does. They
+reached that convention in two steps and it is worth recording both, because the
+first looked like a fix and was half of one. v4.4 moved them off absolute canvas
+pixels onto the viewport scale — correct, and the reason rain stopped vanishing on
+tall screens — but left them expressed as *pixels at a reference height*, and a pixel
+count answers to nothing: the magnitude chosen was three times too large and a
+raindrop ended up 1.15 times the height of the pedestrian beside it. Declared in
+metres the same number is checkable against a child, a head and the skyline, which is
+what v4.5 did.
+
+**A consequence of the metric that keeps being missed.** A metre is
+`45 x screenHeight / 2400` pixels, so *the viewport always shows the same 53.3 m of
+world*, however tall it is. A fixed particle count is therefore already a fixed
+density per square metre on every device: particle **size** has to scale with the
+screen, particle **count** does not. What the count has to be is a separate question
+from what the size is, and answering it with size — 90 drops made nine times larger
+in area — is how v4.4 produced weather that was present and wrong.
 
 A category's base scale is **derived**, not authored: each declares the real
 height it should read as and the local-unit height its own drawing occupies

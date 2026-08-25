@@ -11,41 +11,44 @@ that was.
 
 ## Current status
 
-**v4.4 prepared -- rain sized against the viewport, and the rest of a thinned car list back.**
+**v4.5 prepared -- the atmospheric effects sized against the world they fall on.**
 
-`versionCode = 35`, `versionName = "4.4"`. **No tag, no push, no GitHub Release.**
-Baseline: the published **v4.3** tag `ff6d4c5`.
+`versionCode = 36`, `versionName = "4.5"`. **No tag, no push, no GitHub Release.**
+Baseline: the published **v4.4** tag `b3a7389`.
+
+```
+v4.5 [x]
+ |- rain, snow and the lightning bolt are declared in scene metres and converted by
+ |  SceneSpace.pixelsPerMetre, the same route a house or a car takes -- a raindrop was
+ |  1.15x the height of the pedestrian beside it and is now 0.40
+ |- the precipitation pool is 240 rather than 90, chosen from a measured sweep: the
+ |  curtain fills 86% of a grid against 46%, and the frame cost is flat from 90 to 400
+ |- a bolt reached 1.32x the tallest painted building and now reaches 0.78
+ \- six goldens regenerated, the other twenty-one untouched; the flash veil and the
+    falling leaves were measured and deliberately left alone
+```
+
+**v4.4 published** -- `versionCode = 35`, tag `v4.4`.
 
 ```
 v4.4 [x]
- |- every precipitation size is stated at SceneSpace's reference height and scaled to the
- |  viewport, the same treatment drawRoad already gave its dash lengths -- rain went from
- |  0.11% of a 1080x2424 frame to 0.72%, and the 360x800 golden frame is a fixed point of
- |  the change, so not one golden moved
- \- a built-in override the pre-v4.3 save path *thinned* rather than emptied gets its whole
-    car inventory back, but only when the app can rebuild what that save path would have
-    written and match it exactly
-```
-
-**v4.3 published** -- `versionCode = 34`, tag `v4.3`.
-
-```
-v4.3 [x]
- |- a per-theme customization is archived instead of deleted when another theme is
- |  touched, so beach, winter and city each keep their own look across a theme
- |  switch, a restart and an install-over-install
- |- PERSON_METRES_TALL is the 1.75 m its own comment always documented, which puts a
- |  far-lane car back above a far-pavement pedestrian where the ground plane puts it
- |- app backup: every preference, every theme customization, every saved theme, no
- |  runtime state, SAF, validate-then-apply with rollback across the two stores
- |- theme sharing: one self-contained theme per file, nothing personal in it, always
- |  imported as a new independent theme
- \- saving a theme no longer freezes the traffic density into the terrain, and a
-    built-in override already damaged that way gets its cars back on load
+ |- every precipitation size scaled to the viewport instead of being absolute canvas
+ |  pixels -- the right principle, at three times the right magnitude, which is what
+ |  v4.5 corrected
+ \- a built-in override the pre-v4.3 save path thinned rather than emptied gets its
+    whole car inventory back, behind a reconstruction that has to match exactly
 ```
 
 Threads still open, recorded rather than scheduled:
 
+- **Three effects are still sized in absolute canvas pixels**, measured in v4.5 and left alone
+  because none is demonstrably wrong on a device: `drawFallingLeaves` (a leaf is 0.26 m on a
+  phone, which reads, but 0.80 m on the 360x800 test frame), birds (identical at 12x51 px on
+  every viewport, so a third of their intended size on a phone) and clouds. Each needs its own
+  before/after measurement and a decision about what size it *should* be; none was reported.
+- **The lightning flash veil covers the whole frame at 71 % opacity for a third of a second.**
+  Measured in v4.5 and rendered beside 120 and 90 for comparison. Not changed: a veil has no size
+  to be out of scale. A decision rather than a defect.
 - **`drawFallingLeaves` sizes its leaves in absolute canvas pixels**, exactly as precipitation did
   before v4.4 -- a `drawOval(-4, -6, 4, 6)` and a `* 26f` sway, so Fall Colors' leaves are about a
   third of their intended size on a phone. Found while diagnosing v4.4's rain defect and

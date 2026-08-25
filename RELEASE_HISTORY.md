@@ -19,6 +19,97 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.5 — weather the size of the world it falls on
+
+**Prepared, not published.** `versionCode = 36`, `versionName = "4.5"`. No tag, no push, no
+GitHub Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain 37.
+Baseline is the **published v4.4 tag** (`b3a7389`), verified against `origin/main`.
+
+One subject: the size of the atmospheric effects relative to the scene. Reported from a real
+phone after v4.4 shipped — rain visible but far too large, snow too large, the thunderstorm bolt
+too large.
+
+### 1. What was measured, before anything was changed
+
+Every figure below is from connected components on rendered frames at 1080×2424, with the
+reference objects measured the same way in the same frame.
+
+| | rendered | in scene metres | against the world |
+|---|---|---|---|
+| adult pedestrian (nearest) | 60 px | 1.75 | 1.00 |
+| car (fire engine, near lane) | 141 px | | 2.35 |
+| tree / house | 220 / 221 px | | 3.67 / 3.68 |
+| **tallest painted building** | **288 px** | | **4.80** |
+| **raindrop** (median) | **69 px** | **1.52** | **1.15 adults** |
+| **snowflake** (median) | **22 px** | **0.48** | 0.37 adults, **2 heads** |
+| **lightning bolt** | **325 px** | **7.15** | **1.13× the tallest building** |
+
+**v4.4's principle was right and its magnitude was wrong.** The ratio effect-to-pedestrian was
+already constant across 360×800, 720×1600, 1080×2424 and 1440×3200 — 0.70, 0.67, 0.65, 0.66 —
+so the scaling worked. What failed is that the sizes were expressed as *pixels at a reference
+height*, and v4.4 tripled them on the reading that they had been tuned at the 800 px test frame.
+That reading was recorded at the time as the batch's largest risk. The phone falsified it.
+
+### 2. The diagnosis is about density, not only size
+
+Sweeping the drop size at a fixed pool showed the distribution never moved: **46–56 % of a 6×12
+grid filled and dry holes four of six columns wide at every size tried.** Presence is not a
+function of how big each drop is. There were 90 drops over the 53 × 24 metres of world a viewport
+shows, and v4.4 papered over that by making each one nine times larger in area.
+
+That reframes the original v4.4 defect too: rain was never invisible because the drops were
+small. It was invisible because there were too few of them.
+
+### 3. What changed
+
+**Sizes are declared in metres** and converted by the new `SceneSpace.pixelsPerMetre`, which is
+the conversion every other category already went through spelled out once. Rain 0.36–0.58 m,
+stroke 0.044 m; snow 0.13–0.30 m diameter, sway 0.31 m; bolt 3.4–5.0 m.
+
+**`PRECIPITATION_POOL_SIZE` 90 → 240**, chosen from a sweep and not from taste — see the
+constant's own doc for the table. At 240 the grid fills 86 % with no hole wider than two of six
+columns, and **the frame cost is flat across the whole sweep** (26.6–30.9 ms at 1080×2424 from
+90 to 400, no trend), which was measured before the pool was raised.
+
+**Lightning 0.10–0.16 → 0.065–0.095 of screen height.** The oracle is the *painted* skyline, not
+the size table: a tower is 16.8 m but is drawn far back where perspective shrinks it, so the
+metre reading made a bolt taller than everything in the scene look defensible.
+
+### Decisions
+
+- **D-4.5-A — atmospheric effects join the metres convention rather than getting a scale of their
+  own.** A pixel count at a reference height cannot be checked against anything, which is exactly
+  how a raindrop reached the height of a pedestrian without any test objecting. A metre can be
+  compared with a child, a head and a skyline, and now is.
+- **D-4.5-B — size and density were optimised separately, and the tests keep them separate.**
+  Restoring v4.4's drop size fails the size tests and leaves the density test green; restoring the
+  pool of 90 fails the density tests and leaves the size tests green. Two variables, two
+  measurements, two failure modes.
+- **D-4.5-C — every new bound has a floor *and* a ceiling, at four viewport sizes.** v4.4's test
+  asserted only that rain covered at least a share of the frame, and the fix satisfied it by
+  growing. A one-sided bound is what let this happen.
+- **D-4.5-D — the lightning veil was measured and left alone.** Full frame, 71 % opacity, 0.333 s.
+  Strong, and rendered beside 120 and 90 it is plainly the strongest — but a veil has no size to
+  be out of scale and nothing measured shows it disproportionate to anything. It is now a named
+  constant instead of an inline `180`, which is the whole of the change to it.
+- **D-4.5-E — falling leaves were measured and left alone.** Absolute pixels like precipitation
+  used to be, but on a phone that is 0.26 m, which reads correctly; the drift is the other way
+  (0.80 m at the test frame). Not corrected on the strength of the technique alone.
+- **D-4.5-F — six goldens were regenerated, and the other twenty-one were not touched.** The
+  360×800 frame had always drawn rain at 0.99 of a pedestrian, so preserving it would have
+  preserved the defect. The six are exactly the frames in the suite that contain precipitation;
+  each one's differing pixels span 68–76 % of the rows across the full width, which is the shape
+  of a falling curtain and not of an object.
+
+### Known and not fixed
+
+- **The lightning veil**, above — a decision for the maintainer, with the frames in the report.
+- **`drawFallingLeaves`, birds and clouds are sized in absolute canvas pixels.** Measured this
+  batch: leaves land correctly on a phone, birds are identical at 12×51 px on every viewport, and
+  clouds are effectively absolute. None was reported and none is demonstrated wrong; all three are
+  recorded in `ROADMAP.md` rather than changed.
+- **A pedestrian can paint over the top row of a car** (1–8 px). Pre-existing since v4.0.
+
 ## v4.4 — rain you can see, and the rest of the traffic back
 
 **Prepared, not published.** `versionCode = 35`, `versionName = "4.4"`. No tag, no push, no GitHub

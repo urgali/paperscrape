@@ -47,6 +47,24 @@ object SceneSpace {
     fun sceneScale(screenHeightPx: Float): Float =
         if (screenHeightPx <= 0f) 1f else screenHeightPx / REFERENCE_SCREEN_HEIGHT_PX
 
+    /**
+     * How many pixels one scene metre occupies on this viewport, at [REFERENCE_Y_FRACTION].
+     *
+     * The single conversion between "how big is this thing in the world" and "how big is it on
+     * this screen". Every category already goes through it indirectly -- a size table in metres,
+     * [PIXELS_PER_METRE_AT_REFERENCE], then [sceneScale] -- and v4.5 brought the atmospheric
+     * effects onto the same route, which is why it is now named rather than spelled out at each
+     * call site.
+     *
+     * **A consequence worth stating, because a scaling decision keeps being made without it:** a
+     * metre is `45 x screenHeight / 2400` pixels, so the viewport always shows the same
+     * `2400 / 45 = 53.3` metres of world however tall it is. A fixed number of particles is
+     * therefore already a fixed density *per square metre of world* on every device -- the count
+     * does not need to scale with the screen, only the size of each particle does.
+     */
+    fun pixelsPerMetre(screenHeightPx: Float): Float =
+        PIXELS_PER_METRE_AT_REFERENCE * sceneScale(screenHeightPx)
+
     // ---- The hill layer the ground belongs to -------------------------------------------
 
     /** Top of the single hill layer, as a fraction of screen height. */
