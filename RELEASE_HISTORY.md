@@ -19,6 +19,61 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.7 — the sleigh, redrawn
+
+**Prepared, not published.** `versionCode = 38`, `versionName = "4.7"`. No tag, no push, no
+GitHub Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain 37.
+Baseline is **v4.6**.
+
+One subject: the `santa_sleigh_scene` / `santa_sleigh_trot` artwork. Five files, none of them
+Kotlin. Approved through a mockup cycle before any of it was implemented.
+
+### What the sprite now contains
+
+Reindeer, sleigh and load are new drawings; **Santa is the previously approved figure, unchanged,
+placed at his original coordinates**. The sprite is still one composite blit through the same call
+site, still two frames alternating on the same clock, still `SCENE_UNITS` / `FIXED_ART`.
+
+The structural change is the layer order inside the sprite, not the outline. The near side panel of
+the sleigh is a separate cut drawn **after** Santa and after the load, and Santa's near arm is drawn
+a second time on top of that panel. That is what makes a flat figure read as sitting inside a flat
+sleigh: the sleigh's edge terminates on his silhouette instead of running behind it, and his mitten
+rests on the rim. The previous artwork drew the whole sleigh first and pasted Santa over it, which
+is why a hard horizontal edge crossed his chest.
+
+The tub's bottom edge and the runner's top edge now overlap. In the previous artwork they were
+2.6 units apart with two thin stanchions bridging the gap — a transparent band under the vehicle,
+which is what made the body read as floating.
+
+### The one measurable consequence
+
+**The content box changed: `(0, 1, 598, 152)` → `(0, 19, 592, 140)`**, because the composition
+aligns the team's baselines — hooves and runner share a line — so the group no longer touches the
+canvas edges. `sprites.json` was updated to match, and `anchorRule` stays `CONTENT_BOTTOM_CENTRE`,
+so the declared anchor follows to `(296, 140)`.
+
+Nothing in Kotlin reads the manifest. The renderer places the sprite by
+`SANTA_SLEIGH_ORIGIN_{X,Y}_UNITS`, which address the **canvas** corner, and the canvas is unchanged
+at 600x153, so the blit lands where it always did. What did move is the drawing inside that canvas:
+its centre shifted by (-3, +3) sprite pixels, which after the 0.5x blit is **1.5 px left and 1.5 px
+down on screen**. Under two pixels, and no constant was touched to compensate — recorded here
+because it is a real change in apparent position and should not surface later as a surprise.
+
+`SANTA_SLEIGH_SCALE`, both origin constants, `SANTA_TROT_FRAMES_PER_SECOND` and every part of
+`SantaSleighEffect` are untouched: same size, same path, same cadence, same gift drop.
+
+### Verification
+
+The two PNGs are re-rendered from committed SVG sources through the pinned pipeline
+(`probe` matching `PROBE_EXPECTED_SHA256`), and the sources reproduce them byte for byte.
+`scene` and `trot` differ only in the reindeer legs, as the project requires.
+
+No golden contains the sleigh — all 27 were scanned for the co-occurrence of the hull and reindeer
+colours in the flight band, and none matched, which is consistent with the effect starting on a
+random timer. **No golden was regenerated.**
+
+---
+
 ## v4.6 — the people you can see through a windscreen
 
 **Prepared, not published.** `versionCode = 37`, `versionName = "4.6"`. No tag, no push, no

@@ -188,12 +188,20 @@
       "category": "building",
       "width": 60,
       "height": 84,
-      "contentBox": [0, 0, 60, 84],
+      "contentBox": [
+        0,
+        0,
+        60,
+        84
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [30, 84],
+      "anchor": [
+        30,
+        84
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -206,7 +214,12 @@
       "category": "structure",
       "width": 258,
       "height": 30,
-      "contentBox": [0, 0, 258, 30],
+      "contentBox": [
+        0,
+        0,
+        258,
+        30
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -227,7 +240,12 @@
       "category": "building",
       "width": 72,
       "height": 72,
-      "contentBox": [0, 0, 72, 72],
+      "contentBox": [
+        0,
+        0,
+        72,
+        72
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -248,12 +266,20 @@
       "category": "building",
       "width": 270,
       "height": 276,
-      "contentBox": [0, 0, 270, 276],
+      "contentBox": [
+        0,
+        0,
+        270,
+        276
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [135, 276],
+      "anchor": [
+        135,
+        276
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -266,7 +292,12 @@
       "category": "animal",
       "width": 90,
       "height": 24,
-      "contentBox": [1, 2, 89, 23],
+      "contentBox": [
+        1,
+        2,
+        89,
+        23
+      ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -287,7 +318,12 @@
       "category": "animal",
       "width": 102,
       "height": 183,
-      "contentBox": [0, 0, 102, 183],
+      "contentBox": [
+        0,
+        0,
+        102,
+        183
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -308,7 +344,12 @@
       "category": "animal",
       "width": 45,
       "height": 45,
-      "contentBox": [0, 0, 44, 45],
+      "contentBox": [
+        0,
+        0,
+        44,
+        45
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -329,7 +370,12 @@
       "category": "animal",
       "width": 30,
       "height": 30,
-      "contentBox": [0, 0, 30, 30],
+      "contentBox": [
+        0,
+        0,
+        30,
+        30
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -350,7 +396,12 @@
       "category": "vehicle",
       "width": 291,
       "height": 111,
-      "contentBox": [0, 0, 291, 111],
+      "contentBox": [
+        0,
+        0,
+        291,
+        111
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -371,7 +422,12 @@
       "category": "vehicle",
       "width": 138,
       "height": 48,
-      "contentBox": [0, 0, 138, 48],
+      "contentBox": [
+        0,
+        0,
+        138,
+        48
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -392,7 +448,12 @@
       "category": "sky",
       "width": 798,
       "height": 396,
-      "contentBox": [0, 0, 798, 396],
+      "contentBox": [
+        0,
+        0,
+        798,
+        396
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -413,7 +474,12 @@
       "category": "lake",
       "width": 345,
       "height": 174,
-      "contentBox": [0, 0, 345, 174],
+      "contentBox": [
+        0,
+        0,
+        345,
+        174
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -434,7 +500,12 @@
       "category": "decoration",
       "width": 96,
       "height": 57,
-      "contentBox": [0, 0, 96, 57],
+      "contentBox": [
+        0,
+        0,
+        96,
+        57
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -455,12 +526,20 @@
       "category": "decoration",
       "width": 96,
       "height": 120,
-      "contentBox": [0, 0, 96, 120],
+      "contentBox": [
+        0,
+        0,
+        96,
+        120
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [48, 120],
+      "anchor": [
+        48,
+        120
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -473,7 +552,12 @@
       "category": "vehicle",
       "width": 294,
       "height": 147,
-      "contentBox": [0, 0, 294, 147],
+      "contentBox": [
+        0,
+        0,
+        294,
+        147
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -494,7 +578,12 @@
       "category": "vehicle",
       "width": 288,
       "height": 42,
-      "contentBox": [0, 1, 288, 42],
+      "contentBox": [
+        0,
+        1,
+        288,
+        42
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -515,12 +604,20 @@
       "category": "decoration",
       "width": 240,
       "height": 240,
-      "contentBox": [9, 9, 231, 231],
+      "contentBox": [
+        9,
+        9,
+        231,
+        231
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [120, 120],
+      "anchor": [
+        120,
+        120
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -533,12 +630,20 @@
       "category": "decoration",
       "width": 120,
       "height": 90,
-      "contentBox": [0, 0, 120, 90],
+      "contentBox": [
+        0,
+        0,
+        120,
+        90
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [60, 90],
+      "anchor": [
+        60,
+        90
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -551,7 +656,12 @@
       "category": "decoration",
       "width": 120,
       "height": 120,
-      "contentBox": [0, 0, 120, 120],
+      "contentBox": [
+        0,
+        0,
+        120,
+        120
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -572,7 +682,12 @@
       "category": "vegetation",
       "width": 108,
       "height": 36,
-      "contentBox": [5, 9, 98, 36],
+      "contentBox": [
+        5,
+        9,
+        98,
+        36
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -593,7 +708,12 @@
       "category": "house",
       "width": 39,
       "height": 105,
-      "contentBox": [0, 0, 39, 105],
+      "contentBox": [
+        0,
+        0,
+        39,
+        105
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -614,12 +734,20 @@
       "category": "house",
       "width": 66,
       "height": 135,
-      "contentBox": [0, 0, 66, 135],
+      "contentBox": [
+        0,
+        0,
+        66,
+        135
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [33, 135],
+      "anchor": [
+        33,
+        135
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -632,7 +760,12 @@
       "category": "house",
       "width": 450,
       "height": 150,
-      "contentBox": [0, 0, 450, 150],
+      "contentBox": [
+        0,
+        0,
+        450,
+        150
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -653,7 +786,12 @@
       "category": "structure",
       "width": 300,
       "height": 117,
-      "contentBox": [1, 0, 299, 117],
+      "contentBox": [
+        1,
+        0,
+        299,
+        117
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -674,7 +812,12 @@
       "category": "house",
       "width": 450,
       "height": 18,
-      "contentBox": [0, 0, 450, 18],
+      "contentBox": [
+        0,
+        0,
+        450,
+        18
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -695,12 +838,20 @@
       "category": "house",
       "width": 420,
       "height": 285,
-      "contentBox": [0, 0, 420, 285],
+      "contentBox": [
+        0,
+        0,
+        420,
+        285
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [210, 285],
+      "anchor": [
+        210,
+        285
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -713,7 +864,12 @@
       "category": "house",
       "width": 78,
       "height": 18,
-      "contentBox": [0, 0, 78, 18],
+      "contentBox": [
+        0,
+        0,
+        78,
+        18
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -734,7 +890,12 @@
       "category": "house",
       "width": 66,
       "height": 63,
-      "contentBox": [0, 0, 66, 63],
+      "contentBox": [
+        0,
+        0,
+        66,
+        63
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -755,7 +916,12 @@
       "category": "house",
       "width": 36,
       "height": 90,
-      "contentBox": [0, 0, 36, 90],
+      "contentBox": [
+        0,
+        0,
+        36,
+        90
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -776,7 +942,12 @@
       "category": "house",
       "width": 60,
       "height": 114,
-      "contentBox": [0, 0, 60, 114],
+      "contentBox": [
+        0,
+        0,
+        60,
+        114
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -797,7 +968,12 @@
       "category": "house",
       "width": 318,
       "height": 120,
-      "contentBox": [0, 0, 318, 120],
+      "contentBox": [
+        0,
+        0,
+        318,
+        120
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -818,7 +994,12 @@
       "category": "structure",
       "width": 204,
       "height": 99,
-      "contentBox": [1, 0, 203, 99],
+      "contentBox": [
+        1,
+        0,
+        203,
+        99
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -839,7 +1020,12 @@
       "category": "house",
       "width": 318,
       "height": 12,
-      "contentBox": [0, 0, 318, 12],
+      "contentBox": [
+        0,
+        0,
+        318,
+        12
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -860,12 +1046,20 @@
       "category": "house",
       "width": 288,
       "height": 210,
-      "contentBox": [0, 0, 288, 210],
+      "contentBox": [
+        0,
+        0,
+        288,
+        210
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [144, 210],
+      "anchor": [
+        144,
+        210
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -878,7 +1072,12 @@
       "category": "house",
       "width": 66,
       "height": 66,
-      "contentBox": [0, 0, 66, 66],
+      "contentBox": [
+        0,
+        0,
+        66,
+        66
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "orphan",
@@ -899,7 +1098,12 @@
       "category": "house",
       "width": 66,
       "height": 66,
-      "contentBox": [0, 0, 66, 66],
+      "contentBox": [
+        0,
+        0,
+        66,
+        66
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -920,7 +1124,12 @@
       "category": "sky",
       "width": 90,
       "height": 252,
-      "contentBox": [0, 0, 90, 252],
+      "contentBox": [
+        0,
+        0,
+        90,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -941,12 +1150,20 @@
       "category": "sky",
       "width": 240,
       "height": 240,
-      "contentBox": [122, 18, 222, 222],
+      "contentBox": [
+        122,
+        18,
+        222,
+        222
+      ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [120, 120],
+      "anchor": [
+        120,
+        120
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -959,12 +1176,20 @@
       "category": "sky",
       "width": 240,
       "height": 240,
-      "contentBox": [18, 18, 222, 222],
+      "contentBox": [
+        18,
+        18,
+        222,
+        222
+      ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [120, 120],
+      "anchor": [
+        120,
+        120
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -977,12 +1202,20 @@
       "category": "sky",
       "width": 240,
       "height": 240,
-      "contentBox": [66, 18, 222, 222],
+      "contentBox": [
+        66,
+        18,
+        222,
+        222
+      ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [120, 120],
+      "anchor": [
+        120,
+        120
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -995,12 +1228,20 @@
       "category": "sky",
       "width": 240,
       "height": 240,
-      "contentBox": [120, 18, 222, 222],
+      "contentBox": [
+        120,
+        18,
+        222,
+        222
+      ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [120, 120],
+      "anchor": [
+        120,
+        120
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -1013,12 +1254,20 @@
       "category": "sky",
       "width": 240,
       "height": 240,
-      "contentBox": [18, 18, 222, 222],
+      "contentBox": [
+        18,
+        18,
+        222,
+        222
+      ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [120, 120],
+      "anchor": [
+        120,
+        120
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -1031,7 +1280,12 @@
       "category": "vegetation",
       "width": 120,
       "height": 120,
-      "contentBox": [0, 0, 120, 111],
+      "contentBox": [
+        0,
+        0,
+        120,
+        111
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1052,7 +1306,12 @@
       "category": "vegetation",
       "width": 120,
       "height": 120,
-      "contentBox": [0, 0, 120, 110],
+      "contentBox": [
+        0,
+        0,
+        120,
+        110
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1073,7 +1332,12 @@
       "category": "vegetation",
       "width": 120,
       "height": 120,
-      "contentBox": [0, 0, 120, 102],
+      "contentBox": [
+        0,
+        0,
+        120,
+        102
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1094,12 +1358,20 @@
       "category": "vegetation",
       "width": 33,
       "height": 174,
-      "contentBox": [2, 0, 33, 174],
+      "contentBox": [
+        2,
+        0,
+        33,
+        174
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [17.5, 174],
+      "anchor": [
+        17.5,
+        174
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -1112,7 +1384,12 @@
       "category": "animal",
       "width": 36,
       "height": 18,
-      "contentBox": [0, 0, 36, 18],
+      "contentBox": [
+        0,
+        0,
+        36,
+        18
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1133,7 +1410,12 @@
       "category": "animal",
       "width": 54,
       "height": 102,
-      "contentBox": [0, 0, 54, 102],
+      "contentBox": [
+        0,
+        0,
+        54,
+        102
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -1154,7 +1436,12 @@
       "category": "animal",
       "width": 84,
       "height": 132,
-      "contentBox": [0, 0, 84, 132],
+      "contentBox": [
+        0,
+        0,
+        84,
+        132
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -1175,7 +1462,12 @@
       "category": "animal",
       "width": 60,
       "height": 12,
-      "contentBox": [0, 0, 60, 12],
+      "contentBox": [
+        0,
+        0,
+        60,
+        12
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1196,12 +1488,20 @@
       "category": "person",
       "width": 159,
       "height": 162,
-      "contentBox": [10, 13, 159, 162],
+      "contentBox": [
+        10,
+        13,
+        159,
+        162
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [84.5, 162],
+      "anchor": [
+        84.5,
+        162
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1214,12 +1514,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [22, 64, 113, 252],
+      "contentBox": [
+        22,
+        64,
+        113,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [67.5, 252],
+      "anchor": [
+        67.5,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1232,12 +1540,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [19, 67, 113, 252],
+      "contentBox": [
+        19,
+        67,
+        113,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [66, 252],
+      "anchor": [
+        66,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1250,12 +1566,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [7, 64, 116, 252],
+      "contentBox": [
+        7,
+        64,
+        116,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1268,12 +1592,20 @@
       "category": "person",
       "width": 159,
       "height": 162,
-      "contentBox": [4, 10, 152, 162],
+      "contentBox": [
+        4,
+        10,
+        152,
+        162
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [78, 162],
+      "anchor": [
+        78,
+        162
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1286,12 +1618,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [19, 43, 110, 252],
+      "contentBox": [
+        19,
+        43,
+        110,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [64.5, 252],
+      "anchor": [
+        64.5,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1304,12 +1644,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [19, 46, 110, 252],
+      "contentBox": [
+        19,
+        46,
+        110,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [64.5, 252],
+      "anchor": [
+        64.5,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1322,12 +1670,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [6, 43, 117, 252],
+      "contentBox": [
+        6,
+        43,
+        117,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1340,12 +1696,20 @@
       "category": "person",
       "width": 159,
       "height": 162,
-      "contentBox": [4, 16, 155, 162],
+      "contentBox": [
+        4,
+        16,
+        155,
+        162
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [79.5, 162],
+      "anchor": [
+        79.5,
+        162
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1358,12 +1722,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [13, 64, 116, 252],
+      "contentBox": [
+        13,
+        64,
+        116,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [64.5, 252],
+      "anchor": [
+        64.5,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1376,12 +1748,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [13, 67, 116, 252],
+      "contentBox": [
+        13,
+        67,
+        116,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [64.5, 252],
+      "anchor": [
+        64.5,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1394,12 +1774,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [4, 64, 119, 252],
+      "contentBox": [
+        4,
+        64,
+        119,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1412,12 +1800,20 @@
       "category": "person",
       "width": 159,
       "height": 162,
-      "contentBox": [4, 10, 155, 162],
+      "contentBox": [
+        4,
+        10,
+        155,
+        162
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [79.5, 162],
+      "anchor": [
+        79.5,
+        162
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1430,12 +1826,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [9, 55, 117, 252],
+      "contentBox": [
+        9,
+        55,
+        117,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1448,12 +1852,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [9, 58, 117, 252],
+      "contentBox": [
+        9,
+        58,
+        117,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1466,12 +1878,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [6, 55, 117, 252],
+      "contentBox": [
+        6,
+        55,
+        117,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1484,12 +1904,20 @@
       "category": "person",
       "width": 120,
       "height": 144,
-      "contentBox": [4, 1, 119, 144],
+      "contentBox": [
+        4,
+        1,
+        119,
+        144
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 144],
+      "anchor": [
+        61.5,
+        144
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1502,12 +1930,20 @@
       "category": "person",
       "width": 159,
       "height": 162,
-      "contentBox": [4, 7, 152, 162],
+      "contentBox": [
+        4,
+        7,
+        152,
+        162
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [78, 162],
+      "anchor": [
+        78,
+        162
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1520,12 +1956,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [16, 10, 110, 252],
+      "contentBox": [
+        16,
+        10,
+        110,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1538,12 +1982,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [13, 13, 113, 252],
+      "contentBox": [
+        13,
+        13,
+        113,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1556,12 +2008,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [0, 10, 123, 252],
+      "contentBox": [
+        0,
+        10,
+        123,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1574,12 +2034,20 @@
       "category": "person",
       "width": 120,
       "height": 144,
-      "contentBox": [0, 0, 120, 144],
+      "contentBox": [
+        0,
+        0,
+        120,
+        144
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [60, 144],
+      "anchor": [
+        60,
+        144
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1592,12 +2060,20 @@
       "category": "person",
       "width": 159,
       "height": 162,
-      "contentBox": [0, 4, 158, 162],
+      "contentBox": [
+        0,
+        4,
+        158,
+        162
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [79, 162],
+      "anchor": [
+        79,
+        162
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1610,12 +2086,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [13, 7, 113, 252],
+      "contentBox": [
+        13,
+        7,
+        113,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1628,12 +2112,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [13, 10, 113, 252],
+      "contentBox": [
+        13,
+        10,
+        113,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1646,12 +2138,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [0, 7, 123, 252],
+      "contentBox": [
+        0,
+        7,
+        123,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1664,12 +2164,20 @@
       "category": "person",
       "width": 120,
       "height": 144,
-      "contentBox": [4, 1, 119, 144],
+      "contentBox": [
+        4,
+        1,
+        119,
+        144
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 144],
+      "anchor": [
+        61.5,
+        144
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1682,12 +2190,20 @@
       "category": "person",
       "width": 159,
       "height": 162,
-      "contentBox": [4, 7, 152, 162],
+      "contentBox": [
+        4,
+        7,
+        152,
+        162
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [78, 162],
+      "anchor": [
+        78,
+        162
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1700,12 +2216,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [16, 10, 107, 252],
+      "contentBox": [
+        16,
+        10,
+        107,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1718,12 +2242,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [16, 13, 110, 252],
+      "contentBox": [
+        16,
+        13,
+        110,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1736,12 +2268,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [1, 10, 122, 252],
+      "contentBox": [
+        1,
+        10,
+        122,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "summer",
       "source": {
         "kind": "svg",
@@ -1754,12 +2294,20 @@
       "category": "person",
       "width": 120,
       "height": 144,
-      "contentBox": [0, 0, 120, 144],
+      "contentBox": [
+        0,
+        0,
+        120,
+        144
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [60, 144],
+      "anchor": [
+        60,
+        144
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1772,12 +2320,20 @@
       "category": "person",
       "width": 159,
       "height": 162,
-      "contentBox": [0, 0, 158, 162],
+      "contentBox": [
+        0,
+        0,
+        158,
+        162
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [79, 162],
+      "anchor": [
+        79,
+        162
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1790,12 +2346,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [13, 0, 113, 252],
+      "contentBox": [
+        13,
+        0,
+        113,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1808,12 +2372,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [13, 0, 113, 252],
+      "contentBox": [
+        13,
+        0,
+        113,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [63, 252],
+      "anchor": [
+        63,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1826,12 +2398,20 @@
       "category": "person",
       "width": 123,
       "height": 252,
-      "contentBox": [3, 0, 120, 252],
+      "contentBox": [
+        3,
+        0,
+        120,
+        252
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [61.5, 252],
+      "anchor": [
+        61.5,
+        252
+      ],
       "season": "winter",
       "source": {
         "kind": "svg",
@@ -1844,7 +2424,12 @@
       "category": "vehicle",
       "width": 60,
       "height": 18,
-      "contentBox": [0, 0, 60, 18],
+      "contentBox": [
+        0,
+        0,
+        60,
+        18
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1865,7 +2450,12 @@
       "category": "vehicle",
       "width": 204,
       "height": 39,
-      "contentBox": [0, 0, 204, 39],
+      "contentBox": [
+        0,
+        0,
+        204,
+        39
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1886,12 +2476,20 @@
       "category": "decoration",
       "width": 114,
       "height": 90,
-      "contentBox": [0, 0, 114, 90],
+      "contentBox": [
+        0,
+        0,
+        114,
+        90
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [57, 90],
+      "anchor": [
+        57,
+        90
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -1904,7 +2502,12 @@
       "category": "decoration",
       "width": 18,
       "height": 36,
-      "contentBox": [0, 0, 18, 36],
+      "contentBox": [
+        0,
+        0,
+        18,
+        36
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1925,7 +2528,12 @@
       "category": "sky",
       "width": 594,
       "height": 297,
-      "contentBox": [0, 0, 594, 297],
+      "contentBox": [
+        0,
+        0,
+        594,
+        297
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1946,7 +2554,12 @@
       "category": "building",
       "width": 204,
       "height": 30,
-      "contentBox": [0, 0, 204, 30],
+      "contentBox": [
+        0,
+        0,
+        204,
+        30
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -1967,7 +2580,12 @@
       "category": "building",
       "width": 54,
       "height": 84,
-      "contentBox": [0, 0, 54, 84],
+      "contentBox": [
+        0,
+        0,
+        54,
+        84
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -1988,7 +2606,12 @@
       "category": "structure",
       "width": 288,
       "height": 30,
-      "contentBox": [0, 0, 288, 30],
+      "contentBox": [
+        0,
+        0,
+        288,
+        30
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2009,7 +2632,12 @@
       "category": "building",
       "width": 102,
       "height": 105,
-      "contentBox": [0, 0, 102, 105],
+      "contentBox": [
+        0,
+        0,
+        102,
+        105
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2030,12 +2658,20 @@
       "category": "building",
       "width": 300,
       "height": 288,
-      "contentBox": [0, 0, 300, 288],
+      "contentBox": [
+        0,
+        0,
+        300,
+        288
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [150, 288],
+      "anchor": [
+        150,
+        288
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2048,7 +2684,12 @@
       "category": "building",
       "width": 90,
       "height": 66,
-      "contentBox": [0, 0, 90, 66],
+      "contentBox": [
+        0,
+        0,
+        90,
+        66
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -2069,12 +2710,20 @@
       "category": "road",
       "width": 402,
       "height": 102,
-      "contentBox": [0, 0, 402, 102],
+      "contentBox": [
+        0,
+        0,
+        402,
+        102
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "orphan",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [201, 102],
+      "anchor": [
+        201,
+        102
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2087,12 +2736,20 @@
       "category": "road",
       "width": 402,
       "height": 18,
-      "contentBox": [0, 0, 402, 18],
+      "contentBox": [
+        0,
+        0,
+        402,
+        18
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "orphan",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [201, 18],
+      "anchor": [
+        201,
+        18
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2105,12 +2762,20 @@
       "category": "road",
       "width": 54,
       "height": 9,
-      "contentBox": [0, 0, 54, 9],
+      "contentBox": [
+        0,
+        0,
+        54,
+        9
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "orphan",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [27, 9],
+      "anchor": [
+        27,
+        9
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2123,7 +2788,12 @@
       "category": "lake",
       "width": 252,
       "height": 51,
-      "contentBox": [0, 0, 252, 51],
+      "contentBox": [
+        0,
+        0,
+        252,
+        51
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2144,7 +2814,12 @@
       "category": "lake",
       "width": 210,
       "height": 180,
-      "contentBox": [0, 0, 210, 180],
+      "contentBox": [
+        0,
+        0,
+        210,
+        180
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2165,43 +2840,64 @@
       "category": "decoration",
       "width": 600,
       "height": 153,
-      "contentBox": [0, 1, 598, 152],
+      "contentBox": [
+        0,
+        19,
+        592,
+        140
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [299, 152],
+      "anchor": [
+        296,
+        140
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
         "file": "santa_sleigh_scene.svg"
       },
-      "notes": "Redrawn in v76.3: a cozier Santa -- rounder coat, fuller beard with a rounded hem, rosy cheeks, a smile, a slouched hat with a larger pompom, a mitten on the reins -- and the first of two leg poses. Frame two is santa_sleigh_trot. Both are emitted from one description so they cannot drift apart; only the reindeer legs differ, and the two reindeer are in opposite phases within a frame."
+      "notes": "Redrawn in v4.7 from the approved C2 FINAL mockup: the reindeer, the sleigh and the load are new artwork, Santa is the Mockup B figure unchanged. The near side panel is drawn after Santa and after the load and his near arm is drawn once more on top of it, which is what makes him read as sitting inside the tub. The content box shrank because the team's baselines are now aligned -- hooves and runner share a line -- so the group no longer touches the canvas edges. Frame two is santa_sleigh_trot; only the reindeer legs differ, and the two reindeer are in opposite phases within a frame."
     },
     {
       "name": "santa_sleigh_trot",
       "category": "decoration",
       "width": 600,
       "height": 153,
-      "contentBox": [0, 1, 598, 152],
+      "contentBox": [
+        0,
+        19,
+        592,
+        140
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [299, 152],
+      "anchor": [
+        296,
+        140
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
         "file": "santa_sleigh_trot.svg"
       },
-      "notes": "New in v76.3: the second leg pose of santa_sleigh_scene. The reindeer stopped moving their legs when the group became a single sprite in v73, because a bitmap cannot bend; the trot is a second drawing alternated by PaperRenderer at SANTA_TROT_FRAMES_PER_SECOND. Identical to frame one except for the four legs of each reindeer."
+      "notes": "Redrawn in v4.7 from the approved C2 FINAL mockup: the reindeer, the sleigh and the load are new artwork, Santa is the Mockup B figure unchanged. The near side panel is drawn after Santa and after the load and his near arm is drawn once more on top of it, which is what makes him read as sitting inside the tub. The content box shrank because the team's baselines are now aligned -- hooves and runner share a line -- so the group no longer touches the canvas edges. Frame two is santa_sleigh_trot; only the reindeer legs differ, and the two reindeer are in opposite phases within a frame."
     },
     {
       "name": "skyscraper_canopy",
       "category": "building",
       "width": 330,
       "height": 24,
-      "contentBox": [0, 0, 330, 24],
+      "contentBox": [
+        0,
+        0,
+        330,
+        24
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2222,7 +2918,12 @@
       "category": "building",
       "width": 96,
       "height": 96,
-      "contentBox": [0, 0, 96, 96],
+      "contentBox": [
+        0,
+        0,
+        96,
+        96
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2243,7 +2944,12 @@
       "category": "structure",
       "width": 168,
       "height": 27,
-      "contentBox": [0, 0, 168, 27],
+      "contentBox": [
+        0,
+        0,
+        168,
+        27
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2264,7 +2970,12 @@
       "category": "building",
       "width": 180,
       "height": 96,
-      "contentBox": [0, 0, 180, 96],
+      "contentBox": [
+        0,
+        0,
+        180,
+        96
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -2285,12 +2996,20 @@
       "category": "building",
       "width": 270,
       "height": 450,
-      "contentBox": [0, 0, 270, 450],
+      "contentBox": [
+        0,
+        0,
+        270,
+        450
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [135, 450],
+      "anchor": [
+        135,
+        450
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2303,12 +3022,20 @@
       "category": "building",
       "width": 237,
       "height": 300,
-      "contentBox": [15, 15, 237, 300],
+      "contentBox": [
+        15,
+        15,
+        237,
+        300
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [126, 300],
+      "anchor": [
+        126,
+        300
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2321,12 +3048,20 @@
       "category": "decoration",
       "width": 114,
       "height": 222,
-      "contentBox": [0, 0, 114, 222],
+      "contentBox": [
+        0,
+        0,
+        114,
+        222
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [57, 222],
+      "anchor": [
+        57,
+        222
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2339,7 +3074,12 @@
       "category": "decoration",
       "width": 39,
       "height": 12,
-      "contentBox": [0, 0, 39, 12],
+      "contentBox": [
+        0,
+        0,
+        39,
+        12
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2360,7 +3100,12 @@
       "category": "decoration",
       "width": 72,
       "height": 18,
-      "contentBox": [0, 0, 72, 18],
+      "contentBox": [
+        0,
+        0,
+        72,
+        18
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2381,12 +3126,20 @@
       "category": "sky",
       "width": 180,
       "height": 180,
-      "contentBox": [3, 3, 177, 177],
+      "contentBox": [
+        3,
+        3,
+        177,
+        177
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [90, 90],
+      "anchor": [
+        90,
+        90
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2399,12 +3152,20 @@
       "category": "sky",
       "width": 240,
       "height": 240,
-      "contentBox": [18, 18, 222, 222],
+      "contentBox": [
+        18,
+        18,
+        222,
+        222
+      ],
       "scale": "CANVAS_PIXELS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [120, 120],
+      "anchor": [
+        120,
+        120
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2417,12 +3178,20 @@
       "category": "sky",
       "width": 396,
       "height": 396,
-      "contentBox": [1, 1, 395, 395],
+      "contentBox": [
+        1,
+        1,
+        395,
+        395
+      ],
       "scale": "CANVAS_PIXELS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "SPRITE_CENTRE",
-      "anchor": [198, 198],
+      "anchor": [
+        198,
+        198
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2435,7 +3204,12 @@
       "category": "vehicle",
       "width": 204,
       "height": 27,
-      "contentBox": [0, 0, 204, 27],
+      "contentBox": [
+        0,
+        0,
+        204,
+        27
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2456,7 +3230,12 @@
       "category": "vegetation",
       "width": 246,
       "height": 222,
-      "contentBox": [0, 0, 246, 222],
+      "contentBox": [
+        0,
+        0,
+        246,
+        222
+      ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
       "usage": "referenced",
@@ -2477,7 +3256,12 @@
       "category": "vegetation",
       "width": 228,
       "height": 111,
-      "contentBox": [0, 0, 228, 111],
+      "contentBox": [
+        0,
+        0,
+        228,
+        111
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2498,7 +3282,12 @@
       "category": "vegetation",
       "width": 246,
       "height": 222,
-      "contentBox": [1, 0, 245, 222],
+      "contentBox": [
+        1,
+        0,
+        245,
+        222
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2519,7 +3308,12 @@
       "category": "vegetation",
       "width": 234,
       "height": 366,
-      "contentBox": [0, 0, 234, 366],
+      "contentBox": [
+        0,
+        0,
+        234,
+        366
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2540,7 +3334,12 @@
       "category": "vegetation",
       "width": 186,
       "height": 252,
-      "contentBox": [49, 6, 185, 251],
+      "contentBox": [
+        49,
+        6,
+        185,
+        251
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2561,12 +3360,20 @@
       "category": "vegetation",
       "width": 30,
       "height": 132,
-      "contentBox": [0, 0, 30, 132],
+      "contentBox": [
+        0,
+        0,
+        30,
+        132
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [15, 132],
+      "anchor": [
+        15,
+        132
+      ],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -2579,7 +3386,12 @@
       "category": "lake",
       "width": 162,
       "height": 54,
-      "contentBox": [0, 0, 162, 54],
+      "contentBox": [
+        0,
+        0,
+        162,
+        54
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
@@ -2600,7 +3412,12 @@
       "category": "lake",
       "width": 162,
       "height": 54,
-      "contentBox": [0, 0, 162, 54],
+      "contentBox": [
+        0,
+        0,
+        162,
+        54
+      ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
