@@ -647,7 +647,26 @@ class PaperRenderer(
 
         const val SANTA_SLEIGH_SCALE = 1.5f
         const val SANTA_SLEIGH_ORIGIN_X_UNITS = -99.67f
-        const val SANTA_SLEIGH_ORIGIN_Y_UNITS = -25.5f
+
+        /**
+         * Moved by the trim when the sleigh's canvas was normalised, so the drawing keeps the
+         * coordinates it had.
+         *
+         * These two constants address the sprite's **canvas corner**, not its content, which is
+         * what makes a canvas change something they have to follow: the PNG lost 18 rows off the
+         * top (and, harmlessly for the origin, 6 columns off the right and 12 rows off the
+         * bottom), so pixel (0,0) is now 18 sprite pixels lower in the drawing than it was, and
+         * the origin moves down by the same 18 -- six local units -- to cancel it. `-25.5 + 6`.
+         *
+         * X does not move because the trim removed nothing from the left: the content already
+         * started at column 0. That is also why only one of the two numbers changed here, and a
+         * future crop that does take columns off the left has to move X by its own trim.
+         *
+         * `SantaSleighOriginTest` derives this from the shipped PNG rather than trusting the
+         * literal, so forgetting the compensation on a later crop fails instead of flying the
+         * sleigh six units too high.
+         */
+        const val SANTA_SLEIGH_ORIGIN_Y_UNITS = -19.5f
 
         /**
          * How fast the sleigh's two leg poses alternate, in poses per second.

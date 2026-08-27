@@ -5814,22 +5814,14 @@
     {
       "name": "santa_sleigh_scene",
       "category": "decoration",
-      "width": 600,
-      "height": 153,
-      "contentBox": [
-        0,
-        19,
-        592,
-        140
-      ],
+      "width": 594,
+      "height": 123,
+      "contentBox": [0, 1, 592, 122],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        296,
-        140
-      ],
+      "anchor": [296, 122],
       "season": "all",
       "source": {
         "kind": "svg",
@@ -5840,22 +5832,14 @@
     {
       "name": "santa_sleigh_trot",
       "category": "decoration",
-      "width": 600,
-      "height": 153,
-      "contentBox": [
-        0,
-        19,
-        592,
-        140
-      ],
+      "width": 594,
+      "height": 123,
+      "contentBox": [0, 1, 592, 122],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        296,
-        140
-      ],
+      "anchor": [296, 122],
       "season": "all",
       "source": {
         "kind": "svg",
