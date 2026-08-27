@@ -72,33 +72,49 @@ paperscrape_assets/
   fidelity.py             comparison metrics and verdicts
   report.py               JSON, markdown and the visual comparison sheet
   cli.py                  command line entry point
-sources/sprites.json      one entry per shipped sprite, every one with a source
+sources/sprites.json      one entry per shipped sprite
 sources/svg/              SVG sources
 staging/                  rendered output (gitignored; never the runtime directory)
 reports/                  measurements, committed as evidence
 tests/                    tests that the fidelity criterion can fail
 ```
 
-## The registry covers every sprite, and every sprite now has a source
+## The registry covers every sprite, and every drawn sprite has a source
 
-`sources/sprites.json` has an entry for all 111 shipped PNGs, and every one of
-them names an SVG. That is new. The registry was built when 22 of 108 sprites
-could be regenerated and the other 86 were declared gaps — entries whose
-`source.kind` was `"none"` with a stated reason — because the original generators
-were lost and geometry could only be recovered by measurement for the sprites
-that were made of measurable primitives.
+`sources/sprites.json` has an entry for all 221 shipped PNGs. The registry was
+built when 22 of 108 sprites could be regenerated and the other 86 were declared
+gaps — entries whose `source.kind` was `"none"` with a stated reason — because
+the original generators were lost and geometry could only be recovered by
+measurement for the sprites that were made of measurable primitives.
 
 The V2 asset library replaced the artwork wholesale and shipped its own sources,
-so the gap set is empty:
+so every one of the 125 *drawn* sprites names an SVG:
 
 ```json
 { "kind": "svg", "file": "house_shared_window.svg" }
 ```
 
+The remaining 96 entries are the person skin-tone recolours, and they are not a
+gap in that sense: `tools/generate_skin_variants.py` produces each of them from a
+drawn sprite by moving one flat colour, and verifies that every other colour keeps
+its exact pixel mask. They carry `source.kind = "none"` because `render`
+regenerates a sprite from an SVG and these have none of their own — authoring one
+per tone would mean hand-maintaining three copies of every person frame, which is
+the duplication the generator exists to remove. Their `source.reason` names the
+generator and the base sprite, so "how do I get this file back" has an answer for
+every entry in the registry, which is what the field is for.
+
+They were shipped without registry entries, and for a while nothing said so
+usefully: `validate` reported ninety-six unregistered sprites, `normalize` raised
+`KeyError` on the first of them, and the inventory report went on describing the
+older, smaller set. `tests/test_registry_coverage.py` now states the relation
+between the registry and `res/drawable-nodpi` as a rule rather than a count.
+
 **This closes blocker B1.** Group 4 could not start while the sprites it needs —
 people, vehicles, buildings, decorations — were among the gaps, because
 re-anchoring a sprite means being able to regenerate it with normalised padding
-and declared metadata. All of them have a source now.
+and declared metadata. All of the drawn sprites have a source now, and a recolour
+inherits its base's geometry rather than carrying one of its own.
 
 Schema 4 records what the V2 library declares per sprite: `anchorRule` and
 `anchor` for **every** sprite rather than the 17 an origin could be solved for,

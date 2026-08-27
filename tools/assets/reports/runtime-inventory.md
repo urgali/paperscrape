@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 125 |
-| Unique contents | 125 |
-| Bytes on disk | 441.9 KB |
-| Decoded `ARGB_8888` | 15.51 MB |
-| Of which transparent padding | 1.63 MB (11 %) |
+| Files | 221 |
+| Unique contents | 221 |
+| Bytes on disk | 1023.0 KB |
+| Decoded `ARGB_8888` | 26.91 MB |
+| Of which transparent padding | 4.36 MB (16 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -22,8 +22,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `sun_glow` | 396x396 | 0.63 MB | 1 % |
 | `skyscraper_wall` | 270x450 | 0.49 MB | 0 % |
 | `house_large_wall` | 420x285 | 0.48 MB | 0 % |
-| `santa_sleigh_scene` | 600x153 | 0.37 MB | 2 % |
-| `santa_sleigh_trot` | 600x153 | 0.37 MB | 2 % |
+| `santa_sleigh_scene` | 600x153 | 0.37 MB | 22 % |
+| `santa_sleigh_trot` | 600x153 | 0.37 MB | 22 % |
 | `restaurant_wall` | 300x288 | 0.35 MB | 0 % |
 | `tree_fir` | 234x366 | 0.34 MB | 0 % |
 | `bar_wall` | 270x276 | 0.30 MB | 0 % |
@@ -83,41 +83,137 @@ from the shipped PNGs; nothing is copied from documentation.
 | `penguin_body` | 84x132 | RGBA | 0,0,84,132 | 0 % | 22 | yes |
 | `penguin_feet` | 60x12 | RGBA | 0,0,60,12 | 0 % | 1 | yes |
 | `person_boy_summer_head_window` | 159x162 | RGBA | 10,13,159,162 | 14 % | 79 | yes |
+| `person_boy_summer_head_window_skin0` | 159x162 | RGBA | 10,13,159,162 | 14 % | 79 | yes |
+| `person_boy_summer_head_window_skin1` | 159x162 | RGBA | 10,13,159,162 | 14 % | 79 | yes |
+| `person_boy_summer_head_window_skin2` | 159x162 | RGBA | 10,13,159,162 | 14 % | 79 | yes |
 | `person_boy_summer_walk0` | 123x252 | RGBA | 22,64,113,252 | 45 % | 128 | yes |
+| `person_boy_summer_walk0_skin0` | 123x252 | RGBA | 22,64,113,252 | 45 % | 127 | yes |
+| `person_boy_summer_walk0_skin1` | 123x252 | RGBA | 22,64,113,252 | 45 % | 128 | yes |
+| `person_boy_summer_walk0_skin2` | 123x252 | RGBA | 22,64,113,252 | 45 % | 128 | yes |
 | `person_boy_summer_walk1` | 123x252 | RGBA | 19,67,113,252 | 44 % | 126 | yes |
+| `person_boy_summer_walk1_skin0` | 123x252 | RGBA | 19,67,113,252 | 44 % | 126 | yes |
+| `person_boy_summer_walk1_skin1` | 123x252 | RGBA | 19,67,113,252 | 44 % | 125 | yes |
+| `person_boy_summer_walk1_skin2` | 123x252 | RGBA | 19,67,113,252 | 44 % | 126 | yes |
 | `person_boy_summer_walk2` | 123x252 | RGBA | 7,64,116,252 | 34 % | 156 | yes |
+| `person_boy_summer_walk2_skin0` | 123x252 | RGBA | 7,64,116,252 | 34 % | 156 | yes |
+| `person_boy_summer_walk2_skin1` | 123x252 | RGBA | 7,64,116,252 | 34 % | 156 | yes |
+| `person_boy_summer_walk2_skin2` | 123x252 | RGBA | 7,64,116,252 | 34 % | 156 | yes |
 | `person_boy_winter_head_window` | 159x162 | RGBA | 4,10,152,162 | 13 % | 125 | yes |
+| `person_boy_winter_head_window_skin0` | 159x162 | RGBA | 4,10,152,162 | 13 % | 122 | yes |
+| `person_boy_winter_head_window_skin1` | 159x162 | RGBA | 4,10,152,162 | 13 % | 125 | yes |
+| `person_boy_winter_head_window_skin2` | 159x162 | RGBA | 4,10,152,162 | 13 % | 125 | yes |
 | `person_boy_winter_walk0` | 123x252 | RGBA | 19,43,110,252 | 39 % | 154 | yes |
+| `person_boy_winter_walk0_skin0` | 123x252 | RGBA | 19,43,110,252 | 39 % | 152 | yes |
+| `person_boy_winter_walk0_skin1` | 123x252 | RGBA | 19,43,110,252 | 39 % | 153 | yes |
+| `person_boy_winter_walk0_skin2` | 123x252 | RGBA | 19,43,110,252 | 39 % | 154 | yes |
 | `person_boy_winter_walk1` | 123x252 | RGBA | 19,46,110,252 | 40 % | 161 | yes |
+| `person_boy_winter_walk1_skin0` | 123x252 | RGBA | 19,46,110,252 | 40 % | 159 | yes |
+| `person_boy_winter_walk1_skin1` | 123x252 | RGBA | 19,46,110,252 | 40 % | 160 | yes |
+| `person_boy_winter_walk1_skin2` | 123x252 | RGBA | 19,46,110,252 | 40 % | 161 | yes |
 | `person_boy_winter_walk2` | 123x252 | RGBA | 6,43,117,252 | 25 % | 188 | yes |
+| `person_boy_winter_walk2_skin0` | 123x252 | RGBA | 6,43,117,252 | 25 % | 186 | yes |
+| `person_boy_winter_walk2_skin1` | 123x252 | RGBA | 6,43,117,252 | 25 % | 187 | yes |
+| `person_boy_winter_walk2_skin2` | 123x252 | RGBA | 6,43,117,252 | 25 % | 188 | yes |
 | `person_girl_summer_head_window` | 159x162 | RGBA | 4,16,155,162 | 14 % | 133 | yes |
+| `person_girl_summer_head_window_skin0` | 159x162 | RGBA | 4,16,155,162 | 14 % | 133 | yes |
+| `person_girl_summer_head_window_skin1` | 159x162 | RGBA | 4,16,155,162 | 14 % | 133 | yes |
+| `person_girl_summer_head_window_skin2` | 159x162 | RGBA | 4,16,155,162 | 14 % | 126 | yes |
 | `person_girl_summer_walk0` | 123x252 | RGBA | 13,64,116,252 | 38 % | 173 | yes |
+| `person_girl_summer_walk0_skin0` | 123x252 | RGBA | 13,64,116,252 | 38 % | 173 | yes |
+| `person_girl_summer_walk0_skin1` | 123x252 | RGBA | 13,64,116,252 | 38 % | 173 | yes |
+| `person_girl_summer_walk0_skin2` | 123x252 | RGBA | 13,64,116,252 | 38 % | 172 | yes |
 | `person_girl_summer_walk1` | 123x252 | RGBA | 13,67,116,252 | 39 % | 175 | yes |
+| `person_girl_summer_walk1_skin0` | 123x252 | RGBA | 13,67,116,252 | 39 % | 175 | yes |
+| `person_girl_summer_walk1_skin1` | 123x252 | RGBA | 13,67,116,252 | 39 % | 175 | yes |
+| `person_girl_summer_walk1_skin2` | 123x252 | RGBA | 13,67,116,252 | 39 % | 174 | yes |
 | `person_girl_summer_walk2` | 123x252 | RGBA | 4,64,119,252 | 30 % | 192 | yes |
+| `person_girl_summer_walk2_skin0` | 123x252 | RGBA | 4,64,119,252 | 30 % | 192 | yes |
+| `person_girl_summer_walk2_skin1` | 123x252 | RGBA | 4,64,119,252 | 30 % | 192 | yes |
+| `person_girl_summer_walk2_skin2` | 123x252 | RGBA | 4,64,119,252 | 30 % | 190 | yes |
 | `person_girl_winter_head_window` | 159x162 | RGBA | 4,10,155,162 | 11 % | 136 | yes |
+| `person_girl_winter_head_window_skin0` | 159x162 | RGBA | 4,10,155,162 | 11 % | 136 | yes |
+| `person_girl_winter_head_window_skin1` | 159x162 | RGBA | 4,10,155,162 | 11 % | 136 | yes |
+| `person_girl_winter_head_window_skin2` | 159x162 | RGBA | 4,10,155,162 | 11 % | 136 | yes |
 | `person_girl_winter_walk0` | 123x252 | RGBA | 9,55,117,252 | 31 % | 165 | yes |
+| `person_girl_winter_walk0_skin0` | 123x252 | RGBA | 9,55,117,252 | 31 % | 164 | yes |
+| `person_girl_winter_walk0_skin1` | 123x252 | RGBA | 9,55,117,252 | 31 % | 165 | yes |
+| `person_girl_winter_walk0_skin2` | 123x252 | RGBA | 9,55,117,252 | 31 % | 164 | yes |
 | `person_girl_winter_walk1` | 123x252 | RGBA | 9,58,117,252 | 32 % | 174 | yes |
+| `person_girl_winter_walk1_skin0` | 123x252 | RGBA | 9,58,117,252 | 32 % | 173 | yes |
+| `person_girl_winter_walk1_skin1` | 123x252 | RGBA | 9,58,117,252 | 32 % | 174 | yes |
+| `person_girl_winter_walk1_skin2` | 123x252 | RGBA | 9,58,117,252 | 32 % | 173 | yes |
 | `person_girl_winter_walk2` | 123x252 | RGBA | 6,55,117,252 | 29 % | 203 | yes |
+| `person_girl_winter_walk2_skin0` | 123x252 | RGBA | 6,55,117,252 | 29 % | 202 | yes |
+| `person_girl_winter_walk2_skin1` | 123x252 | RGBA | 6,55,117,252 | 29 % | 203 | yes |
+| `person_girl_winter_walk2_skin2` | 123x252 | RGBA | 6,55,117,252 | 29 % | 202 | yes |
 | `person_man_summer_head_car` | 120x144 | RGBA | 4,1,119,144 | 5 % | 98 | yes |
 | `person_man_summer_head_window` | 159x162 | RGBA | 4,7,152,162 | 11 % | 92 | yes |
+| `person_man_summer_head_window_skin0` | 159x162 | RGBA | 4,7,152,162 | 11 % | 92 | yes |
+| `person_man_summer_head_window_skin1` | 159x162 | RGBA | 4,7,152,162 | 11 % | 92 | yes |
+| `person_man_summer_head_window_skin2` | 159x162 | RGBA | 4,7,152,162 | 11 % | 90 | yes |
 | `person_man_summer_walk0` | 123x252 | RGBA | 16,10,110,252 | 27 % | 107 | yes |
+| `person_man_summer_walk0_skin0` | 123x252 | RGBA | 16,10,110,252 | 27 % | 107 | yes |
+| `person_man_summer_walk0_skin1` | 123x252 | RGBA | 16,10,110,252 | 27 % | 107 | yes |
+| `person_man_summer_walk0_skin2` | 123x252 | RGBA | 16,10,110,252 | 27 % | 105 | yes |
 | `person_man_summer_walk1` | 123x252 | RGBA | 13,13,113,252 | 23 % | 108 | yes |
+| `person_man_summer_walk1_skin0` | 123x252 | RGBA | 13,13,113,252 | 23 % | 108 | yes |
+| `person_man_summer_walk1_skin1` | 123x252 | RGBA | 13,13,113,252 | 23 % | 108 | yes |
+| `person_man_summer_walk1_skin2` | 123x252 | RGBA | 13,13,113,252 | 23 % | 105 | yes |
 | `person_man_summer_walk2` | 123x252 | RGBA | 0,10,123,252 | 4 % | 111 | yes |
+| `person_man_summer_walk2_skin0` | 123x252 | RGBA | 0,10,123,252 | 4 % | 111 | yes |
+| `person_man_summer_walk2_skin1` | 123x252 | RGBA | 0,10,123,252 | 4 % | 111 | yes |
+| `person_man_summer_walk2_skin2` | 123x252 | RGBA | 0,10,123,252 | 4 % | 109 | yes |
 | `person_man_winter_head_car` | 120x144 | RGBA | 0,0,120,144 | 0 % | 118 | yes |
 | `person_man_winter_head_window` | 159x162 | RGBA | 0,4,158,162 | 3 % | 132 | yes |
+| `person_man_winter_head_window_skin0` | 159x162 | RGBA | 0,4,158,162 | 3 % | 132 | yes |
+| `person_man_winter_head_window_skin1` | 159x162 | RGBA | 0,4,158,162 | 3 % | 132 | yes |
+| `person_man_winter_head_window_skin2` | 159x162 | RGBA | 0,4,158,162 | 3 % | 131 | yes |
 | `person_man_winter_walk0` | 123x252 | RGBA | 13,7,113,252 | 21 % | 179 | yes |
+| `person_man_winter_walk0_skin0` | 123x252 | RGBA | 13,7,113,252 | 21 % | 178 | yes |
+| `person_man_winter_walk0_skin1` | 123x252 | RGBA | 13,7,113,252 | 21 % | 179 | yes |
+| `person_man_winter_walk0_skin2` | 123x252 | RGBA | 13,7,113,252 | 21 % | 178 | yes |
 | `person_man_winter_walk1` | 123x252 | RGBA | 13,10,113,252 | 22 % | 190 | yes |
+| `person_man_winter_walk1_skin0` | 123x252 | RGBA | 13,10,113,252 | 22 % | 189 | yes |
+| `person_man_winter_walk1_skin1` | 123x252 | RGBA | 13,10,113,252 | 22 % | 190 | yes |
+| `person_man_winter_walk1_skin2` | 123x252 | RGBA | 13,10,113,252 | 22 % | 188 | yes |
 | `person_man_winter_walk2` | 123x252 | RGBA | 0,7,123,252 | 3 % | 205 | yes |
+| `person_man_winter_walk2_skin0` | 123x252 | RGBA | 0,7,123,252 | 3 % | 204 | yes |
+| `person_man_winter_walk2_skin1` | 123x252 | RGBA | 0,7,123,252 | 3 % | 205 | yes |
+| `person_man_winter_walk2_skin2` | 123x252 | RGBA | 0,7,123,252 | 3 % | 203 | yes |
 | `person_woman_summer_head_car` | 120x144 | RGBA | 4,1,119,144 | 5 % | 123 | yes |
 | `person_woman_summer_head_window` | 159x162 | RGBA | 4,7,152,162 | 11 % | 111 | yes |
+| `person_woman_summer_head_window_skin0` | 159x162 | RGBA | 4,7,152,162 | 11 % | 111 | yes |
+| `person_woman_summer_head_window_skin1` | 159x162 | RGBA | 4,7,152,162 | 11 % | 110 | yes |
+| `person_woman_summer_head_window_skin2` | 159x162 | RGBA | 4,7,152,162 | 11 % | 110 | yes |
 | `person_woman_summer_walk0` | 123x252 | RGBA | 16,10,107,252 | 29 % | 128 | yes |
+| `person_woman_summer_walk0_skin0` | 123x252 | RGBA | 16,10,107,252 | 29 % | 128 | yes |
+| `person_woman_summer_walk0_skin1` | 123x252 | RGBA | 16,10,107,252 | 29 % | 128 | yes |
+| `person_woman_summer_walk0_skin2` | 123x252 | RGBA | 16,10,107,252 | 29 % | 126 | yes |
 | `person_woman_summer_walk1` | 123x252 | RGBA | 16,13,110,252 | 28 % | 134 | yes |
+| `person_woman_summer_walk1_skin0` | 123x252 | RGBA | 16,13,110,252 | 28 % | 134 | yes |
+| `person_woman_summer_walk1_skin1` | 123x252 | RGBA | 16,13,110,252 | 28 % | 134 | yes |
+| `person_woman_summer_walk1_skin2` | 123x252 | RGBA | 16,13,110,252 | 28 % | 131 | yes |
 | `person_woman_summer_walk2` | 123x252 | RGBA | 1,10,122,252 | 6 % | 150 | yes |
+| `person_woman_summer_walk2_skin0` | 123x252 | RGBA | 1,10,122,252 | 6 % | 150 | yes |
+| `person_woman_summer_walk2_skin1` | 123x252 | RGBA | 1,10,122,252 | 6 % | 150 | yes |
+| `person_woman_summer_walk2_skin2` | 123x252 | RGBA | 1,10,122,252 | 6 % | 150 | yes |
 | `person_woman_winter_head_car` | 120x144 | RGBA | 0,0,120,144 | 0 % | 144 | yes |
 | `person_woman_winter_head_window` | 159x162 | RGBA | 0,0,158,162 | 1 % | 131 | yes |
+| `person_woman_winter_head_window_skin0` | 159x162 | RGBA | 0,0,158,162 | 1 % | 131 | yes |
+| `person_woman_winter_head_window_skin1` | 159x162 | RGBA | 0,0,158,162 | 1 % | 131 | yes |
+| `person_woman_winter_head_window_skin2` | 159x162 | RGBA | 0,0,158,162 | 1 % | 128 | yes |
 | `person_woman_winter_walk0` | 123x252 | RGBA | 13,0,113,252 | 19 % | 160 | yes |
+| `person_woman_winter_walk0_skin0` | 123x252 | RGBA | 13,0,113,252 | 19 % | 160 | yes |
+| `person_woman_winter_walk0_skin1` | 123x252 | RGBA | 13,0,113,252 | 19 % | 160 | yes |
+| `person_woman_winter_walk0_skin2` | 123x252 | RGBA | 13,0,113,252 | 19 % | 160 | yes |
 | `person_woman_winter_walk1` | 123x252 | RGBA | 13,0,113,252 | 19 % | 165 | yes |
+| `person_woman_winter_walk1_skin0` | 123x252 | RGBA | 13,0,113,252 | 19 % | 165 | yes |
+| `person_woman_winter_walk1_skin1` | 123x252 | RGBA | 13,0,113,252 | 19 % | 165 | yes |
+| `person_woman_winter_walk1_skin2` | 123x252 | RGBA | 13,0,113,252 | 19 % | 165 | yes |
 | `person_woman_winter_walk2` | 123x252 | RGBA | 3,0,120,252 | 5 % | 192 | yes |
+| `person_woman_winter_walk2_skin0` | 123x252 | RGBA | 3,0,120,252 | 5 % | 192 | yes |
+| `person_woman_winter_walk2_skin1` | 123x252 | RGBA | 3,0,120,252 | 5 % | 192 | yes |
+| `person_woman_winter_walk2_skin2` | 123x252 | RGBA | 3,0,120,252 | 5 % | 192 | yes |
 | `police_lightbar` | 60x18 | RGBA | 0,0,60,18 | 0 % | 9 | yes |
 | `police_stripe` | 204x39 | RGBA | 0,0,204,39 | 0 % | 23 | yes |
 | `pumpkin_body` | 114x90 | RGBA | 0,0,114,90 | 0 % | 31 | yes |
@@ -134,8 +230,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `road_line` | 54x9 | RGBA | 0,0,54,9 | 0 % | 1 | yes |
 | `sailboat_hull` | 252x51 | RGBA | 0,0,252,51 | 0 % | 3 | yes |
 | `sailboat_sail` | 210x180 | RGBA | 0,0,210,180 | 0 % | 43 | yes |
-| `santa_sleigh_scene` | 600x153 | RGBA | 0,1,598,152 | 2 % | 357 | yes |
-| `santa_sleigh_trot` | 600x153 | RGBA | 0,1,598,152 | 2 % | 359 | yes |
+| `santa_sleigh_scene` | 600x153 | RGBA | 0,19,592,140 | 22 % | 831 | yes |
+| `santa_sleigh_trot` | 600x153 | RGBA | 0,19,592,140 | 22 % | 831 | yes |
 | `skyscraper_canopy` | 330x24 | RGBA | 0,0,330,24 | 0 % | 1 | yes |
 | `skyscraper_entrance` | 96x96 | RGBA | 0,0,96,96 | 0 % | 15 | yes |
 | `skyscraper_roof_snow` | 168x27 | RGBA | 0,0,168,27 | 0 % | 21 | yes |

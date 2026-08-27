@@ -180,6 +180,486 @@
       ],
       "state": "DISTINCT",
       "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "man_walk0_skin0",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk0_skin0",
+        "person_man_winter_walk0_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk0 / person_man_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk0_skin1",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk0_skin1",
+        "person_man_winter_walk0_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk0 / person_man_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk0_skin2",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk0_skin2",
+        "person_man_winter_walk0_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk0 / person_man_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk1_skin0",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk1_skin0",
+        "person_man_winter_walk1_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk1 / person_man_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk1_skin1",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk1_skin1",
+        "person_man_winter_walk1_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk1 / person_man_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk1_skin2",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk1_skin2",
+        "person_man_winter_walk1_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk1 / person_man_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk2_skin0",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk2_skin0",
+        "person_man_winter_walk2_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk2 / person_man_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk2_skin1",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk2_skin1",
+        "person_man_winter_walk2_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk2 / person_man_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk2_skin2",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk2_skin2",
+        "person_man_winter_walk2_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk2 / person_man_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_head_window_skin0",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_window_skin0",
+        "person_man_winter_head_window_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_head_window_skin1",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_window_skin1",
+        "person_man_winter_head_window_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_head_window_skin2",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_window_skin2",
+        "person_man_winter_head_window_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk0_skin0",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk0_skin0",
+        "person_woman_winter_walk0_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk0_skin1",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk0_skin1",
+        "person_woman_winter_walk0_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk0_skin2",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk0_skin2",
+        "person_woman_winter_walk0_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk1_skin0",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk1_skin0",
+        "person_woman_winter_walk1_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk1_skin1",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk1_skin1",
+        "person_woman_winter_walk1_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk1_skin2",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk1_skin2",
+        "person_woman_winter_walk1_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk2_skin0",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk2_skin0",
+        "person_woman_winter_walk2_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk2_skin1",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk2_skin1",
+        "person_woman_winter_walk2_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_walk2_skin2",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_walk2_skin2",
+        "person_woman_winter_walk2_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_head_window_skin0",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_window_skin0",
+        "person_woman_winter_head_window_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_head_window / person_woman_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_head_window_skin1",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_window_skin1",
+        "person_woman_winter_head_window_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_head_window / person_woman_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "woman_head_window_skin2",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_window_skin2",
+        "person_woman_winter_head_window_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_head_window / person_woman_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk0_skin0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk0_skin0",
+        "person_boy_winter_walk0_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk0_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk0_skin1",
+        "person_boy_winter_walk0_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk0_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk0_skin2",
+        "person_boy_winter_walk0_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk1_skin0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk1_skin0",
+        "person_boy_winter_walk1_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk1_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk1_skin1",
+        "person_boy_winter_walk1_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk1_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk1_skin2",
+        "person_boy_winter_walk1_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk2_skin0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk2_skin0",
+        "person_boy_winter_walk2_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk2_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk2_skin1",
+        "person_boy_winter_walk2_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk2_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk2_skin2",
+        "person_boy_winter_walk2_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_head_window_skin0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_window_skin0",
+        "person_boy_winter_head_window_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_head_window_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_window_skin1",
+        "person_boy_winter_head_window_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_head_window_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_window_skin2",
+        "person_boy_winter_head_window_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk0_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk0_skin0",
+        "person_girl_winter_walk0_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk0_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk0_skin1",
+        "person_girl_winter_walk0_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk0_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk0_skin2",
+        "person_girl_winter_walk0_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk1_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk1_skin0",
+        "person_girl_winter_walk1_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk1_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk1_skin1",
+        "person_girl_winter_walk1_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk1_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk1_skin2",
+        "person_girl_winter_walk1_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk2_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk2_skin0",
+        "person_girl_winter_walk2_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk2_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk2_skin1",
+        "person_girl_winter_walk2_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk2_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk2_skin2",
+        "person_girl_winter_walk2_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_head_window_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_window_skin0",
+        "person_girl_winter_head_window_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_head_window_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_window_skin1",
+        "person_girl_winter_head_window_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_head_window_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_window_skin2",
+        "person_girl_winter_head_window_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     }
   ],
   "sprites": [
@@ -1510,6 +1990,84 @@
       "notes": ""
     },
     {
+      "name": "person_boy_summer_head_window_skin0",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        10,
+        13,
+        159,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        84.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_boy_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_head_window that was not propagated."
+    },
+    {
+      "name": "person_boy_summer_head_window_skin1",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        10,
+        13,
+        159,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        84.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_boy_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_head_window that was not propagated."
+    },
+    {
+      "name": "person_boy_summer_head_window_skin2",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        10,
+        13,
+        159,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        84.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_boy_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_head_window that was not propagated."
+    },
+    {
       "name": "person_boy_summer_walk0",
       "category": "person",
       "width": 123,
@@ -1534,6 +2092,84 @@
         "file": "person_boy_summer_walk0.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_boy_summer_walk0_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        22,
+        64,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_boy_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk0 that was not propagated."
+    },
+    {
+      "name": "person_boy_summer_walk0_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        22,
+        64,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_boy_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk0 that was not propagated."
+    },
+    {
+      "name": "person_boy_summer_walk0_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        22,
+        64,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_boy_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk0 that was not propagated."
     },
     {
       "name": "person_boy_summer_walk1",
@@ -1562,6 +2198,84 @@
       "notes": ""
     },
     {
+      "name": "person_boy_summer_walk1_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        67,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        66,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_boy_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk1 that was not propagated."
+    },
+    {
+      "name": "person_boy_summer_walk1_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        67,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        66,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_boy_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk1 that was not propagated."
+    },
+    {
+      "name": "person_boy_summer_walk1_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        67,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        66,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_boy_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk1 that was not propagated."
+    },
+    {
       "name": "person_boy_summer_walk2",
       "category": "person",
       "width": 123,
@@ -1586,6 +2300,84 @@
         "file": "person_boy_summer_walk2.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_boy_summer_walk2_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        7,
+        64,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_boy_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_boy_summer_walk2_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        7,
+        64,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_boy_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_boy_summer_walk2_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        7,
+        64,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_boy_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk2 that was not propagated."
     },
     {
       "name": "person_boy_winter_head_window",
@@ -1614,6 +2406,84 @@
       "notes": ""
     },
     {
+      "name": "person_boy_winter_head_window_skin0",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        10,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_boy_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_head_window that was not propagated."
+    },
+    {
+      "name": "person_boy_winter_head_window_skin1",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        10,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_boy_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_head_window that was not propagated."
+    },
+    {
+      "name": "person_boy_winter_head_window_skin2",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        10,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_boy_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_head_window that was not propagated."
+    },
+    {
       "name": "person_boy_winter_walk0",
       "category": "person",
       "width": 123,
@@ -1638,6 +2508,84 @@
         "file": "person_boy_winter_walk0.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_boy_winter_walk0_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        43,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_boy_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk0 that was not propagated."
+    },
+    {
+      "name": "person_boy_winter_walk0_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        43,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_boy_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk0 that was not propagated."
+    },
+    {
+      "name": "person_boy_winter_walk0_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        43,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_boy_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk0 that was not propagated."
     },
     {
       "name": "person_boy_winter_walk1",
@@ -1666,6 +2614,84 @@
       "notes": ""
     },
     {
+      "name": "person_boy_winter_walk1_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        46,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_boy_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk1 that was not propagated."
+    },
+    {
+      "name": "person_boy_winter_walk1_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        46,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_boy_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk1 that was not propagated."
+    },
+    {
+      "name": "person_boy_winter_walk1_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        19,
+        46,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_boy_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk1 that was not propagated."
+    },
+    {
       "name": "person_boy_winter_walk2",
       "category": "person",
       "width": 123,
@@ -1690,6 +2716,84 @@
         "file": "person_boy_winter_walk2.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_boy_winter_walk2_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        6,
+        43,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_boy_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk2 that was not propagated."
+    },
+    {
+      "name": "person_boy_winter_walk2_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        6,
+        43,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_boy_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk2 that was not propagated."
+    },
+    {
+      "name": "person_boy_winter_walk2_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        6,
+        43,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_boy_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_winter_walk2 that was not propagated."
     },
     {
       "name": "person_girl_summer_head_window",
@@ -1718,6 +2822,84 @@
       "notes": ""
     },
     {
+      "name": "person_girl_summer_head_window_skin0",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        16,
+        155,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_girl_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_head_window that was not propagated."
+    },
+    {
+      "name": "person_girl_summer_head_window_skin1",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        16,
+        155,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_girl_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_head_window that was not propagated."
+    },
+    {
+      "name": "person_girl_summer_head_window_skin2",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        16,
+        155,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79.5,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_girl_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_head_window that was not propagated."
+    },
+    {
       "name": "person_girl_summer_walk0",
       "category": "person",
       "width": 123,
@@ -1742,6 +2924,84 @@
         "file": "person_girl_summer_walk0.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_girl_summer_walk0_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        64,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_girl_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk0 that was not propagated."
+    },
+    {
+      "name": "person_girl_summer_walk0_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        64,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_girl_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk0 that was not propagated."
+    },
+    {
+      "name": "person_girl_summer_walk0_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        64,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_girl_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk0 that was not propagated."
     },
     {
       "name": "person_girl_summer_walk1",
@@ -1770,6 +3030,84 @@
       "notes": ""
     },
     {
+      "name": "person_girl_summer_walk1_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        67,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_girl_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk1 that was not propagated."
+    },
+    {
+      "name": "person_girl_summer_walk1_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        67,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_girl_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk1 that was not propagated."
+    },
+    {
+      "name": "person_girl_summer_walk1_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        67,
+        116,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        64.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_girl_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk1 that was not propagated."
+    },
+    {
       "name": "person_girl_summer_walk2",
       "category": "person",
       "width": 123,
@@ -1794,6 +3132,84 @@
         "file": "person_girl_summer_walk2.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_girl_summer_walk2_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        4,
+        64,
+        119,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_girl_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_girl_summer_walk2_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        4,
+        64,
+        119,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_girl_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_girl_summer_walk2_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        4,
+        64,
+        119,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_girl_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_summer_walk2 that was not propagated."
     },
     {
       "name": "person_girl_winter_head_window",
@@ -1822,6 +3238,84 @@
       "notes": ""
     },
     {
+      "name": "person_girl_winter_head_window_skin0",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        10,
+        155,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79.5,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_girl_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_head_window that was not propagated."
+    },
+    {
+      "name": "person_girl_winter_head_window_skin1",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        10,
+        155,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79.5,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_girl_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_head_window that was not propagated."
+    },
+    {
+      "name": "person_girl_winter_head_window_skin2",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        10,
+        155,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79.5,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_girl_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_head_window that was not propagated."
+    },
+    {
       "name": "person_girl_winter_walk0",
       "category": "person",
       "width": 123,
@@ -1846,6 +3340,84 @@
         "file": "person_girl_winter_walk0.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_girl_winter_walk0_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        9,
+        55,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_girl_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk0 that was not propagated."
+    },
+    {
+      "name": "person_girl_winter_walk0_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        9,
+        55,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_girl_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk0 that was not propagated."
+    },
+    {
+      "name": "person_girl_winter_walk0_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        9,
+        55,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_girl_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk0 that was not propagated."
     },
     {
       "name": "person_girl_winter_walk1",
@@ -1874,6 +3446,84 @@
       "notes": ""
     },
     {
+      "name": "person_girl_winter_walk1_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        9,
+        58,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_girl_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk1 that was not propagated."
+    },
+    {
+      "name": "person_girl_winter_walk1_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        9,
+        58,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_girl_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk1 that was not propagated."
+    },
+    {
+      "name": "person_girl_winter_walk1_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        9,
+        58,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_girl_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk1 that was not propagated."
+    },
+    {
       "name": "person_girl_winter_walk2",
       "category": "person",
       "width": 123,
@@ -1898,6 +3548,84 @@
         "file": "person_girl_winter_walk2.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_girl_winter_walk2_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        6,
+        55,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_girl_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk2 that was not propagated."
+    },
+    {
+      "name": "person_girl_winter_walk2_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        6,
+        55,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_girl_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk2 that was not propagated."
+    },
+    {
+      "name": "person_girl_winter_walk2_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        6,
+        55,
+        117,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_girl_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk2 that was not propagated."
     },
     {
       "name": "person_man_summer_head_car",
@@ -1952,6 +3680,84 @@
       "notes": ""
     },
     {
+      "name": "person_man_summer_head_window_skin0",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        7,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_man_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_head_window that was not propagated."
+    },
+    {
+      "name": "person_man_summer_head_window_skin1",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        7,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_man_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_head_window that was not propagated."
+    },
+    {
+      "name": "person_man_summer_head_window_skin2",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        7,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_man_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_head_window that was not propagated."
+    },
+    {
       "name": "person_man_summer_walk0",
       "category": "person",
       "width": 123,
@@ -1976,6 +3782,84 @@
         "file": "person_man_summer_walk0.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_man_summer_walk0_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        10,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_man_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk0 that was not propagated."
+    },
+    {
+      "name": "person_man_summer_walk0_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        10,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_man_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk0 that was not propagated."
+    },
+    {
+      "name": "person_man_summer_walk0_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        10,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_man_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk0 that was not propagated."
     },
     {
       "name": "person_man_summer_walk1",
@@ -2004,6 +3888,84 @@
       "notes": ""
     },
     {
+      "name": "person_man_summer_walk1_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        13,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_man_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk1 that was not propagated."
+    },
+    {
+      "name": "person_man_summer_walk1_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        13,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_man_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk1 that was not propagated."
+    },
+    {
+      "name": "person_man_summer_walk1_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        13,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_man_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk1 that was not propagated."
+    },
+    {
       "name": "person_man_summer_walk2",
       "category": "person",
       "width": 123,
@@ -2028,6 +3990,84 @@
         "file": "person_man_summer_walk2.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_man_summer_walk2_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        0,
+        10,
+        123,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_man_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_man_summer_walk2_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        0,
+        10,
+        123,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_man_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_man_summer_walk2_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        0,
+        10,
+        123,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_man_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk2 that was not propagated."
     },
     {
       "name": "person_man_winter_head_car",
@@ -2082,6 +4122,84 @@
       "notes": ""
     },
     {
+      "name": "person_man_winter_head_window_skin0",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        0,
+        4,
+        158,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_man_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_head_window that was not propagated."
+    },
+    {
+      "name": "person_man_winter_head_window_skin1",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        0,
+        4,
+        158,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_man_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_head_window that was not propagated."
+    },
+    {
+      "name": "person_man_winter_head_window_skin2",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        0,
+        4,
+        158,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_man_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_head_window that was not propagated."
+    },
+    {
       "name": "person_man_winter_walk0",
       "category": "person",
       "width": 123,
@@ -2106,6 +4224,84 @@
         "file": "person_man_winter_walk0.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_man_winter_walk0_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        7,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_man_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk0 that was not propagated."
+    },
+    {
+      "name": "person_man_winter_walk0_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        7,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_man_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk0 that was not propagated."
+    },
+    {
+      "name": "person_man_winter_walk0_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        7,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_man_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk0 that was not propagated."
     },
     {
       "name": "person_man_winter_walk1",
@@ -2134,6 +4330,84 @@
       "notes": ""
     },
     {
+      "name": "person_man_winter_walk1_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        10,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_man_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk1 that was not propagated."
+    },
+    {
+      "name": "person_man_winter_walk1_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        10,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_man_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk1 that was not propagated."
+    },
+    {
+      "name": "person_man_winter_walk1_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        10,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_man_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk1 that was not propagated."
+    },
+    {
       "name": "person_man_winter_walk2",
       "category": "person",
       "width": 123,
@@ -2158,6 +4432,84 @@
         "file": "person_man_winter_walk2.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_man_winter_walk2_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        0,
+        7,
+        123,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_man_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk2 that was not propagated."
+    },
+    {
+      "name": "person_man_winter_walk2_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        0,
+        7,
+        123,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_man_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk2 that was not propagated."
+    },
+    {
+      "name": "person_man_winter_walk2_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        0,
+        7,
+        123,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_man_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk2 that was not propagated."
     },
     {
       "name": "person_woman_summer_head_car",
@@ -2212,6 +4564,84 @@
       "notes": ""
     },
     {
+      "name": "person_woman_summer_head_window_skin0",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        7,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_woman_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_head_window that was not propagated."
+    },
+    {
+      "name": "person_woman_summer_head_window_skin1",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        7,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_woman_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_head_window that was not propagated."
+    },
+    {
+      "name": "person_woman_summer_head_window_skin2",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        4,
+        7,
+        152,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        78,
+        162
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_woman_summer_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_head_window that was not propagated."
+    },
+    {
       "name": "person_woman_summer_walk0",
       "category": "person",
       "width": 123,
@@ -2236,6 +4666,84 @@
         "file": "person_woman_summer_walk0.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_woman_summer_walk0_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        10,
+        107,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_woman_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk0 that was not propagated."
+    },
+    {
+      "name": "person_woman_summer_walk0_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        10,
+        107,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_woman_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk0 that was not propagated."
+    },
+    {
+      "name": "person_woman_summer_walk0_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        10,
+        107,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_woman_summer_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk0 that was not propagated."
     },
     {
       "name": "person_woman_summer_walk1",
@@ -2264,6 +4772,84 @@
       "notes": ""
     },
     {
+      "name": "person_woman_summer_walk1_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        13,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_woman_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk1 that was not propagated."
+    },
+    {
+      "name": "person_woman_summer_walk1_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        13,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_woman_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk1 that was not propagated."
+    },
+    {
+      "name": "person_woman_summer_walk1_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        16,
+        13,
+        110,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_woman_summer_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk1 that was not propagated."
+    },
+    {
       "name": "person_woman_summer_walk2",
       "category": "person",
       "width": 123,
@@ -2288,6 +4874,84 @@
         "file": "person_woman_summer_walk2.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_woman_summer_walk2_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        1,
+        10,
+        122,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_woman_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_woman_summer_walk2_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        1,
+        10,
+        122,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_woman_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_woman_summer_walk2_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        1,
+        10,
+        122,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_woman_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk2 that was not propagated."
     },
     {
       "name": "person_woman_winter_head_car",
@@ -2342,6 +5006,84 @@
       "notes": ""
     },
     {
+      "name": "person_woman_winter_head_window_skin0",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        0,
+        0,
+        158,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_woman_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_head_window that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_head_window_skin1",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        0,
+        0,
+        158,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_woman_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_head_window that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_head_window_skin2",
+      "category": "person",
+      "width": 159,
+      "height": 162,
+      "contentBox": [
+        0,
+        0,
+        158,
+        162
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        162
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_woman_winter_head_window. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_head_window that was not propagated."
+    },
+    {
       "name": "person_woman_winter_walk0",
       "category": "person",
       "width": 123,
@@ -2366,6 +5108,84 @@
         "file": "person_woman_winter_walk0.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_woman_winter_walk0_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        0,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_woman_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk0 that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_walk0_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        0,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_woman_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk0 that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_walk0_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        0,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_woman_winter_walk0. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk0 that was not propagated."
     },
     {
       "name": "person_woman_winter_walk1",
@@ -2394,6 +5214,84 @@
       "notes": ""
     },
     {
+      "name": "person_woman_winter_walk1_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        0,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_woman_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk1 that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_walk1_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        0,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_woman_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk1 that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_walk1_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        13,
+        0,
+        113,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        63,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_woman_winter_walk1. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk1 that was not propagated."
+    },
+    {
       "name": "person_woman_winter_walk2",
       "category": "person",
       "width": 123,
@@ -2418,6 +5316,84 @@
         "file": "person_woman_winter_walk2.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "person_woman_winter_walk2_skin0",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        3,
+        0,
+        120,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 0 of person_woman_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk2 that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_walk2_skin1",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        3,
+        0,
+        120,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 1 of person_woman_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk2 that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_walk2_skin2",
+      "category": "person",
+      "width": 123,
+      "height": 252,
+      "contentBox": [
+        3,
+        0,
+        120,
+        252
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        61.5,
+        252
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+      },
+      "notes": "Skin tone 2 of person_woman_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_winter_walk2 that was not propagated."
     },
     {
       "name": "police_lightbar",

@@ -103,10 +103,15 @@ def co_registered_groups(names: set[str]) -> list[Group]:
         ),
         (
             "person_head_window",
-            lambda n: n.endswith("_head_window"),
+            lambda n: "_head_window" in n,
             "SceneObjectRenderer.drawWindowOccupant",
             "Occupant heads are chosen from personWindowHeadDrawables and blitted through one "
-            "origin, so they must stay registered against the window frame they are drawn into.",
+            "origin, so they must stay registered against the window frame they are drawn into. "
+            "Matched by substring rather than by suffix so the skin-tone recolours land in the "
+            "same group as the head they were recoloured from: `personWindowHeadSkinDrawables` "
+            "indexes them through that same origin, so cropping a tone on its own would move it "
+            "against the base head. `person_walk` above has always matched this way, and the "
+            "suffix here was simply older than the skin axis.",
         ),
         (
             "person_head_car",

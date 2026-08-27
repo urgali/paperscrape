@@ -161,9 +161,19 @@ class OuterOutlineTest(unittest.TestCase):
                 )
 
     def test_every_outlined_sprite_still_matches_its_registry_geometry(self):
-        """An outer outline grows the content box; the registry has to have followed it."""
+        """An outer outline grows the content box; the registry has to have followed it.
+
+        Only sprites that *have* an SVG can be asked whether that SVG draws an outline.
+        The registry has always allowed `source.kind = "none"` -- it is the format's main
+        job to carry the sprites that cannot be regenerated -- and this loop read
+        `<name>.svg` for every entry regardless, which held only while every shipped
+        sprite happened to have a source. The skin-tone recolours are the first entries
+        since then that do not, so the assumption is now spelled out rather than relied on.
+        """
         for spec in registry.load(REGISTRY_PATH):
-            if "paperscrape-outline" not in (SVG_DIR / f"{spec.name}.svg").read_text():
+            if not spec.has_svg_source:
+                continue
+            if "paperscrape-outline" not in (SVG_DIR / spec.source_file).read_text():
                 continue
             with self.subTest(name=spec.name):
                 image = pixels(spec.name)
