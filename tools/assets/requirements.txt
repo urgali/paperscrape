@@ -15,5 +15,5 @@
 # and every previously recorded fidelity number has to be re-measured rather
 # than trusted.
 resvg_py==0.4.0
-Pillow==12.1.1
+Pillow==12.3.0
 numpy==2.4.4
