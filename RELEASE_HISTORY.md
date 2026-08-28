@@ -19,6 +19,83 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.8 — reset reaches the theme you are looking at
+
+**Prepared, not published.** `versionCode = 39`, `versionName = "4.8"`. Prepared 2026-08-28. No tag,
+no push, no GitHub Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain
+37. Baseline is **v4.7 plus the post-v4.7 sleigh-crop batch**.
+
+Two defects in the per-theme customization scratch model, found by audit and reproduced on a device
+before anything was changed. Both are in `WallpaperPrefs`; no format, schema or key changed.
+
+### `resetCategory` operated on whichever theme was edited last
+
+The flat customization keys belong to whichever theme `PENDING_CUSTOMIZATION_THEME_ID` names, and
+that tag names the last theme **edited** — selecting a theme does not move it, because `setTheme`
+writes `THEME_ID` and nothing else. Every per-theme mutator therefore takes a `forThemeId` and calls
+`ensureFreshPendingTheme` first. `resetCategory` took neither: it was the one mutator that removed
+keys without asking whose they were.
+
+So "Reset Houses to default", tapped as the first action after switching themes, removed the
+**previously edited** theme's houses and left the theme on screen untouched. Two symptoms at once:
+the button appeared dead, and another theme's customization was silently destroyed — permanently,
+once the next `ensureFreshPendingTheme` archived the damaged scratch. The Seasons screen's "Reset
+decorations to defaults" did the same across six categories, and the `resetSeasonalPalettes` call
+immediately after it archived the damage on the spot.
+
+Reproduced on an emulator against the unmodified v4.7 build: customise `winter` houses to 22%,
+customise `christmas` houses to 40%, return to `winter` and tap the reset. `winter` stayed at 22%
+and `christmas` fell to 65%.
+
+The fix gives `resetCategory` the `forThemeId` its siblings already take, and the same
+`ensureFreshPendingTheme`-first, stamp-the-tag-after shape they use — which also means a reset now
+reaches a theme whose state is sitting in its archive rather than in the scratch. Both call sites
+already had the theme id in scope for every other control on their screen.
+
+### The night pedestrian density was not per-theme scratch state to the one function that wipes it
+
+`people_night_density` is written by a `forThemeId` setter, read by `readFlatCustomization`,
+archived and restored with the rest — but it was missing from `clearAllThemeCustomizationKeys`, the
+single wipe shared by `ensureFreshPendingTheme` (theme switch), `resetAllCategories` ("reset
+everything") and `replaceAll` (backup restore). It survived all three: one theme's night crowd
+followed the user into the next theme they edited, "reset everything" left the slider where it was,
+and a restore left a value for the first post-restore edit to pick up. `resetCategory(PEOPLE, …)`
+had always removed it, which is what made the omission visible.
+
+Reproduced on the same build: night density 19% on `christmas`, then one unrelated edit on `desert`
+— a theme never customised — and `desert` read 19% instead of its 100% default.
+
+### Verification
+
+Four instrumented regression tests in `ThemeCustomizationPersistenceTest`, comparing whole
+`SceneCustomization` objects rather than single fields: the reset reaches the theme on screen and
+not the last-edited one, the same through the Seasons screen's six-category loop, "reset everything"
+clears the night density and it does not return on the next edit, and it does not leak into another
+theme.
+
+Both fixes were mutation-tested by reverting each one in turn and re-running the device scenario:
+each mutation brought its symptom back. The JVM suite is unchanged at **1046 tests, 0 failures**
+(85 classes, re-executed rather than served from the build cache); the two fixes are in Android-only
+code, so no JVM test covers them and none needed to change. `lint` reports 31 issues, none an error
+and none in the four changed files. `assembleDebug`, `assembleDebugAndroidTest` and `assembleRelease`
+all build clean. **No golden was regenerated, no image changed, and no file under `engine/` was
+touched at all** — this release changes only `prefs/WallpaperPrefs.kt` and the two reset call sites.
+
+Both scenarios were exercised on an emulator (Pixel-class, API 37) against the release build: the
+reset lands on the theme on screen and leaves both the other theme and the other categories intact,
+and it survives a theme switch and a process restart; the night density no longer follows the user
+between themes, is cleared by "reset everything", and does not come back on the next edit or after a
+restart.
+
+**The four new instrumented tests were not executed** when this release was prepared: the preparing
+environment had no reachable device (`connectedDebugAndroidTest` fails with `No connected devices!`).
+They compile and are present in the test APK. Run them with
+`./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.paperscrape.livewallpaper.prefs.ThemeCustomizationPersistenceTest`.
+
+No format, schema or preference key changed: backups written by earlier versions import unchanged.
+
+---
+
 ## v4.7 — the sleigh, redrawn
 
 **Prepared, not published.** `versionCode = 38`, `versionName = "4.7"`. No tag, no push, no

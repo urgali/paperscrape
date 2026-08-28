@@ -1123,8 +1123,28 @@ class WallpaperPrefs(private val context: Context) {
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** Resets one category's visibility/density/colors back to defaults (keeps the pending-theme tag). */
-    suspend fun resetCategory(category: ObjectCategory) = context.dataStore.edit { prefs ->
+    /**
+     * Resets one category's visibility/density/colors back to defaults, **on [forThemeId]**.
+     *
+     * Takes the theme like every other per-theme mutator, and for the same reason. The flat
+     * customization keys belong to whichever theme `PENDING_CUSTOMIZATION_THEME_ID` names -- the
+     * last theme *edited*, which is not the theme being *viewed*, because [setTheme] deliberately
+     * writes only `THEME_ID` and leaves the tag alone. Until this release `resetCategory` was the
+     * one per-theme mutator taking no theme and checking nothing, so a reset pressed as the first
+     * action after switching themes removed the *outgoing* theme's keys -- destroying that
+     * theme's customization for good the moment [ensureFreshPendingTheme] archived what was left
+     * of the scratch -- while the theme on screen, whose values come from its own archive, was not
+     * reset at all and the button appeared to do nothing. Reproduced on a device: customise
+     * `winter`, customise `christmas`, return to `winter` and reset one category; `christmas` lost
+     * that category and `winter` kept it.
+     *
+     * [ensureFreshPendingTheme] runs first, exactly as it does in the setters, so the scratch
+     * space is already this theme's before anything is removed from it -- which also means the
+     * reset reaches a theme whose state currently lives in its archive rather than in the scratch.
+     * The tag is stamped afterwards for the same reason the setters stamp it.
+     */
+    suspend fun resetCategory(category: ObjectCategory, forThemeId: String) = context.dataStore.edit { prefs ->
+        prefs.ensureFreshPendingTheme(forThemeId)
         prefs.remove(Keys.visible(category))
         prefs.remove(Keys.density(category))
         prefs.remove(Keys.colorDay1(category))
@@ -1135,6 +1155,7 @@ class WallpaperPrefs(private val context: Context) {
         // category has to clear it too, or "reset to default" would leave the night population
         // wherever the user had dragged it.
         if (category == ObjectCategory.PEOPLE) prefs.remove(Keys.PEOPLE_NIGHT_DENSITY)
+        prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
     }
 
     /**
@@ -1155,6 +1176,17 @@ class WallpaperPrefs(private val context: Context) {
             remove(Keys.colorDay2(category))
             remove(Keys.colorNight2(category))
         }
+        // The night pedestrian density is per-theme scratch state exactly like everything else in
+        // this list -- written by a `forThemeId` setter, read by `readFlatCustomization`, archived
+        // and restored with the rest -- but it is the one such field that lives *outside* the
+        // per-category keys the loop above covers, and it was missed when it was added. Left
+        // behind, it survived every wipe this function performs: a theme switch carried one
+        // theme's night crowd into the next theme edited (the leak `ensureFreshPendingTheme`
+        // exists to prevent), "reset everything to defaults" left the slider where the user had
+        // dragged it, and a backup restore left it for the first post-restore edit to pick up.
+        // `resetCategory(PEOPLE, ...)` has always removed it; this is the same field, in the wipe
+        // that is supposed to clear everything.
+        remove(Keys.PEOPLE_NIGHT_DENSITY)
         remove(Keys.HILLS_VARIATION)
         remove(Keys.HILLS_COLOR_DAY)
         remove(Keys.HILLS_COLOR_NIGHT)

@@ -72,7 +72,7 @@ internal fun ObjectCategorySection(
         }
 
         OutlinedButton(
-            onClick = { scope.launch { prefs.resetCategory(category) } },
+            onClick = { scope.launch { prefs.resetCategory(category, forThemeId) } },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Reset $title to default")

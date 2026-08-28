@@ -135,7 +135,7 @@ internal fun SeasonsScreen(
                         ObjectCategory.PENGUINS, ObjectCategory.BUNNIES, ObjectCategory.EASTER_EGGS,
                         ObjectCategory.PUMPKINS,
                     )) {
-                        prefs.resetCategory(category)
+                        prefs.resetCategory(category, forThemeId)
                     }
                     prefs.resetSeasonalPalettes(forThemeId)
                     prefs.resetSanta(forThemeId)

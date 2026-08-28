@@ -289,6 +289,111 @@ class ThemeCustomizationPersistenceTest {
         )
     }
 
+    // ------------------------------------------------- reset reaches the theme on screen, only it
+
+    /**
+     * "Reset X to default" must reach the theme the user is looking at, and no other.
+     *
+     * The defect, reproduced on a device against v4.7: the flat scratch keys belong to whichever
+     * theme `PENDING_CUSTOMIZATION_THEME_ID` names, and that is the last theme *edited* -- opening
+     * a different theme does not move it, because `setTheme` writes `THEME_ID` alone. Every
+     * per-theme setter therefore takes a `forThemeId` and calls `ensureFreshPendingTheme` first;
+     * `resetCategory` was the one that took neither, so it removed the keys of whatever theme was
+     * last edited. Pressing "Reset Houses to default" as the first action after switching themes
+     * left the theme on screen untouched (the button appeared dead) and silently destroyed the
+     * previously edited theme's houses -- permanently, once the next `ensureFreshPendingTheme`
+     * archived the damaged scratch.
+     *
+     * The sequence below is that exact state: `city` customised, then `beach`, so the tag is on
+     * `beach` while the user resets a category on `city`.
+     */
+    @Test
+    fun resettingOneCategoryResetsTheThemeOnScreenAndNotTheLastEditedOne() = runBlocking {
+        customise("city", 2)
+        customise("beach", 1)
+        val beach = customizationOf("beach")
+        val city = customizationOf("city")
+        assertNotEquals("the test customised nothing on city", defaultCustomizationFor("city"), city)
+        assertNotEquals("the test customised nothing on beach", defaultCustomizationFor("beach"), beach)
+
+        // What the Cities screen does when "Reset Houses to default" is tapped while `city` shows.
+        prefs.resetCategory(ObjectCategory.HOUSES, "city")
+
+        // The whole customization, so that resetting one category cannot quietly move another.
+        assertEquals(
+            "resetting houses on city did not reset city's houses",
+            city.copy(houses = defaultCustomizationFor("city").houses),
+            customizationOf("city"),
+        )
+        assertEquals("resetting city's houses reached beach instead", beach, customizationOf("beach"))
+    }
+
+    /** The same, through the Seasons screen's loop over the six decoration categories. */
+    @Test
+    fun resettingTheSeasonalCategoriesLeavesTheLastEditedThemeAlone() = runBlocking {
+        customise("city", 2)
+        customise("beach", 1)
+        val beach = customizationOf("beach")
+        val city = customizationOf("city")
+
+        for (category in listOf(
+            ObjectCategory.SNOWMEN, ObjectCategory.GIFTS, ObjectCategory.PENGUINS,
+            ObjectCategory.BUNNIES, ObjectCategory.EASTER_EGGS, ObjectCategory.PUMPKINS,
+        )) {
+            prefs.resetCategory(category, "city")
+        }
+        prefs.resetSeasonalPalettes("city")
+
+        assertEquals("resetting city's decorations reached beach instead", beach, customizationOf("beach"))
+        // city keeps everything the reset does not name -- houses, trees, hills, lake, weather.
+        val afterCity = customizationOf("city")
+        assertEquals("city lost a structural category to a decorations reset", city.houses, afterCity.houses)
+        assertEquals("city lost its trees to a decorations reset", city.trees, afterCity.trees)
+        assertEquals("city lost its hills to a decorations reset", city.hillsColorDay, afterCity.hillsColorDay)
+    }
+
+    // ------------------------------------------------------- the night pedestrian density is state
+
+    /**
+     * `people_night_density` is per-theme scratch state and must be wiped like the rest of it.
+     *
+     * It was absent from `clearAllThemeCustomizationKeys`, the single wipe shared by
+     * `ensureFreshPendingTheme` (theme switch), `resetAllCategories` ("reset everything") and
+     * `replaceAll` (backup restore) -- so it survived all three. This pins the reset half: the
+     * leftover is invisible immediately after the reset, because that also drops the tag and the
+     * archive and the resolver falls back to defaults, and reappears on the next edit of the theme.
+     */
+    @Test
+    fun resettingEverythingAlsoClearsTheNightPedestrianDensity() = runBlocking {
+        customise("beach", 1)
+        assertNotEquals("the test customised nothing", defaultCustomizationFor("beach"), customizationOf("beach"))
+
+        prefs.resetAllCategories("beach")
+        assertEquals("resetting beach did not reset beach", defaultCustomizationFor("beach"), customizationOf("beach"))
+
+        // One unrelated edit re-tags the theme, which is where a surviving flat key comes back.
+        prefs.setCategoryDensity(ObjectCategory.BUILDINGS, 0.31f, "beach")
+        val expected = defaultCustomizationFor("beach").let {
+            it.copy(buildings = it.buildings.copy(density = 0.31f))
+        }
+        assertEquals("a reset field came back on the next edit", expected, customizationOf("beach"))
+    }
+
+    /** And the leak half: one theme's night crowd must not follow the user into the next theme. */
+    @Test
+    fun theNightPedestrianDensityDoesNotLeakIntoAnotherTheme() = runBlocking {
+        prefs.setPeopleNightDensity(0.2f, "beach")
+
+        // `city` has never been customised: one unrelated edit must leave it at its own defaults
+        // plus that edit.
+        prefs.setCategoryDensity(ObjectCategory.HOUSES, 0.4f, "city")
+
+        val expected = defaultCustomizationFor("city").let {
+            it.copy(houses = it.houses.copy(density = 0.4f))
+        }
+        assertEquals("beach's night density leaked into city", expected, customizationOf("city"))
+    }
+
     // ------------------------------------------------------------------ the writer is complete
 
     /**
