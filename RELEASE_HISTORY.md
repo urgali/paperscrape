@@ -19,6 +19,98 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.9 — the weather the screen describes is the weather that draws
+
+**Prepared, not published.** `versionCode = 40`, `versionName = "4.9"`. Prepared 2026-08-28. No tag,
+no push, no GitHub Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain
+37. Baseline is **v4.8**.
+
+Three defects in the live-weather loop, all of them in rules that lived inline in
+`PaperWallpaperService`'s `while (true)` where no test could reach them — which is why three of them
+had rotted in three different directions without anything noticing. `LiveWeatherSchedule` extracts
+them, pure and testable, the way `LiveWeatherInputs` already did for the fetch-now predicate.
+
+### A transient failure consumed the whole hour
+
+`lastWeatherFetchMillis` was stamped **before** the fetch and no branch reset it by outcome, so one
+dropped request cost a full refresh interval. Reproduced against the shipped v4.8 rules: the loop
+ticked **29 times** in the following hour and refused every one. The most repeatable trigger is a
+boot — the wallpaper rebinds and fetches before connectivity exists.
+
+The vocabulary for the fix already existed and nothing consumed it: `WeatherFailure` documents which
+reasons a retry helps. `LiveWeatherSchedule.isTransient` now reads it, and a transient failure backs
+off 2, 4, 8, 16, 32 minutes, saturating on the normal interval — **four extra requests in the first
+hour of an outage and none after**, converging without needing a separate give-up rule. `UNAUTHORIZED`,
+`RATE_LIMITED` and `MissingApiKey` keep the normal interval: the service was reached and answered, or
+nothing was sent at all. Any non-transient outcome, success included, resets the counter.
+
+### The status and the renderer were two different answers
+
+The published status came from `LiveWeatherStatus.of`; the renderer's override was whatever the last
+successful fetch had left behind, and **only the "Live Weather is off" branch ever cleared it**. So
+losing the location, or switching to a provider whose key is missing or rejected, published a status
+whose `isRunningOnThemeWeather` is true — which unlocks the theme's cloud and precipitation controls
+— while the fetched conditions carried on drawing. The controls the user had just been handed did
+nothing.
+
+`LiveWeatherSchedule.decide` now returns both halves of one answer, with the invariant
+
+> `status.isDrivingTheScene == (snapshotForScene != null)`
+
+pinned over every combination that reaches it (512 in one test). A status carried forward from a pass
+when conditions *were* driving is downgraded to `FAILED` once the last usable snapshot expires, so
+the same disagreement cannot be reached by waiting either. The four location modes and the seven
+statuses keep their meanings; the cache is not removed and the resolver is not bypassed.
+
+### Conditions never expired
+
+`LiveWeatherSnapshot.fetchedAtMillis` was written and **never read anywhere in production**, so
+`STALE` was unbounded: a device offline for days kept drawing the last thunderstorm it managed to
+fetch. Snapshots now expire at `SNAPSHOT_MAX_AGE_MILLIS`, applied by the same `decide` that
+authorises rendering — there is deliberately no second freshness rule.
+
+The cap is **derived** as `3 * WEATHER_REFRESH_INTERVAL_MS` rather than written as its own literal,
+so changing the refresh interval carries the cap with it instead of leaving the two disagreeing; a
+test asserts the resulting absolute duration as well, so a changed interval forces the *decision* to
+be made again rather than silently inherited. One interval would be too tight — it would expire every
+snapshot exactly as its replacement fell due and undo the `STALE` design it is meant to bound — and
+days-old conditions are a fabrication. Three intervals tolerates a couple of missed cycles and is
+about as long as a drawn sky can be defended.
+
+Which timestamp measures the age was checked rather than assumed: all three providers stamp
+`observedAtMillis` with local receive time, and no parser reads an observation time out of a response.
+`WeatherObservation`'s KDoc claimed the opposite and is corrected; so is `PaperRenderer`'s, which
+promised the override "never leaves the scene showing stale weather from hours ago" while the code
+did exactly that, unboundedly.
+
+### Verification
+
+**23 deterministic tests** (`LiveWeatherScheduleTest`) covering success and failure scheduling, the
+backoff ladder and its cost, the age cap on both sides, every location mode, and the screen-versus-sky
+invariant. No clock is read and there is no sleep: every time is an explicit `Long`, which is why the
+schedule takes `nowMillis` as a parameter.
+
+Mutation-tested, each mutation applied in isolation: restoring the hourly wait after a failure fails
+4 tests, letting an unauthorised snapshot draw fails 5, removing the age cap fails 4.
+
+The JVM suite is **1069 tests, 0 failures** (1046 before, plus the 23 new); `lint` reports no errors
+and none in any changed file; `assembleDebug`, `assembleDebugAndroidTest` and `assembleRelease` all
+build clean. **No golden was regenerated, no image changed, and no rendering code was touched** — the
+only edit to `PaperRenderer` is the corrected comment above.
+
+Both the coherence fix and the age cap were exercised on an emulator (Pixel-class, API 37) against
+this build: with a key missing the theme's cloud control moved the real wallpaper (0% → clear sky,
+98% → full bank), and with the network down and the device clock advanced past the cap the status
+moved from `STALE` to `FAILED` with the age as the only changed variable.
+
+**The instrumented suite was not executed** when this release was prepared: the preparing environment
+has no reachable device (`connectedDebugAndroidTest` fails with `No connected devices!`). This release
+adds no instrumented tests.
+
+No preference key, schema or backup format changed, and the location permission model is untouched.
+
+---
+
 ## v4.8 — reset reaches the theme you are looking at
 
 **Prepared, not published.** `versionCode = 39`, `versionName = "4.8"`. Prepared 2026-08-28. No tag,

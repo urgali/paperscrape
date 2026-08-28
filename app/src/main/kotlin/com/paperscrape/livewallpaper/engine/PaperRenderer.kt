@@ -123,11 +123,19 @@ class PaperRenderer(
     var sceneCustomization: SceneCustomization = SceneCustomization.DEFAULT
     // Live Weather (Phase 1d point 6): when non-null, overrides precipitation's visible/type/
     // intensity/thunderstorm and clouds' density -- see drawPrecipitation/drawClouds's own doc
-    // comments for exactly how each is blended with the theme's own manual settings. Set from
-    // PaperWallpaperService's hourly WeatherRepository fetch; null whenever Live Weather is off,
-    // no location is available yet, or the last fetch failed (falls back to the theme's own
-    // manual precipitation/clouds settings in all of those cases, never leaves the scene showing
-    // stale weather from hours ago).
+    // comments for exactly how each is blended with the theme's own manual settings.
+    //
+    // **Set only from what LiveWeatherSchedule.decide authorises**, which is the same rule that
+    // decides what the settings screen is told, so the two cannot disagree. Null means the theme's
+    // own manual precipitation and clouds draw the scene: Live Weather off, nowhere to check, a
+    // key that is missing or rejected, or nothing held that is still within
+    // LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS.
+    //
+    // A dropped request deliberately does *not* clear this: the last known-good conditions stay up
+    // rather than flicking the scene back to the theme for one tick (LiveWeatherStatus.STALE).
+    // That grace has an end -- the age cap above -- so the scene never draws weather nobody can
+    // vouch for any more. Until v4.8 there was no end, and this comment claimed the opposite of
+    // what the code did.
     var liveWeatherOverride: com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot? = null
 
     // The sky, the hill highlight and the sun/moon glow no longer keep a Paint of their own: a

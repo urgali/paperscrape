@@ -30,7 +30,16 @@ data class WeatherObservation(
     val snowfallCm: Double? = null,
     /** The provider's own summary of conditions, normalised. */
     val condition: WeatherCondition = WeatherCondition.UNKNOWN,
-    /** When the provider says these conditions were observed, in epoch millis. */
+    /**
+     * When this observation was **received**, in epoch millis -- not when the provider says it was
+     * measured.
+     *
+     * All three providers stamp `System.currentTimeMillis()` at parse time; none of them parses an
+     * observation timestamp out of the response. The distinction matters now that
+     * [com.paperscrape.livewallpaper.weather.LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS] expires a
+     * snapshot by this field: it measures how long the app has been holding the data, which is the
+     * honest question it can answer, and is a lower bound on the data's true age.
+     */
     val observedAtMillis: Long,
     /** Which provider produced this. Carried so a failure or an oddity can be attributed. */
     val source: WeatherProviderId,

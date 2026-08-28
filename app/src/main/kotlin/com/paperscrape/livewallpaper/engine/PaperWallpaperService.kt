@@ -16,7 +16,10 @@ import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import com.paperscrape.livewallpaper.weather.LiveWeatherInputs
+import com.paperscrape.livewallpaper.weather.LiveWeatherSchedule
+import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
+import com.paperscrape.livewallpaper.weather.WeatherFetchResult
 import com.paperscrape.livewallpaper.weather.WeatherRepository
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -244,6 +247,35 @@ class PaperWallpaperService : WallpaperService() {
         private var lastWeatherFetchLocation: DeviceLocationFix? = null
 
         /**
+         * The newest snapshot the loop holds, whether or not the scene is currently drawing it.
+         *
+         * The loop used to ask the renderer this (`renderer?.liveWeatherOverride != null`), which
+         * read render-thread-owned state from the main thread and, worse, made the renderer the
+         * memory of what had been fetched. Now the engine remembers and the renderer is only ever
+         * told what [LiveWeatherSchedule.decide] authorises -- so "what we have" and "what may be
+         * drawn" stop being the same variable.
+         */
+        @Volatile
+        private var lastWeatherSnapshot: LiveWeatherSnapshot? = null
+
+        /**
+         * How many transient failures in a row, feeding [LiveWeatherSchedule.nextAttemptDelayMillis].
+         *
+         * Reset to zero by any outcome that is not a transient failure, which is what returns the
+         * loop to its normal hourly cadence after one success.
+         */
+        @Volatile
+        private var weatherTransientFailures = 0
+
+        /**
+         * What the renderer was last told, so an unchanged decision costs nothing.
+         *
+         * Main-thread only: written and read by the weather loop alone, unlike the renderer's own
+         * field which the render thread owns.
+         */
+        private var appliedLiveWeather: LiveWeatherSnapshot? = null
+
+        /**
          * What the settings screen was last told about Live Weather's fallback state.
          *
          * Kept so the status is written only when it changes: every write re-emits the settings
@@ -425,8 +457,15 @@ class PaperWallpaperService : WallpaperService() {
                     // all; a fix is only actually requested when the system's own cache has gone
                     // stale too, which puts an upper bound of one request per refresh interval.
                     val source = LocationSource.of(settings)
+                    // How long this pass must have waited before another attempt is allowed: the
+                    // normal hourly interval, or a bounded backoff while transient failures are
+                    // running (see LiveWeatherSchedule.nextAttemptDelayMillis for the ladder).
+                    val attemptDelay = LiveWeatherSchedule.nextAttemptDelayMillis(
+                        consecutiveTransientFailures = weatherTransientFailures,
+                        normalIntervalMillis = WEATHER_REFRESH_INTERVAL_MS,
+                    )
                     if (settings.liveWeatherEnabled && source.deviceKind != null &&
-                        System.currentTimeMillis() - lastWeatherFetchMillis >= WEATHER_REFRESH_INTERVAL_MS
+                        System.currentTimeMillis() - lastWeatherFetchMillis >= attemptDelay
                     ) {
                         refreshDeviceFix(source)
                     }
@@ -437,12 +476,15 @@ class PaperWallpaperService : WallpaperService() {
                     // used to leave the scene showing the old town's weather for the rest of the
                     // hour, because the timer was the only gate.
                     val movedSinceLastFetch = fix != null && fix != lastWeatherFetchLocation
-                    val timerExpired = System.currentTimeMillis() - lastWeatherFetchMillis >= WEATHER_REFRESH_INTERVAL_MS
+                    val timerExpired = System.currentTimeMillis() - lastWeatherFetchMillis >= attemptDelay
                     val provider = settings.weatherProvider
+                    // The outcome of a fetch made on *this* pass, or null when none was due --
+                    // the meaning LiveWeatherStatus.of already gives the parameter.
+                    var result: WeatherFetchResult? = null
                     if (settings.liveWeatherEnabled && fix != null && (movedSinceLastFetch || timerExpired)) {
                         lastWeatherFetchMillis = System.currentTimeMillis()
                         lastWeatherFetchLocation = fix
-                        val result = WeatherRepository.fetchCurrentConditions(
+                        result = WeatherRepository.fetchCurrentConditions(
                             providerId = provider,
                             latitude = fix.latitude,
                             longitude = fix.longitude,
@@ -451,45 +493,45 @@ class PaperWallpaperService : WallpaperService() {
                         // A failure leaves the *previous* snapshot in place rather than clearing
                         // it, so one dropped request doesn't momentarily revert the scene to the
                         // theme's manual precipitation/clouds; it keeps showing the last
-                        // known-good conditions until the next successful fetch.
-                        val snapshot = WeatherRepository.snapshotOf(result)
-                        if (snapshot != null) {
-                            onRenderThread {
-                                renderer?.liveWeatherOverride = snapshot
-                                requestRedraw()
-                            }
-                        }
-                        // A missing key is not a transient. Nothing was sent, nothing will succeed
-                        // until the user acts, and the two-minute tick would otherwise retry a
-                        // request that cannot be made -- so the timer is left running rather than
-                        // reset, and the status says what is wrong.
-                        publishWeatherStatus(
-                            LiveWeatherStatus.of(
-                                enabled = true,
-                                hasLocation = true,
-                                result = result,
-                                hasSnapshotInEffect = snapshot != null || renderer?.liveWeatherOverride != null,
-                                previous = publishedWeatherStatus ?: LiveWeatherStatus.OFF,
-                            ),
-                        )
-                    } else if (settings.liveWeatherEnabled && fix == null) {
-                        // **Live Weather is on and has nowhere to check.** The scene keeps running
-                        // on the theme's own clouds and precipitation, which is a valid scene and
-                        // exactly what it shows with Live Weather off -- the failure was never
-                        // that the scene broke, it was that the switch looked dead and nothing
-                        // said why. Saying so is the whole fix; the renderer is left alone.
-                        publishWeatherStatus(LiveWeatherStatus.NO_LOCATION)
-                    } else if (!settings.liveWeatherEnabled) {
-                        publishWeatherStatus(LiveWeatherStatus.OFF)
-                        if (renderer?.liveWeatherOverride != null) {
-                            lastWeatherFetchMillis = 0L
-                            lastWeatherFetchLocation = null
-                            onRenderThread {
-                                renderer?.liveWeatherOverride = null
-                                requestRedraw()
-                            }
+                        // known-good conditions until the next successful fetch -- now for at most
+                        // LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS, after which conditions
+                        // nobody can vouch for stop being drawn.
+                        WeatherRepository.snapshotOf(result)?.let { lastWeatherSnapshot = it }
+                        // Only a transient failure earns a faster retry. A missing or rejected key
+                        // and a spent quota are answers, not accidents: nothing changes by asking
+                        // again sooner, so the normal interval stands and the status says what is
+                        // wrong. Any non-transient outcome, success included, returns the loop to
+                        // its normal cadence.
+                        weatherTransientFailures = if (LiveWeatherSchedule.isTransient(result)) {
+                            weatherTransientFailures + 1
+                        } else {
+                            0
                         }
                     }
+                    // **The single decision.** Every pass, fetch or no fetch, asks the same
+                    // question of the same inputs and gets both halves of the answer at once, so
+                    // the status the settings screen reads and the snapshot the renderer draws
+                    // cannot disagree -- see LiveWeatherSchedule.decide.
+                    val decision = LiveWeatherSchedule.decide(
+                        enabled = settings.liveWeatherEnabled,
+                        hasLocation = fix != null,
+                        result = result,
+                        snapshot = lastWeatherSnapshot,
+                        nowMillis = System.currentTimeMillis(),
+                        previous = publishedWeatherStatus ?: LiveWeatherStatus.OFF,
+                    )
+                    if (!settings.liveWeatherEnabled) {
+                        // Switching the feature off forgets what was fetched, rather than merely
+                        // declining to draw it: the next time it is switched on the user expects a
+                        // fresh look at the sky, and the immediate refresh that follows depends on
+                        // the timer being clear.
+                        lastWeatherSnapshot = null
+                        lastWeatherFetchLocation = null
+                        lastWeatherFetchMillis = 0L
+                        weatherTransientFailures = 0
+                    }
+                    applyLiveWeather(decision.snapshotForScene)
+                    publishWeatherStatus(decision.status)
                     // Waits for the tick *or* for a settings change, whichever comes first.
                     withTimeoutOrNull(WEATHER_CHECK_INTERVAL_MS) { weatherWakeUp.receive() }
                 }
@@ -736,6 +778,23 @@ class PaperWallpaperService : WallpaperService() {
             if (publishedWeatherStatus == status) return
             publishedWeatherStatus = status
             scope.launch { prefs.setLiveWeatherStatus(status) }
+        }
+
+        /**
+         * Hands the renderer exactly what [LiveWeatherSchedule.decide] authorised, and nothing else.
+         *
+         * Null means "draw the theme's own weather", which is the same valid scene Live Weather
+         * shows when it is off. Only on a change, for the same reason [publishWeatherStatus] is:
+         * this runs on the two-minute tick, and re-posting an identical override would queue a
+         * render-thread event and a redraw every tick for no visible difference.
+         */
+        private fun applyLiveWeather(snapshot: LiveWeatherSnapshot?) {
+            if (appliedLiveWeather == snapshot) return
+            appliedLiveWeather = snapshot
+            onRenderThread {
+                renderer?.liveWeatherOverride = snapshot
+                requestRedraw()
+            }
         }
 
         /**
