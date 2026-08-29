@@ -19,6 +19,99 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.10 — the renderer lets go of the surface it no longer owns
+
+**Prepared, not published.** `versionCode = 41`, `versionName = "4.10"`. Prepared 2026-08-29. No tag,
+no push, no GitHub Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk` remain
+37. Baseline is **v4.9**.
+
+Five defects in the GL lifecycle, four of them found in the batch and one in the review that closed
+it. They share a single cause: `GlRenderThread` was written to outlive its surface — it takes
+`onSurfaceCreated`/`onSurfaceDestroyed`, and its idle branch says in as many words that it keeps the
+EGL context *"so coming back does not have to re-upload every texture"* — but the engine never gave
+it a second surface, so that branch was unreachable and everything around it was tuned for a world
+where thread and surface are born and die together.
+
+`GlLifecyclePolicy` extracts the rules as pure functions, the way `LiveWeatherSchedule` did for the
+weather loop in v4.9. That is the point: they were rules living inside a `while` loop and a service
+callback, where nothing could assert them, and they had rotted in five different directions without
+anything noticing.
+
+### One render thread per engine, not per surface
+
+`onSurfaceCreated` built a `GlRenderThread` unconditionally and `onSurfaceDestroyed` only cleared
+that thread's holder — it never called `shutdown()`. So every destroy/create cycle inside one
+engine abandoned a live thread still holding its `EGLDisplay`, `EGLContext`, its `GlSceneTarget` and
+every uploaded texture, for the rest of the process, while a second thread published to the same
+engine. Two ownership chains, one engine.
+
+A replacement surface is now handed to the thread that already owns the engine's GL, and the
+`PaperRenderer` is reused rather than rebuilt — it holds no GL objects, and rebuilding it discarded
+scroll position, animation phase and the live-weather override for a window that came straight back.
+
+### A lost context no longer ends GL for the engine's life
+
+Any `prepareFrame` failure with a live surface called `reportUnavailable()`, which latches the
+engine into the Canvas fallback permanently. That is right for a device that cannot do EGL and wrong
+for a context lost to a driver reset — and EGL reports the two identically, because a context lost
+to a GPU reset only announces itself at `eglSwapBuffers`. The only thing that separates them is
+history: if a frame has ever been drawn, the hardware can clearly do GL. Bounded at
+`MAX_CONTEXT_REBUILDS = 3`, after which the old behaviour resumes exactly.
+
+### A trim with no current context, and a white pixel nobody checked
+
+`trimTextures` ran as a queued event, and queued work is drained at the top of the loop — before
+`prepareFrame` makes a context current, and in the surface-gone branch *after* `destroyEglSurface`
+has explicitly unbound one. `glDeleteTextures` with no current context is a silent no-op that still
+loses the handles: the memory stayed allocated and the target believed it had to re-upload. It is
+now a flag consumed at the single point in the loop that guarantees a context, and a request made
+with no surface stays pending rather than running at the wrong moment.
+
+Separately, `trimTextures` discarded the `Boolean` from `registerWhitePixel()`. On failure `isUsable`
+stayed true with `whiteTexture` at 0, so every flat fill bound texture zero and drew black with
+nothing able to repair it. It now reports the failure the way `onContextCreated` already did.
+
+### The Canvas fallback drew into a destroyed surface
+
+`onSurfaceDestroyed` stopped the render thread's surface but not the fallback's self-rescheduling
+frame callback, which kept calling `lockCanvas` on a dead surface at frame cadence. Only
+visibility-false and engine-destroy removed it.
+
+### And the one the review found: an EGL surface outliving its window
+
+An `EGLSurface` belongs to one native window, but `ensureEglSurface` only asked *"do I have a
+surface?"*, never *"whose?"* — safe while a thread only ever saw one window, and wrong the moment
+the thread started outliving surfaces. The loop's surface-gone branch was the only thing releasing
+it on a swap, and that branch is skipped whenever the replacement arrives before the render thread
+looks: the engine delivers destroy and create back to back while the thread is mid-frame (up to
+33 ms) or parked in `idle` (up to 200 ms), so the miss is not the rare case but the normal one for a
+rotation or a resolution change.
+
+The thread then drew into the window that had gone. Best case one dropped frame, self-healed by the
+`EGL_BAD_NATIVE_WINDOW` path; worst case `eglMakeCurrent` failed, which now looks exactly like a lost
+context — so it rebuilt the context and re-uploaded the entire atlas, consuming one of the three
+rebuilds. **Three fast surface replacements in one engine's life would therefore have demoted it to
+software permanently**, which is the ARC-05 fix firing on a self-inflicted wound.
+
+The EGL surface is now explicitly marked stale by `onSurfaceDestroyed`, written before the holder so
+that a render thread which later reads a non-null holder is guaranteed to see it.
+
+### Known limitations of the verification
+
+A destroy/create cycle **within a single engine** could not be provoked on the Pixel 9 emulator —
+rotation, lock/unlock and display-size changes do not trigger it, and every entry into the wallpaper
+picker builds a *new* engine. The lifecycle properties are therefore asserted by state-machine unit
+tests driven for 1/5/20/100 cycles, not by a gesture. Instrumented tests remain unrun: the preparing
+environment has no adb-reachable device.
+
+RT-01 — the picker preview going black after installing over the running wallpaper — was diagnosed
+and is **not** a defect in this code: the install kills the process, both wallpaper windows die, and
+the system re-binds and creates an engine for the home wallpaper only. The picker Activity never
+re-attaches its preview, so no engine exists for that window. A freshly opened picker renders
+correctly.
+
+---
+
 ## v4.9 — the weather the screen describes is the weather that draws
 
 **Prepared, not published.** `versionCode = 40`, `versionName = "4.9"`. Prepared 2026-08-28. No tag,

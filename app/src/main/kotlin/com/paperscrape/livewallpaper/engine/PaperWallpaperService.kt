@@ -322,10 +322,15 @@ class PaperWallpaperService : WallpaperService() {
             if (thread != null) thread.queueEvent(Runnable { action() }) else action()
         }
 
-        /** Asks the render thread to drop its GPU textures. Safe to call before it exists. */
+        /**
+         * Asks the render thread to drop its GPU textures. Safe to call before it exists.
+         *
+         * Not a queued event: the trim is GL work, and queued events are drained at a point in the
+         * loop where no context is guaranteed to be current. [GlRenderThread.requestTrim] hands it
+         * to the one place that has one.
+         */
         fun trimGpuResources() {
-            val thread = glThread ?: return
-            thread.queueEvent(Runnable { thread.target.trimTextures() })
+            glThread?.requestTrim()
         }
 
         private fun applyEffectiveTheme(): Boolean {
@@ -538,25 +543,67 @@ class PaperWallpaperService : WallpaperService() {
             }
         }
 
+        /**
+         * A surface has arrived: the first one this engine ever gets, or a replacement.
+         *
+         * **The scene survives the surface.** The renderer holds no GL objects -- those live in the
+         * render thread's [GlSceneTarget] -- so a replacement surface reuses it and only updates
+         * its size. Rebuilding it would throw away the scroll position, the animation phase and the
+         * live-weather override for a window that came back a moment later, and, now that the
+         * render thread outlives the surface, would also mean publishing a new renderer to a thread
+         * already drawing with the old one. Keeping it makes both problems go away.
+         */
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
-            // Built here, on the main thread, before the render thread starts. `Thread.start()`
-            // establishes the happens-before that publishes it safely; every mutation after that
-            // point goes through onRenderThread.
-            renderer = PaperRenderer(holder.surfaceFrame.width(), holder.surfaceFrame.height(), applicationContext).apply {
-                parallaxStrength = settings.parallaxStrength
-                scrollBackground = settings.scrollBackground
-                swipeScrollEnabled = settings.swipeScroll
-                scrollSpeed = settings.scrollSpeed
+            val frame = holder.surfaceFrame
+            val existing = renderer
+            if (existing == null) {
+                // Built on the main thread before the render thread starts. `Thread.start()`
+                // establishes the happens-before that publishes it safely; every mutation after
+                // that point goes through onRenderThread.
+                renderer = PaperRenderer(frame.width(), frame.height(), applicationContext).apply {
+                    parallaxStrength = settings.parallaxStrength
+                    scrollBackground = settings.scrollBackground
+                    swipeScrollEnabled = settings.swipeScroll
+                    scrollSpeed = settings.scrollSpeed
+                }
+                applyEffectiveTheme()
+            } else {
+                // The size is applied by whoever owns the renderer: the render thread reports it
+                // through onGlSurfaceChanged once the viewport is set, so touching it from here
+                // would be the main thread writing scene state under a live frame loop.
+                if (glThread == null) existing.onSizeChanged(frame.width(), frame.height())
             }
-            applyEffectiveTheme()
-            if (!canvasFallback) startGlThread(holder)
+            when (GlLifecyclePolicy.surfaceCreated(hasThread = glThread != null, canvasFallback = canvasFallback)) {
+                GlLifecyclePolicy.SurfaceAction.START_THREAD -> startGlThread(holder)
+                GlLifecyclePolicy.SurfaceAction.REUSE_THREAD -> attachSurfaceToGlThread(holder)
+                GlLifecyclePolicy.SurfaceAction.NO_GL -> {
+                    // The Canvas loop draws this engine. It was stopped when the surface went away
+                    // (see onSurfaceDestroyed); a new surface is what restarts it.
+                    if (visible) {
+                        lastFrameNanos = System.nanoTime()
+                        handler.post(drawRunnable)
+                    }
+                }
+            }
         }
 
         private fun startGlThread(holder: SurfaceHolder) {
             val thread = GlRenderThread(glCallbacks)
             glThread = thread
             thread.start()
+            attachSurfaceToGlThread(holder)
+        }
+
+        /**
+         * Hands a surface to the thread that already owns this engine's GL.
+         *
+         * The thread keeps its EGL context across the gap and rebuilds only the EGL surface, which
+         * is what its idle branch was written for and what stops a destroy/create cycle from
+         * costing a thread, a context and every uploaded texture.
+         */
+        private fun attachSurfaceToGlThread(holder: SurfaceHolder) {
+            val thread = glThread ?: return
             thread.onSurfaceCreated(holder)
             val frame = holder.surfaceFrame
             thread.onSurfaceChanged(frame.width(), frame.height())
@@ -575,8 +622,18 @@ class PaperWallpaperService : WallpaperService() {
             }
         }
 
+        /**
+         * The surface is going away, but this engine is not.
+         *
+         * The render thread is deliberately **not** stopped: it owns this engine's GL for the
+         * engine's whole life and parks with its context intact until a surface comes back. What
+         * must stop is any drawing into a window that no longer exists -- the Canvas fallback's
+         * self-rescheduling frame callback kept calling `lockCanvas` on a dead surface at frame
+         * cadence, because until now only visibility-false and engine-destroy removed it.
+         */
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
             glThread?.onSurfaceDestroyed()
+            handler.removeCallbacks(drawRunnable)
             super.onSurfaceDestroyed(holder)
         }
 

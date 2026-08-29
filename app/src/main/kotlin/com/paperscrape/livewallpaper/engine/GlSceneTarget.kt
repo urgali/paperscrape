@@ -151,7 +151,12 @@ internal class GlSceneTarget : SceneCanvas {
         // first thing packed back in — both because flat geometry cannot be drawn without it, and
         // because being first is what keeps it in the atlas rather than pushed out to a texture of
         // its own once the shelves fill.
-        registerWhitePixel()
+        //
+        // **The result is not optional.** Dropping it left `isUsable` true with `whiteTexture` at
+        // 0, so every flat fill afterwards bound texture zero and drew black, with nothing able to
+        // repair it. Reporting the failure the same way `onContextCreated` does puts the target
+        // back into the state that makes the next prepared frame rebuild it.
+        if (!registerWhitePixel()) isUsable = false
     }
 
     /**

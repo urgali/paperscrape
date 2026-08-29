@@ -61,10 +61,41 @@ internal class GlRenderThread(
     @Volatile private var pendingHeight = 0
     @Volatile private var unavailableReported = false
 
+    /**
+     * A memory trim asked for from the main thread, consumed on the render thread **after** the
+     * context is current.
+     *
+     * It used to be a queued Runnable, and [drainEvents] runs at the top of the loop -- before
+     * `prepareFrame` makes the context current, and in the surface-gone branch after
+     * [destroyEglSurface] has explicitly unbound it. `glDeleteTextures` with no current context is
+     * a silent no-op that still forgets the handles, and re-packing the atlas' white pixel fails,
+     * so the target was left believing it was usable with no white pixel to draw flat fills with.
+     * A flag cannot run at the wrong moment; a queued GL call could.
+     */
+    @Volatile private var trimRequested = false
+
+    /**
+     * Set when the window the current [eglSurface] was built from has gone away.
+     *
+     * Not derivable from [holder]: the engine publishes the replacement immediately after the
+     * destroy, so a render thread that was mid-frame or parked never sees the null in between and
+     * cannot tell the new window from the old one. See [GlLifecyclePolicy.mayReuseEglSurface].
+     */
+    @Volatile private var eglSurfaceStale = false
+
     private var eglDisplay: EGLDisplay = EGL14.EGL_NO_DISPLAY
     private var eglContext: EGLContext = EGL14.EGL_NO_CONTEXT
     private var eglSurface: EGLSurface = EGL14.EGL_NO_SURFACE
     private var eglConfig: EGLConfig? = null
+
+    /**
+     * Whether a frame has ever been prepared successfully on this thread.
+     *
+     * The difference between "this device cannot do EGL" and "EGL was working a moment ago" -- the
+     * two cases the old code could not tell apart, so both ended the engine's GL for good.
+     */
+    private var hadWorkingContext = false
+    private var contextRebuilds = 0
 
     private var currentWidth = 0
     private var currentHeight = 0
@@ -84,6 +115,9 @@ internal class GlRenderThread(
     }
 
     fun onSurfaceDestroyed() {
+        // Written before the holder, so a render thread that later reads a non-null holder is
+        // guaranteed to also see this: both are volatile, and these writes are not reordered.
+        eglSurfaceStale = true
         holder = null
         wake()
     }
@@ -100,6 +134,17 @@ internal class GlRenderThread(
      */
     fun queueEvent(action: Runnable) {
         synchronized(lock) { eventQueue.addLast(action) }
+        wake()
+    }
+
+    /**
+     * Asks for the GPU textures to be dropped at the next safe moment.
+     *
+     * Deliberately not a [queueEvent]: queued actions are scene state, which is safe to touch at
+     * any point in the loop, while this is GL work and is only safe with a current context.
+     */
+    fun requestTrim() {
+        trimRequested = true
         wake()
     }
 
@@ -143,6 +188,14 @@ internal class GlRenderThread(
             if (currentHolder == null) {
                 // The window is gone. Release the surface but keep the context, so coming back does
                 // not have to re-upload every texture.
+                //
+                // A trim asked for in this state is deliberately left pending: there is no context
+                // to honour it with (destroyEglSurface unbinds the one there was), and this is the
+                // branch in which the old queued-Runnable trim did its damage.
+                if (GlLifecyclePolicy.mayApplyTrim(trimRequested, framePrepared = false)) {
+                    trimRequested = false
+                    target.trimTextures()
+                }
                 destroyEglSurface()
                 idle()
                 continue
@@ -155,9 +208,16 @@ internal class GlRenderThread(
             val frameStart = System.nanoTime()
             if (!prepareFrame(currentHolder, pendingWidth, pendingHeight)) {
                 if (holder == null) continue
-                reportUnavailable()
+                if (!recoverFromFrameFailure()) reportUnavailable()
                 continue
             }
+            // From here the context is current, which is the only point in this loop where GL work
+            // asked for from another thread may run -- see GlLifecyclePolicy.mayApplyTrim.
+            if (GlLifecyclePolicy.mayApplyTrim(trimRequested, framePrepared = true)) {
+                trimRequested = false
+                target.trimTextures()
+            }
+            hadWorkingContext = true
             drawFrame()
             pace(frameStart)
         }
@@ -238,6 +298,30 @@ internal class GlRenderThread(
         }
     }
 
+    /**
+     * A prepared frame failed while the surface is still there. Rebuild EGL, or give up.
+     *
+     * Everything that can fail in `prepareFrame` is treated identically by EGL itself: a context
+     * lost to a GPU driver reset only announces itself at `eglSwapBuffers`, so an `eglMakeCurrent`
+     * that has quietly started failing is indistinguishable from one that never worked. Telling
+     * them apart by *history* is what this does -- if a frame has ever been drawn, the hardware can
+     * clearly do GL, so the honest response is to throw the EGL state away and build it again
+     * rather than demote the engine to software for the rest of its life.
+     *
+     * Bounded by [GlLifecyclePolicy.MAX_CONTEXT_REBUILDS]: a GPU that is not coming back must not
+     * keep a render thread spinning on a live wallpaper.
+     */
+    private fun recoverFromFrameFailure(): Boolean {
+        if (!GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext, contextRebuilds)) return false
+        contextRebuilds++
+        // The same teardown the context-lost path at swap time uses: the target forgets its handles
+        // without touching GL, because there is no context to touch it with.
+        target.onContextLost()
+        destroyEglSurface()
+        releaseEglContextOnly()
+        return true
+    }
+
     private fun reportUnavailable() {
         if (unavailableReported) return
         unavailableReported = true
@@ -305,6 +389,16 @@ internal class GlRenderThread(
     }
 
     private fun ensureEglSurface(holder: SurfaceHolder): Boolean {
+        if (!GlLifecyclePolicy.mayReuseEglSurface(
+                hasEglSurface = eglSurface != EGL14.EGL_NO_SURFACE,
+                surfaceStale = eglSurfaceStale,
+            )
+        ) {
+            // Either there is nothing to reuse, or what there is belongs to a window that is gone.
+            // Releasing here is what the loop's surface-gone branch would have done, for the case
+            // where the replacement arrived before the render thread could look.
+            destroyEglSurface()
+        }
         if (eglSurface != EGL14.EGL_NO_SURFACE) return true
         val config = eglConfig ?: return false
         val surfaceAttribs = intArrayOf(EGL14.EGL_NONE)
@@ -322,6 +416,7 @@ internal class GlRenderThread(
     }
 
     private fun destroyEglSurface() {
+        eglSurfaceStale = false
         if (eglSurface == EGL14.EGL_NO_SURFACE) return
         EGL14.eglMakeCurrent(
             eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT,
@@ -330,6 +425,19 @@ internal class GlRenderThread(
         eglSurface = EGL14.EGL_NO_SURFACE
         currentWidth = 0
         currentHeight = 0
+    }
+
+    /**
+     * Drops the context and config but keeps the display, so the next frame builds both again.
+     *
+     * Separate from [releaseEgl], which is the thread's own teardown and also releases the display.
+     */
+    private fun releaseEglContextOnly() {
+        if (eglContext != EGL14.EGL_NO_CONTEXT) {
+            EGL14.eglDestroyContext(eglDisplay, eglContext)
+            eglContext = EGL14.EGL_NO_CONTEXT
+        }
+        eglConfig = null
     }
 
     private fun releaseEgl() {
