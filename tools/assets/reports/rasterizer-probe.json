@@ -1,8 +1,10 @@
 {
   "matches_expected": true,
   "numpy": "2.4.4",
-  "pillow": "12.1.1",
-  "probe_expected_sha256": "e2eb2e1004f7ca8529960f09ff65abc950dd81dffa4543f6044e5b224a3c6390",
-  "probe_sha256": "e2eb2e1004f7ca8529960f09ff65abc950dd81dffa4543f6044e5b224a3c6390",
-  "resvg_py": "0.4.0"
+  "pillow": "12.3.0",
+  "probe_expected_sha256": "ec77e95decaa9c2705fa0b3f07d9dc9332ba552fc176ac8a32c38f293fbb367f",
+  "probe_png_sha256": "20e57750234196faa3994b1fb52551f3fbed8c570bf1938395d0ca7dc53c82fc",
+  "probe_sha256": "ec77e95decaa9c2705fa0b3f07d9dc9332ba552fc176ac8a32c38f293fbb367f",
+  "resvg_py": "0.4.0",
+  "zlib": "1.3.1.zlib-ng"
 }

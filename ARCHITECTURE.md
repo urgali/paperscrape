@@ -1046,10 +1046,23 @@ from or for.
 `DayNightColor` is the only implementation of the transform, and it is plain
 Kotlin with no `android.*` import so that `ThemePreviewScene` (which
 deliberately avoids the platform) and the JVM tests run the same code the
-wallpaper does. The rule is **hue held, lightness ×0.635, saturation ×0.725**,
-measured from the 41 day/night pairs this project already authors by hand
-rather than chosen — including the result that the hue does *not* rotate
-towards blue, which is the obvious guess and is wrong for this artwork.
+wallpaper does.
+
+Since **v4.13** it works in **CIELAB**: hue held, `L*` ×0.50, chroma ×0.80, and
+a small push towards blue (`b*` −6, scaled by the daytime lightness so black
+stays black). Out-of-gamut results are gamut-mapped rather than clipped —
+clipping a darkened red pinned green to zero and dragged the hue towards
+magenta.
+
+v4.12 worked in HSL with factors fitted to the 41 authored day/night pairs.
+**Fitting those pairs was the mistake.** Stratified by daytime lightness they
+do not describe one rule at all: the sky at `#CDEFFF` goes to 0.12 of its `L*`,
+clouds at `#FFFFFF` to 0.36, a wall to 0.73, and snow on mountains to 0.87 —
+because snow is *meant* to stay bright under the moon. They are per-object
+artistic decisions, and the median across them left white at `#A2A2A2`, a mid
+grey, which is what "the night colours are still too light" was reporting. The
+constants now come from the requirement and were settled by looking at a
+physical device.
 
 Two properties are worth stating because the design turns on them:
 

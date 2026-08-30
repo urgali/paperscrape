@@ -19,6 +19,90 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.13 — night colours that are actually night, and a probe that measures the right thing
+
+**Prepared, not published.** `versionCode = 44`, `versionName = "4.13"`. Prepared 2026-08-30. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.12**.
+
+### The automatic night transform, rebuilt
+
+v4.12's factors were **fitted to the 41 day/night pairs the built-in themes author by hand**, and
+that was the wrong thing to fit. Stratified by how light the daytime colour is, those pairs do not
+describe one rule:
+
+| daytime colour | authored night / day, as a ratio of `L*` |
+|---|---|
+| the sky at `#CDEFFF` | **0.124** — the sky goes very nearly black |
+| clouds at `#FFFFFF` | **0.359** |
+| a wall at `#F7EFE6` | 0.726 |
+| snow on mountains at `#F7FAFC` | **0.868** — snow is *meant* to stay bright under the moon |
+
+They are per-object artistic decisions, not a lighting law, and the median across them left white at
+`#A2A2A2` — a mid grey. That is exactly what "the night colours are still too light" was reporting.
+
+The rule now comes from the requirement and works in **CIELAB**: hue held, `L*` ×0.50, chroma ×0.80,
+and a small push towards blue (`b*` −6) scaled by lightness so **black stays black**. Out-of-gamut
+results are gamut-mapped rather than clipped — clipping a darkened red pinned green to zero and
+dragged the hue to magenta. The inverse direction needed its own mapper: brightening asks for a
+lightness there is no room for, and a strongly chromatic Lab point is outside sRGB at *both* ends of
+the lightness range, so it walks from the colour the user chose towards the requested one and stops
+at the furthest point that fits.
+
+Measured, on the physical phone:
+
+| case | day | v4.12 night | **v4.13 night** |
+|---|---|---|---|
+| Christmas hills (snow) | `#F3F7FB` `L*` 97.4 | `L*` 65.9 | **`#6C7480` `L*` 48.6** |
+| bright red houses | `#E53935` `L*` 51.7 | `#8C2A27` `L*` 32.7 | **`#810013` `L*` 25.9** |
+
+`MANUAL` is untouched and still returns the stored pair as the same instance.
+
+### The rasteriser probe was measuring the compressor
+
+`test_toolchain_matches_the_pinned_fingerprint` had failed for several releases while `compare`
+reported PIXEL_IDENTICAL for all 125 SVG-sourced sprites, and three batches documented the
+contradiction without resolving it. The cause: the fingerprint hashed the **compressed PNG**, so it
+depended on the zlib build inside the Pillow wheel. This machine's reports `1.3.1.zlib-ng`; the one
+that recorded the value had stock zlib.
+
+Demonstrated rather than argued — rendering the probe and pulling the PNG apart, the decompressed
+IDAT is 16 448 bytes hashing to `01d4b1d3…`, and recompressing *those exact bytes* with CPython's
+own zlib gives `c43a0846…` against the `6dfe20c8…` Pillow wrote. Same pixels, different bytes.
+
+The probe now hashes the **pixels**, which is what a rasteriser fingerprint has to be, and reports
+the file hash and the zlib build alongside so an encoder change stays visible without being fatal.
+Two tests pin it so it cannot regress to hashing bytes. Recording the value from this machine is
+licensed by `compare`: all 125 sprites come back pixel-identical, which is stronger evidence of
+"same rasteriser" than one synthetic document. **The asset suite is green for the first time in
+months: 105 tests, 0 failures.** Closes `TOOL-PROBE-PIN` and `TOOL-PROBE-STRICT`.
+
+### Gradle could not see the sprite artwork
+
+`SpriteGeometryTest` and its siblings read the PNGs at runtime, so nothing connected them to the
+test task's up-to-date checks: editing a sprite and running `test` reported UP-TO-DATE and told you
+the old artwork still passed. The directory is now declared as an input. Verified by changing one
+pixel — the task re-runs — and restoring it — the task goes back to UP-TO-DATE. Closes
+`GRADLE-PNG-INPUTS`.
+
+### What was measured and deliberately not changed
+
+**Performance, on a OnePlus 6T.** Hidden, the wallpaper sits at **0.0% CPU** — it idles correctly,
+no polling and no wakeups. Visible, the *release* build sits at **~28%** of one core's worth out of
+800%, with the GL thread at ~26%. The debug build sits at ~120%, of which `top -H` attributes ~48%
+to the JIT thread pool; that figure is an artefact of the build type and not a defect. Nothing was
+optimised, because nothing measured badly.
+
+**The GL goldens are tied to their reference driver.** On the Adreno 630 the three `gl-*` goldens
+differ by 1.1–1.7% at the ≥16 gate whose limit is 0.5%, while all 30 Canvas goldens pass and the
+same build scores **102/102 on the emulator they were captured on**. That is a driver difference,
+not a regression — and not a reason to raise a tolerance. Newly discovered because a physical phone
+was available for the first time.
+
+`CLIP-LIBRARY-WIDE` and `ARC-05-res` remain classified as intentional; `DOC-CLAUDE-ASSETS`,
+`DOC-GL`, `DOC-INV` and `DOC-DESIGN-TABLE` were re-checked against the tree and are closed.
+
+---
+
 ## v4.12 — the app can work out the other half of a colour
 
 **Prepared, not published.** `versionCode = 43`, `versionName = "4.12"`. Prepared 2026-08-30. No

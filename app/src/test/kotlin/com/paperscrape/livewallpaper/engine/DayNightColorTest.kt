@@ -12,17 +12,32 @@ import org.junit.Test
  * The transform is deliberately testable without Android: [DayNightColor] imports nothing from the
  * platform precisely so that the rule the wallpaper draws, the rule the theme cards draw and the
  * rule asserted here are the same code rather than three that agree today.
+ *
+ * The assertions are mostly **relations** rather than pinned values -- "a night colour is darker",
+ * "the hue survives", "black stays black" -- because the two factors are a design decision that
+ * will be re-tuned. The three that *are* pinned are pinned on purpose and say why.
  */
 class DayNightColorTest {
 
     private fun rgb(color: Int) = Triple(color shr 16 and 0xFF, color shr 8 and 0xFF, color and 0xFF)
-    private fun lightnessOf(color: Int) = DayNightColor.toHsl(color).third
-    private fun saturationOf(color: Int) = DayNightColor.toHsl(color).second
-    private fun hueOf(color: Int) = DayNightColor.toHsl(color).first
+    private fun lightness(color: Int) = DayNightColor.lightnessOf(color)
+    private fun chroma(color: Int) = DayNightColor.chromaOf(color)
+    private fun hue(color: Int) = DayNightColor.hueOf(color)
 
+    private val white = 0xFFFFFFFF.toInt()
+    private val black = 0xFF000000.toInt()
     private val red = 0xFFE53935.toInt()
     private val green = 0xFF43A047.toInt()
     private val blue = 0xFF1E88E5.toInt()
+    private val yellow = 0xFFFDD835.toInt()
+
+    /** Every colour a user might realistically drag a picker to, including the corners. */
+    private val spread = listOf(
+        white, black, red, green, blue, yellow,
+        0xFFFF0000.toInt(), 0xFF00FF00.toInt(), 0xFF0000FF.toInt(),
+        0xFFE0E0E0.toInt(), 0xFF808080.toInt(), 0xFF202020.toInt(),
+        0xFFF7FAFC.toInt(), 0xFF2E2A55.toInt(), 0xFFFB8C00.toInt(),
+    )
 
     // --- Manual: the behaviour that shipped before this existed ------------------------------
 
@@ -35,9 +50,9 @@ class DayNightColorTest {
 
     @Test
     fun `a customization with every pair manual is returned as the same instance`() {
-        // Not merely equal: the resolver short-circuits per config, and a default customization
-        // must cost nothing at all. This is what keeps the feature free for users who never open
-        // the toggle.
+        // Not merely equal: the resolver short-circuits per config, so a default customization must
+        // cost nothing at all. This is what keeps the feature free for users who never open it, and
+        // what keeps MANUAL byte-identical to the release before the transform changed.
         val defaults = SceneCustomization.DEFAULT
         assertEquals(defaults, defaults.withResolvedDayNightColors())
         assertSame(defaults.houses, defaults.withResolvedDayNightColors().houses)
@@ -61,87 +76,124 @@ class DayNightColorTest {
         assertEquals(DayNightColor.dayFromNight(blue), day)
     }
 
+    // --- The rule itself ----------------------------------------------------------------------
+
     @Test
-    fun `night is darker and calmer than the day it came from`() {
-        for (day in listOf(red, green, blue, 0xFF7F7F7F.toInt(), 0xFFFFC107.toInt())) {
+    fun `every night colour is markedly darker than the day it came from`() {
+        // "Markedly" is the whole point of the v4.13 rewrite: v4.12 was reported as producing night
+        // colours that still read as daytime ones. Anything above 0.6 of the original lightness is
+        // that failure coming back.
+        for (day in spread) {
             val night = DayNightColor.nightFromDay(day)
-            assertTrue("night must be darker than $day", lightnessOf(night) < lightnessOf(day))
-            assertTrue("night must be no more saturated", saturationOf(night) <= saturationOf(day) + 1e-3f)
+            val before = lightness(day)
+            if (before < 1f) continue
+            val ratio = lightness(night) / before
+            assertTrue("$day: night must be darker, was ratio $ratio", ratio < 0.6f)
         }
     }
 
     @Test
-    fun `day is lighter than the night it came from`() {
-        for (night in listOf(0xFF3A1F1F.toInt(), 0xFF1B2A3A.toInt(), 0xFF2E2A55.toInt())) {
-            val day = DayNightColor.dayFromNight(night)
-            assertTrue("day must be lighter than $night", lightnessOf(day) > lightnessOf(night))
+    fun `white goes clearly darker and clearly cooler`() {
+        val night = DayNightColor.nightFromDay(white)
+        val (r, g, b) = rgb(night)
+        assertTrue("white must lose at least a third of its lightness", lightness(night) < 66f)
+        assertTrue("and it must not stay a neutral grey: blue should lead", b > r)
+        assertTrue("but it must not become blue paint either", chroma(night) < 20f)
+    }
+
+    @Test
+    fun `a bright red goes to a deep red rather than to brown or magenta`() {
+        val night = DayNightColor.nightFromDay(red)
+        val (r, g, b) = rgb(night)
+        assertTrue("red must stay the dominant channel", r > g && r > b)
+        assertTrue("it must be markedly darker", lightness(night) < lightness(red) * 0.6f)
+        assertTrue("and still be colourful, not a brown", chroma(night) > 25f)
+        // The v4.12 failure this replaces: chroma pushed out of gamut and clipped, dragging the
+        // hue towards magenta. Gamut mapping trades saturation, never hue.
+        assertEquals("the hue must survive", hue(red), hue(night), 12f)
+    }
+
+    @Test
+    fun `nothing collapses to grey`() {
+        for (day in spread) {
+            if (chroma(day) < 5f) continue
+            val night = DayNightColor.nightFromDay(day)
+            assertTrue("$day lost all its colour: chroma ${chroma(night)}", chroma(night) > 4f)
         }
     }
 
     @Test
-    fun `hue survives the trip in both directions`() {
-        // The measured rule keeps hue: a night palette that drifted towards blue would put a
-        // colour cast on every automatic pair, and this project's own artwork does not do that.
-        for (source in listOf(red, green, blue, 0xFFFF00FF.toInt())) {
-            assertEquals(hueOf(source), hueOf(DayNightColor.nightFromDay(source)), 0.5f)
-            assertEquals(hueOf(source), hueOf(DayNightColor.dayFromNight(source)), 0.5f)
+    fun `nothing collapses to black`() {
+        for (day in spread) {
+            if (lightness(day) < 15f) continue
+            val night = DayNightColor.nightFromDay(day)
+            assertTrue("$day went black", lightness(night) > 4f)
         }
     }
 
     @Test
-    fun `the factors are the ones measured from the project's own pairs`() {
-        // Pinned because they are evidence, not taste: 41 authored day/night pairs put the
-        // lightness ratio at 0.635 and the saturation ratio at 0.725. Re-measure before changing
-        // either, and say so here.
-        assertEquals(0.635f, DayNightColor.NIGHT_LIGHTNESS_FACTOR, 1e-6f)
-        assertEquals(0.725f, DayNightColor.NIGHT_SATURATION_FACTOR, 1e-6f)
-        val day = 0xFF808080.toInt()
-        assertEquals(
-            lightnessOf(day) * DayNightColor.NIGHT_LIGHTNESS_FACTOR,
-            lightnessOf(DayNightColor.nightFromDay(day)),
-            0.01f,
-        )
+    fun `hue survives in both directions`() {
+        for (source in spread) {
+            if (chroma(source) < 8f) continue
+            assertEquals("night hue drifted", hue(source), hue(DayNightColor.nightFromDay(source)), 15f)
+            assertEquals("day hue drifted", hue(source), hue(DayNightColor.dayFromNight(source)), 15f)
+        }
+    }
+
+    @Test
+    fun `darkening is monotone in lightness`() {
+        // A lighter colour must not produce a darker night than a darker one of the same hue,
+        // or a gradient would fold over on itself as the sun goes down.
+        val ramp = listOf(0xFF202020, 0xFF505050, 0xFF808080, 0xFFB0B0B0, 0xFFE0E0E0, 0xFFFFFFFF)
+            .map { it.toInt() }
+        val nights = ramp.map { lightness(DayNightColor.nightFromDay(it)) }
+        for (i in 1 until nights.size) {
+            assertTrue("the ramp folded at index $i: $nights", nights[i] > nights[i - 1])
+        }
+    }
+
+    @Test
+    fun `the two directions are reasonably reciprocal`() {
+        // Gamut mapping is not invertible, so this is a lightness round trip rather than an exact
+        // one. Anything worse than a couple of L* units would make the toggle feel lossy.
+        for (day in spread) {
+            val back = DayNightColor.dayFromNight(DayNightColor.nightFromDay(day))
+            assertEquals("round trip lost lightness for $day", lightness(day), lightness(back), 2.5f)
+        }
     }
 
     // --- Edge cases ---------------------------------------------------------------------------
 
     @Test
     fun `black stays black in both directions`() {
-        val black = 0xFF000000.toInt()
         assertEquals(black, DayNightColor.nightFromDay(black))
-        // Brightening zero cannot invent light. Predictable beats clever: a user who picks black
-        // and switches on "night sets day" gets black, not a surprise grey.
+        // Brightening zero cannot invent light, and an unlit thing must not acquire a colour cast
+        // because the sun went down -- which is why the blue shift is scaled by lightness.
         assertEquals(black, DayNightColor.dayFromNight(black))
     }
 
     @Test
-    fun `white darkens to a neutral grey and does not overshoot coming back`() {
-        val white = 0xFFFFFFFF.toInt()
-        val night = DayNightColor.nightFromDay(white)
-        assertEquals(0f, saturationOf(night), 1e-3f)
-        assertTrue(lightnessOf(night) in 0.60f..0.66f)
-        // Already at the ceiling: brightening white leaves white rather than wrapping round.
+    fun `white cannot be brightened past white`() {
         assertEquals(white, DayNightColor.dayFromNight(white))
     }
 
     @Test
-    fun `greys stay grey`() {
+    fun `greys stay neutral apart from the deliberate cool shift`() {
         for (grey in listOf(0xFF202020.toInt(), 0xFF808080.toInt(), 0xFFD0D0D0.toInt())) {
             val night = DayNightColor.nightFromDay(grey)
-            val (r, g, b) = rgb(night)
-            assertEquals("a grey must not gain a hue", r, g)
-            assertEquals("a grey must not gain a hue", g, b)
+            val (r, _, b) = rgb(night)
+            assertTrue("a grey must not warm up", b >= r)
+            assertTrue("and must not turn into a colour", chroma(night) < 20f)
         }
     }
 
     @Test
-    fun `a fully saturated colour stays recognisably itself`() {
-        val pureRed = 0xFFFF0000.toInt()
-        val night = DayNightColor.nightFromDay(pureRed)
-        val (r, g, b) = rgb(night)
-        assertTrue("red must stay the dominant channel", r > g && r > b)
-        assertTrue("and it must actually be darker", r < 0xFF)
-        assertEquals(hueOf(pureRed), hueOf(night), 0.5f)
+    fun `fully saturated primaries stay themselves`() {
+        for ((name, c) in listOf("red" to 0xFFFF0000.toInt(), "green" to 0xFF00FF00.toInt(), "blue" to 0xFF0000FF.toInt())) {
+            val night = DayNightColor.nightFromDay(c)
+            assertEquals("$name changed hue", hue(c), hue(night), 15f)
+            assertTrue("$name did not darken", lightness(night) < lightness(c))
+        }
     }
 
     @Test
@@ -152,8 +204,36 @@ class DayNightColorTest {
     }
 
     @Test
+    fun `every result is a valid opaque colour`() {
+        for (day in spread) {
+            for (c in listOf(DayNightColor.nightFromDay(day), DayNightColor.dayFromNight(day))) {
+                val (r, g, b) = rgb(c)
+                assertTrue("channel out of range in ${Integer.toHexString(c)}",
+                    r in 0..255 && g in 0..255 && b in 0..255)
+                assertEquals(0xFF, c ushr 24 and 0xFF)
+            }
+        }
+    }
+
+    @Test
     fun `the transform is deterministic`() {
         repeat(3) { assertEquals(DayNightColor.nightFromDay(red), DayNightColor.nightFromDay(red)) }
+    }
+
+    @Test
+    fun `the factors are the ones the design brief settled on`() {
+        // Pinned so that changing them is a decision rather than a slip. They are not fitted to the
+        // authored pairs -- see the KDoc for why that fit is the thing v4.12 got wrong -- so a
+        // future change means looking at a device again, not re-running a regression.
+        assertEquals(0.50f, DayNightColor.NIGHT_LIGHTNESS_FACTOR, 1e-6f)
+        assertEquals(0.80f, DayNightColor.NIGHT_CHROMA_FACTOR, 1e-6f)
+        assertEquals(6.0f, DayNightColor.NIGHT_BLUE_SHIFT, 1e-6f)
+        assertEquals(
+            "half the perceptual lightness, by construction",
+            lightness(0xFF808080.toInt()) * 0.50f,
+            lightness(DayNightColor.nightFromDay(0xFF808080.toInt())),
+            1.5f,
+        )
     }
 
     // --- The whole customization --------------------------------------------------------------
@@ -187,11 +267,8 @@ class DayNightColorTest {
                 colorDay1 = red, colorNight1 = blue, autoMode1 = AutoColorMode.FROM_DAY,
             ),
         )
-        // What the scene draws while automatic is on.
         assertNotEquals(blue, stored.withResolvedDayNightColors().houses.colorNight1)
-        // The stored value is untouched, which is the whole reversibility guarantee...
         assertEquals(blue, stored.houses.colorNight1)
-        // ...so turning the toggle off hands back exactly the colour that was picked by hand.
         val backToManual = stored.copy(houses = stored.houses.copy(autoMode1 = AutoColorMode.MANUAL))
         assertEquals(blue, backToManual.withResolvedDayNightColors().houses.colorNight1)
     }

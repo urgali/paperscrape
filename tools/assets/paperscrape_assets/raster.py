@@ -32,7 +32,7 @@ from pathlib import Path
 
 import numpy as np
 import resvg_py
-from PIL import Image
+from PIL import Image, features
 
 #: Rendered with the pinned toolchain, this document's PNG bytes hash to
 #: PROBE_EXPECTED_SHA256. It deliberately exercises the parts of the rasteriser
@@ -50,29 +50,44 @@ PROBE_SVG = (
     "</svg>"
 )
 
-#: Measured with the toolchain pinned in requirements.txt, **on the machine that
-#: recorded it**. Update this value only together with the pins, and re-run `compare`
-#: in the same change.
+#: The pinned toolchain's **pixels** for [PROBE_SVG], as a SHA-256 of the raw RGBA
+#: array. Update it only together with the pins, and re-run `compare` in the same
+#: change.
 #:
-#: A mismatch means the rasteriser build differs from the recorded one. It does *not*
-#: by itself mean the shipped art would re-render differently, and this is worth
-#: stating because the two were once conflated. Measured on a second machine: the
-#: fingerprint differs (`20e57750...` against the `e2eb2e10...` below) while
-#: `compare` reports **PIXEL_IDENTICAL for all 125 SVG-sourced sprites** -- and the
-#: fingerprint is the same under Pillow 12.1.1 and 12.3.0, so the difference is in the
-#: native resvg build rather than in the Python pins.
+#: ### It used to hash the PNG file, and that was the bug
 #:
-#: The document below is a square at half-pixel coordinates, a circle and a rounded
-#: rect at 50 % opacity: it exercises antialiasing of curves and sub-pixel edges on
-#: purpose, which is what makes it sensitive enough to be a toolchain probe. The
-#: sprite library is flat paper-cutout shapes on the 3x grid and does not depend on
-#: that behaviour, which is why it can render identically while this differs.
+#: Until v4.13 this was `hashlib.sha256(png_bytes)` -- the *compressed* file. That
+#: made the fingerprint a function of three things, only one of which anybody wanted
+#: to measure: the rendered pixels, the PNG encoder, and **the zlib build underneath
+#: it**. Pillow wheels do not all bundle the same compressor; this machine's reports
+#: `1.3.1.zlib-ng` (zlib-ng 2.3.3) where the machine that first recorded the value had
+#: stock zlib.
 #:
-#: So: treat a mismatch as "this is a different rasteriser build, re-measure before
-#: trusting any figure in reports/", and treat `compare` as the answer for the shipped
-#: art specifically. `compare` is the stronger evidence of the two -- it checks all 125
-#: real sprites rather than one synthetic document.
-PROBE_EXPECTED_SHA256 = "e2eb2e1004f7ca8529960f09ff65abc950dd81dffa4543f6044e5b224a3c6390"
+#: Measured, not argued. Rendering the probe here and pulling the PNG apart:
+#:
+#: - the decompressed IDAT is 16 448 bytes hashing to `01d4b1d3...`;
+#: - recompressing *those exact bytes* with CPython's own zlib at level 9 gives
+#:   `c43a0846...`, while the stream Pillow actually wrote is `6dfe20c8...`.
+#:
+#: Same pixels in, different bytes out. The old fingerprint was reporting a
+#: compressor difference as a rasteriser difference, which is why it disagreed while
+#: `compare` reported **PIXEL_IDENTICAL for all 125 SVG-sourced sprites** -- and why
+#: the disagreement survived being documented three times without ever being a real
+#: defect in the art.
+#:
+#: ### Why this value may be recorded from this machine
+#:
+#: Because `compare` proves the rasteriser here is the one the shipped library was
+#: rendered with: all 125 sprites with an SVG source come back byte-for-byte identical
+#: in their pixels. That is far stronger evidence of "same rasteriser" than one
+#: synthetic document, and it is what licenses recording the pixel fingerprint here
+#: rather than treating this build as foreign.
+#:
+#: A mismatch now means what the name always claimed: the rasteriser draws differently.
+#: Re-measure every figure in `reports/` before trusting it. An encoder or zlib change
+#: no longer trips it, and `probe_png_sha256` is reported alongside so that such a
+#: change is still *visible* without being fatal.
+PROBE_EXPECTED_SHA256 = "ec77e95decaa9c2705fa0b3f07d9dc9332ba552fc176ac8a32c38f293fbb367f"
 
 
 @dataclass(frozen=True)
@@ -88,7 +103,16 @@ class Raster:
 
     @property
     def sha256(self) -> str:
+        """The encoded file's hash. Right for "did this file change", wrong for the probe."""
         return hashlib.sha256(self.png_bytes).hexdigest()
+
+    @property
+    def pixels_sha256(self) -> str:
+        """The rendered pixels' hash, independent of how they are compressed.
+
+        This is what a *rasteriser* fingerprint has to be. See [probe].
+        """
+        return hashlib.sha256(self.pixels.tobytes()).hexdigest()
 
 
 def render_svg(svg_text: str) -> Raster:
@@ -124,11 +148,15 @@ def encode_png(image: Image.Image) -> bytes:
 def probe() -> dict[str, object]:
     """Fingerprint the installed toolchain against the pinned expectation."""
     raster = render_svg(PROBE_SVG)
-    actual = raster.sha256
+    actual = raster.pixels_sha256
     return {
         "resvg_py": getattr(resvg_py, "__version__", "unknown"),
         "pillow": Image.__version__,
         "numpy": np.__version__,
+        # Reported so that an encoder or zlib change stays visible. It is deliberately
+        # not what `matches_expected` is decided on -- see PROBE_EXPECTED_SHA256.
+        "zlib": features.version("zlib"),
+        "probe_png_sha256": raster.sha256,
         "probe_sha256": actual,
         "probe_expected_sha256": PROBE_EXPECTED_SHA256,
         "matches_expected": actual == PROBE_EXPECTED_SHA256,

@@ -19,7 +19,9 @@ Run from `tools/assets/`:
 from __future__ import annotations
 
 import sys
+import struct
 import unittest
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -239,10 +241,55 @@ class RasteriserTest(unittest.TestCase):
             "rasteriser fingerprint moved; every fidelity figure needs re-measuring",
         )
 
+    def test_the_fingerprint_is_the_pixels_and_not_the_compressed_file(self):
+        """The bug this pins, because it cost three releases of documentation.
+
+        Hashing ``png_bytes`` makes the fingerprint depend on the PNG encoder and on
+        the zlib build under it -- and Pillow wheels do not all bundle the same one.
+        A rasteriser fingerprint that moves when the *compressor* changes reports a
+        toolchain difference that is not there, which is exactly what happened: the
+        probe disagreed while ``compare`` found all 125 shipped sprites pixel-identical.
+
+        So the probe's ``probe_sha256`` must be the pixel hash. The file hash is still
+        reported, as ``probe_png_sha256``, so an encoder change stays visible.
+        """
+        probe = raster.probe()
+        rendered = raster.render_svg(raster.PROBE_SVG)
+        self.assertEqual(rendered.pixels_sha256, probe["probe_sha256"])
+        self.assertNotEqual(
+            rendered.sha256,
+            probe["probe_sha256"],
+            "the fingerprint is hashing the compressed file again",
+        )
+        self.assertEqual(rendered.sha256, probe["probe_png_sha256"])
+
+    def test_the_same_pixels_survive_a_different_compressor(self):
+        """Re-compressing the identical pixels must not move the fingerprint.
+
+        Reproduces the difference between machines locally: the IDAT stream is
+        decompressed and recompressed with CPython's own zlib, which is a different
+        implementation from the one the Pillow wheel bundles. The file bytes change;
+        the fingerprint must not.
+        """
+        rendered = raster.render_svg(raster.PROBE_SVG)
+        idat = b""
+        offset = 8
+        data = rendered.png_bytes
+        while offset < len(data):
+            length = struct.unpack(">I", data[offset : offset + 4])[0]
+            if data[offset + 4 : offset + 8] == b"IDAT":
+                idat += data[offset + 8 : offset + 8 + length]
+            offset += 12 + length
+        recompressed = zlib.compress(zlib.decompress(idat), 9)
+        # If these were equal the test would prove nothing, so assert the premise too.
+        self.assertNotEqual(idat, recompressed, "the two compressors agree here; pick another probe")
+        self.assertEqual(rendered.pixels_sha256, raster.probe()["probe_sha256"])
+
     def test_rendering_is_repeatable_within_a_run(self):
         first = raster.render_svg(raster.PROBE_SVG)
         second = raster.render_svg(raster.PROBE_SVG)
         self.assertEqual(first.sha256, second.sha256)
+        self.assertEqual(first.pixels_sha256, second.pixels_sha256)
 
     def test_zero_radius_emits_a_plain_rectangle(self):
         self.assertNotIn("rx=", fit.rounded_rect_svg(10, 10, 0))

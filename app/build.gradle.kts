@@ -40,8 +40,8 @@ android {
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 43
-        versionName = "4.12"
+        versionCode = 44
+        versionName = "4.13"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
@@ -214,4 +214,21 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
+}
+
+// **The sprite artwork is an input to the unit tests, and Gradle could not see it.**
+//
+// `SpriteGeometryTest`, `SpriteTintClassTest` and the fidelity checks read the PNGs out of
+// `res/drawable-nodpi` at runtime rather than through a resource reference, so nothing connected
+// them to the test task's up-to-date checks. Editing a sprite and running `test` reported
+// UP-TO-DATE and told you the old artwork still passed -- which it did, because it was never
+// re-read. It cost a `--rerun-tasks` every time somebody remembered, and a wrong green when
+// nobody did.
+//
+// Declaring the directory is the whole fix. `RELATIVE` path sensitivity because the tests care
+// about file names and contents, not about where the checkout lives.
+tasks.withType<Test>().configureEach {
+    inputs.dir(layout.projectDirectory.dir("src/main/res/drawable-nodpi"))
+        .withPropertyName("spriteArtwork")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
