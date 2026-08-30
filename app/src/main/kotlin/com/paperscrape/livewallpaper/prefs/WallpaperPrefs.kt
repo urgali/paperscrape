@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.paperscrape.livewallpaper.prefs.PrefsRecovery.recoveringFromReadErrors
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
+import com.paperscrape.livewallpaper.engine.AutoColorMode
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.PeopleDensity
 import com.paperscrape.livewallpaper.engine.MountainLayerConfig
@@ -286,9 +287,21 @@ class WallpaperPrefs(private val context: Context) {
         fun colorNight1(category: ObjectCategory) = intPreferencesKey("obj_${category.name}_color_night_1")
         fun colorDay2(category: ObjectCategory) = intPreferencesKey("obj_${category.name}_color_day_2")
         fun colorNight2(category: ObjectCategory) = intPreferencesKey("obj_${category.name}_color_night_2")
+
+        /**
+         * Which half of each pair the user owns, stored as [AutoColorMode.storageId].
+         *
+         * A string rather than a boolean because there are three states, not two, and because a
+         * pair whose meaning depended on an enum's ordinal would repaint itself the day somebody
+         * inserted a constant. Absent means [AutoColorMode.MANUAL], which is what every install
+         * predating the feature reads.
+         */
+        fun autoMode1(category: ObjectCategory) = stringPreferencesKey("obj_${category.name}_auto_mode_1")
+        fun autoMode2(category: ObjectCategory) = stringPreferencesKey("obj_${category.name}_auto_mode_2")
         val HILLS_VARIATION = floatPreferencesKey("hills_variation")
         val HILLS_COLOR_DAY = intPreferencesKey("hills_color_day")
         val HILLS_COLOR_NIGHT = intPreferencesKey("hills_color_night")
+        val HILLS_AUTO_MODE = stringPreferencesKey("hills_auto_mode")
         val SCROLL_BACKGROUND = booleanPreferencesKey("scroll_background")
         val SWIPE_SCROLL = booleanPreferencesKey("swipe_scroll")
         val SCROLL_SPEED = floatPreferencesKey("scroll_speed")
@@ -296,9 +309,11 @@ class WallpaperPrefs(private val context: Context) {
         fun mountainDensity(front: Boolean) = floatPreferencesKey("mountain_${if (front) "front" else "back"}_density")
         fun mountainColorDay(front: Boolean) = intPreferencesKey("mountain_${if (front) "front" else "back"}_color_day")
         fun mountainColorNight(front: Boolean) = intPreferencesKey("mountain_${if (front) "front" else "back"}_color_night")
+        fun mountainAutoMode(front: Boolean) = stringPreferencesKey("mountain_${if (front) "front" else "back"}_auto_mode")
         val LAKE_VISIBLE = booleanPreferencesKey("lake_visible")
         val LAKE_COLOR_DAY = intPreferencesKey("lake_color_day")
         val LAKE_COLOR_NIGHT = intPreferencesKey("lake_color_night")
+        val LAKE_AUTO_MODE = stringPreferencesKey("lake_auto_mode")
         val LAKE_HEIGHT = floatPreferencesKey("lake_height")
         val LAKE_SAILBOATS_VISIBLE = booleanPreferencesKey("lake_sailboats_visible")
         val LAKE_SAILBOATS_DENSITY = floatPreferencesKey("lake_sailboats_density")
@@ -312,6 +327,8 @@ class WallpaperPrefs(private val context: Context) {
         val SKY_COLOR_NIGHT_LOW = intPreferencesKey("sky_color_night_low")
         val SKY_COLOR_SUNRISE_LOW = intPreferencesKey("sky_color_sunrise_low")
         val SKY_COLOR_SUNSET_LOW = intPreferencesKey("sky_color_sunset_low")
+        val SKY_AUTO_MODE_HIGH = stringPreferencesKey("sky_auto_mode_high")
+        val SKY_AUTO_MODE_LOW = stringPreferencesKey("sky_auto_mode_low")
         val SKY_SUN_CLOUD_HEIGHT = floatPreferencesKey("sky_sun_cloud_height")
         val SUN_VISIBLE = booleanPreferencesKey("sun_visible")
         val SUN_COLOR = intPreferencesKey("sun_color")
@@ -322,6 +339,7 @@ class WallpaperPrefs(private val context: Context) {
         val CLOUDS_DENSITY = floatPreferencesKey("clouds_density")
         val CLOUDS_COLOR_DAY = intPreferencesKey("clouds_color_day")
         val CLOUDS_COLOR_NIGHT = intPreferencesKey("clouds_color_night")
+        val CLOUDS_AUTO_MODE = stringPreferencesKey("clouds_auto_mode")
         val BIRDS_VISIBLE = booleanPreferencesKey("birds_visible")
         val BIRDS_DENSITY = floatPreferencesKey("birds_density")
         val BIRDS_NIGHT = booleanPreferencesKey("birds_night")
@@ -334,6 +352,8 @@ class WallpaperPrefs(private val context: Context) {
         val PRECIPITATION_RAIN_COLOR_NIGHT = intPreferencesKey("precipitation_rain_color_night")
         val PRECIPITATION_SNOW_COLOR_DAY = intPreferencesKey("precipitation_snow_color_day")
         val PRECIPITATION_SNOW_COLOR_NIGHT = intPreferencesKey("precipitation_snow_color_night")
+        val PRECIPITATION_RAIN_AUTO_MODE = stringPreferencesKey("precipitation_rain_auto_mode")
+        val PRECIPITATION_SNOW_AUTO_MODE = stringPreferencesKey("precipitation_snow_auto_mode")
         val PRECIPITATION_THUNDERSTORM = booleanPreferencesKey("precipitation_thunderstorm")
         val RAINBOW_VISIBLE = booleanPreferencesKey("rainbow_visible")
         val RAINBOW_OPACITY = floatPreferencesKey("rainbow_opacity")
@@ -354,6 +374,8 @@ class WallpaperPrefs(private val context: Context) {
             colorNight1 = prefs[Keys.colorNight1(category)] ?: default.colorNight1,
             colorDay2 = prefs[Keys.colorDay2(category)] ?: default.colorDay2,
             colorNight2 = prefs[Keys.colorNight2(category)] ?: default.colorNight2,
+            autoMode1 = AutoColorMode.fromStorageId(prefs[Keys.autoMode1(category)]),
+            autoMode2 = AutoColorMode.fromStorageId(prefs[Keys.autoMode2(category)]),
         )
 
     val settingsFlow: Flow<WallpaperSettings> = context.dataStore.data.recoveringFromReadErrors().map { prefs ->
@@ -433,17 +455,20 @@ class WallpaperPrefs(private val context: Context) {
             hillsVariation = prefs[Keys.HILLS_VARIATION] ?: defaults.hillsVariation,
             hillsColorDay = prefs[Keys.HILLS_COLOR_DAY] ?: defaults.hillsColorDay,
             hillsColorNight = prefs[Keys.HILLS_COLOR_NIGHT] ?: defaults.hillsColorNight,
+            hillsAutoMode = AutoColorMode.fromStorageId(prefs[Keys.HILLS_AUTO_MODE]),
             mountainsFront = MountainLayerConfig(
                 visible = prefs[Keys.mountainVisible(true)] ?: defaults.mountainsFront.visible,
                 density = prefs[Keys.mountainDensity(true)] ?: defaults.mountainsFront.density,
                 colorDay = prefs[Keys.mountainColorDay(true)] ?: defaults.mountainsFront.colorDay,
                 colorNight = prefs[Keys.mountainColorNight(true)] ?: defaults.mountainsFront.colorNight,
+                autoMode = AutoColorMode.fromStorageId(prefs[Keys.mountainAutoMode(true)]),
             ),
             mountainsBack = MountainLayerConfig(
                 visible = prefs[Keys.mountainVisible(false)] ?: defaults.mountainsBack.visible,
                 density = prefs[Keys.mountainDensity(false)] ?: defaults.mountainsBack.density,
                 colorDay = prefs[Keys.mountainColorDay(false)] ?: defaults.mountainsBack.colorDay,
                 colorNight = prefs[Keys.mountainColorNight(false)] ?: defaults.mountainsBack.colorNight,
+                autoMode = AutoColorMode.fromStorageId(prefs[Keys.mountainAutoMode(false)]),
             ),
             lake = LakeConfig(
                 visible = prefs[Keys.LAKE_VISIBLE] ?: defaults.lake.visible,
@@ -454,6 +479,7 @@ class WallpaperPrefs(private val context: Context) {
                 sailboatsDensity = prefs[Keys.LAKE_SAILBOATS_DENSITY] ?: defaults.lake.sailboatsDensity,
                 dolphinsVisible = prefs[Keys.LAKE_DOLPHINS_VISIBLE] ?: defaults.lake.dolphinsVisible,
                 dolphinsDensity = prefs[Keys.LAKE_DOLPHINS_DENSITY] ?: defaults.lake.dolphinsDensity,
+                autoMode = AutoColorMode.fromStorageId(prefs[Keys.LAKE_AUTO_MODE]),
             ),
             stars = StarsConfig(
                 visible = prefs[Keys.STARS_VISIBLE] ?: defaults.stars.visible,
@@ -467,6 +493,8 @@ class WallpaperPrefs(private val context: Context) {
                 colorSunriseLow = prefs[Keys.SKY_COLOR_SUNRISE_LOW] ?: defaults.sky.colorSunriseLow,
                 colorSunsetLow = prefs[Keys.SKY_COLOR_SUNSET_LOW] ?: defaults.sky.colorSunsetLow,
                 sunCloudHeight = prefs[Keys.SKY_SUN_CLOUD_HEIGHT] ?: defaults.sky.sunCloudHeight,
+                autoModeHigh = AutoColorMode.fromStorageId(prefs[Keys.SKY_AUTO_MODE_HIGH]),
+                autoModeLow = AutoColorMode.fromStorageId(prefs[Keys.SKY_AUTO_MODE_LOW]),
             ),
             sun = SunConfig(
                 visible = prefs[Keys.SUN_VISIBLE] ?: defaults.sun.visible,
@@ -482,6 +510,7 @@ class WallpaperPrefs(private val context: Context) {
                 density = prefs[Keys.CLOUDS_DENSITY] ?: defaults.clouds.density,
                 colorDay = prefs[Keys.CLOUDS_COLOR_DAY] ?: defaults.clouds.colorDay,
                 colorNight = prefs[Keys.CLOUDS_COLOR_NIGHT] ?: defaults.clouds.colorNight,
+                autoMode = AutoColorMode.fromStorageId(prefs[Keys.CLOUDS_AUTO_MODE]),
             ),
             birds = BirdsConfig(
                 visible = prefs[Keys.BIRDS_VISIBLE] ?: defaults.birds.visible,
@@ -504,6 +533,8 @@ class WallpaperPrefs(private val context: Context) {
                 snowColorDay = prefs[Keys.PRECIPITATION_SNOW_COLOR_DAY] ?: defaults.precipitation.snowColorDay,
                 snowColorNight = prefs[Keys.PRECIPITATION_SNOW_COLOR_NIGHT] ?: defaults.precipitation.snowColorNight,
                 thunderstorm = prefs[Keys.PRECIPITATION_THUNDERSTORM] ?: defaults.precipitation.thunderstorm,
+                rainAutoMode = AutoColorMode.fromStorageId(prefs[Keys.PRECIPITATION_RAIN_AUTO_MODE]),
+                snowAutoMode = AutoColorMode.fromStorageId(prefs[Keys.PRECIPITATION_SNOW_AUTO_MODE]),
             ),
             rainbow = RainbowConfig(
                 visible = prefs[Keys.RAINBOW_VISIBLE] ?: defaults.rainbow.visible,
@@ -967,6 +998,55 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setCloudsColorNight(color: Int, forThemeId: String) =
         context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_COLOR_NIGHT] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
+    // ---- Automatic day/night colours -------------------------------------------------------
+    //
+    // One setter per colour pair, each writing nothing but the mode. **The colours themselves are
+    // never touched here**, which is the whole reversibility guarantee: a pair switched to
+    // automatic and back returns the two values the user last chose, because they stayed on disk
+    // throughout. The derivation happens on read, once, in
+    // `CustomThemeRegistry.resolveActiveCustomization`.
+
+    suspend fun setCategoryAutoMode1(category: ObjectCategory, mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.autoMode1(category), mode, forThemeId)
+
+    suspend fun setCategoryAutoMode2(category: ObjectCategory, mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.autoMode2(category), mode, forThemeId)
+
+    suspend fun setHillsAutoMode(mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.HILLS_AUTO_MODE, mode, forThemeId)
+
+    suspend fun setMountainAutoMode(front: Boolean, mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.mountainAutoMode(front), mode, forThemeId)
+
+    suspend fun setLakeAutoMode(mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.LAKE_AUTO_MODE, mode, forThemeId)
+
+    suspend fun setSkyAutoModeHigh(mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.SKY_AUTO_MODE_HIGH, mode, forThemeId)
+
+    suspend fun setSkyAutoModeLow(mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.SKY_AUTO_MODE_LOW, mode, forThemeId)
+
+    suspend fun setCloudsAutoMode(mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.CLOUDS_AUTO_MODE, mode, forThemeId)
+
+    suspend fun setPrecipitationRainAutoMode(mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.PRECIPITATION_RAIN_AUTO_MODE, mode, forThemeId)
+
+    suspend fun setPrecipitationSnowAutoMode(mode: AutoColorMode, forThemeId: String) =
+        setAutoMode(Keys.PRECIPITATION_SNOW_AUTO_MODE, mode, forThemeId)
+
+    /** The one write every mode setter above performs, so the per-theme dance is stated once. */
+    private suspend fun setAutoMode(
+        key: androidx.datastore.preferences.core.Preferences.Key<String>,
+        mode: AutoColorMode,
+        forThemeId: String,
+    ) = context.dataStore.edit {
+        it.ensureFreshPendingTheme(forThemeId)
+        it[key] = mode.storageId
+        it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+    }
+
     suspend fun setBirdsVisible(visible: Boolean, forThemeId: String) =
         context.dataStore.edit { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.BIRDS_VISIBLE] = visible
@@ -1151,6 +1231,11 @@ class WallpaperPrefs(private val context: Context) {
         prefs.remove(Keys.colorNight1(category))
         prefs.remove(Keys.colorDay2(category))
         prefs.remove(Keys.colorNight2(category))
+        // The two automatic-colour modes belong to this category's two pairs, so a reset that
+        // restored the colours but left a pair on FROM_DAY would hand back a default the user
+        // cannot see -- the derived half would still be overriding it.
+        prefs.remove(Keys.autoMode1(category))
+        prefs.remove(Keys.autoMode2(category))
         // People carry a second density that lives outside the per-category keys; resetting the
         // category has to clear it too, or "reset to default" would leave the night population
         // wherever the user had dragged it.
@@ -1175,7 +1260,22 @@ class WallpaperPrefs(private val context: Context) {
             remove(Keys.colorNight1(category))
             remove(Keys.colorDay2(category))
             remove(Keys.colorNight2(category))
+            remove(Keys.autoMode1(category))
+            remove(Keys.autoMode2(category))
         }
+        // The nine pair modes that live outside the per-category loop. They are scratch state for
+        // this theme exactly like the colours they govern, and a wipe that cleared the colour but
+        // left the mode would hand back a default the user cannot see -- the derived half would
+        // still be overriding it. This is the same failure PEOPLE_NIGHT_DENSITY had below.
+        remove(Keys.HILLS_AUTO_MODE)
+        remove(Keys.mountainAutoMode(true))
+        remove(Keys.mountainAutoMode(false))
+        remove(Keys.LAKE_AUTO_MODE)
+        remove(Keys.SKY_AUTO_MODE_HIGH)
+        remove(Keys.SKY_AUTO_MODE_LOW)
+        remove(Keys.CLOUDS_AUTO_MODE)
+        remove(Keys.PRECIPITATION_RAIN_AUTO_MODE)
+        remove(Keys.PRECIPITATION_SNOW_AUTO_MODE)
         // The night pedestrian density is per-theme scratch state exactly like everything else in
         // this list -- written by a `forThemeId` setter, read by `readFlatCustomization`, archived
         // and restored with the rest -- but it is the one such field that lives *outside* the

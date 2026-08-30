@@ -737,9 +737,14 @@ orphans.
   without a corresponding light model; a mix of the two reads as an error.
 - **Shadow intensity**: `0x2E000000`, uniform.
 - **Glow**: sun only (`RadialGradient` plus a sunburst sprite).
-- **Window light**: houses' windows warm gradually at night; skyscrapers'
-  windows switch on and off randomly. Both are colour changes, not light
-  sources — they do not illuminate anything around them.
+- **Window light**: every window crossfades between cool glass `#B9CBD9` by day
+  and warm light `#FFE79A` at night, on the scene's own `nightGlow`. Houses reach
+  it by fading a lit overlay in over a cool daytime drawing; the restaurant and,
+  since v4.12, the skyscraper reach it with one tinted blit of a white mask.
+  Both are colour changes, not light sources — they do not illuminate anything
+  around them. *(Before v4.12 the tower's windows switched on and off randomly;
+  the V2 asset set had already retired the random roll, and v4.12 retired the
+  claim with it.)*
 - **Precipitation** fades in over the first 10 % of its fall and out over the
   last 10 %, so it appears to emerge from the cloud layer rather than popping in
   mid-air.
@@ -915,7 +920,7 @@ These require explicit maintainer approval before modification.
 | D3 | Do people become a fully customisable category (visibility + density + colours) or remain ambient with a single toggle? | Open | People integration |
 | D4 | Is decision #4's colour-fidelity trade-off acceptable on a real device? Never confirmed visually. | Open | Any tint-related work |
 | D5 | Dependency upgrade window — before or after the rendering work? | Open | Dependency refresh |
-| D7 | The V2 classification retires four user-visible colour behaviours: **Sun Color** no longer reaches the disc or the sunburst, the theme's star colour no longer reaches the sparkle, **Fall Colors** no longer reaches palm fronds, and skyscraper windows no longer light per building. All four are consequences of the artwork carrying its own colours, and none is to be recovered by tinting the new art. **Needs a device look**: if the fixed sun or the fixed palm reads wrong against a given theme, the answer is new artwork, or restoring a mask for that one sprite. | Open — awaiting device verification | Any change to `sun_body`, `sun_glow`, `star_sparkle`, `palmtree_fronds`, `skyscraper_wall_lit` |
+| D7 | The V2 classification retires four user-visible colour behaviours: **Sun Color** no longer reaches the disc or the sunburst, the theme's star colour no longer reaches the sparkle, **Fall Colors** no longer reaches palm fronds, and skyscraper windows no longer light per building. All four are consequences of the artwork carrying its own colours, and none is to be recovered by tinting the new art. **Needs a device look**: if the fixed sun or the fixed palm reads wrong against a given theme, the answer is new artwork, or restoring a mask for that one sprite. | **Partly closed at v4.12** — the skyscraper window is the one case that was answered, and it was answered the way this row anticipated: `skyscraper_wall_lit` was regenerated as a mask and is tinted again, so the tower's windows are cool by day and warm at night like every other window. The sun, the star sparkle and the palm fronds are untouched and this row stays open for them. | Any change to `sun_body`, `sun_glow`, `star_sparkle`, `palmtree_fronds`, `skyscraper_wall_lit` |
 
 ---
 

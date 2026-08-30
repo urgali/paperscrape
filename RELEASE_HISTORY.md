@@ -19,6 +19,122 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.12 — the app can work out the other half of a colour
+
+**Prepared, not published.** `versionCode = 43`, `versionName = "4.12"`. Prepared 2026-08-30. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.11**.
+
+One feature, one question answered, and deliberately no performance work.
+
+### Automatic day/night colours
+
+Every user-editable colour that exists as a **day/night pair** gains an `AutoColorMode`:
+`MANUAL` (the default, bit-identical to v4.11), `FROM_DAY` or `FROM_NIGHT`. Colours with no twin --
+sun, moon, the four bird colours, the sunrise/sunset sky bands -- get no mode, because there is
+nothing to derive from or for.
+
+**The transform was measured, not chosen.** Across the 41 day/night pairs this project already
+authors by hand -- every theme's `hillColorsDay`/`Night` and `skyDay`/`Night`, plus every literal
+pair in `SceneCustomization` -- converted to HSL:
+
+| quantity | measurement |
+|---|---|
+| hue shift | median **+0.7 deg**, quartiles -1.6..+3.3 |
+| night lightness / day lightness | median **0.635** (fit: 0.647L - 0.006, i.e. through the origin) |
+| night saturation / day saturation | median **0.725** |
+
+So: hue held, lightness x0.635, saturation x0.725. The hue result is the one that mattered -- a
+night palette rotating towards blue is the obvious guess and it is not what this artwork does.
+Guessing would have put a colour cast on every automatic pair.
+
+Two design points carry the feature:
+
+- **One authority, applied once.** `DayNightColor` is plain Kotlin with no `android.*` import, so
+  the renderer, `ThemePreviewScene` (which avoids the platform on purpose) and the JVM tests run
+  the same code. It is applied in `CustomThemeRegistry.resolveActiveCustomization`, the choke point
+  all three consumers already resolve through -- so nothing derives a colour twice, and nothing
+  derives one per frame. A fully-`MANUAL` customization is returned as the same instance.
+- **Nothing is ever written back.** The DataStore and every saved theme keep the user's own two
+  values whatever the mode is. That is the whole reversibility promise: switching back to Manual
+  restores exactly what was picked, because nothing overwrote it. The derived half is shown greyed
+  and inert in the settings screen -- the treatment the Clouds screen already gives its controls
+  while Live Weather drives them.
+
+Persistence is one string key per pair plus a matching JSON field, both defaulting to `MANUAL` when
+absent, so pre-v4.12 themes and backups restore unchanged and **no schema version moved**.
+`resetCategory` and `clearAllThemeCustomizationKeys` clear the modes with the colours, so a reset
+cannot leave a derived value overriding a restored default.
+
+**Verified on the device to the last colour level.** Buildings set to `#E53935` with "Day sets
+night" render night facades at RGB (140, 42, 39); the transform computed by hand gives (140, 42,
+39). UI, DataStore, derivation and GL renderer agree exactly.
+
+### The tower's windows join the rest of the scene
+
+Every other building shows cool glass by day and warm light at night. The skyscraper did not: its
+daytime grid was baked into `skyscraper_wall` and therefore took the **wall's own tint**, so a
+tower's windows were whatever colour the user had picked for its bricks.
+
+The fix reuses the restaurant's treatment rather than inventing one. `skyscraper_wall_lit.svg` was
+regenerated through the normal pipeline as a **white mask** -- the convention every tintable window
+asset in this set already followed -- and the renderer tints it with `windowGlassColor`, one
+crossfade between `WINDOW_GLASS_DAY` `#B9CBD9` and `WINDOW_GLASS_NIGHT` `#FFE79A` on the frame's own
+`nightGlow`. Both constants already existed in the file, the day one as the restaurant's inline
+literal; naming them is what let the tower join the convention instead of growing a second one
+beside it. The tower's private alpha ramp went with it.
+
+It stays **one blit per building per wrap-tile**, as before: a tinted blit replaces a faded one and
+the colour is computed once per call from a value the frame already holds. The registry entry moved
+`FIXED_ART` -> `TINTABLE` to match, which is what `validate` and `SpriteTintClassTest` both demanded
+the moment the artwork lost its colour -- the project's own cross-checks caught the half-finished
+change before any test of mine did.
+
+One consequence, stated because it is real: the night warm moved 14 levels in blue, from the grid's
+own `#ffe9a8` to the shared `#ffe79a`. Having one warm is the point.
+
+### And the sharpness question, measured and closed
+
+Separately, the grid was reported as looking soft under strong colours. `skyscraper_wall` is opaque
+throughout and paints its grid as grey **234** on a **255/244** wall under a `MULTIPLY` tint, so a
+window is 8.2% darker than its wall in proportion. In CIELAB that is ΔL* **4.1 for saturated red**
+against **2.7 for Big City's own default** and **1.2 for a very dark tint**: saturated colours are
+the *strong* case, not the weak one, and the emulator confirms it. The adjacent suspicion -- GL
+minifying a 3x sprite with `GL_LINEAR` and no mipmaps -- is real but unfixable here: ES 2.0 only
+allows non-power-of-two textures with a non-mipmapped minification filter, and the sprites are NPOT
+and atlased.
+
+**Nothing was changed for that**, and the window work above is a different question. This closes
+`CLAUDE.md` D4 and answers the skyscraper half of `DESIGN_NOTES` D7, which had itself anticipated
+"restoring a mask for that one sprite".
+
+### No performance work, on purpose
+
+The scan found no allocation in any `draw*`, five caches already in place, alpha-0 draws already
+short-circuited, and no audit finding left open. Per-object colour blending was considered and
+rejected: a handful of operations a few hundred times a frame is not worth the state a cache would
+add. A release that changed something here would have been change for its own sake.
+
+### Verified
+
+**1108 JVM tests** (1086 + 22 new), **102 instrumented**, **33/33 golden**, lint clean, all four
+build artefacts, and the day/night window behaviour checked on the emulator at noon, at midnight,
+over a saturated facade and over a very dark one, in both `FROM_DAY` and `FROM_NIGHT`.
+
+**All 27 goldens moved, and every changed pixel is a skyscraper window.** The diffs sit in one
+50-pixel band (y 507..558) and the colours are exactly the two constants: `(84,97,110)` -> `(185,203,217)`
+by day, `(255,233,168)` -> `(255,231,154)` at night. The three GL goldens changed by **0.485%**, just
+under their own 0.500% gate -- they would have passed while showing the old windows, which is the
+staleness pattern v4.11 found, so they were regenerated with the rest rather than left sitting under
+the threshold.
+
+Four mutations were run. Two against `DayNightColor` were caught. **Two against the window rule were
+not** -- swapping the crossfade's ends, and reverting the tower to an untinted overlay -- because
+`SpriteTintClassTest`'s notion of "tinted" is a hand-written list and the only thing covering the
+rule was the instrumented goldens. `SkyscraperWindowTest` now reads the call sites and pins the
+coupling; both mutations fail against it. See `release-verification/V4_12_REPORT.md`.
+
+---
+
 ## v4.11 — the clouds move to where the maths already put them
 
 **Prepared, not published.** `versionCode = 42`, `versionName = "4.11"`. Prepared 2026-08-30. No

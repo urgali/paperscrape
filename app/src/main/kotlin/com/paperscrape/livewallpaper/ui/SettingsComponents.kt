@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import com.paperscrape.livewallpaper.engine.AutoColorMode
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -442,15 +443,23 @@ internal fun SettingSwitchRow(
 internal data class ColorEditTarget(val label: String, val color: Int, val onChange: (Int) -> Unit)
 
 @Composable
-internal fun ColorSwatchRow(label: String, color: Int, onClick: () -> Unit) {
+internal fun ColorSwatchRow(label: String, color: Int, enabled: Boolean = true, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            // A derived half is shown, not hidden: the user still needs to see the colour the
+            // scene will actually use. Greyed and inert says "this one is being worked out for
+            // you" without pretending the value does not exist -- the same treatment the Clouds
+            // screen already gives its controls while Live Weather is driving them.
+            color = if (enabled) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -458,6 +467,45 @@ internal fun ColorSwatchRow(label: String, color: Int, onClick: () -> Unit) {
                 .background(Color(color))
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
         )
+    }
+}
+
+/**
+ * One day/night colour pair, with the toggle that decides who owns which half.
+ *
+ * Every pair in the settings screen goes through this, so the three modes look and behave the same
+ * whether the user is editing houses, the lake or the sky -- and so the derived half is presented
+ * the same way everywhere. The transform itself is not here: this composable only reads the colours
+ * it is handed, which have already been resolved by
+ * [com.paperscrape.livewallpaper.engine.CustomThemeRegistry.resolveActiveCustomization]. There is
+ * one authority for what a night colour is, and this is not it.
+ */
+@Composable
+internal fun DayNightColorPair(
+    dayLabel: String,
+    nightLabel: String,
+    dayColor: Int,
+    nightColor: Int,
+    mode: AutoColorMode,
+    onEditDay: () -> Unit,
+    onEditNight: () -> Unit,
+    onModeChange: (AutoColorMode) -> Unit,
+) {
+    ColorSwatchRow(dayLabel, dayColor, enabled = mode != AutoColorMode.FROM_NIGHT, onClick = onEditDay)
+    ColorSwatchRow(nightLabel, nightColor, enabled = mode != AutoColorMode.FROM_DAY, onClick = onEditNight)
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        val options = listOf(
+            AutoColorMode.MANUAL to "Both",
+            AutoColorMode.FROM_DAY to "Day sets night",
+            AutoColorMode.FROM_NIGHT to "Night sets day",
+        )
+        options.forEachIndexed { index, (value, label) ->
+            SegmentedButton(
+                selected = mode == value,
+                onClick = { onModeChange(value) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+            ) { Text(label, style = MaterialTheme.typography.labelSmall) }
+        }
     }
 }
 

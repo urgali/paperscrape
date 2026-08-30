@@ -1008,7 +1008,68 @@ settings.themeId
              ├─ saved custom theme's own customization, or
              ├─ in-progress live edit (if tagged for this exact theme), or
              └─ defaultCustomizationFor(themeId)
+                  └─ .withResolvedDayNightColors()   ← automatic pairs, once
 ```
+
+### Windows, and what colour one is (v4.12)
+
+Every window in the scene crossfades between two constants on the frame's own `nightGlow`:
+`SceneObjectRenderer.WINDOW_GLASS_DAY` (`#B9CBD9`, cool glass) and `WINDOW_GLASS_NIGHT`
+(`#FFE79A`, warm light). `windowGlassColor` is the only place that blends them, and the restaurant
+and the skyscraper both call it.
+
+**A tintable window asset is a white mask.** `restaurant_window` always was one; v4.12 made
+`skyscraper_wall_lit` one too, regenerating it from its SVG through the normal pipeline. Before
+that it carried warm `#ffe9a8` artwork and could only ever be shown at night, which is why the
+tower's *daytime* windows came from the grid baked into `skyscraper_wall` and therefore took the
+wall's own tint -- a window the colour of the bricks around it, which nothing else in the scene
+does. One tinted blit now covers both halves of the day, and the tower's private alpha ramp
+(`litWindowAlpha`, still used by the houses and the bar) is gone from it.
+
+The night look moved by a hair as a side effect: the tower's grid was drawn `#ffe9a8` and the shared
+constant is the restaurant's `#ffe79a`, 14 levels apart in blue. Having one warm is the point;
+having two was the thing worth losing.
+
+`SkyscraperWindowTest` reads the call sites and pins the coupling. It exists because two mutations
+of this rule -- swapping the crossfade's ends, and reverting the tower to an untinted overlay --
+were missed by every JVM test and caught only by instrumented goldens.
+
+### Automatic day/night colours (v4.12)
+
+Every colour the user can edit that exists as a **day/night pair** carries an
+`AutoColorMode`: `MANUAL` (the default, and the behaviour that shipped before
+this), `FROM_DAY` (the user sets day, the night half is derived) or
+`FROM_NIGHT`. Single colours — the sun, the moon, the four bird colours, the
+sunrise/sunset sky bands — have no mode, because there is no twin to derive
+from or for.
+
+`DayNightColor` is the only implementation of the transform, and it is plain
+Kotlin with no `android.*` import so that `ThemePreviewScene` (which
+deliberately avoids the platform) and the JVM tests run the same code the
+wallpaper does. The rule is **hue held, lightness ×0.635, saturation ×0.725**,
+measured from the 41 day/night pairs this project already authors by hand
+rather than chosen — including the result that the hue does *not* rotate
+towards blue, which is the obvious guess and is wrong for this artwork.
+
+Two properties are worth stating because the design turns on them:
+
+- **It is applied once**, at the single choke point above, so the renderer, the
+  settings screen and the theme gallery cannot disagree and nothing derives a
+  colour per frame. A customization with every pair on `MANUAL` is returned as
+  the same instance, so the feature costs nothing to anyone who ignores it.
+- **A derived colour is never written back.** The DataStore and every saved
+  theme keep the user's own two values whatever the mode is; the derivation
+  produces a copy for drawing. That is the whole of the reversibility promise:
+  switching a pair back to Manual restores exactly what was picked by hand,
+  because nothing overwrote it. The settings screen shows the derived half
+  greyed and inert, the same treatment the Clouds screen gives its controls
+  while Live Weather is driving them.
+
+The persisted form is one string key per pair (`…_auto_mode_1`,
+`hills_auto_mode`, `sky_auto_mode_high`, …) plus the matching JSON field. Both
+readers default to `MANUAL` when the key is absent, so themes and backups
+written before v4.12 restore exactly as they always did and no schema version
+moved.
 
 ### Structural vs. cosmetic configuration changes
 

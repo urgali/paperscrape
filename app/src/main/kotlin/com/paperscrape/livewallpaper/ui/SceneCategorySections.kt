@@ -58,18 +58,20 @@ internal fun ObjectCategorySection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        ColorSwatchRow("Day Color 1", config.colorDay1) {
-            onEditColor("$title - Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color 1", config.colorNight1) {
-            onEditColor("$title - Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c, forThemeId) } }
-        }
-        ColorSwatchRow("Day Color 2", config.colorDay2) {
-            onEditColor("$title - Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color 2", config.colorNight2) {
-            onEditColor("$title - Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c, forThemeId) } }
-        }
+        DayNightColorPair(
+            dayLabel = "Day Color 1", nightLabel = "Night Color 1",
+            dayColor = config.colorDay1, nightColor = config.colorNight1, mode = config.autoMode1,
+            onEditDay = { onEditColor("$title - Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c, forThemeId) } } },
+            onEditNight = { onEditColor("$title - Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setCategoryAutoMode1(category, it, forThemeId) } },
+        )
+        DayNightColorPair(
+            dayLabel = "Day Color 2", nightLabel = "Night Color 2",
+            dayColor = config.colorDay2, nightColor = config.colorNight2, mode = config.autoMode2,
+            onEditDay = { onEditColor("$title - Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c, forThemeId) } } },
+            onEditNight = { onEditColor("$title - Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setCategoryAutoMode2(category, it, forThemeId) } },
+        )
 
         OutlinedButton(
             onClick = { scope.launch { prefs.resetCategory(category, forThemeId) } },
@@ -98,12 +100,13 @@ internal fun MountainLayerSection(
             checked = config.visible,
             onCheckedChange = { scope.launch { prefs.setMountainVisible(front, it, forThemeId) } },
         )
-        ColorSwatchRow("Day Color", config.colorDay) {
-            onEditColor("$title - Day Color", config.colorDay) { c -> scope.launch { prefs.setMountainColorDay(front, c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color", config.colorNight) {
-            onEditColor("$title - Night Color", config.colorNight) { c -> scope.launch { prefs.setMountainColorNight(front, c, forThemeId) } }
-        }
+        DayNightColorPair(
+            dayLabel = "Day Color", nightLabel = "Night Color",
+            dayColor = config.colorDay, nightColor = config.colorNight, mode = config.autoMode,
+            onEditDay = { onEditColor("$title - Day Color", config.colorDay) { c -> scope.launch { prefs.setMountainColorDay(front, c, forThemeId) } } },
+            onEditNight = { onEditColor("$title - Night Color", config.colorNight) { c -> scope.launch { prefs.setMountainColorNight(front, c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setMountainAutoMode(front, it, forThemeId) } },
+        )
         PreferenceSlider(
             label = { shown -> Text("Density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = config.density,

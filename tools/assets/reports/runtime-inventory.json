@@ -4932,7 +4932,7 @@
       "content_width": 222,
       "decoded_bytes": 284400,
       "distinct_colour_count": 8,
-      "file_bytes": 1221,
+      "file_bytes": 1152,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 300,
@@ -4940,7 +4940,7 @@
       "name": "skyscraper_wall_lit",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "sha256": "f4e3078809e228f3c9a3fdf3255281f048a783cda167231c799275fe8bd43da4",
+      "sha256": "e6dc94c32bd5e2ea444f50a1b4423ac352ef583cd4f74e2a04f0a1addaed4ae7",
       "transparent_padding_bytes": 31320,
       "transparent_padding_fraction": 0.11012658227848102,
       "width": 237

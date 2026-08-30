@@ -1,20 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="237" height="300" viewBox="0 0 79 100">
-  <!-- The night facade: the same grid as skyscraper_wall, lit. Kept in step with it by hand. -->
+  <!-- The tower's window grid, as a neutral mask: the same 4x4 grid as skyscraper_wall, kept in
+       step with it by hand. White rather than the warm #ffe9a8 it used to carry, because the
+       renderer now tints it: cool by day, warm at night, the same one blit treatment that
+       restaurant_window already gets. A tintable window asset is a white mask in this set; an
+       asset carrying its own colour can only ever be the one colour it was drawn in.
+       The night look moves by a hair as a result: the grid was drawn #ffe9a8 and the shared
+       WINDOW_GLASS_NIGHT is the restaurant's #ffe79a, 14 levels apart in blue. One warm is
+       the point of naming it; two would have been the thing worth avoiding. -->
 <rect x="0" y="0" width="90" height="150" rx="2" fill="#00000000" fill-opacity="0"></rect>
-        <rect x="5" y="5" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="25" y="5" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="45" y="5" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="65" y="5" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="5" y="32" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="25" y="32" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="45" y="32" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="65" y="32" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="5" y="59" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="25" y="59" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="45" y="59" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="65" y="59" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="5" y="86" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="25" y="86" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="45" y="86" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
-        <rect x="65" y="86" width="14" height="14" rx="1.5" fill="#ffe9a8"></rect>
+        <rect x="5" y="5" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="25" y="5" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="45" y="5" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="65" y="5" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="5" y="32" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="25" y="32" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="45" y="32" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="65" y="32" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="5" y="59" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="25" y="59" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="45" y="59" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="65" y="59" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="5" y="86" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="25" y="86" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="45" y="86" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
+        <rect x="65" y="86" width="14" height="14" rx="1.5" fill="#ffffff"></rect>
 </svg>

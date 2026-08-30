@@ -6005,7 +6005,7 @@
         300
       ],
       "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
+      "tint": "TINTABLE",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
       "anchor": [

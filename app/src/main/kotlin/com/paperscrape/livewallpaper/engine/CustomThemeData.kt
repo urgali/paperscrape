@@ -148,6 +148,11 @@ fun ObjectVariantConfig.toJson(): JSONObject = JSONObject().apply {
     put("colorNight1", colorNight1)
     put("colorDay2", colorDay2)
     put("colorNight2", colorNight2)
+    // Written as the storage id, and read back with a MANUAL fallback below, so a theme saved
+    // before automatic pairs existed reads exactly as it always did. No schema bump is needed:
+    // every reader here is already an `opt*` with a default.
+    put("autoMode1", autoMode1.storageId)
+    put("autoMode2", autoMode2.storageId)
 }
 
 fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig): ObjectVariantConfig = ObjectVariantConfig(
@@ -157,6 +162,8 @@ fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig):
     colorNight1 = if (json.has("colorNight1")) json.getInt("colorNight1") else default.colorNight1,
     colorDay2 = if (json.has("colorDay2")) json.getInt("colorDay2") else default.colorDay2,
     colorNight2 = if (json.has("colorNight2")) json.getInt("colorNight2") else default.colorNight2,
+    autoMode1 = AutoColorMode.fromStorageId(json.optString("autoMode1", null)),
+    autoMode2 = AutoColorMode.fromStorageId(json.optString("autoMode2", null)),
 )
 
 fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
@@ -180,17 +187,20 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("hillsVariation", hillsVariation.toDouble())
     put("hillsColorDay", hillsColorDay)
     put("hillsColorNight", hillsColorNight)
+    put("hillsAutoMode", hillsAutoMode.storageId)
     put("mountainsFront", JSONObject().apply {
         put("visible", mountainsFront.visible)
         put("density", mountainsFront.density.toDouble())
         put("colorDay", mountainsFront.colorDay)
         put("colorNight", mountainsFront.colorNight)
+        put("autoMode", mountainsFront.autoMode.storageId)
     })
     put("mountainsBack", JSONObject().apply {
         put("visible", mountainsBack.visible)
         put("density", mountainsBack.density.toDouble())
         put("colorDay", mountainsBack.colorDay)
         put("colorNight", mountainsBack.colorNight)
+        put("autoMode", mountainsBack.autoMode.storageId)
     })
     put("lake", JSONObject().apply {
         put("visible", lake.visible)
@@ -201,6 +211,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
         put("sailboatsDensity", lake.sailboatsDensity.toDouble())
         put("dolphinsVisible", lake.dolphinsVisible)
         put("dolphinsDensity", lake.dolphinsDensity.toDouble())
+        put("autoMode", lake.autoMode.storageId)
     })
     put("birds", JSONObject().apply {
         put("visible", birds.visible)
@@ -218,12 +229,14 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
         put("colorNightHigh", sky.colorNightHigh); put("colorNightLow", sky.colorNightLow)
         put("colorSunriseLow", sky.colorSunriseLow); put("colorSunsetLow", sky.colorSunsetLow)
         put("sunCloudHeight", sky.sunCloudHeight.toDouble())
+        put("autoModeHigh", sky.autoModeHigh.storageId); put("autoModeLow", sky.autoModeLow.storageId)
     })
     put("sun", JSONObject().apply { put("visible", sun.visible); put("color", sun.color) })
     put("moon", JSONObject().apply { put("visible", moon.visible); put("color", moon.color); put("realisticPhases", moon.realisticPhases) })
     put("clouds", JSONObject().apply {
         put("visible", clouds.visible); put("density", clouds.density.toDouble())
         put("colorDay", clouds.colorDay); put("colorNight", clouds.colorNight)
+        put("autoMode", clouds.autoMode.storageId)
     })
     put("precipitation", JSONObject().apply {
         put("visible", precipitation.visible)
@@ -234,6 +247,8 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
         put("snowColorDay", precipitation.snowColorDay)
         put("snowColorNight", precipitation.snowColorNight)
         put("thunderstorm", precipitation.thunderstorm)
+        put("rainAutoMode", precipitation.rainAutoMode.storageId)
+        put("snowAutoMode", precipitation.snowAutoMode.storageId)
     })
     put("rainbow", JSONObject().apply {
         put("visible", rainbow.visible); put("opacity", rainbow.opacity.toDouble())
@@ -276,12 +291,14 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         hillsVariation = json.optDouble("hillsVariation", defaults.hillsVariation.toDouble()).toFloat(),
         hillsColorDay = if (json.has("hillsColorDay")) json.optInt("hillsColorDay") else defaults.hillsColorDay,
         hillsColorNight = if (json.has("hillsColorNight")) json.optInt("hillsColorNight") else defaults.hillsColorNight,
+        hillsAutoMode = AutoColorMode.fromStorageId(json.optString("hillsAutoMode", null)),
         mountainsFront = json.optJSONObject("mountainsFront")?.let {
             MountainLayerConfig(
                 visible = it.optBoolean("visible", defaults.mountainsFront.visible),
                 density = it.optDouble("density", defaults.mountainsFront.density.toDouble()).toFloat(),
                 colorDay = it.optInt("colorDay", defaults.mountainsFront.colorDay),
                 colorNight = it.optInt("colorNight", defaults.mountainsFront.colorNight),
+                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
             )
         } ?: defaults.mountainsFront,
         mountainsBack = json.optJSONObject("mountainsBack")?.let {
@@ -290,6 +307,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 density = it.optDouble("density", defaults.mountainsBack.density.toDouble()).toFloat(),
                 colorDay = it.optInt("colorDay", defaults.mountainsBack.colorDay),
                 colorNight = it.optInt("colorNight", defaults.mountainsBack.colorNight),
+                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
             )
         } ?: defaults.mountainsBack,
         lake = json.optJSONObject("lake")?.let {
@@ -302,6 +320,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 sailboatsDensity = it.optDouble("sailboatsDensity", defaults.lake.sailboatsDensity.toDouble()).toFloat(),
                 dolphinsVisible = it.optBoolean("dolphinsVisible", defaults.lake.dolphinsVisible),
                 dolphinsDensity = it.optDouble("dolphinsDensity", defaults.lake.dolphinsDensity.toDouble()).toFloat(),
+                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
             )
         } ?: defaults.lake,
         birds = json.optJSONObject("birds")?.let { b ->
@@ -336,6 +355,8 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 colorSunriseLow = it.optInt("colorSunriseLow", defaults.sky.colorSunriseLow),
                 colorSunsetLow = it.optInt("colorSunsetLow", defaults.sky.colorSunsetLow),
                 sunCloudHeight = it.optDouble("sunCloudHeight", defaults.sky.sunCloudHeight.toDouble()).toFloat(),
+                autoModeHigh = AutoColorMode.fromStorageId(it.optString("autoModeHigh", null)),
+                autoModeLow = AutoColorMode.fromStorageId(it.optString("autoModeLow", null)),
             )
         } ?: defaults.sky,
         sun = json.optJSONObject("sun")?.let {
@@ -357,6 +378,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 density = it.optDouble("density", defaults.clouds.density.toDouble()).toFloat(),
                 colorDay = it.optInt("colorDay", defaults.clouds.colorDay),
                 colorNight = it.optInt("colorNight", defaults.clouds.colorNight),
+                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
             )
         } ?: defaults.clouds,
         precipitation = json.optJSONObject("precipitation")?.let {
@@ -371,6 +393,8 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 snowColorDay = it.optInt("snowColorDay", defaults.precipitation.snowColorDay),
                 snowColorNight = it.optInt("snowColorNight", defaults.precipitation.snowColorNight),
                 thunderstorm = it.optBoolean("thunderstorm", defaults.precipitation.thunderstorm),
+                rainAutoMode = AutoColorMode.fromStorageId(it.optString("rainAutoMode", null)),
+                snowAutoMode = AutoColorMode.fromStorageId(it.optString("snowAutoMode", null)),
             )
         } ?: defaults.precipitation,
         rainbow = json.optJSONObject("rainbow")?.let {

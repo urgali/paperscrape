@@ -17,6 +17,10 @@ data class ObjectVariantConfig(
     val colorNight1: Int,
     val colorDay2: Int,
     val colorNight2: Int,
+    /** Who owns variant 1's pair -- see [AutoColorMode]. */
+    val autoMode1: AutoColorMode = AutoColorMode.MANUAL,
+    /** Who owns variant 2's pair. Independent of [autoMode1]: the two variants are two colours. */
+    val autoMode2: AutoColorMode = AutoColorMode.MANUAL,
 )
 
 /** Lighter-weight sibling of [ObjectVariantConfig] for background silhouette layers (mountains)
@@ -28,6 +32,7 @@ data class MountainLayerConfig(
     val density: Float,
     val colorDay: Int,
     val colorNight: Int,
+    val autoMode: AutoColorMode = AutoColorMode.MANUAL,
 )
 
 /** A body of water, drawn as its own independent backdrop band (not part of the hill/object
@@ -43,6 +48,7 @@ data class LakeConfig(
     val sailboatsDensity: Float,
     val dolphinsVisible: Boolean,
     val dolphinsDensity: Float,
+    val autoMode: AutoColorMode = AutoColorMode.MANUAL,
 )
 
 /** One of a bird's 4 selectable colors, with a relative weight controlling how often it's picked
@@ -88,6 +94,16 @@ data class SkyConfig(
      * clouds". See `PaperRenderer.cloudBandTop`.
      */
     val sunCloudHeight: Float,
+    /** Who owns the High pair. The two sky bands are two colours, so they toggle separately. */
+    val autoModeHigh: AutoColorMode = AutoColorMode.MANUAL,
+    /**
+     * Who owns the Low pair.
+     *
+     * `colorSunriseLow`/`colorSunsetLow` deliberately have no mode: they are single colours with
+     * no day/night twin to derive from or for, and inventing one would mean inventing what "the
+     * night version of a sunrise" is.
+     */
+    val autoModeLow: AutoColorMode = AutoColorMode.MANUAL,
 )
 
 data class SunConfig(val visible: Boolean, val color: Int)
@@ -109,6 +125,7 @@ data class CloudsConfig(
     val density: Float,
     val colorDay: Int,
     val colorNight: Int,
+    val autoMode: AutoColorMode = AutoColorMode.MANUAL,
 )
 
 /** Which of the two mutually-exclusive precipitation looks [PrecipitationConfig] renders --
@@ -135,6 +152,9 @@ data class PrecipitationConfig(
     val snowColorDay: Int,
     val snowColorNight: Int,
     val thunderstorm: Boolean,
+    /** Rain keeps its own mode, for the same reason it keeps its own colour pair. */
+    val rainAutoMode: AutoColorMode = AutoColorMode.MANUAL,
+    val snowAutoMode: AutoColorMode = AutoColorMode.MANUAL,
 )
 
 /** A decorative paper-cutout rainbow arc. Deliberately independent of [PrecipitationConfig] --
@@ -311,6 +331,8 @@ data class SceneCustomization(
     // customizable category in this app exposes exactly one color pair, not one per depth layer.
     val hillsColorDay: Int = 0xFFF2A65A.toInt(),
     val hillsColorNight: Int = 0xFF2E2A55.toInt(),
+    /** Who owns the hills pair. Lives here because the hills colours do, not inside a config. */
+    val hillsAutoMode: AutoColorMode = AutoColorMode.MANUAL,
     // Mountains: two independent background silhouette layers, drawn behind the hills with a
     // slower parallax than even the farthest hill layer -- entirely separate from the hill/object
     // row-placement system (SceneSpace's own depth band) on purpose, to avoid any risk

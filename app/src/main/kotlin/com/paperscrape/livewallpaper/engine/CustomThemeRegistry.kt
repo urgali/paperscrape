@@ -73,10 +73,17 @@ object CustomThemeRegistry {
         pendingThemeId: String?,
         themeCustomizations: Map<String, SceneCustomization> = emptyMap(),
     ): SceneCustomization {
-        if (themeId == pendingThemeId) return pendingCustomization
-        themeCustomizations[themeId]?.let { return it }
-        entryFor(themeId)?.let { return it.customization }
-        return defaultCustomizationFor(themeId)
+        // **The one place automatic day/night pairs are worked out.** Every consumer -- the
+        // renderer, the settings screen and the theme gallery -- resolves through this function
+        // already, so deriving here means the three cannot disagree about what a pair currently
+        // looks like, and none of them derives anything per frame. See
+        // [SceneCustomization.withResolvedDayNightColors] for why nothing is written back.
+        val stored = when {
+            themeId == pendingThemeId -> pendingCustomization
+            themeCustomizations.containsKey(themeId) -> themeCustomizations.getValue(themeId)
+            else -> entryFor(themeId)?.customization ?: defaultCustomizationFor(themeId)
+        }
+        return stored.withResolvedDayNightColors()
     }
 
     /** The customization a saved entry carries, if this id names one. Used to seed a fresh edit. */

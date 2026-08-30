@@ -348,18 +348,20 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
 private fun SkySubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Sky", onBack) {
-        ColorSwatchRow("Day Color High", customization.sky.colorDayHigh) {
-            editingTarget = ColorEditTarget("Sky - Day Color High", customization.sky.colorDayHigh) { c -> scope.launch { prefs.setSkyColorDayHigh(c, forThemeId) } }
-        }
-        ColorSwatchRow("Day Color Low", customization.sky.colorDayLow) {
-            editingTarget = ColorEditTarget("Sky - Day Color Low", customization.sky.colorDayLow) { c -> scope.launch { prefs.setSkyColorDayLow(c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color High", customization.sky.colorNightHigh) {
-            editingTarget = ColorEditTarget("Sky - Night Color High", customization.sky.colorNightHigh) { c -> scope.launch { prefs.setSkyColorNightHigh(c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color Low", customization.sky.colorNightLow) {
-            editingTarget = ColorEditTarget("Sky - Night Color Low", customization.sky.colorNightLow) { c -> scope.launch { prefs.setSkyColorNightLow(c, forThemeId) } }
-        }
+        DayNightColorPair(
+            dayLabel = "Day Color High", nightLabel = "Night Color High",
+            dayColor = customization.sky.colorDayHigh, nightColor = customization.sky.colorNightHigh, mode = customization.sky.autoModeHigh,
+            onEditDay = { editingTarget = ColorEditTarget("Sky - Day Color High", customization.sky.colorDayHigh) { c -> scope.launch { prefs.setSkyColorDayHigh(c, forThemeId) } } },
+            onEditNight = { editingTarget = ColorEditTarget("Sky - Night Color High", customization.sky.colorNightHigh) { c -> scope.launch { prefs.setSkyColorNightHigh(c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setSkyAutoModeHigh(it, forThemeId) } },
+        )
+        DayNightColorPair(
+            dayLabel = "Day Color Low", nightLabel = "Night Color Low",
+            dayColor = customization.sky.colorDayLow, nightColor = customization.sky.colorNightLow, mode = customization.sky.autoModeLow,
+            onEditDay = { editingTarget = ColorEditTarget("Sky - Day Color Low", customization.sky.colorDayLow) { c -> scope.launch { prefs.setSkyColorDayLow(c, forThemeId) } } },
+            onEditNight = { editingTarget = ColorEditTarget("Sky - Night Color Low", customization.sky.colorNightLow) { c -> scope.launch { prefs.setSkyColorNightLow(c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setSkyAutoModeLow(it, forThemeId) } },
+        )
         ColorSwatchRow("Sunrise Color Low", customization.sky.colorSunriseLow) {
             editingTarget = ColorEditTarget("Sky - Sunrise Color Low", customization.sky.colorSunriseLow) { c -> scope.launch { prefs.setSkyColorSunriseLow(c, forThemeId) } }
         }
@@ -428,12 +430,13 @@ private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: Strin
             valueRange = 0f..1f,
             enabled = !liveWeatherDriving,
         )
-        ColorSwatchRow("Day Color", customization.clouds.colorDay) {
-            editingTarget = ColorEditTarget("Clouds - Day Color", customization.clouds.colorDay) { c -> scope.launch { prefs.setCloudsColorDay(c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color", customization.clouds.colorNight) {
-            editingTarget = ColorEditTarget("Clouds - Night Color", customization.clouds.colorNight) { c -> scope.launch { prefs.setCloudsColorNight(c, forThemeId) } }
-        }
+        DayNightColorPair(
+            dayLabel = "Day Color", nightLabel = "Night Color",
+            dayColor = customization.clouds.colorDay, nightColor = customization.clouds.colorNight, mode = customization.clouds.autoMode,
+            onEditDay = { editingTarget = ColorEditTarget("Clouds - Day Color", customization.clouds.colorDay) { c -> scope.launch { prefs.setCloudsColorDay(c, forThemeId) } } },
+            onEditNight = { editingTarget = ColorEditTarget("Clouds - Night Color", customization.clouds.colorNight) { c -> scope.launch { prefs.setCloudsColorNight(c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setCloudsAutoMode(it, forThemeId) } },
+        )
     }
     editingTarget?.let { target ->
         ColorPickerDialog(title = target.label, initialColor = target.color,
@@ -480,19 +483,21 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
             enabled = !liveWeatherDriving,
         )
         SectionTitle("Rain Colors")
-        ColorSwatchRow("Day Color", precip.rainColorDay) {
-            editingTarget = ColorEditTarget("Rain - Day Color", precip.rainColorDay) { c -> scope.launch { prefs.setPrecipitationRainColorDay(c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color", precip.rainColorNight) {
-            editingTarget = ColorEditTarget("Rain - Night Color", precip.rainColorNight) { c -> scope.launch { prefs.setPrecipitationRainColorNight(c, forThemeId) } }
-        }
+        DayNightColorPair(
+            dayLabel = "Day Color", nightLabel = "Night Color",
+            dayColor = precip.rainColorDay, nightColor = precip.rainColorNight, mode = precip.rainAutoMode,
+            onEditDay = { editingTarget = ColorEditTarget("Rain - Day Color", precip.rainColorDay) { c -> scope.launch { prefs.setPrecipitationRainColorDay(c, forThemeId) } } },
+            onEditNight = { editingTarget = ColorEditTarget("Rain - Night Color", precip.rainColorNight) { c -> scope.launch { prefs.setPrecipitationRainColorNight(c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setPrecipitationRainAutoMode(it, forThemeId) } },
+        )
         SectionTitle("Snow Colors")
-        ColorSwatchRow("Day Color", precip.snowColorDay) {
-            editingTarget = ColorEditTarget("Snow - Day Color", precip.snowColorDay) { c -> scope.launch { prefs.setPrecipitationSnowColorDay(c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color", precip.snowColorNight) {
-            editingTarget = ColorEditTarget("Snow - Night Color", precip.snowColorNight) { c -> scope.launch { prefs.setPrecipitationSnowColorNight(c, forThemeId) } }
-        }
+        DayNightColorPair(
+            dayLabel = "Day Color", nightLabel = "Night Color",
+            dayColor = precip.snowColorDay, nightColor = precip.snowColorNight, mode = precip.snowAutoMode,
+            onEditDay = { editingTarget = ColorEditTarget("Snow - Day Color", precip.snowColorDay) { c -> scope.launch { prefs.setPrecipitationSnowColorDay(c, forThemeId) } } },
+            onEditNight = { editingTarget = ColorEditTarget("Snow - Night Color", precip.snowColorNight) { c -> scope.launch { prefs.setPrecipitationSnowColorNight(c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setPrecipitationSnowAutoMode(it, forThemeId) } },
+        )
         SectionTitle("Storms")
         SettingSwitchRow(
             title = "Thunderstorm", subtitle = "Occasional lightning flashes (only while Rain is selected)",
@@ -554,12 +559,13 @@ private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: Strin
 private fun HillsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Hills", onBack) {
-        ColorSwatchRow("Day Color", customization.hillsColorDay) {
-            editingTarget = ColorEditTarget("Hills - Day Color", customization.hillsColorDay) { c -> scope.launch { prefs.setHillsColorDay(c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color", customization.hillsColorNight) {
-            editingTarget = ColorEditTarget("Hills - Night Color", customization.hillsColorNight) { c -> scope.launch { prefs.setHillsColorNight(c, forThemeId) } }
-        }
+        DayNightColorPair(
+            dayLabel = "Day Color", nightLabel = "Night Color",
+            dayColor = customization.hillsColorDay, nightColor = customization.hillsColorNight, mode = customization.hillsAutoMode,
+            onEditDay = { editingTarget = ColorEditTarget("Hills - Day Color", customization.hillsColorDay) { c -> scope.launch { prefs.setHillsColorDay(c, forThemeId) } } },
+            onEditNight = { editingTarget = ColorEditTarget("Hills - Night Color", customization.hillsColorNight) { c -> scope.launch { prefs.setHillsColorNight(c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setHillsAutoMode(it, forThemeId) } },
+        )
         Text(
             "How wavy the hill silhouette is. Lower it for flatter, calmer hills.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -742,12 +748,13 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
             checked = customization.lake.visible,
             onCheckedChange = { scope.launch { prefs.setLakeVisible(it, forThemeId) } },
         )
-        ColorSwatchRow("Day Color", customization.lake.colorDay) {
-            editingTarget = ColorEditTarget("Lake - Day Color", customization.lake.colorDay) { c -> scope.launch { prefs.setLakeColorDay(c, forThemeId) } }
-        }
-        ColorSwatchRow("Night Color", customization.lake.colorNight) {
-            editingTarget = ColorEditTarget("Lake - Night Color", customization.lake.colorNight) { c -> scope.launch { prefs.setLakeColorNight(c, forThemeId) } }
-        }
+        DayNightColorPair(
+            dayLabel = "Day Color", nightLabel = "Night Color",
+            dayColor = customization.lake.colorDay, nightColor = customization.lake.colorNight, mode = customization.lake.autoMode,
+            onEditDay = { editingTarget = ColorEditTarget("Lake - Day Color", customization.lake.colorDay) { c -> scope.launch { prefs.setLakeColorDay(c, forThemeId) } } },
+            onEditNight = { editingTarget = ColorEditTarget("Lake - Night Color", customization.lake.colorNight) { c -> scope.launch { prefs.setLakeColorNight(c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setLakeAutoMode(it, forThemeId) } },
+        )
         PreferenceSlider(
             label = { shown -> Text("Lake Height: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = customization.lake.height,

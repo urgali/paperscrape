@@ -226,6 +226,18 @@ class SceneObjectRenderer(
         const val LARGE_HOUSE_WINDOWS = 4
         const val BAR_WINDOWS = 3
         const val RESTAURANT_WINDOWS = 2
+        /**
+         * Cool glass by day, warm light at night: the two ends every window in the scene
+         * crossfades between, on the scene's own `nightGlow`.
+         *
+         * Both values were already in the file -- the day one as the restaurant's inline literal,
+         * the night one both there and as the colour `skyscraper_wall_lit` and `house_window_lit`
+         * were drawn in. Naming them is what lets the tower join the convention instead of
+         * inventing a second pair beside it. See [windowGlassColor].
+         */
+        const val WINDOW_GLASS_DAY = 0xFFB9CBD9.toInt()
+        const val WINDOW_GLASS_NIGHT = 0xFFFFE79A.toInt()
+
         const val SKYSCRAPER_WINDOWS = 16
 
         /**
@@ -1538,6 +1550,17 @@ class SceneObjectRenderer(
      * reads as switched on rather than slowly dimmed up, so it stays dark through dusk and comes
      * up over the last third, matching how a porch light behaves.
      */
+    /**
+     * What a window is, as a colour: cool glass by day, warm light at night.
+     *
+     * One pair, because there is one answer. It was already the restaurant's, written inline; the
+     * tower now reads the same two constants rather than a second pair that could drift from it,
+     * and a future window has somewhere to look. The night value is the one the lit-window artwork
+     * was drawn in, so nothing about the existing night look moves.
+     */
+    private fun windowGlassColor(nightGlow: Float): Int =
+        ColorUtils.blendARGB(WINDOW_GLASS_DAY, WINDOW_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
+
     private fun litWindowAlpha(nightGlow: Float): Int =
         (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
 
@@ -2035,17 +2058,25 @@ class SceneObjectRenderer(
             canvas, R.drawable.skyscraper_wall,
             SkyscraperSpriteLayout.WALL_X, -height, wallColor,
         )
-        // The daytime window grid is drawn into `skyscraper_wall` itself now, and the night one
-        // is a second full-wall drawing laid over it at the same origin -- both 270x450, so the
-        // origin is shared rather than re-derived. This replaces a nested loop that rebuilt ~24
-        // `drawRect` calls per building per wrap-tile per frame, with a per-window pseudo-random
-        // lit/dark roll. The roll is what is lost: every building's night facade now shows the
-        // same lit pattern. That is the trade the asset set makes, and it removes the last
-        // per-frame vector work from this building style.
-        drawSpriteFaded(
+        // **The window grid, tinted, exactly the way the restaurant's window is.** `skyscraper_wall`
+        // paints a grid of its own, but it takes the wall's tint with it, so the tower's daytime
+        // windows were whatever colour the user had picked for its bricks -- which is not what a
+        // window looks like anywhere else in this scene. Houses show cool glass by day and warm
+        // light at night; so does the restaurant; the tower did not.
+        //
+        // `skyscraper_wall_lit` is now a white mask rather than warm artwork (the convention every
+        // tintable window asset in this set follows -- see `restaurant_window`), so one blit
+        // carries both halves of the day: [windowGlassColor] crossfades cool to warm on the same
+        // `nightGlow` the restaurant uses. The alpha ramp this call used to have is gone with it,
+        // and so is the tower's private answer to "when does a window light up".
+        //
+        // It stays one blit per building per wrap-tile: the nested `drawRect` loop this style used
+        // before the V2 asset set is not coming back, and the colour is computed once per call
+        // from a value the frame already has.
+        drawTintedSprite(
             canvas, R.drawable.skyscraper_wall_lit,
             SkyscraperSpriteLayout.WALL_LIT_X, -height + SkyscraperSpriteLayout.WALL_LIT_DY,
-            litWindowAlpha(nightGlow),
+            windowGlassColor(nightGlow),
         )
         // **The entrance, on the ground the building and the people stand on.** Blitted after the
         // wall so it sits in the hall band the facade draws, and with its own bottom edge on y=0:
@@ -2136,8 +2167,7 @@ class SceneObjectRenderer(
         drawSprite(canvas, R.drawable.restaurant_awning, -34f, -46f)
         // window, lit warm at night
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
-        val windowColor = ColorUtils.blendARGB(0xFFB9CBD9.toInt(), 0xFFFFE79A.toInt(), nightGlow)
-        drawTintedSprite(canvas, R.drawable.restaurant_window, -35f, -45f, windowColor)
+        drawTintedSprite(canvas, R.drawable.restaurant_window, -35f, -45f, windowGlassColor(nightGlow))
         // **v4.2: the restaurant's frontage can hold somebody.** This call site is the whole of
         // the reported "no people in commercial buildings": a restaurant is one of the two
         // non-residential street-level buildings the scene draws, it is the *more* common of the
@@ -2233,7 +2263,7 @@ class SceneObjectRenderer(
         drawSprite(canvas, R.drawable.bar_sign, -12f, -84f)
 
         // String lights along the top edge.
-        fillPaint.color = ColorUtils.blendARGB(0xFF8A6A50.toInt(), 0xFFFFE79A.toInt(), nightGlow)
+        fillPaint.color = ColorUtils.blendARGB(0xFF8A6A50.toInt(), WINDOW_GLASS_NIGHT, nightGlow)
         for (i in 0 until 4) {
             val lx = -width / 2f + 8f + i * ((width - 16f) / 3f)
             canvas.drawCircle(lx, -height + 6f, 2.5f, fillPaint)
