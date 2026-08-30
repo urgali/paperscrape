@@ -64,7 +64,7 @@ the repository.
 
 ## Technical overview
 
-Kotlin, minSdk 26, compileSdk 37, targetSdk 36.
+Kotlin, minSdk 26, compileSdk 37, targetSdk 37.
 
 **Rendering.** The scene is drawn through `SceneCanvas`, a small drawing interface with
 two implementations. `GlSceneTarget` turns those calls into OpenGL ES 2.0 geometry and

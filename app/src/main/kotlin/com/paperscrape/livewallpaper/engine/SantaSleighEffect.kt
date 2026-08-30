@@ -103,11 +103,24 @@ class SantaSleighEffect {
 
     private fun spawnFallingGift(screenWidth: Float, screenHeight: Float) {
         val x = currentX(screenWidth)
-        // Falls all the way down to roughly curb/house level -- matching the same
-        // road-safe placement band static houses use (see SceneObjectCatalog's row
-        // comments in SceneObject.kt) -- rather than vanishing on a fixed timer/speed that
-        // left it stranded high in the sky regardless of how tall the screen actually is.
-        val targetY = screenHeight * (0.83f + Random.nextFloat() * 0.03f)
+        // Lands on the pavement, which is what "falls all the way down to curb/house level" was
+        // always supposed to mean, and now derives the band instead of restating it.
+        //
+        // It used to target `0.83 + rnd * 0.03`, hardcoded, with a comment claiming it matched
+        // "the same road-safe placement band static houses use". It did not, and had not since the
+        // v76.5-v76.7 road moves relocated the lanes: houses stop at
+        // OBJECT_BAND_BOTTOM_Y_FRACTION (0.790), the painted carriageway runs 0.8178..0.8782, and
+        // its two wheel lines sit at 0.834 and 0.862 -- so every gift was aimed *between the wheel
+        // lines*, and this effect draws after the cars, putting a gift over a car roof whenever a
+        // drop met traffic. The fade-out hid most of it, which is why it survived.
+        //
+        // Deriving from PAVEMENT_FAR/NEAR is the part that matters: the next time the road moves,
+        // this moves with it rather than being stranded again.
+        val targetY = screenHeight * (
+            SceneSpace.PAVEMENT_FAR_Y_FRACTION +
+                Random.nextFloat() *
+                (SceneSpace.PAVEMENT_NEAR_Y_FRACTION - SceneSpace.PAVEMENT_FAR_Y_FRACTION)
+            )
         fallingGifts.add(
             FallingGift(
                 x = x,

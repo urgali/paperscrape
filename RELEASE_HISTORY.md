@@ -19,6 +19,105 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.11 — the clouds move to where the maths already put them
+
+**Prepared, not published.** `versionCode = 42`, `versionName = "4.11"`. Prepared 2026-08-30. No
+tag, no push, no GitHub Release (`AI_PROJECT_RULES.md` §10.A / §11.D). `compileSdk` and `targetSdk`
+remain 37. Baseline is **v4.10**.
+
+Three corrections and a documentation pass. The release is worth reading mostly for how the second
+correction was proved to change nothing.
+
+### The cloud blit origin was written for a canvas that no longer ships
+
+`(-128f, -85f)` centres a 768x510 px canvas *exactly*: `-128 + 256/2 = 0`, `-85 + 170/2 = 0`. No
+such file exists. `cloud_body.png` is 798x396 px with content filling it, so the drawn cloud's
+centre sat 5 units right and **19 units above** `(cx, laneY)` — the point both the placement and the
+coverage kernel measure from. `CLOUD_CONTENT_HALF_UNITS` had drifted the same way, documented as
+"873 px … measured from the asset" when no shipped file is 873 px wide.
+
+Both are now derived from the asset (`CLOUD_BLIT_X`/`CLOUD_BLIT_Y` from `CloudCoverage`'s half-width
+and a new half-height), so a re-crop cannot strand them again. `RELEASE_HISTORY` records
+`cloud_body` as "the one file that did not go through the automated path", which is why it is the
+sprite whose constants drifted.
+
+**This is the only visible change in the release**, and it moves every cloud in every scene down by
+19 units. Measured on the regenerated `day` golden at 360x800: the cloud pixels' vertical centroid
+moves from y=162.5 to y=185.9, and every differing pixel lies in the cloud band.
+
+### SCL-01: winter headwear cut flat, fixed without moving anything else
+
+Five sprites had artwork past the top of their own viewBox — measured, not assumed: `walk0` and
+`walk2` at 32 opaque pixels each, `woman_winter_head_window` at 112, the two winter `head_car` at 41
+and 38. `walk1` was checked and is **not** affected; its art ends exactly on the edge.
+
+They could not be widened on their own. `tools/assets/paperscrape_assets/normalize.py` defines
+`person_walk`, `person_head_window` and `person_head_car` as groups whose *"members must share a
+canvas"*, because one origin serves them all — and `SceneObjectRenderer` holds exactly one anchor
+per group. Widening two of four `head_car` would have made that anchor right for half a family,
+which is what a per-sprite constant gets invented for and what `CLAUDE.md` forbids.
+
+So each group grew as a whole, vertically only, and its single anchor grew with it:
+
+```
+person_walk         123x252 -> 123x255   PERSON_ANCHOR_Y_UNITS  -84 -> -85
+person_head_window  159x162 -> 159x171   WINDOW_HEAD_ANCHOR_Y    54 ->  57
+person_head_car     120x144 -> 120x147   CAR_HEAD_ANCHOR_Y       48 ->  49
+```
+
+132 PNGs (96 walkers of which 72 skin variants, 32 window heads of which 24 skin variants, 4 car
+heads), 36 SVGs (header line only), 132 registry entries re-derived from the measured files.
+`validate` went from 264 failures to 0; `compare` reports PIXEL_IDENTICAL for all 125 SVG-sourced
+sprites; 122 of the 132 members are a pure translation and the 10 that are not are exactly the ones
+recovering art. **Zero opaque pixels lost.**
+
+**And it changes no golden.** With the cloud origin reverted, all 33 golden match the v4.10 images
+pixel for pixel — the sprite work is provably invisible to the renderer, and every golden difference
+in this release belongs to the cloud.
+
+The lateral clipping on the two winter `head_car` was measured and **classified rather than fixed**:
+15 opaque pixels in a sliver 2 px wide, which is the outline stroke's own half-width clipped where
+artwork meets the frame. `car_body` loses 104 px the same way. It is the library's convention, not
+this defect, and it is recorded beside the constants so the next reader does not "finish the job".
+
+### Santa's gifts stopped aiming at a road that had moved
+
+The landing target restated a number the v76.5–v76.7 road moves had made stale, so gifts could come
+down between the wheel lines. It now derives from `SceneSpace.PAVEMENT_FAR_Y_FRACTION` and
+`PAVEMENT_NEAR_Y_FRACTION`, which is what the comment beside it had always claimed it did.
+
+### The rest
+
+`SceneVariant` now declares what is drawn: TREE 9.479 m over 118 units rather than 122, and GIFT,
+SNOWMAN, BUNNY and PENGUIN likewise — the declared metre moved, not the artwork, and the largest
+change anywhere on screen is 0.014 px. FIR is stated at 9.8 m, which is what a fir renders at under
+TREE's scale; the entry is unreachable and the KDoc now says so.
+
+Documentation: README's `targetSdk`, CONTRIBUTING's instruction to keep the render loop "pure 2D
+Canvas: no OpenGL/Vulkan dependencies" (which would have had a contributor delete the backend the
+app runs on), ARCHITECTURE's build table and sprite inventory, DESIGN_NOTES' size table, and the
+comment in `app/build.gradle.kts` that still said `targetSdk` stayed at 36 fifteen lines above
+`targetSdk = 37`.
+
+### What the tests gained
+
+Mutation testing found a gap and it is closed: setting `PERSON_ANCHOR_Y_UNITS` back to -84 with a
+255 px canvas draws every pedestrian one unit into the ground, and the entire JVM suite passed.
+`SpriteGeometryTest` now ties each family's shared anchor to the canvas it is read from, and catches
+both that and a family whose members disagree. Both mutations were re-run for this release and both
+fail the test, naming the family and the pixel discrepancy.
+
+### Verified for this release
+
+Executed on a `sdk_gphone16k_x86_64` emulator, API 37, 1080x2424: **102 instrumented tests, 33 of
+them golden, all passing**, and **1086 JVM tests**, lint clean (31 issues, 0 errors), all four build
+artefacts produced. The runtime scenarios behind BCK-01, BCK-02, WEA-01 and WEA-02 were exercised on
+the device rather than inferred; `LiveWeatherSchedule`'s three-hour snapshot age cap could not be,
+because the emulator is a `user` build whose clock cannot be moved. See
+`release-verification/V4_11_REPORT.md`.
+
+---
+
 ## v4.10 — the renderer lets go of the surface it no longer owns
 
 **Prepared, not published.** `versionCode = 41`, `versionName = "4.10"`. Prepared 2026-08-29. No tag,

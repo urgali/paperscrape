@@ -60,6 +60,14 @@ class SpriteGeometryTest {
      * one-off per-pixel pass per tone actually used. It was not taken because the batch that
      * requested this asked for real variant PNGs; it remains the cheaper answer if memory
      * pressure is ever measured to be a problem on real devices.
+     *
+     * **SCL-01 grew the set inside the ceiling rather than moving it, and says so here because
+     * the paragraph above asks the next asset pass to.** Widening the three co-registered person
+     * families by one to three units of canvas each -- 132 sprites, to recover winter headwear the
+     * old viewBox cut flat -- took the set from 26.76 MB to 27.09 MB decoded. That is 25.84 MiB
+     * against this 26 MiB ceiling: it fits, with 169 kB to spare. The ceiling is deliberately not
+     * raised. Whoever needs the next canvas has almost none of it left and should expect to make
+     * the memory-pressure argument, not to nudge the number.
      */
     private val decodedByteBudget = 26L * 1024L * 1024L
 
@@ -107,6 +115,68 @@ class SpriteGeometryTest {
             "these sprites each take more than an eighth of the whole budget: $oversized",
             emptyList<String>(), oversized,
         )
+    }
+
+    /**
+     * Each co-registered sprite family shares one canvas, and the single anchor that serves the
+     * family is that canvas's own height.
+     *
+     * `tools/assets/paperscrape_assets/normalize.py` defines these three families and refuses a
+     * set whose "members must share a canvas", because one origin serves them all. The Kotlin side
+     * of that rule is here: `drawPerson`, `drawWindowOccupant` and `drawCarDriver` each blit
+     * whichever member the lookup picked through one `*_ANCHOR_Y_UNITS`, and that constant is the
+     * canvas height in local units -- it is what puts the sprite's bottom edge on the caller's
+     * y=0.
+     *
+     * Two failures follow from breaking it, and neither is visible in a build:
+     *
+     * - **A family whose canvases disagree.** The shared anchor is then right for some members and
+     *   wrong for the rest, which is exactly what a per-sprite constant would be invented to paper
+     *   over -- and `CLAUDE.md` says not to build one.
+     * - **A canvas that grew without its anchor.** Every member of that family is drawn one unit
+     *   into the ground, or one unit above it. This is the case that went unnoticed: the SCL-01
+     *   pass widened all three canvases, and nothing in the suite would have caught leaving an
+     *   anchor behind.
+     *
+     * Read from the shipped PNGs rather than declared here, so the assertion follows the artwork
+     * instead of restating it.
+     */
+    @Test
+    fun `each co-registered family shares one canvas, and its anchor is that canvas`() {
+        data class Family(val key: String, val anchorUnits: Float, val member: (String) -> Boolean)
+
+        val families = listOf(
+            Family("person_walk", -SceneObjectRenderer.PERSON_ANCHOR_Y_UNITS) {
+                it.startsWith("person_") && it.contains("_walk")
+            },
+            Family("person_head_window", SceneObjectRenderer.WINDOW_HEAD_ANCHOR_Y_UNITS) {
+                it.contains("_head_window")
+            },
+            Family("person_head_car", SceneObjectRenderer.CAR_HEAD_ANCHOR_Y_UNITS) {
+                it.endsWith("_head_car")
+            },
+        )
+        val grid = SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+
+        for (family in families) {
+            val members = spriteNames().filter(family.member)
+            assertTrue("${family.key}: no members found", members.isNotEmpty())
+
+            val canvases = members.map { pngSize(it) }.toSet()
+            assertEquals(
+                "${family.key}: one origin serves every member, so they must share a canvas -- " +
+                    "found ${canvases.sortedBy { it.second }}",
+                1, canvases.size,
+            )
+
+            val (_, height) = canvases.first()
+            assertEquals(
+                "${family.key}: the shared anchor is ${family.anchorUnits} units, which is " +
+                    "${family.anchorUnits * grid} px, but the family's canvas is $height px tall. " +
+                    "A canvas that moves without its anchor moves every member of the family.",
+                height.toFloat(), family.anchorUnits * grid, 0.001f,
+            )
+        }
     }
 
     private fun spriteNames(): List<String> {

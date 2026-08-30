@@ -50,10 +50,28 @@ PROBE_SVG = (
     "</svg>"
 )
 
-#: Measured with the toolchain pinned in requirements.txt. A mismatch means the
-#: toolchain moved and every fidelity figure in reports/ has to be re-measured,
-#: not trusted. Update this value only together with the pins, and re-run
-#: `compare` in the same change.
+#: Measured with the toolchain pinned in requirements.txt, **on the machine that
+#: recorded it**. Update this value only together with the pins, and re-run `compare`
+#: in the same change.
+#:
+#: A mismatch means the rasteriser build differs from the recorded one. It does *not*
+#: by itself mean the shipped art would re-render differently, and this is worth
+#: stating because the two were once conflated. Measured on a second machine: the
+#: fingerprint differs (`20e57750...` against the `e2eb2e10...` below) while
+#: `compare` reports **PIXEL_IDENTICAL for all 125 SVG-sourced sprites** -- and the
+#: fingerprint is the same under Pillow 12.1.1 and 12.3.0, so the difference is in the
+#: native resvg build rather than in the Python pins.
+#:
+#: The document below is a square at half-pixel coordinates, a circle and a rounded
+#: rect at 50 % opacity: it exercises antialiasing of curves and sub-pixel edges on
+#: purpose, which is what makes it sensitive enough to be a toolchain probe. The
+#: sprite library is flat paper-cutout shapes on the 3x grid and does not depend on
+#: that behaviour, which is why it can render identically while this differs.
+#:
+#: So: treat a mismatch as "this is a different rasteriser build, re-measure before
+#: trusting any figure in reports/", and treat `compare` as the answer for the shipped
+#: art specifically. `compare` is the stronger evidence of the two -- it checks all 125
+#: real sprites rather than one synthetic document.
 PROBE_EXPECTED_SHA256 = "e2eb2e1004f7ca8529960f09ff65abc950dd81dffa4543f6044e5b224a3c6390"
 
 

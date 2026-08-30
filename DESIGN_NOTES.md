@@ -426,22 +426,22 @@ its own drawing occupies; its base scale is derived from the two.
 | | read-as height | drawn units |
 |---|---|---|
 | Pumpkin | 0.5 m | 42 |
-| Bunny | 0.55 m | 62 |
-| Easter egg | 0.6 m | 40 |
-| Gift | 0.95 m | 42 |
-| Penguin | 1.1 m | 46 |
+| Bunny | 0.885 m | 61 |
+| Easter egg | 1 m | 40 |
+| Gift | 0.905 m | 40 |
+| Penguin | 1.172 m | 49 |
 | Car | 1.45 m | 48 |
-| Snowman | 1.7 m | 75 |
-| Person (adult) | 1.9 m | 80 |
+| Snowman | 1.677 m | 74 |
+| Person (adult) | 1.75 m | 80 |
 | Parasol | 2.9 m | 84 |
 | Fire engine | 2.9 m | 68 |
-| Bar | 4.8 m | 55 |
-| Restaurant | 5.2 m | 60 |
-| Small house | 5.8 m | 110 |
+| Small house | 5.76 m | 110 |
 | Large house | 7.6 m | 145 |
+| Bar | 7.7 m | 92 |
 | Palm | 8 m | 90.33 |
-| Tree | 9.8 m | 122 |
-| Tower | 17 m | 196 |
+| Restaurant | 8.2 m | 96 |
+| Tree | 9.479 m | 118 |
+| Tower | 16.8 m | 196 |
 | Hot-air balloon | 20 m | 149 |
 
 **These are read-as heights, not measurements.** They started from real-world

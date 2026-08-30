@@ -741,6 +741,25 @@ class PaperRenderer(
 
         /** Centres a 240px raw-pixel disc in the `radius / 120f` space of the sun and moon. */
         const val CELESTIAL_DISC_ORIGIN_UNITS = -120f
+        /**
+         * Where `cloud_body.png` is blitted so its content centre lands on the point the
+         * placement and coverage maths already use, `(cx, laneY)`.
+         *
+         * **This was `(-128f, -85f)`, and that pair centres a 768x510 px canvas exactly**
+         * (-128 + 256/2 = 0, -85 + 170/2 = 0). No such file ships: `cloud_body.png` is
+         * 798x396 px = 266x132 units with content filling it, so the drawn cloud's centre sat
+         * 5 units right and 19 units above the point everything else measured from. The old
+         * numbers are residue from a canvas that was replaced --
+         * `RELEASE_HISTORY.md` records `cloud_body` as "the one file that did not go through
+         * the automated path", which is why this is the sprite whose constants drifted.
+         *
+         * Derived from the asset rather than restated, so a re-crop cannot strand it again.
+         */
+        val CLOUD_BLIT_X = -CloudCoverage.CLOUD_CONTENT_HALF_UNITS
+
+        /** See [CLOUD_BLIT_X]. */
+        val CLOUD_BLIT_Y = -CloudCoverage.CLOUD_CONTENT_HALF_HEIGHT_UNITS
+
         val CELESTIAL_DISC_SCALE = SpriteScale.CANVAS_PIXELS
 
         /** Centres the 396px sunburst in that same space, putting its ray ring at 150..198
@@ -1644,7 +1663,7 @@ class PaperRenderer(
         canvas.save()
         canvas.translate(cx, cy)
         canvas.scale(scale, scale)
-        sprites.drawTinted(canvas, R.drawable.cloud_body, -128f, -85f, SpriteScale.SCENE_UNITS, cloudPaint.color)
+        sprites.drawTinted(canvas, R.drawable.cloud_body, CLOUD_BLIT_X, CLOUD_BLIT_Y, SpriteScale.SCENE_UNITS, cloudPaint.color)
         canvas.restore()
     }
 

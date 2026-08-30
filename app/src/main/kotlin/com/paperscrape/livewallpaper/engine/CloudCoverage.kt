@@ -136,10 +136,27 @@ internal class CloudCoverage(private val columnCount: Int = DEFAULT_COLUMNS) {
         const val RAIN_SPREAD_FACTOR = 1.6f
 
         /**
-         * Half the visible width of `cloud_body.png` in local units: the sprite's content bounding
-         * box is 873 px wide and sprites are authored at [SpriteBlitter.SPRITE_PIXELS_PER_UNIT],
-         * so 873 / 3 / 2. Measured from the asset, not guessed.
+         * Half the visible width of `cloud_body.png` in local units: the sprite is 798 px wide with
+         * content filling the canvas (alpha bounding box 0,0-798,396) and sprites are authored at
+         * [SpriteBlitter.SPRITE_PIXELS_PER_UNIT], so 798 / 3 / 2.
+         *
+         * **Re-measured.** This said 145.5 and cited a content box "873 px wide ... measured from
+         * the asset, not guessed" -- but 873 px matches no shipped file, and the cloud that ships
+         * is 798 px. The coverage kernel was therefore treating every cloud as 9 % wider than the
+         * one being drawn, so the "coverage is exactly 1 inside the silhouette" property was
+         * slightly false at the edges, where rain fell a little beyond the cloud making it.
+         *
+         * Re-derive this from the shipped PNG if the art changes; do not carry a number over.
          */
-        const val CLOUD_CONTENT_HALF_UNITS = 145.5f
+        const val CLOUD_CONTENT_HALF_UNITS = 133f
+
+        /**
+         * Half the visible *height* of `cloud_body.png` in local units: 396 / 3 / 2.
+         *
+         * Measured from the same shipped file and in the same way as
+         * [CLOUD_CONTENT_HALF_UNITS], and it exists so the blit can be centred from the asset
+         * rather than from a remembered canvas -- see `PaperRenderer.CLOUD_BLIT_Y`.
+         */
+        const val CLOUD_CONTENT_HALF_HEIGHT_UNITS = 66f
     }
 }

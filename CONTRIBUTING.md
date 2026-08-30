@@ -52,8 +52,12 @@ how the custom theme editor should connect to the date-based automation):
 - Idiomatic Kotlin, no `!!` when avoidable.
 - Every new theme must provide *all* fields of `SceneTheme` (day/night for sky and hills).
 - Preferences always go through `WallpaperPrefs` (DataStore), never direct `SharedPreferences`.
-- Keep the render loop pure 2D Canvas: no OpenGL/Vulkan dependencies, to stay
-  lightweight and compatible with all Android 8+ devices.
+- The scene is 2D, but the render loop is **not** pure `Canvas`: it draws through
+  `SceneCanvas`, and `GlSceneTarget` (OpenGL ES 2.0, on a per-engine render thread)
+  is the normal path. `CanvasSceneTarget` is the settings preview and the fallback
+  when EGL is unavailable, which is what keeps all Android 8+ devices working. Keep
+  both backends drawing the same picture, and add no third graphics dependency --
+  no Vulkan, no external engine. See `ARCHITECTURE.md` §3.
 
 ## Quick testing without a physical device
 

@@ -258,7 +258,7 @@ class SceneObjectRenderer(
         const val PERSON_HALF_WIDTH_UNITS = 21.5f
 
         const val PERSON_ANCHOR_X_UNITS = -20.5f
-        const val PERSON_ANCHOR_Y_UNITS = -84f
+        const val PERSON_ANCHOR_Y_UNITS = -85f
 
         // ---- The people behind a windscreen (v4.6) ---------------------------------------
         //
@@ -328,14 +328,45 @@ class SceneObjectRenderer(
         /**
          * The content height of `person_*_head_car`, in local units, measured off the artwork.
          *
-         * All four are 120x144 px -- 40x48 units -- and their alpha bounding box is 143 px tall,
-         * so the drawing occupies 47.67 of the canvas's 48. The doc comment that used to sit here
-         * said 171x162, which no shipped sprite has ever been; the anchors below were always
-         * right for the real files.
+         * All four are 120x147 px -- 40x49 units. The canvas gained a unit at the top in the
+         * SCL-01 pass: `normalize.py` defines these four as a co-registered group whose "members
+         * must share a canvas" because one origin serves them all, and the two winter heads had
+         * headwear cut flat by the old 144 px box. Every member grew, so the group still shares
+         * one canvas and this file still needs one anchor.
+         *
+         * The alpha box is 143 px for the summer pair and 146 for the winter one, which now
+         * carries its bobble. 143 is kept as the family's representative height for the same
+         * reason the anchor below is a midpoint: the spread is small, it is shared by a lookup
+         * group, and a per-sprite table is what `CLAUDE.md` tells us not to build. The winter
+         * heads therefore draw the recovered 3 px at the scale they always drew at, rather than
+         * being shrunk to hide it.
+         *
+         * **The two winter heads also touch the canvas left and right, and that is not the same
+         * defect -- do not "finish the job" by widening this canvas too.** Measured against the
+         * padded render: the top overflow that SCL-01 fixed was 41 and 38 opaque pixels reaching
+         * 3 px past the edge, a bobble genuinely cut flat. What remains sideways is 15 opaque
+         * pixels in a sliver **2 px** wide, which is the outline stroke's own half-width clipped
+         * where the artwork meets the frame -- the same thing `car_body` has (104 px left, 94
+         * right), `tree_canopy` (1 px either side) and roughly twenty more sprites across the
+         * library, summer and winter alike. The summer heads show none of it only because their
+         * hair stops short of the edge.
+         *
+         * Widening the family for it would recover a 2 px outline sliver on two members, pad the
+         * other two with transparent margin, and leave every other sprite in the library with the
+         * identical condition. That is not closing this finding; it is opening a library-wide one
+         * that nobody has asked for.
          */
         const val CAR_HEAD_CONTENT_UNITS = 143f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
-        /** The content height of `person_*_head_window`: 159x162 px with a 155 px alpha box. */
+        /**
+         * The content height of `person_*_head_window`: all eight are 159x171 px.
+         *
+         * The canvas gained three units at the top in the SCL-01 pass, for the whole group --
+         * `normalize.py` requires these to share one canvas -- because
+         * `person_woman_winter_head_window` had 7 px of hat outside the old 162 px box. The alpha
+         * boxes run 146..169 px and 155 is the representative: they never agreed, and one origin
+         * has always served all eight.
+         */
         const val WINDOW_HEAD_CONTENT_UNITS = 155f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
         /** The head part of either bust, in its own local units: hair crown down to the neck. */
@@ -366,20 +397,20 @@ class SceneObjectRenderer(
          * The `CONTENT_BOTTOM_CENTRE` anchor the four car-driver head sprites declare, in local
          * units.
          *
-         * All four are 120x144 and anchor at y=144, which is 48 units; on x they declare 61 px
+         * All four are 120x147 and anchor at y=147, which is 49 units; on x they declare 61 px
          * for the summer pair and 60 for the winter one, so this is the midpoint of the two. The
          * 1 px spread is 0.33 local units, which at [CAR_HEAD_SCALE] and the vehicle's own scale
          * is well under a pixel on screen -- below the point where a per-sprite table would buy
          * anything, and the same reasoning that lets a lookup group share one crop rectangle.
          */
         const val CAR_HEAD_ANCHOR_X_UNITS = 20.5f
-        const val CAR_HEAD_ANCHOR_Y_UNITS = 48f
+        const val CAR_HEAD_ANCHOR_Y_UNITS = 49f
 
         /**
          * Where a passenger sits, and the anchor of the head they are drawn with.
          *
          * The rear pane of the glass, on the far side of its pillar from the driver. Passengers
-         * use the 159x162 window-occupant heads rather than the 120x144 driving ones, because
+         * use the 159x171 window-occupant heads rather than the 120x147 driving ones, because
          * there is no child driving head and inventing one would mean a child could be drawn in
          * a driving seat by a later edit; the two sets are deliberately not interchangeable. The
          * anchor is the midpoint of the four heads' declared `CONTENT_BOTTOM_CENTRE` x.
@@ -392,7 +423,7 @@ class SceneObjectRenderer(
         const val CAR_PASSENGER_Y_UNITS = CAR_SILL_Y_UNITS
         const val CAR_PASSENGER_SCALE = CAR_GLASS_HEIGHT_UNITS / WINDOW_HEAD_CONTENT_UNITS
         const val WINDOW_HEAD_ANCHOR_X_UNITS = 26.8f
-        const val WINDOW_HEAD_ANCHOR_Y_UNITS = 54f
+        const val WINDOW_HEAD_ANCHOR_Y_UNITS = 57f
 
         /**
          * Conservative upper bound on how far, in local units, any static scene object extends

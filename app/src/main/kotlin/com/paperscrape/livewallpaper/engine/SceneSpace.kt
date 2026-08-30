@@ -397,16 +397,47 @@ object SceneSpace {
         /** Two storeys plus a roof; its door is 45 units on the same reading. */
         HOUSE_LARGE(7.6f, 145f),
 
-        /** Trunk to crown; the trunk is 36 % of it. Nudged up in v76.6 for presence beside the houses. */
-        TREE(9.8f, 122f),
+        /**
+         * Trunk to crown; the trunk is 37 % of it.
+         *
+         * **118 units, not 122.** Measured from the two blits that make a tree: `tree_trunk`
+         * (30x132 px = 10x44 u) at (-5,-44), and `tree_canopy` (246x222 px = 82x74 u) at
+         * `TreeSpriteLayout.CANOPY_Y` = -80 inside the canopy's own `translate(0,-38)`, so the
+         * crown tops out at -118. The entry said 122 and the tree was therefore reading 9.48 m
+         * rather than the 9.8 it declared.
+         *
+         * The metre is what moved, not the artwork. 9.8 was tuned by eye in v76.6 "for presence
+         * beside the houses", so the drawn size is the decision and the declaration was the thing
+         * that had drifted; 9.479 is 118 units at the metres-per-unit this tree has always been
+         * drawn at, which leaves the picture where it is to within 0.02 px at the reference
+         * resolution.
+         */
+        TREE(9.479f, 118f),
 
         /**
          * The Christmas fir that replaces one tree in three while the Christmas layer is on.
          *
-         * 122 units, the same as [TREE], so the two are one metre-per-unit family: a fir cannot
-         * drift out of scale with the wood it stands in, whichever of them is redrawn.
+         * **122 units at [TREE]'s own metres-per-unit, which is why it reads taller than a leafy
+         * tree rather than shorter.** `variantFor` never returns FIR -- a fir is a *state* of a
+         * TREE candidate (`SceneObjectRenderer.standsAsFir`), so it is drawn under TREE's scale
+         * and this `baseScale` is not applied; the only other reference is a `-> Unit` arm in the
+         * draw dispatch. `tree_fir` is 234x366 px = 78x122 u blitted at (-39,-122), so a fir
+         * occupies 122 units where the leafy tree occupies 118, and at 0.0803 m/unit that is
+         * 9.8 m against the tree's 9.479.
+         *
+         * This entry used to say 9.3 m, and `SceneSpaceTest` pinned "a fir is shorter than a
+         * tree". **Both were wrong, and the project said so itself.** v2.8 introduced the entry as
+         * `9.3 m / 122 u` and explained it in the same breath: *"FIR shares TREE's 122 units so
+         * one metre governs both: a fir cannot drift out of scale with the wood it stands in"*
+         * (`RELEASE_HISTORY.md`). One metre governing both is exactly what sharing a scale means,
+         * and it is what the code has always done -- but a fir at 9.3/122 would have had a
+         * *different* metre-per-unit from a tree at 9.8/122, which is the drift that sentence
+         * exists to forbid. The stated intent and the stated number contradicted each other; the
+         * intent is the one the renderer implements, so the number is what moved.
+         *
+         * Nothing is drawn differently by this change: the value was never read.
          */
-        FIR(9.3f, 122f),
+        FIR(9.8f, 122f),
 
         /** Trunk plus frond fan, ground to the top of the blades. */
         PALM_TREE(8f, 90.33f),
@@ -449,14 +480,28 @@ object SceneSpace {
         /** Pole to canopy rim. Raised in v76.7: at 2.3 m it had shrunk out of the composition. */
         PARASOL(2.9f, 84f),
 
-        /** Three spheres and a hat. */
-        SNOWMAN(1.7f, 75f),
+        /** Three spheres and a hat. 74 units: `snowman_body` is 114x222 px = 38x74 u at (-19,-74),
+         *  and the nose and scarf sit inside it. The code's own "75-unit canvas" comment at the
+         *  blit was one unit out; 1.6773 is 74 units at the metre-per-unit it has always drawn at. */
+        SNOWMAN(1.6773f, 74f),
 
-        /** A large wrapped present, measured over the bow. Nudged up in v76.6 -- at 0.6 m it read as a speck. */
-        GIFT(0.95f, 42f),
+        /** A large wrapped present, measured over the bow. Nudged up in v76.6 -- at 0.6 m it read
+         *  as a speck, and that nudge is a decision about the drawn size, so it is preserved here.
+         *  40 units, not 42: `gift_box` (40x30 u at (-20,-30)) plus `gift_ribbon` (40x40 u at
+         *  (-20,-40)) span -40..0. */
+        GIFT(0.9048f, 40f),
 
-        /** An emperor penguin, which is the size the artwork is drawn at. */
-        PENGUIN(1.1f, 46f),
+        /**
+         * An emperor penguin, which is the size the artwork is drawn at -- 49 units, not 46.
+         *
+         * It is also the **only** static whose art crosses the ground line: `penguin_body`
+         * (28x44 u at (-14,-45)) stops one unit short of it, and `penguin_feet` (20x4 u) is
+         * blitted at (-10, **0**), so the feet occupy y 0..+4 while every other static -- tree,
+         * gift, snowman, bunny -- ends exactly at y=0. That is a separate question from this
+         * table, and moving the feet would move the bird, so it is left as it is and recorded
+         * here rather than silently corrected.
+         */
+        PENGUIN(1.1717f, 49f),
 
         /**
          * A rabbit sitting up, ears included. Raised from 0.55 m in v76.10: at the physical
@@ -464,7 +509,7 @@ object SceneSpace {
          * simply did not read. The Easter theme's two subjects are the eggs and the rabbit, and
          * an object nobody can see is not carrying a theme.
          */
-        BUNNY(0.9f, 62f),
+        BUNNY(0.8855f, 61f),
 
         /** An oversized decorative garden egg, not a hen's egg. Raised with the rabbit, and for
          * the same reason -- see [BUNNY]. */

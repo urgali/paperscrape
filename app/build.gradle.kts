@@ -10,7 +10,8 @@ android {
     // the code is compiled and linked against, and it is what androidx.core 1.19 and the
     // Compose 1.12 line require (`minCompileSdk=37` in their AAR metadata). It changes no
     // runtime behaviour on its own -- the platform's behaviour gates read `targetSdk`, which
-    // deliberately stays at 36 below so this upgrade cannot move the app's behaviour.
+    // was deliberately held at 36 while this upgrade landed so it could not move the app's
+    // behaviour. That hold ended in v4.0: `targetSdk` is 37 below, equal to this.
     compileSdk = 37
 
     defaultConfig {
@@ -39,8 +40,8 @@ android {
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 41
-        versionName = "4.10"
+        versionCode = 42
+        versionName = "4.11"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
