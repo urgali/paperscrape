@@ -354,23 +354,37 @@ class SceneObjectRenderer(
          * sits 5 units below it, so there is no room upward, while below the sill the artwork is
          * flat body colour until the beltline at y=18.
          *
-         * **19 x 169/155.** v4.6 stretched the authored 16 to 19 and sized both busts against it,
-         * dividing each family's glass by a *representative* content height -- 155 px for the window
-         * heads. The family's tallest member is 169 px, so it was drawn 169/155 of the glass:
-         * anchored at the sill, the excess went up, over the roof, unclipped. Measured on a
-         * OnePlus 6T at the near lane, the winter woman's bobble hat stood **3 px above a 27 px
-         * window**, and the winter man's beanie 1 px.
+         * **Unchanged in v4.16, deliberately.** The report that release answers is about the people
+         * in the cars, not about the cars, so the pane keeps the exact height v4.15 shipped and the
+         * sill stays at 14.716 with `police_stripe` and `taxi_checker` on it. The occupants are the
+         * only thing that moves, which is also what makes the golden diff readable: every pixel
+         * that changes is a bust.
          *
-         * **The window grew rather than the people shrinking**, because shrinking them re-opened the
-         * defect the scales exist to prevent: at the family maximum over the old 19, a passenger's
-         * head fell to 68.3% of a pedestrian's against a 70-90% band, and a driver's face measured
-         * 14 px against the nearest pedestrian's 15 -- the nearer person drawn smaller, which is
-         * v4.6's own bug. Against 20.72 the passenger's head is **exactly the size it has always
-         * been** (0.407 m, 74.5%) and the driver's grows 6.8% to 83.1%, both inside the band.
+         * The expression is kept as the *provenance* of the number rather than as a live
+         * derivation. v4.6 stretched the authored 16 to 19, and v4.15 multiplied that by 169/155 --
+         * the ratio between a window head family's tallest member and its old representative --
+         * because the bust filled the pane exactly and the tallest winter hat therefore stood over
+         * the roof. [OCCUPANT_HEAD_PANE_SHARE] removes that coupling: a head now takes 51.9% of
+         * whatever pane it is behind, so nothing can reach the roof line and 169/155 no longer
+         * describes anything. It is written this way so the value stays bit-identical to what
+         * shipped; the meaning is only the history.
          *
-         * The sill moves 13 -> 14.72, still 3.3 units clear of the beltline; `police_stripe` and
-         * `taxi_checker` follow it rather than staying at the old literal, which is what their own
-         * call site always meant by 13.
+         * **Enlarging the pane, and enlarging the vehicle, were both rendered on a OnePlus 6T
+         * rather than argued about.** Neither helps, and the reason is the same in both cases: an
+         * occupant is blitted *inside* the car's own `scale(vehicleScale)` and its bust was scaled
+         * *from this constant*, so
+         *
+         *  - a bigger vehicle scales the occupant with it -- head-over-car and head-over-pane come
+         *    out at 31.3% and 72.6% at 1.45 m and at 1.75 m alike -- while a near-lane roof, which
+         *    already stands 30 px above the carriageway's own edge, stands 44 at 1.75 m;
+         *  - a bigger pane scaled the bust with it too, so at 23 units the occupants came out
+         *    *larger still* (34.7% of the vehicle) and the taxi chequer dropped onto the wheels.
+         *
+         * With [OCCUPANT_HEAD_PANE_SHARE] the coupling is gone, and a 23-unit pane was rendered
+         * again on that footing: the occupants are then right but the car reads as a van, because
+         * the glass runs to within a unit of the beltline and leaves almost no door. So the pane
+         * stays exactly as v4.15 shipped it, the vehicle stays 1.45 m, and the occupant is the only
+         * thing this release moves.
          */
         const val CAR_GLASS_HEIGHT_UNITS = 19f * 169f / 155f
 
@@ -461,9 +475,35 @@ class SceneObjectRenderer(
         const val CAR_HEAD_HEAD_UNITS = 106f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
         const val WINDOW_HEAD_HEAD_UNITS = 110f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
+        /**
+         * The share of the pane a **head** takes, anywhere in the scene one is seen through glass.
+         *
+         * Not a new number: it is what `drawWindowOccupant` has drawn house, shop and tower
+         * occupants at since v4.2, read back out of the expression that produces it. A house pane
+         * is 22 units square and the bust is scaled by `winW * 0.85 / 60`, so the head part of it
+         * -- [WINDOW_HEAD_HEAD_UNITS] -- comes out at `0.85 * 36.667 / 60` of the pane: **51.9%,
+         * with the rest of the pane glass.**
+         *
+         * v4.6 gave the car a different rule, *a bust's content is exactly as tall as the glass*.
+         * That is 100% of the pane, so a head filled 72.6% of its window and touched the roof line
+         * by construction, on every vehicle and at every depth; v4.15 then stretched the pane and
+         * scaled the bust with it. Measured against the vehicle rather than the pane, the same head
+         * sprite was 31.3% of a sedan's height and 14.9% of a fire engine's.
+         *
+         * **The head is the anchor rather than the bust**, because the two bust families do not
+         * carry the same amount of head: 106 px of 146 for a driving head, 110 of 169 for a window
+         * one. Matching busts leaves the driver's head noticeably the larger; matching heads is
+         * what makes a driver, a passenger, a fire engine's crew and somebody at an upstairs window
+         * all read at one proportion. Each family's scale is therefore its own pane's share over
+         * its own head height, and nothing here is tuned per sprite.
+         */
+        const val OCCUPANT_HEAD_PANE_SHARE =
+            0.85f * WINDOW_HEAD_HEAD_UNITS / WINDOW_OCCUPANT_DIVISOR_UNITS
+
         const val CAR_HEAD_X_UNITS = -8f
         const val CAR_HEAD_Y_UNITS = CAR_SILL_Y_UNITS
-        const val CAR_HEAD_SCALE = CAR_GLASS_HEIGHT_UNITS / CAR_HEAD_CONTENT_UNITS
+        const val CAR_HEAD_SCALE =
+            OCCUPANT_HEAD_PANE_SHARE * CAR_GLASS_HEIGHT_UNITS / CAR_HEAD_HEAD_UNITS
 
         /**
          * The fire engine's cab, which is painted into `firetruck_body` and cannot be stretched
@@ -479,7 +519,8 @@ class SceneObjectRenderer(
         const val FIRE_TRUCK_SILL_Y_UNITS = 5f
         const val FIRE_TRUCK_HEAD_X_UNITS = -28f
         const val FIRE_TRUCK_HEAD_Y_UNITS = FIRE_TRUCK_SILL_Y_UNITS
-        const val FIRE_TRUCK_HEAD_SCALE = FIRE_TRUCK_GLASS_HEIGHT_UNITS / CAR_HEAD_CONTENT_UNITS
+        const val FIRE_TRUCK_HEAD_SCALE =
+            OCCUPANT_HEAD_PANE_SHARE * FIRE_TRUCK_GLASS_HEIGHT_UNITS / CAR_HEAD_HEAD_UNITS
 
         /**
          * The `CONTENT_BOTTOM_CENTRE` anchor the four car-driver head sprites declare, in local
@@ -509,7 +550,8 @@ class SceneObjectRenderer(
          */
         const val CAR_PASSENGER_X_UNITS = 17f
         const val CAR_PASSENGER_Y_UNITS = CAR_SILL_Y_UNITS
-        const val CAR_PASSENGER_SCALE = CAR_GLASS_HEIGHT_UNITS / WINDOW_HEAD_CONTENT_UNITS
+        const val CAR_PASSENGER_SCALE =
+            OCCUPANT_HEAD_PANE_SHARE * CAR_GLASS_HEIGHT_UNITS / WINDOW_HEAD_HEAD_UNITS
         const val WINDOW_HEAD_ANCHOR_X_UNITS = 26.8f
         const val WINDOW_HEAD_ANCHOR_Y_UNITS = 57f
 

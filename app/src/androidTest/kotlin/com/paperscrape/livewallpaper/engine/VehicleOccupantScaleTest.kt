@@ -32,10 +32,11 @@ import kotlin.math.abs
  * ### The defect, as an assertion
  *
  * The near traffic lane is at 0.862 of screen height and the near pavement at 0.807, so a driver
- * is **nearer the viewer than any pedestrian**. In v4.5 the driver's face measured 11 px against a
- * pedestrian's 13: the nearer person was drawn smaller, which is what "the people in the cars look
- * like children" was. [aDriversFaceIsAtLeastAsBigAsTheNearestPedestriansFace] is that comparison,
- * and it fails on v4.5's constants.
+ * stands nearer the viewer than any pedestrian -- and is still drawn smaller, because a head seen
+ * through a pane is set back inside a body. In v4.5 the driver's face measured 11 px against a
+ * pedestrian's 13 and read as a child; in v4.15 it measured 16 against 15 with the head against the
+ * roof line. The proportion this release is judged on is the occupant's share of its own pane, and
+ * [everyOccupantHasGlassAboveTheirHead] is that read off the rendered frame.
  */
 @RunWith(AndroidJUnit4::class)
 class VehicleOccupantScaleTest {
@@ -251,24 +252,64 @@ class VehicleOccupantScaleTest {
     // ------------------------------------------------------------------ the occupants
 
     /**
-     * **The defect, as pixels.**
+     * **The v4.15 defect, as pixels: there was no air above anybody's head.**
      *
-     * A driver on the near lane stands at 0.862 of screen height; the nearest pedestrian the street
-     * can produce stands at 0.807 plus its jitter. The driver is nearer, so their face cannot be
-     * the smaller of the two. Measured on v4.5: 11 px against 13. Measured on v4.6: 15 against 13.
+     * A bust was scaled so its content was exactly as tall as the glass and anchored on the sill,
+     * so the top of the head coincided with the top of the pane by construction -- on every vehicle
+     * type, on both lanes, in both seasons. That is what "the people in the cars are too big for
+     * the cars" looks like from the inside, and no arithmetic test could see it because the scale
+     * was *defined* to make it true.
+     *
+     * Measured here on the rendered frame rather than predicted: the topmost band of the drawn
+     * glass must still be glass. [SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE] puts a head at
+     * 51.9% of its pane, so the band is comfortably clear; the assertion asks only for a tenth of
+     * the pane, which v4.15 fails on every frame and this release passes on all of them.
      */
     @Test
-    fun aDriversFaceIsAtLeastAsBigAsTheNearestPedestriansFace() {
+    fun everyOccupantHasGlassAboveTheirHead() {
+        for (type in CarType.entries) {
+            for (lane in LANES) {
+                val frame = frameWithOneCar(type, lane)
+                val glass = glassBox(frame) ?: error("$type on $lane has no glass")
+                val band = maxOf(1, ((glass.maxY - glass.minY + 1) * 0.10f).toInt())
+                val pixels = IntArray(WIDTH * HEIGHT)
+                frame.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
+                var intruders = 0
+                for (y in glass.minY until glass.minY + band) {
+                    for (x in glass.minX..glass.maxX) {
+                        if (isSkin(pixels[y * WIDTH + x])) intruders++
+                    }
+                }
+                assertEquals(
+                    "$type on lane $lane has a head in the top $band rows of its own glass",
+                    0,
+                    intruders,
+                )
+                frame.recycle()
+            }
+        }
+    }
+
+    /**
+     * The pedestrians, kept as a **secondary** and deliberately wide guard.
+     *
+     * An occupant and a pedestrian stand on different ground lines and the projection is supposed
+     * to draw the nearer one larger, so requiring any particular ordering between them as they are
+     * drawn is not a valid test -- v4.6's `driver >= pedestrian` was that mistake, and it is only
+     * satisfiable by a bust that fills its window. What is asserted is that a driver has not become
+     * absurd in either direction; the proportions this release is chosen on are the occupant's
+     * share of its pane and of its vehicle, in `OneOccupantRuleTest` and
+     * `VehiclePedestrianScaleTest`.
+     */
+    @Test
+    fun aDriversFaceStaysInASaneRangeAgainstAPedestriansFace() {
         val pedestrian = tallestFace(frameWithPeopleOnly())
         val driver = tallestFace(frameWithOneCar(CarType.PLAIN, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION))
+        val share = driver.height.toFloat() / pedestrian.height
         assertTrue(
-            "a near-lane driver's face is ${driver.height} px and the nearest pedestrian's is " +
-                "${pedestrian.height} px -- the nearer person is drawn smaller",
-            driver.height >= pedestrian.height,
-        )
-        assertTrue(
-            "and it should not have overshot into a caricature",
-            driver.height <= pedestrian.height * 1.6f,
+            "a near-lane driver's face is ${driver.height} px against a pedestrian's " +
+                "${pedestrian.height} px -- ${"%.0f".format(share * 100)}%",
+            share in 0.55f..1.20f,
         )
     }
 

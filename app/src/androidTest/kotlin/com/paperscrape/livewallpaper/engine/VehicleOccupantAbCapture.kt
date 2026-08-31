@@ -125,6 +125,28 @@ class VehicleOccupantAbCapture {
     }
 
     /**
+     * The same street in winter, which is the season the `Exposure` rule is about.
+     *
+     * Pedestrians and the people in the cars are OUTDOORS and take the winter drawings; the
+     * occupants of houses, shops and towers are INDOORS and must not. `IndoorClothingTest` pins
+     * that deterministically off the drawable tables; this writes the frame it is a statement
+     * about, so the rule can be looked at rather than only asserted.
+     */
+    @Test
+    fun captureAWinterStreet() {
+        if (!asked()) return
+        val cars = listOf(
+            car(CarType.PLAIN, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.22f),
+            car(CarType.TAXI, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.66f),
+            car(CarType.POLICE, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.32f),
+            car(CarType.FIRE_TRUCK, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.76f),
+        )
+        val frame = render(cars, peopleDensity = 1f, winter = true)
+        write(frame, outputDir(), "street_winter")
+        frame.recycle()
+    }
+
+    /**
      * The other half of the comparison: a street with nobody driving on it.
      *
      * No scenery either, because a house's lit window paints an occupant in the same skin tones

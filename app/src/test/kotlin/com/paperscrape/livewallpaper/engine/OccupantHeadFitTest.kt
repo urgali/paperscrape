@@ -80,15 +80,32 @@ class OccupantHeadFitTest {
     }
 
     @Test
-    fun `the enlarged glass keeps a passenger's head exactly the size it was`() {
-        // The point of growing the window instead of shrinking the people. 19/155 was the old
-        // passenger scale; 20.72/169 is the new one, and they are the same number.
+    fun `a bust leaves the pane's own share of air above every head`() {
+        // The v4.15 complaint, as the assertion that would have caught it. Fitting inside the
+        // glass is not enough: filling it exactly is what put every head against the roof line
+        // and is what made the occupants read as too big for the car.
+        val share = SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE
         assertEquals(
-            "a passenger's bust scale must not have moved",
-            19f / (155f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT),
-            SceneObjectRenderer.CAR_PASSENGER_SCALE,
-            0.0005f,
+            "the share is the one drawWindowOccupant has used since v4.2, not a new number",
+            0.85f * SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS /
+                SceneObjectRenderer.WINDOW_OCCUPANT_DIVISOR_UNITS,
+            share,
+            0.0001f,
         )
+        assertTrue("a head must not fill its pane: $share", share < 0.60f)
+        for ((family, scale, glass) in listOf(
+            Triple("person_.*_head_car", SceneObjectRenderer.CAR_HEAD_SCALE, SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS),
+            Triple("person_.*_head_window", SceneObjectRenderer.CAR_PASSENGER_SCALE, SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS),
+            Triple("person_.*_head_car", SceneObjectRenderer.FIRE_TRUCK_HEAD_SCALE, SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS),
+        )) {
+            for ((height, name) in everyContent(family)) {
+                val air = glass - height / SpriteBlitter.SPRITE_PIXELS_PER_UNIT * scale
+                assertTrue(
+                    "$name leaves ${"%.2f".format(air)} units of air in a $glass-unit pane",
+                    air / glass >= 0.15f,
+                )
+            }
+        }
     }
 
     @Test

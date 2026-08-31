@@ -19,6 +19,84 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.16 — the people in the cars, sized by the rule the windows already used
+
+**Prepared, not published.** `versionCode = 47`, `versionName = "4.16"`. Prepared 2026-08-31. No tag,
+no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.15**.
+
+One visual defect, one cause, one constant. The maintainer reported on a OnePlus 6T that the people
+in the cars look too big for the cars. They did, and the reason was that the scene had **two rules
+for the same thing**.
+
+### The cause
+
+`drawWindowOccupant` has sized house, shop and tower occupants by `winW * 0.85 / 60` since v4.2,
+which puts a **head at 51.9% of its pane** and leaves the rest glass. `drawCar` sized its busts by
+`glass / content`, which put the bust at 100% of the pane and the head at 72.6% — so every head in a
+vehicle touched the roof line of its own window **by construction**, on every vehicle type, on both
+lanes, in both seasons. Measured against the vehicle rather than the pane, the same head sprite was
+31.3% of a saloon's height and 14.9% of a fire engine's.
+
+The two numbers had never been compared, because nothing compared them.
+
+### What was ruled out on the device, not in argument
+
+- **A bigger vehicle cannot help.** An occupant is blitted *inside* the car's own
+  `scale(vehicleScale)`, so head-over-car and head-over-pane are invariant under `CAR_METRES_TALL`.
+  Rendered at 1.45 m and at 1.75 m, both come out at 31.3% and 72.6%. What a bigger car does change
+  is the road: a near-lane roof already stands 30 px above the carriageway's own edge, and 44 at
+  1.75 m.
+- **A bigger pane cannot help either**, under the old rule: it scaled the bust with it, so at 23
+  units the occupants came out *larger still*, 34.7% of the vehicle, and the taxi chequer dropped
+  onto the wheels.
+- **A bigger pane with the new rule** was rendered too: the occupants are right but the car reads as
+  a van, because the glass runs to within a unit of the beltline and leaves almost no door.
+
+So the vehicle stays 1.45 m, the pane stays exactly as v4.15 shipped it, and the occupant is the
+only thing this release moves.
+
+### The rule
+
+`OCCUPANT_HEAD_PANE_SHARE = 0.85 * WINDOW_HEAD_HEAD_UNITS / WINDOW_OCCUPANT_DIVISOR_UNITS` — 51.9%,
+*read back out of the window rule* rather than chosen, and applied to each family over its own head
+height. The head is the anchor rather than the bust because the two families do not carry the same
+amount of head (106 px of 146 for a driving head, 110 of 169 for a window one); matching busts would
+leave the driver's head 12% larger than the passenger's beside them in the same car.
+
+| | head / pane | bust / pane | air above the head |
+|---|---|---|---|
+| saloon, taxi, police driver | 51.9% | 71.5% | 28.5% |
+| passenger | 51.9% | 79.8% | 20.2% |
+| fire engine driver | 51.9% | 71.5% | 28.5% |
+| house, shop, tower occupant (unchanged) | 51.9% | 79.8% | 20.2% |
+
+A driver's head is now **22.4% of the vehicle's height**, from 31.3%.
+
+### The measurement that was wrong, and is now right
+
+`VehiclePedestrianScaleTest` compared an occupant's head with a pedestrian's **in scene metres** —
+the quantity the projection then divides out again. Two heads equal in metres are drawn at different
+sizes when they stand on different ground lines, and the road is nearer than the pavement, so the
+comparison measured depth rather than proportion. It is no longer a requirement. What is asserted
+now is the occupant's share of its own pane and of its own vehicle, that an occupant is drawn at its
+vehicle's depth *and nothing else*, and — as a wide secondary guard taken at a common depth — that
+nobody has become absurd.
+
+### Also in this release
+
+- `GlGoldenMetricTest` gains **a wrong-scale case and a rearranged-composition case**, so the
+  two-part GL metric is now damaged seven ways and still catches all of them.
+- The A/B capture harness gains a **winter street**, which is the frame the `Exposure` rule is a
+  statement about.
+
+### Nothing else moved
+
+No artwork. No road, no lane, no carriageway. No vehicle geometry, sill, livery, anchor or canvas.
+`Exposure.INDOORS`/`OUTDOORS`, AutoColorMode, the GL cross-device metric, weather and the general
+rendering path are untouched.
+
+---
+
 ## v4.15 — the closing pass
 
 **Prepared, not published.** `versionCode = 46`, `versionName = "4.15"`. Prepared 2026-08-31. No tag,

@@ -120,6 +120,58 @@ class GlGoldenMetricTest {
         assertCaught("a global tint shift", a, b)
     }
 
+    /**
+     * A sprite drawn at the wrong size, which is neither a drift nor a tint.
+     *
+     * The whole frame is scaled 3% about its centre: every flat interior keeps its colour, so the
+     * interior half sees very little, and every outline moves by an amount that grows with the
+     * distance from the centre. This is the shape a scale-table mistake takes -- v4.15's tower
+     * declaration would have looked like this had it not been pixel-neutral -- and it is the case
+     * the pair of measures exists to cover between them.
+     */
+    @Test
+    fun anObjectDrawnAtTheWrongScaleIsCaught() {
+        val a = golden("gl-day")
+        val b = a.copy(Bitmap.Config.ARGB_8888, true)
+        val w = GlGolden.WIDTH
+        val h = GlGolden.HEIGHT
+        val src = IntArray(w * h)
+        a.getPixels(src, 0, w, 0, 0, w, h)
+        val out = IntArray(w * h)
+        val cx = w / 2f
+        val cy = h / 2f
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val sx = ((x - cx) / 1.03f + cx).toInt().coerceIn(0, w - 1)
+                val sy = ((y - cy) / 1.03f + cy).toInt().coerceIn(0, h - 1)
+                out[y * w + x] = src[sy * w + sx]
+            }
+        }
+        b.setPixels(out, 0, w, 0, 0, w, h)
+        assertCaught("a three-percent scale error", a, b)
+    }
+
+    /**
+     * The composition changed without anything being added, removed or recoloured.
+     *
+     * A block of the scene is mirrored in place: the same pixels, the same colours, the same
+     * histogram, arranged differently. A check that counted colours rather than positions would
+     * see nothing at all here.
+     */
+    @Test
+    fun aRearrangedCompositionIsCaught() {
+        val a = golden("gl-day")
+        val b = a.copy(Bitmap.Config.ARGB_8888, true)
+        val left = 60
+        val right = 300
+        for (y in 440 until 620) {
+            for (x in left until right) {
+                b.setPixel(x, y, a.getPixel(right - 1 - (x - left), y))
+            }
+        }
+        assertCaught("a mirrored block", a, b)
+    }
+
     @Test
     fun aOnePixelEdgeDisplacementIsAccepted() {
         // The driver difference itself, reproduced: shift the whole frame by one pixel, which moves

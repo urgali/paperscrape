@@ -165,75 +165,157 @@ class VehiclePedestrianScaleTest {
     // ------------------------------------------------------- the busts behind the glass
 
     /**
-     * **The v4.6 defect, as one number.**
+     * **An occupant inherits the vehicle's depth, and the arithmetic says so.**
      *
-     * A pedestrian's head is [PEDESTRIAN_HEAD_UNITS] of the [PEDESTRIAN_CONTENT_UNITS] their walk
-     * sprite draws -- 31% of their own height, which is the paper-cutout proportion this whole
-     * scene is drawn in -- so an adult's head reads as 0.547 m. The people behind glass were sized
-     * against the window and nobody had compared the two: a driver's head was 0.320 m, **59% of
-     * the head of the pedestrian walking past on a plane further away**, and they read as children.
+     * `drawCar` applies `scale(vehicleScale)` once around the whole vehicle, where `vehicleScale`
+     * is `CAR_BASE_SCALE * perspectiveScaleAt(laneY) * sceneScale`, and both busts are blitted
+     * *inside* that transform in the car's own local units. So an occupant is drawn at exactly the
+     * projection of the lane their car stands on -- a near-lane occupant is larger than a far-lane
+     * one by precisely the ratio the two lanes have, and by nothing else.
      *
-     * The band is deliberately not "equal". A head seen through glass may read a little smaller
-     * than the same head in the open -- it is behind a pane, inside a body, and a pedestrian's own
-     * head is drawn at cartoon size to carry a whole figure. What it may not do is read as a
-     * different species. 70-90% is that judgement written down; v4.5 sat at 59% and 59%.
+     * Asserted because the alternative failure -- an occupant on a scale of its own that does not
+     * follow the vehicle -- would be invisible in any single frame and would be the real defect if
+     * it were ever true. It is not: the two ratios agree to five decimal places.
      */
     @Test
-    fun `a person behind glass has a head the size of the people walking past`() {
-        // The size table charges a walk sprite for 80 units and it draws 80.67, so the two agree
-        // to within a percent and the head below can be read off either.
+    fun `an occupant is drawn at its own vehicle's depth and nothing else`() {
+        val laneRatio = SceneSpace.perspectiveScaleAt(SceneSpace.ROAD_LANE_NEAR_Y_FRACTION) /
+            SceneSpace.perspectiveScaleAt(SceneSpace.ROAD_LANE_FAR_Y_FRACTION)
+        val heads = drawnHeads()
+        for (who in listOf("driver", "passenger", "fire engine driver")) {
+            assertEquals(
+                "$who near/far must be the lane ratio and not a scale of its own",
+                laneRatio,
+                heads.getValue("near-lane $who") / heads.getValue("far-lane $who"),
+                0.00001f,
+            )
+        }
         assertEquals(
-            "the size table and the artwork disagree about how tall a pedestrian is",
-            SceneSpace.PERSON_SPRITE_UNITS_TALL,
-            PEDESTRIAN_CONTENT_UNITS,
-            1f,
+            "and it is the vehicle's own ratio",
+            carOn(SceneSpace.ROAD_LANE_NEAR_Y_FRACTION) / carOn(SceneSpace.ROAD_LANE_FAR_Y_FRACTION),
+            heads.getValue("near-lane driver") / heads.getValue("far-lane driver"),
+            0.00001f,
         )
-        val pedestrian = PEDESTRIAN_HEAD_UNITS * (SceneSpace.PERSON_METRES_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL)
-        assertEquals("a pedestrian's head, in metres", 0.547f, pedestrian, 0.005f)
+    }
 
-        for ((label, metres) in occupantHeadMetres()) {
-            val share = metres / pedestrian
+    /**
+     * **The primary proportions: occupant against pane, and occupant against vehicle.**
+     *
+     * These are the two relations the v4.15 report is about, and they are the two that a change of
+     * [SceneSpace.CAR_METRES_TALL] cannot touch -- an occupant lives in the vehicle's local units,
+     * so enlarging the vehicle enlarges the person with it and leaves both ratios exactly where
+     * they were. Measured on a OnePlus 6T at 1.45 m and at 1.75 m: head over vehicle 31.3% in both,
+     * head over pane 72.6% in both. Only the occupant's own scale moves them.
+     *
+     * v4.16 takes the head to 51.9% of its pane -- the share `drawWindowOccupant` has given a head
+     * since v4.2 -- which brings the sedan's driver from 31.3% of the vehicle's height to 22.4%.
+     */
+    @Test
+    fun `an occupant is a fixed share of its pane and of its vehicle`() {
+        val share = SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE
+        assertEquals(
+            "driver head over pane",
+            share,
+            SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * CAR_HEAD_SCALE / SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
+            0.0005f,
+        )
+        assertEquals(
+            "driver head over the vehicle it rides in",
+            0.224f,
+            SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * CAR_HEAD_SCALE / SceneSpace.CAR_SPRITE_UNITS_TALL,
+            0.002f,
+        )
+        assertEquals(
+            "fire engine driver head over the vehicle it rides in",
+            0.107f,
+            SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * FIRE_TRUCK_HEAD_SCALE / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL,
+            0.002f,
+        )
+    }
+
+    /**
+     * The pedestrians, as a **secondary** guard and measured at a common depth.
+     *
+     * Comparing an occupant with a pedestrian as each is drawn is not a valid test: they stand on
+     * different ground lines, the road is nearer than the pavement, and the projection is supposed
+     * to make the nearer one larger. So the comparison here removes depth by asking what the same
+     * cartoon head would measure **if the pedestrian stood on the occupant's own lane**, which is
+     * the ratio of the two heads in scene metres and nothing to do with where either one is.
+     *
+     * The band is wide on purpose. It is a guard against an occupant becoming absurd, not a target:
+     * the proportions this release is chosen on are the two above, and a head seen through a
+     * windscreen is legitimately a good deal smaller than the same cartoon head in the open,
+     * because a pedestrian's head is drawn at 31% of their own body to carry a whole figure while a
+     * car's glass is 29% of the car.
+     */
+    @Test
+    fun `an occupant's head stays in a sane relation to a pedestrian's at the same depth`() {
+        val pedestrianHead =
+            PEDESTRIAN_HEAD_UNITS * (SceneSpace.PERSON_METRES_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL)
+        assertEquals("a pedestrian's head, in metres", 0.547f, pedestrianHead, 0.005f)
+        val perCarUnit = SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL
+        val perTruckUnit = SceneSpace.FIRE_TRUCK_METRES_TALL / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL
+        for ((label, metres) in listOf(
+            "driver" to SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * CAR_HEAD_SCALE * perCarUnit,
+            "passenger" to SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS * CAR_PASSENGER_SCALE * perCarUnit,
+            "fire engine driver" to SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * FIRE_TRUCK_HEAD_SCALE * perTruckUnit,
+        )) {
+            val share = metres / pedestrianHead
             assertTrue(
                 "$label head is ${"%.3f".format(metres)} m against a pedestrian's " +
-                    "${"%.3f".format(pedestrian)} m -- ${"%.0f".format(share * 100)}%",
-                share in 0.70f..0.90f,
+                    "${"%.3f".format(pedestrianHead)} m -- ${"%.0f".format(share * 100)}%",
+                share in 0.45f..1.00f,
             )
         }
     }
 
     /**
-     * The bust scale is glass-over-content and nothing else, and both busts stand on the sill.
-     *
-     * This is the rule that replaced three separately tuned scales, and asserting it is what stops
-     * the next size complaint being answered with a fourth. None of [CAR_HEAD_SCALE],
-     * [CAR_PASSENGER_SCALE] or [FIRE_TRUCK_HEAD_SCALE] is a number anybody chose: each is its own
-     * glass height over its own sprite family's content height.
-     *
-     * **What the first three assertions do not check.** Each scale is *defined* as
-     * `glass / content`, so `content * scale == glass` is `glass == glass` for any content
-     * whatsoever — it pins the shape of the rule and says nothing about the pictures. That is how
-     * a window head 169 px tall went on being divided by 155 until the winter woman's hat was
-     * measured 3 px above the glass on a phone. `OccupantHeadFitTest` is the one that reads the
-     * PNGs; this one only states that no fourth hand-tuned scale has appeared.
+     * The drawn sizes stated absolutely, so a change to either side is caught here and not only as
+     * a ratio that two compensating edits could keep in range.
      */
     @Test
-    fun `a bust is scaled by glass over content and stands on the sill`() {
+    fun `the occupant heads are the drawn sizes this release chose`() {
+        val actual = drawnHeads()
+        assertEquals("near-lane driver", 15.85f, actual.getValue("near-lane driver"), 0.05f)
+        assertEquals("far-lane driver", 13.71f, actual.getValue("far-lane driver"), 0.05f)
+        assertEquals("near-lane passenger", 15.85f, actual.getValue("near-lane passenger"), 0.05f)
+        assertEquals("near-lane fire engine driver", 15.13f, actual.getValue("near-lane fire engine driver"), 0.05f)
+    }
+
+    /**
+     * The bust scale is one shared head-share over each family's own head, and both stand on the sill.
+     *
+     * v4.6 replaced three separately tuned scales with `glass / content`; v4.16 replaces that with
+     * [SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE] times the pane over the family's own head
+     * height. None of [CAR_HEAD_SCALE], [CAR_PASSENGER_SCALE] or [FIRE_TRUCK_HEAD_SCALE] is a
+     * number anybody chose.
+     *
+     * **What these assertions do not check.** Each scale is *defined* this way, so
+     * `content * scale == fill * glass` is a tautology for any content whatsoever -- it pins the
+     * shape of the rule and says nothing about the pictures. That is how a window head 169 px tall
+     * went on being divided by 155 until the winter woman's hat was measured 3 px above the glass
+     * on a phone. `OccupantHeadFitTest` is the one that reads the PNGs; this one only states that
+     * no fourth hand-tuned scale has appeared.
+     */
+    @Test
+    fun `a bust is scaled by the shared head share and stands on the sill`() {
+        val share = SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE
         assertEquals(
-            "driver bust height",
-            SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
-            SceneObjectRenderer.CAR_HEAD_CONTENT_UNITS * CAR_HEAD_SCALE,
+            "driver head height",
+            share * SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
+            SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * CAR_HEAD_SCALE,
             0.001f,
         )
         assertEquals(
-            "passenger bust height",
-            SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
-            SceneObjectRenderer.WINDOW_HEAD_CONTENT_UNITS * CAR_PASSENGER_SCALE,
+            "passenger head height",
+            share * SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
+            SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS * CAR_PASSENGER_SCALE,
             0.001f,
         )
         assertEquals(
-            "fire engine bust height",
-            SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS,
-            SceneObjectRenderer.CAR_HEAD_CONTENT_UNITS * FIRE_TRUCK_HEAD_SCALE,
+            "fire engine head height",
+            share * SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS,
+            SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * FIRE_TRUCK_HEAD_SCALE,
             0.001f,
         )
         assertEquals(
@@ -256,19 +338,17 @@ class VehiclePedestrianScaleTest {
     }
 
     /**
-     * The taller pane stays inside the car, and the door accessories ride the sill.
+     * The pane stays inside the car, and the door accessories ride the sill.
      *
      * Upward there is no room -- `car_body`'s roof is at y=-11 and the glass top is -6 -- so the
-     * extra units go downward. **v4.15 moved the sill from 13 to 14.72** so the tallest winter bust
-     * fits the pane instead of standing over the roof; see
-     * [SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS]. The rule the old y=13 literal expressed is
-     * unchanged and is now expressed directly: `police_stripe` and `taxi_checker` are blitted *at
-     * the sill*, so they follow it rather than being a second copy of the number. What still may
-     * not happen is the glass reaching the beltline at y=18, which is where the body stops being
-     * flat colour.
+     * stretch goes downward, and the sill sits at 14.716. **v4.16 does not move it**: that release
+     * answers a report about the occupants, and asserting the pane here is what stops the fix
+     * quietly resizing the car as well. `police_stripe` and `taxi_checker` are blitted *at the
+     * sill*, so they follow it rather than being a second copy of the number. What may not happen
+     * is the glass reaching the beltline at y=18, where the body stops being flat colour.
      */
     @Test
-    fun `the enlarged glass stops short of the beltline and the accessories ride the sill`() {
+    fun `the glass stops short of the beltline and the accessories ride the sill`() {
         assertEquals("the glass top has not moved", -6f, SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS, 0.001f)
         assertEquals("the sill", 14.716f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.002f)
         assertTrue(
@@ -359,14 +439,29 @@ class VehiclePedestrianScaleTest {
         assertEquals(45f, SceneSpace.PIXELS_PER_METRE_AT_REFERENCE, 0.0001f)
     }
 
-    /** Each occupant's head height in scene metres, by vehicle. */
-    private fun occupantHeadMetres(): List<Pair<String, Float>> {
-        val perCarUnit = SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL
-        val perTruckUnit = SceneSpace.FIRE_TRUCK_METRES_TALL / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL
-        return listOf(
-            "driver" to SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * CAR_HEAD_SCALE * perCarUnit,
-            "passenger" to SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS * CAR_PASSENGER_SCALE * perCarUnit,
-            "fire engine driver" to SceneObjectRenderer.CAR_HEAD_HEAD_UNITS * FIRE_TRUCK_HEAD_SCALE * perTruckUnit,
+    /**
+     * Each occupant's head as it is actually drawn, in reference pixels.
+     *
+     * Head units x bust scale x the vehicle's base scale x the projection at the lane it stands
+     * on -- the same chain `drawCar` applies, written out so a test can read it.
+     */
+    private fun drawnHeads(): Map<String, Float> {
+        fun head(headUnits: Float, scale: Float, baseScale: Float, lane: Float) =
+            headUnits * scale * baseScale * SceneSpace.perspectiveScaleAt(lane)
+
+        val near = SceneSpace.ROAD_LANE_NEAR_Y_FRACTION
+        val far = SceneSpace.ROAD_LANE_FAR_Y_FRACTION
+        val carHead = SceneObjectRenderer.CAR_HEAD_HEAD_UNITS
+        val winHead = SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS
+        val car = SceneSpace.CAR_BASE_SCALE
+        val truck = SceneSpace.FIRE_TRUCK_BASE_SCALE
+        return mapOf(
+            "near-lane driver" to head(carHead, CAR_HEAD_SCALE, car, near),
+            "far-lane driver" to head(carHead, CAR_HEAD_SCALE, car, far),
+            "near-lane passenger" to head(winHead, CAR_PASSENGER_SCALE, car, near),
+            "far-lane passenger" to head(winHead, CAR_PASSENGER_SCALE, car, far),
+            "near-lane fire engine driver" to head(carHead, FIRE_TRUCK_HEAD_SCALE, truck, near),
+            "far-lane fire engine driver" to head(carHead, FIRE_TRUCK_HEAD_SCALE, truck, far),
         )
     }
 
