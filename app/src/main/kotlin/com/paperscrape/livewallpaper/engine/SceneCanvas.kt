@@ -154,9 +154,23 @@ interface SpriteSource {
  *
  * The renderers build three shapes: the hill silhouette (a sine ridge over a flat base), a
  * mountain's two faces (a parabolic face over a base), and the sleigh's falling-gift bow triangles.
- * The GPU backend fills a shape as a triangle fan from its first vertex, which is correct precisely
- * when the polygon is star-shaped about that vertex — true for all three by construction, and the
- * reason this class does not accept arbitrary geometry.
+ *
+ * **The GPU backend has two fills, and only one of them needs the star-shaped property** (REN-02).
+ * [SceneCanvas.drawShape] fills a fan from vertex 0, which is correct precisely when the polygon is
+ * star-shaped about that vertex; [SceneCanvas.drawVerticalGradientShape] tessellates columns down to
+ * the base line and needs nothing of the sort. The audit read the sentence that used to be here --
+ * "true for all three by construction" -- and correctly called it false: the hill's ridge is two
+ * full sine cycles, so a fan from its base-left corner runs above the crest where the wave dips.
+ *
+ * What the sentence got wrong was which fill the hill uses. **The hill has never reached the fan.**
+ * It is drawn through the gradient path, which is column-tessellated for a different reason of its
+ * own (see that method), and the two shapes that do reach the fan are single-peaked: a mountain
+ * face, and a triangle. The multi-peaked ridge that is not star-shaped lives in `ThemePreview`,
+ * which is typed to `CanvasSceneTarget` and cannot reach a GPU fan at all.
+ *
+ * So the rule this class relies on is narrower than it claimed and is actually held.
+ * `SceneShapeFanContractTest` pins it: the hill is not star-shaped, the hill does not go through
+ * `drawShape`, and the shapes that do are.
  *
  * Vertices accumulate into a growable `FloatArray` that is reused across [reset] calls, so a shape
  * rebuilt every frame (the mountains) allocates only until it has reached its high-water mark.

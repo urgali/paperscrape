@@ -1,5 +1,7 @@
 package com.paperscrape.livewallpaper.weather
 
+import com.paperscrape.livewallpaper.MAX_HTTP_BODY_CHARS
+import com.paperscrape.livewallpaper.readAtMost
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -33,7 +35,11 @@ internal object WeatherHttp {
             }
             val code = connection.responseCode
             if (code == HttpURLConnection.HTTP_OK) {
-                HttpOutcome.Body(connection.inputStream.bufferedReader().use { it.readText() })
+                // Bounded: current conditions are a few kilobytes (SEC-03). An over-long body
+                // reads as a malformed response, which is the outcome it deserves.
+                val body = connection.inputStream.bufferedReader().use { it.readAtMost(MAX_HTTP_BODY_CHARS) }
+                if (body == null) HttpOutcome.Error(WeatherFailure.MALFORMED_RESPONSE)
+                else HttpOutcome.Body(body)
             } else {
                 HttpOutcome.Error(statusToFailure(code))
             }

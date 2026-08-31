@@ -25,8 +25,13 @@ package com.paperscrape.livewallpaper.engine
  * arrays, which allocates, but only a handful of times over the life of the process and never on a
  * steady-state frame.
  *
- * Not thread-safe. Rendering and memory callbacks both arrive on the main looper, so there is no
- * concurrency here to protect against; see [SpriteCache] for that argument in full.
+ * Not thread-safe, **and it does not need to be**: every path into it is inside a `@Synchronized`
+ * method of [SpriteCache], which is the object that owns it and the only one that holds a reference.
+ *
+ * ARC-12: this used to say "rendering and memory callbacks both arrive on the main looper", which
+ * stopped being true when rendering moved to a per-engine render thread -- up to three threads reach
+ * [SpriteCache], as its own comment says. The conclusion was right and the reason was stale, which
+ * in a codebase that argues its way out of locks is the dangerous half.
  */
 internal class SpriteCacheIndex(initialCapacity: Int = 32) {
 

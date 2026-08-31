@@ -608,9 +608,15 @@ internal class GlSceneTarget : SceneCanvas {
         val r = Color.red(tintColor) * INV_255
         val g = Color.green(tintColor) * INV_255
         val bl = Color.blue(tintColor) * INV_255
-        // The tint's own alpha is deliberately ignored: MULTIPLY tinting on the Canvas backend takes
-        // opacity from the paint, not from the filter colour, and several call sites pass a colour
-        // whose alpha byte is incidental.
+        // The tint's own alpha is deliberately ignored, and **the reason written here used to be
+        // wrong** (REN-05). `PorterDuffColorFilter(tint, MULTIPLY)` does multiply the filter's alpha
+        // into the destination, so the Canvas backend does *not* take opacity from the paint alone;
+        // the two backends would disagree the moment a tint arrived with a non-opaque alpha byte.
+        //
+        // They cannot, because none does: every tint in this app comes from a theme colour or a
+        // day/night blend and is fully opaque, which `TintOpacityTest` asserts. Ignoring the
+        // byte is therefore free and keeps the vertex colour meaning one thing, and the assertion
+        // is what keeps that true rather than the claim above it.
         val al = alpha * INV_255
         vertex(left, top, u0, v0, r, g, bl, al)
         vertex(right, top, u1, v0, r, g, bl, al)

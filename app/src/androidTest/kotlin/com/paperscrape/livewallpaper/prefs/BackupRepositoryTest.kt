@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.prefs
 
+import com.paperscrape.livewallpaper.engine.toJsonString
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
@@ -290,6 +291,78 @@ class BackupRepositoryTest {
      * own doc comment. There is no honest way to make a real DataStore fail, or to be cancelled at
      * a chosen instant, from outside.
      */
+    // ------------------------------------------------------------------ process kill (v4.15)
+
+    /**
+     * **BCK-06, against the real stores: a kill between the two writes is recovered.**
+     *
+     * `NonCancellable` protects the pair from the *caller* going away. It cannot protect it from the
+     * process being killed, and between the two writes the preferences were new while the saved
+     * themes were still old -- with nothing anywhere recording that.
+     *
+     * The kill is injected the way the cancellation above is, at the only moment it matters: a store
+     * that throws a fatal-looking error on its way into the second write, leaving exactly the state
+     * a `SIGKILL` there would leave. Then [BackupRepository.finishPendingImport] runs, which is what
+     * the wallpaper service and the settings screen do at every start, and both stores must agree.
+     */
+    @Test
+    fun aKillBetweenTheTwoWritesIsFinishedAtTheNextStart() = runBlocking {
+        makeItInteresting()
+        val file = repo().export()
+
+        prefs.setTheme("winter")
+        prefs.setScrollSpeed(0.11f)
+        store.replaceAll(com.paperscrape.livewallpaper.engine.CustomThemeData.EMPTY)
+
+        // The import dies after the preferences (and the staged document) have landed and before
+        // the themes have.
+        val dying = FailOnceThemeStore(context)
+        val result = BackupRepository(prefs, dying, "test").import(file)
+        assertTrue("the import should have reported a rollback attempt, got $result", result != null)
+
+        // A kill is not a rollback: put the half-applied state back the way a killed process leaves
+        // it, with the staged document still on disk.
+        val fromFile = (parseAppBackup(file) as BackupParseResult.Ok).backup
+        prefs.replaceAllStagingThemes(
+            fromFile.settings,
+            fromFile.themeCustomizations,
+            fromFile.customThemeData.toJsonString(),
+        )
+        store.replaceAll(com.paperscrape.livewallpaper.engine.CustomThemeData.EMPTY)
+        assertTrue("the staged document must be on disk", prefs.pendingImportThemes() != null)
+
+        val finished = BackupRepository(prefs, store, "test").finishPendingImport()
+        assertTrue("the pending import must have been completed", finished)
+        assertEquals("nothing may be left pending", null, prefs.pendingImportThemes())
+
+        val after = repo().snapshot()
+        assertEquals("the preferences came from the file", "beach", after.settings.themeId)
+        assertEquals(0.42f, after.settings.scrollSpeed, 0.0001f)
+        assertEquals(
+            "and so did the saved themes -- this is the half that used to be lost",
+            fromFile.customThemeData.overrides.keys,
+            after.customThemeData.overrides.keys,
+        )
+    }
+
+    @Test
+    fun aCompletedImportLeavesNothingPending() = runBlocking {
+        makeItInteresting()
+        val file = repo().export()
+        repo().import(file)
+        assertEquals(
+            "a clean import must clear its own staging",
+            null,
+            prefs.pendingImportThemes(),
+        )
+    }
+
+    @Test
+    fun finishingWithNothingPendingDoesNothing() = runBlocking {
+        assertEquals(null, prefs.pendingImportThemes())
+        assertTrue("there was nothing to finish", !repo().finishPendingImport())
+    }
+
     private class CancellingThemeStore(
         context: android.content.Context,
         private val cancel: () -> Unit,
@@ -297,9 +370,14 @@ class BackupRepositoryTest {
         var wrote = false
             private set
 
-        override suspend fun replaceAll(data: com.paperscrape.livewallpaper.engine.CustomThemeData) {
+        // **`replaceAllJson`, not `replaceAll`.** v4.15's atomic import (BCK-06) writes this store
+        // from the exact string staged in the preference store rather than re-serialising a parsed
+        // copy, so that is the seam the import actually goes through now. `replaceAll` delegates
+        // here, so overriding this one intercepts both callers and this double keeps working for
+        // whichever the code under test uses.
+        override suspend fun replaceAllJson(json: String) {
             cancel()
-            super.replaceAll(data)
+            super.replaceAllJson(json)
             wrote = true
         }
     }
@@ -308,12 +386,14 @@ class BackupRepositoryTest {
     private class FailOnceThemeStore(context: android.content.Context) : CustomThemeStore(context) {
         private var failed = false
 
-        override suspend fun replaceAll(data: com.paperscrape.livewallpaper.engine.CustomThemeData) {
+        // See CancellingThemeStore: the import's seam is `replaceAllJson` since v4.15, and
+        // `replaceAll` delegates to it, so one override covers both.
+        override suspend fun replaceAllJson(json: String) {
             if (!failed) {
                 failed = true
                 throw IllegalStateException("simulated store failure")
             }
-            super.replaceAll(data)
+            super.replaceAllJson(json)
         }
     }
 }

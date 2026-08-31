@@ -334,15 +334,42 @@ object GlGolden {
                     "it to app/src/androidTest/assets/golden/.",
             )
         }
-        val differing = countAtLeast(expected, result.bitmap, Tolerance.GlTarget.CHANNEL)
-        val fraction = differing / (WIDTH * HEIGHT).toDouble()
+        val (differing, maskedFraction) = countAtLeastInInteriors(
+            expected,
+            result.bitmap,
+            Tolerance.GlTarget.CHANNEL,
+        )
+        if (maskedFraction > InteriorMask.MAX_MASKED_FRACTION) {
+            reject(scene, result, expected, Tolerance.GlTarget.CHANNEL)
+            throw AssertionError(
+                "'${scene.name}' is ${"%.1f".format(maskedFraction * 100)}% edge, so there is not " +
+                    "enough flat interior left to judge it by -- the comparison would pass on " +
+                    "anything. See GlGolden.InteriorMask.",
+            )
+        }
+        val displaced = edgeDisplacement(expected, result.bitmap)
+        if (displaced > EdgeDisplacement.MAX_DISPLACED_FRACTION) {
+            reject(scene, result, expected, Tolerance.GlTarget.CHANNEL)
+            throw AssertionError(
+                "The GL backend's output for '${scene.name}' has moved: " +
+                    "${"%.2f".format(displaced * 100)}% of its outline has no counterpart within " +
+                    "one pixel of the golden's, limit " +
+                    "${"%.2f".format(EdgeDisplacement.MAX_DISPLACED_FRACTION * 100)}%. That is not " +
+                    "a driver placing an edge differently -- something is somewhere else. " +
+                    "${describe(result)}. See GlGolden.EdgeDisplacement.",
+            )
+        }
+        val judged = (WIDTH * HEIGHT) * (1.0 - maskedFraction)
+        val fraction = differing / judged
         if (fraction > Tolerance.GlTarget.MAX_FRACTION) {
             reject(scene, result, expected, Tolerance.GlTarget.CHANNEL)
             throw AssertionError(
                 "The GL backend's own output for '${scene.name}' changed: " +
-                    "${"%.3f".format(fraction * 100)}% of pixels differ by " +
+                    "${"%.3f".format(fraction * 100)}% of its flat interiors differ by " +
                     ">=${Tolerance.GlTarget.CHANNEL} per channel, limit " +
-                    "${"%.3f".format(Tolerance.GlTarget.MAX_FRACTION * 100)}%. ${describe(result)}. " +
+                    "${"%.3f".format(Tolerance.GlTarget.MAX_FRACTION * 100)}% " +
+                    "(${"%.1f".format(maskedFraction * 100)}% of the frame is edge and was not " +
+                    "judged -- see GlGolden.InteriorMask). ${describe(result)}. " +
                     "Two correct GL drivers differ by about 0.12% at this level, so this is very " +
                     "unlikely to be a driver difference -- look at the frame and the diff in " +
                     "${outputDir()} before regenerating anything.",
@@ -427,6 +454,219 @@ object GlGolden {
 
     private fun describe(result: Result) =
         "GL renderer '${result.renderer}', MSAA ${if (result.multisampled) "on" else "unavailable"}"
+
+    /**
+     * The pixels a cross-driver comparison may judge: everything not within one pixel of an edge.
+     *
+     * ### Why the whole-frame count was the wrong measurement
+     *
+     * Measured on a OnePlus 6T (Adreno 630) against goldens captured on the reference emulator's
+     * software GL, the three GL scenes failed at 1.108%, 1.290% and 1.682% against a 0.500% gate --
+     * and the frames were **byte-identical between two commits on the same phone**, so the variable
+     * was the GPU. Characterising the difference rather than assuming it:
+     *
+     *  - the median difference among differing pixels is **1**;
+     *  - **99.8% / 98.2% / 86.4%** of the pixels over the threshold lie within one pixel of an edge
+     *    in one image or the other;
+     *  - away from every edge there remain **6 / 65 / 660** pixels out of 288 000;
+     *  - no whole-frame translation reduces the count, so nothing has moved -- each silhouette is
+     *    placed slightly differently.
+     *
+     * That is sub-pixel edge rasterisation: two conformant rasterisers disagreeing about which side
+     * of a boundary a pixel falls on. It is not composition, ordering, blending or shader precision.
+     *
+     * This art style is the worst possible case for a whole-frame count. The scene is flat colour
+     * meeting flat colour along hard edges, so a half-pixel of edge placement produces a *maximal*
+     * per-channel delta -- up to 139 here -- along every silhouette in the frame, and the frame is
+     * nothing but silhouettes. The metric was measuring how much outline a scene contains.
+     *
+     * ### What this does instead
+     *
+     * The threshold is **unchanged and still strict**; what changes is which pixels it is applied
+     * to. A pixel is judged unless it is within one pixel of a luminance step in either image. A
+     * real regression -- a sprite moved, a colour wrong, an object missing, a tint dropped, a layer
+     * reordered -- changes flat interiors over large areas, which is exactly what survives the mask.
+     * `GlGoldenMetricTest` mutates a frame in each of those ways and checks that each is still
+     * caught.
+     *
+     * [MAX_MASKED_FRACTION] is the guard: if a scene were ever so full of detail that the band
+     * covered most of it, the comparison would stop meaning anything, and that fails rather than
+     * passing quietly.
+     */
+    internal object InteriorMask {
+
+        /** A luminance step this large starts an edge. Below it, flat colour. */
+        const val EDGE_STEP = 12
+
+        /** More masked than this and the check has nothing left to judge. */
+        const val MAX_MASKED_FRACTION = 0.40
+
+        /**
+         * True where the pixel may be judged: no edge within one pixel, in either image.
+         *
+         * One array of `WIDTH * HEIGHT` booleans, built once per comparison. The goldens are
+         * 360x800, so this is 288 000 bytes on a test thread and never on the draw path.
+         */
+        fun of(expected: IntArray, actual: IntArray, width: Int, height: Int): BooleanArray {
+            val edge = BooleanArray(width * height)
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    val i = y * width + x
+                    val here = luma(expected[i])
+                    val hereActual = luma(actual[i])
+                    var step = 0
+                    if (x > 0) {
+                        step = maxOf(step, abs(here - luma(expected[i - 1])))
+                        step = maxOf(step, abs(hereActual - luma(actual[i - 1])))
+                    }
+                    if (y > 0) {
+                        step = maxOf(step, abs(here - luma(expected[i - width])))
+                        step = maxOf(step, abs(hereActual - luma(actual[i - width])))
+                    }
+                    if (step > EDGE_STEP) edge[i] = true
+                }
+            }
+            // Dilate by one pixel: the disagreement is *about* where the edge is, so the pixel on
+            // either side of it is as much in question as the edge pixel itself.
+            val judged = BooleanArray(width * height) { true }
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    if (!edge[y * width + x]) continue
+                    for (dy in -1..1) {
+                        val yy = y + dy
+                        if (yy !in 0 until height) continue
+                        for (dx in -1..1) {
+                            val xx = x + dx
+                            if (xx in 0 until width) judged[yy * width + xx] = false
+                        }
+                    }
+                }
+            }
+            return judged
+        }
+
+        private fun luma(argb: Int): Int =
+            (((argb shr 16) and 0xFF) * 77 + ((argb shr 8) and 0xFF) * 151 + (argb and 0xFF) * 28) shr 8
+    }
+
+    /**
+     * Pixels differing by [channel] or more, counted only where [InteriorMask] allows.
+     *
+     * Returns the count and how much of the frame was masked, because the caller has to fail on the
+     * second as well as on the first.
+     */
+    /**
+     * How much of the actual frame's outline has no counterpart within one pixel of the golden's.
+     *
+     * [InteriorMask] deliberately ignores edges, which leaves one thing it cannot see: an object
+     * that **moved**. Sliding a band of skyline three pixels sideways maps flat colour onto the same
+     * flat colour almost everywhere, so only the silhouettes change -- and those are exactly the
+     * pixels the mask drops. Measured: 0.075% of interiors, well inside the limit. That is a real
+     * regression the interior check would forgive, so it is not the whole check.
+     *
+     * This is the other half, and it is structural rather than photometric: take both edge maps,
+     * allow every golden edge one pixel of slack, and count the actual's edge pixels that still land
+     * outside. A driver placing the same edge half a pixel differently is absorbed by the slack; an
+     * object three pixels from where it belongs is not, because its whole outline is.
+     *
+     * Measured on the OnePlus 6T against the emulator-captured goldens, which is the difference that
+     * must pass:
+     *
+     * | | edge displacement |
+     * |---|---|
+     * | `gl-day`, Adreno vs emulator | 1.18% |
+     * | `gl-lake-busy` | 1.07% |
+     * | `gl-thunderstorm` | 0.92% |
+     * | a whole-frame one-pixel shift | **0.00%** |
+     * | a 150-row band slid three pixels | **13.68%** |
+     * | an object erased | 3.39% |
+     *
+     * [MAX_DISPLACED_FRACTION] sits at 3%: over twice the worst driver difference measured, and a
+     * quarter of the smallest real drift. `GlGoldenMetricTest` holds both ends of that.
+     */
+    internal object EdgeDisplacement {
+
+        /** Above this fraction, outlines are somewhere else rather than merely drawn differently. */
+        const val MAX_DISPLACED_FRACTION = 0.03
+
+        fun of(expected: IntArray, actual: IntArray, width: Int, height: Int): Double {
+            val expectedEdges = edgesOf(expected, width, height)
+            val actualEdges = edgesOf(actual, width, height)
+            var displaced = 0
+            var total = 0
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    if (!actualEdges[y * width + x]) continue
+                    total++
+                    if (!nearAnEdge(expectedEdges, width, height, x, y)) displaced++
+                }
+            }
+            return if (total == 0) 0.0 else displaced / total.toDouble()
+        }
+
+        private fun nearAnEdge(edges: BooleanArray, width: Int, height: Int, x: Int, y: Int): Boolean {
+            for (dy in -1..1) {
+                val yy = y + dy
+                if (yy !in 0 until height) continue
+                for (dx in -1..1) {
+                    val xx = x + dx
+                    if (xx in 0 until width && edges[yy * width + xx]) return true
+                }
+            }
+            return false
+        }
+
+        private fun edgesOf(pixels: IntArray, width: Int, height: Int): BooleanArray {
+            val edges = BooleanArray(width * height)
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    val i = y * width + x
+                    val here = luma(pixels[i])
+                    var step = 0
+                    if (x > 0) step = maxOf(step, abs(here - luma(pixels[i - 1])))
+                    if (y > 0) step = maxOf(step, abs(here - luma(pixels[i - width])))
+                    if (step > InteriorMask.EDGE_STEP) edges[i] = true
+                }
+            }
+            return edges
+        }
+
+        private fun luma(argb: Int): Int =
+            (((argb shr 16) and 0xFF) * 77 + ((argb shr 8) and 0xFF) * 151 + (argb and 0xFF) * 28) shr 8
+    }
+
+    /** [EdgeDisplacement.of] over two bitmaps. */
+    internal fun edgeDisplacement(expected: Bitmap, actual: Bitmap): Double {
+        val size = WIDTH * HEIGHT
+        val expectedPixels = IntArray(size)
+        val actualPixels = IntArray(size)
+        expected.getPixels(expectedPixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
+        actual.getPixels(actualPixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
+        return EdgeDisplacement.of(expectedPixels, actualPixels, WIDTH, HEIGHT)
+    }
+
+    internal fun countAtLeastInInteriors(
+        expected: Bitmap,
+        actual: Bitmap,
+        channel: Int,
+    ): Pair<Int, Double> {
+        val size = WIDTH * HEIGHT
+        val expectedPixels = IntArray(size)
+        val actualPixels = IntArray(size)
+        expected.getPixels(expectedPixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
+        actual.getPixels(actualPixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
+        val judged = InteriorMask.of(expectedPixels, actualPixels, WIDTH, HEIGHT)
+        var count = 0
+        var masked = 0
+        for (i in 0 until size) {
+            if (!judged[i]) {
+                masked++
+                continue
+            }
+            if (channelDelta(expectedPixels[i], actualPixels[i]) >= channel) count++
+        }
+        return count to masked / size.toDouble()
+    }
 
     private fun countAtLeast(expected: Bitmap, actual: Bitmap, channel: Int): Int {
         val row = IntArray(WIDTH)

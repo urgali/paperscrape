@@ -122,32 +122,32 @@ class ApkSafetyTest {
 
     @Test
     fun `a newer build of this app is allowed`() {
-        val verdict = ApkSafety.verdict(app, 14, ApkIdentity(app, 15, "2.11"))
+        val verdict = ApkSafety.verdict(app, 14, ApkIdentity(app, 15, "2.11"), signedByThisApp = true)
         assertSame(InstallVerdict.Allowed, verdict)
     }
 
     @Test
     fun `another app is refused, however well it verified`() {
-        val verdict = ApkSafety.verdict(app, 14, ApkIdentity("com.example.other", 99, "9.9"))
+        val verdict = ApkSafety.verdict(app, 14, ApkIdentity("com.example.other", 99, "9.9"), signedByThisApp = true)
         assertTrue(verdict is InstallVerdict.WrongPackage)
         assertEquals(app, (verdict as InstallVerdict.WrongPackage).expected)
     }
 
     @Test
     fun `an older build is refused`() {
-        val verdict = ApkSafety.verdict(app, 14, ApkIdentity(app, 13, "2.9"))
+        val verdict = ApkSafety.verdict(app, 14, ApkIdentity(app, 13, "2.9"), signedByThisApp = true)
         assertTrue(verdict is InstallVerdict.NotNewer)
         assertEquals(13L, (verdict as InstallVerdict.NotNewer).found)
     }
 
     @Test
     fun `the same build is refused - it is not an update`() {
-        assertTrue(ApkSafety.verdict(app, 14, ApkIdentity(app, 14, "2.10")) is InstallVerdict.NotNewer)
+        assertTrue(ApkSafety.verdict(app, 14, ApkIdentity(app, 14, "2.10"), signedByThisApp = true) is InstallVerdict.NotNewer)
     }
 
     @Test
     fun `a file that is not a readable package is refused`() {
-        assertSame(InstallVerdict.Unreadable, ApkSafety.verdict(app, 14, null))
+        assertSame(InstallVerdict.Unreadable, ApkSafety.verdict(app, 14, null, signedByThisApp = true))
     }
 
     /**
@@ -156,8 +156,47 @@ class ApkSafetyTest {
      */
     @Test
     fun `a release apk is not an update to the debug build`() {
-        val verdict = ApkSafety.verdict("$app.debug", 14, ApkIdentity(app, 15, "2.11"))
+        val verdict = ApkSafety.verdict("$app.debug", 14, ApkIdentity(app, 15, "2.11"), signedByThisApp = true)
         assertTrue(verdict is InstallVerdict.WrongPackage)
+    }
+    // ------------------------------------------------------------------ SEC-01: signature
+
+    /**
+     * A correctly named, newer build that somebody else signed is refused before the prompt.
+     *
+     * The SHA-256 the download is checked against is published on the same release the file comes
+     * from, so it proves the bytes arrived intact and nothing about who produced them. A repository
+     * or CI in the wrong hands serves a matching pair and reached the user's install prompt with the
+     * app calling it verified. Android refuses a differently-signed update at install time, so the
+     * outcome was a confusing failure rather than a silent compromise -- but the app was the one
+     * making the claim, and now the app is the one checking it.
+     */
+    @Test
+    fun `a differently signed build is refused`() {
+        val verdict = ApkSafety.verdict(app, 14, ApkIdentity(app, 15, "2.11"), signedByThisApp = false)
+        assertSame(InstallVerdict.WrongSignature, verdict)
+    }
+
+    @Test
+    fun `a signature that cannot be read is refused, not waved through`() {
+        // `null` is "could not verify", and the one thing not to do with that is treat it as a pass.
+        val verdict = ApkSafety.verdict(app, 14, ApkIdentity(app, 15, "2.11"), signedByThisApp = null)
+        assertSame(InstallVerdict.WrongSignature, verdict)
+    }
+
+    @Test
+    fun `the wrong package still wins over the signature`() {
+        // Ordering: a user can understand "that is a different app" and act on it. A signature
+        // mismatch on an otherwise correct build means something is wrong upstream, so it is the
+        // last thing checked and the last thing reported.
+        val verdict = ApkSafety.verdict(app, 14, ApkIdentity("com.example.other", 99, "9.9"), signedByThisApp = false)
+        assertTrue(verdict is InstallVerdict.WrongPackage)
+    }
+
+    @Test
+    fun `an older build still wins over the signature`() {
+        val verdict = ApkSafety.verdict(app, 14, ApkIdentity(app, 13, "2.9"), signedByThisApp = false)
+        assertTrue(verdict is InstallVerdict.NotNewer)
     }
 }
 
@@ -240,4 +279,5 @@ class UpdateInfoInstallabilityTest {
         assertTrue(!info(null, checksum).isInstallable)
         assertTrue(!info(null, null).isInstallable)
     }
+
 }

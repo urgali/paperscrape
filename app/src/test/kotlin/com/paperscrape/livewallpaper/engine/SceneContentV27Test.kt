@@ -132,9 +132,13 @@ class SceneContentV27Test {
 
     @Test
     fun `the hierarchy holds in drawn pixels, not only in metres`() {
-        // Height in metres is the input; what the eye compares is the drawn extent, which is
-        // metres times the base scale times the sprite's own unit height. Stated separately
-        // because a sprite redraw changes the second factor without touching the first.
+        // **This is only about drawn pixels because another test makes it so.** `baseScale` is
+        // `metres * pixelsPerMetre / spriteUnitsTall`, so `baseScale * spriteUnitsTall` reduces to
+        // `metres * pixelsPerMetre` -- the metres again, times a constant. It says nothing about the
+        // drawing on its own, which is how TOWER went on declaring 196 units for a building that
+        // blits 182. What makes the reduction legitimate is `BuildingHeightDeclarationTest`, which
+        // reads every variant's blits and fails if `spriteUnitsTall` stops being the extent the
+        // renderer actually draws. Delete that test and this one goes back to being a tautology.
         fun drawnUnits(v: SceneSpace.SceneVariant) = v.baseScale * v.spriteUnitsTall
         assertTrue(
             drawnUnits(SceneSpace.SceneVariant.BAR) > drawnUnits(SceneSpace.SceneVariant.HOUSE_LARGE),
@@ -143,7 +147,8 @@ class SceneContentV27Test {
             drawnUnits(SceneSpace.SceneVariant.RESTAURANT) > drawnUnits(SceneSpace.SceneVariant.BAR),
         )
         assertTrue(
-            drawnUnits(SceneSpace.SceneVariant.TOWER) > drawnUnits(SceneSpace.SceneVariant.RESTAURANT) * 2f,
+            "a tower out-tops a shop by 1.90 as drawn; see SceneSpaceTest for why not 2.0",
+            drawnUnits(SceneSpace.SceneVariant.TOWER) > drawnUnits(SceneSpace.SceneVariant.RESTAURANT) * 1.85f,
         )
     }
 }

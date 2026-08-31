@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.ui
 
+import androidx.compose.runtime.MutableState
 import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
@@ -48,6 +49,7 @@ import com.paperscrape.livewallpaper.prefs.BackupRepository
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.prefs.BoundedImport
 import com.paperscrape.livewallpaper.update.ApkDownloader
 import com.paperscrape.livewallpaper.update.ApkInstaller
 import com.paperscrape.livewallpaper.update.ApkSafety
@@ -74,6 +76,13 @@ private const val SOURCE_URL = "https://github.com/urgali/paperscrape"
  */
 @Composable
 internal fun AdvancedScreen(
+    /**
+     * Owned by the caller, because the caller owns [scope] (ARC-08).
+     *
+     * A download launched into `scope` outlives this screen, so its state has to as well or the two
+     * disagree the moment the user navigates away mid-transfer.
+     */
+    updateState: MutableState<UpdateUiState>,
     settings: WallpaperSettings,
     customThemeData: CustomThemeData,
     effectiveThemeId: String,
@@ -88,7 +97,7 @@ internal fun AdvancedScreen(
     val context = LocalContext.current
     var showSaveDialog by remember { mutableStateOf(false) }
     var confirmResetAll by remember { mutableStateOf(false) }
-    var updateState by remember { mutableStateOf<UpdateUiState>(UpdateUiState.Idle) }
+    var updateState by updateState
     var backupMessage by remember { mutableStateOf<String?>(null) }
     var pendingImport by remember { mutableStateOf<Pair<Uri, AppBackup>?>(null) }
     var confirmExport by remember { mutableStateOf(false) }
@@ -123,9 +132,8 @@ internal fun AdvancedScreen(
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            val raw = runCatching {
-                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-            }.getOrNull()
+            // Bounded: see BoundedImport for why an unbounded readText was a defect (BCK-04).
+            val raw = BoundedImport.readText(context, uri)
             when (val parsed = backupRepository.preview(raw)) {
                 is BackupParseResult.Ok -> pendingImport = uri to parsed.backup
                 is BackupParseResult.Failed -> backupMessage = describe(parsed.error)
@@ -155,6 +163,15 @@ internal fun AdvancedScreen(
             updateState = UpdateUiState.Verifying
             updateState = verifiedOrError(context, result)
         } catch (cancellation: CancellationException) {
+            // **ARC-08, and what is left of it.** The transfer itself still dies with the
+            // composition: rotate, or switch light/dark, mid-download and it starts again. Carrying
+            // it across would mean a process-scoped holder owning the job and the state, and the
+            // only ways to verify that rewiring are a Compose UI suite this project deliberately
+            // does not have (TST-03) and a network the test device does not have. The damage it
+            // would prevent is one re-tap on a few megabytes over an action the user just took;
+            // the damage a blind rewiring of the update flow could do is larger. Deferred with
+            // that trade written down, not overlooked.
+            //
             // **The screen must never be left saying "Downloading..." with nothing running.**
             // `Downloading` and `Verifying` both disable the check row, so a state left behind by
             // a cancelled coroutine is not a cosmetic lie -- it is a dead end with no way out of
@@ -451,7 +468,13 @@ internal fun AdvancedScreen(
  * Nothing here advances on its own. Each step is a tap, including the last one, which hands the
  * file to Android's installer and its own confirmation.
  */
-private sealed interface UpdateUiState {
+/**
+ * Where the update flow currently is.
+ *
+ * `internal` rather than file-private since ARC-08: the state is owned by `SettingsScreen`, which
+ * owns the coroutine scope the download runs in, so the type has to be visible there too.
+ */
+internal sealed interface UpdateUiState {
     data object Idle : UpdateUiState
     data object Checking : UpdateUiState
     data object UpToDate : UpdateUiState
@@ -516,6 +539,7 @@ private fun verifiedOrError(context: Context, result: UpdateDownloadResult): Upd
             expectedPackage = context.packageName,
             installedVersionCode = ApkInstaller.installedVersionCode(context),
             downloaded = identity,
+            signedByThisApp = ApkInstaller.signedByThisApp(context, result.apk),
         )) {
             InstallVerdict.Allowed -> UpdateUiState.ReadyToInstall(result.apk)
             InstallVerdict.Unreadable -> {
@@ -526,6 +550,13 @@ private fun verifiedOrError(context: Context, result: UpdateDownloadResult): Upd
                 ApkDownloader.clearCache(context)
                 UpdateUiState.Error(
                     "That download is ${verdict.found}, not ${verdict.expected}. Nothing was installed.",
+                )
+            }
+            InstallVerdict.WrongSignature -> {
+                ApkDownloader.clearCache(context)
+                UpdateUiState.Error(
+                    "That download isn't signed by whoever built the copy on this phone. " +
+                        "Nothing was installed.",
                 )
             }
             is InstallVerdict.NotNewer -> {

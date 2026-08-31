@@ -19,6 +19,175 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.15 — the closing pass
+
+**Prepared, not published.** `versionCode = 46`, `versionName = "4.15"`. Prepared 2026-08-31. No tag,
+no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.14**.
+
+This release exists to empty the list. Every finding the audit and the batches after it left open was
+re-read against the current code, measured, and either fixed or classified with a reason.
+
+### Occupants and the car window
+
+v4.14 measured the defect and could not close it: with a winter theme a passenger's bobble hat stood
+**3 px above a 27 px window** on a OnePlus 6T, painted onto the roof, and the driver's beanie 1 px.
+The cause is one content-height constant per sprite family, taken from a representative rather than
+from the tallest member.
+
+Both ways of shrinking the people were tried and measured, and both re-opened the defect the scales
+exist to prevent — the family maximum put a passenger's head at 68.3% of a pedestrian's against a
+70–90% band, and the car-head maximum alone put a driver's face at 14 px against the nearest
+pedestrian's 15. **So the window grew instead**: `CAR_GLASS_HEIGHT_UNITS` is now `19 × 169/155`, the
+sill moves 13 → 14.72, and `police_stripe` and `taxi_checker` follow it rather than repeating the old
+literal. A passenger's head is *exactly* the size it was (0.407 m, 74.5%); a driver's grows 6.8% to
+83.1%. Measured on the phone: hats **3 px out → 0**, beanie **1 px out → 0**.
+
+`traffic-day` and `traffic-night` are the only goldens that moved. 657 pixels each, all inside the
+cars: the occupants' heads and the two livery bands. Regenerated on the reference emulator.
+
+### Window occupants are indoors
+
+`Exposure.INDOORS` / `OUTDOORS`, with one function turning it into a season column, replacing the
+three hand-written `if (winterColorsEnabled) 1 else 0`. Verified on the phone across Sunset, Winter,
+Christmas and Desert: the same window, same theme, same position — bobble hat and coat before, hair
+band and T-shirt after — with pedestrians in the same frame still hooded and scarfed.
+
+### The tower declared its aerial
+
+`TOWER` said 196 units and the building draws 182; 196 is where the mast ends, and the rule at the top
+of the size table excludes exactly that ("a shop's height is its wall, not the top of the sign hanging
+above it"). Corrected to `(15.6f, 182f)`, which is the **same metres-per-unit** and therefore the same
+3.857 px per unit: **no pixel moved**. `BuildingHeightDeclarationTest` now reads every building's blits
+and fails if a declaration drifts from them again.
+
+Two hierarchy assertions moved with it, and that is worth stating plainly: they demanded
+`tower > 2 × shop` and passed on the inflated number. The drawn ratio is **1.90 and always was**. The
+"in drawn pixels" test that was supposed to catch this was a tautology — `baseScale × spriteUnitsTall`
+reduces to `metres × pixelsPerMetre` — and is now annotated as resting on the new test rather than on
+itself.
+
+### GL goldens, cross-device — closed
+
+v4.14 recorded three GL goldens failing on Adreno 630 at 1.108% / 1.290% / 1.682% against a 0.500%
+gate, byte-identical between commits. Characterised rather than tolerated: the median difference among
+differing pixels is **1**, and **99.8% / 98.2% / 86.4%** of the over-threshold pixels lie within one
+pixel of an edge, leaving 6 / 65 / 660 pixels out of 288 000 away from any edge. No whole-frame
+translation improves it. That is sub-pixel edge rasterisation, and a flat-colour hard-edged art style
+is the worst possible case for a whole-frame count.
+
+The comparison is now two measures, both strict:
+
+| | what it catches | Adreno vs emulator | a real regression |
+|---|---|---|---|
+| flat interiors, ≥16/channel | wrong colour, wrong tint, missing object | 0.002–0.229% | erased object, global tint |
+| outline displacement > 1 px | an object somewhere else | 0.92–1.18% | **13.68%** for a 3 px drift |
+
+Neither alone is enough — a tint shift moves no edge, and a slid band changes almost no interior
+(0.075%). `GlGoldenMetricTest` damages a golden five ways and requires each to still be caught, then
+reproduces the driver difference itself and requires it to pass. **The OnePlus 6T now runs the full
+instrumented suite 109/109**, for the first time.
+
+### Findings closed
+
+| ID | what it was | outcome |
+|---|---|---|
+| ARC-02 | weather loop ticked every 2 min per engine, forever, invisible or not | parks on its channel with **no timeout** while invisible; measured on the phone, the process's screen-off cost is now exactly the render thread's — the loop contributes zero — and it catches up on the first frame back |
+| ARC-09 | a preference write died with the composition on rotation | every write goes through `editDurably`, one `NonCancellable` helper instead of 88 call sites |
+| ARC-10 | two collectors bumped the registry generation twice per change | the generation counts changes, not deliveries |
+| ARC-11 | a "running low" hint dropped every GPU texture and re-uploaded it next frame | `dropsGpuTextures` — the atlas is all-or-nothing, so it goes at critical pressure and stays at low |
+| ARC-12 | three threading comments stated the wrong thread | all three corrected against the code |
+| REN-02 | the fan-fill contract claimed a property the hill does not have | the hill **never reaches the fan**; contract narrowed to what is true, pinned by a test that proves the hill is not star-shaped and does not go there |
+| REN-05 | the GL tint-alpha comment misstated PorterDuff | corrected, and `TintOpacityTest` now asserts the property it actually rests on |
+| REN-06 | vehicle entry margin was a flat 120 px against a scaling vehicle | derived from the widest vehicle; identical at every real viewport, correct past 3900 px |
+| REN-07 | five stale sprite measurements in load-bearing comments | corrected; `SpriteMeasurementClaimTest` reads every size attributed to a sprite back off the PNG |
+| REN-08 | pedestrian jitter put feet ~3 px onto the road | clamped to `roadTopYFraction()`, the same function the road is drawn from |
+| BCK-03 | `"NaN"` in a theme file became a real NaN coordinate and persisted | `requireFinite` / `optFinite` at every numeric read; the premise is proved in the test, not assumed |
+| BCK-04 | imports read a user-picked file with no bound | `BoundedImport`, 4 M characters |
+| BCK-05 | an unreadable theme blob read as EMPTY and the next write destroyed it | absent and unreadable are now different; unreadable leaves the file alone |
+| BCK-07 | backups did not record the theme schema they embed | recorded and honoured — with absent meaning *current*, because the legacy default would have corrupted every existing backup |
+| SEC-01 | an update was verified only against a checksum from its own channel | signature checked against the installed copy before the prompt; unreadable counts as refused |
+| SEC-03 | three unbounded HTTP body reads | bounded through the same helper as the file imports |
+| SEC-09 | `-keep prefs.**` justified by a DataStore behaviour that does not exist | removed; verified by running the shrunk release build on the phone and round-tripping a preference through a restart |
+| CLIP-LIBRARY-WIDE | is edge clipping lost artwork across the library? | **no** — 210 of 221 sprites reach a canvas edge; it is the authoring convention `normalize` enforces from the other side. Closed as a rule, with the 11 declared exceptions whose margin is load-bearing |
+| GL-GOLDEN-ADRENO | GL goldens failed on a second GPU | closed, above |
+
+### Tooling
+
+The variant duplicate check compared **file bytes**, so it reported zero duplicates for a library with
+twenty-four: every character whose own skin colour is one of the three generated tones is
+pixel-identical to one of their own variants. The check and the inventory now hash decoded pixels —
+the same correction the rasterizer probe made in v4.13 — and the registry gained
+`IDENTICAL_BY_CONSTRUCTION`, because `IDENTICAL_GAP` is a *defect* state and filing twenty-four bugs
+against arithmetic would have been the easy lie. Group membership is now unique per axis rather than
+per name, which is what having two axes actually means.
+
+`InternetInventoryTest` could go UP-TO-DATE on a manifest-only edit; `AndroidManifest.xml` is now a
+declared test input, verified by removing a host and watching the test re-run and fail.
+
+### Performance
+
+Re-measured on the OnePlus 6T against a release-configuration build, after every change above:
+
+| | v4.14 | v4.15 |
+|---|---|---|
+| average | 29.87 fps | **29.885 fps** |
+| dropped / janky | 0 / 0 | **0 / 0** |
+| CPU visible | 27.5–32.1% | 25.0–31.0% |
+| CPU screen off, process | 0.056% of a core | **0.050%** — now identical to the render thread's own, so the weather loop costs nothing |
+| GL threads after 30 preview cycles | 1 | 1 |
+
+### ARC-08 — the download outlives what used to kill it
+
+Reproduced before it was touched: two rotations produced two `finishDrawing of relaunch` entries for
+`SettingsActivity` on a OnePlus 6T, and that recreation cancels the `rememberCoroutineScope` the
+download runs in. **Two local causes**, and the second was not in the finding:
+
+- `SettingsActivity` declared no `configChanges`, so every rotation, light/dark switch and font-scale
+  change destroyed it. It now handles them itself, which is what a Compose screen is built to do.
+  The same three gestures produce **zero relaunches**, and the landscape layout was checked on the
+  phone.
+- The update state was `remember`ed inside `AdvancedScreen`, one level below the scope that writes
+  it. Walking back to the settings home mid-transfer left the job running with nowhere to report and
+  returning showed `Idle` for a download already in the cache. It moved up to the composable that
+  owns the scope.
+
+**Deliberately not done**: a `Service`, or any scope outliving the Activity. Leaving the screen for
+real still cancels the download. 4 tests, 4 mutations killed — including removing `configChanges` and
+substituting a process scope.
+
+### BCK-06 — an import a kill lands in the middle of, without a journal
+
+`NonCancellable` stops the *caller* going away; it cannot stop the process being killed, and between
+the two stores' writes the preferences were new while the saved themes were old.
+
+The two stores will never share a transaction, but each guarantees its own write is atomic, and that
+is enough to make the **pair** recoverable: the second store's whole payload rides inside the first
+store's atomic edit, is applied, and is then cleared. `finishPendingImport()` runs at both entry
+points that read the themes — the wallpaper service and the settings screen — so the window closes
+before anything can observe it.
+
+**This is not a journal.** There is no sequence to replay and nothing to undo, because the pending
+document *is* the whole of the remaining work; `ImportStaging` is nine lines. The store is written
+from the staged string rather than a re-serialised copy, so completing later is bit-for-bit the same
+write, which is what makes recovery idempotent.
+
+6 JVM tests killing the import at every point there is, 3 instrumented tests against real
+`DataStore`s, 5 mutations killed. Verified end to end on the phone: export, restore, "Backup
+restored.", and no pending key left in the datastore afterwards.
+
+Two existing instrumented tests failed on the OnePlus and **were right to**: their store doubles
+overrode `replaceAll` and the import's seam is now `replaceAllJson`. The doubles were moved to the
+seam rather than the code bent back to them.
+
+### Nothing left open
+
+No finding is OPEN and none is DEFERRED. What remains is classified with evidence:
+**CLIP-LIBRARY-WIDE** (210 of 221 sprites reach a canvas edge — the authoring convention, with 11
+declared exceptions), and **REN-01**, **SCL-06-penguin**, **RT-01**, **ARC-05-res**, closed or
+WONTFIX in earlier releases and not reopened here.
+
+---
+
 ## v4.14 — one sample is not a matrix, and the birds stop dissolving at dusk
 
 **Prepared, not published.** `versionCode = 45`, `versionName = "4.14"`. Prepared 2026-08-31. No

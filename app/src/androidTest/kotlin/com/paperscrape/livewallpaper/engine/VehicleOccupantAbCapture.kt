@@ -72,6 +72,29 @@ class VehicleOccupantAbCapture {
         }
     }
 
+    /**
+     * The same vehicles in winter, which is the season the occupant heads disagree about.
+     *
+     * The scale that puts a bust in a window is one number per family, derived from one
+     * representative content height. The winter members of both families are taller than their
+     * representative -- the hat -- so this is the case where a head can reach above the glass it
+     * is supposed to sit behind, and the summer capture cannot show it.
+     */
+    @Test
+    fun captureEveryVehicleInWinter() {
+        if (!asked()) return
+        val dir = outputDir()
+        for (type in CarType.entries) {
+            for ((laneName, lane) in LANES) {
+                val name = "winter_${type.name.lowercase()}_$laneName"
+                val frame = render(listOf(car(type, lane, PROGRESS_CENTRE)), peopleDensity = 0f, winter = true)
+                write(frame, dir, name)
+                reportVehicle(name, frame, type, lane, PROGRESS_CENTRE)
+                frame.recycle()
+            }
+        }
+    }
+
     /** The picture the whole change is about: people in cars and people on the pavement at once. */
     @Test
     fun captureAStreetWithTrafficAndPedestrians() {
@@ -141,6 +164,7 @@ class VehicleOccupantAbCapture {
         peopleDensity: Float,
         day: Boolean = true,
         scenery: Boolean = true,
+        winter: Boolean = false,
     ): Bitmap {
         val theme = ThemeCatalog.byId(THEME_ID)
         val defaults = defaultCustomizationFor(THEME_ID)
@@ -148,7 +172,7 @@ class VehicleOccupantAbCapture {
             cars = defaults.cars.copy(visible = true, density = 1f),
             people = defaults.people.copy(visible = peopleDensity > 0f, density = peopleDensity),
             peopleNightDensity = peopleDensity,
-            winterColorsEnabled = false,
+            winterColorsEnabled = winter,
         )
         // The theme's own scenery, read before the override goes in so it is the catalogue's and
         // not the one this method is about to install.

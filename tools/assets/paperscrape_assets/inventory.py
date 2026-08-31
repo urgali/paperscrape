@@ -57,6 +57,16 @@ class SpriteMeasurement:
     fully_opaque: bool
     on_grid: bool
     sha256: str
+    #: SHA-256 of the **decoded RGBA pixels**, not of the file.
+    #:
+    #: The duplicate check compares this rather than :attr:`sha256`, for the same reason the
+    #: rasterizer probe stopped hashing PNG bytes in v4.13: a file digest measures the compressor.
+    #: Two files holding the identical drawing, written by different encoder settings or at
+    #: different times, get different file digests, and the check that exists to find "one drawing
+    #: under two names" could not see any of them. Twenty-four sprite pairs in this library are
+    #: pixel-identical -- every character whose own skin tone is one of the three the variants are
+    #: generated in -- and the byte check reported zero.
+    pixels_sha256: str
 
     def as_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -65,6 +75,7 @@ class SpriteMeasurement:
 def measure_image(name: str, image: Image.Image, file_bytes: int, sha256: str) -> SpriteMeasurement:
     rgba = image.convert("RGBA")
     pixels = np.array(rgba)
+    pixels_sha256 = hashlib.sha256(pixels.tobytes()).hexdigest()
     alpha = pixels[..., 3]
     width, height = rgba.size
 
@@ -104,6 +115,7 @@ def measure_image(name: str, image: Image.Image, file_bytes: int, sha256: str) -
         fully_opaque=bool((alpha == 255).all()),
         on_grid=(width % SPRITE_PIXELS_PER_UNIT == 0 and height % SPRITE_PIXELS_PER_UNIT == 0),
         sha256=sha256,
+        pixels_sha256=pixels_sha256,
     )
 
 
@@ -136,5 +148,8 @@ def duplicate_groups(measurements: list[SpriteMeasurement]) -> dict[str, list[st
     """Names grouped by content hash, keeping only groups with more than one."""
     by_hash: dict[str, list[str]] = {}
     for m in measurements:
-        by_hash.setdefault(m.sha256, []).append(m.name)
+        # Keyed on the **pixel** digest, not the file's. Two encodings of one drawing have
+        # different file bytes, so a byte-keyed count reported zero duplicates for a library with
+        # twenty-four -- the same lesson the rasterizer probe learned in v4.13.
+        by_hash.setdefault(m.pixels_sha256, []).append(m.name)
     return {h: sorted(names) for h, names in by_hash.items() if len(names) > 1}

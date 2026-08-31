@@ -453,7 +453,21 @@ object SceneSpace {
         // window read as 0.86 m and a storey as under a metre; at 16.8 m over a 27-unit grid a
         // window is 1.2 m and a floor 2.3 m, which is a building people work in. Still comfortably
         // the tallest thing in the scene.
-        TOWER(16.8f, 196f),
+        //
+        // **v4.15: 15.6 over 182, and the picture did not move.** 196 was measured to the tip of
+        // the aerial `drawSkyscraperBuilding` strokes above the setback, and the rule at the top of
+        // this enum excludes exactly that -- "a shop's height is its wall, not the top of the sign
+        // hanging above it", which is why RESTAURANT declares 96 for a wall it draws at 96 and says
+        // nothing about its own hanging sign. Every other variant here matches its blits to the
+        // unit; the tower was the only one measuring an appendage, so it was drawing its 182 units
+        // of facade-plus-setback at 182/196 of the size 16.8 m asks for and reading as 15.6.
+        //
+        // The metres-per-unit is untouched at 0.0857, so the scale `metres * pixelsPerMetre /
+        // spriteUnitsTall` comes out at the same 3.857 px per unit it always has: **this changes no
+        // pixel**, and the window-grid reasoning above still holds exactly. What changes is that
+        // the number now describes the building. `BuildingHeightDeclarationTest` reads the blits and
+        // fails if any variant drifts from them again.
+        TOWER(15.6f, 182f),
 
         /**
          * Shop front, measured to the top of the wall and not to its hanging sign.

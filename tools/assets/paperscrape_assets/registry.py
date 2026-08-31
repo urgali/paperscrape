@@ -78,8 +78,15 @@ tomorrow. Each group carries:
 ``id``        short identifier, unique within the document.
 ``axis``      what the members vary along. ``season`` is the only axis so far.
 ``members``   two or more sprite names, each of which must have its own entry.
-``state``     ``DISTINCT`` if the members' PNGs differ from one another, or
-              ``IDENTICAL_GAP`` if they are byte-identical and should not be.
+``state``     ``DISTINCT`` if the members' pixels differ from one another,
+              ``IDENTICAL_GAP`` if they are identical and should not be, or
+              ``IDENTICAL_BY_CONSTRUCTION`` if they are identical and always
+              will be. The third exists because the second is a *defect* state
+              and this library has twenty-four pairs that are neither: the skin
+              tones are the man's, the woman's and the boy's own shipped skin
+              colours, so each of those characters is identical to one of their
+              own variants by definition. Saying ``IDENTICAL_GAP`` about them
+              would be filing a bug against arithmetic.
 ``reason``    why the group is in that state, in terms of what would change it.
 
 The reason this exists is that a variant's *whole purpose* is invisible to every
@@ -137,13 +144,17 @@ SOURCE_KINDS = ("svg", "none")
 USAGES = ("referenced", "orphan")
 
 #: What a variant group's members vary along.
-VARIANT_AXES = ("season",)
+#:
+#: ``skin`` joins ``season`` because the pixel-based duplicate check made twenty-four skin-tone
+#: identities visible that the old byte-based one could not see. They are not seasonal pairs and
+#: calling them so would have been the easy lie.
+VARIANT_AXES = ("season", "skin")
 
 #: Whether a variant group's members currently differ. ``IDENTICAL_GAP`` is a
 #: declaration that artwork is missing, not a tolerance: `validate` fails if such
 #: a group's members start to differ, so drawing the missing sprite is reported
 #: rather than passing silently.
-VARIANT_STATES = ("DISTINCT", "IDENTICAL_GAP")
+VARIANT_STATES = ("DISTINCT", "IDENTICAL_GAP", "IDENTICAL_BY_CONSTRUCTION")
 
 #: Mirrors `SpriteBlitter.SPRITE_PIXELS_PER_UNIT` on the Kotlin side.
 SPRITE_PIXELS_PER_UNIT = 3
@@ -420,6 +431,7 @@ def load_variants(path: Path, sprite_names: set[str]) -> list[VariantGroup]:
         seen_ids.add(gid)
 
         _require(raw.get("axis") in VARIANT_AXES, f"{gid}: axis must be one of {VARIANT_AXES}")
+        axis = raw["axis"]
         _require(raw.get("state") in VARIANT_STATES, f"{gid}: state must be one of {VARIANT_STATES}")
         # Required in both states, not only for the gap: a group declared DISTINCT
         # is also a claim about the artwork, and the next person needs to know what
@@ -434,13 +446,18 @@ def load_variants(path: Path, sprite_names: set[str]) -> list[VariantGroup]:
         _require(len(set(members)) == len(members), f"{gid}: members must not repeat a sprite")
         for member in members:
             _require(member in sprite_names, f"{gid}: member {member!r} has no registry entry")
-            # One sprite in two groups would make the two declarations able to
-            # contradict each other about the same bytes.
+            # One sprite in two groups **on the same axis** would make the two
+            # declarations able to contradict each other about the same bytes.
+            # Across axes it is the normal case, and the reason this is keyed by
+            # axis rather than by name alone: a summer head belongs to a season
+            # pair with its winter self *and* to a skin pair with its own tone
+            # variant, and neither declaration says anything about the other.
             _require(
-                member not in claimed,
-                f"{gid}: {member!r} is already a member of {claimed.get(member)!r}",
+                (axis, member) not in claimed,
+                f"{gid}: {member!r} is already a member of "
+                f"{claimed.get((axis, member))!r} on the {axis!r} axis",
             )
-            claimed[member] = gid
+            claimed[(axis, member)] = gid
 
         groups.append(
             VariantGroup(
@@ -464,9 +481,11 @@ def validate_variants(
 
     1. every declared group agrees with its members' bytes, in **both**
        directions -- a `DISTINCT` group whose members are identical has lost the
-       distinction it names, and an `IDENTICAL_GAP` group whose members now
-       differ has gained artwork the declaration has not caught up with;
-    2. no byte-identical pair exists that no group declares. A duplicate outside
+       distinction it names, an `IDENTICAL_GAP` group whose members now differ
+       has gained artwork the declaration has not caught up with, and an
+       `IDENTICAL_BY_CONSTRUCTION` group whose members differ has stopped being
+       the arithmetic identity it claims to be;
+    2. no pixel-identical pair exists that no group declares. A duplicate outside
        a variant group is one drawing reached through two names: two decodes, two
        atlas entries, and two files that can drift apart in one place only.
     """
@@ -482,12 +501,18 @@ def validate_variants(
         if group.must_differ and distinct == 1:
             problems.append(
                 f"variant {group.id}: declared DISTINCT but {', '.join(present)} are "
-                f"byte-identical -- the seasonal difference is not in the artwork"
+                f"pixel-identical -- the seasonal difference is not in the artwork"
             )
-        elif not group.must_differ and distinct > 1:
+        elif group.state == "IDENTICAL_GAP" and distinct > 1:
             problems.append(
                 f"variant {group.id}: declared IDENTICAL_GAP but {', '.join(present)} now "
                 f"differ -- the artwork exists, so move the group to DISTINCT"
+            )
+        elif group.state == "IDENTICAL_BY_CONSTRUCTION" and distinct > 1:
+            problems.append(
+                f"variant {group.id}: declared IDENTICAL_BY_CONSTRUCTION but "
+                f"{', '.join(present)} now differ -- the identity was arithmetic, so either the "
+                f"tone palette or the character's own skin colour moved"
             )
 
     declared_pairs = {
@@ -507,7 +532,7 @@ def validate_variants(
             for b in names[i + 1 :]:
                 if frozenset((a, b)) not in declared_pairs:
                     problems.append(
-                        f"{a} and {b} are byte-identical but no variant group declares them: "
+                        f"{a} and {b} are pixel-identical but no variant group declares them: "
                         f"either they are one drawing under two names, and one should go, or "
                         f"they are variants and the registry should say so"
                     )

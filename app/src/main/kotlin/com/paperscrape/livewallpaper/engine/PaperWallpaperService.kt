@@ -14,6 +14,7 @@ import com.paperscrape.livewallpaper.location.LocationSource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
+import com.paperscrape.livewallpaper.prefs.BackupRepository
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import com.paperscrape.livewallpaper.weather.LiveWeatherInputs
@@ -139,9 +140,11 @@ class PaperWallpaperService : WallpaperService() {
             // is rebuilt on demand, so there is no reason to keep it when releasing everything.
             TintFilterCache.clear()
         }
-        if (action != TrimAction.KEEP_ALL) {
-            // The GPU copies are derived from the bitmaps above and cost only a re-upload, so they
-            // follow the same policy. Each engine drops its own, on its own render thread.
+        if (MemoryPressurePolicy.dropsGpuTextures(action)) {
+            // The GPU copies are derived from the bitmaps above, but the atlas has no partial mode:
+            // dropping it is all or nothing, so it does *not* follow the same policy. See
+            // MemoryPressurePolicy.dropsGpuTextures (ARC-11). Each engine drops its own, on its own
+            // render thread.
             for (engine in engines) engine.trimGpuResources()
         }
     }
@@ -181,8 +184,11 @@ class PaperWallpaperService : WallpaperService() {
         private lateinit var prefs: WallpaperPrefs
 
         private var renderer: PaperRenderer? = null
-        // Written on the render thread by the settings collector and read by the weather loop on
-        // its own coroutine, so its visibility across the two cannot be left to chance.
+        // ARC-12: this said "written on the render thread by the settings collector", and the
+        // collector runs in `scope`, which is `Dispatchers.Main`. It is written on the **main**
+        // thread and read by the weather loop, which is another coroutine on that same dispatcher
+        // but not necessarily the same continuation, and by callbacks that are not. The volatile is
+        // what makes the write visible wherever it is read; what was wrong was the thread named.
         @Volatile
         private var settings: WallpaperSettings = WallpaperSettings()
         private var visible = false
@@ -376,6 +382,12 @@ class PaperWallpaperService : WallpaperService() {
             prefs = WallpaperPrefs(applicationContext)
             val customThemeStore = CustomThemeStore(applicationContext)
             scope.launch {
+                // BCK-06. An import writes two stores and a process kill between them used to leave
+                // the preferences new and the saved themes old. The pending document is applied here
+                // before the collector below can observe the half-applied state -- and before this
+                // engine draws a scene from it. Costs one preference read on every start but the
+                // one after a kill, where it costs the write that was owed.
+                runCatching { BackupRepository(prefs, customThemeStore, "").finishPendingImport() }
                 customThemeStore.dataFlow.collect { data ->
                     onRenderThread {
                         CustomThemeRegistry.update(data)
@@ -465,6 +477,23 @@ class PaperWallpaperService : WallpaperService() {
             // available while Live Weather is on) -- see those constants' own doc comments.
             scope.launch {
                 while (true) {
+                    // **ARC-02: an invisible engine does not poll.**
+                    //
+                    // This loop used to tick every WEATHER_CHECK_INTERVAL_MS for the whole life of
+                    // the engine, screen off included, and a wallpaper process can host two engines
+                    // at once -- the picker's preview alongside the live one -- so the ticks and the
+                    // hourly fetch behind them were doubled whenever the picker was open.
+                    //
+                    // Parking on the channel with **no timeout** is what removes the polling rather
+                    // than lengthening it: nothing wakes an invisible engine except a settings change
+                    // or [onVisibilityChanged], both of which already send here. Coming back visible
+                    // therefore re-enters the body immediately and the due-check runs at once, so a
+                    // refresh that fell due while the screen was off is picked up on the first frame
+                    // instead of up to two minutes later -- the loop got *more* responsive, not less.
+                    if (!visible) {
+                        weatherWakeUp.receive()
+                        continue
+                    }
                     // **The only recurring reason to ask the device where it is.**
                     //
                     // A refresh is due, so the position behind it might be stale -- and this is
@@ -651,6 +680,11 @@ class PaperWallpaperService : WallpaperService() {
         override fun onVisibilityChanged(visible: Boolean) {
             onEngineVisibilityChanged(nowVisible = visible, wasVisible = this.visible)
             this.visible = visible
+            // Releases the Live Weather loop, which parks on this channel while invisible (ARC-02).
+            // Sent on the way down as well: an engine that has just gone invisible has to reach the
+            // `!visible` check to park, and a loop asleep in `withTimeoutOrNull` would otherwise
+            // hold its two-minute timer to the end.
+            weatherWakeUp.trySend(Unit)
             val thread = glThread
             if (thread != null) {
                 if (visible) {

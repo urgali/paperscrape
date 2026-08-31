@@ -2,31 +2,411 @@
   "schemaVersion": 4,
   "variants": [
     {
-      "id": "man_walk0",
+      "id": "boy_head_window",
       "axis": "season",
       "members": [
-        "person_man_summer_walk0",
-        "person_man_winter_walk0"
+        "person_boy_summer_head_window",
+        "person_boy_winter_head_window"
       ],
       "state": "DISTINCT",
       "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
-      "id": "man_walk1",
+      "id": "boy_head_window_skin0",
       "axis": "season",
       "members": [
-        "person_man_summer_walk1",
-        "person_man_winter_walk1"
+        "person_boy_summer_head_window_skin0",
+        "person_boy_winter_head_window_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_head_window_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_window_skin1",
+        "person_boy_winter_head_window_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_head_window_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_window_skin2",
+        "person_boy_winter_head_window_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_summer_head_window_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_summer_head_window",
+        "person_boy_summer_head_window_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "boy_summer_walk0_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_summer_walk0",
+        "person_boy_summer_walk0_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "boy_summer_walk1_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_summer_walk1",
+        "person_boy_summer_walk1_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "boy_summer_walk2_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_summer_walk2",
+        "person_boy_summer_walk2_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "boy_walk0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk0",
+        "person_boy_winter_walk0"
       ],
       "state": "DISTINCT",
       "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
-      "id": "man_walk2",
+      "id": "boy_walk0_skin0",
       "axis": "season",
       "members": [
-        "person_man_summer_walk2",
-        "person_man_winter_walk2"
+        "person_boy_summer_walk0_skin0",
+        "person_boy_winter_walk0_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk0_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk0_skin1",
+        "person_boy_winter_walk0_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk0_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk0_skin2",
+        "person_boy_winter_walk0_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk1",
+        "person_boy_winter_walk1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "boy_walk1_skin0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk1_skin0",
+        "person_boy_winter_walk1_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk1_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk1_skin1",
+        "person_boy_winter_walk1_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk1_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk1_skin2",
+        "person_boy_winter_walk1_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk2",
+        "person_boy_winter_walk2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "boy_walk2_skin0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk2_skin0",
+        "person_boy_winter_walk2_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk2_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk2_skin1",
+        "person_boy_winter_walk2_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_walk2_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_walk2_skin2",
+        "person_boy_winter_walk2_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "boy_winter_head_window_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_winter_head_window",
+        "person_boy_winter_head_window_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "boy_winter_walk0_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_winter_walk0",
+        "person_boy_winter_walk0_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "boy_winter_walk1_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_winter_walk1",
+        "person_boy_winter_walk1_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "boy_winter_walk2_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_winter_walk2",
+        "person_boy_winter_walk2_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "girl_head_window",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_window",
+        "person_girl_winter_head_window"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "girl_head_window_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_window_skin0",
+        "person_girl_winter_head_window_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_head_window_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_window_skin1",
+        "person_girl_winter_head_window_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_head_window_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_window_skin2",
+        "person_girl_winter_head_window_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk0",
+        "person_girl_winter_walk0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "girl_walk0_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk0_skin0",
+        "person_girl_winter_walk0_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk0_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk0_skin1",
+        "person_girl_winter_walk0_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk0_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk0_skin2",
+        "person_girl_winter_walk0_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk1",
+        "person_girl_winter_walk1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "girl_walk1_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk1_skin0",
+        "person_girl_winter_walk1_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk1_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk1_skin1",
+        "person_girl_winter_walk1_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk1_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk1_skin2",
+        "person_girl_winter_walk1_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk2",
+        "person_girl_winter_walk2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
+      "id": "girl_walk2_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk2_skin0",
+        "person_girl_winter_walk2_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk2_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk2_skin1",
+        "person_girl_winter_walk2_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "girl_walk2_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_walk2_skin2",
+        "person_girl_winter_walk2_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_head_car",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_car",
+        "person_man_winter_head_car"
       ],
       "state": "DISTINCT",
       "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
@@ -42,141 +422,81 @@
       "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
-      "id": "man_head_car",
+      "id": "man_head_window_skin0",
       "axis": "season",
       "members": [
-        "person_man_summer_head_car",
-        "person_man_winter_head_car"
+        "person_man_summer_head_window_skin0",
+        "person_man_winter_head_window_skin0"
       ],
       "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "woman_walk0",
+      "id": "man_head_window_skin1",
       "axis": "season",
       "members": [
-        "person_woman_summer_walk0",
-        "person_woman_winter_walk0"
+        "person_man_summer_head_window_skin1",
+        "person_man_winter_head_window_skin1"
       ],
       "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "woman_walk1",
+      "id": "man_head_window_skin2",
       "axis": "season",
       "members": [
-        "person_woman_summer_walk1",
-        "person_woman_winter_walk1"
+        "person_man_summer_head_window_skin2",
+        "person_man_winter_head_window_skin2"
       ],
       "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "woman_walk2",
-      "axis": "season",
+      "id": "man_summer_head_window_own_tone",
+      "axis": "skin",
       "members": [
-        "person_woman_summer_walk2",
-        "person_woman_winter_walk2"
+        "person_man_summer_head_window",
+        "person_man_summer_head_window_skin1"
       ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "woman_head_window",
-      "axis": "season",
+      "id": "man_summer_walk0_own_tone",
+      "axis": "skin",
       "members": [
-        "person_woman_summer_head_window",
-        "person_woman_winter_head_window"
+        "person_man_summer_walk0",
+        "person_man_summer_walk0_skin1"
       ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "woman_head_car",
-      "axis": "season",
+      "id": "man_summer_walk1_own_tone",
+      "axis": "skin",
       "members": [
-        "person_woman_summer_head_car",
-        "person_woman_winter_head_car"
+        "person_man_summer_walk1",
+        "person_man_summer_walk1_skin1"
       ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "boy_walk0",
-      "axis": "season",
+      "id": "man_summer_walk2_own_tone",
+      "axis": "skin",
       "members": [
-        "person_boy_summer_walk0",
-        "person_boy_winter_walk0"
+        "person_man_summer_walk2",
+        "person_man_summer_walk2_skin1"
       ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "boy_walk1",
+      "id": "man_walk0",
       "axis": "season",
       "members": [
-        "person_boy_summer_walk1",
-        "person_boy_winter_walk1"
-      ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
-    },
-    {
-      "id": "boy_walk2",
-      "axis": "season",
-      "members": [
-        "person_boy_summer_walk2",
-        "person_boy_winter_walk2"
-      ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
-    },
-    {
-      "id": "boy_head_window",
-      "axis": "season",
-      "members": [
-        "person_boy_summer_head_window",
-        "person_boy_winter_head_window"
-      ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
-    },
-    {
-      "id": "girl_walk0",
-      "axis": "season",
-      "members": [
-        "person_girl_summer_walk0",
-        "person_girl_winter_walk0"
-      ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
-    },
-    {
-      "id": "girl_walk1",
-      "axis": "season",
-      "members": [
-        "person_girl_summer_walk1",
-        "person_girl_winter_walk1"
-      ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
-    },
-    {
-      "id": "girl_walk2",
-      "axis": "season",
-      "members": [
-        "person_girl_summer_walk2",
-        "person_girl_winter_walk2"
-      ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
-    },
-    {
-      "id": "girl_head_window",
-      "axis": "season",
-      "members": [
-        "person_girl_summer_head_window",
-        "person_girl_winter_head_window"
+        "person_man_summer_walk0",
+        "person_man_winter_walk0"
       ],
       "state": "DISTINCT",
       "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
@@ -212,6 +532,16 @@
       "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk0 / person_man_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     },
     {
+      "id": "man_walk1",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk1",
+        "person_man_winter_walk1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+    },
+    {
       "id": "man_walk1_skin0",
       "axis": "season",
       "members": [
@@ -240,6 +570,16 @@
       ],
       "state": "DISTINCT",
       "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk1 / person_man_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+    },
+    {
+      "id": "man_walk2",
+      "axis": "season",
+      "members": [
+        "person_man_summer_walk2",
+        "person_man_winter_walk2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
       "id": "man_walk2_skin0",
@@ -272,124 +612,64 @@
       "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_walk2 / person_man_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "man_head_window_skin0",
-      "axis": "season",
+      "id": "man_winter_head_window_own_tone",
+      "axis": "skin",
       "members": [
-        "person_man_summer_head_window_skin0",
-        "person_man_winter_head_window_skin0"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "man_head_window_skin1",
-      "axis": "season",
-      "members": [
-        "person_man_summer_head_window_skin1",
+        "person_man_winter_head_window",
         "person_man_winter_head_window_skin1"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "man_head_window_skin2",
-      "axis": "season",
+      "id": "man_winter_walk0_own_tone",
+      "axis": "skin",
       "members": [
-        "person_man_summer_head_window_skin2",
-        "person_man_winter_head_window_skin2"
+        "person_man_winter_walk0",
+        "person_man_winter_walk0_skin1"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_man_summer_head_window / person_man_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "woman_walk0_skin0",
-      "axis": "season",
+      "id": "man_winter_walk1_own_tone",
+      "axis": "skin",
       "members": [
-        "person_woman_summer_walk0_skin0",
-        "person_woman_winter_walk0_skin0"
+        "person_man_winter_walk1",
+        "person_man_winter_walk1_skin1"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "woman_walk0_skin1",
-      "axis": "season",
+      "id": "man_winter_walk2_own_tone",
+      "axis": "skin",
       "members": [
-        "person_woman_summer_walk0_skin1",
-        "person_woman_winter_walk0_skin1"
+        "person_man_winter_walk2",
+        "person_man_winter_walk2_skin1"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "woman_walk0_skin2",
+      "id": "woman_head_car",
       "axis": "season",
       "members": [
-        "person_woman_summer_walk0_skin2",
-        "person_woman_winter_walk0_skin2"
+        "person_woman_summer_head_car",
+        "person_woman_winter_head_car"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
-      "id": "woman_walk1_skin0",
+      "id": "woman_head_window",
       "axis": "season",
       "members": [
-        "person_woman_summer_walk1_skin0",
-        "person_woman_winter_walk1_skin0"
+        "person_woman_summer_head_window",
+        "person_woman_winter_head_window"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "woman_walk1_skin1",
-      "axis": "season",
-      "members": [
-        "person_woman_summer_walk1_skin1",
-        "person_woman_winter_walk1_skin1"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "woman_walk1_skin2",
-      "axis": "season",
-      "members": [
-        "person_woman_summer_walk1_skin2",
-        "person_woman_winter_walk1_skin2"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "woman_walk2_skin0",
-      "axis": "season",
-      "members": [
-        "person_woman_summer_walk2_skin0",
-        "person_woman_winter_walk2_skin0"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "woman_walk2_skin1",
-      "axis": "season",
-      "members": [
-        "person_woman_summer_walk2_skin1",
-        "person_woman_winter_walk2_skin1"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "woman_walk2_skin2",
-      "axis": "season",
-      "members": [
-        "person_woman_summer_walk2_skin2",
-        "person_woman_winter_walk2_skin2"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
       "id": "woman_head_window_skin0",
@@ -422,244 +702,204 @@
       "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_head_window / person_woman_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "boy_walk0_skin0",
-      "axis": "season",
+      "id": "woman_summer_head_window_own_tone",
+      "axis": "skin",
       "members": [
-        "person_boy_summer_walk0_skin0",
-        "person_boy_winter_walk0_skin0"
+        "person_woman_summer_head_window",
+        "person_woman_summer_head_window_skin0"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "boy_walk0_skin1",
-      "axis": "season",
+      "id": "woman_summer_walk0_own_tone",
+      "axis": "skin",
       "members": [
-        "person_boy_summer_walk0_skin1",
-        "person_boy_winter_walk0_skin1"
+        "person_woman_summer_walk0",
+        "person_woman_summer_walk0_skin0"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "boy_walk0_skin2",
-      "axis": "season",
+      "id": "woman_summer_walk1_own_tone",
+      "axis": "skin",
       "members": [
-        "person_boy_summer_walk0_skin2",
-        "person_boy_winter_walk0_skin2"
+        "person_woman_summer_walk1",
+        "person_woman_summer_walk1_skin0"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk0 / person_boy_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "boy_walk1_skin0",
-      "axis": "season",
+      "id": "woman_summer_walk2_own_tone",
+      "axis": "skin",
       "members": [
-        "person_boy_summer_walk1_skin0",
-        "person_boy_winter_walk1_skin0"
+        "person_woman_summer_walk2",
+        "person_woman_summer_walk2_skin0"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "boy_walk1_skin1",
+      "id": "woman_walk0",
       "axis": "season",
       "members": [
-        "person_boy_summer_walk1_skin1",
-        "person_boy_winter_walk1_skin1"
+        "person_woman_summer_walk0",
+        "person_woman_winter_walk0"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
-      "id": "boy_walk1_skin2",
+      "id": "woman_walk0_skin0",
       "axis": "season",
       "members": [
-        "person_boy_summer_walk1_skin2",
-        "person_boy_winter_walk1_skin2"
+        "person_woman_summer_walk0_skin0",
+        "person_woman_winter_walk0_skin0"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk1 / person_boy_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "boy_walk2_skin0",
+      "id": "woman_walk0_skin1",
       "axis": "season",
       "members": [
-        "person_boy_summer_walk2_skin0",
-        "person_boy_winter_walk2_skin0"
+        "person_woman_summer_walk0_skin1",
+        "person_woman_winter_walk0_skin1"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "boy_walk2_skin1",
+      "id": "woman_walk0_skin2",
       "axis": "season",
       "members": [
-        "person_boy_summer_walk2_skin1",
-        "person_boy_winter_walk2_skin1"
+        "person_woman_summer_walk0_skin2",
+        "person_woman_winter_walk0_skin2"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk0 / person_woman_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "boy_walk2_skin2",
+      "id": "woman_walk1",
       "axis": "season",
       "members": [
-        "person_boy_summer_walk2_skin2",
-        "person_boy_winter_walk2_skin2"
+        "person_woman_summer_walk1",
+        "person_woman_winter_walk1"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_walk2 / person_boy_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
-      "id": "boy_head_window_skin0",
+      "id": "woman_walk1_skin0",
       "axis": "season",
       "members": [
-        "person_boy_summer_head_window_skin0",
-        "person_boy_winter_head_window_skin0"
+        "person_woman_summer_walk1_skin0",
+        "person_woman_winter_walk1_skin0"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "boy_head_window_skin1",
+      "id": "woman_walk1_skin1",
       "axis": "season",
       "members": [
-        "person_boy_summer_head_window_skin1",
-        "person_boy_winter_head_window_skin1"
+        "person_woman_summer_walk1_skin1",
+        "person_woman_winter_walk1_skin1"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "boy_head_window_skin2",
+      "id": "woman_walk1_skin2",
       "axis": "season",
       "members": [
-        "person_boy_summer_head_window_skin2",
-        "person_boy_winter_head_window_skin2"
+        "person_woman_summer_walk1_skin2",
+        "person_woman_winter_walk1_skin2"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_boy_summer_head_window / person_boy_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk1 / person_woman_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "girl_walk0_skin0",
+      "id": "woman_walk2",
       "axis": "season",
       "members": [
-        "person_girl_summer_walk0_skin0",
-        "person_girl_winter_walk0_skin0"
+        "person_woman_summer_walk2",
+        "person_woman_winter_walk2"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
     },
     {
-      "id": "girl_walk0_skin1",
+      "id": "woman_walk2_skin0",
       "axis": "season",
       "members": [
-        "person_girl_summer_walk0_skin1",
-        "person_girl_winter_walk0_skin1"
+        "person_woman_summer_walk2_skin0",
+        "person_woman_winter_walk2_skin0"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "girl_walk0_skin2",
+      "id": "woman_walk2_skin1",
       "axis": "season",
       "members": [
-        "person_girl_summer_walk0_skin2",
-        "person_girl_winter_walk0_skin2"
+        "person_woman_summer_walk2_skin1",
+        "person_woman_winter_walk2_skin1"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk0 / person_girl_winter_walk0 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "girl_walk1_skin0",
+      "id": "woman_walk2_skin2",
       "axis": "season",
       "members": [
-        "person_girl_summer_walk1_skin0",
-        "person_girl_winter_walk1_skin0"
+        "person_woman_summer_walk2_skin2",
+        "person_woman_winter_walk2_skin2"
       ],
       "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_woman_summer_walk2 / person_woman_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "girl_walk1_skin1",
-      "axis": "season",
+      "id": "woman_winter_head_window_own_tone",
+      "axis": "skin",
       "members": [
-        "person_girl_summer_walk1_skin1",
-        "person_girl_winter_walk1_skin1"
+        "person_woman_winter_head_window",
+        "person_woman_winter_head_window_skin0"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "girl_walk1_skin2",
-      "axis": "season",
+      "id": "woman_winter_walk0_own_tone",
+      "axis": "skin",
       "members": [
-        "person_girl_summer_walk1_skin2",
-        "person_girl_winter_walk1_skin2"
+        "person_woman_winter_walk0",
+        "person_woman_winter_walk0_skin0"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk1 / person_girl_winter_walk1 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "girl_walk2_skin0",
-      "axis": "season",
+      "id": "woman_winter_walk1_own_tone",
+      "axis": "skin",
       "members": [
-        "person_girl_summer_walk2_skin0",
-        "person_girl_winter_walk2_skin0"
+        "person_woman_winter_walk1",
+        "person_woman_winter_walk1_skin0"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "girl_walk2_skin1",
-      "axis": "season",
+      "id": "woman_winter_walk2_own_tone",
+      "axis": "skin",
       "members": [
-        "person_girl_summer_walk2_skin1",
-        "person_girl_winter_walk2_skin1"
+        "person_woman_winter_walk2",
+        "person_woman_winter_walk2_skin0"
       ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "girl_walk2_skin2",
-      "axis": "season",
-      "members": [
-        "person_girl_summer_walk2_skin2",
-        "person_girl_winter_walk2_skin2"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "girl_head_window_skin0",
-      "axis": "season",
-      "members": [
-        "person_girl_summer_head_window_skin0",
-        "person_girl_winter_head_window_skin0"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "girl_head_window_skin1",
-      "axis": "season",
-      "members": [
-        "person_girl_summer_head_window_skin1",
-        "person_girl_winter_head_window_skin1"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both."
-    },
-    {
-      "id": "girl_head_window_skin2",
-      "axis": "season",
-      "members": [
-        "person_girl_summer_head_window_skin2",
-        "person_girl_winter_head_window_skin2"
-      ],
-      "state": "DISTINCT",
-      "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_head_window / person_girl_winter_head_window -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     }
   ],
   "sprites": [

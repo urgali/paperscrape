@@ -59,6 +59,39 @@ fun SceneTheme.toJson(): JSONObject = JSONObject().apply {
 
 private fun JSONArray.toIntArray(): IntArray = IntArray(length()) { getInt(it) }
 
+/**
+ * A required number that is finite, or the document is malformed.
+ *
+ * **BCK-03.** `org.json` coerces strings, so the literal `"NaN"` in a theme or backup file reads
+ * back as [Double.NaN] from `getDouble`, and `Infinity` likewise. Nothing downstream checked: the
+ * value went into a `depthFraction` or a `laneYFraction`, through `SceneSpace`'s arithmetic, and out
+ * to the renderer as a coordinate that is not a number. Every comparison against it is false, so an
+ * object silently stops being drawn or is drawn nowhere, and — the part that makes it worth fixing —
+ * the poisoned value is **persisted**, so it survives restarts and re-exports until the key is
+ * rewritten by hand.
+ *
+ * Throwing is the right answer for a required field: both import paths already wrap parsing in
+ * `runCatching`, so the file is reported as malformed and refused, which is what a file containing
+ * `"NaN"` deserves. See [optFinite] for the optional fields, which fall back instead.
+ */
+internal fun JSONObject.requireFinite(name: String): Float {
+    val value = getDouble(name)
+    require(value.isFinite()) { "$name is not a finite number: $value" }
+    return value.toFloat()
+}
+
+/**
+ * An optional number; anything non-finite reads as absent and takes [fallback].
+ *
+ * The counterpart to [requireFinite] for fields that already have a default. A `"NaN"` density is
+ * not a reason to refuse a whole backup — the file is still readable, that one value is not — so it
+ * takes the default the field would have had if the key were missing.
+ */
+internal fun JSONObject.optFinite(name: String, fallback: Float): Float {
+    val value = optDouble(name, fallback.toDouble())
+    return if (value.isFinite()) value.toFloat() else fallback
+}
+
 fun sceneThemeFromJson(json: JSONObject): SceneTheme = SceneTheme(
     id = json.getString("id"),
     displayName = json.getString("displayName"),
@@ -89,12 +122,12 @@ fun staticSceneObjectFromJson(json: JSONObject): StaticSceneObject = StaticScene
     // continuous fraction, for custom themes saved before the continuous-depth refactor -- so an
     // existing user's saved custom theme still loads instead of crashing on a missing key.
     depthFraction = if (json.has("depthFraction")) {
-        json.getDouble("depthFraction").toFloat()
+        json.requireFinite("depthFraction")
     } else {
         json.optInt("layer", 0) / 8f
     },
-    tileFractionX = json.getDouble("tileFractionX").toFloat(),
-    scale = json.optDouble("scale", 1.0).toFloat(),
+    tileFractionX = json.requireFinite("tileFractionX"),
+    scale = json.optFinite("scale", 1f),
 )
 
 fun CarObject.toJson(): JSONObject = JSONObject().apply {
@@ -107,9 +140,9 @@ fun CarObject.toJson(): JSONObject = JSONObject().apply {
 }
 
 fun carObjectFromJson(json: JSONObject): CarObject = CarObject(
-    laneYFraction = json.getDouble("laneYFraction").toFloat(),
-    speedFraction = json.getDouble("speedFraction").toFloat(),
-    startDelaySeconds = json.getDouble("startDelaySeconds").toFloat(),
+    laneYFraction = json.requireFinite("laneYFraction"),
+    speedFraction = json.requireFinite("speedFraction"),
+    startDelaySeconds = json.requireFinite("startDelaySeconds"),
     color = json.getInt("color"),
     reverse = json.optBoolean("reverse", false),
     // optString + runCatching: existing saved custom themes from before this field existed
@@ -157,7 +190,7 @@ fun ObjectVariantConfig.toJson(): JSONObject = JSONObject().apply {
 
 fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig): ObjectVariantConfig = ObjectVariantConfig(
     visible = json.optBoolean("visible", default.visible),
-    density = json.optDouble("density", default.density.toDouble()).toFloat(),
+    density = json.optFinite("density", default.density),
     colorDay1 = if (json.has("colorDay1")) json.getInt("colorDay1") else default.colorDay1,
     colorNight1 = if (json.has("colorNight1")) json.getInt("colorNight1") else default.colorNight1,
     colorDay2 = if (json.has("colorDay2")) json.getInt("colorDay2") else default.colorDay2,
@@ -273,10 +306,11 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // Absent from every payload written before v76.12, which is why it falls back to the
         // default rather than needing a schema step: a missing category is not a changed one.
         people = json.optJSONObject("people")?.let { objectVariantConfigFromJson(it, defaults.people) } ?: defaults.people,
-        peopleNightDensity = json.optDouble(
+        peopleNightDensity = json.optFinite(
             "peopleNightDensity",
-            (json.optJSONObject("people")?.optDouble("density") ?: defaults.people.density.toDouble()),
-        ).toFloat(),
+            json.optJSONObject("people")?.optFinite("density", defaults.people.density)
+                ?: defaults.people.density,
+        ),
         trees = json.optJSONObject("trees")?.let { objectVariantConfigFromJson(it, defaults.trees) } ?: defaults.trees,
         // Seasonal decorations ARE part of a saved custom theme's JSON now -- per-theme editable
         // and saveable exactly like the structural categories above (see the ObjectCategory doc
@@ -288,14 +322,14 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         bunnies = json.optJSONObject("bunnies")?.let { objectVariantConfigFromJson(it, defaults.bunnies) } ?: defaults.bunnies,
         easterEggs = json.optJSONObject("easterEggs")?.let { objectVariantConfigFromJson(it, defaults.easterEggs) } ?: defaults.easterEggs,
         pumpkins = json.optJSONObject("pumpkins")?.let { objectVariantConfigFromJson(it, defaults.pumpkins) } ?: defaults.pumpkins,
-        hillsVariation = json.optDouble("hillsVariation", defaults.hillsVariation.toDouble()).toFloat(),
+        hillsVariation = json.optFinite("hillsVariation", defaults.hillsVariation),
         hillsColorDay = if (json.has("hillsColorDay")) json.optInt("hillsColorDay") else defaults.hillsColorDay,
         hillsColorNight = if (json.has("hillsColorNight")) json.optInt("hillsColorNight") else defaults.hillsColorNight,
         hillsAutoMode = AutoColorMode.fromStorageId(json.optString("hillsAutoMode", null)),
         mountainsFront = json.optJSONObject("mountainsFront")?.let {
             MountainLayerConfig(
                 visible = it.optBoolean("visible", defaults.mountainsFront.visible),
-                density = it.optDouble("density", defaults.mountainsFront.density.toDouble()).toFloat(),
+                density = it.optFinite("density", defaults.mountainsFront.density),
                 colorDay = it.optInt("colorDay", defaults.mountainsFront.colorDay),
                 colorNight = it.optInt("colorNight", defaults.mountainsFront.colorNight),
                 autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
@@ -304,7 +338,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         mountainsBack = json.optJSONObject("mountainsBack")?.let {
             MountainLayerConfig(
                 visible = it.optBoolean("visible", defaults.mountainsBack.visible),
-                density = it.optDouble("density", defaults.mountainsBack.density.toDouble()).toFloat(),
+                density = it.optFinite("density", defaults.mountainsBack.density),
                 colorDay = it.optInt("colorDay", defaults.mountainsBack.colorDay),
                 colorNight = it.optInt("colorNight", defaults.mountainsBack.colorNight),
                 autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
@@ -315,11 +349,11 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 visible = it.optBoolean("visible", defaults.lake.visible),
                 colorDay = it.optInt("colorDay", defaults.lake.colorDay),
                 colorNight = it.optInt("colorNight", defaults.lake.colorNight),
-                height = it.optDouble("height", defaults.lake.height.toDouble()).toFloat(),
+                height = it.optFinite("height", defaults.lake.height),
                 sailboatsVisible = it.optBoolean("sailboatsVisible", defaults.lake.sailboatsVisible),
-                sailboatsDensity = it.optDouble("sailboatsDensity", defaults.lake.sailboatsDensity.toDouble()).toFloat(),
+                sailboatsDensity = it.optFinite("sailboatsDensity", defaults.lake.sailboatsDensity),
                 dolphinsVisible = it.optBoolean("dolphinsVisible", defaults.lake.dolphinsVisible),
-                dolphinsDensity = it.optDouble("dolphinsDensity", defaults.lake.dolphinsDensity.toDouble()).toFloat(),
+                dolphinsDensity = it.optFinite("dolphinsDensity", defaults.lake.dolphinsDensity),
                 autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
             )
         } ?: defaults.lake,
@@ -328,14 +362,14 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
             val colors = if (colorsArray != null) {
                 (0 until colorsArray.length()).map { idx ->
                     val c = colorsArray.getJSONObject(idx)
-                    BirdColorWeight(c.optInt("color"), c.optDouble("weight", 0.25).toFloat())
+                    BirdColorWeight(c.optInt("color"), c.optFinite("weight", 0.25f))
                 }
             } else {
                 defaults.birds.colors
             }
             BirdsConfig(
                 visible = b.optBoolean("visible", defaults.birds.visible),
-                density = b.optDouble("density", defaults.birds.density.toDouble()).toFloat(),
+                density = b.optFinite("density", defaults.birds.density),
                 nightBirds = b.optBoolean("nightBirds", defaults.birds.nightBirds),
                 colors = colors,
             )
@@ -343,7 +377,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         stars = json.optJSONObject("stars")?.let {
             StarsConfig(
                 visible = it.optBoolean("visible", defaults.stars.visible),
-                density = it.optDouble("density", defaults.stars.density.toDouble()).toFloat(),
+                density = it.optFinite("density", defaults.stars.density),
             )
         } ?: defaults.stars,
         sky = json.optJSONObject("sky")?.let {
@@ -354,7 +388,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 colorNightLow = it.optInt("colorNightLow", defaults.sky.colorNightLow),
                 colorSunriseLow = it.optInt("colorSunriseLow", defaults.sky.colorSunriseLow),
                 colorSunsetLow = it.optInt("colorSunsetLow", defaults.sky.colorSunsetLow),
-                sunCloudHeight = it.optDouble("sunCloudHeight", defaults.sky.sunCloudHeight.toDouble()).toFloat(),
+                sunCloudHeight = it.optFinite("sunCloudHeight", defaults.sky.sunCloudHeight),
                 autoModeHigh = AutoColorMode.fromStorageId(it.optString("autoModeHigh", null)),
                 autoModeLow = AutoColorMode.fromStorageId(it.optString("autoModeLow", null)),
             )
@@ -375,7 +409,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         clouds = json.optJSONObject("clouds")?.let {
             CloudsConfig(
                 visible = it.optBoolean("visible", defaults.clouds.visible),
-                density = it.optDouble("density", defaults.clouds.density.toDouble()).toFloat(),
+                density = it.optFinite("density", defaults.clouds.density),
                 colorDay = it.optInt("colorDay", defaults.clouds.colorDay),
                 colorNight = it.optInt("colorNight", defaults.clouds.colorNight),
                 autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
@@ -387,7 +421,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 type = it.optString("type", defaults.precipitation.type.name).let { name ->
                     runCatching { PrecipitationType.valueOf(name) }.getOrDefault(defaults.precipitation.type)
                 },
-                intensity = it.optDouble("intensity", defaults.precipitation.intensity.toDouble()).toFloat(),
+                intensity = it.optFinite("intensity", defaults.precipitation.intensity),
                 rainColorDay = it.optInt("rainColorDay", defaults.precipitation.rainColorDay),
                 rainColorNight = it.optInt("rainColorNight", defaults.precipitation.rainColorNight),
                 snowColorDay = it.optInt("snowColorDay", defaults.precipitation.snowColorDay),
@@ -400,7 +434,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         rainbow = json.optJSONObject("rainbow")?.let {
             RainbowConfig(
                 visible = it.optBoolean("visible", defaults.rainbow.visible),
-                opacity = it.optDouble("opacity", defaults.rainbow.opacity.toDouble()).toFloat(),
+                opacity = it.optFinite("opacity", defaults.rainbow.opacity),
             )
         } ?: defaults.rainbow,
         fallColorsEnabled = json.optBoolean("fallColorsEnabled", defaults.fallColorsEnabled),
@@ -486,6 +520,25 @@ fun readCustomThemeSchemaVersion(raw: String?): Int? {
  * older build, the fields it did not understand are not written back. That is accepted, and is
  * why this function is the single place a future migration must be registered.
  */
+/**
+ * Runs the custom-theme migrations over a document that embeds `overrides` and `customThemes`.
+ *
+ * **BCK-07.** A whole-app backup carries theme entries written by `CustomThemeEntry.toJson`, the
+ * same shape the theme store holds, but the import path parsed them directly and never ran the
+ * store's migrations. Harmless while no breaking step exists after the backup format shipped, and
+ * silently wrong the first time one does: a version 2 payload restored into a version 4 app would
+ * be read as if it were version 4.
+ *
+ * The version a backup records is the one to migrate *from*. A backup that records none was written
+ * before this existed, by an app whose theme schema was already at the current version -- the
+ * legacy default of 0 would re-run `1 -> 2`, which divides every object's scale by its base scale a
+ * second time, so **that default would corrupt every backup in existence**. Absent therefore means
+ * current, not legacy, and `AppBackupSchemaTest` pins it.
+ */
+fun migrateEmbeddedCustomThemes(root: JSONObject, fromVersion: Int) {
+    migrateCustomThemeJson(root, fromVersion)
+}
+
 private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
     // Payloads at or ahead of the current version are passed through untouched.
     if (fromVersion >= CUSTOM_THEME_SCHEMA_VERSION) return fromVersion
@@ -564,8 +617,11 @@ private fun migrateStaticScalesToVariations(objects: JSONArray?) {
         val type = runCatching { SceneObjectType.valueOf(obj.optString("type")) }.getOrNull() ?: continue
         val legacyBase = SceneSpace.legacyBaseScaleFor(type)
         if (legacyBase <= 0f) continue
-        val legacyScale = obj.optDouble("scale", legacyBase.toDouble())
-        obj.put("scale", legacyScale / legacyBase)
+        // Migration reads the *old* absolute scale and divides it into the relative one. A
+        // non-finite value here would write a non-finite value straight back into the store, so it
+        // takes the base scale, which is what the object was drawn at before the axis existed.
+        val legacyScale = obj.optFinite("scale", legacyBase)
+        obj.put("scale", (legacyScale / legacyBase).toDouble())
     }
 }
 
@@ -685,6 +741,30 @@ private fun oldSaveWouldHaveWritten(
     customization: SceneCustomization,
 ): List<CarObject> =
     SceneObjectCatalog.canonicaliseTraffic(canonical.filter { customization.keepCar(it) })
+
+/**
+ * The stored blob, or `null` if there is one and it cannot be read.
+ *
+ * The distinction [customThemeDataFromJsonString] deliberately hides — an absent store and an
+ * unreadable one both read as `CustomThemeData.EMPTY`, which is what a *reader* wants. A
+ * read-modify-write needs to tell them apart or it overwrites the second with a document derived
+ * from nothing; see `CustomThemeStore.update` for what that cost.
+ */
+fun customThemeDataOrNull(raw: String?): CustomThemeData? {
+    if (raw.isNullOrBlank()) return CustomThemeData.EMPTY
+    val parsed = customThemeDataFromJsonString(raw)
+    // The reader's own failure signal: a non-blank blob that comes back completely empty either was
+    // unreadable or holds nothing worth keeping, and the two are the same decision here.
+    return if (parsed == CustomThemeData.EMPTY && !looksEmpty(raw)) null else parsed
+}
+
+/** Whether [raw] is a document that legitimately holds no themes, rather than one that failed. */
+private fun looksEmpty(raw: String): Boolean = runCatching {
+    val root = JSONObject(raw)
+    val overrides = root.optJSONObject("overrides")?.length() ?: 0
+    val customs = root.optJSONArray("customThemes")?.length() ?: 0
+    overrides == 0 && customs == 0
+}.getOrDefault(false)
 
 fun customThemeDataFromJsonString(raw: String?): CustomThemeData {
     if (raw.isNullOrBlank()) return CustomThemeData.EMPTY

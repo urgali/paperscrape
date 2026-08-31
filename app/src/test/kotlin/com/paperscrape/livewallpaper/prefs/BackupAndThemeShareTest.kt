@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.prefs
 
+import com.paperscrape.livewallpaper.engine.CUSTOM_THEME_SCHEMA_VERSION
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
@@ -83,6 +84,68 @@ class BackupAndThemeShareTest {
     )
 
     private fun backup() = AppBackup.from(busySettings, savedThemes, "4.3", 1_700_000_000_000L)
+
+    // ------------------------------------------------------------------ BCK-07: embedded schema
+
+    /**
+     * A backup records which theme schema its entries are in, and honours it on the way back.
+     *
+     * The embedded entries are `CustomThemeEntry.toJson` documents -- the theme store's own shape --
+     * but the import path parsed them directly and never ran the store's migrations. Harmless while
+     * no breaking step exists after the backup format shipped; silently wrong the first time one
+     * does, because a version 2 payload restored into a version 4 app would be read as version 4.
+     */
+    @Test
+    fun `a backup records the theme schema its entries are written in`() {
+        val json = JSONObject(backup().toJsonString())
+        assertEquals(
+            CUSTOM_THEME_SCHEMA_VERSION,
+            json.optInt("customThemeSchemaVersion", -1),
+        )
+    }
+
+    /**
+     * **The dangerous half is the default, and this is the test that pins it.**
+     *
+     * The only substantive migration, `1 -> 2`, divides every static object's `scale` by its
+     * category base scale, and it is not idempotent. Defaulting an unversioned backup to the legacy
+     * version would run that division a second time on every backup users already have, shrinking
+     * every object in every saved theme. Absent therefore means *current*.
+     */
+    @Test
+    fun `a backup written before the field existed is read as current, not as legacy`() {
+        val json = JSONObject(backup().toJsonString())
+        json.remove("customThemeSchemaVersion")
+        val parsed = parseAppBackup(json.toString())
+        assertTrue("an unversioned backup must still parse", parsed is BackupParseResult.Ok)
+        val restored = (parsed as BackupParseResult.Ok).backup.customThemeData
+        for ((id, original) in savedThemes.overrides) {
+            val back = restored.overrides.getValue(id)
+            for ((i, obj) in original.layout.staticObjects.withIndex()) {
+                assertEquals(
+                    "override $id object $i must not be migrated a second time",
+                    obj.scale,
+                    back.layout.staticObjects[i].scale,
+                    1e-5f,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `a backup that declares an older theme schema is migrated on the way in`() {
+        // The case the field exists for. Version 1 asks for the scale migration, so the restored
+        // objects must come back *divided* by their base scale -- proof the step actually ran.
+        val json = JSONObject(backup().toJsonString())
+        json.put("customThemeSchemaVersion", 1)
+        val parsed = parseAppBackup(json.toString())
+        assertTrue(parsed is BackupParseResult.Ok)
+        val restored = (parsed as BackupParseResult.Ok).backup.customThemeData
+        val original = savedThemes.overrides.getValue("christmas").layout.staticObjects
+        val back = restored.overrides.getValue("christmas").layout.staticObjects
+        val changed = original.indices.any { kotlin.math.abs(original[it].scale - back[it].scale) > 1e-4f }
+        assertTrue("declaring version 1 must actually run the scale migration", changed)
+    }
 
     // ------------------------------------------------------------------ backup round trip
 

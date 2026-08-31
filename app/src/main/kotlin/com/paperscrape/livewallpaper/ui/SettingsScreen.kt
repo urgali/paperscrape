@@ -141,6 +141,21 @@ fun SettingsScreen(
     val settings by prefs.settingsFlow.collectAsState(initial = WallpaperSettings())
     val savedThemes = rememberCustomThemeData(customThemeStore)
     val scope = rememberCoroutineScope()
+
+    /**
+     * The update flow's state, held **here** rather than inside `AdvancedScreen` (ARC-08).
+     *
+     * The download is launched into [scope], which belongs to this composable; its state used to be
+     * `remember`ed one level down, in the screen the user can navigate away from. So the job and the
+     * thing it reports to had different lifetimes: walking back to the settings home mid-download
+     * left the transfer running with nowhere to report, and returning showed `Idle` for a download
+     * that had already finished into the cache.
+     *
+     * Hoisting it here is the whole fix for that half: the state now lives exactly as long as the
+     * coroutine that writes it. The other half -- the Activity being torn down under both of them --
+     * is the `configChanges` on `SettingsActivity`.
+     */
+    val updateState = remember { mutableStateOf<UpdateUiState>(UpdateUiState.Idle) }
     var destination by remember { mutableStateOf(SettingsDestination.HOME) }
 
     // Checked once per app launch (LaunchedEffect(Unit) runs exactly once for this composition),
@@ -344,6 +359,7 @@ fun SettingsScreen(
             onBack = { destination = SettingsDestination.HOME },
         )
         SettingsDestination.ADVANCED -> AdvancedScreen(
+            updateState = updateState,
             settings = settings,
             customThemeData = customThemeData,
             effectiveThemeId = effectiveThemeId,

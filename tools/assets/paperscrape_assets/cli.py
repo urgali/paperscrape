@@ -128,7 +128,7 @@ def cmd_inventory(_: argparse.Namespace) -> int:
     decoded = sum(m.decoded_bytes for m in measurements)
     padding = sum(m.transparent_padding_bytes for m in measurements)
     print(
-        f"{len(measurements)} files, {len({m.sha256 for m in measurements})} unique, "
+        f"{len(measurements)} files, {len({m.pixels_sha256 for m in measurements})} unique drawings, "
         f"{decoded / 1e6:.2f} MB decoded, {padding / 1e6:.2f} MB padding, "
         f"{len(duplicates)} duplicate groups"
     )
@@ -148,7 +148,7 @@ def cmd_validate(_: argparse.Namespace) -> int:
 
     variants = registry.load_variants(REGISTRY_PATH, {s.name for s in specs})
     problems.extend(
-        registry.validate_variants(variants, {name: m.sha256 for name, m in runtime.items()})
+        registry.validate_variants(variants, {name: m.pixels_sha256 for name, m in runtime.items()})
     )
 
     referenced = _referenced_names()

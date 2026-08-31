@@ -11,7 +11,36 @@ from the shipped PNGs; nothing is copied from documentation.
 | Decoded `ARGB_8888` | 27.09 MB |
 | Of which transparent padding | 4.51 MB (17 %) |
 | Off the 3x authoring grid | 0 |
-| Byte-identical duplicate groups | 0 |
+| Byte-identical duplicate groups | 24 |
+
+## Byte-identical groups
+
+| Members |
+|---|
+| `person_boy_summer_head_window`, `person_boy_summer_head_window_skin2` |
+| `person_boy_summer_walk0`, `person_boy_summer_walk0_skin2` |
+| `person_boy_summer_walk1`, `person_boy_summer_walk1_skin2` |
+| `person_boy_summer_walk2`, `person_boy_summer_walk2_skin2` |
+| `person_boy_winter_head_window`, `person_boy_winter_head_window_skin2` |
+| `person_boy_winter_walk0`, `person_boy_winter_walk0_skin2` |
+| `person_boy_winter_walk1`, `person_boy_winter_walk1_skin2` |
+| `person_boy_winter_walk2`, `person_boy_winter_walk2_skin2` |
+| `person_man_summer_head_window`, `person_man_summer_head_window_skin1` |
+| `person_man_summer_walk0`, `person_man_summer_walk0_skin1` |
+| `person_man_summer_walk1`, `person_man_summer_walk1_skin1` |
+| `person_man_summer_walk2`, `person_man_summer_walk2_skin1` |
+| `person_man_winter_head_window`, `person_man_winter_head_window_skin1` |
+| `person_man_winter_walk0`, `person_man_winter_walk0_skin1` |
+| `person_man_winter_walk1`, `person_man_winter_walk1_skin1` |
+| `person_man_winter_walk2`, `person_man_winter_walk2_skin1` |
+| `person_woman_summer_head_window`, `person_woman_summer_head_window_skin0` |
+| `person_woman_summer_walk0`, `person_woman_summer_walk0_skin0` |
+| `person_woman_summer_walk1`, `person_woman_summer_walk1_skin0` |
+| `person_woman_summer_walk2`, `person_woman_summer_walk2_skin0` |
+| `person_woman_winter_head_window`, `person_woman_winter_head_window_skin0` |
+| `person_woman_winter_walk0`, `person_woman_winter_walk0_skin0` |
+| `person_woman_winter_walk1`, `person_woman_winter_walk1_skin0` |
+| `person_woman_winter_walk2`, `person_woman_winter_walk2_skin0` |
 
 ## Heaviest decoded sprites
 

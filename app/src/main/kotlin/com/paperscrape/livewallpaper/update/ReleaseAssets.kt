@@ -102,6 +102,14 @@ sealed interface InstallVerdict {
 
     /** Same or older than what is installed. Android would reject it, and it is not an update. */
     data class NotNewer(val found: Long, val installed: Long) : InstallVerdict
+
+    /**
+     * Correctly named and newer, but not built by whoever built the copy on this phone.
+     *
+     * SEC-01. The SHA-256 the download is checked against comes from the same release the file does,
+     * so it proves integrity in transit and says nothing about origin. This is the check that does.
+     */
+    data object WrongSignature : InstallVerdict
 }
 
 /**
@@ -115,16 +123,31 @@ sealed interface InstallVerdict {
  */
 object ApkSafety {
 
+    /**
+     * @param signedByThisApp whether the download carries the certificate the installed app does,
+     *   or `null` if that could not be read. **SEC-01.** The download was verified only against a
+     *   SHA-256 published on the same channel it came from, which proves the file was not altered
+     *   in transit and nothing at all about who built it: a compromised repository or CI serves a
+     *   matching pair and reaches the user's install prompt described as verified. Android will
+     *   refuse to *install* a differently-signed update, so the practical outcome was a confusing
+     *   failure at the last step rather than a silent compromise -- but "the OS will catch it" is
+     *   not the same as checking, and the check costs one `PackageManager` call.
+     */
     fun verdict(
         expectedPackage: String,
         installedVersionCode: Long,
         downloaded: ApkIdentity?,
+        signedByThisApp: Boolean?,
     ): InstallVerdict = when {
         downloaded == null -> InstallVerdict.Unreadable
         downloaded.packageName != expectedPackage ->
             InstallVerdict.WrongPackage(downloaded.packageName, expectedPackage)
         downloaded.versionCode <= installedVersionCode ->
             InstallVerdict.NotNewer(downloaded.versionCode, installedVersionCode)
+        // Ordered last of the rejections deliberately: package and version are things a user can
+        // understand and act on, and a signature mismatch on a correctly named, newer build is the
+        // one that means something is wrong upstream rather than with the file they picked.
+        signedByThisApp != true -> InstallVerdict.WrongSignature
         else -> InstallVerdict.Allowed
     }
 }

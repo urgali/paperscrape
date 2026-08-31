@@ -57,6 +57,7 @@ def measurement(name: str, size: tuple[int, int], box: tuple[int, int, int, int]
         fully_opaque=False,
         on_grid=True,
         sha256="",
+        pixels_sha256="",
     )
 
 

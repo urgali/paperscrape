@@ -1,5 +1,9 @@
 package com.paperscrape.livewallpaper.ui
 
+import com.paperscrape.livewallpaper.BuildConfig
+import com.paperscrape.livewallpaper.prefs.BackupRepository
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Intent
@@ -25,6 +29,12 @@ class SettingsActivity : ComponentActivity() {
         prefs = WallpaperPrefs(applicationContext)
         customThemeStore = CustomThemeStore(applicationContext)
         updatePrefs = UpdatePrefs(applicationContext)
+
+        // BCK-06: finish an import the process was killed in the middle of, before anything in this
+        // screen reads the saved themes. Idempotent, and a no-op on every start but that one.
+        lifecycleScope.launch {
+            runCatching { BackupRepository(prefs, customThemeStore, BuildConfig.VERSION_NAME).finishPendingImport() }
+        }
 
         // The synchronous CustomThemeRegistry is kept warm for this process too -- theme previews
         // in the settings UI resolve through the same ThemeCatalog.byId / SceneObjectCatalog.

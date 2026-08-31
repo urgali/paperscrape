@@ -1,5 +1,7 @@
 package com.paperscrape.livewallpaper.location
 
+import com.paperscrape.livewallpaper.MAX_HTTP_BODY_CHARS
+import com.paperscrape.livewallpaper.readAtMost
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -198,7 +200,9 @@ object CityGeocoder {
             }
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return@withContext CitySearchResult.Failed
 
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            // Bounded: a handful of candidate places, never a stream (SEC-03).
+            val body = connection.inputStream.bufferedReader().use { it.readAtMost(MAX_HTTP_BODY_CHARS) }
+                ?: return@withContext CitySearchResult.Failed
             // An empty "results" array and an absent one are the same answer from this provider:
             // it knows no such place. Only a failure to reach or read it is Failed.
             val cities = CityGeocodingParser.parse(body)

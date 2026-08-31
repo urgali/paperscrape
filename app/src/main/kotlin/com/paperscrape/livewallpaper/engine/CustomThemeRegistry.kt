@@ -19,8 +19,21 @@ object CustomThemeRegistry {
     private val current = AtomicReference(CustomThemeData.EMPTY)
     private val generationCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
+    /**
+     * Publishes [data], and bumps the generation **only if it is different**.
+     *
+     * ARC-10. Two places collect the same store flow -- the engine and the settings screen -- and
+     * each called this on every emission, so whenever the two coexist (the picker's preview beside
+     * the open settings screen, which is the normal way a user edits a theme) one store write
+     * bumped the generation twice and `SceneObjectRenderer` rebuilt itself twice for one change.
+     *
+     * `CustomThemeData` is a data class, so the comparison is structural and a second collector
+     * delivering the identical document is free. That is the whole fix: the generation counts
+     * *changes*, not deliveries, which is what every reader of it already assumed.
+     */
     fun update(data: CustomThemeData) {
-        current.set(data)
+        val previous = current.getAndSet(data)
+        if (previous == data) return
         generationCounter.incrementAndGet()
     }
 

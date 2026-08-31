@@ -1,6 +1,8 @@
 package com.paperscrape.livewallpaper.prefs
 
 import com.paperscrape.livewallpaper.engine.CustomThemeData
+import com.paperscrape.livewallpaper.engine.migrateEmbeddedCustomThemes
+import com.paperscrape.livewallpaper.engine.CUSTOM_THEME_SCHEMA_VERSION
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.customThemeEntryFromJson
@@ -201,6 +203,9 @@ fun AppBackup.toJsonString(): String = JSONObject().apply {
         "themeCustomizations",
         JSONObject().apply { for ((id, c) in themeCustomizations) put(id, c.toJson()) },
     )
+    // The schema the embedded theme entries are written in, so a future app knows what it is
+    // reading them as. See migrateEmbeddedCustomThemes (BCK-07).
+    put("customThemeSchemaVersion", CUSTOM_THEME_SCHEMA_VERSION)
     put(
         "overrides",
         JSONObject().apply { for ((id, e) in customThemeData.overrides) put(id, e.toJson()) },
@@ -248,6 +253,15 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
     }
 
     val overrides = HashMap<String, CustomThemeEntry>()
+    // The embedded theme entries are in whatever schema the app that wrote this backup used. A
+    // backup written before the version was recorded came from an app already at the current
+    // schema, so absent means current -- see migrateEmbeddedCustomThemes for why the legacy
+    // default would corrupt those files rather than repair them.
+    migrateEmbeddedCustomThemes(
+        root,
+        root.optInt("customThemeSchemaVersion", CUSTOM_THEME_SCHEMA_VERSION),
+    )
+
     root.optJSONObject("overrides")?.let { obj ->
         for (id in obj.keys()) {
             val entry = obj.optJSONObject(id)

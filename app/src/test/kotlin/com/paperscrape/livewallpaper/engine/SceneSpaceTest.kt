@@ -277,9 +277,17 @@ class SceneSpaceTest {
             "a bar should out-top the largest house",
             SceneSpace.SceneVariant.BAR.metresTall > SceneSpace.SceneVariant.HOUSE_LARGE.metresTall,
         )
+        // **The margin is 1.90, and it always was.** This asked for 2.0 and passed on a TOWER that
+        // declared 16.8 m, which v4.15 found was measured to the tip of its aerial: the building it
+        // draws is 182 units, not 196, and reads as 15.6 m. Nothing about the picture changed when
+        // that was corrected -- the metres-per-unit is identical -- so 2.0 was never a property of
+        // the scene, only of a number that was 7.1% too large. 1.85 is the same judgement ("a
+        // different class of building, not a taller one of the same class") stated against what is
+        // actually drawn, and `BuildingHeightDeclarationTest` is what now keeps the declaration
+        // honest.
         assertTrue(
             "a tower should out-top a shop by a clear margin",
-            SceneSpace.SceneVariant.TOWER.metresTall > SceneSpace.SceneVariant.RESTAURANT.metresTall * 2f,
+            SceneSpace.SceneVariant.TOWER.metresTall > SceneSpace.SceneVariant.RESTAURANT.metresTall * 1.85f,
         )
     }
 

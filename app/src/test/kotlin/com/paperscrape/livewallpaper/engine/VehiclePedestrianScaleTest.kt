@@ -202,15 +202,22 @@ class VehiclePedestrianScaleTest {
     }
 
     /**
-     * Every bust's content is exactly as tall as the glass it sits behind.
+     * The bust scale is glass-over-content and nothing else, and both busts stand on the sill.
      *
      * This is the rule that replaced three separately tuned scales, and asserting it is what stops
      * the next size complaint being answered with a fourth. None of [CAR_HEAD_SCALE],
      * [CAR_PASSENGER_SCALE] or [FIRE_TRUCK_HEAD_SCALE] is a number anybody chose: each is its own
-     * glass height over its own sprite's content height.
+     * glass height over its own sprite family's content height.
+     *
+     * **What the first three assertions do not check.** Each scale is *defined* as
+     * `glass / content`, so `content * scale == glass` is `glass == glass` for any content
+     * whatsoever — it pins the shape of the rule and says nothing about the pictures. That is how
+     * a window head 169 px tall went on being divided by 155 until the winter woman's hat was
+     * measured 3 px above the glass on a phone. `OccupantHeadFitTest` is the one that reads the
+     * PNGs; this one only states that no fourth hand-tuned scale has appeared.
      */
     @Test
-    fun `a bust is exactly as tall as its glass and stands on the sill`() {
+    fun `a bust is scaled by glass over content and stands on the sill`() {
         assertEquals(
             "driver bust height",
             SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
@@ -249,19 +256,27 @@ class VehiclePedestrianScaleTest {
     }
 
     /**
-     * The taller pane stays inside the car.
+     * The taller pane stays inside the car, and the door accessories ride the sill.
      *
      * Upward there is no room -- `car_body`'s roof is at y=-11 and the glass top is -6 -- so the
-     * three units go downward, and they may not reach past the line the police stripe and the taxi
-     * chequer are blitted at, or the accessory would cover the glass. That line is y=13, which is
-     * the value [SceneObjectRenderer.CAR_SILL_Y_UNITS] has to come out at.
+     * extra units go downward. **v4.15 moved the sill from 13 to 14.72** so the tallest winter bust
+     * fits the pane instead of standing over the roof; see
+     * [SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS]. The rule the old y=13 literal expressed is
+     * unchanged and is now expressed directly: `police_stripe` and `taxi_checker` are blitted *at
+     * the sill*, so they follow it rather than being a second copy of the number. What still may
+     * not happen is the glass reaching the beltline at y=18, which is where the body stops being
+     * flat colour.
      */
     @Test
-    fun `the enlarged glass stops exactly at the door accessory line`() {
+    fun `the enlarged glass stops short of the beltline and the accessories ride the sill`() {
         assertEquals("the glass top has not moved", -6f, SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS, 0.001f)
-        assertEquals("the sill", 13f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.001f)
+        assertEquals("the sill", 14.716f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.002f)
+        assertTrue(
+            "the sill must stay above the beltline at y=18",
+            SceneObjectRenderer.CAR_SILL_Y_UNITS < 18f,
+        )
         assertEquals(
-            "the police stripe and the taxi chequer are blitted at this y, and must still meet it",
+            "the police stripe and the taxi chequer are blitted at the sill, whatever it is",
             SceneObjectRenderer.CAR_SILL_Y_UNITS,
             DOOR_ACCESSORY_Y_UNITS,
             0.001f,
@@ -396,8 +411,39 @@ class VehiclePedestrianScaleTest {
         /** The glass's own right edge, from the same sprite. */
         const val GLASS_RIGHT_UNITS = -20f + 138f / 3f
 
-        /** Where `police_stripe` and `taxi_checker` are blitted, from [SceneObjectRenderer.drawCar]. */
-        const val DOOR_ACCESSORY_Y_UNITS = 13f
+        /**
+         * Where `police_stripe` and `taxi_checker` are actually blitted, **read from the source**.
+         *
+         * It used to be the literal `13f` copied out of `drawCar`, which is a second copy of a
+         * number and went stale the moment v4.15 moved the sill. The call site now names
+         * [SceneObjectRenderer.CAR_SILL_Y_UNITS] directly, and this reads that back out of the file
+         * so the assertion is about the coupling rather than about a number somebody retyped.
+         */
+        val DOOR_ACCESSORY_Y_UNITS: Float by lazy {
+            val source = rendererSource().readText()
+            val pattern = "R\\.drawable\\.(?:police_stripe|taxi_checker), -34f, ([A-Za-z_.]+|[0-9.]+f)\\)"
+            val calls = Regex(pattern).findAll(source).map { it.groupValues[1] }.toList()
+            require(calls.size == 2) { "expected two door-accessory blits, found $calls" }
+            require(calls.distinct().size == 1) { "the two accessories no longer share a y: $calls" }
+            when (val y = calls.first()) {
+                "CAR_SILL_Y_UNITS" -> SceneObjectRenderer.CAR_SILL_Y_UNITS
+                else -> y.removeSuffix("f").toFloat()
+            }
+        }
+
+        /** Walks up for the module root, the way `SkyscraperWindowTest` finds the renderer. */
+        private fun rendererSource(): java.io.File {
+            val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt"
+            var dir: java.io.File? = java.io.File(".").absoluteFile
+            while (dir != null) {
+                for (prefix in listOf("", "app/")) {
+                    val candidate = java.io.File(dir, "$prefix$suffix")
+                    if (candidate.isFile) return candidate
+                }
+                dir = dir.parentFile
+            }
+            error("could not locate $suffix")
+        }
 
         val CAR_HEAD_SCALE = SceneObjectRenderer.CAR_HEAD_SCALE
         val CAR_PASSENGER_SCALE = SceneObjectRenderer.CAR_PASSENGER_SCALE

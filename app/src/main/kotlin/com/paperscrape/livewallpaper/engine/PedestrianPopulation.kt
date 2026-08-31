@@ -291,9 +291,19 @@ internal object PedestrianPopulation {
                 var start = (groupStart - direction * m * MEMBER_SPACING * spread) % 1f
                 if (start < 0f) start += 1f
                 val rowJitter = CandidateNoise.range(seed, addr, CH_MEMBER_ROW, -MEMBER_ROW_SPREAD, MEMBER_ROW_SPREAD)
+                // **REN-08: the jitter may not put anyone on the road.** The near pavement row is
+                // 0.807 and the spread is +-0.012, so a jittered figure could stand at 0.819 while
+                // the road's painted top edge is at 0.8178 -- about 3 px of foot on the tarmac at
+                // 2340 px, on the row where the figures are largest and it shows most. The band the
+                // rows themselves define is the wrong bound here because it knows nothing about the
+                // road; `SceneSpace.roadTopYFraction()` is the thing that must not be crossed, and
+                // it is the same function the road is drawn from, so the two cannot drift apart.
                 val row = (groupRow + rowJitter).coerceIn(
                     minOf(nearRowYFraction, farRowYFraction) - MEMBER_ROW_SPREAD,
-                    maxOf(nearRowYFraction, farRowYFraction) + MEMBER_ROW_SPREAD,
+                    minOf(
+                        maxOf(nearRowYFraction, farRowYFraction) + MEMBER_ROW_SPREAD,
+                        SceneSpace.roadTopYFraction(),
+                    ),
                 )
                 people += Pedestrian(
                     groupIndex = g,

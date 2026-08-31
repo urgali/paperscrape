@@ -1,6 +1,8 @@
 package com.paperscrape.livewallpaper.update
 
 import android.content.Context
+import android.content.pm.PackageManager
+import android.content.pm.PackageInfo
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -266,6 +268,41 @@ object ApkInstaller {
             info.versionCode.toLong()
         }
         return ApkIdentity(info.packageName, versionCode, info.versionName)
+    }
+
+    /**
+     * Whether [apk] carries the same signing certificate as the copy of this app already installed.
+     *
+     * `null` when either side cannot be read, which the verdict treats as "not verified" rather than
+     * as permission: an unreadable signature is exactly the case not to wave through. SEC-01.
+     */
+    fun signedByThisApp(context: Context, apk: File): Boolean? {
+        val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_SIGNING_CERTIFICATES
+        } else {
+            @Suppress("DEPRECATION")
+            PackageManager.GET_SIGNATURES
+        }
+        val downloaded = context.packageManager.getPackageArchiveInfo(apk.absolutePath, flag) ?: return null
+        val installed = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, flag)
+        }.getOrNull() ?: return null
+        val downloadedCerts = certificatesOf(downloaded) ?: return null
+        val installedCerts = certificatesOf(installed) ?: return null
+        if (downloadedCerts.isEmpty() || installedCerts.isEmpty()) return null
+        return downloadedCerts == installedCerts
+    }
+
+    /** A package's signing certificates as a comparable set, or `null` if it has none readable. */
+    private fun certificatesOf(info: PackageInfo): Set<String>? {
+        val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val signing = info.signingInfo ?: return null
+            if (signing.hasMultipleSigners()) signing.apkContentsSigners else signing.signingCertificateHistory
+        } else {
+            @Suppress("DEPRECATION")
+            info.signatures
+        } ?: return null
+        return signatures.map { it.toCharsString() }.toSet()
     }
 
     /** This app's own installed version code, to compare a download against. */

@@ -1,5 +1,7 @@
 package com.paperscrape.livewallpaper.update
 
+import com.paperscrape.livewallpaper.MAX_HTTP_BODY_CHARS
+import com.paperscrape.livewallpaper.readAtMost
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -175,7 +177,11 @@ object UpdateChecker {
                 return@withContext UpdateCheckResult.Unreachable(UpdateCheckResult.Unreachable.Reason.SERVER_ERROR)
             }
 
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            // Bounded: a release list is kilobytes, and an unbounded read is not (SEC-03).
+            val body = connection.inputStream.bufferedReader().use { it.readAtMost(MAX_HTTP_BODY_CHARS) }
+                ?: return@withContext UpdateCheckResult.Unreachable(
+                    UpdateCheckResult.Unreachable.Reason.SERVER_ERROR,
+                )
             val releases = JSONArray(body)
             val fallbackReleasePageUrl = "https://github.com/$OWNER/$REPO/releases"
 

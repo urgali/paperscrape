@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.prefs
 
+import com.paperscrape.livewallpaper.engine.toJsonString
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
@@ -96,14 +97,36 @@ class BackupRepository(
         // `NonCancellable` is the whole fix. No journal, no write-ahead log, no third store: the
         // pair is short, bounded and already ordered, and what it lacked was only the guarantee
         // that nothing could interrupt it half way.
+        // **BCK-06: and a kill is not a cancellation.** `NonCancellable` above stops the coroutine
+        // being interrupted; it cannot stop the process being killed, and between the two writes the
+        // preferences were new while the saved themes were still old.
+        //
+        // The two stores have no transaction between them and are not going to get one. What each
+        // store *does* guarantee is that its own write is atomic, and that is enough to make the
+        // pair recoverable: the second store's whole payload rides inside the first store's atomic
+        // edit, is applied, and is then cleared. Whatever instant the process dies in, the next
+        // start finds either nothing pending or exactly the bytes the second store was owed, and
+        // re-applying them is the same write.
+        //
+        // This is deliberately not a journal. There is no sequence to replay, no ordering to
+        // reconstruct and nothing to undo: the pending document *is* the whole of the remaining
+        // work, and [finishPendingImport] is three lines long.
+        val pendingJson = backup.customThemeData.toJsonString()
         return withContext(NonCancellable) {
             try {
-                prefs.replaceAll(backup.settings, backup.themeCustomizations)
-                store.replaceAll(backup.customThemeData)
+                ImportStaging.apply(
+                    payload = pendingJson,
+                    stagePrefs = { prefs.replaceAllStagingThemes(backup.settings, backup.themeCustomizations, it) },
+                    writeThemes = { store.replaceAllJson(it) },
+                    clearPending = { prefs.clearPendingImportThemes() },
+                )
             } catch (failure: Throwable) {
                 return@withContext try {
                     prefs.replaceAll(undo.settings, undo.themeCustomizations)
                     store.replaceAll(undo.customThemeData)
+                    // `replaceAll` with no pending document clears the key in the same atomic edit,
+                    // so a rollback cannot leave a completion step pointing at the import that was
+                    // just undone.
                     ImportResult.RolledBack(failure)
                 } catch (rollbackFailure: Throwable) {
                     ImportResult.Broken(failure, rollbackFailure)
@@ -111,6 +134,25 @@ class BackupRepository(
             }
             ImportResult.Applied(backup)
         }
+    }
+
+    /**
+     * Finishes an import the process died in the middle of, if there was one.
+     *
+     * Called at every entry point that reads the saved themes -- the wallpaper service and the
+     * settings screen -- so the inconsistent window closes before anything can observe it. Costs one
+     * preference read when there is nothing to do, which is every start but the one after a kill.
+     *
+     * Idempotent by construction: it writes the staged document and then clears it, and writing the
+     * same document twice is the same document. A kill *inside* this call leaves the key set and the
+     * next start does it again.
+     */
+    suspend fun finishPendingImport(): Boolean = withContext(NonCancellable) {
+        ImportStaging.finish(
+            pending = prefs.pendingImportThemes(),
+            writeThemes = { store.replaceAllJson(it) },
+            clearPending = { prefs.clearPendingImportThemes() },
+        )
     }
 
     /** A file name a user will recognise a year from now. */
@@ -126,5 +168,54 @@ class BackupRepository(
     private companion object {
         @Suppress("unused")
         val EMPTY_THEMES = CustomThemeData.EMPTY
+    }
+}
+
+/**
+ * The two halves of a two-store import, as an order and a recovery (BCK-06).
+ *
+ * Written as functions over the writes rather than inline in [BackupRepository] for one reason: the
+ * property that matters is **what a kill at each point leaves behind**, and a kill is not something
+ * a test can do to Android's `DataStore`. Here it is a lambda that throws, and
+ * `AtomicImportTest` walks every point.
+ *
+ * The order is the whole design and it is only three steps:
+ *
+ *  1. write the first store **including the second store's entire payload**, in that store's own
+ *     atomic edit;
+ *  2. write the second store from that payload;
+ *  3. clear the payload.
+ *
+ * Every possible interruption lands on a consistent pair. Before 1: nothing changed. Between 1 and
+ * 2, or between 2 and 3: the payload is on disk, and [finish] applies it — writing it a second time
+ * is the same write, so it does not matter which side of 2 the process died on. After 3: done.
+ *
+ * There is no journal here and none is needed. A journal exists to replay a sequence; this has no
+ * sequence to replay, because the payload *is* the whole of the remaining work.
+ */
+internal object ImportStaging {
+
+    /** Steps 1-3. Throws whatever the writes throw, leaving the caller to roll back. */
+    suspend fun apply(
+        payload: String,
+        stagePrefs: suspend (String) -> Unit,
+        writeThemes: suspend (String) -> Unit,
+        clearPending: suspend () -> Unit,
+    ) {
+        stagePrefs(payload)
+        writeThemes(payload)
+        clearPending()
+    }
+
+    /** Steps 2-3 for an import that stopped after 1 or 2. `false` when there was nothing pending. */
+    suspend fun finish(
+        pending: String?,
+        writeThemes: suspend (String) -> Unit,
+        clearPending: suspend () -> Unit,
+    ): Boolean {
+        if (pending == null) return false
+        writeThemes(pending)
+        clearPending()
+        return true
     }
 }

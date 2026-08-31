@@ -189,7 +189,12 @@ class ShippedVariantsTest(unittest.TestCase):
         gaps closed and the assertion inverted: the file it was pinning is now the
         file that must stay empty.
         """
-        self.assertEqual([], sorted(g.id for g in self.groups if not g.must_differ))
+        # Keyed on the state rather than on ``not must_differ``: since v4.15 there is a third
+        # state, ``IDENTICAL_BY_CONSTRUCTION``, and those groups are also "not must_differ" while
+        # being the opposite of an open gap -- they are identities that are correct and permanent.
+        # Reading them as gaps would have turned twenty-four pieces of arithmetic into twenty-four
+        # bugs.
+        self.assertEqual([], sorted(g.id for g in self.groups if g.state == "IDENTICAL_GAP"))
 
     def test_every_gap_member_is_recorded_as_having_no_source(self):
         """Why the gap is declared instead of closed.
@@ -200,7 +205,7 @@ class ShippedVariantsTest(unittest.TestCase):
         """
         by_name = {s.name: s for s in self.specs}
         for group_ in self.groups:
-            if group_.must_differ:
+            if group_.state != "IDENTICAL_GAP":
                 continue
             for member in group_.members:
                 self.assertFalse(
@@ -211,3 +216,46 @@ class ShippedVariantsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class ByConstructionIdentityTest(unittest.TestCase):
+    """The twenty-four identities the pixel-based duplicate check made visible.
+
+    Every skin tone is a shipped PaperScrape colour -- the woman's, the man's and the boy's own --
+    so each of those three characters is pixel-identical to one of their own variants by
+    definition. The byte-based check could not see any of them, because the files were encoded
+    separately; the pixel-based one sees all twenty-four.
+
+    They are declared rather than removed. Deleting the duplicate file would mean the runtime
+    lookup table needs a special case for "this character has no variant at this index", which
+    trades twenty-four files for a branch in the hottest lookup in the renderer.
+    """
+
+    def setUp(self):
+        specs = registry.load(REGISTRY_PATH)
+        self.groups = registry.load_variants(REGISTRY_PATH, {s.name for s in specs})
+
+    def test_the_declared_identities_are_all_on_the_skin_axis(self):
+        for group_ in self.groups:
+            if group_.state != "IDENTICAL_BY_CONSTRUCTION":
+                continue
+            self.assertEqual("skin", group_.axis, group_.id)
+
+    def test_each_identity_pairs_a_character_with_its_own_tone(self):
+        tone = {"woman": "skin0", "man": "skin1", "boy": "skin2"}
+        declared = [g for g in self.groups if g.state == "IDENTICAL_BY_CONSTRUCTION"]
+        self.assertEqual(24, len(declared), "twenty-four identities are expected")
+        for group_ in declared:
+            base, variant = sorted(group_.members, key=len)
+            kind = base.split("_")[1]
+            self.assertIn(kind, tone, group_.id)
+            self.assertEqual(f"{base}_{tone[kind]}", variant, group_.id)
+
+    def test_the_girl_has_no_identity_because_no_tone_is_hers(self):
+        # The negative case, which is what shows the rule is a rule rather than a list: the girl's
+        # own skin is not one of the three tones, so she has no duplicate and none is declared.
+        girls = [
+            g for g in self.groups
+            if g.state == "IDENTICAL_BY_CONSTRUCTION" and "_girl_" in g.members[0]
+        ]
+        self.assertEqual([], girls)
+

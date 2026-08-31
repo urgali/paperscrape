@@ -68,6 +68,26 @@ internal object MemoryPressurePolicy {
      *   visible a full release costs nothing until the wallpaper is shown again — and by then the
      *   system has usually recovered the memory it was asking for.
      */
+    /**
+     * Whether a [TrimAction] should also drop the GPU copies — which is all or nothing.
+     *
+     * **ARC-11.** The call site said the GPU textures "follow the same policy" as the bitmaps, and
+     * they cannot: `GlSceneTarget.trimTextures` clears the whole atlas, because there is no LRU over
+     * it to evict half of. So a [TrimAction.TRIM_TO_HALF] on a *visible* engine dropped every
+     * uploaded texture and re-uploaded them on the very next frame — a re-upload spike in exchange
+     * for memory the process gives back a frame later, which is the opposite of what the hint asked
+     * for.
+     *
+     * The distinction is what the pressure level means. `RUNNING_LOW` is "give some back if it is
+     * cheap", and for the GPU it is not, so the atlas stays. `RUNNING_CRITICAL` and everything above
+     * it mean the process is a kill candidate; there the re-upload is worth paying and the atlas
+     * goes. Nothing is visible in the `RELEASE_ALL` cases anyway, so there is no spike to pay.
+     */
+    fun dropsGpuTextures(action: TrimAction): Boolean = when (action) {
+        TrimAction.KEEP_ALL, TrimAction.TRIM_TO_HALF -> false
+        TrimAction.TRIM_TO_QUARTER, TrimAction.RELEASE_ALL -> true
+    }
+
     fun actionFor(level: Int, anyEngineVisible: Boolean): TrimAction = when (level) {
         // "Your UI went away." For a wallpaper the UI is the settings screen; the wallpaper
         // itself keeps drawing. Not a memory signal at all -- see the class doc.

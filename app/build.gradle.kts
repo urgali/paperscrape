@@ -40,8 +40,8 @@ android {
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 45
-        versionName = "4.14"
+        versionCode = 46
+        versionName = "4.15"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
@@ -230,5 +230,12 @@ dependencies {
 tasks.withType<Test>().configureEach {
     inputs.dir(layout.projectDirectory.dir("src/main/res/drawable-nodpi"))
         .withPropertyName("spriteArtwork")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    // The same problem one file over. `InternetInventoryTest` reads AndroidManifest.xml to check the
+    // INTERNET inventory against the source, and a manifest-only edit changes nothing Gradle already
+    // tracks as an input to the unit tests -- so removing a host from the inventory left the test
+    // UP-TO-DATE and green. Kotlin sources are covered already, because changing one recompiles.
+    inputs.file(layout.projectDirectory.file("src/main/AndroidManifest.xml"))
+        .withPropertyName("appManifest")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

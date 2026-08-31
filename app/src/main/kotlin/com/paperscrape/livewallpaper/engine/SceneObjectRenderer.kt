@@ -207,9 +207,14 @@ class SceneObjectRenderer(
          * Where a walking person's sprite origin goes, so its content bottom-centre lands on the
          * pavement line it was placed at.
          *
-         * All twenty-four walk sprites are 129x252 px -- 43x84 local units -- and every one of
-         * them has its content reaching the canvas's bottom edge, so one pair of numbers covers
-         * the set rather than a per-sprite table.
+         * All ninety-six walk sprites are 123x255 px -- 41x85 local units -- and every one of them
+         * has its content reaching the canvas's bottom edge, so one pair of numbers covers the set
+         * rather than a per-sprite table.
+         *
+         * (REN-07: this said "twenty-four sprites, 129x252". The count predates the skin axis, which
+         * multiplied the set by four, and the size predates a crop. `SpriteMeasurementClaimTest`
+         * reads every size quoted in this file back off the artwork, so a third stale measurement
+         * cannot be written here without failing.)
          */
         // v4.1 removed `PEDESTRIAN_COUNT` and `PEDESTRIAN_THRESHOLD_SALT` from here. The pool size
         // is now [PedestrianPopulation.GROUP_COUNT] -- the same four slots, but each one yields a
@@ -314,6 +319,28 @@ class SceneObjectRenderer(
         // room to grow (see `PIXELS_PER_METRE_AT_REFERENCE`).
 
         /** The blit origin of `car_window`, and therefore the top edge of the glass. */
+        /** Half of `firetruck_body`'s 98-unit canvas: the widest vehicle the road carries. */
+        const val FIRE_TRUCK_HALF_WIDTH_UNITS = 49f
+
+        /**
+         * The flat margin REN-06 replaced, kept as a floor so the current picture does not move.
+         *
+         * At the reference viewport the derived margin is smaller than this, so this is what is
+         * used and every vehicle enters and leaves exactly where it always has.
+         */
+        const val LEGACY_EDGE_MARGIN_PX = 120f
+
+        /**
+         * The divisor `drawWindowOccupant` scales a bust by, which is **not** the sprite's width.
+         *
+         * REN-07. It was written as "the head sprite canvas is 60 units wide" and the canvas is 53:
+         * it was 180 px when the line was written and lost a column in the SCL-01 pass. The bust is
+         * therefore drawn at 53/60 of the nominal 85% of the pane, about 75%, and that is what has
+         * shipped since v4.2 and what the artwork was judged against. Kept, and named for what it
+         * actually is.
+         */
+        const val WINDOW_OCCUPANT_DIVISOR_UNITS = 60f
+
         const val CAR_GLASS_ORIGIN_X_UNITS = -20f
         const val CAR_GLASS_ORIGIN_Y_UNITS = -6f
 
@@ -321,15 +348,31 @@ class SceneObjectRenderer(
         const val CAR_GLASS_SPRITE_HEIGHT_UNITS = 16f
 
         /**
-         * How tall the glass is actually drawn, after v4.6's stretch.
+         * How tall the glass is actually drawn, after v4.6's stretch and v4.15's.
          *
-         * Nineteen, not sixteen, and the three extra units go **downward**: `car_body`'s roof runs
-         * at y=-11 and the glass already sits 5 units below it, so there is no room upward, while
-         * below the sill the artwork is flat body colour until the beltline at y=18. Nineteen puts
-         * [CAR_SILL_Y_UNITS] at 13, which is the exact y `police_stripe` and `taxi_checker` are
-         * blitted at -- the one line in the door where a taller window costs nothing.
+         * The extra units go **downward**: `car_body`'s roof runs at y=-11 and the glass already
+         * sits 5 units below it, so there is no room upward, while below the sill the artwork is
+         * flat body colour until the beltline at y=18.
+         *
+         * **19 x 169/155.** v4.6 stretched the authored 16 to 19 and sized both busts against it,
+         * dividing each family's glass by a *representative* content height -- 155 px for the window
+         * heads. The family's tallest member is 169 px, so it was drawn 169/155 of the glass:
+         * anchored at the sill, the excess went up, over the roof, unclipped. Measured on a
+         * OnePlus 6T at the near lane, the winter woman's bobble hat stood **3 px above a 27 px
+         * window**, and the winter man's beanie 1 px.
+         *
+         * **The window grew rather than the people shrinking**, because shrinking them re-opened the
+         * defect the scales exist to prevent: at the family maximum over the old 19, a passenger's
+         * head fell to 68.3% of a pedestrian's against a 70-90% band, and a driver's face measured
+         * 14 px against the nearest pedestrian's 15 -- the nearer person drawn smaller, which is
+         * v4.6's own bug. Against 20.72 the passenger's head is **exactly the size it has always
+         * been** (0.407 m, 74.5%) and the driver's grows 6.8% to 83.1%, both inside the band.
+         *
+         * The sill moves 13 -> 14.72, still 3.3 units clear of the beltline; `police_stripe` and
+         * `taxi_checker` follow it rather than staying at the old literal, which is what their own
+         * call site always meant by 13.
          */
-        const val CAR_GLASS_HEIGHT_UNITS = 19f
+        const val CAR_GLASS_HEIGHT_UNITS = 19f * 169f / 155f
 
         /** The vertical stretch [drawCar] applies to the glass blit. Width is untouched. */
         const val CAR_GLASS_Y_SCALE = CAR_GLASS_HEIGHT_UNITS / CAR_GLASS_SPRITE_HEIGHT_UNITS
@@ -346,12 +389,21 @@ class SceneObjectRenderer(
          * headwear cut flat by the old 144 px box. Every member grew, so the group still shares
          * one canvas and this file still needs one anchor.
          *
-         * The alpha box is 143 px for the summer pair and 146 for the winter one, which now
-         * carries its bobble. 143 is kept as the family's representative height for the same
-         * reason the anchor below is a midpoint: the spread is small, it is shared by a lookup
-         * group, and a per-sprite table is what `CLAUDE.md` tells us not to build. The winter
-         * heads therefore draw the recovered 3 px at the scale they always drew at, rather than
-         * being shrunk to hide it.
+         * The alpha box is 143 px for the summer pair and 146 for the winter one, which carries its
+         * bobble, and **143 is the representative rather than the maximum -- deliberately, and at a
+         * measured price.**
+         *
+         * The consequence is real: the two winter heads draw 146/143 of the glass, so a beanie
+         * stands **1 px above a 27 px window** on a OnePlus 6T at the near lane, painted on the
+         * roof. Raising this to 146 removes that exactly (measured on the phone, 0 px) -- and costs
+         * more than it buys. At 146 a near-lane driver's face measures **14 px against the nearest
+         * pedestrian's 15**, which fails `VehicleOccupantScaleTest`'s rule that the nearer person is
+         * never drawn smaller: the v4.6 defect this whole family of scales exists to prevent.
+         *
+         * So the scale is at an optimum with no slack in it, and the 1 px is the cheaper side of the
+         * trade. What is actually oversized is the winter *headwear*, not the head: see
+         * [WINDOW_HEAD_CONTENT_UNITS] for the same conclusion reached at three times the magnitude,
+         * and for what closing it properly would cost.
          *
          * **The two winter heads also touch the canvas left and right, and that is not the same
          * defect -- do not "finish the job" by widening this canvas too.** Measured against the
@@ -368,18 +420,42 @@ class SceneObjectRenderer(
          * identical condition. That is not closing this finding; it is opening a library-wide one
          * that nobody has asked for.
          */
-        const val CAR_HEAD_CONTENT_UNITS = 143f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+        const val CAR_HEAD_CONTENT_UNITS = 146f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
         /**
-         * The content height of `person_*_head_window`: all eight are 159x171 px.
+         * The representative content height of `person_*_head_window` -- **and it is known to be
+         * the wrong kind of number.**
          *
-         * The canvas gained three units at the top in the SCL-01 pass, for the whole group --
-         * `normalize.py` requires these to share one canvas -- because
-         * `person_woman_winter_head_window` had 7 px of hat outside the old 162 px box. The alpha
-         * boxes run 146..169 px and 155 is the representative: they never agreed, and one origin
-         * has always served all eight.
+         * All eight share a 159x171 canvas, which `normalize.py` requires, but their alpha boxes do
+         * not agree: 146 px (`girl_summer`) to 169 px (`woman_winter`). One number has to serve all
+         * eight, and which one it is decides what happens to the members it does not describe. The
+         * scale is `glass height / this`, so the member whose content *is* this number fills the
+         * glass exactly and **anything taller is drawn taller than the glass** -- pinned at the
+         * sill, excess upward, over the roof, nothing clipping it.
+         *
+         * Measured on a OnePlus 6T at the near lane, winter: the woman's bobble hat stands **3 px
+         * above a 27 px window**, painted onto the car's roof; the man's beanie is 1 px out. That
+         * is the "the head comes out of the window" report, and it is real.
+         *
+         * **It is left at 155 pending a decision, not out of ignorance.** Three ways to close it
+         * were tried and measured:
+         *  - `169`, the family maximum: removes the overflow completely (verified on the phone,
+         *    0 px) but scales every passenger down 8.3%, which drops a passenger's head to 68.3% of
+         *    a pedestrian's against the 70-90% band `VehiclePedestrianScaleTest` defends. That band
+         *    is a design judgement, so trading it is the maintainer's call, not this file's.
+         *  - Correcting the artwork so the family agrees: the group's shared canvas then carries
+         *    9 px of dead margin, `normalize` requires all 32 files re-cropped and this anchor moved
+         *    with them, and re-encoding the group makes six sprites byte-identical to their own skin
+         *    variants -- which they always were in pixels, hidden by compression noise. `validate`
+         *    rejects that and the registry's vocabulary (`DISTINCT` / `IDENTICAL_GAP`) has no way to
+         *    say "identical on purpose". A 3 px fix should not need a registry model change.
+         *  - Making the glass taller: there is no room. See [CAR_GLASS_HEIGHT_UNITS].
+         *
+         * `OccupantHeadFitTest` pins the overflow at its measured 1.72 units so it cannot grow while
+         * the decision is open. [CAR_HEAD_CONTENT_UNITS] had the same defect and *was* fixed, because
+         * there the maximum costs nothing.
          */
-        const val WINDOW_HEAD_CONTENT_UNITS = 155f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+        const val WINDOW_HEAD_CONTENT_UNITS = 169f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
         /** The head part of either bust, in its own local units: hair crown down to the neck. */
         const val CAR_HEAD_HEAD_UNITS = 106f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
@@ -594,11 +670,28 @@ class SceneObjectRenderer(
         }
     }
 
-    private fun currentCarX(c: CarRuntime, screenWidth: Float): Float {
-        val margin = 120f
-        val travel = screenWidth + margin * 2f
-        val rawX = c.progress * travel - margin
-        return if (c.spec.reverse) screenWidth - rawX else rawX
+    /**
+     * How far off each edge a vehicle starts and finishes, in canvas pixels.
+     *
+     * **REN-06: this was a flat `120f`, and 120 px is not a distance the scene owns.** A vehicle's
+     * width scales with the viewport, the margin did not, and at a tall enough screen the two cross:
+     * the fire engine's scaled half-width passes 120 px at about 3900 px of screen height, so the
+     * far end of a vehicle would still be on screen when its copy was declared gone, and it would
+     * pop at the edge. No shipping phone is that tall -- the OnePlus 6T is 2340 and the tallest
+     * flagships are near 3200 -- so nothing was ever visibly wrong, and the finding is real anyway:
+     * a bound expressed in the wrong unit is one resolution away from being wrong.
+     *
+     * Derived from the widest vehicle at the nearest lane, which is the largest a vehicle is ever
+     * drawn, plus a tenth for its shadow and the outline stroke. The old 120 stays as a floor so
+     * nothing about the current picture moves: at the reference viewport the derived value is 100
+     * px, so 120 is what is used, exactly as before.
+     */
+    private fun vehicleEdgeMarginPx(screenHeight: Float): Float {
+        val widest = FIRE_TRUCK_HALF_WIDTH_UNITS * SceneSpace.FIRE_TRUCK_BASE_SCALE
+        val scaled = widest *
+            SceneSpace.perspectiveScaleAt(SceneSpace.ROAD_LANE_NEAR_Y_FRACTION) *
+            SceneSpace.sceneScale(screenHeight)
+        return maxOf(LEGACY_EDGE_MARGIN_PX, scaled * 1.1f)
     }
 
     /**
@@ -993,6 +1086,31 @@ class SceneObjectRenderer(
     )
 
     /**
+     * Where a person is standing, which is what decides whether they dressed for the weather.
+     *
+     * The person lookup tables all carry a season axis, and until v4.15 every call site chose its
+     * column the same way: `if (winterColorsEnabled) 1 else 0`. That is right for anyone the
+     * weather can reach and wrong for anyone it cannot. A figure leaning out of their own kitchen
+     * window was putting on a woolly hat because it had started snowing **outside their house**.
+     *
+     * Stated as where the person is rather than as which sprite to use, so the next figure added to
+     * the scene answers the question by saying where it stands. [seasonIndexFor] is the only place
+     * that turns the answer into a column, which is what keeps this from becoming a third
+     * `if (winterColorsEnabled)` somewhere else.
+     */
+    private enum class Exposure {
+        /** Pedestrians, and people in cars: the car is a coat, not a house. */
+        OUTDOORS,
+
+        /** Behind a pane, in a room with its own weather. Always the summer artwork. */
+        INDOORS,
+    }
+
+    /** The season column [exposure] reads. The scene's winter clothing stops at the window. */
+    private fun seasonIndexFor(exposure: Exposure): Int =
+        if (exposure == Exposure.OUTDOORS && customization.winterColorsEnabled) 1 else 0
+
+    /**
      * Window occupants, with the same skin axis: `[kind][season][skin]`.
      *
      * Separate from [personWindowHeadDrawables], which **car passengers** still read. Cars are
@@ -1061,7 +1179,7 @@ class SceneObjectRenderer(
         if (geom.tileWidth <= 0f) return
         val config = customization.people
         if (!config.visible) return
-        val seasonIdx = if (customization.winterColorsEnabled) 1 else 0
+        val seasonIdx = seasonIndexFor(Exposure.OUTDOORS)
         val sceneScale = SceneSpace.sceneScale(screenHeight)
         // Density thins the same candidate pool the same way every other category's does, through
         // the shared threshold rather than by rounding a count -- so lowering it removes a
@@ -1609,19 +1727,31 @@ class SceneObjectRenderer(
         // across the building's own panes rather than a coin flipped at each one. See
         // [WindowOccupants.occupantCount] for the tail that removes.
         if (!WindowOccupants.isOccupied(seed, buildingSeed, windowIndex, windowCount, kind)) return
-        val seasonIdx = if (customization.winterColorsEnabled) 1 else 0
+        // Indoors: see [Exposure]. The hat belongs to the street, not to the room behind the pane.
+        val seasonIdx = seasonIndexFor(Exposure.INDOORS)
         val occupant = WindowOccupants.occupantAt(seed, buildingSeed, windowIndex)
         val resId = personWindowHeadSkinDrawables[occupant.kindIndex][seasonIdx][occupant.skinIndex]
         // Placed from the sprite's declared anchor, not by centring its canvas -- the same
         // correction v76.1 made to the car driver, applied here for the same reason. The window
-        // heads are 60x54 local units anchored CONTENT_BOTTOM_CENTRE, so centring the canvas put
+        // heads are 53x57 local units anchored CONTENT_BOTTOM_CENTRE, so centring the canvas put
         // the bust's shoulders a third of a pane below the sill. The bust now stands on the
         // window's own lower edge.
+        //
+        // **REN-07: this said 60x54, and the divisor below still says 60.** The canvas is 159x171
+        // px, which is 53x57 units; it was 180 px wide when the divisor was written and lost a
+        // column in the SCL-01 pass. Dividing by 60 therefore draws the bust at 53/60 of the
+        // intended 85% of the pane -- about 75% -- so the occupants are a little smaller than the
+        // rule says. Left as it is deliberately: 75% of the pane is what has shipped since v4.2 and
+        // is what the artwork was tuned against by eye, so the number is the record of a decision
+        // even though the reasoning written beside it was wrong. `WindowOccupantScaleTest` pins
+        // both halves so neither can drift again.
         val cx = winX + winW / 2f
         val cy = winY + winH
         canvas.save()
         canvas.translate(cx, cy)
-        val s = (winW * 0.85f) / 60f // head sprite canvas is 60 units wide
+        // Not the canvas width -- see the note above. This is the tuned divisor, and 60 is what it
+        // has always been; the canvas is 53 units.
+        val s = (winW * 0.85f) / WINDOW_OCCUPANT_DIVISOR_UNITS
         canvas.scale(s, s)
         drawSprite(canvas, resId, -WINDOW_HEAD_ANCHOR_X_UNITS, -WINDOW_HEAD_ANCHOR_Y_UNITS)
         canvas.restore()
@@ -1759,7 +1889,7 @@ class SceneObjectRenderer(
             )
         }
         // Inside the canopy's own transform, and scattered across the canopy's own measured
-        // content: `tree_canopy` is 270x252 px with content at (12,12)-(258,234), which is
+        // content: `tree_canopy` is 246x222 px with content filling it, which is
         // (-41,-80)..(41,-6) once blitted at this origin, so its centre is (0,-43) and its half
         // extents are 41 x 37. The radii below are inset from those for the crown's five lobes,
         // which pull the silhouette in near the top and bottom, and for the light's own radius.
@@ -2364,7 +2494,7 @@ class SceneObjectRenderer(
      * already cheap, shared unchanged by every type).
      */
     private fun drawCar(canvas: SceneCanvas, c: CarRuntime, screenWidth: Float, screenHeight: Float, dayBlend: Float) {
-        val margin = 120f
+        val margin = vehicleEdgeMarginPx(screenHeight)
         val travel = screenWidth + margin * 2f
         val rawX = c.progress * travel - margin
         val x = if (c.spec.reverse) screenWidth - rawX else rawX
@@ -2444,12 +2574,12 @@ class SceneObjectRenderer(
                     // left edge and below its floor, so it drew as a loose bar lying on the road
                     // under the car rather than as a stripe along its side -- and left the white
                     // car itself completely unmarked. It runs along the doors now.
-                    drawSprite(canvas, R.drawable.police_stripe, -34f, 13f)
+                    drawSprite(canvas, R.drawable.police_stripe, -34f, CAR_SILL_Y_UNITS)
                     drawSprite(canvas, R.drawable.police_lightbar, -11f, -17f)
                 }
                 // Same defect as the police stripe, one unit less obvious: the chequer straddled
                 // the body's floor and the wheels instead of banding the doors.
-                CarType.TAXI -> drawSprite(canvas, R.drawable.taxi_checker, -34f, 13f)
+                CarType.TAXI -> drawSprite(canvas, R.drawable.taxi_checker, -34f, CAR_SILL_Y_UNITS)
                 else -> {}
             }
         }
@@ -2470,7 +2600,7 @@ class SceneObjectRenderer(
         // driver. The offset is unique per candidate.
         val driverSeed = kotlin.math.abs((c.spec.laneYFraction * 7919f + c.spec.startDelaySeconds * 131f).toInt())
         val driverKindIdx = driverSeed % 2 // man or woman only (only adults drive)
-        val seasonIdx = if (customization.winterColorsEnabled) 1 else 0
+        val seasonIdx = seasonIndexFor(Exposure.OUTDOORS)
         val driverRes = personCarHeadDrawables[driverKindIdx][seasonIdx]
         val isFireTruck = c.spec.type == CarType.FIRE_TRUCK
         val headScale = if (isFireTruck) FIRE_TRUCK_HEAD_SCALE else CAR_HEAD_SCALE

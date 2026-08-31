@@ -64,7 +64,8 @@
         <activity
             android:name=".ui.SettingsActivity"
             android:exported="true"
-            android:theme="@style/Theme.PaperScrape">
+            android:theme="@style/Theme.PaperScrape"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|layoutDirection|locale|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

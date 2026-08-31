@@ -686,10 +686,11 @@ class PaperRenderer(
         const val SANTA_TROT_FRAMES_PER_SECOND = 4.5f
 
         /**
-         * Centres the 90x42 bird on its own position, in canvas pixels.
+         * Centres the 90x24 bird on its own position, in canvas pixels.
          *
          * The sprite is authored at its on-screen size, so there is no divisor here and none is
-         * wanted: the 90 px width *is* the wingspan.
+         * wanted: the 90 px width *is* the wingspan. (REN-07: this said 90x42, which was the canvas
+         * before the strip was cropped to one bird.)
          */
         /**
          * How far a dolphin rises out of the water at the top of its arc, and how far it noses
@@ -721,8 +722,10 @@ class PaperRenderer(
          * Where `dolphin_body`'s pixel (0,0) goes so the animal's own content is centred on the
          * point its leap arc is computed for.
          *
-         * The sprite is 360x225 px -- 120x75 local units -- with content spanning x 0..114.7 and
-         * y 12..70, so its content centre sits at (57.3, 41).
+         * The sprite is 345x174 px -- 115x58 local units -- filled edge to edge, so its content
+         * centre sits at (57.5, 29). (REN-07: this said 360x225 with an inset content box, which
+         * was the canvas before it was cropped; the origins below were already right for the
+         * shipped file and did not move.)
          */
         const val DOLPHIN_ORIGIN_X_UNITS = -57.3f
         const val DOLPHIN_ORIGIN_Y_UNITS = -29f

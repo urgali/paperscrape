@@ -8,6 +8,7 @@ import com.paperscrape.livewallpaper.prefs.PrefsRecovery.recoveringFromReadError
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.customThemeDataFromJsonString
+import com.paperscrape.livewallpaper.engine.customThemeDataOrNull
 import com.paperscrape.livewallpaper.engine.toJsonString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -45,9 +46,32 @@ open class CustomThemeStore(private val context: Context) {
             customThemeDataFromJsonString(prefs[Keys.DATA_JSON])
         }
 
+    /**
+     * Applies [transform] to the stored data — **unless the stored data cannot be read**.
+     *
+     * ### BCK-05: the read-modify-write that ate the themes
+     *
+     * [customThemeDataFromJsonString] answers `EMPTY` for a blob it cannot parse, which is right for
+     * *reading*: a corrupt store shows no custom themes rather than crashing the wallpaper. It was
+     * badly wrong here. This is a read-modify-write, so the next preference the user touched read
+     * `EMPTY`, applied the change to it, and wrote the result back over bytes that were still on
+     * disk — turning "the app cannot read your themes" into "your themes are gone", with no step in
+     * between and nothing to recover from.
+     *
+     * The distinction the fix needs is one the reader deliberately does not make: **absent** and
+     * **unreadable** are different. Absent is the normal empty store and must be transformed as
+     * usual. Unreadable means the only copy of the user's themes is the blob already there, and the
+     * one thing that must not happen to it is being replaced by a document derived from `EMPTY`.
+     *
+     * So an unreadable blob is left exactly as it is and the edit is dropped. That costs the user
+     * the tap they just made, and the UI already shows them an empty theme list, so the state is
+     * visible rather than silent. It buys them a file that still contains their themes.
+     */
     private suspend fun update(transform: (CustomThemeData) -> CustomThemeData) {
         context.customThemeDataStore.edit { prefs ->
-            val current = customThemeDataFromJsonString(prefs[Keys.DATA_JSON])
+            val raw = prefs[Keys.DATA_JSON]
+            val current = customThemeDataOrNull(raw)
+            if (current == null) return@edit
             prefs[Keys.DATA_JSON] = transform(current).toJsonString()
         }
     }
@@ -98,8 +122,21 @@ open class CustomThemeStore(private val context: Context) {
      * exactly one implementation.
      */
     open suspend fun replaceAll(data: CustomThemeData) {
+        replaceAllJson(data.toJsonString())
+    }
+
+    /**
+     * Writes a saved-themes document verbatim.
+     *
+     * The import path uses this rather than [replaceAll] so the bytes applied here are **exactly**
+     * the bytes staged in the preference store, not a second serialisation of a parsed copy. That is
+     * what makes completing an interrupted import idempotent: re-applying the pending document is
+     * bit-for-bit the same write, whether it happens now or on the next start. See
+     * `WallpaperPrefs.Keys.PENDING_IMPORT_THEMES` (BCK-06).
+     */
+    open suspend fun replaceAllJson(json: String) {
         context.customThemeDataStore.edit { prefs ->
-            prefs[Keys.DATA_JSON] = data.toJsonString()
+            prefs[Keys.DATA_JSON] = json
         }
     }
 

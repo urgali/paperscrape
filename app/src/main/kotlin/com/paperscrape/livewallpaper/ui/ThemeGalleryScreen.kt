@@ -56,6 +56,7 @@ import com.paperscrape.livewallpaper.prefs.parseThemeShare
 import com.paperscrape.livewallpaper.prefs.ThemeShare
 import com.paperscrape.livewallpaper.prefs.ThemeParseResult
 import com.paperscrape.livewallpaper.prefs.ThemeImportError
+import com.paperscrape.livewallpaper.prefs.BoundedImport
 import com.paperscrape.livewallpaper.BuildConfig
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.outlined.FileOpen
@@ -125,9 +126,8 @@ internal fun ThemeGalleryScreen(
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            val raw = runCatching {
-                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-            }.getOrNull()
+            // Bounded: see BoundedImport for why an unbounded readText was a defect (BCK-04).
+            val raw = BoundedImport.readText(context, uri)
             when (val parsed = parseThemeShare(raw)) {
                 is ThemeParseResult.Ok -> pendingThemeImport = uri to parsed.share
                 is ThemeParseResult.Failed -> themeMessage = describeTheme(parsed.error)
