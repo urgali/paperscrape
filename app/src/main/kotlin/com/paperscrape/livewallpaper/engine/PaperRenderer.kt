@@ -1459,8 +1459,9 @@ class PaperRenderer(
     private fun drawBirds(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         val birds = sceneCustomization.birds
         if (!birds.visible) return
-        // Fade out toward night unless the user explicitly wants birds flying after dark too.
-        val nightVisibility = if (birds.nightBirds) 1f else dayPhase.dayBlend.coerceIn(0f, 1f)
+        // Present while the sun is up, gone after dark unless the user wants night birds. See
+        // [BirdsConfig.presenceAt] for why this is no longer `dayBlend` itself.
+        val nightVisibility = birds.presenceAt(dayPhase.dayBlend)
         if (nightVisibility <= 0f) return
 
         val effectOffset = CandidateThreshold.offsetFor(EffectId.BIRDS)

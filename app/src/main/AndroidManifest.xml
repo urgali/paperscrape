@@ -13,11 +13,33 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
-    <!-- Only used by the in-app update checker (ui.SettingsActivity), once per app launch, to
-         fetch the latest release tag from the public GitHub Releases API, and by Live Weather
-         (engine.PaperWallpaperService + weather.WeatherRepository), at most once an hour and only
-         when the user has turned Live Weather on, to fetch current conditions from Open-Meteo. No
-         other network calls exist anywhere in the app or the live wallpaper engine itself. -->
+    <!-- The complete list of hosts this app contacts, and the only thing that starts each one.
+         Kept as an inventory rather than a summary because it is a privacy disclosure, and a
+         summary is how the city-geocoding endpoint went unlisted for several releases. Every host
+         here is checked against the source by InternetInventoryTest, so this list cannot go stale
+         without a test going red.
+
+         api.github.com               update.UpdateChecker, once per app launch from Advanced &
+                                      about, to read the public Releases list. No credentials.
+         www.github.com               update.ApkDownloader, only after the user taps "Download and
+                                      install": the release's APK and its SHA-256 file. Redirects
+                                      to any other host are refused (see sanitizeGitHubUrl), which
+                                      is why both spellings of the host are named here.
+         api.open-meteo.com           weather.OpenMeteoProvider, the default provider, at most once
+                                      an hour and only while Live Weather is on.
+         customer-api.open-meteo.com  the same provider, used instead when the user has entered a
+                                      key. Same schedule.
+         api.openweathermap.org       weather.OpenWeatherProvider, same schedule, only if the user
+                                      selected this provider.
+         api.weatherapi.com           weather.WeatherApiComProvider, same schedule, only if the
+                                      user selected this provider.
+         geocoding-api.open-meteo.com location.CityGeocoder, only when the user types a city name
+                                      into Custom location and asks for it. Sends the typed text
+                                      and nothing else, and never on a timer.
+
+         Weather and geocoding send a coarse latitude/longitude or a typed place name; no device
+         identifier, no account, no analytics. The wallpaper engine makes no other call, and with
+         Live Weather off and no update check running the app uses the network not at all. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Used only by Advanced & about -> Updates, and only after the user taps "Download and

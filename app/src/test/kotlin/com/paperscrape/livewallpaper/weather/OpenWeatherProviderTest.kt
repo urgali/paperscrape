@@ -332,8 +332,9 @@ class OpenWeatherProviderTest {
     fun `the request url is the documented current-weather one`() {
         val url = OpenWeatherProvider.requestUrl(43.77925, 11.24626, "KEY")
         assertTrue(url, url.startsWith("https://api.openweathermap.org/data/2.5/weather?"))
-        assertTrue(url, url.contains("lat=43.77925"))
-        assertTrue(url, url.contains("lon=11.24626"))
+        // Rounded to two decimals on the way out -- SEC-05, see WeatherRequest.coordinate.
+        assertTrue(url, url.contains("lat=43.78"))
+        assertTrue(url, url.contains("lon=11.25"))
         assertTrue(url, url.contains("units=metric"))
         assertTrue(url, url.contains("appid=KEY"))
         assertTrue("One Call is deliberately not used", !url.contains("onecall"))

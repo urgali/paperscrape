@@ -176,8 +176,9 @@ class OpenMeteoProviderTest {
         for (field in listOf("temperature_2m", "precipitation", "rain", "showers", "snowfall", "weather_code", "cloud_cover")) {
             assertTrue(field, url.contains(field))
         }
-        assertTrue(url.contains("latitude=43.77925"))
-        assertTrue(url.contains("longitude=11.24626"))
+        // Rounded to two decimals on the way out -- SEC-05, see WeatherRequest.coordinate.
+        assertTrue(url.contains("latitude=43.78"))
+        assertTrue(url.contains("longitude=11.25"))
     }
 
     @Test

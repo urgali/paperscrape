@@ -93,7 +93,7 @@ object DayNightColor {
      * against the two cases that were reported: snow-white hills on the Christmas theme, and bright
      * red houses. Lower crushes mid-tones towards black; higher is where v4.12 already was.
      */
-    const val NIGHT_LIGHTNESS_FACTOR = 0.50f
+    const val NIGHT_LIGHTNESS_FACTOR = 0.28f
 
     /**
      * Night chroma as a fraction of day.
@@ -102,7 +102,7 @@ object DayNightColor {
      * turns into a grey one, and "not simply grey" is half the requirement. The visible darkening
      * is [NIGHT_LIGHTNESS_FACTOR]'s job; this only takes the edge off.
      */
-    const val NIGHT_CHROMA_FACTOR = 0.80f
+    const val NIGHT_CHROMA_FACTOR = 0.72f
 
     /**
      * How far the night colour is pushed towards blue, in `b*`.

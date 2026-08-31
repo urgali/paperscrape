@@ -221,19 +221,35 @@ class DayNightColorTest {
     }
 
     @Test
-    fun `the factors are the ones the design brief settled on`() {
-        // Pinned so that changing them is a decision rather than a slip. They are not fitted to the
-        // authored pairs -- see the KDoc for why that fit is the thing v4.12 got wrong -- so a
-        // future change means looking at a device again, not re-running a regression.
-        assertEquals(0.50f, DayNightColor.NIGHT_LIGHTNESS_FACTOR, 1e-6f)
-        assertEquals(0.80f, DayNightColor.NIGHT_CHROMA_FACTOR, 1e-6f)
+    fun `the factors are the ones the authored night hills imply`() {
+        // Pinned so that changing them is a decision rather than a slip.
+        assertEquals(0.28f, DayNightColor.NIGHT_LIGHTNESS_FACTOR, 1e-6f)
+        assertEquals(0.72f, DayNightColor.NIGHT_CHROMA_FACTOR, 1e-6f)
         assertEquals(6.0f, DayNightColor.NIGHT_BLUE_SHIFT, 1e-6f)
         assertEquals(
-            "half the perceptual lightness, by construction",
-            lightness(0xFF808080.toInt()) * 0.50f,
+            "0.28 of the perceptual lightness, by construction",
+            lightness(0xFF808080.toInt()) * 0.28f,
             lightness(DayNightColor.nightFromDay(0xFF808080.toInt())),
             1.5f,
         )
+    }
+
+    @Test
+    fun `a daytime hill lands where the themes put their night hills`() {
+        // The reference class the factor comes from, asserted rather than only documented. Every
+        // built-in theme authors a hills day colour and a hills night colour, and unlike the wider
+        // set of pairs those twelve share one intent -- ground in shadow after dark. They land
+        // between L* 10.9 (city) and L* 29.6 (easter). A derived night hill has to land there too,
+        // and v4.13's did not: it put Christmas's snow at L* 48.6 against the artist's 20.9.
+        val hillDays = listOf(0xFFF3F7FB, 0xFFE9F1F7, 0xFFEFF6FA, 0xFFF2A65A, 0xFF5B6270, 0xFFB8E0A0)
+            .map { it.toInt() }
+        for (day in hillDays) {
+            val night = lightness(DayNightColor.nightFromDay(day))
+            assertTrue(
+                "a night hill at L* $night is outside the range the themes author (8..32)",
+                night in 8f..32f,
+            )
+        }
     }
 
     // --- The whole customization --------------------------------------------------------------

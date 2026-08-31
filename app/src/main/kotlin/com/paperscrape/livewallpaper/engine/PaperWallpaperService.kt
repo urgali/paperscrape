@@ -2,6 +2,7 @@ package com.paperscrape.livewallpaper.engine
 
 import android.graphics.Canvas
 import android.os.Handler
+import android.os.SystemClock
 import android.os.Looper
 import android.service.wallpaper.WallpaperService
 import android.util.Log
@@ -216,6 +217,21 @@ class PaperWallpaperService : WallpaperService() {
          */
         @Volatile
         private var solarDay: SolarDay = SolarDay.NONE
+
+        /** Which day and UTC offset [solarDay] was worked out for. See [solarDayIsStale]. */
+        private var solarDayStamp: Long = Long.MIN_VALUE
+
+        /**
+         * When the last weather fetch was attempted, on the **monotonic** clock.
+         *
+         * `System.currentTimeMillis()` was the wrong clock for a schedule: moving the device's
+         * clock backwards -- a timezone edit, an NTP correction, a user setting the date -- made
+         * `now - lastFetch` negative, so no fetch was ever due again until the wall clock caught
+         * back up. `elapsedRealtime` counts since boot, includes deep sleep, and cannot go
+         * backwards. The snapshot's own `fetchedAtMillis` stays on the wall clock, because that one
+         * is a *timestamp* and has to survive being compared with dates.
+         */
+        private var lastWeatherFetchElapsed: Long = Long.MIN_VALUE / 4
         // The exact same fix updateSunTimesFromLocation just derived sunrise/sunset from --
         // stored separately so the weather-refresh loop below can reuse it for
         // WeatherRepository.fetchCurrentConditions without re-deriving or re-fetching location
@@ -231,11 +247,6 @@ class PaperWallpaperService : WallpaperService() {
          * wake-up, and a wake-up sent while the loop is busy is not lost.
          */
         private val weatherWakeUp = Channel<Unit>(Channel.CONFLATED)
-        // Cleared by the settings collector when Live Weather is toggled, read and written by the
-        // weather loop. Same reason as [settings] above.
-        @Volatile
-        private var lastWeatherFetchMillis = 0L
-
         /**
          * The coordinates the last successful weather fetch was made for.
          *
@@ -394,7 +405,7 @@ class PaperWallpaperService : WallpaperService() {
                         // Ignore the cached hourly timer. This is what makes OFF -> ON fetch now
                         // instead of at the next tick; the check-interval loop only ever decides
                         // *whether* a fetch is due, and this is what makes it due.
-                        lastWeatherFetchMillis = 0L
+                        lastWeatherFetchElapsed = Long.MIN_VALUE / 4
                         weatherWakeUp.trySend(Unit)
                     }
                     onRenderThread {
@@ -421,7 +432,7 @@ class PaperWallpaperService : WallpaperService() {
                         // The conditions on screen are the old source's. Nothing about them is
                         // worth keeping, so the next pass must fetch rather than compare.
                         lastWeatherFetchLocation = null
-                        lastWeatherFetchMillis = 0L
+                        lastWeatherFetchElapsed = Long.MIN_VALUE / 4
                     }
                     if (newSettings.useLocationForSunTimes) {
                         // A fix is asked for here and nowhere else on a timer: the weather loop
@@ -470,7 +481,7 @@ class PaperWallpaperService : WallpaperService() {
                         normalIntervalMillis = WEATHER_REFRESH_INTERVAL_MS,
                     )
                     if (settings.liveWeatherEnabled && source.deviceKind != null &&
-                        System.currentTimeMillis() - lastWeatherFetchMillis >= attemptDelay
+                        LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)
                     ) {
                         refreshDeviceFix(source)
                     }
@@ -481,13 +492,13 @@ class PaperWallpaperService : WallpaperService() {
                     // used to leave the scene showing the old town's weather for the rest of the
                     // hour, because the timer was the only gate.
                     val movedSinceLastFetch = fix != null && fix != lastWeatherFetchLocation
-                    val timerExpired = System.currentTimeMillis() - lastWeatherFetchMillis >= attemptDelay
+                    val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)
                     val provider = settings.weatherProvider
                     // The outcome of a fetch made on *this* pass, or null when none was due --
                     // the meaning LiveWeatherStatus.of already gives the parameter.
                     var result: WeatherFetchResult? = null
                     if (settings.liveWeatherEnabled && fix != null && (movedSinceLastFetch || timerExpired)) {
-                        lastWeatherFetchMillis = System.currentTimeMillis()
+                        lastWeatherFetchElapsed = SystemClock.elapsedRealtime()
                         lastWeatherFetchLocation = fix
                         result = WeatherRepository.fetchCurrentConditions(
                             providerId = provider,
@@ -532,7 +543,7 @@ class PaperWallpaperService : WallpaperService() {
                         // the timer being clear.
                         lastWeatherSnapshot = null
                         lastWeatherFetchLocation = null
-                        lastWeatherFetchMillis = 0L
+                        lastWeatherFetchElapsed = Long.MIN_VALUE / 4
                         weatherTransientFailures = 0
                     }
                     applyLiveWeather(decision.snapshotForScene)
@@ -834,6 +845,19 @@ class PaperWallpaperService : WallpaperService() {
         private fun publishWeatherStatus(status: LiveWeatherStatus) {
             if (publishedWeatherStatus == status) return
             publishedWeatherStatus = status
+            // **Only the wallpaper writes the status; the preview reads it.**
+            //
+            // Every engine runs its own weather loop, and while the settings screen is open there
+            // are two: the one drawing the home screen and the one drawing the preview card. Both
+            // used to write `liveWeatherStatus`, so whichever ticked last won -- and the two do not
+            // necessarily agree, because they hold separate snapshots and separate retry counters.
+            // A preview that has just started and failed its first fetch would publish FAILED over
+            // the home engine's OK, and the settings screen would then describe a scene that was
+            // drawing real conditions perfectly well.
+            //
+            // The preview keeps fetching, so what it *draws* is unchanged; it simply stops being an
+            // author of the status the UI reads.
+            if (isPreview) return
             scope.launch { prefs.setLiveWeatherStatus(status) }
         }
 
@@ -873,8 +897,8 @@ class PaperWallpaperService : WallpaperService() {
                 return
             }
             // Nothing new. Fall back to the saved position, but only once -- if a fix is already
-            // held there is nothing to restore.
-            if (solarDay.hasFix) return
+            // held there is nothing to restore, unless the day itself has turned over.
+            if (solarDay.hasFix && !solarDayIsStale()) return
             val saved = savedDeviceFix()
             if (saved != null) updateSunTimesFromLocation(saved, isDeviceFix = false)
         }
@@ -892,6 +916,28 @@ class PaperWallpaperService : WallpaperService() {
             return DeviceLocationFix(latitude.toDouble(), longitude.toDouble())
         }
 
+        /**
+         * Whether the sunrise/sunset held were worked out for a day that is now over.
+         *
+         * They were computed once per location and then never again, so a wallpaper left running
+         * kept yesterday's sunrise indefinitely -- a few minutes out after a week, and an hour out
+         * across a DST change, which is exactly when the scene's own clock disagrees most visibly
+         * with the sky outside. The day *and* the UTC offset are both compared, because a DST
+         * change moves the offset without moving the date.
+         *
+         * Read on the weather loop's existing two-minute tick, so this adds no timer of its own.
+         */
+        private fun solarDayIsStale(): Boolean =
+            solarDayStamp != currentSolarStamp()
+
+        private fun currentSolarStamp(): Long {
+            val calendar = Calendar.getInstance()
+            val dayOfYear = calendar.get(Calendar.DAY_OF_YEAR).toLong()
+            val year = calendar.get(Calendar.YEAR).toLong()
+            val offsetMinutes = TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60_000L
+            return (year * 1000L + dayOfYear) * 10_000L + offsetMinutes
+        }
+
         private fun updateSunTimesFromLocation(fix: DeviceLocationFix, isDeviceFix: Boolean = false) {
             val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
             // getOffset(instant) — not rawOffset — because rawOffset is explicitly the
@@ -907,6 +953,7 @@ class PaperWallpaperService : WallpaperService() {
             )
             // Published as one object, not three stores: see SolarDay.
             solarDay = SolarDay.located(sunrise, sunset)
+            solarDayStamp = currentSolarStamp()
             lastLocationFix = fix
             // The weather loop's condition has two inputs, and until now only one of them woke
             // it. v76.4 made the *preference* wake it, which is why switching Live Weather on

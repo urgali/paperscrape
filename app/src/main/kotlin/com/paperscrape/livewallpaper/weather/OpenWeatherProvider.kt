@@ -54,7 +54,9 @@ object OpenWeatherProvider : WeatherProvider {
 
     internal fun requestUrl(latitude: Double, longitude: Double, apiKey: String): String =
         "https://api.openweathermap.org/data/2.5/weather" +
-            "?lat=$latitude&lon=$longitude&units=metric&appid=$apiKey"
+            "?lat=${WeatherRequest.coordinate(latitude)}" +
+            "&lon=${WeatherRequest.coordinate(longitude)}" +
+            "&units=metric&appid=${WeatherRequest.key(apiKey)}"
 
     override suspend fun fetch(latitude: Double, longitude: Double, apiKey: String): WeatherFetchResult {
         val key = apiKey.trim()

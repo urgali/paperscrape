@@ -117,6 +117,22 @@ object LiveWeatherSchedule {
      * A live wallpaper cannot afford a fixed short retry: an aeroplane, a tunnel or a dead Wi-Fi
      * network would turn it into a permanent 2-minute poll.
      */
+    /**
+     * Whether enough time has passed since the last attempt, given a monotonic elapsed reading.
+     *
+     * Stated here rather than inlined at the two call sites because the *clock* is the rule. Until
+     * v4.14 the service compared `System.currentTimeMillis()` against a wall-clock stamp, and a
+     * clock moved backwards -- a timezone edit, an NTP correction, a user setting the date -- made
+     * the difference negative, so nothing was ever due again until the wall clock caught back up.
+     * `elapsedSince` must come from `SystemClock.elapsedRealtime()`, which counts since boot,
+     * includes deep sleep, and cannot go backwards.
+     *
+     * The negative case is still handled rather than assumed away: the first pass after a fresh
+     * engine starts from a sentinel, and "a long time ago" must read as due.
+     */
+    fun isAttemptDue(elapsedSinceLastMillis: Long, delayMillis: Long): Boolean =
+        elapsedSinceLastMillis < 0L || elapsedSinceLastMillis >= delayMillis
+
     fun nextAttemptDelayMillis(consecutiveTransientFailures: Int, normalIntervalMillis: Long): Long {
         if (consecutiveTransientFailures <= 0) return normalIntervalMillis
         // Doubling in Long arithmetic, but the shift is bounded first: a counter that ran away

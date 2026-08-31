@@ -189,6 +189,46 @@ data class BirdsConfig(    val visible: Boolean,
         }
         return colors.last().color
     }
+
+    /**
+     * How present the flock is at this `dayBlend`, 1 while the sun is up and 0 once night is in.
+     *
+     * **This used to be `dayBlend` itself, and that was the bug.** `dayBlend` holds at 1 across the
+     * middle of the daylight arc -- `SunPositionCalculator.smoothEdge` only eases its first and
+     * last 12% -- and then slides down to `TERMINATOR_BLEND` (0.5) at the moment the sun sets. So
+     * multiplying the birds' alpha by it left them solid all day and then **bled them out through
+     * the whole of the golden hour**: with the default 06:00/20:00 arc, 90% opaque at 18:40, 80% at
+     * 19:00, and **half transparent exactly at sunset**, with the sky behind them showing through
+     * the whole time. Measured on a OnePlus 6T at a fixed 20:00: alpha 0.47-0.53 across six frames
+     * before this function existed, 1.00-1.02 after.
+     *
+     * That is dusk, which is when the flock is most visible against a bright sky and most worth
+     * looking at, and it is the one time of day the birds were least there. Nothing else in this
+     * scene is see-through as a *state*: windows crossfade their colour, precipitation fades only
+     * at the two ends of its fall. A paper cutout you can see the sky through is a rendering
+     * artefact, not a dusk.
+     *
+     * So the flock is fully opaque for the whole time the sun is above the horizon and leaves over
+     * the first half of the below-horizon range -- about 35 minutes on that same arc, done well
+     * before the moon is up. The intent -- no birds after dark unless [nightBirds] -- is unchanged;
+     * only the shape is.
+     */
+    fun presenceAt(dayBlend: Float): Float {
+        if (nightBirds) return 1f
+        return ((dayBlend - GONE_BELOW) / (FULL_ABOVE - GONE_BELOW)).coerceIn(0f, 1f)
+    }
+
+    companion object {
+        /**
+         * `dayBlend` at sunrise and sunset. It is `SunPositionCalculator.TERMINATOR_BLEND`, which is
+         * private there; the value is restated rather than the field opened up, because what this
+         * needs is "the horizon", and the horizon is what that constant means.
+         */
+        const val FULL_ABOVE = 0.5f
+
+        /** Halfway down the below-horizon range: the flock is gone before full dark. */
+        const val GONE_BELOW = 0.25f
+    }
 }
 
 /**

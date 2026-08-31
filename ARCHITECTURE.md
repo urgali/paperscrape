@@ -1048,11 +1048,19 @@ Kotlin with no `android.*` import so that `ThemePreviewScene` (which
 deliberately avoids the platform) and the JVM tests run the same code the
 wallpaper does.
 
-Since **v4.13** it works in **CIELAB**: hue held, `L*` ×0.50, chroma ×0.80, and
+Since **v4.13** it works in **CIELAB**: hue held, `L*` ×0.28, chroma ×0.72, and
 a small push towards blue (`b*` −6, scaled by the daytime lightness so black
 stays black). Out-of-gamut results are gamut-mapped rather than clipped —
 clipping a darkened red pinned green to zero and dragged the hue towards
 magenta.
+
+The two factors were ×0.50 and ×0.80 in v4.13 and are **×0.28 and ×0.72 since
+v4.14**. v4.13 set them from one sample — a near-white Christmas hill — which
+is why they were still wrong everywhere else: the same factor that puts white
+in the right place puts a red house at an `L*` a night has no room for. They
+now come from the band the twelve built-in themes author their own night
+colours in (`L*` 10.9 to 29.6) and are checked across a matrix of eleven
+surface kinds by `DayNightMatrixTest`, not against a single colour.
 
 v4.12 worked in HSL with factors fitted to the 41 authored day/night pairs.
 **Fitting those pairs was the mistake.** Stratified by daytime lightness they

@@ -19,6 +19,138 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.14 — one sample is not a matrix, and the birds stop dissolving at dusk
+
+**Prepared, not published.** `versionCode = 45`, `versionName = "4.14"`. Prepared 2026-08-31. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.13**.
+
+### The night factors, set against a matrix instead of a colour
+
+v4.13's `L*` ×0.50 / chroma ×0.80 were settled by looking at one surface on one theme — a
+near-white Christmas hill — on a physical device. That is a fit to a single point, and it behaved
+like one: white landed correctly and a saturated red house did not, which is what "the night
+colours are still too light, the red houses are still too red" was reporting.
+
+The factors are now **×0.28 and ×0.72**, chosen against the band the twelve built-in themes author
+their own night colours in (`L*` 10.9 to 29.6) and checked across eleven surface kinds. Measured:
+
+| surface | day | `L*` | night | `L*` |
+|---|---|---|---|---|
+| snow, Christmas hill | `#F3F7FB` | 97.0 | `#39414C` | **27.2** |
+| saturated red house | `#E03A2F` | 50.8 | `#510200` | **14.4** |
+| mid blue building | `#7FB3D5` | 70.6 | `#00344B` | **19.9** |
+| warm yellow | `#F2D06B` | 84.5 | `#453700` | **23.7** |
+| water | `#2E86AB` | 52.5 | `#002939` | **14.9** |
+
+`DayNightMatrixTest` pins the whole matrix: the authored band, a floor on how much darker night has
+to be, hue held to 12° for chromatic colours, saturation genuinely lost, ordering preserved so the
+scene does not reorganise itself after dark, and the reverse direction undoing the forward one.
+
+Verified on a OnePlus 6T: three objects (houses, buildings, trees) set to three different daylight
+colours each produced **exactly** the night colour the JVM matrix predicts — `#E03A2F` → `#510200`,
+`#7FB3D5` → `#00344B`, `#F2D06B` → `#453700` — and the rendered night wall measured `L*` 16.2.
+
+### The birds were half transparent at sunset
+
+`drawBirds` multiplied the flock's alpha by `dayPhase.dayBlend` directly. `dayBlend` holds at 1
+across the middle of the daylight arc and then slides to `TERMINATOR_BLEND` (0.5) at the moment the
+sun sets, so with night birds off the birds bled out through the whole golden hour and were **half
+transparent while the sun was still up** — not a dusk, a translucency.
+
+`BirdsConfig.presenceAt` now maps the below-horizon range instead: solid while the sun is up, gone
+over the first half of the way down. Measured on the OnePlus at a fixed 20:00, six frames each,
+same theme and settings, one line different: **alpha 0.47–0.53 before, 1.00–1.02 after**, and at
+21:00 no birds at all.
+
+*(The first diagnosis written for this was wrong and is corrected here: `dayBlend` is not "1 only at
+solar noon". `smoothEdge` eases only the first and last 12% of the arc, so the bug was confined to
+the golden hour rather than running all afternoon. The fix is the same; the reason was not.)*
+
+### Weather and time
+
+- **WEA-04** — sunrise/sunset were computed once per location fix and never again. They are now
+  recomputed when the civil day or the UTC offset changes, so a fixed-location or weather-off user
+  no longer drifts for weeks or sits an hour out across a DST switch.
+- **WEA-08** — the refresh gate read `System.currentTimeMillis()`. A clock moved backwards left the
+  next attempt hours in the future. Scheduling now runs on `SystemClock.elapsedRealtime()`, and
+  `LiveWeatherSchedule.isAttemptDue` treats a negative interval as due rather than as "never".
+- **WEA-05** — the preview engine no longer publishes weather status, so a dying preview can no
+  longer overwrite the live engine's verdict.
+- **WEA-09(b)** — the manifest's `INTERNET` justification claimed "no other network calls exist
+  anywhere in the app" while the city geocoder had been sending typed place names to a third host
+  for several releases, and it named one weather provider out of three. It is now a full inventory,
+  and `InternetInventoryTest` reads the source and fails if a host is contacted without being
+  listed.
+
+### Minor findings
+
+- **SEC-04** — API keys were interpolated into query strings unencoded; a key containing `&`, `#`
+  or `+` became different parameters and the request went out unusable.
+- **SEC-05** — a GPS fix went to the weather provider at full precision. Coordinates are now
+  rounded to two decimals (~1.1 km), well inside the ~11 km grid the providers answer on.
+- Both go through one new `WeatherRequest`, so the three providers cannot drift apart again.
+- **ARC-05-res** — assessed and left as it is: the GL rebuild budget is per engine and deliberately
+  not reset after a recovery, because resetting it means rebuilding forever against a GPU that is
+  not coming back. Recorded as a test rather than a comment.
+- **BCK-02** — found already fixed; the audit table was stale.
+
+### Goldens: one changed, and three that were already failing on this phone
+
+**`dusk` was regenerated, and it is the only golden that moved.** 2207 pixels differ from the
+v4.13 golden and **every one of them is inside `y 59..307, x 58..217`** — three bird silhouettes,
+nothing else in the frame, not even by one level. The alpha implicit in the old golden measures
+**0.641** against the `dayBlend` of **0.6488** that hour 19.5 produces, which is the bird bug
+written into a PNG. The new golden is byte-identical to the frame v4.14 renders.
+
+**Three GL goldens fail on the OnePlus 6T and have nothing to do with this batch.** Full 2×2, same
+four tests, same golden set:
+
+| | v4.13 baseline | v4.14 |
+|---|---|---|
+| `dusk`, Pixel 9 emulator | PASS | FAIL 0.605% → regenerated, now PASS |
+| `dusk`, OnePlus 6T | PASS | FAIL 0.606% → now PASS |
+| `gl-day`, emulator | PASS | PASS |
+| `gl-day`, OnePlus | **FAIL 1.108%** | **FAIL 1.108%** |
+| `gl-lake-busy`, OnePlus | **FAIL 1.290%** | **FAIL 1.290%** |
+| `gl-thunderstorm`, OnePlus | **FAIL 1.682%** | **FAIL 1.682%** |
+
+The three GL frames are **byte-identical between the two commits** on the same phone, so the
+variable is the GPU, not the code: the goldens were captured on the emulator's software GL and the
+phone runs an Adreno 630. `GlGolden`'s own note estimates two correct drivers apart at about 0.12%
+at this threshold; 1.1–1.7% is an order of magnitude past that, so the estimate is wrong, the
+tolerance is calibrated for one GPU, or both.
+
+**Nothing was widened to make this pass.** Recorded as an open finding — *GL-GOLDEN-ADRENO* — and
+left for a batch that can look at the frames properly. Until then: **`connectedDebugAndroidTest` is
+green only on the Pixel 9 emulator (102/102); on the OnePlus 6T it is 99/102**, and the three are
+these.
+
+### Performance
+
+Measured on the OnePlus 6T against a **release-configuration build** (R8 minified, not debuggable),
+30 s of SurfaceFlinger `timestats` with the wallpaper actually set:
+
+| | |
+|---|---|
+| frames | 888, **0 dropped, 0 janky** |
+| average | **29.87 fps** against a 30 fps target |
+| cadence | 839 of 888 intervals in the 33 ms bucket |
+| CPU, visible | 27.5–32.1% of 800% (≈3.4–4.0% of the device) |
+| CPU, screen off | **0.0%**, four samples over 32 s |
+| RSS | 190 MB |
+
+No micro-optimisation was done, because nothing measured asks for any. `presenceAt` is computed
+once per frame, not once per bird, and the colour work happens when a customisation is resolved,
+not on the draw path.
+
+### Toolchain
+
+The rasterizer fingerprint is **closed**. `probe_sha256` (pixels) matches
+`PROBE_EXPECTED_SHA256`; `probe_png_sha256` is reported alongside it and is a property of the
+compressor, not the rasterizer, which is what the old mismatch was measuring. Asset suite 105/105.
+
+---
+
 ## v4.13 — night colours that are actually night, and a probe that measures the right thing
 
 **Prepared, not published.** `versionCode = 44`, `versionName = "4.13"`. Prepared 2026-08-30. No

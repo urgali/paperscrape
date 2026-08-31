@@ -31,8 +31,10 @@ object OpenMeteoProvider : WeatherProvider {
     internal fun requestUrl(latitude: Double, longitude: Double, userApiKey: String): String {
         val apiKey = resolveApiKey(userApiKey)
         val host = if (apiKey != null) "customer-api.open-meteo.com" else "api.open-meteo.com"
-        val keyParam = if (apiKey != null) "&apikey=$apiKey" else ""
-        return "https://$host/v1/forecast?latitude=$latitude&longitude=$longitude" +
+        val keyParam = if (apiKey != null) "&apikey=${WeatherRequest.key(apiKey)}" else ""
+        return "https://$host/v1/forecast" +
+            "?latitude=${WeatherRequest.coordinate(latitude)}" +
+            "&longitude=${WeatherRequest.coordinate(longitude)}" +
             "&current=temperature_2m,precipitation,rain,showers,snowfall,weather_code,cloud_cover" +
             "&timezone=auto$keyParam"
     }

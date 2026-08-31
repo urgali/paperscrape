@@ -47,7 +47,10 @@ object WeatherApiComProvider : WeatherProvider {
     override val requiresApiKey: Boolean = true
 
     internal fun requestUrl(latitude: Double, longitude: Double, apiKey: String): String =
-        "https://api.weatherapi.com/v1/current.json?key=$apiKey&q=$latitude,$longitude&aqi=no"
+        "https://api.weatherapi.com/v1/current.json" +
+            "?key=${WeatherRequest.key(apiKey)}" +
+            "&q=${WeatherRequest.coordinate(latitude)},${WeatherRequest.coordinate(longitude)}" +
+            "&aqi=no"
 
     override suspend fun fetch(latitude: Double, longitude: Double, apiKey: String): WeatherFetchResult {
         val key = apiKey.trim()

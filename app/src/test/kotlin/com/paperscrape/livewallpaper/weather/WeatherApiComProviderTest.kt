@@ -240,7 +240,8 @@ class WeatherApiComProviderTest {
         val url = WeatherApiComProvider.requestUrl(43.77925, 11.24626, "KEY")
         assertTrue(url, url.startsWith("https://api.weatherapi.com/v1/current.json?"))
         assertTrue(url, url.contains("key=KEY"))
-        assertTrue(url, url.contains("q=43.77925,11.24626"))
+        // Rounded to two decimals on the way out -- SEC-05, see WeatherRequest.coordinate.
+        assertTrue(url, url.contains("q=43.78,11.25"))
         // Air quality is extra payload the scene has no use for.
         assertTrue(url, url.contains("aqi=no"))
     }

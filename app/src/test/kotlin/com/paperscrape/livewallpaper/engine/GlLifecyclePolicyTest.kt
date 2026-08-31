@@ -169,6 +169,35 @@ class GlLifecyclePolicyTest {
         assertFalse(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = false, rebuildsSoFar = 2))
     }
 
+    /**
+     * ARC-05-res, assessed and left as it is.
+     *
+     * The budget is per **engine**, not per incident: it is never reset after a recovery. That
+     * reads like an oversight and is not one. Resetting it would mean a GPU that resets on every
+     * frame gets rebuilt on every frame -- an endless retry against hardware that is not coming
+     * back, which on a live wallpaper is a busy thread and no picture, the failure the bound exists
+     * to prevent. Making it per-incident instead would need a notion of "how long since the last
+     * one", i.e. a decay, i.e. a timer this engine does not otherwise need.
+     *
+     * What the current shape costs is narrow: an engine that survives three *separate*, genuinely
+     * recovered driver resets falls back to Canvas on the fourth. Engines are recreated on every
+     * surface destroy/create cycle -- rotation, unlock, opening the wallpaper picker -- so three
+     * independent incidents inside one engine's life is not a case that shows up in practice.
+     *
+     * Recorded as a test rather than a comment so the reasoning is executable, and so that anyone
+     * who decides to reset the counter has to delete an assertion that says why not to.
+     */
+    @Test
+    fun `the rebuild budget is per engine and deliberately not reset after a recovery`() {
+        // One incident: recovered, and the engine keeps GL.
+        assertTrue(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = true, rebuildsSoFar = 0))
+        // Three separate incidents, each recovered: still GL, budget now spent.
+        assertTrue(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = true, rebuildsSoFar = 2))
+        // The fourth is where it stops, whether or not the three before it recovered.
+        assertFalse(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = true, rebuildsSoFar = 3))
+        assertFalse(GlLifecyclePolicy.shouldRebuildContext(hadWorkingContext = true, rebuildsSoFar = 99))
+    }
+
     /** A context that has drawn is worth rebuilding: the hardware has already proved it can. */
     @Test
     fun `a context that worked is rebuilt, up to the bound`() {
