@@ -1864,8 +1864,10 @@ class PaperRenderer(
      * constant [drawHillLayers] itself uses) -- trees sit within the hill's ground band and their
      * canopies extend a bit above their own base, so starting right at the hill top reads as
      * "coming off the trees poking above the hill line" instead of falling out of open sky.
-     * Falls only as far as the road/ground level (not off the bottom of the screen) since that's
-     * as far as an actual falling leaf needs to travel to "land".
+     * Falls only as far as **its own tree's ground line**, which is as far as an actual falling
+     * leaf travels before it lands. It used to fall to one global `screenHeight * 0.88` instead --
+     * below both traffic lanes -- so leaves from every tree, however far back it stood, drifted
+     * down over the hillside and settled on the road among the cars.
      */
     private fun drawFallingLeaves(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         if (!sceneCustomization.fallColorsEnabled) return
@@ -1894,13 +1896,17 @@ class PaperRenderer(
         if (sources == 0) return
         val candidateCount = FALLING_LEAF_POOL_SIZE
         val fallSpeed = 0.06f
-        val fallEndY = screenHeight * 0.88f
         for (i in 0 until candidateCount) {
             val source = i % sources
             val speedVariance = CandidateNoise.range(seed, i, CandidateNoise.CH_VARIANCE, 0.7f, 1.3f)
             val phase = CandidateNoise.value(seed, i, CandidateNoise.CH_PHASE)
             val fallFraction = elapsedSeconds.cycle(fallSpeed * speedVariance, phase)
             val fallStartY = objectRenderer.leafSourceY[source]
+            // **A leaf lands at the foot of its own tree.** This was one global
+            // `screenHeight * 0.88` for every source, which is below both traffic lanes, so a
+            // leaf from a tree on the hillside crossed the whole scene and settled on the road
+            // among the cars. See [SceneObjectRenderer.leafSourceGroundY].
+            val fallEndY = objectRenderer.leafSourceGroundY[source]
             val fallRange = fallEndY - fallStartY
             if (fallRange <= 0f) continue
             val y = fallStartY + fallFraction * fallRange

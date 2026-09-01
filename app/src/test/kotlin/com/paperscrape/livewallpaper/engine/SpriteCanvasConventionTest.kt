@@ -13,7 +13,7 @@ import org.junit.Test
  * The finding was raised from the two winter head sprites, whose outline stroke is cut where the
  * artwork meets the frame, and it asked whether that is lost artwork across the library.
  *
- * Measured, it is not. **210 of the 221 sprites have opaque pixels on a canvas border**, and 65 of
+ * Measured, it is not. **212 of the 224 sprites have opaque pixels on a canvas border**, and 65 of
  * them touch all four. That is not two hundred defects; it is the authoring convention this asset
  * set is built on and that `tools/assets`' `normalize` enforces from the other side -- a sprite may
  * carry no removable padding, so its canvas *is* its content box, and every anchor in
@@ -21,13 +21,13 @@ import org.junit.Test
  * half-stroke would add transparent margin to two hundred files and move every origin that reads
  * them, to recover a pixel of stroke nobody has ever reported seeing.
  *
- * The eleven that do *not* touch an edge are the exceptions `ARCHITECTURE.md` describes: sprites
+ * The twelve that do *not* touch an edge are the exceptions `ARCHITECTURE.md` describes: sprites
  * whose transparent margin is load-bearing because their anchor is measured against it -- the sun
  * and moon centred in a fixed disc, the glow, the sparkle, the firework, a bird centred on its
  * flight path, and `tree_fir_snow`, which hangs off a declared attachment point.
  *
  * So the convention is the rule, the eleven are the declared exceptions, and this test is where
- * both are written down. A twelfth sprite growing a margin, or one of these eleven losing its own,
+ * both are written down. A thirteenth sprite growing a margin, or one of these twelve losing its own,
  * is a change to how something is anchored and fails here rather than moving quietly on screen.
  */
 class SpriteCanvasConventionTest {
@@ -41,6 +41,10 @@ class SpriteCanvasConventionTest {
         "moon_gibbous",
         "moon_half",
         "moon_jack_o_lantern",
+        // v4.17. The carved face is drawn on `pumpkin_body`'s canvas at `pumpkin_body`'s origin so
+        // the two register exactly; the eyes and the grin sit well inside the fruit, so the margin
+        // around them is the body it is cut into and is as load-bearing as any anchor here.
+        "pumpkin_face",
         "star_sparkle",
         "sun_body",
         "sun_glow",
@@ -73,8 +77,8 @@ class SpriteCanvasConventionTest {
         // convention, which is why it is closed as one rather than fixed sprite by sprite.
         val all = sprites()
         val touching = all.count { touchesAnEdge(ImageIO.read(it)) }
-        assertEquals("221 sprites are expected", 221, all.size)
-        assertEquals("210 of them reach a canvas edge", 210, touching)
+        assertEquals("224 sprites are expected", 224, all.size)
+        assertEquals("212 of them reach a canvas edge", 212, touching)
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

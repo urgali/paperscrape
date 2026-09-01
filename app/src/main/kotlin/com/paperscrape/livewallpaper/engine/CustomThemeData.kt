@@ -218,6 +218,8 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("easterEggs", easterEggs.toJson())
     put("pumpkins", pumpkins.toJson())
     put("hillsVariation", hillsVariation.toDouble())
+    put("snowPiles", snowPiles.toDouble())
+    put("leafPiles", leafPiles.toDouble())
     put("hillsColorDay", hillsColorDay)
     put("hillsColorNight", hillsColorNight)
     put("hillsAutoMode", hillsAutoMode.storageId)
@@ -323,6 +325,8 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         easterEggs = json.optJSONObject("easterEggs")?.let { objectVariantConfigFromJson(it, defaults.easterEggs) } ?: defaults.easterEggs,
         pumpkins = json.optJSONObject("pumpkins")?.let { objectVariantConfigFromJson(it, defaults.pumpkins) } ?: defaults.pumpkins,
         hillsVariation = json.optFinite("hillsVariation", defaults.hillsVariation),
+        snowPiles = json.optFinite("snowPiles", defaults.snowPiles),
+        leafPiles = json.optFinite("leafPiles", defaults.leafPiles),
         hillsColorDay = if (json.has("hillsColorDay")) json.optInt("hillsColorDay") else defaults.hillsColorDay,
         hillsColorNight = if (json.has("hillsColorNight")) json.optInt("hillsColorNight") else defaults.hillsColorNight,
         hillsAutoMode = AutoColorMode.fromStorageId(json.optString("hillsAutoMode", null)),

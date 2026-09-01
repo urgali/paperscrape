@@ -205,6 +205,14 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "the other canvas-anchored sprites so the sky set moves as one decision or not at all.",
     ),
     Exclusion(
+        "pumpkin_face",
+        "Drawn on `pumpkin_body`'s canvas at `pumpkin_body`'s origin so the carved face registers "
+        "with the fruit exactly. Its content is the eyes and the grin, which sit well inside the "
+        "pumpkin, so the margin around them *is* the body it is cut into: cropping it would leave "
+        "the face to be positioned against the body by a second constant, which is the anchor "
+        "model D-1 broke. `SpriteCanvasConventionTest` declares the same margin load-bearing.",
+    ),
+    Exclusion(
         "firework",
         "`SPRITE_CENTRE`, blitted centred on the burst it draws. Same reasoning as `star_sparkle`: "
         "a symmetric crop is expressible, but it redefines the canvas the origin is measured "

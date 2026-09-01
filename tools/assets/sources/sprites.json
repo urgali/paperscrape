@@ -1424,6 +1424,58 @@
       "notes": "One clump of ground flowers: three kinds at three sizes on a single canvas, so a scatter of them is one blit per clump rather than one per bloom. Fixed art -- the user gets ON and OFF and no colour, because a meadow that follows a theme's building tint is a meadow of the wrong flowers."
     },
     {
+      "name": "snow_pile",
+      "category": "vegetation",
+      "width": 108,
+      "height": 21,
+      "contentBox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "snow_pile.svg"
+      },
+      "notes": "v4.17. One drift of settled snow for the Snow piles slider, scattered by the same stratified hash drawGroundFlowers uses. Fixed art: a drift is white wherever it lies. Three lobes on one canvas so a scatter is one blit per drift."
+    },
+    {
+      "name": "leaf_pile",
+      "category": "vegetation",
+      "width": 108,
+      "height": 21,
+      "contentBox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "leaf_pile.svg"
+      },
+      "notes": "v4.17. One heap of fallen leaves for the Leaf piles slider, in the same four tones drawFallingLeaves paints its leaves with, so a heap on the ground and a leaf in the air are the same leaves. Independent of the falling ones."
+    },
+    {
       "name": "house_large_chimney",
       "category": "house",
       "width": 39,
@@ -5665,12 +5717,12 @@
       "name": "police_stripe",
       "category": "vehicle",
       "width": 204,
-      "height": 39,
+      "height": 27,
       "contentBox": [
         0,
         0,
         204,
-        39
+        27
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -5685,7 +5737,7 @@
         "kind": "svg",
         "file": "police_stripe.svg"
       },
-      "notes": ""
+      "notes": "v4.17: was a tilted wedge -- polygon 0,4 68,0 68,10 0,13, 13 units tall and rising 4 across its length. On a OnePlus 6T it read as a crooked band whose front end dipped into the wheel arch and whose rear end rose past the sill, the only livery in the set not aligned to the car's own lines. Redrawn horizontal at the same 68x9 footprint as taxi_checker, which shares the slot and reads correctly, so the two liveries now sit in the same band."
     },
     {
       "name": "pumpkin_body",
@@ -5712,6 +5764,32 @@
         "file": "pumpkin_body.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "pumpkin_face",
+      "category": "decoration",
+      "width": 114,
+      "height": 90,
+      "contentBox": [
+        30,
+        30,
+        84,
+        75
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "pumpkin_face.svg"
+      },
+      "notes": "v4.17. The carved face, on pumpkin_body's own canvas and at its own anchor, so it registers with the body exactly rather than being placed against it. Drawn only when halloweenEnabled, which already exists and already strips the tree crowns: the same switch that makes the trees bare turns the pumpkins into lanterns. Two triangular eyes and a four-tooth grin and nothing else -- at the size a pumpkin is drawn on a phone a nose is one pixel and reads as dirt."
     },
     {
       "name": "pumpkin_stem",

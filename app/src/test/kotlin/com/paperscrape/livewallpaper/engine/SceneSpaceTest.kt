@@ -237,7 +237,14 @@ class SceneSpaceTest {
         // outbuildings behind the houses instead of as the commercial frontage they draw. A shop
         // storey is taller than a domestic one and carries a parapet above it.
         val ordered = listOf(
-            SceneSpace.SceneVariant.PUMPKIN,
+            // **The pumpkin left the bottom of this list in v4.17.** It declared 0.5 m through
+            // v4.15 -- half an Easter egg, for a prop a foot across -- and on a OnePlus 6T it read
+            // as an orange bead beside the gifts and the snowmen. v4.16 took it to 0.85 and the
+            // maintainer still reported it small; 0.85, 1.00 and 1.10 were then rendered on the
+            // phone beside the gift, the snowman, the penguin and the egg, and 1.00 is the one that
+            // reads as a pumpkin without swallowing the penguin standing behind it, which 1.10
+            // does. It now sits level with the egg rather than under the bunny, which is why the
+            // chain starts at BUNNY and the pumpkin has its own relations below.
             SceneSpace.SceneVariant.BUNNY,
             SceneSpace.SceneVariant.EASTER_EGG,
             SceneSpace.SceneVariant.PARASOL,
@@ -262,10 +269,29 @@ class SceneSpaceTest {
         // The Easter pair sits above the smallest decorations and well below a person: big
         // enough to read at the size the projection draws them, not big enough to compete.
         assertTrue(
-            SceneSpace.SceneVariant.BUNNY.metresTall > SceneSpace.SceneVariant.PUMPKIN.metresTall,
+            SceneSpace.SceneVariant.EASTER_EGG.metresTall < SceneSpace.PERSON_METRES_TALL / 1.5f,
+        )
+        // **The floor the pumpkin may not fall back through.** It was 0.5 m for eleven releases and
+        // read as a bead; the relation that matters is that it is not smaller than the props it
+        // stands among, so it is stated against them rather than as a bare number. The ceiling is
+        // the penguin: a pumpkin taller than one stands in front of it and hides it.
+        assertTrue(
+            "a pumpkin must not be smaller than a gift",
+            SceneSpace.SceneVariant.PUMPKIN.metresTall >= SceneSpace.SceneVariant.GIFT.metresTall,
         )
         assertTrue(
-            SceneSpace.SceneVariant.EASTER_EGG.metresTall < SceneSpace.PERSON_METRES_TALL / 1.5f,
+            "a pumpkin must not be smaller than an Easter bunny",
+            SceneSpace.SceneVariant.PUMPKIN.metresTall >= SceneSpace.SceneVariant.BUNNY.metresTall,
+        )
+        assertTrue(
+            "a pumpkin must not out-top the penguin it stands in front of",
+            SceneSpace.SceneVariant.PUMPKIN.metresTall < SceneSpace.SceneVariant.PENGUIN.metresTall,
+        )
+        assertEquals(
+            "the size chosen on the phone in v4.17",
+            1.0f,
+            SceneSpace.SceneVariant.PUMPKIN.metresTall,
+            0.0001f,
         )
         // A snowman and a gift are smaller than the person who built and wrapped them.
         assertTrue(SceneSpace.SceneVariant.SNOWMAN.metresTall < SceneSpace.PERSON_METRES_TALL)

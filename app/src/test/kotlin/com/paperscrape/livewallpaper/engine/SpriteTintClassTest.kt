@@ -79,6 +79,12 @@ class SpriteTintClassTest {
      * cannot be left behind by an asset pass that adds one.
      */
     private val fixedArtSprites = listOf(
+        // v4.17. All three are blitted untinted and all three carry their own colour: a carved
+        // hole is not a colour a theme picks, snow is white wherever it lies, and a heap of leaves
+        // is painted in the same four autumn tones `drawFallingLeaves` uses.
+        "leaf_pile",
+        "pumpkin_face",
+        "snow_pile",
         "house_shared_window", "house_shared_planter", "house_window_lit",
         "tree_trunk", "tree_canopy_snowcap",
         // Halloween's bare crown. Fixed art in the trunk browns rather than tintable: a dead

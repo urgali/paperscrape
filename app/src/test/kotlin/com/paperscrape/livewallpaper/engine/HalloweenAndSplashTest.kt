@@ -139,6 +139,48 @@ class HalloweenAndSplashTest {
 
     // --- The horror sky's own colours ----------------------------------------------------------
 
+    /**
+     * The carved face is drawn **only** while the flag is on, and off the same switch that strips
+     * the tree crowns.
+     *
+     * v4.17 added `pumpkin_face` without adding a setting for it: `halloweenEnabled` already
+     * existed, was already per-theme and was already in the backups. That is only true while the
+     * blit stays inside that branch -- a face drawn unconditionally would be a pumpkin that is
+     * always a lantern and a flag that no longer says what it says. Read off the renderer rather
+     * than asserted about a constant, because the property is where the call sits.
+     */
+    @Test
+    fun `the carved face is drawn only under the halloween flag`() {
+        val body = rendererSource().readText()
+            .substringAfter("private fun drawPumpkin(")
+            .substringBefore("\n    private fun ")
+        val faceAt = body.indexOf("R.drawable.pumpkin_face")
+        val gateAt = body.indexOf("customization.halloweenEnabled")
+        assertTrue("drawPumpkin must blit the face", faceAt >= 0)
+        assertTrue("drawPumpkin must read the halloween flag", gateAt >= 0)
+        assertTrue("the face must sit inside the halloween branch", gateAt < faceAt)
+        // And on the body's own origin, which is what keeps the two registered without a second
+        // constant to keep in step.
+        assertTrue(
+            "the face must be blitted at the body's own origin",
+            body.contains("R.drawable.pumpkin_body, -19f, -30f") &&
+                body.contains("R.drawable.pumpkin_face, -19f, -30f"),
+        )
+    }
+
+    private fun rendererSource(): java.io.File {
+        val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt"
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val candidate = java.io.File(dir, "$prefix$suffix")
+                if (candidate.isFile) return candidate
+            }
+            dir = dir.parentFile
+        }
+        error("could not locate $suffix")
+    }
+
     @Test
     fun `the horror sky is dark overhead and warm at the horizon at every hour`() {
         for (lift in listOf(0f, 0.25f, 0.5f, 0.75f, 1f)) {

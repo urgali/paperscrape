@@ -365,6 +365,29 @@ data class SceneCustomization(
     // a piece of a *theme's* look just like everything above, not a global rendering preference
     // (see PaperRenderer.buildBaseHillPath's own doc comment for how it's applied safely).
     val hillsVariation: Float = 1f,
+
+    /**
+     * How much settled snow lies about, 0..1, and only while [winterColorsEnabled] is on.
+     *
+     * A slider rather than a switch because "some" is the interesting answer: a hard 0 is the
+     * default, so a scene nobody has touched is exactly the scene v4.16 drew, and 1 is as much as
+     * the ground can carry before it stops reading as drifts and starts reading as a white floor.
+     *
+     * Gated on winter for the same reason `tree_canopy_snowcap` is: snow on the ground of a summer
+     * theme is not a decoration, it is a mistake. Christmas inherits it, because Christmas turns
+     * winter colours on.
+     */
+    val snowPiles: Float = 0f,
+
+    /**
+     * The autumn counterpart, 0..1, and only while [fallColorsEnabled] is on.
+     *
+     * **Independent of the falling leaves, and deliberately so.** `drawFallingLeaves` animates
+     * leaves coming off the crowns; this lies heaps on the ground. Turning one off does not touch
+     * the other, and the two are separate settings because "I want the ground covered" and "I want
+     * leaves in the air" are separate wishes.
+     */
+    val leafPiles: Float = 0f,
     // Same idea, two more theme-scoped plain fields for the hills' base color (day and night) --
     // the 3 layers auto-derive their own shade from a single color (see PaperRenderer's
     // hillLayerColor()) rather than needing 3 separate color pickers, matching how every other

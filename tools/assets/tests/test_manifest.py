@@ -423,6 +423,12 @@ class ShippedSourcesTest(unittest.TestCase):
                 site.expression == "driverRes"
                 or site.expression == "phaseSprite"
                 or site.expression == "resId"
+                # `scatterPiles` is one loop drawing either drift sprite, chosen by its
+                # caller: `drawGroundPiles` passes `R.drawable.snow_pile` or
+                # `R.drawable.leaf_pile` literally and the loop is written once rather
+                # than twice. Same shape as the lookups above -- the sprite is named at
+                # the call site, not at the blit.
+                or site.expression == "drawable"
                 or "R.drawable." in site.expression
                 or "[" in site.expression,
                 f"unreadable blit that is not a runtime lookup: {site.expression}",

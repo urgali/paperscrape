@@ -930,6 +930,88 @@
       "candidate_bbox": [
         0,
         0,
+        108,
+        21
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        108,
+        21
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "snow_pile",
+      "reference_bbox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        108,
+        21
+      ],
+      "size_match": true,
+      "total_pixels": 2268,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        108,
+        21
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "leaf_pile",
+      "reference_bbox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        108,
+        21
+      ],
+      "size_match": true,
+      "total_pixels": 2268,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
         39,
         105
       ],
@@ -3678,12 +3760,12 @@
         0,
         0,
         204,
-        39
+        27
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
         204,
-        39
+        27
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3695,15 +3777,15 @@
         0,
         0,
         204,
-        39
+        27
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
         204,
-        39
+        27
       ],
       "size_match": true,
-      "total_pixels": 7956,
+      "total_pixels": 5508,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3739,6 +3821,47 @@
         90
       ],
       "reference_padding_fraction": 0.0,
+      "reference_size": [
+        114,
+        90
+      ],
+      "size_match": true,
+      "total_pixels": 10260,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        30,
+        30,
+        84,
+        75
+      ],
+      "candidate_padding_fraction": 0.7631578947368421,
+      "candidate_size": [
+        114,
+        90
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "pumpkin_face",
+      "reference_bbox": [
+        30,
+        30,
+        84,
+        75
+      ],
+      "reference_padding_fraction": 0.7631578947368421,
       "reference_size": [
         114,
         90

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="21" viewBox="0 0 36 7">
+  <!--
+    One small drift of settled snow. Fixed art for the same reason the flowers are: a drift that
+    followed a theme's building colour would be a drift of the wrong snow.
+
+    Three overlapping lobes on one canvas so a scatter of them is one blit per drift. The lobes
+    span the canvas edge to edge and all of them stand on y=7, the canvas's own bottom edge, so the
+    blit origin puts the drift on the ground line and the sprite carries no padding to normalise
+    away.
+  -->
+<ellipse cx="9" cy="7" rx="9" ry="4.2" fill="#E8EEF4"></ellipse>
+        <ellipse cx="27" cy="7" rx="9" ry="3.6" fill="#E8EEF4"></ellipse>
+        <ellipse cx="18" cy="7" rx="8" ry="7" fill="#F7FAFD"></ellipse>
+</svg>

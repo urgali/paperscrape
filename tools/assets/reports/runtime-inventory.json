@@ -1002,6 +1002,31 @@
       "content_bbox": [
         0,
         0,
+        108,
+        21
+      ],
+      "content_height": 21,
+      "content_width": 108,
+      "decoded_bytes": 9072,
+      "distinct_colour_count": 85,
+      "file_bytes": 1034,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 21,
+      "mode": "RGBA",
+      "name": "leaf_pile",
+      "on_grid": true,
+      "opaque_rgb_count": 31,
+      "pixels_sha256": "6c32db14854a5a7cf4b0464f0b54095283f8c554c6252163fdb2b48f101b69aa",
+      "sha256": "d599d89c37313a223b4d0e00e292018120903d44695b94fe09b6bf40e703c833",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 108
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
         90,
         252
       ],
@@ -4678,22 +4703,22 @@
         0,
         0,
         204,
-        39
+        27
       ],
-      "content_height": 39,
+      "content_height": 27,
       "content_width": 204,
-      "decoded_bytes": 31824,
-      "distinct_colour_count": 44,
-      "file_bytes": 524,
-      "fully_opaque": false,
+      "decoded_bytes": 22032,
+      "distinct_colour_count": 4,
+      "file_bytes": 179,
+      "fully_opaque": true,
       "has_alpha_channel": true,
-      "height": 39,
+      "height": 27,
       "mode": "RGBA",
       "name": "police_stripe",
       "on_grid": true,
-      "opaque_rgb_count": 23,
-      "pixels_sha256": "76c334ab9690c65a43612d834bb77c80786d69afee59706ed29b698d8ae79a24",
-      "sha256": "ba7a7680231754710091248e5daa32447a0276c363986f8fcf3b145e8472644f",
+      "opaque_rgb_count": 4,
+      "pixels_sha256": "12cc51c1a0bd74d43a16902a505973ea8f25bf36a1e0869fa12c7cce1900caed",
+      "sha256": "933f0cc0b7b70bf602bff7a3cbf7c5265a70b2f31158627f56e576a95373a06a",
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
       "width": 204
@@ -4721,6 +4746,31 @@
       "sha256": "3071c1efb455bf3934f903c54fa0b86e3de06d1a0af43fe51a479f7c120dd47a",
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
+      "width": 114
+    },
+    {
+      "content_bbox": [
+        30,
+        30,
+        84,
+        75
+      ],
+      "content_height": 45,
+      "content_width": 54,
+      "decoded_bytes": 41040,
+      "distinct_colour_count": 11,
+      "file_bytes": 559,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 90,
+      "mode": "RGBA",
+      "name": "pumpkin_face",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "31ee8ae171a0b465ab2b01770631cb196dcddd36046d50c336d6e672d945a673",
+      "sha256": "6f2faf749003c7c0bc9046290d2bc4322347eeeaa314e4f9287b8e83c8178f95",
+      "transparent_padding_bytes": 31320,
+      "transparent_padding_fraction": 0.7631578947368421,
       "width": 114
     },
     {
@@ -5247,6 +5297,31 @@
       "transparent_padding_bytes": 31320,
       "transparent_padding_fraction": 0.11012658227848102,
       "width": 237
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "content_height": 21,
+      "content_width": 108,
+      "decoded_bytes": 9072,
+      "distinct_colour_count": 48,
+      "file_bytes": 689,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 21,
+      "mode": "RGBA",
+      "name": "snow_pile",
+      "on_grid": true,
+      "opaque_rgb_count": 11,
+      "pixels_sha256": "77d18079dd821930bcf706a9577c926a5d7cbb2017c98e12dddf749fdae4ccf5",
+      "sha256": "fe9b7fa95435f5771cf58c59d1b09d5542fa87820776a571b9a8da58e855a75e",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 108
     },
     {
       "content_bbox": [

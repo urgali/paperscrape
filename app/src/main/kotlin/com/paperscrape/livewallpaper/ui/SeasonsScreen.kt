@@ -95,6 +95,45 @@ internal fun SeasonsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 12.dp),
                 )
+                // Each slider appears only under the palette it belongs to, rather than sitting
+                // greyed out under the other one: snow on an autumn lawn is not a setting a user
+                // should have to find in order to leave alone.
+                when (palette) {
+                    SeasonalPalette.WINTER -> {
+                        Text(
+                            "Drifts of settled snow on the open ground. None at all at 0%.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 16.dp),
+                        )
+                        PreferenceSlider(
+                            label = { shown ->
+                                Text("Snow piles: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                            },
+                            value = customization.snowPiles,
+                            onCommit = { committed -> scope.launch { prefs.setSnowPiles(committed, forThemeId) } },
+                            valueRange = 0f..1f,
+                        )
+                    }
+                    SeasonalPalette.AUTUMN -> {
+                        Text(
+                            "Heaps of fallen leaves on the open ground. Separate from the leaves drifting " +
+                                "down off the trees. None at all at 0%.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 16.dp),
+                        )
+                        PreferenceSlider(
+                            label = { shown ->
+                                Text("Leaf piles: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                            },
+                            value = customization.leafPiles,
+                            onCommit = { committed -> scope.launch { prefs.setLeafPiles(committed, forThemeId) } },
+                            valueRange = 0f..1f,
+                        )
+                    }
+                    SeasonalPalette.NONE -> {}
+                }
             }
         }
 

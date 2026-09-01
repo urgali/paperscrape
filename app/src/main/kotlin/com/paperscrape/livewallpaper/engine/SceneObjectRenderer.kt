@@ -596,6 +596,29 @@ class SceneObjectRenderer(
         const val FLOWER_METRES_TALL = 0.55f
         const val FLOWER_SPRITE_UNITS_TALL = 12f
 
+        /**
+         * The most drifts or heaps the ground carries at 100%, and how big one is.
+         *
+         * Fewer than [FLOWER_CLUMP_COUNT] because a drift is a chunkier object than a clump of
+         * flowers and the same count reads as a covered floor rather than as scattered snow. The
+         * slider multiplies this and rounds, so 0% draws nothing at all -- not one pile -- and the
+         * scene a user has never touched is exactly the scene v4.16 drew.
+         */
+        const val PILE_MAX_COUNT = 18
+        const val PILE_METRES_TALL = 0.42f
+        const val PILE_SPRITE_UNITS_TALL = 7f
+
+        /** Distinct hash salts, so a drift, a heap and a clump of flowers never coincide. */
+        const val PILE_SALT_SNOW = 733
+        const val PILE_SALT_LEAF = 1471
+
+        /**
+         * How many piles a slider position draws. Truncating rather than rounding is what makes
+         * **0% draw nothing at all** rather than one lonely drift, and it is why a scene nobody has
+         * touched costs exactly what it cost before the feature existed.
+         */
+        fun pileCount(density: Float): Int = (density.coerceIn(0f, 1f) * PILE_MAX_COUNT).toInt()
+
         /** Bulbs on the string under one window. */
         const val WINDOW_LIGHT_COUNT = 4
 
@@ -855,6 +878,18 @@ class SceneObjectRenderer(
     val leafSourceX = FloatArray(MAX_LEAF_SOURCES)
     val leafSourceY = FloatArray(MAX_LEAF_SOURCES)
     val leafSourceHalfWidth = FloatArray(MAX_LEAF_SOURCES)
+
+    /**
+     * The ground line of the tree each crown belongs to, which is where its leaves land.
+     *
+     * `PaperRenderer` used to end every fall at one global `screenHeight * 0.88`, below **both**
+     * traffic lanes (0.834 and 0.862), so a leaf shed by a tree standing high on the hill drifted
+     * down across the whole hillside, over the far lane and over the near one, and settled on the
+     * road in front of the traffic. Reported as leaves carrying on past the tree as far as the
+     * cars. A leaf lands at the foot of its own tree, and this is that foot -- already known here,
+     * simply not recorded until now.
+     */
+    val leafSourceGroundY = FloatArray(MAX_LEAF_SOURCES)
     var leafSourceCount = 0
         private set
 
@@ -873,6 +908,7 @@ class SceneObjectRenderer(
         leafSourceX[leafSourceCount] = x
         leafSourceY[leafSourceCount] = groundY + centreUnits * scale
         leafSourceHalfWidth[leafSourceCount] = halfWidthUnits * scale
+        leafSourceGroundY[leafSourceCount] = groundY
         leafSourceCount++
     }
 
@@ -921,9 +957,77 @@ class SceneObjectRenderer(
         }
     }
 
+    /**
+     * Drifts of snow and heaps of leaves on the open ground, drawn with the flowers and for the
+     * same reasons.
+     *
+     * **The scatter is [drawGroundFlowers]'s, salted differently.** Same stratified hash -- a slice
+     * of the width each, depth free within the ground band -- so a heap sits on its own ground line
+     * at its own perspective, the set is identical every frame, and nothing is allocated per frame.
+     * The salt is what stops a drift and a clump of flowers being the same object twice.
+     *
+     * **The count is the slider, rounded.** `0%` draws nothing: the loop does not run, so a scene
+     * that has never been touched costs exactly what it cost before this existed. `100%` is
+     * [PILE_MAX_COUNT], which is where the ground still reads as ground with things lying on it.
+     *
+     * Each is gated on its own season rather than on a switch of its own -- snow on a summer lawn
+     * and leaf heaps under a snow-capped tree are both wrong, and the seasons already say which.
+     */
+    private fun drawGroundPiles(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float) {
+        if (customization.winterColorsEnabled) {
+            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.snowPiles, R.drawable.snow_pile, PILE_SALT_SNOW)
+        }
+        if (customization.fallColorsEnabled) {
+            scatterPiles(canvas, geom, screenWidth, screenHeight, customization.leafPiles, R.drawable.leaf_pile, PILE_SALT_LEAF)
+        }
+    }
+
+    private fun scatterPiles(
+        canvas: SceneCanvas,
+        geom: GroundGeometry,
+        screenWidth: Float,
+        screenHeight: Float,
+        density: Float,
+        drawable: Int,
+        salt: Int,
+    ) {
+        val count = pileCount(density)
+        if (count <= 0) return
+        val sceneScale = SceneSpace.sceneScale(screenHeight)
+        for (i in 0 until count) {
+            val h = ((i + salt) * 2654435761L.toInt()) xor ((i + salt) shl 7)
+            val jitterX = ((h ushr 3) and 0xFF) / 255f
+            val jitterDepth = ((h ushr 13) and 0xFF) / 255f
+            val depth = FLOWER_DEPTH_MIN + (FLOWER_DEPTH_MAX - FLOWER_DEPTH_MIN) * jitterDepth
+            val groundY = screenHeight * SceneSpace.groundYFraction(depth)
+            val scale = SceneSpace.scaleForHeight(PILE_METRES_TALL, PILE_SPRITE_UNITS_TALL) *
+                SceneSpace.depthScale(depth) * sceneScale
+            // Sliced across the full width whatever the count is, so lowering the slider thins the
+            // scatter out evenly instead of emptying one end of the scene.
+            val slice = screenWidth / count
+            val baseX = (i + jitterX) * slice
+            val tile = if (geom.tileWidth > 0f) geom.tileWidth else screenWidth
+            var x = (baseX + geom.shiftXWrapped) % tile
+            while (x < screenWidth + slice) {
+                if (x > -slice) {
+                    canvas.save()
+                    canvas.translate(x, groundY)
+                    canvas.scale(scale, scale)
+                    // The pile canvases are 36x7 units and every lobe stands on their bottom edge,
+                    // so this origin puts a drift on the ground line the same way the flowers'
+                    // -18,-12 does for their own 36x12.
+                    drawSprite(canvas, drawable, -18f, -7f)
+                    canvas.restore()
+                }
+                x += tile
+            }
+        }
+    }
+
     fun draw(canvas: SceneCanvas, geom: GroundGeometry, dayBlend: Float, elapsedSeconds: SceneTime, screenWidth: Float, screenHeight: Float) {
         leafSourceCount = 0
         drawGroundFlowers(canvas, geom, screenWidth, screenHeight)
+        drawGroundPiles(canvas, geom, screenWidth, screenHeight)
         // staticRuntimes is already depth-sorted at construction -- see its declaration.
         for (r in staticRuntimes) {
             val groundY = screenHeight * SceneSpace.groundYFraction(r.spec.depthFraction)
@@ -2498,6 +2602,14 @@ class SceneObjectRenderer(
         val base = customization.colorFor(r.spec, dayBlend)
         drawGroundShadow(canvas, 16f)
         drawTintedSprite(canvas, R.drawable.pumpkin_body, -19f, -30f, base)
+        // **The same switch that strips the tree crowns carves the pumpkins.** `halloweenEnabled`
+        // already exists, is already per-theme, already persists and is already in the backups, so
+        // a lantern needs no new setting -- only a face. It is drawn on the body's own canvas at
+        // the body's own origin, so it registers with the fruit rather than being positioned
+        // against it, and it is fixed art: a carved hole is not a colour a theme gets to pick.
+        if (customization.halloweenEnabled) {
+            drawSprite(canvas, R.drawable.pumpkin_face, -19f, -30f)
+        }
         drawSprite(canvas, R.drawable.pumpkin_stem, 2f, -42f)
     }
 

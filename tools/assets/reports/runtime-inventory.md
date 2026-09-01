@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 221 |
-| Unique contents | 221 |
-| Bytes on disk | 1023.3 KB |
-| Decoded `ARGB_8888` | 27.09 MB |
-| Of which transparent padding | 4.51 MB (17 %) |
+| Files | 224 |
+| Unique contents | 224 |
+| Bytes on disk | 1025.2 KB |
+| Decoded `ARGB_8888` | 27.14 MB |
+| Of which transparent padding | 4.54 MB (17 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 24 |
 
@@ -97,6 +97,7 @@ from the shipped PNGs; nothing is copied from documentation.
 | `house_small_wall` | 288x210 | RGBA | 0,0,288,210 | 0 % | 3 | yes |
 | `house_window` | 66x66 | RGBA | 0,0,66,66 | 0 % | 9 | yes |
 | `house_window_lit` | 66x66 | RGBA | 0,0,66,66 | 0 % | 15 | yes |
+| `leaf_pile` | 108x21 | RGBA | 0,0,108,21 | 0 % | 31 | yes |
 | `lightning_bolt` | 90x252 | RGBA | 0,0,90,252 | 0 % | 1 | yes |
 | `moon_crescent` | 240x240 | RGBA | 122,18,222,222 | 65 % | 1 | yes |
 | `moon_full` | 240x240 | RGBA | 18,18,222,222 | 28 % | 5 | yes |
@@ -244,8 +245,9 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_woman_winter_walk2_skin1` | 123x255 | RGBA | 3,0,120,255 | 5 % | 191 | yes |
 | `person_woman_winter_walk2_skin2` | 123x255 | RGBA | 3,0,120,255 | 5 % | 191 | yes |
 | `police_lightbar` | 60x18 | RGBA | 0,0,60,18 | 0 % | 9 | yes |
-| `police_stripe` | 204x39 | RGBA | 0,0,204,39 | 0 % | 23 | yes |
+| `police_stripe` | 204x27 | RGBA | 0,0,204,27 | 0 % | 4 | yes |
 | `pumpkin_body` | 114x90 | RGBA | 0,0,114,90 | 0 % | 31 | yes |
+| `pumpkin_face` | 114x90 | RGBA | 30,30,84,75 | 76 % | 1 | yes |
 | `pumpkin_stem` | 18x36 | RGBA | 0,0,18,36 | 0 % | 1 | yes |
 | `rainbow_arc` | 594x297 | RGBA | 0,0,594,297 | 0 % | 6 | yes |
 | `restaurant_awning` | 204x30 | RGBA | 0,0,204,30 | 0 % | 15 | yes |
@@ -267,6 +269,7 @@ from the shipped PNGs; nothing is copied from documentation.
 | `skyscraper_setback` | 180x96 | RGBA | 0,0,180,96 | 0 % | 20 | yes |
 | `skyscraper_wall` | 270x450 | RGBA | 0,0,270,450 | 0 % | 14 | yes |
 | `skyscraper_wall_lit` | 237x300 | RGBA | 15,15,237,300 | 11 % | 1 | yes |
+| `snow_pile` | 108x21 | RGBA | 0,0,108,21 | 0 % | 11 | yes |
 | `snowman_body` | 114x222 | RGBA | 0,0,114,222 | 0 % | 37 | yes |
 | `snowman_nose` | 39x12 | RGBA | 0,0,39,12 | 0 % | 1 | yes |
 | `snowman_scarf` | 72x18 | RGBA | 0,0,72,18 | 0 % | 8 | yes |

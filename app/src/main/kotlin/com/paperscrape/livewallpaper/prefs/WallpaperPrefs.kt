@@ -338,6 +338,8 @@ class WallpaperPrefs(private val context: Context) {
         fun autoMode1(category: ObjectCategory) = stringPreferencesKey("obj_${category.name}_auto_mode_1")
         fun autoMode2(category: ObjectCategory) = stringPreferencesKey("obj_${category.name}_auto_mode_2")
         val HILLS_VARIATION = floatPreferencesKey("hills_variation")
+        val SNOW_PILES = floatPreferencesKey("snow_piles")
+        val LEAF_PILES = floatPreferencesKey("leaf_piles")
         val HILLS_COLOR_DAY = intPreferencesKey("hills_color_day")
         val HILLS_COLOR_NIGHT = intPreferencesKey("hills_color_night")
         val HILLS_AUTO_MODE = stringPreferencesKey("hills_auto_mode")
@@ -492,6 +494,8 @@ class WallpaperPrefs(private val context: Context) {
             easterEggs = readVariantConfig(prefs, ObjectCategory.EASTER_EGGS, defaults.easterEggs),
             pumpkins = readVariantConfig(prefs, ObjectCategory.PUMPKINS, defaults.pumpkins),
             hillsVariation = prefs[Keys.HILLS_VARIATION] ?: defaults.hillsVariation,
+            snowPiles = prefs[Keys.SNOW_PILES] ?: defaults.snowPiles,
+            leafPiles = prefs[Keys.LEAF_PILES] ?: defaults.leafPiles,
             hillsColorDay = prefs[Keys.HILLS_COLOR_DAY] ?: defaults.hillsColorDay,
             hillsColorNight = prefs[Keys.HILLS_COLOR_NIGHT] ?: defaults.hillsColorNight,
             hillsAutoMode = AutoColorMode.fromStorageId(prefs[Keys.HILLS_AUTO_MODE]),
@@ -631,6 +635,8 @@ class WallpaperPrefs(private val context: Context) {
         variant(ObjectCategory.PUMPKINS, c.pumpkins)
         this[Keys.PEOPLE_NIGHT_DENSITY] = c.peopleNightDensity
         this[Keys.HILLS_VARIATION] = c.hillsVariation
+        this[Keys.SNOW_PILES] = c.snowPiles
+        this[Keys.LEAF_PILES] = c.leafPiles
         this[Keys.HILLS_COLOR_DAY] = c.hillsColorDay
         this[Keys.HILLS_COLOR_NIGHT] = c.hillsColorNight
         for ((front, m) in listOf(true to c.mountainsFront, false to c.mountainsBack)) {
@@ -1113,6 +1119,20 @@ class WallpaperPrefs(private val context: Context) {
         it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
     }
 
+    /** Settled snow on the ground, 0..1. Winter only -- see [SceneCustomization.snowPiles]. */
+    suspend fun setSnowPiles(value: Float, forThemeId: String) =
+        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.SNOW_PILES] = value.coerceIn(0f, 1f)
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /** Heaps of fallen leaves, 0..1. Autumn only -- see [SceneCustomization.leafPiles]. */
+    suspend fun setLeafPiles(value: Float, forThemeId: String) =
+        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.LEAF_PILES] = value.coerceIn(0f, 1f)
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
     suspend fun setBirdsVisible(visible: Boolean, forThemeId: String) =
         context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.BIRDS_VISIBLE] = visible
@@ -1354,6 +1374,8 @@ class WallpaperPrefs(private val context: Context) {
         // that is supposed to clear everything.
         remove(Keys.PEOPLE_NIGHT_DENSITY)
         remove(Keys.HILLS_VARIATION)
+        remove(Keys.SNOW_PILES)
+        remove(Keys.LEAF_PILES)
         remove(Keys.HILLS_COLOR_DAY)
         remove(Keys.HILLS_COLOR_NIGHT)
         for (front in listOf(true, false)) {

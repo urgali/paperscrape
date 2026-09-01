@@ -125,6 +125,95 @@ class VehicleOccupantAbCapture {
     }
 
     /**
+     * What the two sliders actually cost, measured on the device rather than reasoned about.
+     *
+     * Renders the same scene many times at 0% and at 100% and reports both. The piles are N extra
+     * sprite blits a frame and nothing else -- no allocation, no state, no timer -- so the honest
+     * question is whether N=18 is measurable at all, and this is where that gets answered instead
+     * of asserted.
+     */
+    @Test
+    fun timeTheGroundPiles() {
+        if (!asked()) return
+        for ((label, piles) in listOf("0" to 0f, "100" to 1f)) {
+            // One warm-up pass so sprite decoding and caches are not being timed.
+            render(emptyList(), peopleDensity = 1f, winter = true, piles = piles).recycle()
+            val started = System.nanoTime()
+            for (i in 0 until TIMED_FRAMES) {
+                render(emptyList(), peopleDensity = 1f, winter = true, piles = piles, atSeconds = 100.0 + i)
+                    .recycle()
+            }
+            val perFrameMs = (System.nanoTime() - started) / 1e6 / TIMED_FRAMES
+            Log.i(TAG, "piles $label%: ${"%.2f".format(perFrameMs)} ms per frame over $TIMED_FRAMES frames")
+        }
+    }
+
+    /**
+     * The two ground-pile sliders at the three positions that matter.
+     *
+     * 0% has to draw nothing at all -- that is what makes the feature free for anyone who never
+     * turns it on -- and 100% has to still read as drifts lying on the ground rather than as a
+     * white or orange floor. Both are judgements about a picture, so this writes the pictures.
+     */
+    @Test
+    fun captureTheGroundPiles() {
+        if (!asked()) return
+        val dir = outputDir()
+        for (pct in intArrayOf(0, 50, 100)) {
+            val snow = render(emptyList(), peopleDensity = 1f, winter = true, piles = pct / 100f)
+            write(snow, dir, "piles_snow_$pct")
+            snow.recycle()
+            val leaf = render(emptyList(), peopleDensity = 1f, fall = true, piles = pct / 100f)
+            write(leaf, dir, "piles_leaf_$pct")
+            leaf.recycle()
+        }
+    }
+
+    /**
+     * Autumn, which is the only season the falling leaves exist in.
+     *
+     * Written to look at where a leaf ends up. They used to fall to one global
+     * `screenHeight * 0.88`, below both traffic lanes, so leaves from every tree crossed the
+     * hillside and settled on the road among the cars; they now stop at their own tree's foot.
+     */
+    @Test
+    fun captureAnAutumnStreet() {
+        if (!asked()) return
+        val cars = listOf(
+            car(CarType.PLAIN, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.22f),
+            car(CarType.TAXI, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.66f),
+            car(CarType.POLICE, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.32f),
+            car(CarType.FIRE_TRUCK, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.76f),
+        )
+        val dir = outputDir()
+        for (step in 0 until 4) {
+            val frame = render(cars, peopleDensity = 1f, fall = true, atSeconds = 30.0 + step * 7.0)
+            write(frame, dir, "street_autumn_$step")
+            frame.recycle()
+        }
+    }
+
+    /**
+     * The seasonal props side by side with the people, which is the only way to judge their sizes.
+     *
+     * A pumpkin, a gift, a snowman and a penguin all stand on the same ground as the pedestrians,
+     * so one frame carrying all of them is what "is the pumpkin too small?" can actually be asked
+     * of. Written when the pumpkin measured 0.5 m against a gift's 0.90 and an Easter egg's 1.00 --
+     * half the size of an egg, for a prop that is a foot across in the world.
+     */
+    @Test
+    fun captureTheSeasonalProps() {
+        if (!asked()) return
+        val dir = outputDir()
+        val plain = render(emptyList(), peopleDensity = 1f, seasonalProps = true)
+        write(plain, dir, "props_plain")
+        plain.recycle()
+        val spooky = render(emptyList(), peopleDensity = 1f, seasonalProps = true, halloween = true)
+        write(spooky, dir, "props_halloween")
+        spooky.recycle()
+    }
+
+    /**
      * The same street in winter, which is the season the `Exposure` rule is about.
      *
      * Pedestrians and the people in the cars are OUTDOORS and take the winter drawings; the
@@ -187,6 +276,11 @@ class VehicleOccupantAbCapture {
         day: Boolean = true,
         scenery: Boolean = true,
         winter: Boolean = false,
+        seasonalProps: Boolean = false,
+        halloween: Boolean = false,
+        fall: Boolean = false,
+        atSeconds: Double = 120.0,
+        piles: Float = 0f,
     ): Bitmap {
         val theme = ThemeCatalog.byId(THEME_ID)
         val defaults = defaultCustomizationFor(THEME_ID)
@@ -195,6 +289,16 @@ class VehicleOccupantAbCapture {
             people = defaults.people.copy(visible = peopleDensity > 0f, density = peopleDensity),
             peopleNightDensity = peopleDensity,
             winterColorsEnabled = winter,
+            fallColorsEnabled = fall,
+            snowPiles = if (winter) piles else 0f,
+            leafPiles = if (fall) piles else 0f,
+            halloweenEnabled = halloween,
+            pumpkins = if (seasonalProps) defaults.pumpkins.copy(visible = true, density = 1f) else defaults.pumpkins,
+            gifts = if (seasonalProps) defaults.gifts.copy(visible = true, density = 1f) else defaults.gifts,
+            snowmen = if (seasonalProps) defaults.snowmen.copy(visible = true, density = 1f) else defaults.snowmen,
+            penguins = if (seasonalProps) defaults.penguins.copy(visible = true, density = 1f) else defaults.penguins,
+            bunnies = if (seasonalProps) defaults.bunnies.copy(visible = true, density = 1f) else defaults.bunnies,
+            easterEggs = if (seasonalProps) defaults.easterEggs.copy(visible = true, density = 1f) else defaults.easterEggs,
         )
         // The theme's own scenery, read before the override goes in so it is the catalogue's and
         // not the one this method is about to install.
@@ -226,7 +330,7 @@ class VehicleOccupantAbCapture {
             renderer.scrollSpeed = 0f
             renderer.parallaxStrength = 1f
             val phase = if (day) SunPositionCalculator.compute(hour24 = 13f) else SunPositionCalculator.compute(hour24 = 1f)
-            renderer.draw(target, phase, SceneTime(120.0), 0f)
+            renderer.draw(target, phase, SceneTime(atSeconds), 0f)
             target.unbind()
             return bitmap
         } finally {
@@ -381,6 +485,7 @@ class VehicleOccupantAbCapture {
 
         /** Mid-screen, for a single vehicle. */
         const val PROGRESS_CENTRE = 0.5f
+        const val TIMED_FRAMES = 40
 
         /** `drawCar`'s own off-screen margin, which its x mapping is expressed against. */
         const val CAR_MARGIN = 120f

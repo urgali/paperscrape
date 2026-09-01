@@ -529,8 +529,21 @@ object SceneSpace {
          * the same reason -- see [BUNNY]. */
         EASTER_EGG(1f, 40f),
 
-        /** A prize pumpkin, measured over the stem. */
-        PUMPKIN(0.5f, 42f),
+        /**
+         * A prize pumpkin, measured over the stem.
+         *
+         * **0.5 m through v4.15, 0.85 in v4.16, 1.0 here, and each step was a device pass rather
+         * than a calculation.** At 0.5 it was half an [EASTER_EGG] and read on a OnePlus 6T as an
+         * orange bead beside the gifts and the snowmen; 0.85 was reported as still small. 0.85,
+         * 1.00 and 1.10 were then rendered side by side on the phone with a gift, a snowman, a
+         * penguin and an egg in the same frame: **1.10 stands in front of the penguin and hides
+         * it**, and 1.00 reads as a pumpkin while leaving its neighbours alone. Level with the egg
+         * is where it belongs -- both are decorative props of about the same bulk.
+         *
+         * `SceneSpaceTest` holds the floor (not smaller than a gift or a bunny) and the ceiling
+         * (shorter than a penguin) so it cannot drift back down.
+         */
+        PUMPKIN(1.0f, 42f),
         ;
 
         /** The scale this variant is drawn at when it stands on [REFERENCE_Y_FRACTION]. */

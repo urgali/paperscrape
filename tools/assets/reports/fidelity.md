@@ -15,7 +15,7 @@ absolute threshold asks small sprites for more precision than large ones.
 
 | Verdict | Sprites |
 |---|---|
-| `PIXEL_IDENTICAL` | 125 |
+| `PIXEL_IDENTICAL` | 128 |
 | `EDGE_EQUIVALENT` | 0 |
 | `DIVERGENT` | 0 |
 
@@ -59,6 +59,7 @@ absolute threshold asks small sprites for more precision than large ones.
 | `house_small_wall` | 288x210 | 1.000000 | 0.0000 | 0 | 0 / 60480 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `house_window` | 66x66 | 1.000000 | 0.0000 | 0 | 0 / 4356 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `house_window_lit` | 66x66 | 1.000000 | 0.0000 | 0 | 0 / 4356 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `leaf_pile` | 108x21 | 1.000000 | 0.0000 | 0 | 0 / 2268 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `lightning_bolt` | 90x252 | 1.000000 | 0.0000 | 0 | 0 / 22680 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `moon_crescent` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `moon_full` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
@@ -110,8 +111,9 @@ absolute threshold asks small sprites for more precision than large ones.
 | `person_woman_winter_walk1` | 123x255 | 1.000000 | 0.0000 | 0 | 0 / 31365 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `person_woman_winter_walk2` | 123x255 | 1.000000 | 0.0000 | 0 | 0 / 31365 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `police_lightbar` | 60x18 | 1.000000 | 0.0000 | 0 | 0 / 1080 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `police_stripe` | 204x39 | 1.000000 | 0.0000 | 0 | 0 / 7956 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `police_stripe` | 204x27 | 1.000000 | 0.0000 | 0 | 0 / 5508 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `pumpkin_body` | 114x90 | 1.000000 | 0.0000 | 0 | 0 / 10260 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `pumpkin_face` | 114x90 | 1.000000 | 0.0000 | 0 | 0 / 10260 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `pumpkin_stem` | 18x36 | 1.000000 | 0.0000 | 0 | 0 / 648 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `rainbow_arc` | 594x297 | 1.000000 | 0.0000 | 0 | 0 / 176418 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `restaurant_awning` | 204x30 | 1.000000 | 0.0000 | 0 | 0 / 6120 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
@@ -133,6 +135,7 @@ absolute threshold asks small sprites for more precision than large ones.
 | `skyscraper_setback` | 180x96 | 1.000000 | 0.0000 | 0 | 0 / 17280 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `skyscraper_wall` | 270x450 | 1.000000 | 0.0000 | 0 | 0 / 121500 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `skyscraper_wall_lit` | 237x300 | 1.000000 | 0.0000 | 0 | 0 / 71100 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `snow_pile` | 108x21 | 1.000000 | 0.0000 | 0 | 0 / 2268 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `snowman_body` | 114x222 | 1.000000 | 0.0000 | 0 | 0 / 25308 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `snowman_nose` | 39x12 | 1.000000 | 0.0000 | 0 | 0 / 468 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `snowman_scarf` | 72x18 | 1.000000 | 0.0000 | 0 | 0 / 1296 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
