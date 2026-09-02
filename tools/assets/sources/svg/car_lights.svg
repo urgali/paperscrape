@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="282" height="18" viewBox="-45.7 2.4 94 6">
+<!--
+  The saloon's lamps, lit; cropped to the two lamps as before, registered by arithmetic: the shell
+  is now authored in local coordinates with its viewBox minimum as its blit origin, and this
+  overlay does the same, so CAR_LIGHTS_X/Y are simply this viewBox's own minimum. Each lamp is a
+  shade smaller than the housing it lands on, so the dark surround survives at night.
+-->
+  
+<rect x="-44.8" y="3.3" width="6.6" height="3.6" rx="1.5" fill="#FFF0BE"></rect>
+        <rect x="43.2" y="4.2" width="4.2" height="3" rx="1" fill="#E8503C"></rect>
+</svg>

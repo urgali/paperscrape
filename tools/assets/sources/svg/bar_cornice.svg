@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="48" viewBox="0 0 100 16">
+<!--
+  The pub's crown: an oversailing cornice with a raised pier at each corner and a name plate
+  between them. Chosen on the concept sheet against the old stepped false front and a Dutch gable:
+  the piers are the classic pub-front profile, they are different from the trattoria's bow at
+  silhouette level, and they survive scene scale where the gable's curves smudged.
+
+  Blitted at (-50,-108): piers from -108 down to the wall top at -92, band -100..-94 between
+  them, plate riding to -105.
+-->
+  
+<rect x="0" y="8" width="100" height="6" rx="1" fill="#e0e0e0"></rect>
+        <rect x="0" y="8" width="100" height="1.8" fill="#f2f2f2"></rect>
+        <rect x="0" y="0" width="12" height="16" rx="1" fill="#d6d6d6"></rect>
+        <rect x="0" y="0" width="12" height="2" fill="#e9e9e9"></rect>
+        <rect x="88" y="0" width="12" height="16" rx="1" fill="#d6d6d6"></rect>
+        <rect x="88" y="0" width="12" height="2" fill="#e9e9e9"></rect>
+        <rect x="36" y="3" width="28" height="7" rx="1.4" fill="#ebebeb"></rect>
+        <rect x="36" y="3" width="28" height="1.6" fill="#f6f6f6"></rect>
+</svg>

@@ -17,8 +17,19 @@ import kotlin.math.sin
  * part that genuinely varies frame to frame -- where the scroll currently is.
  */
 data class GroundGeometry(
-    val shiftXWrapped: Float, // parallax shift, wrapped using a *screen-width* period (see PaperRenderer.drawHillLayers)
-    val tileWidth: Float,     // screen width -- objects' own tiling period, decoupled from the hill's wider one
+    val shiftXWrapped: Float, // parallax shift, shared verbatim with the hills (see PaperRenderer.drawHillLayers)
+    val tileWidth: Float,     // the objects' tiling period: twice the screen width, same as the hills'
+    /**
+     * How many whole tiles the wrap has removed from the raw parallax shift:
+     * `round((shiftUnwrapped - shiftXWrapped) / tileWidth)`.
+     *
+     * rc2, for the falling leaves. A tile copy's loop index is relative to the *wrapped* shift,
+     * so the moment the wrap crosses a period boundary every visible copy's index steps by one --
+     * and anything keyed off that index (a tree copy's own leaves) would be re-dealt mid-scroll.
+     * `tileIndex - scrollTileBias` is constant for a physical copy for as long as it exists, so
+     * it is the copy half of [SceneObjectRenderer.leafSourceId].
+     */
+    val scrollTileBias: Int = 0,
 )
 
 private class StaticRuntime(val spec: StaticSceneObject) {
@@ -167,12 +178,15 @@ class SceneObjectRenderer(
                     SceneSpace.SceneVariant.HOUSE_SMALL
                 }
             // A tower belongs on the skyline and a shop front among the houses, so the choice is
-            // made by depth rather than by a hash of the horizontal position. Restaurant and bar
-            // are interchangeable at any depth, so those two still split on the position hash.
+            // made by depth rather than by a hash of the horizontal position — and since rc3 the
+            // restaurant/bar split is by depth too (see SceneSpace.SHOP_VARIANT_DEPTH_SPLIT): the
+            // old position hash made a shop's identity a function of where its jitter landed it,
+            // which is how rc2 delivered two identical trattorias in one screen. Depth never
+            // changes after generation, so the identity survives the visibility pass's x moves.
             SceneObjectType.SKYSCRAPER ->
                 if (spec.depthFraction < SceneSpace.BUILDING_TOWER_MAX_DEPTH) {
                     SceneSpace.SceneVariant.TOWER
-                } else if (kotlin.math.abs((spec.tileFractionX * 5237f).toInt()) % 2 == 0) {
+                } else if (spec.depthFraction < SceneSpace.SHOP_VARIANT_DEPTH_SPLIT) {
                     SceneSpace.SceneVariant.RESTAURANT
                 } else {
                     SceneSpace.SceneVariant.BAR
@@ -231,6 +245,97 @@ class SceneObjectRenderer(
         const val LARGE_HOUSE_WINDOWS = 4
         const val BAR_WINDOWS = 3
         const val RESTAURANT_WINDOWS = 2
+
+        /**
+         * The restaurant's first-floor openings, and the canopy and sign over its shop front.
+         *
+         * `house_shared_window` is 22 x 21 units, so the pair sits clear of the 34-unit sign
+         * between them; the wall's own upper storey runs from -96 to -60, which is what the y is
+         * measured against. The awning's canvas is 68 x 10 units and the frontage it caps runs
+         * from the glass at -35 to the far edge of the door at 26, so -40 starts it a whisker
+         * outside the glass and it ends two units past the door.
+         */
+        const val RESTAURANT_UPPER_WINDOW_LEFT_X = -42f
+        const val RESTAURANT_UPPER_WINDOW_RIGHT_X = 20f
+        const val RESTAURANT_UPPER_WINDOW_Y = -82f
+
+        /**
+         * The trattoria frontage, stacked top to bottom: fascia board (with the emblem badge
+         * standing proud of it), canopy, then the glass and the door the canopy shades.
+         *
+         * The fascia canvas is 92 x 13 units with the board in its bottom 8, so blitting it at
+         * -66 puts the board at -61..-53 and the badge tip at -66, clear of the upper windows
+         * that end at -61. The awning canvas is 92 x 9 with the scallop lobes at its bottom edge,
+         * so -53 hangs the lobes to -44, one unit over the glass at -45 -- a canopy over a
+         * window, drawn after the glass for the reason recorded in v4.18. The planters flank the
+         * door on the ground line; the right one slips two units under the door's own frame and
+         * the door is drawn after it.
+         */
+        const val RESTAURANT_AWNING_X = -46f
+        const val RESTAURANT_AWNING_Y = -53f
+        const val RESTAURANT_SIGN_X = -46f
+        const val RESTAURANT_SIGN_Y = -66f
+        const val RESTAURANT_PLANTER_LEFT_X = -42f
+        const val RESTAURANT_PLANTER_RIGHT_X = 24f
+        const val RESTAURANT_PLANTER_Y = -6f
+
+        /**
+         * The coronation that makes the two shops read as shops before their signs are read.
+         *
+         * A house in this library is a rectangle with a pitched roof, a tower is a rectangle with a
+         * setback and a mast, and a shop was a rectangle: at silhouette level "commercial" was
+         * indistinguishable from "unfinished". These are blitted above the wall the way the tower's
+         * mast is, so neither building's declared height moves -- `SceneVariant` still measures the
+         * wall it draws, and the cap hangs over the top of it the way the sign hangs off the front.
+         *
+         * The two are deliberately different shapes: one raised block over the restaurant, a
+         * stepped false front over the bar. Two buildings that read as commercial, and as two
+         * different businesses, from the outline alone.
+         */
+        const val RESTAURANT_CORNICE_X = -55f
+        const val RESTAURANT_CORNICE_Y = -108f
+        const val BAR_CORNICE_X = -50f
+        const val BAR_CORNICE_Y = -108f
+
+        /**
+         * The bar's street-level glazing and the height its sign hangs at.
+         *
+         * The panes are the restaurant's frontage drawable -- one shop-window drawing shared by
+         * the two shops, the same argument that already has both of them sharing a house's window
+         * upstairs. 30 units wide each, either side of the 20-unit door at -10..10, inside a wall
+         * that runs -45..45.
+         */
+        /**
+         * The pub frontage: a painted field the renderer draws as two rectangles, with the
+         * fascia, the panes, the door and the corner lantern packed across its 86 units.
+         *
+         * The field is primitive paint rather than a sprite for two reasons: a flat colour field
+         * is exactly what a drawRect is for, and being renderer paint lets it darken with the
+         * night the way the tinted walls around it do -- a fixed-art texture would glow pale at
+         * midnight. The row packs exactly: lantern -43..-37, pane -37..-7, door -7..13, pane
+         * 13..43, against the field's own -43..43.
+         */
+        const val BAR_FRONT_FIELD_LEFT_X = -43f
+        const val BAR_FRONT_FIELD_RIGHT_X = 43f
+        const val BAR_FRONT_FIELD_TOP_Y = -53f
+        const val BAR_FRONT_EDGE_HEIGHT = 1.6f
+        val BAR_FRONT_DAY = 0xFF3E5F4E.toInt()
+        val BAR_FRONT_NIGHT = 0xFF243A2D.toInt()
+        val BAR_FRONT_EDGE_DAY = 0xFF33503F.toInt()
+        val BAR_FRONT_EDGE_NIGHT = 0xFF1D2F25.toInt()
+        const val BAR_FRONT_PANE_LEFT_X = -37f
+        const val BAR_FRONT_PANE_RIGHT_X = 13f
+        const val BAR_FRONT_PANE_Y = -45f
+        const val BAR_DOOR_X = -7f
+        const val BAR_SIGN_X = -41f
+        const val BAR_SIGN_Y = -61f
+        const val BAR_LANTERN_X = -43f
+        const val BAR_LANTERN_Y = -51f
+
+        /** Where the lantern's glass is, for the glow the renderer stands behind it at night. */
+        const val BAR_LANTERN_GLOW_X = -40f
+        const val BAR_LANTERN_GLOW_Y = -46f
+        const val BAR_LANTERN_GLOW_RADIUS = 5.5f
         /**
          * Cool glass by day, warm light at night: the two ends every window in the scene
          * crossfades between, on the scene's own `nightGlow`.
@@ -323,6 +428,158 @@ class SceneObjectRenderer(
         const val FIRE_TRUCK_HALF_WIDTH_UNITS = 49f
 
         /**
+         * Where a vehicle's wheels touch the road, in the local space [drawCar] establishes.
+         *
+         * Every vehicle is drawn from a frame whose origin sits 37 units above the tarmac, because
+         * the redrawn artwork puts the wheel bottom at y=37 (centre 28 + radius 9) rather than at
+         * y=0 the way every static object does. That shift is what lets the sprites keep their
+         * authored coordinates; the cost is that **y=0 is the beltline here, not the ground**, and
+         * anything that belongs on the road has to say so.
+         *
+         * It was not said once: `drawGroundShadow` draws its oval centred on the origin, so the
+         * shadow of every car, taxi, police car and fire engine was painted 37 units up, level
+         * with the bonnet. The oval is 80 units wide against a 97-unit body, so it should have
+         * been hidden -- but at that height the body is not there yet (the bonnet's top edge is at
+         * y=14 and the boot's at y=17), and the two ends of the oval came out over the bonnet and
+         * over the boot as a pair of brown smears. On every vehicle, in every lane, in every
+         * theme, since the artwork was redrawn.
+         */
+        const val VEHICLE_GROUND_Y_UNITS = 37f
+
+        /**
+         * The roof of the sedan silhouette, read off `car_body`: the flat run at the top of the
+         * cabin, which is the only part of the shell a roof-mounted accessory can stand on.
+         *
+         * The light bar was blitted at -11, so it spanned -11..9 on a roof that spans -3..20: it
+         * overhung the windscreen by eight units and left eleven units of bare roof behind it,
+         * which is what made it read as stuck on rather than mounted. Centring it is
+         * [POLICE_LIGHTBAR_X_UNITS], and `VehicleAndShopFrontTest` measures the roof off the
+         * shipped artwork and fails if the bar ever leaves it again.
+         */
+        /**
+         * Where the redrawn shell is blitted: its SVG is authored in local scene coordinates, so
+         * the blit origin is the viewBox minimum, stated here once.
+         */
+        const val CAR_BODY_X_UNITS = -46.5f
+        const val CAR_BODY_Y_UNITS = -13f
+
+        /**
+         * rc5: the cabin lengthened forward, so the flat run did too. The roof's front corner
+         * moved from -4.5 to -18.5 in `car_body.svg` and the rear corner did not move at all;
+         * `VehicleAndShopFrontTest` measures the run off the shipped artwork (it comes out at
+         * -19.83..22.17 with the shell's stroke) and fails if either declared end leaves it.
+         * The light bar and the taxi sign are centred on this pair, so both moved forward with
+         * the roof by arithmetic rather than by a second edit.
+         */
+        const val CAR_ROOF_FRONT_X_UNITS = -18.5f
+        const val CAR_ROOF_REAR_X_UNITS = 20f
+
+        /**
+         * Where the wheels go, per family, because the two families are different vehicles.
+         *
+         * They were both drawn at 38, which on the saloon put the wheel centres ten and eleven
+         * units from the ends of a 97-unit car: no overhang at either end, which is half of why it
+         * read as a slab. The redrawn shell cuts an arch over each wheel and moves them to 33,
+         * buying fifteen units in front and sixteen behind. The appliance keeps 38, where its own
+         * chassis bar and its own length put them.
+         */
+        const val CAR_WHEEL_X_UNITS = 34f
+        const val FIRE_TRUCK_WHEEL_X_UNITS = 37f
+
+        /**
+         * The inner wheel of the rear pair. A twin rear axle is the one silhouette cue that says
+         * heavy vehicle and nothing else at scene scale, and it was chosen on the device against
+         * two chassis-arch concepts that broke the frame bar a truck visibly rides on.
+         *
+         * rc2 moved it from 28.5 to 13.5. At 28.5 the two rear centres were 8.5 units apart on
+         * 20-unit wheels: an overlap of 40% of the diameter, so the inner wheel read as a
+         * crescent of tyre with its hub eaten -- two wheels drawn, one visible. A real tandem
+         * stands at 1.15-1.3 diameters with daylight between the tyres; 13.5 puts the centres at
+         * 23.5 units, 1.175 diameters, with a 3.5-unit gap. The wheels are no longer drawn
+         * overlapping, and `TwinAxleSpacingTest` measures the spacing off the rendered PNG --
+         * the presence-only test this replaces is exactly how the overlap shipped.
+         */
+        const val FIRE_TRUCK_INNER_WHEEL_X_UNITS = 13.5f
+
+        /**
+         * The tyre, and the hub ring inside it.
+         *
+         * The appliance's wheel is bigger than the saloon's, which is the other half of what stops
+         * it reading as a large car; the ratio between hub and tyre is the same for both, because
+         * that is the treatment and not the size. Whatever the radius, the centre sits exactly one
+         * radius above [VEHICLE_GROUND_Y_UNITS], so a wheel of any size touches the same road.
+         */
+        const val CAR_WHEEL_RADIUS_UNITS = 11f
+        const val FIRE_TRUCK_WHEEL_RADIUS_UNITS = 10f
+        const val WHEEL_HUB_RATIO = 5.5f / 9f
+
+        /**
+         * The livery band on the doors, for the police car and the taxi.
+         *
+         * 68 units ran from x=16 to x=84 in the shell's own coordinates, which is straight through
+         * both of the arches the shell now has cut out of it: the ends of the band would have hung
+         * over the holes with nothing behind them but road. 44 units is the run between the arches
+         * with a unit and a half of clearance at each end.
+         */
+        const val CAR_LIVERY_WIDTH_UNITS = 44f
+        const val CAR_LIVERY_X_UNITS = -CAR_LIVERY_WIDTH_UNITS / 2f
+
+        /** `taxi_sign` is 42x18 px: 14 x 6 local units, centred on the roof like the light bar. */
+        const val TAXI_SIGN_WIDTH_UNITS = 14f
+        const val TAXI_SIGN_X_UNITS =
+            (CAR_ROOF_FRONT_X_UNITS + CAR_ROOF_REAR_X_UNITS - TAXI_SIGN_WIDTH_UNITS) / 2f
+        const val TAXI_SIGN_Y_UNITS = -19f
+
+        /**
+         * The lit parts of a vehicle, in the local units their unlit artwork already occupies.
+         *
+         * Each is the inside of a shape that is drawn whatever the hour: the two halves of the
+         * police bar, the taxi sign's box, the appliance's headlight. Painting inside them at night
+         * costs one rectangle each and nothing at all by day.
+         */
+        const val POLICE_LAMP_TOP_Y_UNITS = -16.6f
+        const val POLICE_LAMP_BOTTOM_Y_UNITS = -12.9f
+        const val POLICE_LAMP_RED_LEFT_X = -2.4f
+        const val POLICE_LAMP_RED_RIGHT_X = 6f
+        const val POLICE_LAMP_BLUE_LEFT_X = 8f
+        const val POLICE_LAMP_BLUE_RIGHT_X = 16.4f
+
+        const val TAXI_SIGN_BOX_LEFT_X = TAXI_SIGN_X_UNITS + 1.4f
+        const val TAXI_SIGN_BOX_RIGHT_X = TAXI_SIGN_X_UNITS + 12.6f
+        const val TAXI_SIGN_BOX_TOP_Y = TAXI_SIGN_Y_UNITS + 0.4f
+        const val TAXI_SIGN_BOX_BOTTOM_Y = TAXI_SIGN_Y_UNITS + 4.4f
+
+        const val FIRE_TRUCK_HEADLIGHT_LEFT_X = -44.6f
+        const val FIRE_TRUCK_HEADLIGHT_RIGHT_X = -37f
+        const val FIRE_TRUCK_HEADLIGHT_TOP_Y = 14.4f
+        const val FIRE_TRUCK_HEADLIGHT_BOTTOM_Y = 18f
+
+        /**
+         * Where `car_lights` is blitted: `car_body`'s origin plus the offset between the two
+         * viewBoxes, which is what makes the lit lamps land on the unlit patches by arithmetic
+         * rather than by a remembered pair of numbers: five units across and fourteen and a half
+         * down from the shell's own origin, which is where `car_lights.svg`'s viewBox starts.
+         */
+        const val CAR_LIGHTS_X_UNITS = -45.7f
+        const val CAR_LIGHTS_Y_UNITS = 2.4f
+
+        /** What a lamp is when it is lit. Warm for a headlight, saturated for a beacon. */
+        const val HEADLIGHT_LIT = 0xFFFFF0BE.toInt()
+        const val TAXI_SIGN_LIT = 0xFFFFE9A8.toInt()
+        val BEACON_RED_LIT = 0xFFFF6A57.toInt()
+        val BEACON_BLUE_LIT = 0xFF6E9BFF.toInt()
+
+        /** `police_lightbar` is 60x18 px: 20 x 6 local units. */
+        const val POLICE_LIGHTBAR_WIDTH_UNITS = 20f
+
+        /** The blit origin that centres the light bar on [CAR_ROOF_FRONT_X_UNITS]..[CAR_ROOF_REAR_X_UNITS]. */
+        const val POLICE_LIGHTBAR_X_UNITS =
+            (CAR_ROOF_FRONT_X_UNITS + CAR_ROOF_REAR_X_UNITS - POLICE_LIGHTBAR_WIDTH_UNITS) / 2f
+
+        /** The light bar's own height, so its base sits on the roof line rather than through it. */
+        const val POLICE_LIGHTBAR_Y_UNITS = -19f
+
+        /**
          * The flat margin REN-06 replaced, kept as a floor so the current picture does not move.
          *
          * At the reference viewport the derived margin is smaller than this, so this is what is
@@ -341,52 +598,51 @@ class SceneObjectRenderer(
          */
         const val WINDOW_OCCUPANT_DIVISOR_UNITS = 60f
 
-        const val CAR_GLASS_ORIGIN_X_UNITS = -20f
-        const val CAR_GLASS_ORIGIN_Y_UNITS = -6f
-
-        /** `car_window` is 138x48 px: 46 x 16 local units of authored artwork. */
-        const val CAR_GLASS_SPRITE_HEIGHT_UNITS = 16f
+        /**
+         * The window busts' CONTENT_BOTTOM_CENTRE anchor, in their own 53x57-unit canvas: the
+         * midpoint of the eight heads' declared x, and the canvas bottom. Buildings only since
+         * rc2; the vehicles' profile family carries its own anchor below.
+         */
+        const val WINDOW_HEAD_ANCHOR_X_UNITS = 26.8f
+        const val WINDOW_HEAD_ANCHOR_Y_UNITS = 57f
 
         /**
-         * How tall the glass is actually drawn, after v4.6's stretch and v4.15's.
+         * The greenhouse, cut to the cabin rather than to a straight trapezoid.
          *
-         * The extra units go **downward**: `car_body`'s roof runs at y=-11 and the glass already
-         * sits 5 units below it, so there is no room upward, while below the sill the artwork is
-         * flat body colour until the beltline at y=18.
+         * rc5 lengthened the pane 42 -> 47 units to seat two people, and the two busts came out
+         * **touching**: 47 units hold two 18.08-unit heads only if they overlap, and a driver
+         * whose hair is cut by the passenger's reads as one mass with two faces.
          *
-         * **Unchanged in v4.16, deliberately.** The report that release answers is about the people
-         * in the cars, not about the cars, so the pane keeps the exact height v4.15 shipped and the
-         * sill stays at 14.716 with `police_stripe` and `taxi_checker` on it. The occupants are the
-         * only thing that moves, which is also what makes the golden diff readable: every pixel
-         * that changes is a bust.
-         *
-         * The expression is kept as the *provenance* of the number rather than as a live
-         * derivation. v4.6 stretched the authored 16 to 19, and v4.15 multiplied that by 169/155 --
-         * the ratio between a window head family's tallest member and its old representative --
-         * because the bust filled the pane exactly and the tallest winter hat therefore stood over
-         * the roof. [OCCUPANT_HEAD_PANE_SHARE] removes that coupling: a head now takes 51.9% of
-         * whatever pane it is behind, so nothing can reach the roof line and 169/155 no longer
-         * describes anything. It is written this way so the value stays bit-identical to what
-         * shipped; the meaning is only the history.
-         *
-         * **Enlarging the pane, and enlarging the vehicle, were both rendered on a OnePlus 6T
-         * rather than argued about.** Neither helps, and the reason is the same in both cases: an
-         * occupant is blitted *inside* the car's own `scale(vehicleScale)` and its bust was scaled
-         * *from this constant*, so
-         *
-         *  - a bigger vehicle scales the occupant with it -- head-over-car and head-over-pane come
-         *    out at 31.3% and 72.6% at 1.45 m and at 1.75 m alike -- while a near-lane roof, which
-         *    already stands 30 px above the carriageway's own edge, stands 44 at 1.75 m;
-         *  - a bigger pane scaled the bust with it too, so at 23 units the occupants came out
-         *    *larger still* (34.7% of the vehicle) and the taxi chequer dropped onto the wheels.
-         *
-         * With [OCCUPANT_HEAD_PANE_SHARE] the coupling is gone, and a 23-unit pane was rendered
-         * again on that footing: the occupants are then right but the car reads as a van, because
-         * the glass runs to within a unit of the beltline and leaves almost no door. So the pane
-         * stays exactly as v4.15 shipped it, the vehicle stays 1.45 m, and the occupant is the only
-         * thing this release moves.
+         * The room to separate them was already in the shell. rc5's pane was a straight
+         * trapezoid inside a curved cabin, so the A-pillar carried about 15 units of spare mass
+         * at the beltline while the pane was only 43.2 units wide where the heads are widest.
+         * This pane is inset 1.8 units from `car_body`'s own opaque edge at every row instead --
+         * 42.3 units at the roof line opening to 54 by the beltline, held from there to the
+         * sill -- and **`car_body` is not touched**: same nose, tail, cowl, roof, beltline,
+         * spear, lamps, arches and wheels, same 21 units of bonnet. Only the hole cut in the car
+         * changed, and `VehicleAndShopFrontTest` hashes the shell to keep it that way.
          */
-        const val CAR_GLASS_HEIGHT_UNITS = 19f * 169f / 155f
+        const val CAR_GLASS_ORIGIN_X_UNITS = -24f
+
+        /** The pane is the sprite's own width, derived so the two cannot drift apart. */
+        const val CAR_GLASS_WIDTH_UNITS = 162f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+
+        /**
+         * rc2: the glasshouse grew for occupants sized off the height table. The top rises from
+         * -9 to -11 (two units of roof band remain over the flat roof at -13, and the corners
+         * stay inside the shell's own rakes -- measured along the shell paths before the sprite
+         * was drawn) and the beltline drops from 10 to 12, leaving three units of painted door
+         * above the arch tops at 15. See [CAR_OCCUPANT_SCALE] for why 23 units is the number.
+         */
+        const val CAR_GLASS_ORIGIN_Y_UNITS = -11f
+
+        /** `car_window` is 162x69 px: 54 x 23 local units, authored at the size it is drawn. */
+        const val CAR_GLASS_SPRITE_HEIGHT_UNITS = 23f
+
+        /**
+         * rc2: authored at drawn size, like v4.20 before it -- only the authored size changed.
+         */
+        const val CAR_GLASS_HEIGHT_UNITS = CAR_GLASS_SPRITE_HEIGHT_UNITS
 
         /** The vertical stretch [drawCar] applies to the glass blit. Width is untouched. */
         const val CAR_GLASS_Y_SCALE = CAR_GLASS_HEIGHT_UNITS / CAR_GLASS_SPRITE_HEIGHT_UNITS
@@ -395,165 +651,200 @@ class SceneObjectRenderer(
         const val CAR_SILL_Y_UNITS = CAR_GLASS_ORIGIN_Y_UNITS + CAR_GLASS_HEIGHT_UNITS
 
         /**
-         * The content height of `person_*_head_car`, in local units, measured off the artwork.
-         *
-         * All four are 120x147 px -- 40x49 units. The canvas gained a unit at the top in the
-         * SCL-01 pass: `normalize.py` defines these four as a co-registered group whose "members
-         * must share a canvas" because one origin serves them all, and the two winter heads had
-         * headwear cut flat by the old 144 px box. Every member grew, so the group still shares
-         * one canvas and this file still needs one anchor.
-         *
-         * The alpha box is 143 px for the summer pair and 146 for the winter one, which carries its
-         * bobble, and **143 is the representative rather than the maximum -- deliberately, and at a
-         * measured price.**
-         *
-         * The consequence is real: the two winter heads draw 146/143 of the glass, so a beanie
-         * stands **1 px above a 27 px window** on a OnePlus 6T at the near lane, painted on the
-         * roof. Raising this to 146 removes that exactly (measured on the phone, 0 px) -- and costs
-         * more than it buys. At 146 a near-lane driver's face measures **14 px against the nearest
-         * pedestrian's 15**, which fails `VehicleOccupantScaleTest`'s rule that the nearer person is
-         * never drawn smaller: the v4.6 defect this whole family of scales exists to prevent.
-         *
-         * So the scale is at an optimum with no slack in it, and the 1 px is the cheaper side of the
-         * trade. What is actually oversized is the winter *headwear*, not the head: see
-         * [WINDOW_HEAD_CONTENT_UNITS] for the same conclusion reached at three times the magnitude,
-         * and for what closing it properly would cost.
-         *
-         * **The two winter heads also touch the canvas left and right, and that is not the same
-         * defect -- do not "finish the job" by widening this canvas too.** Measured against the
-         * padded render: the top overflow that SCL-01 fixed was 41 and 38 opaque pixels reaching
-         * 3 px past the edge, a bobble genuinely cut flat. What remains sideways is 15 opaque
-         * pixels in a sliver **2 px** wide, which is the outline stroke's own half-width clipped
-         * where the artwork meets the frame -- the same thing `car_body` has (104 px left, 94
-         * right), `tree_canopy` (1 px either side) and roughly twenty more sprites across the
-         * library, summer and winter alike. The summer heads show none of it only because their
-         * hair stops short of the edge.
-         *
-         * Widening the family for it would recover a 2 px outline sliver on two members, pad the
-         * other two with transparent margin, and leave every other sprite in the library with the
-         * identical condition. That is not closing this finding; it is opening a library-wide one
-         * that nobody has asked for.
+         * The head part of a window bust, in its own local units: hair crown down to the neck.
+         * Still what the house, shop and tower occupants are proportioned by; the vehicles no
+         * longer share it (see below).
          */
-        const val CAR_HEAD_CONTENT_UNITS = 146f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
-
-        /**
-         * The representative content height of `person_*_head_window` -- **and it is known to be
-         * the wrong kind of number.**
-         *
-         * All eight share a 159x171 canvas, which `normalize.py` requires, but their alpha boxes do
-         * not agree: 146 px (`girl_summer`) to 169 px (`woman_winter`). One number has to serve all
-         * eight, and which one it is decides what happens to the members it does not describe. The
-         * scale is `glass height / this`, so the member whose content *is* this number fills the
-         * glass exactly and **anything taller is drawn taller than the glass** -- pinned at the
-         * sill, excess upward, over the roof, nothing clipping it.
-         *
-         * Measured on a OnePlus 6T at the near lane, winter: the woman's bobble hat stands **3 px
-         * above a 27 px window**, painted onto the car's roof; the man's beanie is 1 px out. That
-         * is the "the head comes out of the window" report, and it is real.
-         *
-         * **It is left at 155 pending a decision, not out of ignorance.** Three ways to close it
-         * were tried and measured:
-         *  - `169`, the family maximum: removes the overflow completely (verified on the phone,
-         *    0 px) but scales every passenger down 8.3%, which drops a passenger's head to 68.3% of
-         *    a pedestrian's against the 70-90% band `VehiclePedestrianScaleTest` defends. That band
-         *    is a design judgement, so trading it is the maintainer's call, not this file's.
-         *  - Correcting the artwork so the family agrees: the group's shared canvas then carries
-         *    9 px of dead margin, `normalize` requires all 32 files re-cropped and this anchor moved
-         *    with them, and re-encoding the group makes six sprites byte-identical to their own skin
-         *    variants -- which they always were in pixels, hidden by compression noise. `validate`
-         *    rejects that and the registry's vocabulary (`DISTINCT` / `IDENTICAL_GAP`) has no way to
-         *    say "identical on purpose". A 3 px fix should not need a registry model change.
-         *  - Making the glass taller: there is no room. See [CAR_GLASS_HEIGHT_UNITS].
-         *
-         * `OccupantHeadFitTest` pins the overflow at its measured 1.72 units so it cannot grow while
-         * the decision is open. [CAR_HEAD_CONTENT_UNITS] had the same defect and *was* fixed, because
-         * there the maximum costs nothing.
-         */
-        const val WINDOW_HEAD_CONTENT_UNITS = 169f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
-
-        /** The head part of either bust, in its own local units: hair crown down to the neck. */
-        const val CAR_HEAD_HEAD_UNITS = 106f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
         const val WINDOW_HEAD_HEAD_UNITS = 110f / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
 
         /**
-         * The share of the pane a **head** takes, anywhere in the scene one is seen through glass.
-         *
-         * Not a new number: it is what `drawWindowOccupant` has drawn house, shop and tower
-         * occupants at since v4.2, read back out of the expression that produces it. A house pane
-         * is 22 units square and the bust is scaled by `winW * 0.85 / 60`, so the head part of it
-         * -- [WINDOW_HEAD_HEAD_UNITS] -- comes out at `0.85 * 36.667 / 60` of the pane: **51.9%,
-         * with the rest of the pane glass.**
-         *
-         * v4.6 gave the car a different rule, *a bust's content is exactly as tall as the glass*.
-         * That is 100% of the pane, so a head filled 72.6% of its window and touched the roof line
-         * by construction, on every vehicle and at every depth; v4.15 then stretched the pane and
-         * scaled the bust with it. Measured against the vehicle rather than the pane, the same head
-         * sprite was 31.3% of a sedan's height and 14.9% of a fire engine's.
-         *
-         * **The head is the anchor rather than the bust**, because the two bust families do not
-         * carry the same amount of head: 106 px of 146 for a driving head, 110 of 169 for a window
-         * one. Matching busts leaves the driver's head noticeably the larger; matching heads is
-         * what makes a driver, a passenger, a fire engine's crew and somebody at an upstairs window
-         * all read at one proportion. Each family's scale is therefore its own pane's share over
-         * its own head height, and nothing here is tuned per sprite.
+         * The share of a building's pane a head takes: what `drawWindowOccupant` has drawn house,
+         * shop and tower occupants at since v4.2, read back out of the expression that produces
+         * it (`0.85 * 36.667 / 60` of the pane = 51.9%). rc2 note: this is now a rule about
+         * *buildings only*. The vehicles used to inherit it and their people came out 22% smaller
+         * than a child pedestrian at the same depth; they are sized off the height table now.
          */
         const val OCCUPANT_HEAD_PANE_SHARE =
             0.85f * WINDOW_HEAD_HEAD_UNITS / WINDOW_OCCUPANT_DIVISOR_UNITS
 
-        const val CAR_HEAD_X_UNITS = -8f
+        // ---- The occupants, sized off the height table -------------------------------------
+        //
+        // rc2 retires the pane-share rule and its multiplier. Every other human in the scene is
+        // sized by the height table -- PERSON_METRES_TALL times the projection at their ground
+        // line -- and the occupants were the one exception, sized as a share of whatever glass
+        // happened to be behind them. Measured on the rc1 frames, that made a driver's head 22%
+        // smaller than a *child* pedestrian's once depth was normalised out, and no multiplier on
+        // the wrong parameter could close a gap the parameterisation itself created.
+
+        /**
+         * A pedestrian's head, measured off the shipped walking artwork: `person_man_summer_walk0`
+         * carries its hair crown at row 15 and its jaw at row 86 of a 240-row canvas, 71 px = 23.7
+         * of the figure's 80 units. `OccupantTableTest` re-measures the PNG so this cannot drift
+         * from the artwork silently.
+         */
+        const val PERSON_HEAD_SPRITE_UNITS = 23.7f
+
+        /** That head in scene metres: the one size every head in the scene now derives from. */
+        const val OCCUPANT_HEAD_METRES =
+            SceneSpace.PERSON_METRES_TALL * PERSON_HEAD_SPRITE_UNITS / SceneSpace.PERSON_SPRITE_UNITS_TALL
+
+        /**
+         * How much of the standing head a seated occupant is drawn at: 97%, and the reason is the
+         * roof. At 100% the tallest winter hat needs a 24.8-unit pane and the 50-unit shell tops
+         * out at 23 (beltline 12 against arch tops at 15; glass top -11 against the roof at -13),
+         * leaving 7.5% of air against the 10% floor. 0.97 is the largest factor that keeps every
+         * seasonal bust inside the 10-25% air band of the pane the silhouette can actually carry,
+         * and it sits well inside the +/-10% band the occupant-vs-pedestrian criterion allows.
+         */
+        const val OCCUPANT_SEATED_FIT = 0.97f
+
+        /**
+         * The head's share of the frontal bust artwork: the adult members of
+         * `person_*_head_car` carry their head (crown to chin) as 35 of the shared 47x44 canvas's local
+         * units, the children as 31.5 -- the same 18/20 a child always is. The scales below
+         * divide by the adult head, so an adult's head lands exactly on the table and a child's
+         * comes out 10% shorter, which is what a child is.
+         *
+         * rc4: the artwork is rc1's frontal family -- the pedestrians' own face with a seatbelt
+         * on the chest -- with its torso baseline raised from 49 to 43 canvas units, because a
+         * bust anchored on the sill must fit its whole content into the 23-unit pane the shell
+         * can carry (there is no clip in [SceneCanvas], so "zero occupant pixels outside the
+         * glass" has to hold by authored geometry, exactly as it did for the profiles, which
+         * carried only 5 units of shoulder for the same reason).
+         */
+        const val HEAD_CAR_HEAD_UNITS = 35f
+
+        /** The frontal family's CONTENT_BOTTOM_CENTRE anchor, in the family's shared
+         * 47x44-unit canvas: x between the eyes (a seat centres the face, not the content box --
+         * the woman's side-swept hair would pull a content-centred seat sideways; every member
+         * is authored with its eye line centred here, which is what lets one origin serve all
+         * eight), y the shared canvas bottom -- the co-registration rule every person family
+         * anchors by (SpriteGeometryTest) -- which the torso baseline's ink sits a third of a
+         * unit above. */
+        const val HEAD_CAR_ANCHOR_X_UNITS = 23f
+        const val HEAD_CAR_ANCHOR_Y_UNITS = 44f
+
+        /**
+         * One scale per vehicle family, each the same rule: the table head, seat-fitted, in the
+         * vehicle's own units, over the artwork's head. Not a share of the pane: the pane was
+         * sized to fit the head (see [CAR_GLASS_ORIGIN_Y_UNITS]), not the head to fit the pane.
+         */
+        val CAR_OCCUPANT_SCALE: Float
+            get() = OCCUPANT_SEATED_FIT * OCCUPANT_HEAD_METRES /
+                (SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL) / HEAD_CAR_HEAD_UNITS
+        val FIRE_TRUCK_OCCUPANT_SCALE: Float
+            get() = OCCUPANT_SEATED_FIT * OCCUPANT_HEAD_METRES /
+                (SceneSpace.FIRE_TRUCK_METRES_TALL / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL) /
+                HEAD_CAR_HEAD_UNITS
+
+        /**
+         * Where the saloon's two busts sit: the driver forward of the glasshouse's centre, the
+         * passenger behind, **with clear glass between their heads**.
+         *
+         * **The arithmetic, and which constraint each number answers.** A table-sized frontal
+         * head is 16.65 units tall and 18.08 wide across the hair at its widest row. Two of them
+         * are 36.16 units, which is 77% of rc5's 47-unit pane -- so rc5 could only seat them by
+         * letting them overlap by 6.6 units, and they read as one mass. Separating them costs
+         * 9.40 units of pane width; relaxing the pillar light from 15% to 13% returns 1.70. The
+         * remaining ~7 came out of the *pillar mass the shell already had* rather than out of
+         * the car: see [CAR_GLASS_ORIGIN_X_UNITS].
+         *
+         * At a pitch of 19.8 units, measured on the rendered pixels in both lanes:
+         *  * **3.19% of the pane's width of clear glass between the two heads** (criterion 3%),
+         *    measured as contiguous glass in the crown-to-chin band;
+         *  * **no head pixel occluded by the other occupant** -- the busts do not cross above
+         *    the chin line at all;
+         *  * **13.73% of light to each pillar** (criterion 13%);
+         *  * **72.2% of the glass filled by head** at the head band (criterion 50%).
+         *
+         * **Below the chin the two busts meet, and that is wanted**: two people sitting one
+         * behind the other occlude at the shoulders, and that contact is the depth cue that
+         * separates the seats. The gap criterion is deliberately measured only from the crown to
+         * the chin for that reason.
+         *
+         * **The driver is forward.** -6.8 sits in the front half of a pane whose mid-height
+         * centre is 3.2, which is where a driver's seat is. rc4 seated its one occupant at the
+         * pane's own centre and the car read as though nobody were driving it.
+         *
+         * **Both seats are adults.** A child's frontal bust carries a wider shoulder-and-scarf
+         * line than an adult's -- 19.5 and 21.6 units against 18.4 -- and seating one drops the
+         * pillar light to 11-15%, under the criterion at any pane the shell can hold. Both seats
+         * index the two adult rows by construction, and the child artwork stays as
+         * pedestrian-coverage parity. It is item 4 of `BACKLOG_v4_19.md`.
+         */
+        const val CAR_HEAD_X_UNITS = -6.8f
         const val CAR_HEAD_Y_UNITS = CAR_SILL_Y_UNITS
-        const val CAR_HEAD_SCALE =
-            OCCUPANT_HEAD_PANE_SHARE * CAR_GLASS_HEIGHT_UNITS / CAR_HEAD_HEAD_UNITS
 
         /**
-         * The fire engine's cab, which is painted into `firetruck_body` and cannot be stretched
-         * the way `car_window` can.
+         * The passenger's seat, 19.8 units behind the driver rather than the 28 a real seat
+         * pitch would be.
          *
-         * Its glass is a measured 26 x 14 units at x -41..-15, y -9..5 -- and unlike the sedan's
-         * that is **0.597 m of world**, because the fire engine is 2.9 m over 68 units. A cartoon
-         * head fits in it as it stands, which is why the fire engine's driver was already the
-         * least wrong of the three at 0.422 m, and why the same rule applied here needs no
-         * artwork change at all.
+         * At 28 the pair spans 46 units of head and needs 66 of glass to keep its light, which
+         * is a bus; rc2 seated its profile busts 19.6 apart for the same reason -- the scene
+         * compresses a car's interior the way it compresses everything else. 19.8 is the
+         * smallest pitch that opens 3% of clear glass between the heads at this pane width, and
+         * the largest that still leaves 13% of light to each pillar: the two criteria meet
+         * within a fifth of a unit of each other, which is why neither has much margin and why
+         * the pane could not be any narrower.
          */
-        const val FIRE_TRUCK_GLASS_HEIGHT_UNITS = 14f
-        const val FIRE_TRUCK_SILL_Y_UNITS = 5f
-        const val FIRE_TRUCK_HEAD_X_UNITS = -28f
-        const val FIRE_TRUCK_HEAD_Y_UNITS = FIRE_TRUCK_SILL_Y_UNITS
-        const val FIRE_TRUCK_HEAD_SCALE =
-            OCCUPANT_HEAD_PANE_SHARE * FIRE_TRUCK_GLASS_HEIGHT_UNITS / CAR_HEAD_HEAD_UNITS
-
-        /**
-         * The `CONTENT_BOTTOM_CENTRE` anchor the four car-driver head sprites declare, in local
-         * units.
-         *
-         * All four are 120x147 and anchor at y=147, which is 49 units; on x they declare 61 px
-         * for the summer pair and 60 for the winter one, so this is the midpoint of the two. The
-         * 1 px spread is 0.33 local units, which at [CAR_HEAD_SCALE] and the vehicle's own scale
-         * is well under a pixel on screen -- below the point where a per-sprite table would buy
-         * anything, and the same reasoning that lets a lookup group share one crop rectangle.
-         */
-        const val CAR_HEAD_ANCHOR_X_UNITS = 20.5f
-        const val CAR_HEAD_ANCHOR_Y_UNITS = 49f
-
-        /**
-         * Where a passenger sits, and the anchor of the head they are drawn with.
-         *
-         * The rear pane of the glass, on the far side of its pillar from the driver. Passengers
-         * use the 159x171 window-occupant heads rather than the 120x147 driving ones, because
-         * there is no child driving head and inventing one would mean a child could be drawn in
-         * a driving seat by a later edit; the two sets are deliberately not interchangeable. The
-         * anchor is the midpoint of the four heads' declared `CONTENT_BOTTOM_CENTRE` x.
-         *
-         * The two busts stay either side of the glass's own mullion, which the artwork paints at
-         * x 4.0..7.33: at v4.6's scales the driver's content ends at -0.36 and the passenger's
-         * begins at 7.63. `VehicleScalePixelTest` measures that they do not meet.
-         */
-        const val CAR_PASSENGER_X_UNITS = 17f
+        const val CAR_PASSENGER_X_UNITS = 13f
         const val CAR_PASSENGER_Y_UNITS = CAR_SILL_Y_UNITS
-        const val CAR_PASSENGER_SCALE =
-            OCCUPANT_HEAD_PANE_SHARE * CAR_GLASS_HEIGHT_UNITS / WINDOW_HEAD_HEAD_UNITS
-        const val WINDOW_HEAD_ANCHOR_X_UNITS = 26.8f
-        const val WINDOW_HEAD_ANCHOR_Y_UNITS = 57f
+
+        /**
+         * The seat back between the two occupants — the element that says *two seats* rather
+         * than a bench.
+         *
+         * **Where it can live, and why nowhere else.** The pane is 54 units and two heads take
+         * 36.16 of it; what is left pays for 3% of clear glass between them and 13% of light to
+         * each pillar, with about a fifth of a unit to spare. There is no room for a mullion in
+         * the head gap — drawing one there would eat the very glass the gap criterion measures.
+         * Below the chin line the arithmetic is completely different: the busts narrow to about
+         * 13 units at the jaw, so the gap there is five units wide and nothing is measured in it
+         * (`theTwoHeadsAreSeparatedByClearGlass` stops at the chin, deliberately, because two
+         * people sitting one behind the other are *meant* to meet at the shoulders).
+         *
+         * So the seat back rises out of that gap: 2.2 units wide, from local y 8 — half a unit below where
+         * the head-gap scan stops and a full unit below the lowest seasonal chin — down to the sill. It is drawn **after the glass and
+         * before either bust**, so both occupants sit in front of it and it is visible only in
+         * the daylight between them, which is what a seat back seen through a side window looks
+         * like. Nothing occludes a person; the shoulders close over its lower half by themselves.
+         */
+        const val CAR_SEAT_BACK_X_UNITS = (CAR_HEAD_X_UNITS + CAR_PASSENGER_X_UNITS) / 2f
+        const val CAR_SEAT_BACK_HALF_WIDTH_UNITS = 1.3f
+        const val CAR_SEAT_BACK_TOP_Y_UNITS = 8f
+
+        /** Upholstery seen through glass: dark enough to read against the pane at lane scale. */
+        val CAR_SEAT_BACK_COLOUR = 0xFF5A6068.toInt()
+
+        /**
+         * The fire engine's cab glass, painted into `firetruck_body`: 25 x 17 units at scene
+         * x -40..-15, y -11..6 since rc2 (was 26 x 14 at -41..-15, -9..5). It grew for the same
+         * reason the sedan's did: a table-sized head with 10-25% of air needs 17 units here, and
+         * the cab had them -- two units under its own roof and one above the cream stripe.
+         */
+        const val FIRE_TRUCK_GLASS_HEIGHT_UNITS = 17f
+        const val FIRE_TRUCK_SILL_Y_UNITS = 6f
+        const val FIRE_TRUCK_HEAD_X_UNITS = -27.5f
+        const val FIRE_TRUCK_HEAD_Y_UNITS = FIRE_TRUCK_SILL_Y_UNITS
+
+        /**
+         * Where the redrawn `firetruck_body` is blitted, and the two roof lines it now has.
+         *
+         * The body's canvas lost its top four units when the appliance was redrawn -- the ladder
+         * posts used to be the only thing up there, and the shell's own roof reaches the canvas
+         * top now -- so the sprite is 294x135 and its origin moved from -22 to -18. Nothing about
+         * the vehicle's size changed with it: the tallest point is still the ladder, still at the
+         * same place, and [SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL] is still 68.
+         *
+         * The two roof heights are the change that matters. A cab roof five units below the body
+         * roof is the one line that separates a truck from a scaled-up car, and it is also what
+         * clears a stretch of cab roof for the beacons: they used to be drawn between the ladder's
+         * rungs. The ladder is 58 units now, not 96, and begins where the body does.
+         */
+        const val FIRE_TRUCK_BODY_Y_UNITS = -18f
+        const val FIRE_TRUCK_CAB_ROOF_Y_UNITS = -13f
+        const val FIRE_TRUCK_LADDER_X_UNITS = -10f
+        const val FIRE_TRUCK_LADDER_Y_UNITS = -31f
 
         /**
          * Conservative upper bound on how far, in local units, any static scene object extends
@@ -585,6 +876,13 @@ class SceneObjectRenderer(
          * there are leaves, and the leaves only need somewhere plausible to come from.
          */
         const val MAX_LEAF_SOURCES = 24
+
+        /**
+         * Screen pixels of crown half-width per shed leaf. 7 calibrated against v4.17's fixed
+         * pool of 26 on the delivered two-crown Autumn frame: two near crowns at ~85 px of
+         * half-width shed 12 each, which is the pool's own 13-per-crown on that frame.
+         */
+        const val LEAF_SOURCE_PX_PER_LEAF = 7f
 
         /** The presents under a fir, in the tree lights' own palette. */
         val GIFT_COLOURS = intArrayOf(0xFFE8564F.toInt(), 0xFF4F8FBF.toInt(), 0xFF6FCF6F.toInt())
@@ -890,25 +1188,75 @@ class SceneObjectRenderer(
      * simply not recorded until now.
      */
     val leafSourceGroundY = FloatArray(MAX_LEAF_SOURCES)
+
+    /**
+     * The stable identity of the tree each recorded crown belongs to: its index in
+     * [staticRuntimes], which is fixed for the lifetime of a layout.
+     *
+     * The identity is what makes a falling leaf *belong* to its tree rather than to a slot in
+     * this frame's array. The arrays above are refilled every frame with only the crowns that
+     * are currently on screen, so their indices shuffle whenever a home-screen swipe scrolls a
+     * tree across a screen edge -- and `PaperRenderer` used to hand candidate `i` to source
+     * `i % count`, which reassigned **every** leaf to a different tree each time that happened.
+     * Measured on a OnePlus 6T from a 30 fps screen recording: leaves teleported mid-fall in the
+     * exact frames the visible set changed, and only in those. The maintainer reported it as the
+     * scene "rebuilding" on swipe. With the identity recorded, `PaperRenderer` derives each
+     * tree's leaves from this number instead of from the slot, so a tree keeps its own leaves
+     * while it is on screen no matter what the rest of the scene does.
+     */
+    val leafSourceId = IntArray(MAX_LEAF_SOURCES)
+
+    /** How many leaves each recorded crown sheds: its drawn half-width over [LEAF_SOURCE_PX_PER_LEAF]. */
+    val leafSourceLeafCount = IntArray(MAX_LEAF_SOURCES)
     var leafSourceCount = 0
         private set
 
-    private fun recordLeafSource(variant: SceneSpace.SceneVariant, x: Float, groundY: Float, scale: Float) {
+    /**
+     * The stable identity of one tile copy of one tree: the runtime index for the tree half, and
+     * `tileIndex - scrollTileBias` for the copy half, which is constant for a physical copy for
+     * as long as it stays on screen -- including across the parallax wrap, where the raw
+     * tileIndex of every copy steps by one and the bias steps with it. Without the copy half,
+     * two simultaneously visible copies of one tree would shed five identical leaves; without
+     * the bias, every leaf in the scene would be re-dealt each time the scroll crossed a period.
+     */
+    private fun leafCopyId(runtimeIndex: Int, tileIndex: Int, geom: GroundGeometry): Int =
+        runtimeIndex * 1_000_003 + (tileIndex - geom.scrollTileBias)
+
+    private fun recordLeafSource(variant: SceneSpace.SceneVariant, id: Int, x: Float, groundY: Float, scale: Float) {
         if (leafSourceCount >= MAX_LEAF_SOURCES) return
-        // The centre of the crown as each is actually blitted: the leafy canopy hangs at -38 with
-        // its own content centred another 43 above that, and the palm's fan at -90.33 with its
-        // content centre 18 below its origin. Derived from the two call sites rather than guessed,
-        // so a change to either moves the leaves with it.
-        val centreUnits = when (variant) {
-            SceneSpace.SceneVariant.TREE -> -81f
-            SceneSpace.SceneVariant.PALM_TREE -> -72f
+        // The crown as each is actually blitted: the leafy canopy hangs at -38 with its own
+        // content centred another 43 above that and 74 units tall; the palm's fan at -90.33 with
+        // its content centre 18 below its origin and 37 units tall. Derived from the two call
+        // sites and the two sprites rather than guessed, so a change to either moves the leaves
+        // with it.
+        val centreUnits: Float
+        val halfHeightUnits: Float
+        val halfWidthUnits: Float
+        when (variant) {
+            SceneSpace.SceneVariant.TREE -> { centreUnits = -81f; halfHeightUnits = 37f; halfWidthUnits = 41f }
+            SceneSpace.SceneVariant.PALM_TREE -> { centreUnits = -72f; halfHeightUnits = 18.5f; halfWidthUnits = 20f }
             else -> return
         }
-        val halfWidthUnits = if (variant == SceneSpace.SceneVariant.TREE) 41f else 20f
         leafSourceX[leafSourceCount] = x
-        leafSourceY[leafSourceCount] = groundY + centreUnits * scale
+        // rc2: a leaf detaches at the crown's *bottom edge*, not its centre. Spawned at the
+        // centre, the first 40% of every fall happened inside the canopy, where the leaf was
+        // either invisible or read as a dark blot lying on the foliage -- two of those were
+        // pointed at on the delivered night frame. The margin is four units plus the leaf
+        // oval's own eight-pixel extent (leaves are drawn unscaled): the four covers the canopy
+        // canvas's own outline slack past the measured content, the eight the rotated oval, so
+        // even the first frame of a fall touches no pixel of the crown's bounding box --
+        // FallingLeafContinuityTest drives a whole cycle through the recorder to hold it there.
+        leafSourceY[leafSourceCount] = groundY + (centreUnits + halfHeightUnits + 4f) * scale + 8f
         leafSourceHalfWidth[leafSourceCount] = halfWidthUnits * scale
         leafSourceGroundY[leafSourceCount] = groundY
+        leafSourceId[leafSourceCount] = id
+        // How many leaves this crown sheds: proportional to its drawn size, so a near crown sheds
+        // a canopy's worth and a distant one a few, and the total tracks how much tree is
+        // actually on screen instead of collapsing when the viewport holds few crowns (the fixed
+        // per-tree count did exactly that on the delivered two-crown frame). Constant per tree
+        // while it is on screen -- scale is depth, not viewport -- so nothing pops during a swipe.
+        leafSourceLeafCount[leafSourceCount] =
+            (halfWidthUnits * scale / LEAF_SOURCE_PX_PER_LEAF).toInt().coerceIn(3, 13)
         leafSourceCount++
     }
 
@@ -1028,8 +1376,12 @@ class SceneObjectRenderer(
         leafSourceCount = 0
         drawGroundFlowers(canvas, geom, screenWidth, screenHeight)
         drawGroundPiles(canvas, geom, screenWidth, screenHeight)
-        // staticRuntimes is already depth-sorted at construction -- see its declaration.
-        for (r in staticRuntimes) {
+        // staticRuntimes is already depth-sorted at construction -- see its declaration. The
+        // index is each object's stable identity for the frame-independent state that hangs off
+        // it (a tree's falling leaves); an indexed loop rather than withIndex() so the hot path
+        // allocates no iterator.
+        for (runtimeIndex in staticRuntimes.indices) {
+            val r = staticRuntimes[runtimeIndex]
             val groundY = screenHeight * SceneSpace.groundYFraction(r.spec.depthFraction)
             // Both are properties of the object, so they are computed once here rather than once
             // per tile copy: drawStaticObject is handed the scale it must draw at.
@@ -1046,7 +1398,7 @@ class SceneObjectRenderer(
                 // correctness guard, not an optimisation.
                 if (isHorizontallyVisible(x, halfWidth, screenWidth)) {
                     drawStaticObject(canvas, r, x, groundY, effectiveScale, dayBlend, elapsedSeconds)
-                    recordLeafSource(variantFor(r.spec), x, groundY, effectiveScale)
+                    recordLeafSource(variantFor(r.spec), leafCopyId(runtimeIndex, 0, geom), x, groundY, effectiveScale)
                 }
                 continue
             }
@@ -1061,7 +1413,7 @@ class SceneObjectRenderer(
                 val copyX = x + tileIndex * geom.tileWidth
                 if (isHorizontallyVisible(copyX, halfWidth, screenWidth)) {
                     drawStaticObject(canvas, r, copyX, groundY, effectiveScale, dayBlend, elapsedSeconds)
-                    recordLeafSource(variantFor(r.spec), copyX, groundY, effectiveScale)
+                    recordLeafSource(variantFor(r.spec), leafCopyId(runtimeIndex, tileIndex, geom), x = copyX, groundY = groundY, scale = effectiveScale)
                 }
             }
         }
@@ -1259,9 +1611,10 @@ class SceneObjectRenderer(
     /**
      * Window occupants, with the same skin axis: `[kind][season][skin]`.
      *
-     * Separate from [personWindowHeadDrawables], which **car passengers** still read. Cars are
-     * out of scope for this change, so they keep pointing at the original artwork and their
-     * occupants are provably unaffected by anything here.
+     * Separate from [personWindowHeadDrawables], the base artwork the recolours derive from.
+     * (An rc2-era version of this comment said car passengers still read that table; the
+     * vehicles have carried their own family since -- profiles in rc2, the frontal
+     * [personCarHeadSkinDrawables] since rc4.)
      */
     private val personWindowHeadSkinDrawables = arrayOf(
         arrayOf(
@@ -1282,9 +1635,51 @@ class SceneObjectRenderer(
         ),
     )
 
+    /**
+     * The vehicle occupants: frontal busts in the pedestrians' own face language, with the
+     * seatbelt that says "person in a car" -- `[kind][season][skin]`, the same three axes the
+     * walkers carry.
+     *
+     * rc4, the maintainer's direction call: one scene, one human style. rc2's profile family
+     * (side view, nose and jaw) was the only face in the frame drawn in a second language, and
+     * it is retired; the frontal `head_car` artwork is the rc1 face -- which was always the
+     * pedestrian's face -- re-authored only in its torso depth (see [HEAD_CAR_HEAD_UNITS]) and
+     * extended to the full family x season x skin coverage the pedestrians have, children
+     * included. Both seats index only the first two rows (adults are seated, by construction);
+     * the child rows exist so the coverage is the pedestrians' and stand ready for the day a
+     * pane can light one -- the saloon's cannot, at 11-15% against the 15% criterion, and the
+     * measurement is at [CAR_PASSENGER_X_UNITS]. The window
+     * table above still serves the buildings, whose artwork carries the smile this family and
+     * the walkers deliberately do not.
+     */
+    /** The frontal family's base artwork, `[kind][season]` -- what the skin recolours derive
+     * from, kept referenced the way [personWalkDrawables] and [personWindowHeadDrawables] keep
+     * their own bases: the base IS one of the three tones (each character's own), so tone
+     * selection reads the skin table alone. */
     private val personCarHeadDrawables = arrayOf(
         intArrayOf(R.drawable.person_man_summer_head_car, R.drawable.person_man_winter_head_car),
         intArrayOf(R.drawable.person_woman_summer_head_car, R.drawable.person_woman_winter_head_car),
+        intArrayOf(R.drawable.person_boy_summer_head_car, R.drawable.person_boy_winter_head_car),
+        intArrayOf(R.drawable.person_girl_summer_head_car, R.drawable.person_girl_winter_head_car),
+    )
+
+    private val personCarHeadSkinDrawables = arrayOf(
+        arrayOf(
+            intArrayOf(R.drawable.person_man_summer_head_car_skin0, R.drawable.person_man_summer_head_car_skin1, R.drawable.person_man_summer_head_car_skin2),
+            intArrayOf(R.drawable.person_man_winter_head_car_skin0, R.drawable.person_man_winter_head_car_skin1, R.drawable.person_man_winter_head_car_skin2),
+        ),
+        arrayOf(
+            intArrayOf(R.drawable.person_woman_summer_head_car_skin0, R.drawable.person_woman_summer_head_car_skin1, R.drawable.person_woman_summer_head_car_skin2),
+            intArrayOf(R.drawable.person_woman_winter_head_car_skin0, R.drawable.person_woman_winter_head_car_skin1, R.drawable.person_woman_winter_head_car_skin2),
+        ),
+        arrayOf(
+            intArrayOf(R.drawable.person_boy_summer_head_car_skin0, R.drawable.person_boy_summer_head_car_skin1, R.drawable.person_boy_summer_head_car_skin2),
+            intArrayOf(R.drawable.person_boy_winter_head_car_skin0, R.drawable.person_boy_winter_head_car_skin1, R.drawable.person_boy_winter_head_car_skin2),
+        ),
+        arrayOf(
+            intArrayOf(R.drawable.person_girl_summer_head_car_skin0, R.drawable.person_girl_summer_head_car_skin1, R.drawable.person_girl_summer_head_car_skin2),
+            intArrayOf(R.drawable.person_girl_winter_head_car_skin0, R.drawable.person_girl_winter_head_car_skin1, R.drawable.person_girl_winter_head_car_skin2),
+        ),
     )
 
     /**
@@ -1825,6 +2220,22 @@ class SceneObjectRenderer(
     private fun windowGlassColor(nightGlow: Float): Int =
         ColorUtils.blendARGB(WINDOW_GLASS_DAY, WINDOW_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
 
+    /**
+     * How lit a vehicle's lamps are, on the same ramp the windows use.
+     *
+     * Vehicles were the one thing in the scene that did not change between noon and midnight: the
+     * houses lit their windows, the shops lit their frontages, and the traffic stayed exactly as
+     * bright as it had been at midday, police beacon included. This reuses `litWindowAlpha`'s
+     * curve so a car lights up when a window does, and takes 80% of it so that a lamp reads as a
+     * lamp rather than as a light source: at a hundred and forty pixels a car is two small warm
+     * marks, and anything stronger is a neon toy.
+     *
+     * Zero for the whole first third of the evening, which is what makes this free by day: every
+     * call site is behind `if (alpha > 0)`, so at noon the vehicles cost exactly what they cost
+     * before.
+     */
+    private fun litVehicleAlpha(nightGlow: Float): Int = (litWindowAlpha(nightGlow) * 0.8f).toInt()
+
     private fun litWindowAlpha(nightGlow: Float): Int =
         (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
 
@@ -2102,6 +2513,15 @@ class SceneObjectRenderer(
      * measured half-width and half-height gets lights inside it by construction, whatever shape
      * that foliage is next redrawn to.
      */
+    /**
+     * The two shop fronts' repeated blit positions, held as fields for the same reason
+     * [christmasLightX] is: a `floatArrayOf(...)` written inside a `draw*` function is a new array
+     * every frame, and the draw path allocates nothing.
+     */
+    private val restaurantUpperWindowX =
+        floatArrayOf(RESTAURANT_UPPER_WINDOW_LEFT_X, RESTAURANT_UPPER_WINDOW_RIGHT_X)
+    private val barFrontPaneX = floatArrayOf(BAR_FRONT_PANE_LEFT_X, BAR_FRONT_PANE_RIGHT_X)
+
     private val christmasLightX = floatArrayOf(-0.80f, -0.34f, 0.06f, 0.40f, 0.78f, -0.06f)
     private val christmasLightY = floatArrayOf(0.10f, -0.52f, 0.46f, -0.52f, 0.14f, -0.08f)
 
@@ -2428,21 +2848,37 @@ class SceneObjectRenderer(
      */
     private fun drawRestaurantBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
         val wallColor = customization.colorFor(r.spec, dayBlend)
-        val doorColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
 
         drawGroundShadow(canvas, 50f * 0.58f)
 
         // wall: local bbox (-50,-60)-(50,0)
         drawTintedSprite(canvas, R.drawable.restaurant_wall, -50f, -96f, wallColor)
+        drawTintedSprite(
+            canvas, R.drawable.restaurant_cornice,
+            RESTAURANT_CORNICE_X, RESTAURANT_CORNICE_Y, wallColor,
+        )
         // A flat roof, so the cap is a drift standing proud of the parapet rather than following a
         // pitch. Its canvas puts the wall's own top edge 8 units down. See [drawSmallHouse].
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.restaurant_roof_snow, -48f, -102f)
+            drawSprite(canvas, R.drawable.restaurant_roof_snow, -26f, -111.5f)
         }
-        // awning: local bbox (-34,-46)-(34,-36), fixed red/white stripes (not tinted)
-        drawSprite(canvas, R.drawable.restaurant_awning, -34f, -46f)
-        // window, lit warm at night
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
+        // **The storey over the shop was a blank slab.** `restaurant_wall` carries no openings
+        // above its string course -- the bar's carries three, a large house four -- so in a row
+        // with two houses the restaurant was the one building with a dead first floor, and at
+        // night it was a black rectangle between two lit ones. These are the same drawable the
+        // bar's upper storey and every house use, for the reason already written there: a shop's
+        // first floor must not be able to drift from a house's. They take no occupant, which is
+        // deliberate -- the frontage panes below are the restaurant's two occupant slots and
+        // adding more would change who stands where.
+        for (wx in restaurantUpperWindowX) {
+            drawSprite(canvas, R.drawable.house_shared_window, wx, RESTAURANT_UPPER_WINDOW_Y)
+            drawSpriteFaded(
+                canvas, R.drawable.house_window_lit, wx, RESTAURANT_UPPER_WINDOW_Y - 1f,
+                litWindowAlpha(nightGlow),
+            )
+        }
+        // window, lit warm at night
         drawTintedSprite(canvas, R.drawable.restaurant_window, -35f, -45f, windowGlassColor(nightGlow))
         // **v4.2: the restaurant's frontage can hold somebody.** This call site is the whole of
         // the reported "no people in commercial buildings": a restaurant is one of the two
@@ -2470,18 +2906,24 @@ class SceneObjectRenderer(
             OCCUPANT_BOX_UNITS, OCCUPANT_BOX_UNITS,
             WindowBuildingKind.COMMERCIAL, 1, RESTAURANT_WINDOWS,
         )
+        // The full-width canopy, still drawn after the glass it shades and above it -- see the
+        // v4.18 note for why that order is load-bearing. It spans the whole frontage now.
+        drawSprite(canvas, R.drawable.restaurant_awning, RESTAURANT_AWNING_X, RESTAURANT_AWNING_Y)
         if (customization.christmasDecorationsEnabled) {
             drawWindowLights(canvas, r, elapsed, -35f, -22f, 30f)
         }
-        // door
-        drawTintedSprite(canvas, R.drawable.restaurant_door, 8f, -28f, doorColor)
-        // hanging fork-and-knife sign
-        strokePaint.color = 0xFF3D2B1F.toInt()
-        strokePaint.strokeWidth = 2f
-        strokePaint.style = Paint.Style.STROKE
-        canvas.drawLine(0f, -60f, 0f, -78f, strokePaint)
-        strokePaint.strokeWidth = 2.5f
-        drawSprite(canvas, R.drawable.restaurant_sign, -17f, -96f)
+        // **The frontage, rebuilt as a trattoria's.** The old composition was a 34x35 billboard
+        // hung across the upper storey, a token awning, and a door two shades darker than an
+        // already dark wall: the ground floor -- the storey a shop is about -- was the emptiest,
+        // lowest-contrast part of the building. Now the identity lives where a restaurant carries
+        // it: the fascia board over the shopfront (with the fork-and-knife badge in its middle),
+        // planters on the pavement, and a framed wood-and-glass entrance. The planters are the
+        // houses' own planter sprite, and the right one is drawn before the door so the door's
+        // frame covers their two-unit overlap.
+        drawSprite(canvas, R.drawable.house_shared_planter, RESTAURANT_PLANTER_LEFT_X, RESTAURANT_PLANTER_Y)
+        drawSprite(canvas, R.drawable.house_shared_planter, RESTAURANT_PLANTER_RIGHT_X, RESTAURANT_PLANTER_Y)
+        drawSprite(canvas, R.drawable.restaurant_door, 8f, -28f)
+        drawSprite(canvas, R.drawable.restaurant_sign, RESTAURANT_SIGN_X, RESTAURANT_SIGN_Y)
     }
 
     /**
@@ -2491,21 +2933,38 @@ class SceneObjectRenderer(
      * already knowing it's a bar. String lights stay vector, unchanged.
      */
     private fun drawBarBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        val height = 55f
         val width = 90f
         val wallColor = customization.colorFor(r.spec, dayBlend)
-        val doorColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
 
         drawGroundShadow(canvas, width * 0.6f)
 
         // wall: local bbox (-45,-55)-(45,0)
         drawTintedSprite(canvas, R.drawable.bar_wall, -45f, -92f, wallColor)
+        drawTintedSprite(canvas, R.drawable.bar_cornice, BAR_CORNICE_X, BAR_CORNICE_Y, wallColor)
         // Same construction as the restaurant's, cut to this wall's narrower 90 units.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.bar_roof_snow, -43f, -98f)
+            drawSprite(canvas, R.drawable.bar_roof_snow, -50f, -110.5f)
         }
-        // door
-        drawTintedSprite(canvas, R.drawable.bar_door, -10f, -28f, doorColor)
+        val barNight = (1f - dayBlend).coerceIn(0f, 1f)
+        // **The painted pub front.** v4.18 glazed the street level and it still read as a slab,
+        // because the slab itself was the problem: the frontage was the same tinted wall as the
+        // storey above it. A pub's ground floor is a painted joinery front in its own colour, so
+        // that is what this is -- a deep green field the width of the frontage, drawn as two
+        // rectangles rather than as a sprite so that it darkens into the night on the same ramp
+        // as everything around it, with the fascia board lapped over its top edge. The panes are
+        // the shopfront glazing both businesses now share, and they still carry nobody: the three
+        // upstairs slots are this building's occupancy and are untouched.
+        fillPaint.color = ColorUtils.blendARGB(BAR_FRONT_DAY, BAR_FRONT_NIGHT, barNight)
+        canvas.drawRect(BAR_FRONT_FIELD_LEFT_X, BAR_FRONT_FIELD_TOP_Y, BAR_FRONT_FIELD_RIGHT_X, 0f, fillPaint)
+        fillPaint.color = ColorUtils.blendARGB(BAR_FRONT_EDGE_DAY, BAR_FRONT_EDGE_NIGHT, barNight)
+        canvas.drawRect(
+            BAR_FRONT_FIELD_LEFT_X, BAR_FRONT_FIELD_TOP_Y,
+            BAR_FRONT_FIELD_RIGHT_X, BAR_FRONT_FIELD_TOP_Y + BAR_FRONT_EDGE_HEIGHT, fillPaint,
+        )
+        for (wx in barFrontPaneX) {
+            drawTintedSprite(canvas, R.drawable.restaurant_window, wx, BAR_FRONT_PANE_Y, windowGlassColor(barNight))
+        }
+        drawSprite(canvas, R.drawable.bar_door, BAR_DOOR_X, -28f)
         // The upper storey's windows, the same drawable the houses use so a shop's first floor
         // cannot drift from a house's.
         val barLit = litWindowAlpha((1f - dayBlend).coerceIn(0f, 1f))
@@ -2522,28 +2981,18 @@ class SceneObjectRenderer(
             }
         }
 
-        // Hanging beer-mug sign, glowing warm at night.
-        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
-        strokePaint.style = Paint.Style.STROKE
-        strokePaint.strokeWidth = 1.5f
-        strokePaint.color = 0xFF3D2B1F.toInt()
-        canvas.drawLine(0f, -height - 10f, 0f, -height, strokePaint)
-        strokePaint.strokeWidth = 2.5f
-        fillPaint.color = 0xFFFFD54A.toInt()
-        fillPaint.alpha = (60 + nightGlow * 90).toInt()
-        canvas.drawCircle(0f, -height - 30f, 24f, fillPaint)
-        fillPaint.alpha = 255
-        // On the facade, at a shop's own scale. It was 36 units hung above the roof, which at
-        // v2.7's metres read as a 5.5 m sign floating free of the building; it is 24 units now and
-        // sits on the upper storey where a shop sign is.
-        drawSprite(canvas, R.drawable.bar_sign, -12f, -84f)
-
-        // String lights along the top edge.
-        fillPaint.color = ColorUtils.blendARGB(0xFF8A6A50.toInt(), WINDOW_GLASS_NIGHT, nightGlow)
-        for (i in 0 until 4) {
-            val lx = -width / 2f + 8f + i * ((width - 16f) / 3f)
-            canvas.drawCircle(lx, -height + 6f, 2.5f, fillPaint)
+        // The fascia board, and the carriage lantern on the front's corner. The lantern replaced
+        // the four string-light dots that read as brown rivets by day; at night a soft glow stands
+        // behind its glass on the same ramp the windows use, and by day the glow is not drawn.
+        drawSprite(canvas, R.drawable.bar_sign, BAR_SIGN_X, BAR_SIGN_Y)
+        val lanternGlow = litWindowAlpha(barNight)
+        if (lanternGlow > 0) {
+            fillPaint.color = 0xFFFFD54A.toInt()
+            fillPaint.alpha = lanternGlow / 2
+            canvas.drawCircle(BAR_LANTERN_GLOW_X, BAR_LANTERN_GLOW_Y, BAR_LANTERN_GLOW_RADIUS, fillPaint)
+            fillPaint.alpha = 255
         }
+        drawSprite(canvas, R.drawable.bar_lantern, BAR_LANTERN_X, BAR_LANTERN_Y)
     }
 
     /** Body and belly are tintable masks; the beak and the feet carry their own orange in the V2
@@ -2629,13 +3078,26 @@ class SceneObjectRenderer(
      * what made it look detached. The two warning lights are unchanged, and now land on the rack
      * between the ladder's rails.
      */
-    private fun drawFireTruck(canvas: SceneCanvas) {
-        drawSprite(canvas, R.drawable.firetruck_ladder, -48f, -30f)
-        drawSprite(canvas, R.drawable.firetruck_body, -49f, -22f)
-        fillPaint.color = 0xFFD6362E.toInt()
-        canvas.drawRect(-16f, -22f, -6f, -16f, fillPaint)
-        fillPaint.color = 0xFF2B5FCB.toInt()
-        canvas.drawRect(-4f, -22f, 6f, -16f, fillPaint)
+    private fun drawFireTruck(canvas: SceneCanvas, nightGlow: Float) {
+        drawSprite(canvas, R.drawable.firetruck_ladder, FIRE_TRUCK_LADDER_X_UNITS, FIRE_TRUCK_LADDER_Y_UNITS)
+        drawSprite(canvas, R.drawable.firetruck_body, -FIRE_TRUCK_HALF_WIDTH_UNITS, FIRE_TRUCK_BODY_Y_UNITS)
+        // The beacons brighten toward night rather than gaining a layer: a colour that is already
+        // being painted costs nothing to change, and two lamps that stay the same shade at midnight
+        // as at noon are what made the traffic read as switched off.
+        fillPaint.color = ColorUtils.blendARGB(0xFFD6362E.toInt(), BEACON_RED_LIT, nightGlow)
+        canvas.drawRect(-36f, -19f, -28f, FIRE_TRUCK_CAB_ROOF_Y_UNITS, fillPaint)
+        fillPaint.color = ColorUtils.blendARGB(0xFF2B5FCB.toInt(), BEACON_BLUE_LIT, nightGlow)
+        canvas.drawRect(-26f, -19f, -18f, FIRE_TRUCK_CAB_ROOF_Y_UNITS, fillPaint)
+        val lit = litVehicleAlpha(nightGlow)
+        if (lit > 0) {
+            fillPaint.color = HEADLIGHT_LIT
+            fillPaint.alpha = lit
+            canvas.drawRect(
+                FIRE_TRUCK_HEADLIGHT_LEFT_X, FIRE_TRUCK_HEADLIGHT_TOP_Y,
+                FIRE_TRUCK_HEADLIGHT_RIGHT_X, FIRE_TRUCK_HEADLIGHT_BOTTOM_Y, fillPaint,
+            )
+            fillPaint.alpha = 255
+        }
     }
 
     /**
@@ -2647,6 +3109,19 @@ class SceneObjectRenderer(
      * truck roof ladder) blitted on top. Wheels stay vector (2 circles + 2 stroked circles,
      * already cheap, shared unchanged by every type).
      */
+    /**
+     * One seated bust, anchored on the sill at [x] and scaled by the vehicle's own occupant
+     * scale. A named method rather than a lambda: the draw path allocates nothing, and two seats
+     * would otherwise be two copies of the same five lines.
+     */
+    private fun drawSeatedOccupant(canvas: SceneCanvas, x: Float, y: Float, scale: Float, occupantRes: Int) {
+        canvas.save()
+        canvas.translate(x, y)
+        canvas.scale(scale, scale)
+        drawSprite(canvas, occupantRes, -HEAD_CAR_ANCHOR_X_UNITS, -HEAD_CAR_ANCHOR_Y_UNITS)
+        canvas.restore()
+    }
+
     private fun drawCar(canvas: SceneCanvas, c: CarRuntime, screenWidth: Float, screenHeight: Float, dayBlend: Float) {
         val margin = vehicleEdgeMarginPx(screenHeight)
         val travel = screenWidth + margin * 2f
@@ -2670,6 +3145,8 @@ class SceneObjectRenderer(
             if (c.spec.type == CarType.FIRE_TRUCK) SceneSpace.FIRE_TRUCK_BASE_SCALE else SceneSpace.CAR_BASE_SCALE
             ) * SceneSpace.perspectiveScaleAt(c.spec.laneYFraction) * SceneSpace.sceneScale(screenHeight)
 
+        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
+
         canvas.save()
         canvas.translate(x, y)
         canvas.scale(dir * vehicleScale, vehicleScale)
@@ -2679,15 +3156,19 @@ class SceneObjectRenderer(
         // ground contact point, so the car was drawing well below where the road/shadow expected
         // it, which is what let it visually spill outside the road. Shifting the whole car up by
         // that same 37 units here re-aligns it without having to renumber every coordinate below.
-        canvas.translate(0f, -37f)
+        canvas.translate(0f, -VEHICLE_GROUND_Y_UNITS)
 
+        // On the road, not on the bonnet. See [VEHICLE_GROUND_Y_UNITS].
+        canvas.save()
+        canvas.translate(0f, VEHICLE_GROUND_Y_UNITS)
         drawGroundShadow(canvas, 40f, 4f)
+        canvas.restore()
 
         // The fire truck has its own body. Every other type shares the low-sedan silhouette and
         // differs only by colour and an accessory sprite; the fire truck did too, which is why it
         // read as a red car with a ladder floating above it rather than as a fire engine.
         if (c.spec.type == CarType.FIRE_TRUCK) {
-            drawFireTruck(canvas)
+            drawFireTruck(canvas, nightGlow)
         } else {
             val bodyColor = when (c.spec.type) {
                 CarType.POLICE -> 0xFFF0F0F2.toInt()
@@ -2696,7 +3177,7 @@ class SceneObjectRenderer(
             }
             // A single continuous low-sedan silhouette -- chassis capsule and domed cabin merged
             // into one shape. body: local bbox (-50,-12)-(50,28); window: (-31,-10)-(19,8).
-            drawTintedSprite(canvas, R.drawable.car_body, -48f, -11f, bodyColor)
+            drawTintedSprite(canvas, R.drawable.car_body, CAR_BODY_X_UNITS, CAR_BODY_Y_UNITS, bodyColor)
             // The glass belongs inside the greenhouse: the cabin's own roof runs from x=-3 to 20
             // at y=-11, with the A-pillar rising from (-22,2) and the C-pillar falling to (36,3).
             // At (-31,-10) the 50x18 window overhung the bonnet by nine units and stood above the
@@ -2706,21 +3187,31 @@ class SceneObjectRenderer(
             // the roof's rear curve and leaves no C-pillar while the raked front keeps a wide
             // band. Four units forward gives the glass a pillar at each end.
             //
-            // **v4.6 draws it [CAR_GLASS_HEIGHT_UNITS] tall rather than the 16 it is authored at**,
-            // stretched downward only -- see that constant for why the door is the direction with
-            // room and why 19 is where it stops. The stretch is a `scale` around the blit rather
-            // than new artwork: the sprite is two flat panes and a mullion, so a vertical stretch
-            // is exactly what a taller window of the same design looks like, and it keeps the one
-            // file the police car, the taxi and the plain car all share.
-            canvas.save()
-            canvas.scale(1f, CAR_GLASS_Y_SCALE)
-            drawSprite(
-                canvas,
-                R.drawable.car_window,
-                CAR_GLASS_ORIGIN_X_UNITS,
-                CAR_GLASS_ORIGIN_Y_UNITS / CAR_GLASS_Y_SCALE,
-            )
-            canvas.restore()
+            // The pane is authored at the size it is drawn -- rc2 retired v4.6's vertical
+            // stretch when the glass grew to 23 units -- and rc5 lengthened it to 47 units so it
+            // carries two heads with their light (CAR_HEAD_X_UNITS). It is one flat pane with no
+            // mullion, and it is still the one file the police car, the taxi and the plain car
+            // all share.
+            drawSprite(canvas, R.drawable.car_window, CAR_GLASS_ORIGIN_X_UNITS, CAR_GLASS_ORIGIN_Y_UNITS)
+
+            // The seat back between the two occupants, drawn on the glass and under both of
+            // them. See [CAR_SEAT_BACK_X_UNITS] for why it starts below the chin line.
+            if (c.spec.type.seatsTwo) {
+                fillPaint.color = CAR_SEAT_BACK_COLOUR
+                // A rect with a disc for its crown: `SceneCanvas` carries no round-rect, and the
+                // two primitives it does carry are what every other rounded shape here is built
+                // from.
+                canvas.drawCircle(
+                    CAR_SEAT_BACK_X_UNITS, CAR_SEAT_BACK_TOP_Y_UNITS + CAR_SEAT_BACK_HALF_WIDTH_UNITS,
+                    CAR_SEAT_BACK_HALF_WIDTH_UNITS, fillPaint,
+                )
+                canvas.drawRect(
+                    CAR_SEAT_BACK_X_UNITS - CAR_SEAT_BACK_HALF_WIDTH_UNITS,
+                    CAR_SEAT_BACK_TOP_Y_UNITS + CAR_SEAT_BACK_HALF_WIDTH_UNITS,
+                    CAR_SEAT_BACK_X_UNITS + CAR_SEAT_BACK_HALF_WIDTH_UNITS,
+                    CAR_SILL_Y_UNITS, fillPaint,
+                )
+            }
 
             when (c.spec.type) {
                 CarType.POLICE -> {
@@ -2728,91 +3219,158 @@ class SceneObjectRenderer(
                     // left edge and below its floor, so it drew as a loose bar lying on the road
                     // under the car rather than as a stripe along its side -- and left the white
                     // car itself completely unmarked. It runs along the doors now.
-                    drawSprite(canvas, R.drawable.police_stripe, -34f, CAR_SILL_Y_UNITS)
-                    drawSprite(canvas, R.drawable.police_lightbar, -11f, -17f)
+                    drawSprite(canvas, R.drawable.police_stripe, CAR_LIVERY_X_UNITS, CAR_SILL_Y_UNITS)
+                    drawSprite(
+                        canvas, R.drawable.police_lightbar,
+                        POLICE_LIGHTBAR_X_UNITS, POLICE_LIGHTBAR_Y_UNITS,
+                    )
+                    val lit = litVehicleAlpha(nightGlow)
+                    if (lit > 0) {
+                        fillPaint.alpha = lit
+                        fillPaint.color = BEACON_RED_LIT
+                        canvas.drawRect(
+                            POLICE_LAMP_RED_LEFT_X, POLICE_LAMP_TOP_Y_UNITS,
+                            POLICE_LAMP_RED_RIGHT_X, POLICE_LAMP_BOTTOM_Y_UNITS, fillPaint,
+                        )
+                        fillPaint.color = BEACON_BLUE_LIT
+                        canvas.drawRect(
+                            POLICE_LAMP_BLUE_LEFT_X, POLICE_LAMP_TOP_Y_UNITS,
+                            POLICE_LAMP_BLUE_RIGHT_X, POLICE_LAMP_BOTTOM_Y_UNITS, fillPaint,
+                        )
+                        fillPaint.alpha = 255
+                    }
                 }
                 // Same defect as the police stripe, one unit less obvious: the chequer straddled
                 // the body's floor and the wheels instead of banding the doors.
-                CarType.TAXI -> drawSprite(canvas, R.drawable.taxi_checker, -34f, CAR_SILL_Y_UNITS)
+                CarType.TAXI -> {
+                    drawSprite(canvas, R.drawable.taxi_checker, CAR_LIVERY_X_UNITS, CAR_SILL_Y_UNITS)
+                    // The roof sign is what tells a yellow car from a yellow car. It stands on the
+                    // same roof the police light bar does and is centred on it the same way.
+                    drawSprite(canvas, R.drawable.taxi_sign, TAXI_SIGN_X_UNITS, TAXI_SIGN_Y_UNITS)
+                    val lit = litVehicleAlpha(nightGlow)
+                    if (lit > 0) {
+                        // The "for hire" light, which is the one part of a taxi that is meant to be
+                        // seen from down the street after dark.
+                        fillPaint.color = TAXI_SIGN_LIT
+                        fillPaint.alpha = lit
+                        canvas.drawRect(
+                            TAXI_SIGN_BOX_LEFT_X, TAXI_SIGN_BOX_TOP_Y,
+                            TAXI_SIGN_BOX_RIGHT_X, TAXI_SIGN_BOX_BOTTOM_Y, fillPaint,
+                        )
+                        fillPaint.alpha = 255
+                    }
+                }
                 else -> {}
             }
-        }
-
-        // A driver's head visible through the glass, man or woman only (only adults drive),
-        // picked stably per car instance so it does not change identity frame to frame.
-        //
-        // **Placed from the sprite's declared anchor, not from its canvas.** The old call site
-        // read `-27f, -27f` under `scale(0.24)` at `translate(-6f, 8f)`, which centres a 60x60
-        // sprite on that point -- and the V2 head is 120x144 with a `CONTENT_BOTTOM_CENTRE`
-        // anchor, so centring its canvas put the bust's shoulders a third of the way down the
-        // door, below the window entirely. The origin below is `placement - anchor`: the anchor
-        // is subtracted so the bust's own content bottom-centre lands on the sill, which for a
-        // sedan is [CAR_SILL_Y_UNITS] and for the fire engine [FIRE_TRUCK_SILL_Y_UNITS]. Nothing
-        // about the artwork changed to make this work, in v4.2 or in v4.6.
-        // Seeded from the loop offset rather than the speed: speed is now a property of the lane,
-        // so every car in a lane shares it and a speed-derived seed would give them all the same
-        // driver. The offset is unique per candidate.
-        val driverSeed = kotlin.math.abs((c.spec.laneYFraction * 7919f + c.spec.startDelaySeconds * 131f).toInt())
-        val driverKindIdx = driverSeed % 2 // man or woman only (only adults drive)
-        val seasonIdx = seasonIndexFor(Exposure.OUTDOORS)
-        val driverRes = personCarHeadDrawables[driverKindIdx][seasonIdx]
-        val isFireTruck = c.spec.type == CarType.FIRE_TRUCK
-        val headScale = if (isFireTruck) FIRE_TRUCK_HEAD_SCALE else CAR_HEAD_SCALE
-        canvas.save()
-        if (isFireTruck) {
-            canvas.translate(FIRE_TRUCK_HEAD_X_UNITS, FIRE_TRUCK_HEAD_Y_UNITS)
-        } else {
-            canvas.translate(CAR_HEAD_X_UNITS, CAR_HEAD_Y_UNITS)
-        }
-        canvas.scale(headScale, headScale)
-        drawSprite(canvas, driverRes, -CAR_HEAD_ANCHOR_X_UNITS, -CAR_HEAD_ANCHOR_Y_UNITS)
-        canvas.restore()
-
-        // A passenger in the rear pane, sometimes. Every car used to carry exactly one person.
-        //
-        // **The driver is always an adult and the seat assignment is not symmetric**: the driver
-        // comes from [personCarHeadDrawables], which holds the man and the woman and nobody else,
-        // so a child cannot be selected to drive by construction rather than by a check that
-        // could be reordered away. The passenger is free to be any of the four, and comes from
-        // the window-occupant heads because there is no child driving head to reuse -- the same
-        // drawing a child gets when they are looking out of a house window.
-        //
-        // The two never overlap: the driver sits in the front pane and the passenger in the rear
-        // one, either side of the glass's own pillar.
-        // **Only civilian cars carry one.** A police car and a fire engine are crewed, not
-        // travelled in, and a child in the back of either reads as something being wrong. The
-        // rule is written as a property of the vehicle type rather than as a list of exclusions,
-        // so a service vehicle added later is excluded by default instead of by remembering.
-        if (c.spec.type.carriesPassengers) {
-            val passenger = driverSeed / 7 % 4
-            if (passenger != 0) {
-                val passengerKindIdx = when (passenger) {
-                    1 -> driverSeed / 3 % 2      // the other adult
-                    2 -> 2                        // boy
-                    else -> 3                     // girl
-                }
-                canvas.save()
-                canvas.translate(CAR_PASSENGER_X_UNITS, CAR_PASSENGER_Y_UNITS)
-                canvas.scale(CAR_PASSENGER_SCALE, CAR_PASSENGER_SCALE)
-                drawSprite(
-                    canvas,
-                    personWindowHeadDrawables[passengerKindIdx][seasonIdx],
-                    -WINDOW_HEAD_ANCHOR_X_UNITS,
-                    -WINDOW_HEAD_ANCHOR_Y_UNITS,
-                )
-                canvas.restore()
+            // The lamps at both ends, on the shell's own canvas at the shell's own origin, so they
+            // land on the patches painted into it rather than being positioned against them. The
+            // day overlay first and always: the shell's own baked lenses multiply with the body
+            // colour and come out whatever the paint is, so this fixed-art pair -- amber glass
+            // forward, brake red aft -- is what makes a vehicle's direction readable from the car
+            // alone (rc4: the frontal occupants no longer say it). The lit pair fades in over it
+            // at night, exactly as before.
+            drawSprite(canvas, R.drawable.car_lights_day, CAR_LIGHTS_X_UNITS, CAR_LIGHTS_Y_UNITS)
+            val lit = litVehicleAlpha(nightGlow)
+            if (lit > 0) {
+                drawSpriteFaded(canvas, R.drawable.car_lights, CAR_LIGHTS_X_UNITS, CAR_LIGHTS_Y_UNITS, lit)
             }
+        }
+
+        // The occupants: frontal busts in the pedestrians' own style, sized off the height
+        // table, seated in the glasshouse.
+        //
+        // rc2 rebuilt the sizing (the height table, [CAR_OCCUPANT_SCALE]) and rc4 rebuilt the
+        // face: the maintainer chose one human language for the whole scene, so a person in a
+        // car is the same frontal bust a person on the pavement is, seatbelt on the chest, from
+        // the same family/season/skin axes ([personCarHeadSkinDrawables]).
+        //
+        // rc5 puts the passenger back. rc4 seated one person per vehicle because a 42-unit pane
+        // could not light two frontal heads; the pane is 47 units now and it can, and the
+        // arithmetic for both the seat count and the seat positions is at [CAR_HEAD_X_UNITS].
+        // Both seats index the two adult rows -- a child's bust is too wide across the shoulders
+        // to keep its pillar light, so a child cannot be seated by construction rather than by a
+        // check that could be reordered away.
+        //
+        // **The passenger is drawn before the driver**, because the person in front is the one
+        // who occludes: the two heads overlap across the hair at this seat spacing, and drawing
+        // them the other way round would put the rear passenger in front of the driver.
+        //
+        // Drawn AFTER the livery deliberately: the stripe and the chequer band the doors below
+        // the sill, the busts stand on the sill inside the glass, and `VehicleDrawOrderTest`
+        // asserts the sequence so a reorder cannot quietly put paint over a person again.
+        //
+        // Seeded from the loop offset rather than the speed: speed is a property of the lane, so
+        // every car in a lane shares it and a speed-derived seed would give them all the same
+        // driver. The offset is unique per candidate. Skin draws from its own seed channel, the
+        // same three-tone table the pedestrians rotate through, and the passenger draws from
+        // channels of its own so a car is not two copies of one person -- the last line forces
+        // the tone apart in the one case where both channels land on the driver.
+        val driverSeed = kotlin.math.abs((c.spec.laneYFraction * 7919f + c.spec.startDelaySeconds * 131f).toInt())
+        val driverKindIdx = driverSeed % 2 // man or woman only (only adults are seated)
+        val driverSkinIdx = driverSeed / 11 % 3
+        val seasonIdx = seasonIndexFor(Exposure.OUTDOORS)
+        val isFireTruck = c.spec.type == CarType.FIRE_TRUCK
+        val occupantScale = if (isFireTruck) FIRE_TRUCK_OCCUPANT_SCALE else CAR_OCCUPANT_SCALE
+        if (isFireTruck) {
+            drawSeatedOccupant(
+                canvas, FIRE_TRUCK_HEAD_X_UNITS, FIRE_TRUCK_HEAD_Y_UNITS, occupantScale,
+                personCarHeadSkinDrawables[driverKindIdx][seasonIdx][driverSkinIdx],
+            )
+        } else {
+            if (c.spec.type.seatsTwo) {
+                // **The passenger is always the other family, and that is a rule rather than a
+                // roll of the seed.** rc5 chose the passenger's family from its own seed channel
+                // and only forced the *tone* apart when family and tone both collided -- which
+                // still allowed two women, or two men, sharing a car. In this artwork a family
+                // carries its hairstyle **and** its clothing: every woman bust is the red top
+                // with the yellow band, every man bust the blue one. So two same-family
+                // occupants are identical in all three of family, hair and clothing, whatever
+                // the skin tone does, and a car reads as one person drawn twice.
+                //
+                // Taking the other family costs nothing and settles it by construction. The
+                // alternative -- a clothing-colour axis alongside the skin axis -- does not fit:
+                // one extra outfit across both adult families, both seasons and three tones is
+                // 12 sprites at 74 448 B decoded, and the set has 559 032 B of room under the
+                // 28.5 MiB ceiling. It is in the 4.19 backlog with that arithmetic attached.
+                //
+                // The tone still draws from its own channel on both seats, so cars differ from
+                // each other as well as within themselves.
+                val passengerKindIdx = 1 - driverKindIdx
+                val passengerSkinIdx = driverSeed / 3 % 3
+                drawSeatedOccupant(
+                    canvas, CAR_PASSENGER_X_UNITS, CAR_PASSENGER_Y_UNITS, occupantScale,
+                    personCarHeadSkinDrawables[passengerKindIdx][seasonIdx][passengerSkinIdx],
+                )
+            }
+            drawSeatedOccupant(
+                canvas, CAR_HEAD_X_UNITS, CAR_HEAD_Y_UNITS, occupantScale,
+                personCarHeadSkinDrawables[driverKindIdx][seasonIdx][driverSkinIdx],
+            )
         }
 
         // Wheels: dark tire with a lighter gray hub ring -- a plain 2-tone treatment with no
-        // separate hubcap disc, which is all the paper-cutout look wants. Shared by every type.
+        // separate hubcap disc, which is all the paper-cutout look wants. The treatment is shared
+        // by every type; where they stand is not, because the saloon's shell now has an arch cut
+        // over each wheel and the appliance's does not. See [CAR_WHEEL_X_UNITS].
+        val wheelX = if (isFireTruck) FIRE_TRUCK_WHEEL_X_UNITS else CAR_WHEEL_X_UNITS
+        val wheelRadius = if (isFireTruck) FIRE_TRUCK_WHEEL_RADIUS_UNITS else CAR_WHEEL_RADIUS_UNITS
+        val wheelY = VEHICLE_GROUND_Y_UNITS - wheelRadius
+        val hubRadius = wheelRadius * WHEEL_HUB_RATIO
+        if (isFireTruck) {
+            // The rear pair's inner wheel, under the outer one. See FIRE_TRUCK_INNER_WHEEL_X_UNITS.
+            fillPaint.color = 0xFF2B2B2B.toInt()
+            canvas.drawCircle(FIRE_TRUCK_INNER_WHEEL_X_UNITS, wheelY, wheelRadius, fillPaint)
+            strokePaint.strokeWidth = 3f
+            strokePaint.color = 0xFF8A8A8A.toInt()
+            canvas.drawCircle(FIRE_TRUCK_INNER_WHEEL_X_UNITS, wheelY, hubRadius, strokePaint)
+        }
         fillPaint.color = 0xFF2B2B2B.toInt()
-        canvas.drawCircle(-38f, 28f, 9f, fillPaint)
-        canvas.drawCircle(38f, 28f, 9f, fillPaint)
+        canvas.drawCircle(-wheelX, wheelY, wheelRadius, fillPaint)
+        canvas.drawCircle(wheelX, wheelY, wheelRadius, fillPaint)
         strokePaint.strokeWidth = 3f
         strokePaint.color = 0xFF8A8A8A.toInt()
-        canvas.drawCircle(-38f, 28f, 5.5f, strokePaint)
-        canvas.drawCircle(38f, 28f, 5.5f, strokePaint)
+        canvas.drawCircle(-wheelX, wheelY, hubRadius, strokePaint)
+        canvas.drawCircle(wheelX, wheelY, hubRadius, strokePaint)
         strokePaint.strokeWidth = 2.5f
 
         canvas.restore()

@@ -1,13 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="258" height="30" viewBox="2 2 86 10">
-<g id="paperscrape-outline" fill="#9fb0bd" stroke="#9fb0bd" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
-  <!-- Snow on the bar's flat roof. Same construction as restaurant_roof_snow, cut to this wall's
-       narrower 90 units. -->
-<polygon points="2,9.5 7,4.5 20,6.5 32,3.5 46,5.5 60,3.5 74,6.5 86,4.5 88,9.5 88,12 2,12"></polygon>
-        <polygon points="2,8 7,3 20,5 32,2 46,4 60,2 74,5 86,3 88,8 88,10.5 2,10.5"></polygon>
-</g>
-  <!-- Snow on the bar's flat roof. Same construction as restaurant_roof_snow, cut to this wall's
-       narrower 90 units. -->
-<polygon points="2,9.5 7,4.5 20,6.5 32,3.5 46,5.5 60,3.5 74,6.5 86,4.5 88,9.5 88,12 2,12" fill="#DCE7EF"></polygon>
-        <polygon points="2,8 7,3 20,5 32,2 46,4 60,2 74,5 86,3 88,8 88,10.5 2,10.5" fill="#FFFFFF"></polygon>
-
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="18" viewBox="0 2 100 6">
+<!--
+  Snow for the piers: a mound on each corner pier and a drift bedded on the name plate between
+  them. An earlier draft spanned the whole gap between the piers and floated over the air on
+  either side of the plate; snow lies on things, so each piece now sits on a thing. Blitted at
+  (-50,-110.5): mounds capping the piers at -108, the drift riding the plate at -105.
+-->
+  
+<path d="M0 5.5 Q6 -1.5 12 5.5 L12 6.5 L0 6.5 Z" fill="#ffffff"></path>
+        <path d="M88 5.5 Q94 -1.5 100 5.5 L100 6.5 L88 6.5 Z" fill="#ffffff"></path>
+        <path d="M34 8 Q40 3.6 50 3.5 Q60 3.6 66 8 Q58 6.6 50 6.5 Q42 6.6 34 8 Z" fill="#ffffff"></path>
+        <path d="M2 5.9 Q6 1.2 10 5.9 Z" fill="#f4f7fa"></path>
+        <path d="M90 5.9 Q94 1.2 98 5.9 Z" fill="#f4f7fa"></path>
+        <path d="M38 7.2 Q44 4.4 50 4.3 Q56 4.4 62 7.2 Z" fill="#f4f7fa"></path>
 </svg>

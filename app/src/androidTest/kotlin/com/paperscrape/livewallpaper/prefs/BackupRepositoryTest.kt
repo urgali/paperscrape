@@ -35,6 +35,11 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class BackupRepositoryTest {
 
+    // Restores the real preference store around every test: these tests write the app's own
+    // DataStore on purpose, and without this the phone kept their last theme. See RealPrefsGuard.
+    @get:org.junit.Rule
+    val realPrefs = RealPrefsGuard()
+
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val prefs get() = WallpaperPrefs(context)
     private val store get() = CustomThemeStore(context)

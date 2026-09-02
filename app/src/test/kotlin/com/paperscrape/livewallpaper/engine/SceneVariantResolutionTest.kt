@@ -63,13 +63,26 @@ class SceneVariantResolutionTest {
         )
         assertEquals(SceneSpace.SceneVariant.TOWER, far)
 
-        val nearVariants = (0 until 40)
+        // Which storefront a shop is splits on depth too (rc3): the position hash it used to
+        // split on made a shop's identity a function of where its jitter landed it, which is how
+        // two identical trattorias ended up in one frame. Identity must survive the visibility
+        // pass's x moves, so x must not be able to change it.
+        val farShop = (0 until 40)
+            .map {
+                SceneObjectRenderer.variantFor(
+                    spec(
+                        SceneObjectType.SKYSCRAPER,
+                        depth = SceneSpace.SHOP_VARIANT_DEPTH_SPLIT - 0.05f,
+                        x = it / 40f,
+                    ),
+                )
+            }
+            .toSet()
+        assertEquals(setOf(SceneSpace.SceneVariant.RESTAURANT), farShop)
+        val nearShop = (0 until 40)
             .map { SceneObjectRenderer.variantFor(spec(SceneObjectType.SKYSCRAPER, depth = 0.8f, x = it / 40f)) }
             .toSet()
-        assertEquals(
-            setOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR),
-            nearVariants,
-        )
+        assertEquals(setOf(SceneSpace.SceneVariant.BAR), nearShop)
     }
 
     // --- The scale pipeline ---------------------------------------------------------------

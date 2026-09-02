@@ -115,10 +115,15 @@ def co_registered_groups(names: set[str]) -> list[Group]:
         ),
         (
             "person_head_car",
-            lambda n: n.endswith("_head_car"),
-            "SceneObjectRenderer.drawCarDriver",
-            "Driver heads are chosen from personCarHeadDrawables through a separate origin from "
-            "the window occupants, so they form their own group and get their own crop.",
+            lambda n: "_head_car" in n,
+            "SceneObjectRenderer.drawCar",
+            "The vehicle occupants (rc4): the driver is chosen from "
+            "personCarHeadSkinDrawables and blitted through one CONTENT_BOTTOM_CENTRE origin on "
+            "the sill, so a crop would move the seat with the season or the tone. Matched by "
+            "substring so the skin recolours stay registered against their base head, exactly as "
+            "person_head_window above. Replaces the person_head_profile group (rc2): the profile "
+            "busts were retired for the pedestrians' own frontal language, and the frontal "
+            "family covers every family x season x skin combination the pedestrians have.",
         ),
         (
             "moon_phase",
@@ -155,6 +160,18 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "Shares tree_fir's 78x122 canvas so the two blit at one origin. The snow only touches the "
         "tiers' shoulders, so its own ink is a fraction of the tree; cropping to it would separate "
         "the layer from the tree it lies on.",
+    ),
+    Exclusion(
+        "car_lights",
+        "A registration crop: the overlay is authored in the shell's own local coordinates and "
+        "its margins are the lamp housings' surround, which is exactly what keeps the lit lamp "
+        "inside its housing at night. Cropping to the ink would move the viewBox minimum, which "
+        "IS the blit origin.",
+    ),
+    Exclusion(
+        "car_lights_day",
+        "The day twin of car_lights: same viewBox, same registration arithmetic, unlit colours "
+        "(rc4). The same crop that would break the lit overlay would break this one.",
     ),
     Exclusion(
         "skyscraper_wall_lit",

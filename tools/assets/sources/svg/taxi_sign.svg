@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="42" height="18" viewBox="0 0 14 6">
+<!--
+  The roof sign, which is what tells a yellow car apart from a yellow car at a glance.
+
+  Fourteen units wide is about twenty-one pixels in the near lane: enough for the box and the dark
+  bar inside it to be separate things, and small enough that it stays an accessory rather than
+  becoming the tallest part of the vehicle. The bar is not lettering , at this size lettering is a
+  smudge , it is the shape lettering makes. Fixed art, like the light bar and the chequer, because
+  a taxi sign is not a colour a theme gets to pick.
+-->
+  
+<rect x="0" y="4.4" width="14" height="1.6" rx="0.6" fill="#2B2A33"></rect>
+        <rect x="1" y="0" width="12" height="4.8" rx="1.2" fill="#FBF4E6"></rect>
+        <rect x="3.2" y="1.6" width="7.6" height="1.6" rx="0.5" fill="#2B2A33"></rect>
+</svg>

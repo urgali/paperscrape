@@ -194,6 +194,48 @@ object SceneGolden {
      * [MAX_DIFFERING_FRACTION] — i.e. that the golden would actually catch it — rather than
      * asserting that it would.
      */
+    /**
+     * Whether the only thing that happened at one pixel is a ground shadow falling on it.
+     *
+     * The vehicles are the one part of the scene that draws something translucent:
+     * `drawGroundShadow` lays a `0x2E000000` oval on the road, which multiplies whatever is behind
+     * it by (255-46)/255 and leaves the hue alone. Every other thing a vehicle draws is opaque
+     * paint, whose colour has nothing to do with what was underneath.
+     *
+     * Measurements of the form "how tall is this vehicle" sweep a column for pixels that differ
+     * from an empty frame, and they have to skip this. Until the shadow was put on the road it did
+     * not matter: it was drawn 37 units up, inside the body's own outline, so a sweep of the whole
+     * column returned the vehicle's height anyway. On the road the oval straddles the wheel contact
+     * and reaches four units below it, and the same sweep returns the vehicle plus half a shadow --
+     * which is what `VehicleOccupantScaleTest` and `VehicleScalePixelTest` started measuring.
+     *
+     * Recognised by its shape rather than by its position: a uniform darkening of what was there,
+     * by no more than the shadow's own alpha. Partial coverage along the oval's edge darkens less
+     * and is caught by the same rule. Pedestrians draw no shadow, so a people-only frame has
+     * nothing this can match.
+     */
+    fun isGroundShadowOnly(before: Int, after: Int): Boolean {
+        var minFactor = 2f
+        var maxFactor = -1f
+        var moved = false
+        for (shift in intArrayOf(16, 8, 0)) {
+            val a = (before shr shift) and 0xFF
+            val b = (after shr shift) and 0xFF
+            if (b > a) return false
+            if (a != b) moved = true
+            if (a == 0) continue
+            val factor = b.toFloat() / a
+            if (factor < SHADOW_FACTOR - 0.02f) return false
+            if (factor < minFactor) minFactor = factor
+            if (factor > maxFactor) maxFactor = factor
+        }
+        // One alpha over three channels, so the three factors are the same factor.
+        return moved && (maxFactor < 0f || maxFactor - minFactor <= 0.05f)
+    }
+
+    /** What `drawGroundShadow`'s 0x2E000000 multiplies the background by. */
+    private const val SHADOW_FACTOR = (255f - 0x2E) / 255f
+
     fun differingFraction(expected: Bitmap, actual: Bitmap): Double =
         countDiffering(expected, actual, 0, 0, WIDTH, HEIGHT) / (WIDTH * HEIGHT).toDouble()
 

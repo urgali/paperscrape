@@ -1,6 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="60" height="84" viewBox="0 0 20 28">
+<!--
+  The pub door, fixed art for the same reason restaurant_door is: it was a tintable slab two
+  shades under a dark wall, and a shop entrance is the one thing on the frontage that must not be
+  the lowest-contrast area of the building. Cream frame, wood leaf, a small glazed light, handle.
+-->
   
-<rect x="0" y="0" width="20" height="28" rx="2.5" fill="#e3e3e3"></rect>
-        <rect x="3" y="4" width="14" height="12" rx="1.5" fill="#e8e8e8"></rect>
-        <rect x="15" y="18" width="2" height="5" rx="1" fill="#ffffff"></rect>
+<rect x="0" y="0" width="20" height="28" rx="1.5" fill="#F0E6D2"></rect>
+        <rect x="1.5" y="1.5" width="17" height="26.5" rx="1" fill="#6B4A32"></rect>
+        <rect x="4" y="4" width="12" height="10" rx="1" fill="#B9CBD9"></rect>
+        <rect x="14.5" y="16" width="1.6" height="4.5" rx="0.8" fill="#E2CCA6"></rect>
 </svg>

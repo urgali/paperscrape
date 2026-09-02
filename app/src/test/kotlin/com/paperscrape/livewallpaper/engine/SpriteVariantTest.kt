@@ -50,6 +50,8 @@ class SpriteVariantTest {
         "person_boy_summer_head_window" to "person_boy_winter_head_window",
         "person_girl_summer_head_window" to "person_girl_winter_head_window",
         "person_man_summer_head_car" to "person_man_winter_head_car",
+        "person_boy_summer_head_car" to "person_boy_winter_head_car",
+        "person_girl_summer_head_car" to "person_girl_winter_head_car",
         "person_woman_summer_head_car" to "person_woman_winter_head_car",
     )
 

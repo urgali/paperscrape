@@ -19,6 +19,383 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.18 — the art-direction release: the street redrawn
+
+**Prepared, not published.** `versionCode = 49`, `versionName = "4.18"`. Prepared 2026-09-01,
+closed 2026-09-02 over nine passes. No tag, no push, no GitHub Release. `compileSdk`/`targetSdk`
+remain 37. Baseline is the published **v4.17**. What 4.18 knowingly ships without is collected in
+`BACKLOG_v4_19.md`.
+
+**This is the consolidation of nine local art passes**, each prepared, verified and judged on the
+physical OnePlus 6T between the published v4.17 and this release, none published individually.
+Their working version numbers (4.18/48→, 4.19, 4.20 locally) are absorbed here; the official
+sequence continues at 4.18/49. Every visual decision in all nine passes was made at real scale on
+the device; the emulator appears exactly once in the whole release, in pass six, authorised for and
+confined to regenerating the three GL goldens on their reference driver -- every Canvas golden
+is phone-authored, the three GL goldens are reference-driver-authored, which is what a GL golden
+is. The final judgement for this release was made with the true R8 release
+configuration installed and running **as the phone's actual live wallpaper**, across day, dusk,
+night, winter and Christmas.
+
+### Pass one — the defects nobody had seen
+
+Every vehicle's ground shadow was painted 37 units above the road (at the beltline, ends showing
+over bonnet and boot); the police light bar overhung the windscreen; the saloon's only "lamp" was
+a pale disc on the boot; the restaurant's awning was drawn *under* the pane it shades, its sign
+was a billboard on a bracketless pole and its upper storey had no openings; the bar's frontage was
+a blank slab with a floating mug disc over its own upstairs windows. All fixed; the saloon gained
+wheel arches, lamps at both ends, a door line; the appliance a stepped cab, a full-length band,
+framed lockers and a right-sized ladder; the shop window a frame that survives its tint.
+
+### Pass two — identity
+
+The saloon's shell was cut away over each wheel (real holes, wheels moved inboard for true
+overhangs) with a flat boot deck; liveries were cut to the doors; **the taxi got its roof sign**;
+the appliance got aluminium roll-up shutters, bumper and tailboard; **the traffic learned about
+night** -- headlights, tail lamps, beacons and the taxi sign on the window ramp, drawn not at all
+by day (measured: 0.49 ms across four vehicles at night, zero at noon); the restaurant became a
+trattoria (full fascia + badge, full scalloped awning, wood-and-glass door, planters) and the bar
+a pub (painted green joinery front as renderer paint so it darkens with the scene, fascia with mug
+badge, corner lantern); both shops got oversailing cornice caps.
+
+### Pass three — the berlina from a blank sheet
+
+Three genuinely distinct saloon concepts at exact lane scales with mock occupants; the granturismo
+shipped: 27-unit bonnet, cab-rearward 42x19 glass, beltline 14.7→10, chrome spear, radius-11
+wheels, 50 units tall with the metres moved in step (`CAR_BASE_SCALE` within half a percent -- a
+unit still lands on the same pixel; pinned by test). **The v4.6 glass stretch is retired**: the
+pane is authored at its drawn size. Shell and lamp overlay are authored in local scene coordinates
+(blit origin = viewBox minimum; registration by arithmetic, pinned). The appliance gained its twin
+rear axle; the trattoria a bow pediment and the pub corner piers -- five building types, five
+distinct rooflines; the winter drifts were rebuilt to lie on the crowns (a quadratic's crest is
+halfway to its control -- measured, then drawn flat-crested).
+
+### Pass four — the two things the maintainer still did not believe
+
+The final targeted pass on the candidate, both points verified live on the OnePlus before any code
+moved.
+
+**The people in the cars were mathematically right and artistically small.** The one head-share
+rule (51.9% of any pane, house and vehicle alike) was elegant and, at the app's real scale, left
+every cabin looking empty -- the maintainer's report, confirmed by eye on the phone. Four builds
+were made and compared as whole streets on the device: A (the equality), B (x1.15), C (x1.30) and
+D (x1.15 with the car grown to 1.60 m). C crowds the taxi and reads bobble-headed; D moves the
+whole car without changing how its people read (an occupant scales with its vehicle) and upsets
+the size table for nothing. **B shipped**: `VEHICLE_HEAD_PROMINENCE = 1.15` on the three vehicle
+scales only -- a head is now 59.7% of its pane, a driver 22.7% of his car -- window occupants
+untouched. Winter verified: the tallest bobble hat reaches 92% of the glass and stays inside it
+(the `OccupantHeadFitTest` air floor moved 15%→8% with that measurement recorded).
+
+**Swiping really did rebuild the falling leaves, and the clock was never the problem.** A 30 fps
+screen recording of the live wallpaper showed leaf blobs teleporting in exactly the frames the
+visible-tree set changed -- `drawFallingLeaves` dealt candidate `i` to visible crown `i % count`,
+an array whose membership shuffles as the parallax scrolls trees across the screen edges, so one
+tree entering or leaving re-dealt **every** leaf. `elapsedSeconds` runs straight through a swipe
+and the engine is never recreated (same pid across every swipe); only the mapping was frame-local.
+Each crown now derives five leaves from its own stable identity (`leafSourceId`, its index in the
+depth-sorted runtime list), so a tree keeps its leaves while it is on screen whatever else
+scrolls; still stateless, same noise, no timers, no threads, nothing stored between frames.
+Re-recorded after the fix: the mass redistribution is gone; leaf counts through a swipe stay flat.
+`FallingLeafContinuityTest` drives the real renderer at two scroll offsets through a recording
+canvas and fails against the old rule (verified by building the slot-based mutation and watching
+it fail on the device).
+
+### Pass five -- the occupants reparameterised, and six more things measured shut
+
+The maintainer's amendment brief rejected pass four's occupant fix at its root: a head sized as a share
+of the pane cannot agree with the pedestrians' height table by construction, and the 1.15
+multiplier had moved the symptom, not the cause. Measured on pass four's own sheets, a driver's head
+was 22% smaller than a *child* pedestrian once depth was normalised out. pass five rebuilds the system:
+
+**Occupants on the height table, in profile.** A new eight-member sprite family
+(`person_*_head_profile`, adults and children x two seasons) replaces the frontal window busts in
+every vehicle: side view, facing the direction of travel, turned by the vehicle's own mirrored
+transform -- so a car's direction is readable from its occupant alone. The scales derive from the
+table -- `0.97 x` the walking artwork's own measured head, in each vehicle's units -- and the
+glasshouses grew to carry them: the saloon's pane from 19 to 23 units (beltline 12, top -11, the
+chrome spear moving to the new beltline), the appliance's cab from 26x14 to 25x17. Measured on
+the rendered frames: a driver's face now sits within 4-8% of a pedestrian's at the same depth on
+every vehicle and both lanes (criterion +/-10%); 10-25% of air above every seasonal hat; every
+occupant centred with >=15% of pane-width light to each pillar; zero occupant pixels outside any
+pane. Every number is a device-measured test now, not a constant echo.
+
+**The twin axle un-overlapped.** The rear pair stood 8.5 units apart on 20-unit wheels -- a 40%
+overlap that the old test *asserted* ("must overlap into a bogie"), which is exactly why it
+shipped. The pair stands at 23.5 units (1.175 diameters) with 3.5 units of daylight, and
+`TwinAxleSpacingTest` measures spacing and gap off the drawn circles.
+
+**Leaves detach at the crown's bottom edge**, with a margin covering the leaf's own oval, so
+none is ever painted on the foliage; a crown's shed count now follows its drawn size (3..13, 7 px
+of half-width per leaf), so the two-crown frame that collapsed to a handful under the fixed
+five-per-tree holds v4.17's density (measured on the phone: 28.3 vs 31.0 mean blobs, same scene,
+same method); and a copy identity (`tileIndex - scrollTileBias`) keeps wrap-crossing scrolls and
+duplicate tile copies from re-dealing anybody's leaves.
+
+**The tower's entrance capsule became an awning**: 44x6 over the 32-unit entrance, flat-bottomed
+ON the ground line, inside the walls -- the night frame no longer hangs a glowing shelf wider
+than the building it fronts. **Shops get seen**: a layout-time pass moves each shop (nearest
+first, scanned positions, trees stepping aside as a last resort) until no nearer building or
+descending crown covers more than 40% of its frontage, on all twelve built-in themes, re-measured
+independently by `ShopFrontVisibilityTest`. **The prefs tests stopped leaking**: a byte-snapshot
+guard restores the real DataStore around every class, and the phone's theme survives a full suite
+run (verified: `autumn` before and after).
+
+Mutation testing earned its keep here: the spawn-at-centre mutation *survived* the first
+crown-box test, which exposed the recorder building the crown rectangle in scene units under a
+matrix already in sprite pixels -- a threefold-too-small box. The recorder was fixed, the
+mutation then failed, and the test also asserts the leaves exist at all, so it can never pass
+vacuously again.
+
+### Pass six -- the closing pass: the shop front made whole, singular, and the GL goldens current
+
+The maintainer's closing brief held pass five's own delivered frames against it and found the shop
+criteria wanting on both axes at once. The pass five rule measured the worst single occluder against
+the frontage's lower half -- and the day frame answered with a pub numerically at 40% and
+visually cut in two by a tree trunk planted over its door, crown across the whole upper storey.
+And two identical trattorias stood in one frame, because a shop's storefront was a hash of its
+horizontal position: any arrangement of x could deal the same storefront twice.
+
+**The metric corrected, not the number.** `separateShopFrontages` now measures the union of
+everything nearer over the shop's ENTIRE front -- house and shop bodies, tree crowns AND trunks,
+palm fans and trunks, parasol canopies and poles -- against the same 40% ceiling, and no trunk or
+pole may cross the front at all, at any area cost (measured at pass five's layouts, the full-front
+union ran to 79.9% on Christmas while the lower-band rule read green everywhere). The pass
+rejects any probe a vertical member crosses; trees step fully aside as the last resort; houses
+and parasols never move.
+
+**One storefront per type per tile.** Deduplication is not a spacing problem: the object tile is
+two screen widths and an object is on screen for `screenW + its own width` of scroll -- more
+than half the tile -- so any two same-storefront shops share a frame at some scroll position,
+wherever they stand, and the wallpaper's continuous drift visits every scroll position. The only
+layout that never twins a storefront is one restaurant and one bar per tile. The catalogue now
+keeps the depth-middle commercial candidate of each half-band as its shop and turns the other
+four into skyline towers (slot, x, size roll and category preserved, tower depths interleaved
+across the tower band); which storefront a shop is now splits on depth
+(`SceneSpace.SHOP_VARIANT_DEPTH_SPLIT`), a property x moves cannot change. The two storefronts
+are singular compositional anchors now, so they are exempt from density thinning (the buildings
+slider governs the towers; the category's visibility toggle still hides everything) -- without
+that, the default 0.65 density deleted Sunset's entire commercial street on a coin flip.
+`ShopFrontVisibilityTest` re-measures all three rules independently (grid-sampled where the pass
+sweeps exact unions) across all twelve built-in themes, including the criterion as stated: a
+window swept across the whole tile never sees two shops of one storefront, partial visibility
+counted. Saved custom themes keep whatever layout they stored (their shops resolve
+deterministically by depth now, but a before pass six override can still hold six shops); the
+canonical-on-load treatment traffic lanes get is a maintainer decision, not taken here.
+
+**The GL goldens regenerated on their reference driver, decomposed first.** pass five left `gl-day`,
+`gl-lake-busy`, `gl-thunderstorm` red rather than re-tolerated, and pass six was authorised to use
+the emulator for exactly this. Measured with the suite's own edge-displacement metric before
+regenerating: against the stale goldens the pass six content drift on the reference driver
+(SwiftShader, the environment the goldens were authored under) is **4.13 / 3.36 / 4.01%**, and
+the Adreno-vs-reference gap on identical pass six content is **1.38 / 1.20 / 1.20%** -- consistent
+with the 1.1-1.7% GL-GOLDEN-ADRENO has always measured. The three goldens were regenerated from
+the emulator frames only; no tolerance moved. Against the current goldens the suite now passes
+**3/3 on the emulator and 3/3 on the OnePlus** -- the residual driver gap sits inside the 3%
+edge gate, which is precisely the tolerance that gate exists to give a correct driver.
+
+**The direction evidence delivered.** Three consecutive reports had claimed occupants face their
+travel direction while every delivered frame showed left-facing occupants. The cause was in the
+evidence pipeline, not the renderer: `VehicleOccupantAbCapture` pins `reverse = true` on every
+case it renders, so harness frames can only ever face left. pass six delivers live captures of the
+running wallpaper with both lanes occupied in one frame: far-lane taxi and saloon travelling
+left with occupants in left profile, near-lane saloon travelling right with occupants in right
+profile, directions confirmed against the neighbouring burst frames' motion.
+
+### Pass seven -- one human language: the occupants return to the pedestrians' face
+
+The maintainer's direction call, stated as taken and not to be relitigated: the scene had two
+human languages in one frame -- frontal busts on the pavement and at every window, profiles with
+nose and jaw in the cars -- and coherence wins. pass five's eight `person_*_head_profile` sprites are
+retired (PNG and SVG, registry and variant groups with them); the vehicles draw the frontal
+`head_car` family again.
+
+**Provenance, not redrawing.** The four adult busts are pass four's artwork -- which was always
+the pedestrian's face, dot eyes and no mouth, with the seatbelt saying "person in a car" --
+recovered from the pass four artefact (SHA-verified) with exactly one alteration: the torso baseline
+rises ~6 canvas units, because a bust anchored on the sill must fit the 23-unit pane whole
+(there is no clip in `SceneCanvas`, so zero-pixels-outside-the-glass holds by authored geometry,
+as it did for the profiles, which carried 5 units of shoulder for the same reason). Head, hair,
+eyes and colours are the pass four paths untouched. The four child busts are composed, not invented:
+each child's own `head_window` head cluster -- already the correct pedestrian face -- scaled by
+0.9 onto the same bust template, which lands the 18/20 child head exactly. All eight share one
+47x44 canvas with the eye line at x=23, so one origin seats the whole cast, and
+`tools/generate_skin_variants.py` (its VARIANTS list grown by `head_car`) produces the same
+three tones the walkers rotate: **full family x season x skin parity with the pedestrians**,
+pinned by a coverage test, with the three own-tone identities declared in the registry exactly
+as the walkers' are.
+
+**One seat per vehicle, and why that is arithmetic rather than taste.** A table-sized frontal
+head is 16.65 units tall at the sedan's occupant scale and 17.7-18.2 wide at its widest head
+row; the 15%-light criterion then demands 26 units of glass per bust, and the glasshouse holds
+42 nominal (about 37 at head height under the windscreen rake). Two frontal busts -- even an
+adult and a child, 32.5 units of head together -- exceed the glass before a single gap is paid
+for. The brief's own levers were cabin geometry and occupant count: the mullion is gone from
+`car_window` (one pane), the saloon, taxi and police car seat the driver alone, and the fire
+engine's cab carries its crew unchanged (11.8-unit head in a 25-unit cab clears every band
+as-is). The pass five sedan couple is the cost of the language change, stated in the report, not
+hidden. The child heads ship as coverage and stand ready for any future vehicle whose glazing
+can seat one.
+
+**The direction moved from the occupant to the lamps.** A frontal bust no longer says which way
+a car drives, so the two lamps do: `car_lights_day`, an untinted overlay with the same
+registration arithmetic as the night `car_lights` -- amber glass forward, brake red aft --
+drawn on every car-shell vehicle, because the shell's own baked lenses multiply with the user's
+body colour and come out whatever the paint is. Night lamps were already two-coloured and are
+untouched. Asserted on rendered pixels at both ends in both travel directions.
+
+**Nothing conquered in pass five was given back**, re-measured on the frontal artwork: table sizing
+(the scales divide by the measured 35-unit head), summer face parity 0.992 (man) and 1.056
+(woman) against the walker in scene metres, air over every crown 12.4/10.4% in the sedan and
+16.1/14.1% in the cab (children 17.9-21.4%), pillar light on the single pane, zero occupant
+pixels outside any glass, livery before people. Winter faces measure 0.52/0.63 of a walker's
+*visible* face -- beanie over the forehead, scarf over the chin -- and are exempted from the
+blob parity exactly as pass five exempted its own winters; the head under the wool is pinned by the
+air band instead.
+
+### Pass eight -- the passenger returns: the greenhouse lengthens instead
+
+pass seven's one-seat result was arithmetically correct inside a constraint that was itself wrong. The
+brief froze the cabin's *length* and offered only two levers -- the mullion and the seat count --
+and with a frontal head 18 units wide against 42 nominal units of glass, the only solution that
+set of constraints admits is one occupant. The cost was that the cabin came out emptier than the
+complaint that opened this whole arc, and the road carried half the people it used to. pass eight
+unfreezes the third variable, in the same circumscribed way pass five was allowed to raise the pane
+from 19 units to 23: **the glasshouse grows along the car, and the car does not grow.**
+
+`car_window` goes from 42 units to **47** and its origin from -16 to -21; `car_body`'s cowl moves
+from (-17.8,-2.2) to (-25.8,-2.2) and the roof's front corner from -4.5 to -18.5, which stands
+the windscreen up from 43 degrees off vertical to 30 and turns 24.5 units of flat roof into 38.5.
+The masses read **21 / 59 / 15** -- bonnet, cabin, deck -- where pass seven read 28.7 / 51.3 / 15: five
+units of bonnet bought the passenger. **Nothing else about the vehicle moved**: nose at -46.5 and
+tail at 48.5 unchanged, `CAR_METRES_TALL` still 1.51 and the governed height still 50 units,
+wheels still at +/-34 inside the same arches, beltline, chrome spear, door seam, lamp patches,
+boot deck and the whole lower shell the paths they already were. The light bar and the taxi sign
+moved forward with the roof by the arithmetic that already centred them on it, not by a second
+edit.
+
+**Two adults per civilian vehicle, driver forward.** The saloon, the taxi and the police car
+seat a driver at local -2.8 and a passenger at 8.7 -- 11.5 units apart, where a real seat pitch
+of 28 would need 66 units of glass and produce a bus. Measured on the rendered pixels at
+1080x2400, both lanes, all three types: **pillar light 16.41%** against the 15% criterion, glass
+**67.7-68.5% filled by head** at the head band and **61.7-63.2%** averaged over the head's own
+rows against the 50% criterion (pass seven: 26% at the row the coordinator sampled, 50% at its best).
+The fire engine keeps one seat, unchanged, because its 25-unit cab holds one head.
+**Both seats are adults by construction**: a child's frontal bust carries a wider shoulder and
+scarf line -- 19.5 and 21.6 units against the adults' 18.4 -- and drops the pillar light to
+11-15%, so the child artwork stays coverage, as in pass seven. **No mullion**, and that too is
+measured rather than preferred: with two panes the 15% is owed to four edges instead of two,
+which needs 53 units of glass rather than 47, and six more units of bonnet than the saloon has.
+
+**The winter exemption is retired, not renewed.** pass five exempted winter facial parity and pass seven
+renewed it at "0.52 and 0.63 of a pedestrian's visible face". Re-measured, those two numbers
+compare a *winter* bust's visible skin against a **summer** walker's, and a scarf covers a chin
+on whichever figure wears it. Winter against winter, on the landmark a viewer reads -- crown of
+the hat down to the chin -- the ratios are **0.905 and 0.964**, inside the same +/-10% band the
+summer faces are held to, and `OccupantHeadFitTest` asserts it now. The visible-skin ratio runs
+0.88 for the man and 1.58 for the woman: a difference in how much face each drawing leaves
+uncovered, which no scale error can produce in both directions at once, and it is bounded as
+such rather than waived.
+
+**What could not be had.** Fill measured at the very bottom of the pane -- the row four units
+above the sill, which crosses the neck -- comes out 48.7-49.6%, under 50. A neck is narrower
+than a head at any seat count, and the arithmetic recorded at `CAR_HEAD_X_UNITS` shows that
+forcing 50% there while keeping 15% of pillar light is unsatisfiable in *any* pane width. The
+figure is reported by the test rather than asserted, which is the honest half of a criterion
+that holds everywhere the heads actually are.
+
+### Pass nine -- the closing pass: the two heads separated, and the pane cut to the cabin
+
+Pass eight put the passenger back and the arithmetic it was given left the two busts **touching**:
+47 units of glass hold two 18.08-unit heads only if they overlap, so the driver's hair was cut by
+the passenger's and the pair read as one mass with two faces rather than as two seats. The fill
+criterion could not catch it -- pressing two people together is the *cheapest* way to fill glass --
+and the pillar light only ever looks at the outer edges.
+
+**Where the room came from, and what it did not cost.** Undoing the overlap costs 9.40 units of
+pane width; relaxing the pillar light from 15% to 13% -- a threshold chosen in pass five for a
+single profile bust and never derived from anything -- returns 1.70. The remaining seven came out
+of the shell's own pillar mass: pass eight's pane was a straight trapezoid inside a curved cabin,
+so the A-pillar carried about fifteen spare units at the beltline while the pane was only 43.2
+units wide where the heads are widest. The pane is now cut to `car_body`'s own opaque edge, inset
+1.8 units at every row: **42.3 units at the roof line opening to 54 by the beltline**, held to the
+sill. **`car_body` is byte-identical to the shell pass eight shipped** -- pinned by content hash in
+`VehicleAndShopFrontTest`, nose at -46.5, tail at 48.5, bonnet still 21 units, cowl, roof, beltline,
+spear, lamps, arch cuts and wheels all the same pixels. Only the hole cut in the car changed.
+
+**Measured on the rendered pixels, both lanes, saloon, taxi and police car:** 3.16-3.65% of the
+pane's width of clear glass between the two heads (criterion 3%), **no head pixel occluded by the
+other occupant** on any row from crown to chin, 13.82-14.09% of light to each pillar (criterion
+13%), and 67.1-69.5% of the glass filled by head at the head band with 60.8-61.2% averaged over
+the head's own rows (criterion 50%).
+
+**Below the chin the busts still meet, and that is the point**: two people sitting one behind the
+other occlude at the shoulders, and that contact is the depth cue that says two seats. The seat
+back rises out of that same region -- 2.6 units wide from local y 8, drawn on the glass and under
+both occupants, so neither is occluded and it is visible only in the daylight between them. It
+could not go anywhere else: a mullion in the head gap would eat the very glass the gap criterion
+measures.
+
+**And a car never carries the same person twice.** Pass eight chose the passenger's family from
+its own seed channel and only forced the *tone* apart when family and tone collided, so two women
+-- or two men -- could share a car. In this artwork a family carries its hairstyle **and** its
+clothing, so two same-family occupants are identical in all three whatever the tone does. The
+passenger is now the driver's complement by construction. A clothing-colour axis would have been
+the richer fix and does not fit: twelve more sprites at 74 448 B decoded against 559 032 B of room
+under the ceiling. It is item 5 of `BACKLOG_v4_19.md`, with that arithmetic attached.
+
+### The numbers of the consolidated release
+
+JVM **1260/0**; instrumented on the OnePlus **132 of 132** (see the pass seven report for the
+built/installed/started/executed accounting); GL suite 11/11 on the phone -- the GL golden
+scenes hold no vehicles, no GL golden moved, and **no emulator was started in pass seven**. Lint 0
+errors. Asset pipeline fully green on the grown set: probe matches, validate/normalize/compare/
+inventory clean, `PIXEL_IDENTICAL 138/138`, tool suite 108 OK; decoded-memory ceiling raised
+26 -> 28.5 MiB with the argument recorded where the ceiling lives (SpriteGeometryTest).
+**50 targeted mutations killed across the seven passes** (pass seven's five: dead skin channel, dropped
+day lamps, off-centre seat, wrong head constant, missing coverage file -- the off-centre seat
+survived at a deviation the 15% criterion legitimately allows and was re-aimed at one it
+forbids, per the standing rule that a surviving mutation is a finding). Goldens: **only
+traffic-day and traffic-night moved** -- 399/398 px, rows 646-677, entirely the vehicle boxes
+(frontal occupants, single pane, day lamps); the other 22 Canvas frames re-rendered
+byte-identical and the 3 GL goldens untouched. Live-surface performance on the pass seven release
+build: see the pass seven report par. 6.
+
+**pass eight moves four of those numbers and no others.** JVM **1262/0** (+2: the pane-width claim and
+the winter parity assertion); instrumented on the OnePlus **133 of 133** (+1: the pane-fill
+criterion); goldens **traffic-day and traffic-night** again, 707 and 698 px, **100% attributed
+to the four vehicle cabins** with zero pixels outside them and no tolerance touched; asset
+pipeline still `PIXEL_IDENTICAL 138/138` and the tool suite 108 OK on the regenerated
+`car_body`/`car_window`. The decoded set moves by **4.0 kB** (car_window 126 -> 141 px wide),
+27.963 -> 27.967 MiB against the 28.5 MiB ceiling. Live-surface performance, pass eight against pass seven
+measured back to back on the same theme, same device, same elapsed time: 29.884 vs 29.868 fps,
+0 dropped and 0 janky both, CPU 25.9-29.6% both, PSS 61.8-67.3 MB (pass eight) against 69.3-70.4 MB
+(pass seven) -- the pass costs nothing measurable.
+
+**Pass nine moves three of those numbers.** JVM **1264/0** (+2: the shell's content hash and the
+seat-pitch floor); instrumented on the OnePlus **134 of 134** (+1: the head-to-head gap on
+rendered pixels); goldens **traffic-day and traffic-night** once more, 574 and 575 px, **100%
+attributed to the four vehicle cabins** with zero pixels outside them and no tolerance touched.
+The decoded set moves by **8.7 kB** (car_window 141 -> 162 px wide). Live-surface performance,
+pass nine against pass eight measured back to back on the same device, theme and elapsed time:
+**29.884 vs 29.867 fps, 0 dropped and 0 janky both, CPU 25.9-29.6% both, PSS 62.8/66.4 MB against
+64.4/68.0 MB** -- the pass costs nothing measurable.
+
+### Known and unchanged
+
+Shops and towers still share the buildings palette (the painted fronts now carry the
+differentiation; a true split is a theme-and-backup schema change). **GL-GOLDEN-ADRENO** stays
+open as a measured, characterised driver gap (1.2-1.4% edge displacement on identical content)
+now sitting under the gate; it is no longer a test failure anywhere. A saved custom theme
+written before pass six can still carry duplicate storefronts (above). `VehicleOccupantAbCapture`
+still renders every case leftward -- harness frames must not be used as direction evidence.
+The sedan carries two people, separated by clear glass, on a pane cut to the cabin the shell
+already had. What remains open there is the fill measured at the *neck* row -- 43.7-45.3%, where
+the bust has narrowed to a throat -- which is unsatisfiable together with the pillar-light
+criterion at any pane width; the arithmetic is item 2 of `BACKLOG_v4_19.md`. **Everything 4.18
+knowingly leaves undone is in that file**, which is the point of it: this release closes.
+
+---
+
 ## v4.17 — an art pass on the ground, and three things that were quietly wrong
 
 **Prepared, not published.** `versionCode = 48`, `versionName = "4.17"`. Prepared 2026-09-01. No tag,

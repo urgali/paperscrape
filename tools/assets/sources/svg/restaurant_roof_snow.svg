@@ -1,15 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="288" height="30" viewBox="2 2 96 10">
-<g id="paperscrape-outline" fill="#9fb0bd" stroke="#9fb0bd" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
-  <!-- Snow on the restaurant's flat roof. The wall's own top edge is at y=8 here; the four units
-       above it are the drift standing proud of the parapet, which is what separates a layer of
-       snow from a white stripe painted on the building. -->
-<polygon points="2,9.5 8,4.5 22,6.5 36,3.5 52,5.5 68,3.5 84,6.5 96,4.5 98,9.5 98,12 2,12"></polygon>
-        <polygon points="2,8 8,3 22,5 36,2 52,4 68,2 84,5 96,3 98,8 98,10.5 2,10.5"></polygon>
-</g>
-  <!-- Snow on the restaurant's flat roof. The wall's own top edge is at y=8 here; the four units
-       above it are the drift standing proud of the parapet, which is what separates a layer of
-       snow from a white stripe painted on the building. -->
-<polygon points="2,9.5 8,4.5 22,6.5 36,3.5 52,5.5 68,3.5 84,6.5 96,4.5 98,9.5 98,12 2,12" fill="#DCE7EF"></polygon>
-        <polygon points="2,8 8,3 22,5 36,2 52,4 68,2 84,5 96,3 98,8 98,10.5 2,10.5" fill="#FFFFFF"></polygon>
-
+<svg xmlns="http://www.w3.org/2000/svg" width="156" height="24" viewBox="0 2 52 8">
+<!--
+  Snow for the bow. A quadratic's midpoint sits halfway to its control, so the bow's visual crest
+  is at -109, not at its control's -116; the first draft of this drift was placed against the
+  control and hovered. This one is built from two quads with a flat crest and real thickness, and
+  is blitted at (-26,-111.5) so the crest stands two units proud of the crown and the tapered tips
+  die out over the shoulders.
+-->
+  
+<path d="M-0.5 10 Q13 2 26 2 Q39 2 52.5 10 Q39 6.9 26 6.7 Q13 6.9 -0.5 10 Z" fill="#ffffff"></path>
+        <path d="M6 8.6 Q15 3.4 26 3.3 Q37 3.4 46 8.6 Q37 6.4 26 6.2 Q15 6.4 6 8.6 Z" fill="#f4f7fa"></path>
 </svg>

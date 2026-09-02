@@ -1,31 +1,93 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="294" height="147" viewBox="1 4 98 49">
+<svg xmlns="http://www.w3.org/2000/svg" width="294" height="135" viewBox="1 8 98 45">
+<!--
+  A fire appliance rather than a red box.
+
+  The proportions were never the problem and are not touched: length over height is 1.66 here
+  against a real pumper's 2.5, and a saloon in this same set is 2.02 against a real one's 3.2, so
+  the two vehicles are compressed by the same amount and the engine is exactly as elongated
+  relative to a car as it should be. What made it read as a big stylised car was the drawing. The
+  shell was a single rectangle with one small chamfer; the largest unbroken area in the sprite was
+  the blank nose under the windscreen; the cream stripe ran only 52 of the 98 units and stopped
+  dead against the cab; and the beacons sat among the ladder's rungs.
+
+  So: the body roof now stands five units proud of the cab roof, which is the one silhouette cue
+  that says truck and not car and is why the canvas starts at y=8 instead of y=4. The nose is
+  raked over twelve units instead of seven. The stripe runs the full 94 units and crosses the cab.
+  Each locker is an aluminium roll-up shutter now: a silver panel with slats inside a darker
+  frame. The slat texture is the one visual that says fire appliance and nothing else at this
+  scale, and it is what the plain red panels of the earlier drawing were always trying to be.
+  Four concepts were rendered side by side before this one was chosen; the plain-panel body
+  read as a red box at the far lane, and the shutters still read as equipment bays there. There is a headlight. The ladder is shorter and starts where the body does, so
+  the cab roof belongs to the beacons and nothing is drawn over them.
+
+  Two more things arrived with the second pass. The upper body was still one unbroken red
+  field, 55 by 19 units and by then the largest flat area left in the drawing, so it carries
+  two upper equipment bays; and the chassis grew a front bumper and a rear tailboard, which
+  is what an appliance has where a car has nothing. The wheels went with them, to radius ten
+  against the saloon's nine, sitting on the same road line.
+
+  The cab window is `rect 10 15 25 17` since rc2 (scene x -40..-15, y -11..6) and is what
+  FIRE_TRUCK_SILL_Y_UNITS, FIRE_TRUCK_HEAD_X_UNITS and FIRE_TRUCK_GLASS_HEIGHT_UNITS are measured
+  from. It grew from 26x14 at (9,17) when the occupants moved onto the height table: a
+  table-sized head with 10-25% of air needs 17 units of glass, the top rises to two units under
+  the cab roof, the sill drops to meet the cream stripe, and the left edge steps one unit right
+  so the taller pane clears the raked nose.
+-->
 <g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="1.0" stroke-linejoin="round" stroke-linecap="round">
   
-<polygon points="5,52 5,19 10,12 97,12 99,14 99,52"></polygon>
-        <polygon points="3,50 3,17 8,10 95,10 97,12 97,50"></polygon>
-        <rect x="40" y="10" width="3" height="40"></rect>
-        <rect x="9" y="17" width="26" height="14" rx="1"></rect>
-        <rect x="44" y="32" width="52" height="6"></rect>
-        <rect x="46" y="40" width="14" height="6"></rect>
-        <rect x="63" y="40" width="14" height="6"></rect>
-        <rect x="80" y="40" width="14" height="6"></rect>
+<path d="M5 52 L5 24 L13 15 L42 15 L42 10 L97 10 L99 12 L99 52 Z"></path>
+        <path d="M3 50 L3 22 L11 13 L40 13 L40 8 L95 8 L97 10 L97 50 Z"></path>
+        <rect x="40" y="8" width="2" height="42"></rect>
+        <rect x="10" y="15" width="25" height="17"></rect>
+        <rect x="46" y="17" width="22" height="12"></rect>
+        <rect x="71" y="17" width="22" height="12"></rect>
+        <rect x="3" y="32" width="94" height="6"></rect>
+        <rect x="45" y="39.2" width="15.6" height="7.6"></rect>
+        <rect x="62" y="39.2" width="15.6" height="7.6"></rect>
+        <rect x="79" y="39.2" width="15.6" height="7.6"></rect>
         <rect x="1" y="46" width="98" height="7"></rect>
-        <rect x="20" y="4" width="4" height="7"></rect>
-        <rect x="72" y="4" width="4" height="7"></rect>
+        <rect x="3" y="43.5" width="8" height="4.5" rx="1"></rect>
+        <rect x="89" y="43.5" width="9" height="5.5" rx="1"></rect>
 
 </g>
   
-<polygon points="5,52 5,19 10,12 97,12 99,14 99,52" fill="#AE352D"></polygon>
-        <polygon points="3,50 3,17 8,10 95,10 97,12 97,50" fill="#D4453B"></polygon>
-        <rect x="40" y="10" width="3" height="40" fill="#AE352D"></rect>
-        <rect x="9" y="17" width="26" height="14" rx="1" fill="#B9D8E4"></rect>
-        <rect x="44" y="32" width="52" height="6" fill="#FBF4E6"></rect>
-        <rect x="46" y="40" width="14" height="6" fill="#AE352D"></rect>
-        <rect x="63" y="40" width="14" height="6" fill="#AE352D"></rect>
-        <rect x="80" y="40" width="14" height="6" fill="#AE352D"></rect>
+<path d="M5 52 L5 24 L13 15 L42 15 L42 10 L97 10 L99 12 L99 52 Z" fill="#AE352D"></path>
+        <path d="M3 50 L3 22 L11 13 L40 13 L40 8 L95 8 L97 10 L97 50 Z" fill="#D4453B"></path>
+        <rect x="40" y="8" width="2" height="42" fill="#AE352D"></rect>
+        <rect x="10" y="15" width="25" height="17" fill="#B9D8E4"></rect>
+        <rect x="46" y="17" width="22" height="12" fill="#8E2A24"></rect>
+        <rect x="47" y="17.8" width="20" height="10.4" fill="#C9CDD3"></rect>
+        <rect x="47" y="19.2" width="20" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="47" y="21.7" width="20" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="47" y="24.2" width="20" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="47" y="26.7" width="20" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="71" y="17" width="22" height="12" fill="#8E2A24"></rect>
+        <rect x="72" y="17.8" width="20" height="10.4" fill="#C9CDD3"></rect>
+        <rect x="72" y="19.2" width="20" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="72" y="21.7" width="20" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="72" y="24.2" width="20" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="72" y="26.7" width="20" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="3" y="32" width="94" height="6" fill="#FBF4E6"></rect>
+        <rect x="45" y="39.2" width="15.6" height="7.6" fill="#8E2A24"></rect>
+        <rect x="45.8" y="39.8" width="14" height="6.2" fill="#8E2A24"></rect>
+        <rect x="46.8" y="40.599999999999994" width="12" height="4.6" fill="#C9CDD3"></rect>
+        <rect x="46.8" y="42.0" width="12" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="46.8" y="44.5" width="12" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="62" y="39.2" width="15.6" height="7.6" fill="#8E2A24"></rect>
+        <rect x="62.8" y="39.8" width="14" height="6.2" fill="#8E2A24"></rect>
+        <rect x="63.8" y="40.599999999999994" width="12" height="4.6" fill="#C9CDD3"></rect>
+        <rect x="63.8" y="42.0" width="12" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="63.8" y="44.5" width="12" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="79" y="39.2" width="15.6" height="7.6" fill="#8E2A24"></rect>
+        <rect x="79.8" y="39.8" width="14" height="6.2" fill="#8E2A24"></rect>
+        <rect x="80.8" y="40.599999999999994" width="12" height="4.6" fill="#C9CDD3"></rect>
+        <rect x="80.8" y="42.0" width="12" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="80.8" y="44.5" width="12" height="0.9" fill="#A9AEB6"></rect>
+        <rect x="4.2" y="39.2" width="10" height="6" rx="2" fill="#8E2A24"></rect>
+        <rect x="5" y="40" width="8.4" height="4.4" rx="1.6" fill="#FBF4E6"></rect>
         <rect x="1" y="46" width="98" height="7" fill="#4A4A50"></rect>
-        <rect x="20" y="4" width="4" height="7" fill="#AE352D"></rect>
-        <rect x="72" y="4" width="4" height="7" fill="#AE352D"></rect>
+        <rect x="3" y="43.5" width="8" height="4.5" rx="1" fill="#B8BCC2"></rect>
+        <rect x="89" y="43.5" width="9" height="5.5" rx="1" fill="#B8BCC2"></rect>
 
 
 </svg>

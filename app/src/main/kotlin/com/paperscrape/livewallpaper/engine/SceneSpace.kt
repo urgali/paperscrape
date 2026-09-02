@@ -564,14 +564,37 @@ object SceneSpace {
     const val BUILDING_TOWER_MAX_DEPTH = 0.30f
 
     /**
+     * Within the shop band ([BUILDING_TOWER_MAX_DEPTH]..0.80), the depth below which a shop is
+     * the restaurant and above which it is the bar.
+     *
+     * Which of the two a shop becomes used to be a hash of its horizontal position — sanctioned
+     * at the time as "interchangeable at any depth", which is true of the *artwork* but made the
+     * shop's identity a function of the hundredth-of-a-tile its jitter (or the visibility pass)
+     * happened to land it on: nothing stopped every shop in a scene from hashing to the same
+     * storefront, and the rc2 frames delivered exactly that — two identical trattorias in one
+     * screen. Depth is the property that already decides what a building *is* (tower vs shop,
+     * [BUILDING_TOWER_MAX_DEPTH]), it never changes after generation, and the catalogue keeps at
+     * most one shop per half-band ([SceneObjectCatalog] `singleShopPerVariant`), so it also
+     * decides *which* shop — stably, whatever the visibility pass does to x.
+     */
+    const val SHOP_VARIANT_DEPTH_SPLIT = 0.55f
+
+    /**
      * The vehicles, kept out of [SceneVariant] because they are placed by lane rather than by
      * depth and never appear in the static object list.
      *
      * A car's governed height is roof to wheel contact, 48 local units; the fire engine's own
      * body reaches 68 over the same wheel line.
      */
-    const val CAR_METRES_TALL = 1.45f
-    const val CAR_SPRITE_UNITS_TALL = 48f
+    /**
+     * v4.20: the redrawn saloon stands 50 units from roof to wheel contact (roof -13, ground 37)
+     * against the old 48, and the metres moved with the units so a unit is still the same pixel:
+     * 1.45 x 50/48 = 1.5104. The car is therefore ~4% taller on screen, which the redesign pass
+     * judged against the road on the device -- the raised beltline wanted a touch more body height
+     * and the lane comfortably holds it.
+     */
+    const val CAR_METRES_TALL = 1.51f
+    const val CAR_SPRITE_UNITS_TALL = 50f
     const val FIRE_TRUCK_METRES_TALL = 2.9f
     const val FIRE_TRUCK_SPRITE_UNITS_TALL = 68f
 

@@ -1,5 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="138" height="48" viewBox="3 1 46 16">
-  
-<path d="M3 17 L11 3 C12 1.5 13 1 15 1 L46 1 C48 1 49 2 49 4 L49 17 Z" fill="#B9D8E4"></path>
-        <rect x="27" y="1" width="3.4" height="16" fill="#6C90A4"></rect>
+<svg xmlns="http://www.w3.org/2000/svg" width="162" height="69" viewBox="0 0 54 23">
+<!--
+  The glasshouse, cut to the cabin instead of to a straight trapezoid.
+
+  rc5 lengthened this pane from 42 to 47 units so the saloon could carry two people again, and
+  it worked — but the two busts came out touching: 47 units hold two 18.08-unit heads only if
+  they overlap, and a driver whose hair is cut by the passenger's reads as one mass with two
+  faces rather than as two seats.
+
+  The room to separate them was already in the shell. rc5's pane was a straight trapezoid inside
+  a curved cabin, so it left the A-pillar carrying about 15 units of spare mass at the beltline
+  while the pane itself was only 43.2 units wide where the heads are widest. This pane follows
+  the cabin instead: it is inset 1.8 units from `car_body`'s own opaque edge at every row, from
+  43.3 units at the roof line out to 54.00 by the beltline, and held from there to the sill.
+  **`car_body` is not touched at all** — nose, tail, cowl, roof, beltline, spear, lamps, arches
+  and wheels are the paths rc5 shipped, and the bonnet is still 21 units. The car is the same
+  car; only the hole cut in it changed.
+
+  What that buys, measured on the rendered pixels: two heads 19.8 units apart with **3.17% of
+  the pane's width of clear glass between them and no head pixel occluded by the other
+  occupant**, **13.75% of light to each pillar** (the criterion is 13%), and **71.8% of the
+  glass filled by head** at the head band. The shoulders below the chin line still meet, which
+  is the depth cue that says one person is sitting behind the other.
+
+  Blitted at (-24,-11); the sill is still 12 and the height still 23, so every rc2 criterion on
+  the vertical — air band, head size, zero pixels outside the glass — is untouched, none of them
+  being about width.
+-->
+
+<path d="M0 23 L0 8 L4.4 0.9 Q4.8 0 5.8 0 L47.2 0 Q48.2 0 48.6 0.9 L54 8 L54 23 Z" fill="#B9D8E4"></path>
 </svg>

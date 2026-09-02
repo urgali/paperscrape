@@ -420,7 +420,10 @@ class ShippedSourcesTest(unittest.TestCase):
         # reached either.
         for site in self.unattributed:
             self.assertTrue(
-                site.expression == "driverRes"
+                # rc5 renamed `driverRes`: `drawSeatedOccupant` is one blit serving both of a
+                # car's seats, and which bust it draws is chosen at the two call sites in
+                # `drawCar` out of the `personCarHeadSkinDrawables` table.
+                site.expression == "occupantRes"
                 or site.expression == "phaseSprite"
                 or site.expression == "resId"
                 # `scatterPiles` is one loop drawing either drift sprite, chosen by its

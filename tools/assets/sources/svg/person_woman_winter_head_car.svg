@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="120" height="147" viewBox="8 5 40 49">
+<svg xmlns="http://www.w3.org/2000/svg" width="141" height="132" viewBox="5.5 5 47 44">
 <g id="paperscrape-outline" fill="#4a4038" stroke="#4a4038" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">
   
-<path d="M8 54 C8 45 17 40 28 40 C39 40 48 45 48 54 Z"></path>
-        <path d="M12 54 C12 47 19 43 28 43 C37 43 44 47 44 54 Z"></path>
-        <rect x="30" y="40" width="6" height="14" transform="rotate(16 33 47)"></rect>
+        <path d="M8 47.7 C8 43.4 17 40 28 40 C39 40 48 43.4 48 47.7 Z"></path>
+        <path d="M12 47.7 C12 44.8 19 43 28 43 C37 43 44 44.8 44 47.7 Z"></path>
+        <rect x="30" y="40" width="6" height="7.4" transform="rotate(16 33 43.7)"></rect>
         <rect x="13" y="12" width="30" height="31" rx="10"></rect>
         <path d="M10 38 L10 24 L16 24 L16 38 Z"></path>
         <path d="M40 38 L40 24 L46 24 L46 38 Z"></path>
@@ -13,9 +13,9 @@
         <circle cx="35" cy="31" r="2.4"></circle>
 </g>
   
-<path d="M8 54 C8 45 17 40 28 40 C39 40 48 45 48 54 Z" fill="#BF4130"></path>
-        <path d="M12 54 C12 47 19 43 28 43 C37 43 44 47 44 54 Z" fill="#FBF4E6"></path>
-        <rect x="30" y="40" width="6" height="14" fill="#EFDFC4" transform="rotate(16 33 47)"></rect>
+        <path d="M8 47.7 C8 43.4 17 40 28 40 C39 40 48 43.4 48 47.7 Z" fill="#BF4130"></path>
+        <path d="M12 47.7 C12 44.8 19 43 28 43 C37 43 44 44.8 44 47.7 Z" fill="#FBF4E6"></path>
+        <rect x="30" y="40" width="6" height="7.4" transform="rotate(16 33 43.7)" fill="#EFDFC4"></rect>
         <rect x="13" y="12" width="30" height="31" rx="10" fill="#F0C9A6"></rect>
         <path d="M10 38 L10 24 L16 24 L16 38 Z" fill="#8C5A38"></path>
         <path d="M40 38 L40 24 L46 24 L46 38 Z" fill="#8C5A38"></path>

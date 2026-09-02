@@ -1,4 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="204" height="27" viewBox="0 0 68 9">
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="27" viewBox="0 0 44 9">
+<!--
+  Shortened from 68 units to 44 for the reason written on police_stripe: past the arch cuts the
+  band has nothing under it. The chequer's own period is unchanged, so the squares are the size
+  they always were and only the run is shorter.
+-->
   
   <defs>
     <pattern id="p_checker" width="16" height="9" patternUnits="userSpaceOnUse">
@@ -6,6 +11,6 @@
         <rect x="8" y="4.5" width="8" height="4.5" fill="#2B2A33"></rect>
       </pattern>
   </defs>
-<rect x="0" y="0" width="68" height="9" fill="#FBF4E6"></rect>
-        <rect x="0" y="0" width="68" height="9" fill="url(#p_checker)"></rect>
+<rect x="0" y="0" width="44" height="9" fill="#FBF4E6"></rect>
+        <rect x="0" y="0" width="44" height="9" fill="url(#p_checker)"></rect>
 </svg>

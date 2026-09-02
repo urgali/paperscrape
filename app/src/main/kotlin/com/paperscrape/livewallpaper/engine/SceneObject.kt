@@ -55,15 +55,21 @@ data class StaticSceneObject(
 /**
  * The vehicles on the road.
  *
- * [carriesPassengers] is a property of the type rather than a list of exclusions at the call site:
- * a police car and a fire engine are crewed, not travelled in, and a child in the back of either
- * reads as something being wrong. Stated this way, a service vehicle added later is excluded by
- * default rather than by somebody remembering to exclude it.
+ * [seatsTwo] is a property of the type rather than a list of exclusions at the call site, so a
+ * vehicle added later gets the conservative answer by default rather than by somebody
+ * remembering. rc2 called it `carriesPassengers` and it excluded the police car, because the
+ * passenger could then be a child and a child in the back of a service vehicle reads as
+ * something being wrong. rc5 seats two **adults** or nobody -- a child's frontal bust is too
+ * wide across the shoulders to keep its pillar light, see
+ * [SceneObjectRenderer.CAR_PASSENGER_X_UNITS] -- so the reason to exclude the police car is
+ * gone: two officers in a patrol car is what a patrol car looks like. The fire engine keeps its
+ * single seat, because its cab glass is 25 units and holds one head, not because of who is in
+ * it.
  */
-enum class CarType(val carriesPassengers: Boolean) {
+enum class CarType(val seatsTwo: Boolean) {
     PLAIN(true),
     TAXI(true),
-    POLICE(false),
+    POLICE(true),
     FIRE_TRUCK(false),
 }
 
@@ -430,13 +436,330 @@ object SceneObjectCatalog {
         val houseBack = 0.28f..0.48f
         val houseFront = 0.62f..0.95f
         val houses = generateSplitStaticCandidates(SceneObjectType.HOUSE, seed + 1, houseBack, houseFront)
-        val staticObjects =
-            generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, 0.0f..0.80f) +
+        val staticObjects = separateShopFrontages(
+            singleShopPerVariant(generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, 0.0f..0.80f)) +
                 houses +
                 generateStaticCandidates(treeType, seed + 5, 0.18f..1.0f) +
-                parasolsBeside(houses, seed + 4)
+                parasolsBeside(houses, seed + 4),
+        )
         val cars = generateCarCandidates(seed + 6, accentColor)
         return SceneObjectLayout(staticObjects = staticObjects, cars = cars)
+    }
+
+    // ---- Shop-front visibility and identity (rc2, remetricated + deduplicated in rc3) --------
+    //
+    // The trattoria and the pub were redrawn to be told apart at a glance, and on the delivered
+    // Autumn frame one of them was standing behind a house that covered nine tenths of it: a
+    // frontage nobody can see is artwork nobody gets. The candidates are placed by independent
+    // slot arithmetic per category, so nothing ever kept a nearer building off a shop -- this
+    // pass does, at layout time, by nudging the *shop* sideways (never its depth: a shop's depth
+    // is what makes it a shop, see SceneSpace.BUILDING_TOWER_MAX_DEPTH).
+    //
+    // rc3 corrected the metric and the cardinality, both against delivered frames:
+    //  - The rc2 rule measured the worst single occluder against the frontage's *lower half*,
+    //    and the day scene answered with a pub numerically at 40% and visually cut in two by a
+    //    tree trunk planted over its door, crown across the whole upper storey. The measure is
+    //    now the union of everything nearer over the ENTIRE front (crowns, trunks, poles and
+    //    parasol canopies included), and no vertical member may cross the front at all.
+    //  - Two identical trattorias stood in one frame. That is not fixable by spacing: the object
+    //    tile is two screen widths and an object is on screen for (screenW + its width) of
+    //    scroll, which is MORE than half the tile -- so any two shops of the same storefront
+    //    share a frame at some scroll position, wherever they stand. The only layout that never
+    //    shows twin storefronts is one restaurant and one bar per tile, so that is what the
+    //    catalogue now emits ([singleShopPerVariant]); the surplus commercial candidates keep
+    //    their slot and their category and become skyline towers instead.
+
+    /** The reference viewport the occlusion geometry is evaluated at: the device every visual
+     * judgement in this project is made on. The overlap *fractions* barely move with aspect
+     * ratio, but they are not exactly invariant, so the number in the rule names its frame. */
+    private const val REF_SCREEN_W = 1080f
+    private const val REF_SCREEN_H = 2340f
+
+    /** Occlusion above which a shop is moved: the 40% ceiling with a working margin. Since rc3
+     * the fraction is the covered share of the shop's WHOLE front (area union of every nearer
+     * occluding box), not the worst single occluder's share of the lower band's width. */
+    private const val SHOP_MAX_OCCLUSION = 0.40f
+    private const val SHOP_TARGET_OCCLUSION = 0.32f
+
+    /** How far past the shop's front edge a stepped-aside tree is pushed, in reference px. */
+    private const val TREE_STEP_ASIDE_MARGIN_PX = 4f
+
+    /**
+     * Keeps one commercial candidate per storefront and turns the rest into skyline towers.
+     *
+     * Of the shop-band candidates (depth >= [SceneSpace.BUILDING_TOWER_MAX_DEPTH]), the
+     * depth-middle one of each variant half-band (see [SceneSpace.SHOP_VARIANT_DEPTH_SPLIT])
+     * stays a shop -- the middle, because the half-band's extremes are the smallest and largest
+     * the street offers and the shop should read as an ordinary building of its row. Every other
+     * shop-band candidate keeps its slot, its x, its size roll and its category (so the density
+     * slider and the colour config govern exactly the same ten candidates as before) and moves
+     * to a tower depth, interleaved across the tower band between the four generated tower
+     * depths rather than stacked on them.
+     */
+    private fun singleShopPerVariant(candidates: List<StaticSceneObject>): List<StaticSceneObject> {
+        val shopIndices = candidates.indices.filter {
+            candidates[it].depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH
+        }
+        fun middleByDepth(indices: List<Int>): Int? =
+            indices.sortedBy { candidates[it].depthFraction }.let { if (it.isEmpty()) null else it[it.size / 2] }
+        val kept = setOfNotNull(
+            middleByDepth(shopIndices.filter { candidates[it].depthFraction < SceneSpace.SHOP_VARIANT_DEPTH_SPLIT }),
+            middleByDepth(shopIndices.filter { candidates[it].depthFraction >= SceneSpace.SHOP_VARIANT_DEPTH_SPLIT }),
+        )
+        val demotedCount = shopIndices.size - kept.size
+        var rank = 0
+        return candidates.mapIndexed { i, c ->
+            if (i !in shopIndices || i in kept) c
+            else c.copy(
+                depthFraction = SceneSpace.BUILDING_TOWER_MAX_DEPTH * (2 * rank++ + 1) /
+                    (2f * demotedCount.coerceAtLeast(1)),
+            )
+        }
+    }
+
+    /** Drawn half-width of a variant, in its own sprite units, measured off the artwork. */
+    private fun halfWidthUnits(variant: SceneSpace.SceneVariant): Float = when (variant) {
+        SceneSpace.SceneVariant.HOUSE_SMALL -> 48f
+        SceneSpace.SceneVariant.HOUSE_LARGE -> 75f
+        SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR -> 34f
+        SceneSpace.SceneVariant.TOWER -> 45f
+        SceneSpace.SceneVariant.TREE -> 41f
+        SceneSpace.SceneVariant.PALM_TREE -> 20f
+        else -> 0f
+    }
+
+    private fun isShop(o: StaticSceneObject) =
+        o.type == SceneObjectType.SKYSCRAPER && o.depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH
+
+    /**
+     * Moves every shop to the nearest position where its front is neither covered past
+     * [SHOP_MAX_OCCLUSION] nor crossed by any vertical member.
+     *
+     * Geometry, not judgement: each object's drawn extent at the reference viewport comes from
+     * the same [SceneObjectRenderer.effectiveScaleFor] pipeline the renderer draws it with, so
+     * the pass and the picture cannot disagree. Two rules, both over the shop's ENTIRE front
+     * (rc3 -- the rc2 lower-band single-occluder rule passed a pub visually cut in two):
+     *  - **Coverage.** The union of every nearer occluding box -- house and shop bodies, tree
+     *    crowns AND trunks, palm fans AND trunks, parasol canopies AND poles -- may cover at
+     *    most [SHOP_MAX_OCCLUSION] of the front's area.
+     *  - **No vertical member across the front.** A trunk or pole crossing the frontage splits
+     *    the door and panes however little area it costs, so it is a hard reject rather than a
+     *    contribution to the fraction.
+     *
+     * Shape, learned the hard way across the twelve built-in layouts:
+     *  - **Nearest shop first.** A shop settles only against what is nearer than itself, so once
+     *    the nearest has parked, the deeper ones route around it. List order oscillated on
+     *    Winter's layout and left a deep shop 53% covered.
+     *  - **Positions are scanned, not nudged.** Probes step outward from the shop's own slot in
+     *    hundredth-of-a-tile steps, alternating sides; the first uncrossed probe under
+     *    [SHOP_TARGET_OCCLUSION] wins. Single-worst-occluder nudging oscillated between the
+     *    houses flanking the only clear window.
+     *  - **Two acceptance tiers.** Failing the target, the nearest uncrossed probe under the
+     *    ceiling itself still satisfies the rule -- some depths offer 33-40% and nothing better.
+     *  - **Trees step aside as a last resort.** If no probe clears the ceiling, the shop parks
+     *    at its least-covered uncrossed probe and every tree still touching the front is moved
+     *    fully clear of it; houses are the street and never move, and parasols belong to their
+     *    houses ([parasolsBeside]) so the probes route around their poles instead. The sweeps
+     *    run to a fixed point; ShopFrontVisibilityTest re-measures all twelve themes
+     *    independently.
+     */
+    private fun separateShopFrontages(objects: List<StaticSceneObject>): List<StaticSceneObject> {
+        val out = objects.toMutableList()
+        val byDepthNearestFirst = out.indices.sortedByDescending { out[it].depthFraction }
+        repeat(5) {
+            var moved = false
+            for (i in byDepthNearestFirst) {
+                val shop = out[i]
+                if (!isShop(shop)) continue
+                if (frontCoverage(out, shop) <= SHOP_MAX_OCCLUSION && !frontCrossed(out, shop)) continue
+                var best = shop.tileFractionX
+                var bestCoverage = Float.MAX_VALUE
+                var found = false
+                var ceilingSlot: Float? = null
+                for (step in 1..50) {
+                    for (sign in intArrayOf(1, -1)) {
+                        val candidate = shop.copy(
+                            tileFractionX = (shop.tileFractionX + sign * step * 0.01f).mod(1f),
+                        )
+                        if (frontCrossed(out, candidate)) continue
+                        val covered = frontCoverage(out, candidate)
+                        if (covered <= SHOP_TARGET_OCCLUSION) {
+                            out[i] = candidate
+                            found = true
+                            break
+                        }
+                        if (covered <= SHOP_MAX_OCCLUSION && ceilingSlot == null) {
+                            ceilingSlot = candidate.tileFractionX
+                        }
+                        if (covered < bestCoverage) {
+                            bestCoverage = covered
+                            best = candidate.tileFractionX
+                        }
+                    }
+                    if (found) break
+                }
+                if (!found && ceilingSlot != null) {
+                    out[i] = shop.copy(tileFractionX = ceilingSlot)
+                    found = true
+                }
+                if (!found) {
+                    out[i] = shop.copy(tileFractionX = best)
+                    val parked = out[i]
+                    val f = frontRect(parked)
+                    val cx = (f[0] + f[2]) / 2f
+                    for (j in out.indices) {
+                        val o = out[j]
+                        if (o.type != SceneObjectType.TREE && o.type != SceneObjectType.PALM_TREE) continue
+                        if (o.depthFraction <= parked.depthFraction) continue
+                        val touches = occluderBoxes(o).any { box ->
+                            val b = wrapBoxToward(box, cx)
+                            b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3]
+                        }
+                        if (!touches) continue
+                        val tile = REF_SCREEN_W * 2f
+                        val reach = halfWidthUnits(SceneObjectRenderer.variantFor(o)) *
+                            SceneObjectRenderer.effectiveScaleFor(o, REF_SCREEN_H)
+                        val rawDx = (o.tileFractionX * tile - cx).mod(tile)
+                        val dx = if (rawDx > tile / 2f) rawDx - tile else rawDx
+                        val target = if (dx >= 0f) f[2] + reach + TREE_STEP_ASIDE_MARGIN_PX
+                        else f[0] - reach - TREE_STEP_ASIDE_MARGIN_PX
+                        out[j] = o.copy(tileFractionX = (target / tile).mod(1f))
+                    }
+                }
+                moved = true
+            }
+            if (!moved) return out
+        }
+        return out
+    }
+
+    /** The shop's full drawn front at the reference viewport: (left, top, right, bottom) px. */
+    private fun frontRect(shop: StaticSceneObject): FloatArray {
+        val s = SceneObjectRenderer.effectiveScaleFor(shop, REF_SCREEN_H)
+        val g = REF_SCREEN_H * SceneSpace.groundYFraction(shop.depthFraction)
+        val x = shop.tileFractionX * REF_SCREEN_W * 2f
+        val half = halfWidthUnits(SceneObjectRenderer.variantFor(shop)) * s
+        return floatArrayOf(x - half, g - SceneObjectRenderer.variantFor(shop).spriteUnitsTall * s, x + half, g)
+    }
+
+    /**
+     * What one object puts between the viewer and anything behind it, as (left, top, right,
+     * bottom) boxes at the reference viewport. A building is its body; a tree is its crown (the
+     * canopy blit's own -118..-44, see recordLeafSource's measurements of the same artwork) AND
+     * its trunk (the 10x44-unit blit at TreeSpriteLayout.TRUNK_X/Y); a palm is fan and trunk; a
+     * parasol is canopy and pole (drawParasol's own 34-unit wedge fan on a 5x50 pole).
+     */
+    private fun occluderBoxes(o: StaticSceneObject): List<FloatArray> {
+        val v = SceneObjectRenderer.variantFor(o)
+        val s = SceneObjectRenderer.effectiveScaleFor(o, REF_SCREEN_H)
+        val g = REF_SCREEN_H * SceneSpace.groundYFraction(o.depthFraction)
+        val x = o.tileFractionX * REF_SCREEN_W * 2f
+        return when (v) {
+            SceneSpace.SceneVariant.TREE -> listOf(
+                floatArrayOf(x - 41f * s, g - 118f * s, x + 41f * s, g - 44f * s),
+                floatArrayOf(x - 5f * s, g - 44f * s, x + 5f * s, g),
+            )
+            SceneSpace.SceneVariant.PALM_TREE -> listOf(
+                floatArrayOf(x - 20f * s, g - 90.33f * s, x + 20f * s, g - 53.5f * s),
+                floatArrayOf(x - 6f * s, g - 58f * s, x + 5f * s, g),
+            )
+            SceneSpace.SceneVariant.PARASOL -> listOf(
+                floatArrayOf(x - 34f * s, g - 84f * s, x + 34f * s, g - 50f * s),
+                floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g),
+            )
+            SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
+            SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
+            SceneSpace.SceneVariant.TOWER,
+            -> listOf(floatArrayOf(x - halfWidthUnits(v) * s, g - v.spriteUnitsTall * s, x + halfWidthUnits(v) * s, g))
+            else -> emptyList()
+        }
+    }
+
+    /** The trunk or pole alone -- the box whose mere crossing of a front is the defect. */
+    private fun verticalMemberBox(o: StaticSceneObject): FloatArray? {
+        val v = SceneObjectRenderer.variantFor(o)
+        val s = SceneObjectRenderer.effectiveScaleFor(o, REF_SCREEN_H)
+        val g = REF_SCREEN_H * SceneSpace.groundYFraction(o.depthFraction)
+        val x = o.tileFractionX * REF_SCREEN_W * 2f
+        return when (v) {
+            SceneSpace.SceneVariant.TREE -> floatArrayOf(x - 5f * s, g - 44f * s, x + 5f * s, g)
+            SceneSpace.SceneVariant.PALM_TREE -> floatArrayOf(x - 6f * s, g - 58f * s, x + 5f * s, g)
+            SceneSpace.SceneVariant.PARASOL -> floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
+            else -> null
+        }
+    }
+
+    /** The nearest wrapped copy of [box] relative to a front centred at [cx]. */
+    private fun wrapBoxToward(box: FloatArray, cx: Float): FloatArray {
+        val tile = REF_SCREEN_W * 2f
+        val boxCx = (box[0] + box[2]) / 2f
+        val rawDx = (boxCx - cx).mod(tile)
+        val dx = if (rawDx > tile / 2f) rawDx - tile else rawDx
+        val shift = (cx + dx) - boxCx
+        return floatArrayOf(box[0] + shift, box[1], box[2] + shift, box[3])
+    }
+
+    /** The covered share of the shop's whole front: exact area of the union of every nearer
+     * occluding box, clipped to the front. Layout-time only -- never on the draw path. */
+    private fun frontCoverage(objects: List<StaticSceneObject>, shop: StaticSceneObject): Float {
+        val f = frontRect(shop)
+        val cx = (f[0] + f[2]) / 2f
+        val clipped = ArrayList<FloatArray>()
+        for (o in objects) {
+            if (o === shop || o.depthFraction <= shop.depthFraction) continue
+            for (box in occluderBoxes(o)) {
+                val b = wrapBoxToward(box, cx)
+                val l = maxOf(b[0], f[0])
+                val t = maxOf(b[1], f[1])
+                val r = minOf(b[2], f[2])
+                val bo = minOf(b[3], f[3])
+                if (r > l && bo > t) clipped.add(floatArrayOf(l, t, r, bo))
+            }
+        }
+        if (clipped.isEmpty()) return 0f
+        return unionArea(clipped) / ((f[2] - f[0]) * (f[3] - f[1]))
+    }
+
+    /** Whether any nearer trunk or pole crosses the shop's front. */
+    private fun frontCrossed(objects: List<StaticSceneObject>, shop: StaticSceneObject): Boolean {
+        val f = frontRect(shop)
+        val cx = (f[0] + f[2]) / 2f
+        for (o in objects) {
+            if (o === shop || o.depthFraction <= shop.depthFraction) continue
+            val member = verticalMemberBox(o) ?: continue
+            val b = wrapBoxToward(member, cx)
+            if (b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3]) return true
+        }
+        return false
+    }
+
+    /** Exact area of a union of axis-aligned boxes: x-sweep over edge slabs, y-interval merge
+     * per slab. The box counts here are single digits, so O(n^2) is nothing at layout time. */
+    private fun unionArea(boxes: List<FloatArray>): Float {
+        val xs = boxes.flatMap { listOf(it[0], it[2]) }.distinct().sorted()
+        var area = 0f
+        for (k in 0 until xs.size - 1) {
+            val x0 = xs[k]
+            val x1 = xs[k + 1]
+            if (x1 <= x0) continue
+            val mid = (x0 + x1) / 2f
+            val strips = boxes.filter { mid > it[0] && mid < it[2] }.sortedBy { it[1] }
+            var covered = 0f
+            var curTop = Float.NaN
+            var curBottom = Float.NEGATIVE_INFINITY
+            for (s in strips) {
+                if (curTop.isNaN() || s[1] > curBottom) {
+                    if (!curTop.isNaN()) covered += curBottom - curTop
+                    curTop = s[1]
+                    curBottom = s[3]
+                } else if (s[3] > curBottom) {
+                    curBottom = s[3]
+                }
+            }
+            if (!curTop.isNaN()) covered += curBottom - curTop
+            area += covered * (x1 - x0)
+        }
+        return area
     }
 
     /**

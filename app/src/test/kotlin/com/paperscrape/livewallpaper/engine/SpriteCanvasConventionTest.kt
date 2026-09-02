@@ -13,7 +13,7 @@ import org.junit.Test
  * The finding was raised from the two winter head sprites, whose outline stroke is cut where the
  * artwork meets the frame, and it asked whether that is lost artwork across the library.
  *
- * Measured, it is not. **212 of the 224 sprites have opaque pixels on a canvas border**, and 65 of
+ * Measured, it is not. **most of the 233 sprites have opaque pixels on a canvas border**, and 65 of
  * them touch all four. That is not two hundred defects; it is the authoring convention this asset
  * set is built on and that `tools/assets`' `normalize` enforces from the other side -- a sprite may
  * carry no removable padding, so its canvas *is* its content box, and every anchor in
@@ -45,6 +45,12 @@ class SpriteCanvasConventionTest {
         // the two register exactly; the eyes and the grin sit well inside the fruit, so the margin
         // around them is the body it is cut into and is as load-bearing as any anchor here.
         "pumpkin_face",
+        // v4.20. A registration crop: the overlay is authored in the shell's own coordinates and
+        // its margin is the lamp housings' surround, which is what keeps a lit lamp inside its
+        // housing at night.
+        "car_lights",
+        // rc4. The day twin of car_lights: same viewBox, same registration, unlit colours.
+        "car_lights_day",
         "star_sparkle",
         "sun_body",
         "sun_glow",
@@ -58,8 +64,12 @@ class SpriteCanvasConventionTest {
         for (file in sprites()) {
             val name = file.nameWithoutExtension
             val touches = touchesAnEdge(ImageIO.read(file))
-            if (!touches && name !in marginIsLoadBearing) unexpected += name
-            if (touches && name in marginIsLoadBearing) missing += name
+            // rc4: the head_car family shares one 47x44 canvas with the eye line at x=23 for all
+            // eight members plus their skin tones, so every member's margin is the registration
+            // that seats it -- load-bearing for the whole family, like car_lights' surround.
+            val loadBearing = name in marginIsLoadBearing || name.contains("_head_car")
+            if (!touches && !loadBearing) unexpected += name
+            if (touches && loadBearing) missing += name
         }
         assertTrue(
             "these sprites grew a transparent margin nobody declared: $unexpected",
@@ -77,7 +87,7 @@ class SpriteCanvasConventionTest {
         // convention, which is why it is closed as one rather than fixed sprite by sprite.
         val all = sprites()
         val touching = all.count { touchesAnEdge(ImageIO.read(it)) }
-        assertEquals("224 sprites are expected", 224, all.size)
+        assertEquals("258 sprites are expected", 258, all.size)
         assertEquals("212 of them reach a canvas edge", 212, touching)
     }
 

@@ -243,7 +243,9 @@ class ByConstructionIdentityTest(unittest.TestCase):
     def test_each_identity_pairs_a_character_with_its_own_tone(self):
         tone = {"woman": "skin0", "man": "skin1", "boy": "skin2"}
         declared = [g for g in self.groups if g.state == "IDENTICAL_BY_CONSTRUCTION"]
-        self.assertEqual(24, len(declared), "twenty-four identities are expected")
+        # 24 through rc3 (three characters x two seasons x four sprite slots); rc4's frontal
+        # vehicle heads add the same three characters x two seasons on one more slot.
+        self.assertEqual(30, len(declared), "thirty identities are expected")
         for group_ in declared:
             base, variant = sorted(group_.members, key=len)
             kind = base.split("_")[1]

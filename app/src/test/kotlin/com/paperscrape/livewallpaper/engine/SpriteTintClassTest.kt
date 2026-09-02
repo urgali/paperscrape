@@ -60,8 +60,8 @@ class SpriteTintClassTest {
         // since it stopped carrying its own warm colour it is tinted cool by day and warm at
         // night like every other window in the scene. See `windowGlassColor`.
         "skyscraper_wall", "skyscraper_setback", "skyscraper_wall_lit",
-        "restaurant_wall", "restaurant_window", "restaurant_door",
-        "bar_wall", "bar_door",
+        "restaurant_wall", "restaurant_window", "restaurant_cornice",
+        "bar_wall", "bar_cornice",
         "penguin_body", "penguin_belly", "easteregg_shell", "bunny_body",
         "pumpkin_body", "car_body",
         "cloud_body", "bird_body",
@@ -109,9 +109,14 @@ class SpriteTintClassTest {
         "skyscraper_entrance", "tree_fir", "tree_fir_snow",
         "snowman_nose", "snowman_scarf", "gift_ribbon",
         "skyscraper_canopy", "restaurant_awning", "restaurant_sign", "bar_sign",
+        // The shop entrances went fixed-art in the pub/trattoria redesign: a door two shades
+        // under an already dark wall was the lowest-contrast area of the one storey a shop is
+        // about, and skyscraper_entrance had already established fixed art for street frontage.
+        "restaurant_door", "bar_door", "bar_lantern",
         "penguin_beak", "penguin_feet", "easteregg_pattern", "bunny_innerear", "bunny_tail",
         "pumpkin_stem",
-        "car_window", "police_stripe", "police_lightbar", "taxi_checker",
+        "car_window", "police_stripe", "police_lightbar", "taxi_checker", "taxi_sign", "car_lights",
+        "car_lights_day",
         "firetruck_ladder", "firetruck_body",
         "dolphin_body", "sailboat_hull", "sailboat_sail",
         "sun_body", "sun_glow", "star_sparkle",

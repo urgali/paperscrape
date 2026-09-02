@@ -402,16 +402,6 @@
       "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
     },
     {
-      "id": "man_head_car",
-      "axis": "season",
-      "members": [
-        "person_man_summer_head_car",
-        "person_man_winter_head_car"
-      ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
-    },
-    {
       "id": "man_head_window",
       "axis": "season",
       "members": [
@@ -652,16 +642,6 @@
       "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
     },
     {
-      "id": "woman_head_car",
-      "axis": "season",
-      "members": [
-        "person_woman_summer_head_car",
-        "person_woman_winter_head_car"
-      ],
-      "state": "DISTINCT",
-      "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
-    },
-    {
       "id": "woman_head_window",
       "axis": "season",
       "members": [
@@ -900,9 +880,255 @@
       ],
       "state": "IDENTICAL_BY_CONSTRUCTION",
       "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
+    },
+    {
+      "id": "man_head_car",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_car",
+        "person_man_winter_head_car"
+      ],
+      "state": "DISTINCT",
+      "reason": "Summer wears the character's own hair or cap; winter the bust translation of the character's winter headwear, with the seatbelt both seasons carry. The seasonal pair is distinct artwork like every other person sprite's."
+    },
+    {
+      "id": "man_head_car_skin0",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_car_skin0",
+        "person_man_winter_head_car_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "man_head_car_skin1",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_car_skin1",
+        "person_man_winter_head_car_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "man_head_car_skin2",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_car_skin2",
+        "person_man_winter_head_car_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "woman_head_car",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_car",
+        "person_woman_winter_head_car"
+      ],
+      "state": "DISTINCT",
+      "reason": "Summer wears the character's own hair or cap; winter the bust translation of the character's winter headwear, with the seatbelt both seasons carry. The seasonal pair is distinct artwork like every other person sprite's."
+    },
+    {
+      "id": "woman_head_car_skin0",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_car_skin0",
+        "person_woman_winter_head_car_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "woman_head_car_skin1",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_car_skin1",
+        "person_woman_winter_head_car_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "woman_head_car_skin2",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_car_skin2",
+        "person_woman_winter_head_car_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "boy_head_car",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_car",
+        "person_boy_winter_head_car"
+      ],
+      "state": "DISTINCT",
+      "reason": "Summer wears the character's own hair or cap; winter the bust translation of the character's winter headwear, with the seatbelt both seasons carry. The seasonal pair is distinct artwork like every other person sprite's."
+    },
+    {
+      "id": "boy_head_car_skin0",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_car_skin0",
+        "person_boy_winter_head_car_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "boy_head_car_skin1",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_car_skin1",
+        "person_boy_winter_head_car_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "boy_head_car_skin2",
+      "axis": "season",
+      "members": [
+        "person_boy_summer_head_car_skin2",
+        "person_boy_winter_head_car_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "girl_head_car",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_car",
+        "person_girl_winter_head_car"
+      ],
+      "state": "DISTINCT",
+      "reason": "Summer wears the character's own hair or cap; winter the bust translation of the character's winter headwear, with the seatbelt both seasons carry. The seasonal pair is distinct artwork like every other person sprite's."
+    },
+    {
+      "id": "girl_head_car_skin0",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_car_skin0",
+        "person_girl_winter_head_car_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "girl_head_car_skin1",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_car_skin1",
+        "person_girl_winter_head_car_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "girl_head_car_skin2",
+      "axis": "season",
+      "members": [
+        "person_girl_summer_head_car_skin2",
+        "person_girl_winter_head_car_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+    },
+    {
+      "id": "man_summer_head_car_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_man_summer_head_car",
+        "person_man_summer_head_car_skin1"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so this character recoloured to their own tone is the character unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py."
+    },
+    {
+      "id": "man_winter_head_car_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_man_winter_head_car",
+        "person_man_winter_head_car_skin1"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so this character recoloured to their own tone is the character unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py."
+    },
+    {
+      "id": "woman_summer_head_car_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_woman_summer_head_car",
+        "person_woman_summer_head_car_skin0"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so this character recoloured to their own tone is the character unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py."
+    },
+    {
+      "id": "woman_winter_head_car_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_woman_winter_head_car",
+        "person_woman_winter_head_car_skin0"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so this character recoloured to their own tone is the character unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py."
+    },
+    {
+      "id": "boy_summer_head_car_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_summer_head_car",
+        "person_boy_summer_head_car_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so this character recoloured to their own tone is the character unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py."
+    },
+    {
+      "id": "boy_winter_head_car_own_tone",
+      "axis": "skin",
+      "members": [
+        "person_boy_winter_head_car",
+        "person_boy_winter_head_car_skin2"
+      ],
+      "state": "IDENTICAL_BY_CONSTRUCTION",
+      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so this character recoloured to their own tone is the character unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py."
     }
   ],
   "sprites": [
+    {
+      "name": "bar_cornice",
+      "category": "building",
+      "width": 300,
+      "height": 48,
+      "contentBox": [
+        0,
+        0,
+        300,
+        48
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bar_cornice.svg"
+      },
+      "notes": ""
+    },
     {
       "name": "bar_door",
       "category": "building",
@@ -915,30 +1141,56 @@
         84
       ],
       "scale": "SCENE_UNITS",
-      "tint": "TINTABLE",
+      "tint": "FIXED_ART",
       "usage": "referenced",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchorRule": "PART_LOCAL",
       "anchor": [
-        30,
-        84
+        0,
+        0
       ],
       "season": "all",
       "source": {
         "kind": "svg",
         "file": "bar_door.svg"
       },
+      "notes": "Placed as part of the pub frontage row (lantern, pane, door, pane), so its origin is the row layout and not a bottom-centre anchor at the building origin."
+    },
+    {
+      "name": "bar_lantern",
+      "category": "building",
+      "width": 18,
+      "height": 30,
+      "contentBox": [
+        0,
+        0,
+        18,
+        30
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "bar_lantern.svg"
+      },
       "notes": ""
     },
     {
       "name": "bar_roof_snow",
       "category": "structure",
-      "width": 258,
-      "height": 30,
+      "width": 300,
+      "height": 18,
       "contentBox": [
         0,
         0,
-        258,
-        30
+        300,
+        18
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -958,13 +1210,13 @@
     {
       "name": "bar_sign",
       "category": "building",
-      "width": 72,
-      "height": 72,
+      "width": 246,
+      "height": 30,
       "contentBox": [
         0,
         0,
-        72,
-        72
+        246,
+        30
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -1114,13 +1366,13 @@
     {
       "name": "car_body",
       "category": "vehicle",
-      "width": 291,
-      "height": 111,
+      "width": 285,
+      "height": 117,
       "contentBox": [
         0,
         0,
-        291,
-        111
+        285,
+        117
       ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
@@ -1138,15 +1390,41 @@
       "notes": ""
     },
     {
+      "name": "car_lights",
+      "category": "vehicle",
+      "width": 282,
+      "height": 18,
+      "contentBox": [
+        2,
+        2,
+        280,
+        15
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "car_lights.svg"
+      },
+      "notes": ""
+    },
+    {
       "name": "car_window",
       "category": "vehicle",
-      "width": 138,
-      "height": 48,
+      "width": 162,
+      "height": 69,
       "contentBox": [
         0,
         0,
-        138,
-        48
+        162,
+        69
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -1161,7 +1439,7 @@
         "kind": "svg",
         "file": "car_window.svg"
       },
-      "notes": ""
+      "notes": "4.18 final: 141x69 (47 units, a straight trapezoid) -> 162x69 (54.00), the pane re-cut to follow car_body's own cabin so the two occupants separate without the shell changing. Blitted at (-24,-11), sill 12."
     },
     {
       "name": "cloud_body",
@@ -1271,12 +1549,12 @@
       "name": "firetruck_body",
       "category": "vehicle",
       "width": 294,
-      "height": 147,
+      "height": 135,
       "contentBox": [
         0,
         0,
         294,
-        147
+        135
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -1296,12 +1574,12 @@
     {
       "name": "firetruck_ladder",
       "category": "vehicle",
-      "width": 288,
+      "width": 174,
       "height": 42,
       "contentBox": [
         0,
         1,
-        288,
+        174,
         42
       ],
       "scale": "SCENE_UNITS",
@@ -1422,58 +1700,6 @@
         "file": "ground_flowers.svg"
       },
       "notes": "One clump of ground flowers: three kinds at three sizes on a single canvas, so a scatter of them is one blit per clump rather than one per bloom. Fixed art -- the user gets ON and OFF and no colour, because a meadow that follows a theme's building tint is a meadow of the wrong flowers."
-    },
-    {
-      "name": "snow_pile",
-      "category": "vegetation",
-      "width": 108,
-      "height": 21,
-      "contentBox": [
-        0,
-        0,
-        108,
-        21
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "referenced",
-      "anchorRule": "PART_LOCAL",
-      "anchor": [
-        0,
-        0
-      ],
-      "season": "all",
-      "source": {
-        "kind": "svg",
-        "file": "snow_pile.svg"
-      },
-      "notes": "v4.17. One drift of settled snow for the Snow piles slider, scattered by the same stratified hash drawGroundFlowers uses. Fixed art: a drift is white wherever it lies. Three lobes on one canvas so a scatter is one blit per drift."
-    },
-    {
-      "name": "leaf_pile",
-      "category": "vegetation",
-      "width": 108,
-      "height": 21,
-      "contentBox": [
-        0,
-        0,
-        108,
-        21
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "referenced",
-      "anchorRule": "PART_LOCAL",
-      "anchor": [
-        0,
-        0
-      ],
-      "season": "all",
-      "source": {
-        "kind": "svg",
-        "file": "leaf_pile.svg"
-      },
-      "notes": "v4.17. One heap of fallen leaves for the Leaf piles slider, in the same four tones drawFallingLeaves paints its leaves with, so a heap on the ground and a leaf in the air are the same leaves. Independent of the falling ones."
     },
     {
       "name": "house_large_chimney",
@@ -1890,6 +2116,32 @@
         "file": "house_window_lit.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "leaf_pile",
+      "category": "vegetation",
+      "width": 108,
+      "height": 21,
+      "contentBox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "leaf_pile.svg"
+      },
+      "notes": "v4.17. One heap of fallen leaves for the Leaf piles slider, in the same four tones drawFallingLeaves paints its leaves with, so a heap on the ground and a leaf in the air are the same leaves. Independent of the falling ones."
     },
     {
       "name": "lightning_bolt",
@@ -3920,32 +4172,6 @@
       "notes": "Skin tone 2 of person_girl_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk2 that was not propagated."
     },
     {
-      "name": "person_man_summer_head_car",
-      "category": "person",
-      "width": 120,
-      "height": 147,
-      "contentBox": [
-        4,
-        4,
-        119,
-        147
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "referenced",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        61.5,
-        147
-      ],
-      "season": "summer",
-      "source": {
-        "kind": "svg",
-        "file": "person_man_summer_head_car.svg"
-      },
-      "notes": ""
-    },
-    {
       "name": "person_man_summer_head_window",
       "category": "person",
       "width": 159,
@@ -4360,32 +4586,6 @@
         "reason": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
       },
       "notes": "Skin tone 2 of person_man_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk2 that was not propagated."
-    },
-    {
-      "name": "person_man_winter_head_car",
-      "category": "person",
-      "width": 120,
-      "height": 147,
-      "contentBox": [
-        0,
-        1,
-        120,
-        147
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "referenced",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        60,
-        147
-      ],
-      "season": "winter",
-      "source": {
-        "kind": "svg",
-        "file": "person_man_winter_head_car.svg"
-      },
-      "notes": ""
     },
     {
       "name": "person_man_winter_head_window",
@@ -4804,32 +5004,6 @@
       "notes": "Skin tone 2 of person_man_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk2 that was not propagated."
     },
     {
-      "name": "person_woman_summer_head_car",
-      "category": "person",
-      "width": 120,
-      "height": 147,
-      "contentBox": [
-        4,
-        4,
-        119,
-        147
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "referenced",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        61.5,
-        147
-      ],
-      "season": "summer",
-      "source": {
-        "kind": "svg",
-        "file": "person_woman_summer_head_car.svg"
-      },
-      "notes": ""
-    },
-    {
       "name": "person_woman_summer_head_window",
       "category": "person",
       "width": 159,
@@ -5244,32 +5418,6 @@
         "reason": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
       },
       "notes": "Skin tone 2 of person_woman_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk2 that was not propagated."
-    },
-    {
-      "name": "person_woman_winter_head_car",
-      "category": "person",
-      "width": 120,
-      "height": 147,
-      "contentBox": [
-        0,
-        1,
-        120,
-        147
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "referenced",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        60,
-        147
-      ],
-      "season": "winter",
-      "source": {
-        "kind": "svg",
-        "file": "person_woman_winter_head_car.svg"
-      },
-      "notes": ""
     },
     {
       "name": "person_woman_winter_head_window",
@@ -5716,12 +5864,12 @@
     {
       "name": "police_stripe",
       "category": "vehicle",
-      "width": 204,
+      "width": 132,
       "height": 27,
       "contentBox": [
         0,
         0,
-        204,
+        132,
         27
       ],
       "scale": "SCENE_UNITS",
@@ -5846,13 +5994,13 @@
     {
       "name": "restaurant_awning",
       "category": "building",
-      "width": 204,
-      "height": 30,
+      "width": 276,
+      "height": 27,
       "contentBox": [
         0,
         0,
-        204,
-        30
+        276,
+        27
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -5870,6 +6018,32 @@
       "notes": ""
     },
     {
+      "name": "restaurant_cornice",
+      "category": "building",
+      "width": 330,
+      "height": 36,
+      "contentBox": [
+        0,
+        0,
+        330,
+        36
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "TINTABLE",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "restaurant_cornice.svg"
+      },
+      "notes": ""
+    },
+    {
       "name": "restaurant_door",
       "category": "building",
       "width": 54,
@@ -5881,7 +6055,7 @@
         84
       ],
       "scale": "SCENE_UNITS",
-      "tint": "TINTABLE",
+      "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "PART_LOCAL",
       "anchor": [
@@ -5898,13 +6072,13 @@
     {
       "name": "restaurant_roof_snow",
       "category": "structure",
-      "width": 288,
-      "height": 30,
+      "width": 156,
+      "height": 24,
       "contentBox": [
         0,
         0,
-        288,
-        30
+        156,
+        24
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -5924,13 +6098,13 @@
     {
       "name": "restaurant_sign",
       "category": "building",
-      "width": 102,
-      "height": 105,
+      "width": 276,
+      "height": 39,
       "contentBox": [
         0,
         0,
-        102,
-        105
+        276,
+        39
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -6184,13 +6358,13 @@
     {
       "name": "skyscraper_canopy",
       "category": "building",
-      "width": 330,
-      "height": 24,
+      "width": 132,
+      "height": 18,
       "contentBox": [
         0,
         0,
-        330,
-        24
+        132,
+        18
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -6205,7 +6379,7 @@
         "kind": "svg",
         "file": "skyscraper_canopy.svg"
       },
-      "notes": ""
+      "notes": "rc2: cut from a 110x8 capsule wider than the tower to a 44x6 awning over the 32-unit entrance, rounded only at the top corners, blitted at (-22,-6) so the base sits on the ground line."
     },
     {
       "name": "skyscraper_entrance",
@@ -6336,6 +6510,32 @@
         "file": "skyscraper_wall_lit.svg"
       },
       "notes": ""
+    },
+    {
+      "name": "snow_pile",
+      "category": "vegetation",
+      "width": 108,
+      "height": 21,
+      "contentBox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "snow_pile.svg"
+      },
+      "notes": "v4.17. One drift of settled snow for the Snow piles slider, scattered by the same stratified hash drawGroundFlowers uses. Fixed art: a drift is white wherever it lies. Three lobes on one canvas so a scatter is one blit per drift."
     },
     {
       "name": "snowman_body",
@@ -6496,12 +6696,12 @@
     {
       "name": "taxi_checker",
       "category": "vehicle",
-      "width": 204,
+      "width": 132,
       "height": 27,
       "contentBox": [
         0,
         0,
-        204,
+        132,
         27
       ],
       "scale": "SCENE_UNITS",
@@ -6516,6 +6716,32 @@
       "source": {
         "kind": "svg",
         "file": "taxi_checker.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "taxi_sign",
+      "category": "vehicle",
+      "width": 42,
+      "height": 18,
+      "contentBox": [
+        0,
+        0,
+        42,
+        18
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "taxi_sign.svg"
       },
       "notes": ""
     },
@@ -6726,6 +6952,864 @@
         "file": "water_splash1.svg"
       },
       "notes": "Dolphin re-entry, second frame: the crown collapsed to a low mound with the droplets thrown wider and higher. Same canvas as water_splash0."
+    },
+    {
+      "name": "person_man_summer_head_car",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_summer_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_head_car_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_head_car_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_head_car_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_head_car",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_man_winter_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_head_car_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_head_car_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_head_car_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_man_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_head_car",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_summer_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_head_car_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_head_car_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_head_car_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_head_car",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_woman_winter_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_head_car_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_head_car_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_head_car_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_woman_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_summer_head_car",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        19,
+        14,
+        139,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_summer_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_summer_head_car_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        19,
+        14,
+        139,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_summer_head_car_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        19,
+        14,
+        139,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_summer_head_car_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        19,
+        14,
+        139,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        79,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_winter_head_car",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        6,
+        12,
+        129,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_boy_winter_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_winter_head_car_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        6,
+        12,
+        129,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_winter_head_car_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        6,
+        12,
+        129,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_boy_winter_head_car_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        6,
+        12,
+        129,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_summer_head_car",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        1,
+        17,
+        137,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_summer_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_summer_head_car_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        1,
+        17,
+        137,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_summer_head_car_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        1,
+        17,
+        137,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_summer_head_car_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        1,
+        17,
+        137,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_winter_head_car",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        1,
+        12,
+        137,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "svg",
+        "file": "person_girl_winter_head_car.svg"
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_winter_head_car_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        1,
+        12,
+        137,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_winter_head_car_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        1,
+        12,
+        137,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_girl_winter_head_car_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        1,
+        12,
+        137,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction."
+      },
+      "notes": ""
+    },
+    {
+      "name": "car_lights_day",
+      "category": "vehicle",
+      "width": 282,
+      "height": 18,
+      "contentBox": [
+        2,
+        2,
+        280,
+        15
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "PART_LOCAL",
+      "anchor": [
+        0,
+        0
+      ],
+      "season": "all",
+      "source": {
+        "kind": "svg",
+        "file": "car_lights_day.svg"
+      },
+      "notes": ""
     }
   ]
 }

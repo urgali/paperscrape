@@ -6,7 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The scene has two kinds of window with people behind them, and one rule for how big a head is.
+ * The building windows' occupant rule, pinned at its source.
+ *
+ * rc2 narrowed this file to buildings. Until then it also asserted that vehicle occupants shared
+ * the window rule -- and that equality, elegant as it was, is what made the people in the cars
+ * 22% smaller than a child pedestrian at the same depth: a share of the glass and the height
+ * table cannot agree by construction. The vehicles are sized off the table now (see
+ * [SceneObjectRenderer.CAR_OCCUPANT_SCALE] and OccupantHeadFitTest); the buildings keep the v4.2
+ * share, and this file keeps it honest.
  *
  * ### Why this test exists
  *
@@ -38,7 +45,7 @@ import org.junit.Test
 class OneOccupantRuleTest {
 
     @Test
-    fun `the vehicle glass and the house window give a head the same share of the pane`() {
+    fun `the window rule in the source is the share the constant declares`() {
         val (paneFraction, divisor) = windowOccupantRuleFromSource()
         assertEquals("drawWindowOccupant's pane fraction", 0.85f, paneFraction, 0.0001f)
         assertEquals(
@@ -48,7 +55,7 @@ class OneOccupantRuleTest {
             0.0001f,
         )
         assertEquals(
-            "the vehicles' share must be the window's share, read off the window's own expression",
+            "the buildings' share, read off the window's own expression",
             paneFraction * SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS / divisor,
             SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE,
             0.0001f,
@@ -56,27 +63,18 @@ class OneOccupantRuleTest {
         assertEquals("and that share is 51.9%", 0.5194f, SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE, 0.0005f)
     }
 
-    /**
-     * Every occupant in the scene, whatever they sit behind, is drawn to that one share.
-     *
-     * This is the assertion the complaint about v4.15 reduces to, and it is stated for all four
-     * vehicles at once because "coherent between taxi, police, fire engine and saloon" is the
-     * requirement. The taxi, the police car and the saloon share `car_window`, so they are one
-     * case; the fire engine's cab is painted into its own body sprite and is the second.
-     */
     @Test
-    fun `every occupant's head takes that share of the pane it is behind`() {
+    fun `a building occupant's head takes the window share of its pane`() {
+        // rc2: the share is a rule about buildings only. The vehicles used to inherit it -- and
+        // their people came out 22% smaller than a child pedestrian at the same depth, because a
+        // share of the glass and the height table cannot agree by construction. Vehicle occupant
+        // sizing now lives in [SceneObjectRenderer.CAR_OCCUPANT_SCALE] and is tested against the
+        // artwork and the table in OccupantHeadFitTest; what this test keeps is the building rule
+        // it was always really about.
         val share = SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE
-        for ((who, headUnits, scale, pane) in listOf(
-            Quad("sedan driver", SceneObjectRenderer.CAR_HEAD_HEAD_UNITS, SceneObjectRenderer.CAR_HEAD_SCALE, SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS),
-            Quad("sedan passenger", SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS, SceneObjectRenderer.CAR_PASSENGER_SCALE, SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS),
-            Quad("fire engine driver", SceneObjectRenderer.CAR_HEAD_HEAD_UNITS, SceneObjectRenderer.FIRE_TRUCK_HEAD_SCALE, SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS),
-        )) {
-            assertEquals("$who head over pane", share, headUnits * scale / pane, 0.0005f)
-        }
         val houseScale = HOUSE_PANE_UNITS * 0.85f / SceneObjectRenderer.WINDOW_OCCUPANT_DIVISOR_UNITS
         assertEquals(
-            "a house occupant, which is where the share comes from",
+            "a house occupant's head over its pane",
             share,
             SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS * houseScale / HOUSE_PANE_UNITS,
             0.0005f,
@@ -97,7 +95,51 @@ class OneOccupantRuleTest {
         }
     }
 
-    private data class Quad(val who: String, val headUnits: Float, val scale: Float, val pane: Float)
+    /**
+     * **A car never carries the same person twice.**
+     *
+     * The rc5 defect this pins: the passenger's family came from its own seed channel and only
+     * the *tone* was forced apart when family and tone both collided, so two women — or two men —
+     * could share a car. In this artwork a family carries its hairstyle **and** its clothing
+     * (every woman bust is the red top with the yellow band, every man bust the blue one), so
+     * two same-family occupants are identical in all three of family, hair and clothing whatever
+     * the tone does.
+     *
+     * Read out of `drawCar` rather than restated, the way this file reads the window rule: the
+     * passenger's family index must be the driver's complement, which makes the property hold by
+     * construction for every seed rather than for the seeds a test happens to try. The tone is
+     * asserted to still come from a seed channel, because forcing the family apart must not
+     * quietly make every car the same pair.
+     */
+    @Test
+    fun `the two occupants of a car are never the same family`() {
+        val source = drawCarSource()
+        assertTrue(
+            "the passenger's family must be the driver's complement, not its own seed channel; " +
+                "found no `1 - driverKindIdx` in drawCar",
+            Regex("""val passengerKindIdx = 1 - driverKindIdx""").containsMatchIn(source),
+        )
+        assertTrue(
+            "the driver's family must still vary with the seed",
+            Regex("""val driverKindIdx = driverSeed % 2""").containsMatchIn(source),
+        )
+        assertTrue(
+            "both seats must still draw their skin tone from a seed channel",
+            Regex("""val driverSkinIdx = driverSeed / \d+ % 3""").containsMatchIn(source) &&
+                Regex("""val passengerSkinIdx = driverSeed / \d+ % 3""").containsMatchIn(source),
+        )
+        // And the table the two indices address really is [kind][season][skin] with the two
+        // adult families first, so "the complement" means the other adult and not a child.
+        val table = rendererSource().readText()
+            .substringAfter("private val personCarHeadSkinDrawables = arrayOf(")
+            .substringBefore("\n    )")
+        val families = Regex("""person_(man|woman|boy|girl)_summer_head_car_skin0""")
+            .findAll(table).map { it.groupValues[1] }.toList()
+        assertEquals(
+            "the first two rows of the occupant table must be the two adults",
+            listOf("man", "woman"), families.take(2),
+        )
+    }
 
     private companion object {
         const val HOUSE_PANE_UNITS = 22f
@@ -113,6 +155,11 @@ class OneOccupantRuleTest {
             }
             return match.groupValues[1].toFloat() to divisor
         }
+
+        /** `drawCar`'s body, so a rule can be read where it is written. */
+        fun drawCarSource(): String = rendererSource().readText()
+            .substringAfter("private fun drawCar(")
+            .substringBefore("\n    private fun ")
 
         fun rendererSource(): File {
             val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt"

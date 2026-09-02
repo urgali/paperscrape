@@ -1,7 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="90" height="66" viewBox="0 0 30 22">
+<!--
+  A shop-window pane: light frame, mullion, transom bar and sill, glass a shade darker than all of
+  them so every part survives the one-colour tint (see the v4.18 note: a 2/255 difference is
+  invisible after multiply, 14% is a frame).
+
+  Redrawn with a transom bar across the top, which is what separates a shopfront pane from a house
+  window at a glance, and a centred mullion kept exactly where the occupant slots expect it: the
+  restaurant stands its two busts in the two lower panes, so the glazing bars may not move without
+  moving RESTAURANT_PANE_A/B_CENTRE_X with them. The bar now shares this drawing for its own
+  frontage, which is one shopfront language for both businesses.
+-->
   
-<rect x="0" y="0" width="30" height="22" rx="2" fill="#ffffff"></rect>
-        <rect x="2.5" y="2.5" width="25" height="14" fill="#fdfdfd"></rect>
-        <rect x="13.5" y="2.5" width="3" height="14" fill="#ffffff"></rect>
-        <rect x="0" y="18" width="30" height="4" rx="1" fill="#f3f3f3"></rect>
+<rect x="0" y="0" width="30" height="22" rx="1.5" fill="#ffffff"></rect>
+        <rect x="1.5" y="1.5" width="27" height="16" fill="#dcdcdc"></rect>
+        <rect x="1.5" y="4.6" width="27" height="1.4" fill="#ffffff"></rect>
+        <rect x="13.5" y="1.5" width="3" height="16" fill="#ffffff"></rect>
+        <rect x="0" y="17.5" width="30" height="4.5" rx="1" fill="#f0f0f0"></rect>
+        <rect x="0" y="17.5" width="30" height="1.2" fill="#e4e4e4"></rect>
 </svg>

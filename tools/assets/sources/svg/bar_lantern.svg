@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="30" viewBox="0 0 6 10">
+<!--
+  A carriage lantern on the corner of the pub front: the accent that replaced the four brown dots
+  the string lights left on the facade by day. Dark case, warm glass; at night the renderer stands
+  a soft glow behind it on the same ramp the windows use.
+-->
+  
+<rect x="2.3" y="0" width="1.4" height="2" fill="#2B2A33"></rect>
+        <rect x="0" y="1.6" width="6" height="7" rx="1.1" fill="#2B2A33"></rect>
+        <rect x="1.3" y="2.7" width="3.4" height="4.6" rx="0.7" fill="#FFD97A"></rect>
+        <rect x="1.8" y="8.6" width="2.4" height="1.4" rx="0.7" fill="#2B2A33"></rect>
+</svg>

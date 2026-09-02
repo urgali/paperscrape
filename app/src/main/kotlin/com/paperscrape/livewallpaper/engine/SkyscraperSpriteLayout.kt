@@ -51,8 +51,16 @@ internal object SkyscraperSpriteLayout {
     const val WIDTH = 90f
     const val HEIGHT = 150f
 
-    /** The plinth at street level, straddling the ground line. Absolute: it does not follow height. */
-    const val CANOPY_X = -55f
+    /**
+     * The entrance awning. Absolute: it does not follow height.
+     *
+     * rc2: was a 110-unit capsule at (-55,-6) -- wider than the 90-unit tower, rounded ends 10
+     * units clear of each wall, lower half below the ground line. Lit amber at night it read as
+     * a glowing shelf floating in front of the building. It is a 44 x 6 awning over the 32-unit
+     * entrance now, flat-bottomed at y=0 so it sits ON the ground line, and 23 units inside each
+     * wall edge, so no frontage pixel can leave the building's own silhouette.
+     */
+    const val CANOPY_X = -22f
     const val CANOPY_Y = -6f
 
     /** The facade, centred on the tower. */

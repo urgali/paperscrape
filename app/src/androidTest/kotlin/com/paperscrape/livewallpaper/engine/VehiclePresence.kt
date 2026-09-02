@@ -27,6 +27,9 @@ object VehiclePresence {
                 "widths=${runs.map { it.last - it.first + 1 }}"
     }
 
+    /** How much of the road band a column must carry before it counts as vehicle and not marking. */
+    const val VEHICLE_COLUMN_DEPTH_SHARE = 0.20
+
     fun measure(bitmap: Bitmap): Result {
         val h = bitmap.height
         val w = bitmap.width
@@ -58,7 +61,20 @@ object VehiclePresence {
                 }
             }
             // A lane marking is a thin dash; a vehicle fills a good part of the band's depth.
-            columnHit[x] = hits >= (bottom - top) * 0.25
+            //
+            // The share was a quarter of the band until the saloon was redrawn. A quarter of a
+            // 49-pixel band is twelve pixels of vehicle in a column, and the old shell reached that
+            // almost everywhere along its length because it was a slab: a straight bottom edge and
+            // a rear that ramped down from the roof in one line. The redrawn shell has a lower
+            // nose, a boot deck and a hole cut over each wheel, so its ends are shallower, and the
+            // far-lane car's dense run fell from thirteen columns to eleven -- under the twelve
+            // this counts as a vehicle, so a car that is plainly on the road stopped being one.
+            //
+            // A fifth of the band is ten pixels, which is still five times a lane dash's three and
+            // is what the constant was always for. Measured on both the old goldens and the new:
+            // at a quarter the day frame reports three vehicles before and two after, and at a
+            // fifth it reports three before and three after, four at night either side.
+            columnHit[x] = hits >= (bottom - top) * VEHICLE_COLUMN_DEPTH_SHARE
         }
 
         val runs = ArrayList<IntRange>()

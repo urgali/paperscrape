@@ -1,8 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="1 0 24 24">
+<svg xmlns="http://www.w3.org/2000/svg" width="246" height="30" viewBox="0 0 82 10">
+<!--
+  The pub fascia, which replaces the floating mug disc.
+
+  The old sign was a 24-unit yellow square hung in the middle of the frontage, between the two
+  panes it partly covered, with a glow circle behind it. A pub's name is painted on the fascia
+  board over its front, so: a cream board the width of the painted frontage, lettering as dashes
+  in the front's own dark green, and the mug on a small green badge in the centre, standing proud
+  of the board for the silhouette. Blitted at (-41,-62): board -59 to -52, lapping one unit onto
+  the painted front below, badge reaching -62.
+-->
   
-<rect x="11" y="0" width="4" height="5" fill="#5A6875"></rect>
-        <rect x="1" y="4" width="24" height="20" rx="3.5" fill="#F7CE64"></rect>
-        <rect x="7" y="9.5" width="9.5" height="11" rx="1.5" fill="#FBF4E6"></rect>
-        <rect x="7" y="9.5" width="9.5" height="2.8" rx="1.5" fill="#EFDFC4"></rect>
-        <path d="M16.5 12.2 h2.7 a2.7 2.7 0 0 1 0 5.4 h-2.7 z" fill="#C98F5A"></path>
+<rect x="0" y="3" width="82" height="7" rx="1" fill="#F0E6D2"></rect>
+        <rect x="0" y="3" width="82" height="1.2" fill="#D9CCAF"></rect>
+        <rect x="0" y="8.9" width="82" height="1.1" fill="#D9CCAF"></rect>
+        <rect x="7" y="5.3" width="21" height="2.6" rx="1.3" fill="#33503F"></rect>
+        <rect x="54" y="5.3" width="21" height="2.6" rx="1.3" fill="#33503F"></rect>
+        <rect x="36" y="0" width="10" height="9.4" rx="1.8" fill="#33503F"></rect>
+        <rect x="38" y="2.6" width="3.6" height="4.6" rx="0.6" fill="#FBF4E6"></rect>
+        <rect x="38.4" y="1.6" width="2.8" height="1.4" rx="0.7" fill="#FBF4E6"></rect>
+        <path d="M41.6 3.2 h1.1 a1.5 1.5 0 0 1 0 3 h-1.1 z" fill="#FBF4E6"></path>
 </svg>

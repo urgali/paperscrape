@@ -1,12 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="102" height="105" viewBox="1 0 34 35">
+<svg xmlns="http://www.w3.org/2000/svg" width="276" height="39" viewBox="0 0 92 13">
+<!--
+  The fascia board, which replaces the hanging billboard.
+
+  The old sign was a 34x35 red slab hung across the middle of the upper storey: it read as a
+  billboard pasted over the building and covered more facade than the shopfront itself. A
+  restaurant's name lives on the fascia over its frontage, so that is what this is: a cream board
+  the width of the shopfront, lettering rendered as its shape (dashes; at scene scale letters are a
+  smudge, the dashes are what lettering looks like), and the fork-and-knife emblem on a small red
+  badge in the middle, standing a little proud of the board so the silhouette keeps a cue.
+
+  Blitted at (-46,-66): board from -61 to -53, badge reaching -66, awning hanging just below.
+-->
   
-<rect x="15" y="0" width="6" height="6" fill="#E2CCA6"></rect>
-        <rect x="1" y="5" width="34" height="30" rx="5" fill="#E4623E"></rect>
-        <g fill="#FBF4E6">
-          <rect x="10" y="12" width="2.6" height="16" rx="1.2"></rect>
-          <rect x="7" y="10" width="2" height="7" rx="1"></rect>
-          <rect x="13.6" y="10" width="2" height="7" rx="1"></rect>
-          <path d="M23 10 l4 3 -1.6 6 -2.4 0 z"></path>
-          <rect x="23.6" y="18" width="2.6" height="10" rx="1.2"></rect>
-        </g>
+<rect x="0" y="5" width="92" height="8" rx="1" fill="#F0E6D2"></rect>
+        <rect x="0" y="5" width="92" height="1.4" fill="#D9CCAF"></rect>
+        <rect x="0" y="11.8" width="92" height="1.2" fill="#D9CCAF"></rect>
+        <rect x="8" y="7.6" width="24" height="2.8" rx="1.4" fill="#A93B22"></rect>
+        <rect x="60" y="7.6" width="24" height="2.8" rx="1.4" fill="#A93B22"></rect>
+        <rect x="39" y="0" width="14" height="12" rx="2.2" fill="#E4623E"></rect>
+        <rect x="42.2" y="2.2" width="1.5" height="7.6" rx="0.7" fill="#FBF4E6"></rect>
+        <rect x="44.6" y="2.2" width="1.5" height="7.6" rx="0.7" fill="#FBF4E6"></rect>
+        <path d="M47.8 2.2 l2.4 1.6 -0.9 3.4 -1.5 0 z" fill="#FBF4E6"></path>
+        <rect x="48.1" y="6.4" width="1.5" height="3.4" rx="0.7" fill="#FBF4E6"></rect>
 </svg>

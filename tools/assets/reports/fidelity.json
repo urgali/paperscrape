@@ -1,5 +1,8 @@
 {
   "gaps": {
+    "person_boy_summer_head_car_skin0": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_boy_summer_head_car_skin1": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_boy_summer_head_car_skin2": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_boy_summer_head_window_skin0": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_summer_head_window_skin1": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_summer_head_window_skin2": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -12,6 +15,9 @@
     "person_boy_summer_walk2_skin0": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_summer_walk2_skin1": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_summer_walk2_skin2": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
+    "person_boy_winter_head_car_skin0": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_boy_winter_head_car_skin1": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_boy_winter_head_car_skin2": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_boy_winter_head_window_skin0": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_winter_head_window_skin1": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_winter_head_window_skin2": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -24,6 +30,9 @@
     "person_boy_winter_walk2_skin0": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_winter_walk2_skin1": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_winter_walk2_skin2": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
+    "person_girl_summer_head_car_skin0": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_girl_summer_head_car_skin1": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_girl_summer_head_car_skin2": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_girl_summer_head_window_skin0": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_girl_summer_head_window_skin1": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_girl_summer_head_window_skin2": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -36,6 +45,9 @@
     "person_girl_summer_walk2_skin0": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_girl_summer_walk2_skin1": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_girl_summer_walk2_skin2": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
+    "person_girl_winter_head_car_skin0": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_girl_winter_head_car_skin1": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_girl_winter_head_car_skin2": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_girl_winter_head_window_skin0": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_girl_winter_head_window_skin1": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_girl_winter_head_window_skin2": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -48,6 +60,9 @@
     "person_girl_winter_walk2_skin0": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_girl_winter_walk2_skin1": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_girl_winter_walk2_skin2": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
+    "person_man_summer_head_car_skin0": "Generated from person_man_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_man_summer_head_car_skin1": "Generated from person_man_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_man_summer_head_car_skin2": "Generated from person_man_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_man_summer_head_window_skin0": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_summer_head_window_skin1": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_summer_head_window_skin2": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -60,6 +75,9 @@
     "person_man_summer_walk2_skin0": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_summer_walk2_skin1": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_summer_walk2_skin2": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
+    "person_man_winter_head_car_skin0": "Generated from person_man_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_man_winter_head_car_skin1": "Generated from person_man_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_man_winter_head_car_skin2": "Generated from person_man_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_man_winter_head_window_skin0": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_winter_head_window_skin1": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_winter_head_window_skin2": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -72,6 +90,9 @@
     "person_man_winter_walk2_skin0": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_winter_walk2_skin1": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_winter_walk2_skin2": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
+    "person_woman_summer_head_car_skin0": "Generated from person_woman_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_woman_summer_head_car_skin1": "Generated from person_woman_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_woman_summer_head_car_skin2": "Generated from person_woman_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_woman_summer_head_window_skin0": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_woman_summer_head_window_skin1": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_woman_summer_head_window_skin2": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -84,6 +105,9 @@
     "person_woman_summer_walk2_skin0": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_woman_summer_walk2_skin1": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_woman_summer_walk2_skin2": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
+    "person_woman_winter_head_car_skin0": "Generated from person_woman_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_woman_winter_head_car_skin1": "Generated from person_woman_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
+    "person_woman_winter_head_car_skin2": "Generated from person_woman_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_woman_winter_head_window_skin0": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_woman_winter_head_window_skin1": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_woman_winter_head_window_skin2": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -98,6 +122,47 @@
     "person_woman_winter_walk2_skin2": "Generated from person_woman_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
   },
   "results": [
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        300,
+        48
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        300,
+        48
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "bar_cornice",
+      "reference_bbox": [
+        0,
+        0,
+        300,
+        48
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        300,
+        48
+      ],
+      "size_match": true,
+      "total_pixels": 14400,
+      "verdict": "PIXEL_IDENTICAL"
+    },
     {
       "alpha_iou": 1.0,
       "bbox_delta": [
@@ -151,12 +216,12 @@
       "candidate_bbox": [
         0,
         0,
-        258,
+        18,
         30
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        258,
+        18,
         30
       ],
       "differing_pixels": 0,
@@ -164,20 +229,20 @@
       "max_alpha_diff": 0,
       "max_rgb_diff_where_opaque": 0,
       "mean_alpha_diff": 0.0,
-      "name": "bar_roof_snow",
+      "name": "bar_lantern",
       "reference_bbox": [
         0,
         0,
-        258,
+        18,
         30
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        258,
+        18,
         30
       ],
       "size_match": true,
-      "total_pixels": 7740,
+      "total_pixels": 540,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -192,13 +257,54 @@
       "candidate_bbox": [
         0,
         0,
-        72,
-        72
+        300,
+        18
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        72,
-        72
+        300,
+        18
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "bar_roof_snow",
+      "reference_bbox": [
+        0,
+        0,
+        300,
+        18
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        300,
+        18
+      ],
+      "size_match": true,
+      "total_pixels": 5400,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        246,
+        30
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        246,
+        30
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -209,16 +315,16 @@
       "reference_bbox": [
         0,
         0,
-        72,
-        72
+        246,
+        30
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        72,
-        72
+        246,
+        30
       ],
       "size_match": true,
-      "total_pixels": 5184,
+      "total_pixels": 7380,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -438,13 +544,13 @@
       "candidate_bbox": [
         0,
         0,
-        291,
-        111
+        285,
+        117
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        291,
-        111
+        285,
+        117
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -455,16 +561,57 @@
       "reference_bbox": [
         0,
         0,
-        291,
-        111
+        285,
+        117
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        291,
-        111
+        285,
+        117
       ],
       "size_match": true,
-      "total_pixels": 32301,
+      "total_pixels": 33345,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        2,
+        2,
+        280,
+        15
+      ],
+      "candidate_padding_fraction": 0.2880220646178093,
+      "candidate_size": [
+        282,
+        18
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "car_lights",
+      "reference_bbox": [
+        2,
+        2,
+        280,
+        15
+      ],
+      "reference_padding_fraction": 0.2880220646178093,
+      "reference_size": [
+        282,
+        18
+      ],
+      "size_match": true,
+      "total_pixels": 5076,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -479,13 +626,13 @@
       "candidate_bbox": [
         0,
         0,
-        138,
-        48
+        162,
+        69
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        138,
-        48
+        162,
+        69
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -496,16 +643,16 @@
       "reference_bbox": [
         0,
         0,
-        138,
-        48
+        162,
+        69
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        138,
-        48
+        162,
+        69
       ],
       "size_match": true,
-      "total_pixels": 6624,
+      "total_pixels": 11178,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -685,12 +832,12 @@
         0,
         0,
         294,
-        147
+        135
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
         294,
-        147
+        135
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -702,15 +849,15 @@
         0,
         0,
         294,
-        147
+        135
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
         294,
-        147
+        135
       ],
       "size_match": true,
-      "total_pixels": 43218,
+      "total_pixels": 39690,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -725,12 +872,12 @@
       "candidate_bbox": [
         0,
         1,
-        288,
+        174,
         42
       ],
       "candidate_padding_fraction": 0.023809523809523836,
       "candidate_size": [
-        288,
+        174,
         42
       ],
       "differing_pixels": 0,
@@ -742,16 +889,16 @@
       "reference_bbox": [
         0,
         1,
-        288,
+        174,
         42
       ],
       "reference_padding_fraction": 0.023809523809523836,
       "reference_size": [
-        288,
+        174,
         42
       ],
       "size_match": true,
-      "total_pixels": 12096,
+      "total_pixels": 7308,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -916,88 +1063,6 @@
       ],
       "size_match": true,
       "total_pixels": 3888,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        108,
-        21
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        108,
-        21
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "snow_pile",
-      "reference_bbox": [
-        0,
-        0,
-        108,
-        21
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        108,
-        21
-      ],
-      "size_match": true,
-      "total_pixels": 2268,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        108,
-        21
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        108,
-        21
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "leaf_pile",
-      "reference_bbox": [
-        0,
-        0,
-        108,
-        21
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        108,
-        21
-      ],
-      "size_match": true,
-      "total_pixels": 2268,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -1654,6 +1719,47 @@
       ],
       "size_match": true,
       "total_pixels": 4356,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        108,
+        21
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "leaf_pile",
+      "reference_bbox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        108,
+        21
+      ],
+      "size_match": true,
+      "total_pixels": 2268,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2897,47 +3003,6 @@
       "boundary_confined": true,
       "candidate_bbox": [
         4,
-        4,
-        119,
-        147
-      ],
-      "candidate_padding_fraction": 0.06774376417233563,
-      "candidate_size": [
-        120,
-        147
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_man_summer_head_car",
-      "reference_bbox": [
-        4,
-        4,
-        119,
-        147
-      ],
-      "reference_padding_fraction": 0.06774376417233563,
-      "reference_size": [
-        120,
-        147
-      ],
-      "size_match": true,
-      "total_pixels": 17640,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        4,
         16,
         152,
         171
@@ -3089,47 +3154,6 @@
       ],
       "size_match": true,
       "total_pixels": 31365,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        1,
-        120,
-        147
-      ],
-      "candidate_padding_fraction": 0.006802721088435382,
-      "candidate_size": [
-        120,
-        147
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_man_winter_head_car",
-      "reference_bbox": [
-        0,
-        1,
-        120,
-        147
-      ],
-      "reference_padding_fraction": 0.006802721088435382,
-      "reference_size": [
-        120,
-        147
-      ],
-      "size_match": true,
-      "total_pixels": 17640,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3307,47 +3331,6 @@
       "boundary_confined": true,
       "candidate_bbox": [
         4,
-        4,
-        119,
-        147
-      ],
-      "candidate_padding_fraction": 0.06774376417233563,
-      "candidate_size": [
-        120,
-        147
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_woman_summer_head_car",
-      "reference_bbox": [
-        4,
-        4,
-        119,
-        147
-      ],
-      "reference_padding_fraction": 0.06774376417233563,
-      "reference_size": [
-        120,
-        147
-      ],
-      "size_match": true,
-      "total_pixels": 17640,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        4,
         16,
         152,
         171
@@ -3499,47 +3482,6 @@
       ],
       "size_match": true,
       "total_pixels": 31365,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        1,
-        120,
-        147
-      ],
-      "candidate_padding_fraction": 0.006802721088435382,
-      "candidate_size": [
-        120,
-        147
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_woman_winter_head_car",
-      "reference_bbox": [
-        0,
-        1,
-        120,
-        147
-      ],
-      "reference_padding_fraction": 0.006802721088435382,
-      "reference_size": [
-        120,
-        147
-      ],
-      "size_match": true,
-      "total_pixels": 17640,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3759,12 +3701,12 @@
       "candidate_bbox": [
         0,
         0,
-        204,
+        132,
         27
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        204,
+        132,
         27
       ],
       "differing_pixels": 0,
@@ -3776,16 +3718,16 @@
       "reference_bbox": [
         0,
         0,
-        204,
+        132,
         27
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        204,
+        132,
         27
       ],
       "size_match": true,
-      "total_pixels": 5508,
+      "total_pixels": 3564,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3964,13 +3906,13 @@
       "candidate_bbox": [
         0,
         0,
-        204,
-        30
+        276,
+        27
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        204,
-        30
+        276,
+        27
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3981,16 +3923,57 @@
       "reference_bbox": [
         0,
         0,
-        204,
-        30
+        276,
+        27
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        204,
-        30
+        276,
+        27
       ],
       "size_match": true,
-      "total_pixels": 6120,
+      "total_pixels": 7452,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        330,
+        36
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        330,
+        36
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "restaurant_cornice",
+      "reference_bbox": [
+        0,
+        0,
+        330,
+        36
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        330,
+        36
+      ],
+      "size_match": true,
+      "total_pixels": 11880,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4046,13 +4029,13 @@
       "candidate_bbox": [
         0,
         0,
-        288,
-        30
+        156,
+        24
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        288,
-        30
+        156,
+        24
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -4063,16 +4046,16 @@
       "reference_bbox": [
         0,
         0,
-        288,
-        30
+        156,
+        24
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        288,
-        30
+        156,
+        24
       ],
       "size_match": true,
-      "total_pixels": 8640,
+      "total_pixels": 3744,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4087,13 +4070,13 @@
       "candidate_bbox": [
         0,
         0,
-        102,
-        105
+        276,
+        39
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        102,
-        105
+        276,
+        39
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -4104,16 +4087,16 @@
       "reference_bbox": [
         0,
         0,
-        102,
-        105
+        276,
+        39
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        102,
-        105
+        276,
+        39
       ],
       "size_match": true,
-      "total_pixels": 10710,
+      "total_pixels": 10764,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4497,13 +4480,13 @@
       "candidate_bbox": [
         0,
         0,
-        330,
-        24
+        132,
+        18
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        330,
-        24
+        132,
+        18
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -4514,16 +4497,16 @@
       "reference_bbox": [
         0,
         0,
-        330,
-        24
+        132,
+        18
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        330,
-        24
+        132,
+        18
       ],
       "size_match": true,
-      "total_pixels": 7920,
+      "total_pixels": 2376,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4729,6 +4712,47 @@
       ],
       "size_match": true,
       "total_pixels": 71100,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        108,
+        21
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "snow_pile",
+      "reference_bbox": [
+        0,
+        0,
+        108,
+        21
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        108,
+        21
+      ],
+      "size_match": true,
+      "total_pixels": 2268,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4989,12 +5013,12 @@
       "candidate_bbox": [
         0,
         0,
-        204,
+        132,
         27
       ],
       "candidate_padding_fraction": 0.0,
       "candidate_size": [
-        204,
+        132,
         27
       ],
       "differing_pixels": 0,
@@ -5006,16 +5030,57 @@
       "reference_bbox": [
         0,
         0,
-        204,
+        132,
         27
       ],
       "reference_padding_fraction": 0.0,
       "reference_size": [
-        204,
+        132,
         27
       ],
       "size_match": true,
-      "total_pixels": 5508,
+      "total_pixels": 3564,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        0,
+        0,
+        42,
+        18
+      ],
+      "candidate_padding_fraction": 0.0,
+      "candidate_size": [
+        42,
+        18
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "taxi_sign",
+      "reference_bbox": [
+        0,
+        0,
+        42,
+        18
+      ],
+      "reference_padding_fraction": 0.0,
+      "reference_size": [
+        42,
+        18
+      ],
+      "size_match": true,
+      "total_pixels": 756,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -5344,6 +5409,375 @@
       ],
       "size_match": true,
       "total_pixels": 8748,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "candidate_padding_fraction": 0.20846765527616595,
+      "candidate_size": [
+        141,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_man_summer_head_car",
+      "reference_bbox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "reference_padding_fraction": 0.20846765527616595,
+      "reference_size": [
+        141,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 18612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "candidate_padding_fraction": 0.12690737158822263,
+      "candidate_size": [
+        141,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_man_winter_head_car",
+      "reference_bbox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "reference_padding_fraction": 0.12690737158822263,
+      "reference_size": [
+        141,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 18612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "candidate_padding_fraction": 0.20846765527616595,
+      "candidate_size": [
+        141,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_woman_summer_head_car",
+      "reference_bbox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "reference_padding_fraction": 0.20846765527616595,
+      "reference_size": [
+        141,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 18612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "candidate_padding_fraction": 0.12690737158822263,
+      "candidate_size": [
+        141,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_woman_winter_head_car",
+      "reference_bbox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "reference_padding_fraction": 0.12690737158822263,
+      "reference_size": [
+        141,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 18612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        19,
+        14,
+        139,
+        131
+      ],
+      "candidate_padding_fraction": 0.2456479690522244,
+      "candidate_size": [
+        141,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_boy_summer_head_car",
+      "reference_bbox": [
+        19,
+        14,
+        139,
+        131
+      ],
+      "reference_padding_fraction": 0.2456479690522244,
+      "reference_size": [
+        141,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 18612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        6,
+        12,
+        129,
+        131
+      ],
+      "candidate_padding_fraction": 0.21357188910380398,
+      "candidate_size": [
+        141,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_boy_winter_head_car",
+      "reference_bbox": [
+        6,
+        12,
+        129,
+        131
+      ],
+      "reference_padding_fraction": 0.21357188910380398,
+      "reference_size": [
+        141,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 18612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        1,
+        17,
+        137,
+        131
+      ],
+      "candidate_padding_fraction": 0.16698903932946485,
+      "candidate_size": [
+        141,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_girl_summer_head_car",
+      "reference_bbox": [
+        1,
+        17,
+        137,
+        131
+      ],
+      "reference_padding_fraction": 0.16698903932946485,
+      "reference_size": [
+        141,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 18612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        1,
+        12,
+        137,
+        131
+      ],
+      "candidate_padding_fraction": 0.13045347087900283,
+      "candidate_size": [
+        141,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_girl_winter_head_car",
+      "reference_bbox": [
+        1,
+        12,
+        137,
+        131
+      ],
+      "reference_padding_fraction": 0.13045347087900283,
+      "reference_size": [
+        141,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 18612,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        2,
+        2,
+        280,
+        15
+      ],
+      "candidate_padding_fraction": 0.2880220646178093,
+      "candidate_size": [
+        282,
+        18
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "car_lights_day",
+      "reference_bbox": [
+        2,
+        2,
+        280,
+        15
+      ],
+      "reference_padding_fraction": 0.2880220646178093,
+      "reference_size": [
+        282,
+        18
+      ],
+      "size_match": true,
+      "total_pixels": 5076,
       "verdict": "PIXEL_IDENTICAL"
     }
   ]

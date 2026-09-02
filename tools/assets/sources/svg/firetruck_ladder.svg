@@ -1,13 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="288" height="42" viewBox="0 1 96 14">
+<svg xmlns="http://www.w3.org/2000/svg" width="174" height="42" viewBox="0 1 58 14">
+<!--
+  Shortened from 96 units to 58 so that it rests on the body and nothing else.
+
+  At 96 it ran the length of the vehicle and the beacons were drawn between its rungs, which is
+  what made the top of the appliance read as clutter. At 68 it still overhung the cab, whose roof
+  now sits five units lower than the body's, and the overhanging end showed as a loose beige block
+  on the cab roof. At 58 its front end is the body's front end: the beacons have the cab roof to
+  themselves and the ladder has something under it everywhere along its length.
+-->
   
-<rect x="0" y="1.5" width="96" height="3" rx="1.5" fill="#E2CCA6"></rect>
-        <rect x="0" y="12" width="96" height="3" rx="1.5" fill="#E2CCA6"></rect>
+<rect x="0" y="1.5" width="58" height="3" rx="1.5" fill="#E2CCA6"></rect>
+        <rect x="0" y="12" width="58" height="3" rx="1.5" fill="#E2CCA6"></rect>
         <g fill="#C8B08A">
-          <rect x="8" y="4" width="3" height="8"></rect>
-          <rect x="24" y="4" width="3" height="8"></rect>
-          <rect x="40" y="4" width="3" height="8"></rect>
-          <rect x="56" y="4" width="3" height="8"></rect>
-          <rect x="72" y="4" width="3" height="8"></rect>
-          <rect x="88" y="4" width="3" height="8"></rect>
+          <rect x="5" y="4" width="3" height="8"></rect>
+          <rect x="16" y="4" width="3" height="8"></rect>
+          <rect x="27" y="4" width="3" height="8"></rect>
+          <rect x="38" y="4" width="3" height="8"></rect>
+          <rect x="49" y="4" width="3" height="8"></rect>
         </g>
 </svg>

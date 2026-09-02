@@ -1,5 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="204" height="27" viewBox="0 0 68 9">
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="27" viewBox="0 0 44 9">
+<!--
+  Shortened from 68 units to 44 so that it bands the doors and nothing else.
+
+  At 68 it ran from x=16 to x=84 in the shell's own coordinates, which is straight through both
+  wheel arches now that the arches are cut out of the shell: the ends of the band would have hung
+  over the holes, over the road, with only the tyre behind part of them. 44 units is the run
+  between the arches with a unit and a half of clearance at each end, and a stripe that stops at
+  the wheel is also what a real livery does.
+-->
   
-<rect x="0" y="0" width="68" height="9" fill="#2B4A73"></rect>
-        <rect x="0" y="3.5" width="68" height="2" fill="#FBF4E6"></rect>
+<rect x="0" y="0" width="44" height="9" fill="#2B4A73"></rect>
+        <rect x="0" y="3.5" width="44" height="2" fill="#FBF4E6"></rect>
 </svg>

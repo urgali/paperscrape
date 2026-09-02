@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="330" height="36" viewBox="0 8 110 12">
+<!--
+  The trattoria's crown: an oversailing cornice with a bow pediment rising from its middle.
+
+  v4.18 gave the shops caps so that commercial stopped sharing a silhouette with unfinished; this
+  pass gives each cap an architecture. The raised block becomes a segmental bow, the one roofline
+  in the library that is a curve: houses carry triangles, towers carry setbacks and masts, the pub
+  carries its corner piers, and the trattoria carries this. A wide-gable variant was rendered and
+  rejected because a triangle up there read as one more house.
+
+  Blitted at (-55,-108): band from -102 to -96 oversailing the wall, bow crest at -106.
+-->
+  
+<rect x="0" y="14" width="110" height="6" rx="1" fill="#e0e0e0"></rect>
+        <rect x="0" y="14" width="110" height="2" fill="#f2f2f2"></rect>
+        <path d="M29 14 Q55 2 81 14 Z" fill="#ebebeb"></path>
+        <path d="M31.5 14 Q55 4 78.5 14 L74 14 Q55 6.8 36 14 Z" fill="#f6f6f6"></path>
+</svg>

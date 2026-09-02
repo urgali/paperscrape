@@ -46,10 +46,13 @@ class VehicleScalePixelTest {
             var top = -1
             var bottom = -1
             for (y in 0 until SceneGolden.HEIGHT) {
-                if (a.getPixel(x, y) != b.getPixel(x, y)) {
-                    if (top < 0) top = y
-                    bottom = y
-                }
+                val with = a.getPixel(x, y)
+                val without = b.getPixel(x, y)
+                if (with == without) continue
+                // A vehicle's own extent, not its shadow's. See [SceneGolden.isGroundShadowOnly].
+                if (SceneGolden.isGroundShadowOnly(without, with)) continue
+                if (top < 0) top = y
+                bottom = y
             }
             if (top >= 0) out[x] = top to bottom
         }
@@ -210,7 +213,7 @@ class VehicleScalePixelTest {
     // ------------------------------------------------------------------ the busts
 
     /**
-     * Driver and passenger stay behind the glass.
+     * The occupants stay behind the glass (one driver per vehicle since rc4).
      *
      * Their skin is the only thing in a vehicle painted in the shipped person tones, so the busts
      * can be found by colour and checked against the window the car draws — measured in the car's
@@ -246,7 +249,7 @@ class VehicleScalePixelTest {
                 assertTrue("a bust pixel at ($x,$y) is above the roof ${"%.1f".format(roof)}", y > roof - 1f)
             }
         }
-        assertTrue("no driver or passenger was found behind any windscreen", busts >= 4)
+        assertTrue("no occupant was found behind any windscreen", busts >= 4)
     }
 
     private companion object {

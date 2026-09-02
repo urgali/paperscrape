@@ -11,6 +11,17 @@ that was.
 
 ## Current status
 
+**v4.18 prepared — not published, not approved.**
+
+`versionCode = 49`, `versionName = "4.18"`. **No tag, no push, no GitHub Release.** Baseline:
+the published **v4.17**. The full account of the eight passes that make up 4.18 lives in
+`RELEASE_HISTORY.md`; the verification report is `release-verification/V4_18_REPORT.md`, and
+what 4.18 ships without is `BACKLOG_v4_19.md`.
+Publication is the maintainer's decision and has not been taken.
+
+The status tree below this line records **v4.6** and was not maintained by the releases between
+4.6 and 4.18; it is kept as history rather than silently rewritten.
+
 **v4.6 prepared -- the people you can see through a windscreen, and three things only looking
 would have found.**
 

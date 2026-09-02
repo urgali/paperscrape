@@ -408,7 +408,14 @@ class PaperRenderer(
         /** How far past the bottom edge a drop keeps falling before it wraps. */
         const val PRECIPITATION_BOTTOM_MARGIN_METRES = 2.67f
         const val BIRD_POOL_SIZE = 6
-        const val FALLING_LEAF_POOL_SIZE = 26
+        /**
+         * The ceiling of [SceneObjectRenderer.leafSourceLeafCount], used only as the candidate
+         * stride: `id * MAX + slot` keeps every copy's slots from colliding with its neighbour's
+         * while letting the per-crown count vary with the crown's own drawn size. rc2 replaced
+         * the fixed five-per-tree (and, before it, the shared pool of 26) because a fixed count
+         * collapsed the effect on scenes with few crowns and poured it on scenes with many.
+         */
+        const val MAX_LEAVES_PER_SOURCE = 13
         const val MOUNTAIN_POOL_SIZE = 4
         const val LAKE_DECORATION_POOL_SIZE = 4
 
@@ -1894,13 +1901,25 @@ class PaperRenderer(
         // a themeless expanse with the tree category switched off should not be shedding foliage.
         val sources = objectRenderer.leafSourceCount
         if (sources == 0) return
-        val candidateCount = FALLING_LEAF_POOL_SIZE
+        // **A leaf belongs to its tree, not to a slot in this frame's source array.**
+        //
+        // The candidate index used to be `i % sources` over the visible-crown array, which is
+        // refilled every frame in visibility order. A home-screen swipe scrolls trees across the
+        // screen edges, the array's membership changes, and that modulo handed every candidate to
+        // a different tree: measured on a OnePlus 6T screen recording, leaves teleported mid-fall
+        // in exactly the frames the visible set changed -- the "scene rebuilds on swipe" report.
+        // The time base was never the problem; `elapsedSeconds` runs straight through a swipe.
+        //
+        // Now each visible crown derives [FALLING_LEAVES_PER_TREE] candidates from its own stable
+        // identity ([SceneObjectRenderer.leafSourceId]), so a leaf's phase, speed, drift and
+        // colour are functions of *its tree* and nothing else. While a tree is on screen its
+        // leaves fall undisturbed however the viewport moves; when it scrolls off, its leaves go
+        // with it -- they were only ever drawn over it. Still stateless: same noise, same
+        // channels, re-evaluated from the clock every frame, nothing stored between frames.
         val fallSpeed = 0.06f
-        for (i in 0 until candidateCount) {
-            val source = i % sources
-            val speedVariance = CandidateNoise.range(seed, i, CandidateNoise.CH_VARIANCE, 0.7f, 1.3f)
-            val phase = CandidateNoise.value(seed, i, CandidateNoise.CH_PHASE)
-            val fallFraction = elapsedSeconds.cycle(fallSpeed * speedVariance, phase)
+        for (source in 0 until sources) {
+            val id = objectRenderer.leafSourceId[source]
+            val perTree = objectRenderer.leafSourceLeafCount[source]
             val fallStartY = objectRenderer.leafSourceY[source]
             // **A leaf lands at the foot of its own tree.** This was one global
             // `screenHeight * 0.88` for every source, which is below both traffic lanes, so a
@@ -1909,34 +1928,49 @@ class PaperRenderer(
             val fallEndY = objectRenderer.leafSourceGroundY[source]
             val fallRange = fallEndY - fallStartY
             if (fallRange <= 0f) continue
-            val y = fallStartY + fallFraction * fallRange
-            val sway = elapsedSeconds.sinAt(0.9f, phase * 6.28f) * 26f
-            // Across the crown it left, not across the screen: the offset is a fraction of that
-            // crown's own half width, so a small tree sheds from a small area and a near one from
-            // a wide one. The sway then carries it away as it falls, which is the drift the
-            // effect always had.
-            val acrossCrown = (CandidateNoise.value(seed, i, CandidateNoise.CH_X) - 0.5f) * 2f
-            val x = objectRenderer.leafSourceX[source] +
-                acrossCrown * objectRenderer.leafSourceHalfWidth[source] + sway * fallFraction
-            val spin = elapsedSeconds.cycleOf(60f * (0.5f + speedVariance * 0.5f), phase * 360f, 360f)
-            val color = palette[i % palette.size]
-            // Fade in leaving the canopy, fade out settling near the ground -- same polish
-            // drawPrecipitation's own fade already uses, for the same "doesn't just pop into/out
-            // of existence" reason.
-            val fadeRange = 0.12f
-            val fadeAlpha = when {
-                fallFraction < fadeRange -> fallFraction / fadeRange
-                fallFraction > 1f - fadeRange -> (1f - fallFraction) / fadeRange
-                else -> 1f
-            }.coerceIn(0f, 1f)
-            leafPaint.color = blendColor(ColorUtils.blendARGB(color, 0xFF000000.toInt(), 0.35f), color, dayPhase.dayBlend)
-            leafPaint.style = Paint.Style.FILL
-            leafPaint.alpha = (220 * fadeAlpha).toInt().coerceIn(0, 255)
-            canvas.save()
-            canvas.translate(x, y)
-            canvas.rotate(spin)
-            canvas.drawOval(-4f, -6f, 4f, 6f, leafPaint)
-            canvas.restore()
+            for (j in 0 until perTree) {
+                // The candidate index mixes the copy's stable identity with the leaf's own slot,
+                // so a leaf's phase, drift and colour are functions of its tree copy and nothing
+                // else. MAX_LEAVES_PER_SOURCE rather than the frame's own perTree in the stride,
+                // so slot j keeps its noise whatever the count beside it does.
+                val i = id * MAX_LEAVES_PER_SOURCE + j
+                val speedVariance = CandidateNoise.range(seed, i, CandidateNoise.CH_VARIANCE, 0.7f, 1.3f)
+                val phase = CandidateNoise.value(seed, i, CandidateNoise.CH_PHASE)
+                val fallFraction = elapsedSeconds.cycle(fallSpeed * speedVariance, phase)
+                val y = fallStartY + fallFraction * fallRange
+                val sway = elapsedSeconds.sinAt(0.9f, phase * 6.28f) * 26f
+                // Across the crown it left, not across the screen: the offset is a fraction of
+                // that crown's own half width, so a small tree sheds from a small area and a near
+                // one from a wide one. The sway then carries it away as it falls, which is the
+                // drift the effect always had.
+                val acrossCrown = (CandidateNoise.value(seed, i, CandidateNoise.CH_X) - 0.5f) * 2f
+                val x = objectRenderer.leafSourceX[source] +
+                    acrossCrown * objectRenderer.leafSourceHalfWidth[source] + sway * fallFraction
+                val spin = elapsedSeconds.cycleOf(60f * (0.5f + speedVariance * 0.5f), phase * 360f, 360f)
+                val color = palette[i % palette.size]
+                // Fade in leaving the canopy, fade out settling near the ground -- same polish
+                // drawPrecipitation's own fade already uses, for the same "doesn't just pop
+                // into/out of existence" reason.
+                val fadeRange = 0.12f
+                val fadeAlpha = when {
+                    fallFraction < fadeRange -> fallFraction / fadeRange
+                    fallFraction > 1f - fadeRange -> (1f - fallFraction) / fadeRange
+                    else -> 1f
+                }.coerceIn(0f, 1f)
+                leafPaint.color =
+                    blendColor(ColorUtils.blendARGB(color, 0xFF000000.toInt(), 0.35f), color, dayPhase.dayBlend)
+                leafPaint.style = Paint.Style.FILL
+                leafPaint.alpha = (220 * fadeAlpha).toInt().coerceIn(0, 255)
+                // A fully faded leaf is not drawn at all: an alpha-0 oval costs a draw call and,
+                // at the fall's very first frame, would count as "a leaf on the crown" to any
+                // honest pixel accounting -- including FallingLeafContinuityTest's.
+                if (leafPaint.alpha == 0) continue
+                canvas.save()
+                canvas.translate(x, y)
+                canvas.rotate(spin)
+                canvas.drawOval(-4f, -6f, 4f, 6f, leafPaint)
+                canvas.restore()
+            }
         }
     }
 
@@ -2685,7 +2719,11 @@ class PaperRenderer(
             // Continuous depth placement now (see StaticSceneObject.depthFraction's own doc
             // comment) -- objectGroundGeometry carries only the horizontal half of the ground,
             // which is the only part that varies per frame. The vertical half is SceneSpace's.
-            objectGroundGeometry = GroundGeometry(objectShiftWrapped, objectTileWidth)
+            // The bias is computed in Double against the same unwrapped product the wrap itself
+            // used, so the two cannot disagree by a ULP and step the copy identities spuriously.
+            val unwrappedShift = -scrollProgress * screenWidth * parallax
+            val scrollTileBias = Math.round((unwrappedShift - wrappedShift) / tileWidth).toInt()
+            objectGroundGeometry = GroundGeometry(objectShiftWrapped, objectTileWidth, scrollTileBias)
 
             val path = baseHillShapes[layer] ?: continue
 

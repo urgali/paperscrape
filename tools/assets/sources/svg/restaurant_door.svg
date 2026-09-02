@@ -1,6 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="54" height="84" viewBox="0 0 18 28">
+<!--
+  A commercial entrance instead of a darker patch of wall.
+
+  The door was a tintable slab two shades under the wall colour: dark on dark, the lowest-contrast
+  area of the whole facade, on the one storey a shop is about. It is fixed art now, on the
+  precedent skyscraper_entrance set for street-level frontage: cream frame, wood leaf, glass upper
+  half, brass-ish handle. Same canvas, same blit, one less tint lookup.
+-->
   
-<rect x="0" y="0" width="18" height="28" rx="2.5" fill="#ebebeb"></rect>
-        <rect x="3" y="4" width="12" height="13" rx="1.5" fill="#eeeeee"></rect>
-        <rect x="13" y="19" width="2" height="5" rx="1" fill="#ffffff"></rect>
+<rect x="0" y="0" width="18" height="28" rx="1.5" fill="#F0E6D2"></rect>
+        <rect x="1.5" y="1.5" width="15" height="26.5" rx="1" fill="#6B4A32"></rect>
+        <rect x="3.5" y="3.5" width="11" height="12" rx="1" fill="#B9CBD9"></rect>
+        <rect x="13" y="17" width="1.6" height="4.5" rx="0.8" fill="#E2CCA6"></rect>
 </svg>

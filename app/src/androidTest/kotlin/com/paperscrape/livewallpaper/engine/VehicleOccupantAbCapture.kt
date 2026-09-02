@@ -214,6 +214,106 @@ class VehicleOccupantAbCapture {
     }
 
     /**
+     * The two street-level businesses, standing in a row with the houses they have to be told
+     * apart from.
+     *
+     * A shop front is judged by one question -- *do I know at a glance that this is a shop?* --
+     * and that question cannot be asked of a building on its own, because "commercial" is a
+     * comparison with the dwellings either side of it. So the row is fixed here rather than taken
+     * from a theme: a small house, the restaurant, the bar, a large house, all at one depth so
+     * they are drawn at one scale and any difference between them is the artwork's.
+     *
+     * The two variants are chosen the way `variantFor` chooses them -- a SKYSCRAPER past
+     * [SceneSpace.BUILDING_TOWER_MAX_DEPTH] is a shop, and the position hash picks which -- so
+     * these are the drawings the scene really produces and not a private arrangement of sprites.
+     */
+    @Test
+    fun captureTheCommercialFront() {
+        if (!asked()) return
+        val dir = outputDir()
+        val row = listOf(
+            // The object layer tiles at twice the screen width, so only the first half of the
+            // fraction range is on screen -- a row spread over 0..1 puts two of its four buildings
+            // outside the frame. Each fraction is also what picks the variant: `variantFor` hashes
+            // it, so these four are a small house, the restaurant, the bar and a large house.
+            StaticSceneObject(SceneObjectType.HOUSE, SHOP_ROW_DEPTH, 0.05f),
+            StaticSceneObject(SceneObjectType.SKYSCRAPER, SHOP_ROW_DEPTH, 0.18f),
+            StaticSceneObject(SceneObjectType.SKYSCRAPER, SHOP_ROW_DEPTH, 0.30f),
+            StaticSceneObject(SceneObjectType.HOUSE, SHOP_ROW_DEPTH, 0.43f),
+        )
+        val day = render(emptyList(), peopleDensity = 0f, layout = row)
+        write(day, dir, "shops_day")
+        day.recycle()
+        val night = render(emptyList(), peopleDensity = 0f, day = false, layout = row)
+        write(night, dir, "shops_night")
+        night.recycle()
+        val winter = render(emptyList(), peopleDensity = 0f, layout = row, winter = true)
+        write(winter, dir, "shops_winter")
+        winter.recycle()
+        // Christmas hangs string lights in the same panes the occupants stand in, so it is the
+        // season most likely to collide with a frontage that has just been rebuilt.
+        val christmas = render(
+            emptyList(), peopleDensity = 0f, day = false, layout = row,
+            winter = true, christmas = true,
+        )
+        write(christmas, dir, "shops_christmas")
+        christmas.recycle()
+    }
+
+    /**
+     * What the night lamps cost, measured rather than reasoned about.
+     *
+     * They are one faded blit and at most two rectangles per vehicle, all of it behind a zero
+     * alpha, so the honest questions are whether midday still costs what it cost and whether
+     * midnight costs measurably more. Same scene, same vehicles, same frame count, two hours.
+     */
+    @Test
+    fun timeTheVehicleLights() {
+        if (!asked()) return
+        val cars = listOf(
+            car(CarType.PLAIN, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.22f),
+            car(CarType.TAXI, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.66f),
+            car(CarType.POLICE, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.32f),
+            car(CarType.FIRE_TRUCK, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.76f),
+        )
+        for ((label, hour) in listOf("noon" to 13f, "night" to 1f)) {
+            render(cars, peopleDensity = 1f, hour = hour).recycle()
+            val started = System.nanoTime()
+            for (i in 0 until TIMED_FRAMES) {
+                render(cars, peopleDensity = 1f, hour = hour, atSeconds = 100.0 + i).recycle()
+            }
+            val perFrameMs = (System.nanoTime() - started) / 1e6 / TIMED_FRAMES
+            Log.i(TAG, "lights $label: ${"%.2f".format(perFrameMs)} ms per frame over $TIMED_FRAMES frames")
+        }
+    }
+
+    /**
+     * The one thing in the scene that used to look the same at midnight as at midday.
+     *
+     * The houses light their windows and the shops light their frontages on a ramp that starts a
+     * third of the way into the evening; the traffic did not move at all. This renders the same
+     * four vehicles at midday, at seven in the evening and at one in the morning, which is the only
+     * way to ask the two questions that matter: are they off when they should be off, and are they
+     * lamps rather than neon when they are on.
+     */
+    @Test
+    fun captureTheVehicleLights() {
+        if (!asked()) return
+        val dir = outputDir()
+        val cars = listOf(
+            car(CarType.PLAIN, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.22f),
+            car(CarType.TAXI, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.66f),
+            car(CarType.POLICE, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.32f),
+            car(CarType.FIRE_TRUCK, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.76f),
+        )
+        for ((label, hour) in listOf("noon" to 13f, "dusk" to 19f, "night" to 1f)) {
+            val frame = render(cars, peopleDensity = 1f, hour = hour)
+            write(frame, dir, "lights_$label")
+            frame.recycle()
+        }
+    }
+
+    /**
      * The same street in winter, which is the season the `Exposure` rule is about.
      *
      * Pedestrians and the people in the cars are OUTDOORS and take the winter drawings; the
@@ -281,6 +381,9 @@ class VehicleOccupantAbCapture {
         fall: Boolean = false,
         atSeconds: Double = 120.0,
         piles: Float = 0f,
+        layout: List<StaticSceneObject>? = null,
+        hour: Float? = null,
+        christmas: Boolean = false,
     ): Bitmap {
         val theme = ThemeCatalog.byId(THEME_ID)
         val defaults = defaultCustomizationFor(THEME_ID)
@@ -289,6 +392,7 @@ class VehicleOccupantAbCapture {
             people = defaults.people.copy(visible = peopleDensity > 0f, density = peopleDensity),
             peopleNightDensity = peopleDensity,
             winterColorsEnabled = winter,
+            christmasDecorationsEnabled = christmas,
             fallColorsEnabled = fall,
             snowPiles = if (winter) piles else 0f,
             leafPiles = if (fall) piles else 0f,
@@ -299,11 +403,21 @@ class VehicleOccupantAbCapture {
             penguins = if (seasonalProps) defaults.penguins.copy(visible = true, density = 1f) else defaults.penguins,
             bunnies = if (seasonalProps) defaults.bunnies.copy(visible = true, density = 1f) else defaults.bunnies,
             easterEggs = if (seasonalProps) defaults.easterEggs.copy(visible = true, density = 1f) else defaults.easterEggs,
+            // A hand-built row is a list of the buildings the frame is *about*, so none of it may
+            // be thinned away: `keepCandidate` drops a candidate whose stable fraction lands above
+            // the category's density, and at a theme's own density that silently removed three of
+            // the four buildings the shop row is a comparison between.
+            houses = if (layout != null) defaults.houses.copy(visible = true, density = 1f) else defaults.houses,
+            buildings =
+                if (layout != null) defaults.buildings.copy(visible = true, density = 1f) else defaults.buildings,
         )
         // The theme's own scenery, read before the override goes in so it is the catalogue's and
         // not the one this method is about to install.
-        val objects =
-            if (scenery) SceneObjectCatalog.layoutFor(THEME_ID, theme.accentColor).staticObjects else emptyList()
+        val objects = when {
+            layout != null -> layout
+            scenery -> SceneObjectCatalog.layoutFor(THEME_ID, theme.accentColor).staticObjects
+            else -> emptyList()
+        }
         CustomThemeRegistry.update(
             CustomThemeData(
                 overrides = mapOf(
@@ -329,7 +443,9 @@ class VehicleOccupantAbCapture {
             renderer.swipeScrollEnabled = false
             renderer.scrollSpeed = 0f
             renderer.parallaxStrength = 1f
-            val phase = if (day) SunPositionCalculator.compute(hour24 = 13f) else SunPositionCalculator.compute(hour24 = 1f)
+            // `day` is the two-state switch every earlier case uses; `hour` is for the cases that need
+        // the evening in between, which is where the vehicle lamps come up.
+        val phase = SunPositionCalculator.compute(hour24 = hour ?: if (day) 13f else 1f)
             renderer.draw(target, phase, SceneTime(atSeconds), 0f)
             target.unbind()
             return bitmap
@@ -376,9 +492,8 @@ class VehicleOccupantAbCapture {
                 "passengerFacePx=${faces.getOrNull(1)?.height ?: -1} " +
                 "driverFaceUnits=${fmt((faces.firstOrNull()?.height ?: 0) / unitPx)} " +
                 "glassPx=${glass?.height ?: -1} glassUnits=${fmt((glass?.height ?: 0) / unitPx)} " +
-                "driverScale=${fmt(SceneObjectRenderer.CAR_HEAD_SCALE)} " +
-                "passengerScale=${fmt(SceneObjectRenderer.CAR_PASSENGER_SCALE)} " +
-                "fireTruckScale=${fmt(SceneObjectRenderer.FIRE_TRUCK_HEAD_SCALE)}",
+                "carOccupantScale=${fmt(SceneObjectRenderer.CAR_OCCUPANT_SCALE)} " +
+                "fireTruckOccupantScale=${fmt(SceneObjectRenderer.FIRE_TRUCK_OCCUPANT_SCALE)}",
         )
     }
 
@@ -485,6 +600,13 @@ class VehicleOccupantAbCapture {
 
         /** Mid-screen, for a single vehicle. */
         const val PROGRESS_CENTRE = 0.5f
+
+        /**
+         * Near enough for a shop front to be read, far enough that the row still fits four
+         * buildings. Past [SceneSpace.BUILDING_TOWER_MAX_DEPTH], which is what makes a SKYSCRAPER
+         * a shop rather than a tower.
+         */
+        const val SHOP_ROW_DEPTH = 0.55f
         const val TIMED_FRAMES = 40
 
         /** `drawCar`'s own off-screen margin, which its x mapping is expressed against. */

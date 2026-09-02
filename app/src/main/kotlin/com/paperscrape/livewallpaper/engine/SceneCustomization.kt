@@ -640,10 +640,23 @@ private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantCo
 }
 
 /** Whether this candidate slot should actually render, given the current config. Types with no
- * customization category (e.g. CAR, which uses [keepCar] instead) are always kept. */
+ * customization category (e.g. CAR, which uses [keepCar] instead) are always kept.
+ *
+ * The two storefronts are exempt from density thinning (not from the category's visibility
+ * toggle): since rc3 the catalogue emits exactly one restaurant and one bar per tile
+ * (`SceneObjectCatalog.singleShopPerVariant`), so they are singular compositional anchors -- a
+ * fractional density over two one-of-a-kind buildings is a coin flip that on Sunset's layout
+ * removed the entire commercial street at the default setting. The buildings density slider
+ * governs the towers, which are the category's crowd. */
 fun SceneCustomization.keepCandidate(spec: StaticSceneObject): Boolean {
     val config = configFor(spec.type) ?: return true
-    return config.visible && stableFraction(spec, salt = 0f) < config.density
+    if (!config.visible) return false
+    if (spec.type == SceneObjectType.SKYSCRAPER &&
+        spec.depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH
+    ) {
+        return true
+    }
+    return stableFraction(spec, salt = 0f) < config.density
 }
 
 fun SceneCustomization.keepCar(spec: CarObject): Boolean =

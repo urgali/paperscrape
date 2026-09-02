@@ -1,4 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="330" height="24" viewBox="0 0 110 8">
-  
-<rect x="0" y="0" width="110" height="8" rx="4" fill="#F0A03C"></rect>
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="18" viewBox="0 0 44 6">
+<!--
+  The entrance canopy, cut back to the building it belongs to.
+
+  The first drawing was a 110x8 capsule blitted at (-55,-6): wider than the 90-unit tower it
+  crowned an entrance of, with rounded ends hanging 10 units clear of each wall edge, and its
+  lower half sitting below the ground line. At night, lit amber against a dark facade, it read
+  as a glowing shelf floating in front of the building, wider than the building, crossed by
+  whatever stood on the pavement. This one is an awning over the 32-unit entrance: 44 units wide
+  (6 units past the door frame on each side, 23 inside each wall edge), rounded only at its top
+  corners, flat-bottomed, and blitted at (-22,-6) so its base sits ON the ground line rather
+  than straddling it.
+-->
+
+<path d="M0 6 L0 2.4 Q0 0 2.4 0 L41.6 0 Q44 0 44 2.4 L44 6 Z" fill="#F0A03C"></path>
 </svg>

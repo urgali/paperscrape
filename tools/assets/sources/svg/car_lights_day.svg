@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="282" height="18" viewBox="-45.7 2.4 94 6">
+<!--
+  The saloon's lamps by day: the same two lenses car_lights.svg lights at night, in their unlit
+  colours (amber glass forward, brake red aft), so a vehicle's direction is readable from the
+  car alone with frontal occupants (rc4). Drawn untinted over the shell because the shell's own
+  baked lenses multiply with the user's body colour and come out whatever the paint is; this
+  overlay is what keeps a lamp a lamp on every livery. Registered by the same arithmetic as
+  car_lights: the viewBox minimum is the blit origin, shared as CAR_LIGHTS_X/Y.
+-->
+  
+<rect x="-44.8" y="3.3" width="6.6" height="3.6" rx="1.5" fill="#F2DCA4"></rect>
+        <rect x="43.2" y="4.2" width="4.2" height="3" rx="1" fill="#C44536"></rect>
+</svg>

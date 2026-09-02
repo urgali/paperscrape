@@ -65,11 +65,24 @@ class SpriteGeometryTest {
      * the paragraph above asks the next asset pass to.** Widening the three co-registered person
      * families by one to three units of canvas each -- 132 sprites, to recover winter headwear the
      * old viewBox cut flat -- took the set from 26.76 MB to 27.09 MB decoded. That is 25.84 MiB
-     * against this 26 MiB ceiling: it fits, with 169 kB to spare. The ceiling is deliberately not
-     * raised. Whoever needs the next canvas has almost none of it left and should expect to make
-     * the memory-pressure argument, not to nudge the number.
+     * against the 26 MiB ceiling SCL-01 left 169 kB of; SCL-01 deliberately did not raise it and
+     * asked the next pass to make the memory-pressure argument rather than nudge the number.
+     *
+     * **rc4 raises it to 28.5 MiB, and this is that argument.** The maintainer's criterion is
+     * that the vehicle occupants cover every family x season x skin combination the pedestrians
+     * have, as real variant PNGs like every other skin tone in the set: 8 frontal busts plus 24
+     * recolours on the family's shared 48x44 registration canvas is +2.45 MB decoded, against
+     * -0.10 MB for the retired profile family -- the set moves from 27.09 MB to 29.37 MB
+     * (28.01 MiB). No coverage that satisfies the criterion fits under 26 MiB: the eight bases
+     * alone would land within kilobytes of the ceiling. The cost is the same worst-case ceiling
+     * the v4.1 paragraph describes -- sprites decode on demand, no frame decodes four tones of
+     * one character, and the rc4 release build was measured as the live wallpaper without a
+     * memory regression (the pass report carries the PSS figure). The runtime-recolour
+     * alternative above remains the cheaper answer if pressure is ever measured on a real
+     * device. The ceiling is set just above the measured figure, as always, so the next pass
+     * has to come here and say so too.
      */
-    private val decodedByteBudget = 26L * 1024L * 1024L
+    private val decodedByteBudget = 28L * 1024L * 1024L + 512L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {
@@ -152,8 +165,8 @@ class SpriteGeometryTest {
             Family("person_head_window", SceneObjectRenderer.WINDOW_HEAD_ANCHOR_Y_UNITS) {
                 it.contains("_head_window")
             },
-            Family("person_head_car", SceneObjectRenderer.CAR_HEAD_ANCHOR_Y_UNITS) {
-                it.endsWith("_head_car")
+            Family("person_head_car", SceneObjectRenderer.HEAD_CAR_ANCHOR_Y_UNITS) {
+                it.contains("_head_car")
             },
         )
         val grid = SpriteBlitter.SPRITE_PIXELS_PER_UNIT

@@ -50,7 +50,7 @@ TONES = [
     (169, 113, 75),   # 2 brown
 ]
 
-VARIANTS = ["walk0", "walk1", "walk2", "head_window"]
+VARIANTS = ["walk0", "walk1", "walk2", "head_window", "head_car"]
 SEASONS = ["summer", "winter"]
 
 # How close a pixel must sit to a skin/other blend line to count as an edge pixel.

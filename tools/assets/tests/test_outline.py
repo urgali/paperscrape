@@ -36,15 +36,16 @@ WALK_CYCLES = [
 
 #: The still occupant sprites, which share the walkers' outline and must match it.
 #:
-#: Only the adults ride in cars -- there is no `person_boy_*_head_car` -- so the car set is
-#: listed separately rather than crossed with the whole cast.
+#: rc4 returned the vehicle occupants to the frontal `head_car` family -- the pedestrians'
+#: own face language, with the seatbelt saying "person in a car" -- retiring rc2's profile
+#: busts. Both occupant families are frontal now, so both share the walkers' outline rules.
 OCCUPANTS = [
     f"person_{who}_{season}_head_window"
     for who in ("man", "woman", "boy", "girl")
     for season in ("summer", "winter")
 ] + [
     f"person_{who}_{season}_head_car"
-    for who in ("man", "woman")
+    for who in ("man", "woman", "boy", "girl")
     for season in ("summer", "winter")
 ]
 
