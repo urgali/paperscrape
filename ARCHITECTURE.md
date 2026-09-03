@@ -742,12 +742,23 @@ so a driver's head came out 0.320 m against a pedestrian's 0.547 m while standin
 viewer than the pavement*. The two conventions meet at the windscreen and disagree there, and
 there is no entry in the size table for a head, so no arithmetic could have caught it.
 
-The rule now is that **a bust's content is exactly as tall as the glass it sits behind**, and the
-glass is drawn taller than the sprite is authored -- 19 local units against 16, growing downward
-into the door to the line the police stripe and the taxi chequer are blitted at. `CAR_HEAD_SCALE`,
-`CAR_PASSENGER_SCALE` and `FIRE_TRUCK_HEAD_SCALE` are quotients rather than tuned values, so a
-future complaint about occupant size has to move the glass or the artwork and cannot be answered
-with a fourth constant. `CAR_METRES_TALL` is untouched: the vehicle was never the wrong size.
+The rule now is that **a bust's content is exactly as tall as the glass it sits behind**. The
+occupant scales are quotients rather than tuned values, so a future complaint about occupant size
+has to move the glass or the artwork and cannot be answered with a fourth constant.
+
+**v4.19: three bodies, one metre-per-unit.** `CarShell` carries a compact, a saloon and an estate,
+and a plain car picks one from its own immutable identity (`laneYFraction`, `startDelaySeconds`),
+bit-mixed and resolved **once** in `CarRuntime`'s constructor -- nothing per-frame can reach the
+choice, which is the structural guard against v4.17's falling-leaf defect. A taxi is always the
+compact and a police car always the saloon, so their roof accessories and liveries are drawn to one
+roof and one door line each.
+
+The three bodies are deliberately different heights, so `SceneSpace` governs the family by a
+**metre-per-unit** (`CAR_UNIT_METRES`, v4.18's own 1.51/50) rather than by a height: each body's
+metres are that constant times its own units, `CAR_BASE_SCALE` stays a single number, and one local
+unit is the same on-screen pixel on all three. The whole vertical layout of the cabin -- glass top,
+sill, seats, occupant scale -- is shared; only the plan differs. An occupant is therefore exactly
+the same size in every car.
 
 **Draw order is depth order for people and traffic too (v4.6).** `drawPeople` runs *before* the
 vehicle loop. Every pavement row including its jitter is above 0.819 of screen height and every

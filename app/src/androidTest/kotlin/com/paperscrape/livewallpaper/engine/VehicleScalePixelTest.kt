@@ -80,6 +80,16 @@ class VehicleScalePixelTest {
 
     private val empty by lazy { SceneGolden.render(scene(0f, 0f)) }
 
+    /**
+     * The tallest thing the road can put on a lane, in local units: a body plus whatever it
+     * carries on its roof. Derived so that adding a body or a roof accessory moves it.
+     */
+    private val TALLEST_VEHICLE_UNITS: Float = maxOf(
+        CarShell.COMPACT.unitsTall + SceneObjectRenderer.TAXI_SIGN_HEIGHT_UNITS,
+        CarShell.SALOON.unitsTall + SceneObjectRenderer.POLICE_LIGHTBAR_HEIGHT_UNITS,
+        CarShell.ESTATE.unitsTall,
+    )
+
     /** The predicted drawn height of one thing, in this frame's pixels. */
     private fun predicted(spriteUnits: Float, baseScale: Float, groundYFraction: Float): Float =
         spriteUnits * baseScale * SceneSpace.perspectiveScaleAt(groundYFraction) *
@@ -91,9 +101,14 @@ class VehicleScalePixelTest {
      * Every vehicle on the road is drawn at the height its lane implies.
      *
      * Objects are matched to a lane by where they stand — the bottom of a vehicle's own pixels is
-     * its wheel contact, which is the lane's ground line. The tolerance is generous upward on
-     * purpose: a police car carries a light bar six local units above its roof, which is real
-     * artwork and not a scale error.
+     * its wheel contact, which is the lane's ground line.
+     *
+     * **The band is derived from the fleet rather than fixed.** v4.19 gives a plain car one of
+     * three bodies and they are deliberately different heights, and two of the types stand a roof
+     * accessory on top: the shortest thing on the road is the saloon at 56 units and the tallest
+     * is a taxi, which is the 57-unit compact carrying a six-unit roof sign. A pixel measurement
+     * cannot tell which of them a blob is, so the band spans the fleet -- what it still catches is
+     * a vehicle drawn at the *wrong lane's* scale, which is a 15% error, not a 12% one.
      */
     @Test
     fun everyVehicleIsDrawnAtTheHeightItsLaneImplies() {
@@ -112,10 +127,14 @@ class VehicleScalePixelTest {
                 kotlin.math.abs(bottom - nearGround) <= 3f -> { nearSeen++; SceneSpace.ROAD_LANE_NEAR_Y_FRACTION }
                 else -> continue
             }
-            val body = predicted(SceneSpace.CAR_SPRITE_UNITS_TALL, SceneSpace.CAR_BASE_SCALE, lane)
+            val shortest = predicted(
+                CarShell.entries.minOf { it.unitsTall }, SceneSpace.CAR_BASE_SCALE, lane,
+            )
+            val tallest = predicted(TALLEST_VEHICLE_UNITS, SceneSpace.CAR_BASE_SCALE, lane)
             assertTrue(
-                "a vehicle at x=${v[0]}..${v[1]} is ${height}px where its lane implies ${"%.1f".format(body)}",
-                height >= body - 1.5f && height <= body + 4f,
+                "a vehicle at x=${v[0]}..${v[1]} is ${height}px, outside the fleet's band of " +
+                    "${"%.1f".format(shortest)}..${"%.1f".format(tallest)} px for lane $lane",
+                height >= shortest - 1.5f && height <= tallest + 1.5f,
             )
         }
         assertTrue("no vehicle was found on the far lane", farSeen > 0)

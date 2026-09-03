@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.engine
 
+import com.paperscrape.livewallpaper.R
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -52,19 +53,32 @@ class VehicleOccupantScaleTest {
      * each lane and no theme offers that. `speedFraction = 0` and a negative start delay put the
      * car at a known `progress` and hold it there, so the frame needs no warm-up and cannot drift.
      */
+    /**
+     * One car on an otherwise empty street, optionally on a chosen body.
+     *
+     * v4.19 gives a plain car one of three bodies, picked from its own immutable identity
+     * ([CarShell.forCar]) so that nothing per-frame can move it. A test cannot therefore *ask*
+     * for a body -- it has to find a vehicle that is one. [delayForShell] does that by nudging
+     * `startDelaySeconds` by a millionth of a second at a time until the hash lands where it is
+     * wanted, which moves the car by well under a pixel and leaves the production rule untouched.
+     * That is deliberately harder than exposing a setter: a seam that let a test choose the body
+     * would be a seam that let anything else choose it too.
+     */
     private fun frameWithOneCar(
         type: CarType,
         lane: Float,
         reverse: Boolean = true,
         progress: Float = CAR_PROGRESS,
+        shell: CarShell? = null,
     ): Bitmap {
+        val delay = if (shell == null) -progress else delayForShell(shell, lane, type, progress)
         val layout = SceneObjectLayout(
             staticObjects = emptyList(),
             cars = listOf(
                 CarObject(
                     laneYFraction = lane,
                     speedFraction = 0f,
-                    startDelaySeconds = -progress,
+                    startDelaySeconds = delay,
                     color = 0xFFB4513C.toInt(),
                     reverse = reverse,
                     type = type,
@@ -73,6 +87,31 @@ class VehicleOccupantScaleTest {
         )
         return render(layout, peopleVisible = false)
     }
+
+    private fun delayForShell(shell: CarShell, lane: Float, type: CarType, progress: Float): Float {
+        for (i in 0 until 20_000) {
+            val candidate = -progress - i * 1e-6f
+            val spec = CarObject(lane, 0f, candidate, 0, true, type)
+            if (CarShell.forCar(spec) == shell) return candidate
+        }
+        error("no start delay within a hair of $progress puts a $type on the $shell")
+    }
+
+    /**
+     * Every (type, body) pair the road can produce: three bodies for a plain car, one each for
+     * the taxi and the police car, and the appliance, which has no [CarShell] at all.
+     *
+     * Flattened into one list rather than nested loops so that a criterion written for "every
+     * vehicle" keeps covering every vehicle when a body is added.
+     */
+    private fun typesAndShells(): List<Pair<CarType, CarShell?>> =
+        CarType.entries.flatMap { type ->
+            when (type) {
+                CarType.PLAIN -> CarShell.entries.map { type to it }
+                CarType.FIRE_TRUCK -> listOf(type to null)
+                else -> listOf(type to CarShell.forCar(CarObject(0f, 0f, 0f, 0, true, type)))
+            }
+        }
 
     /** The street with nobody driving on it: pedestrians only, so a face found is a pedestrian's. */
     private fun frameWithPeopleOnly(): Bitmap =
@@ -127,6 +166,55 @@ class VehicleOccupantScaleTest {
         return OCCUPANT_EXTRA_COLOURS.any {
             it[0] != 0x2B && abs(r - it[0]) <= 4 && abs(g - it[1]) <= 4 && abs(b - it[2]) <= 4
         }
+    }
+
+    /** The colour a fixed-art sprite is, read off the shipped drawable rather than restated. */
+    private fun dominantColour(resId: Int): IntArray {
+        val opts = android.graphics.BitmapFactory.Options().apply { inScaled = false }
+        val bmp = android.graphics.BitmapFactory.decodeResource(
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+                .targetContext.resources,
+            resId, opts,
+        )
+        val counts = HashMap<Int, Int>()
+        for (y in 0 until bmp.height) {
+            for (x in 0 until bmp.width) {
+                val p = bmp.getPixel(x, y)
+                if ((p ushr 24) < 250) continue
+                counts[p or (0xFF shl 24)] = (counts[p or (0xFF shl 24)] ?: 0) + 1
+            }
+        }
+        bmp.recycle()
+        val top = counts.maxByOrNull { it.value }!!.key
+        return intArrayOf((top shr 16) and 0xFF, (top shr 8) and 0xFF, top and 0xFF)
+    }
+
+    private fun near(r: Int, g: Int, b: Int, want: IntArray, tol: Int = 12): Boolean =
+        abs(r - want[0]) < tol && abs(g - want[1]) < tol && abs(b - want[2]) < tol
+
+    /** The lamp seats a body bakes, with a unit of margin for the antialiased rim. */
+    private fun inLampSeat(shell: CarShell, localX: Float, localY: Float): Boolean {
+        val front = localX >= shell.lampFrontXUnits - 1.5f &&
+            localX <= shell.lampFrontXUnits + LAMP_FRONT_W_UNITS + 1.5f &&
+            localY >= shell.lampFrontYUnits - 1.5f &&
+            localY <= shell.lampFrontYUnits + LAMP_H_UNITS + 1.5f
+        val rear = localX >= shell.lampRearXUnits - 1.5f &&
+            localX <= shell.lampRearXUnits + LAMP_REAR_W_UNITS + 1.5f &&
+            localY >= shell.lampRearYUnits - 1.5f &&
+            localY <= shell.lampRearYUnits + LAMP_H_UNITS + 1.5f
+        return front || rear
+    }
+
+    private fun inTruckLampSeat(localX: Float, localY: Float): Boolean {
+        val front = localX >= SceneObjectRenderer.FIRE_TRUCK_LAMP_FRONT_X_UNITS - 1.5f &&
+            localX <= SceneObjectRenderer.FIRE_TRUCK_LAMP_FRONT_X_UNITS + LAMP_FRONT_W_UNITS + 1.5f &&
+            localY >= SceneObjectRenderer.FIRE_TRUCK_LAMP_FRONT_Y_UNITS - 1.5f &&
+            localY <= SceneObjectRenderer.FIRE_TRUCK_LAMP_FRONT_Y_UNITS + LAMP_H_UNITS + 1.5f
+        val rear = localX >= SceneObjectRenderer.FIRE_TRUCK_LAMP_REAR_X_UNITS - 1.5f &&
+            localX <= SceneObjectRenderer.FIRE_TRUCK_LAMP_REAR_X_UNITS + LAMP_REAR_W_UNITS + 1.5f &&
+            localY >= SceneObjectRenderer.FIRE_TRUCK_LAMP_REAR_Y_UNITS - 1.5f &&
+            localY <= SceneObjectRenderer.FIRE_TRUCK_LAMP_REAR_Y_UNITS + LAMP_H_UNITS + 1.5f
+        return front || rear
     }
 
     private fun isGlass(pixel: Int): Boolean {
@@ -296,9 +384,9 @@ class VehicleOccupantScaleTest {
      */
     @Test
     fun everyOccupantHasGlassAboveTheirHead() {
-        for (type in CarType.entries) {
+        for ((type, shell) in typesAndShells()) {
             for (lane in LANES) {
-                val frame = frameWithOneCar(type, lane)
+                val frame = frameWithOneCar(type, lane, shell = shell)
                 val glass = glassBox(frame) ?: error("$type on $lane has no glass")
                 val band = maxOf(1, ((glass.maxY - glass.minY + 1) * 0.10f).toInt())
                 val pixels = IntArray(WIDTH * HEIGHT)
@@ -339,9 +427,9 @@ class VehicleOccupantScaleTest {
         val pedestrian = tallestFace(frameWithPeopleOnly())
         val pedestrianNormalised =
             pedestrian.height / SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION)
-        for (type in CarType.entries) {
+        for ((type, shell) in typesAndShells()) {
             for (lane in LANES) {
-                val frame = frameWithOneCar(type, lane)
+                val frame = frameWithOneCar(type, lane, shell = shell)
                 val driver = tallestFace(frame)
                 val driverNormalised = driver.height / SceneSpace.perspectiveScaleAt(lane)
                 val ratio = driverNormalised / pedestrianNormalised
@@ -366,9 +454,9 @@ class VehicleOccupantScaleTest {
      */
     @Test
     fun everyVehicleTypeDrawsItsDriverAtTheSizeItsGlassImplies() {
-        for (type in CarType.entries) {
+        for ((type, shell) in typesAndShells()) {
             for (lane in LANES) {
-                val frame = frameWithOneCar(type, lane)
+                val frame = frameWithOneCar(type, lane, shell = shell)
                 val faces = skinBlobs(frame)
                 assertTrue("$type on $lane has nobody in it", faces.isNotEmpty())
                 val scale = if (type == CarType.FIRE_TRUCK) {
@@ -570,18 +658,27 @@ class VehicleOccupantScaleTest {
             val px = unitPx(lane, CarType.PLAIN)
             val centreX = CAR_PROGRESS * (WIDTH + 2 * CAR_TRAVEL_MARGIN) - CAR_TRAVEL_MARGIN
             val groundY = lane * HEIGHT
+            // The two lens colours come from the shipped sprites rather than being copied here:
+            // v4.19 shares one amber and one red lens across three bodies and the appliance, and
+            // a literal in a test is exactly the sort of second copy that goes stale when the
+            // artwork moves. (v4.18's literals were the previous overlay's colours.)
+            val amberLens = dominantColour(R.drawable.car_lamp_front)
+            val redLens = dominantColour(R.drawable.car_lamp_rear)
             var amberMeanX = 0f; var amberN = 0
             var redMeanX = 0f; var redN = 0
-            val yFrom = (groundY + (2.4f - CAR_LOCAL_ORIGIN_ABOVE_CONTACT_UNITS) * px).toInt()
-            val yTo = (groundY + (8.4f - CAR_LOCAL_ORIGIN_ABOVE_CONTACT_UNITS) * px).toInt()
+            // The band the lamps live in, across all three bodies, with a unit of margin.
+            val lampTop = CarShell.entries.minOf { minOf(it.lampFrontYUnits, it.lampRearYUnits) } - 1f
+            val lampBottom = CarShell.entries.maxOf { maxOf(it.lampFrontYUnits, it.lampRearYUnits) } + 5f
+            val yFrom = (groundY + (lampTop - CAR_LOCAL_ORIGIN_ABOVE_CONTACT_UNITS) * px).toInt()
+            val yTo = (groundY + (lampBottom - CAR_LOCAL_ORIGIN_ABOVE_CONTACT_UNITS) * px).toInt()
             for (y in yFrom..yTo) {
                 for (x in (centreX - 50f * px).toInt()..(centreX + 50f * px).toInt()) {
                     if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) continue
                     val p = frame.getPixel(x, y)
                     val r = (p shr 16) and 0xFF; val g = (p shr 8) and 0xFF; val b = p and 0xFF
-                    if (abs(r - 0xF2) < 12 && abs(g - 0xDC) < 12 && abs(b - 0xA4) < 12) {
+                    if (near(r, g, b, amberLens)) {
                         amberMeanX += x; amberN++
-                    } else if (abs(r - 0xC4) < 12 && abs(g - 0x45) < 12 && abs(b - 0x36) < 12) {
+                    } else if (near(r, g, b, redLens)) {
                         redMeanX += x; redN++
                     }
                 }
@@ -645,17 +742,25 @@ class VehicleOccupantScaleTest {
      */
     @Test
     fun noOccupantPixelLeavesTheGlass() {
-        for (type in CarType.entries) {
+        for ((type, shell) in typesAndShells()) {
             for (lane in LANES) {
-                val frame = frameWithOneCar(type, lane)
+                val frame = frameWithOneCar(type, lane, shell = shell)
                 val px = unitPx(lane, type)
                 val centreX = CAR_PROGRESS * (WIDTH + 2 * CAR_TRAVEL_MARGIN) - CAR_TRAVEL_MARGIN
                 val groundY = lane * HEIGHT
                 val isTruck = type == CarType.FIRE_TRUCK
-                val paneL = if (isTruck) -40f else GLASS_LEFT_UNITS
-                val paneR = if (isTruck) -15f else GLASS_RIGHT_UNITS
-                val paneT = -11f
-                val paneB = if (isTruck) 6f else 12f
+                val (paneL, paneR) = if (isTruck) TRUCK_PANE else cabinPane(shell!!)
+                val paneT = if (isTruck) {
+                    SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS -
+                        SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS
+                } else {
+                    SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS
+                }
+                val paneB = if (isTruck) {
+                    SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS
+                } else {
+                    SceneObjectRenderer.CAR_SILL_Y_UNITS
+                }
                 val pixels = IntArray(WIDTH * HEIGHT)
                 frame.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
                 var outside = 0
@@ -663,28 +768,42 @@ class VehicleOccupantScaleTest {
                 for (y in 0 until HEIGHT) {
                     val localY = (y - groundY) / px + CAR_LOCAL_ORIGIN_ABOVE_CONTACT_UNITS
                     if (localY < -35f || localY > 40f) continue
+                    // Only runs count. Isolated pixels along an anti-aliased seam between two
+                    // pieces of vehicle artwork can fall inside the skin tolerance -- the
+                    // appliance's cream stripe against its red body produces a dozen of them --
+                    // and a person is never one pixel wide anywhere in this scene.
+                    var runLen = 0
                     for (x in 0 until WIDTH) {
                         val localX = (x - centreX) / px
                         if (localX < -55f || localX > 55f) continue
                         val p = pixels[y * WIDTH + x]
-                        if (!isOccupantColour(p)) continue
+                        if (!isOccupantColour(p)) { runLen = 0; continue }
+                        runLen++
+                        if (runLen < MIN_RUN_PX) continue
                         // The taxi's roof sign, the police light bar and the taxi's chequer band
                         // letter their art in the same dark ink as the hair (0x2B2A33 exactly),
                         // so those rectangles -- the roof accessories, the livery band on the
                         // doors -- are excluded: vehicle artwork, not a person out of the glass.
+                        // Roof accessories stand above the glass; the livery bands the doors
+                        // below the sill. Both windows are derived from the constants that place
+                        // them, so a body change moves the exclusion with the artwork instead of
+                        // leaving a stale rectangle behind -- which is exactly how v4.18's
+                        // windows went out of date when the sill moved from 12 to 9.
                         if ((type == CarType.TAXI || type == CarType.POLICE) &&
-                            localY < -13f && localX >= -18f && localX <= 18f
+                            localY < SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS &&
+                            abs(localX) <= 24f
                         ) continue
-                        if (type == CarType.TAXI &&
-                            localY >= 11.5f && localY <= 21.5f && abs(localX) <= 22.5f
+                        if ((type == CarType.TAXI || type == CarType.POLICE) &&
+                            localY >= SceneObjectRenderer.CAR_SILL_Y_UNITS - 0.5f &&
+                            localY <= SceneObjectRenderer.CAR_SILL_Y_UNITS + LIVERY_HEIGHT_UNITS + 0.5f &&
+                            abs(localX) <= SceneObjectRenderer.CAR_LIVERY_WIDTH_UNITS / 2f + 0.5f
                         ) continue
                         // The day lamps (rc4) letter their art in ambers and reds whose
                         // anti-aliased rims can blend into the skin palette's tolerance: the two
                         // lamp housings are vehicle artwork, excluded exactly as the taxi sign
                         // and the livery band above are.
-                        if (localY >= 1.9f && localY <= 8.9f &&
-                            (localX in -46.5f..-37.5f || localX in 41.5f..48.5f)
-                        ) continue
+                        if (shell != null && inLampSeat(shell, localX, localY)) continue
+                        if (isTruck && inTruckLampSeat(localX, localY)) continue
                         val inside = localX >= paneL - 0.5f && localX <= paneR + 0.5f &&
                             localY >= paneT - 0.5f && localY <= paneB + 0.5f
                         if (!inside) {
@@ -723,16 +842,25 @@ class VehicleOccupantScaleTest {
      * [SceneObjectRenderer.CAR_HEAD_X_UNITS].
      */
     @Test
-    fun everyOccupantClearsItsPillarsByFifteenPercentOfThePane() {
-        for (type in CarType.entries) {
+    fun everyOccupantClearsItsPillarsByFifteenPercentOfItsHead() {
+        for ((type, shell) in typesAndShells()) {
             val lane = SceneSpace.ROAD_LANE_NEAR_Y_FRACTION
-            val frame = frameWithOneCar(type, lane)
+            val frame = frameWithOneCar(type, lane, shell = shell)
             val px = unitPx(lane, type)
             val centreX = CAR_PROGRESS * (WIDTH + 2 * CAR_TRAVEL_MARGIN) - CAR_TRAVEL_MARGIN
             val groundY = lane * HEIGHT
             val isTruck = type == CarType.FIRE_TRUCK
-            val sill = if (isTruck) 6f else 12f
-            val paneTop = -11f
+            val sill = if (isTruck) {
+                SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS
+            } else {
+                SceneObjectRenderer.CAR_SILL_Y_UNITS
+            }
+            val paneTop = if (isTruck) {
+                SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS -
+                    SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS
+            } else {
+                SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS
+            }
             val pixels = IntArray(WIDTH * HEIGHT)
             frame.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
 
@@ -746,39 +874,69 @@ class VehicleOccupantScaleTest {
             // rc5 measured that arrangement at 53 units of glass against 47 for a single pane, and
             // six units of bonnet is what a mullion would have cost. See
             // [SceneObjectRenderer.CAR_HEAD_X_UNITS].
-            val panes = if (isTruck) {
-                listOf(-40f to -15f)
-            } else {
-                listOf(GLASS_LEFT_UNITS to GLASS_RIGHT_UNITS)
+            val (paneL, paneR) = if (isTruck) TRUCK_PANE else cabinPane(shell!!)
+            val xFrom = (centreX + paneL * px).toInt().coerceIn(0, WIDTH - 1)
+            val xTo = (centreX + paneR * px).toInt().coerceIn(0, WIDTH - 1)
+
+            /** The head's own ink and the glass either side of it, on one row. */
+            fun rowRuns(y: Int): Triple<List<IntArray>, Int, List<Int>>? {
+                // A head is a *run* of occupant ink, not a stray pixel. The anti-aliased edge
+                // where a raked A-pillar meets the glass blends the body's tint toward the
+                // occupant palette, and on a warm-tinted car a few of those pixels land inside
+                // the skin tolerance -- which read as a head pressed against the pillar when
+                // the scan took the leftmost matching pixel. MIN_RUN_PX is the same floor the
+                // head-gap scan already uses for the same reason.
+                val glassXs = mutableListOf<Int>()
+                val runs = mutableListOf<IntArray>()
+                var runStart = -1
+                for (x in xFrom..xTo + 1) {
+                    val ink = x <= xTo && isOccupantColour(pixels[y * WIDTH + x])
+                    if (ink) {
+                        if (runStart < 0) runStart = x
+                    } else {
+                        if (runStart >= 0 && x - runStart >= MIN_RUN_PX) runs.add(intArrayOf(runStart, x - 1))
+                        runStart = -1
+                        if (x <= xTo && isGlass(pixels[y * WIDTH + x])) glassXs.add(x)
+                    }
+                }
+                return if (runs.isEmpty() || glassXs.isEmpty()) null else Triple(runs, 0, glassXs)
             }
+
+            // **The head's own width, which is what the light is a share of.** v4.18 divided by
+            // the pane, so the criterion moved every time the glass did and had to be lowered
+            // from 15% to 13% to pay for a wider cabin. Item 6 of BACKLOG_v4_19.md asked for it
+            // against the head instead; the floor is 15%, derived in VehiclePedestrianScaleTest
+            // from what a band of glass under ~3 px reads as at the far lane.
+            // **One head's width, not the pair's span.** The rows where both occupants show
+            // carry two runs; taking min-to-max across the row would make the denominator the
+            // whole seated pair, which halves every ratio and is not what "a share of the head"
+            // means. The widest single run is one head at its widest row.
+            var headWidth = 0f
+            for (y in yFrom..yTo) {
+                if (y < 0 || y >= HEIGHT) continue
+                val (runs, _, _) = rowRuns(y) ?: continue
+                headWidth = maxOf(headWidth, runs.maxOf { (it[1] - it[0] + 1).toFloat() })
+            }
+            assertTrue("$type/$shell: no occupant found behind the glass at all", headWidth > 0f)
+
             var worst = Float.MAX_VALUE
             var worstAt = ""
-            for ((paneL, paneR) in panes) {
-                for (y in yFrom..yTo) {
-                    if (y < 0 || y >= HEIGHT) continue
-                    var headMin = Int.MAX_VALUE; var headMax = -1
-                    val glassXs = mutableListOf<Int>()
-                    val xFrom = (centreX + paneL * px).toInt().coerceIn(0, WIDTH - 1)
-                    val xTo = (centreX + paneR * px).toInt().coerceIn(0, WIDTH - 1)
-                    for (x in xFrom..xTo) {
-                        val p = pixels[y * WIDTH + x]
-                        if (isOccupantColour(p)) { if (x < headMin) headMin = x; if (x > headMax) headMax = x }
-                        else if (isGlass(p)) glassXs.add(x)
-                    }
-                    if (headMax < 0 || glassXs.isEmpty()) continue
-                    val paneLeft = glassXs.filter { it < headMin }.minOrNull() ?: headMin
-                    val paneRight = glassXs.filter { it > headMax }.maxOrNull() ?: headMax
-                    val width = (paneRight - paneLeft + 1).toFloat()
-                    if (width < 8f) continue
-                    val gapL = (headMin - paneLeft) / width
-                    val gapR = (paneRight - headMax) / width
-                    if (minOf(gapL, gapR) < worst) { worst = minOf(gapL, gapR); worstAt = "row $y (L=$gapL R=$gapR)" }
-                }
+            for (y in yFrom..yTo) {
+                if (y < 0 || y >= HEIGHT) continue
+                val (runs, _, glassXs) = rowRuns(y) ?: continue
+                val headMin = runs.first()[0]
+                val headMax = runs.last()[1]
+                val paneLeft = glassXs.filter { it < headMin }.minOrNull() ?: continue
+                val paneRight = glassXs.filter { it > headMax }.maxOrNull() ?: continue
+                val gapL = (headMin - paneLeft) / headWidth
+                val gapR = (paneRight - headMax) / headWidth
+                if (minOf(gapL, gapR) < worst) { worst = minOf(gapL, gapR); worstAt = "row $y (L=$gapL R=$gapR)" }
             }
-            android.util.Log.i("rc5-light", "$type worst pillar light ${"%.2f".format(worst * 100)}% at $worstAt")
+            android.util.Log.i("v419-light", "$type/$shell worst pillar light ${"%.2f".format(worst * 100)}% of head at $worstAt")
             assertTrue(
-                "$type: the narrowest head-to-pillar light is ${"%.1f".format(worst * 100)}% at $worstAt",
-                worst >= 0.13f,
+                "$type/$shell: the narrowest head-to-pillar light is " +
+                    "${"%.1f".format(worst * 100)}% of the head's own width at $worstAt",
+                worst >= 0.15f,
             )
             frame.recycle()
         }
@@ -808,9 +966,9 @@ class VehicleOccupantScaleTest {
      */
     @Test
     fun theTwoHeadsAreSeparatedByClearGlass() {
-        for (type in listOf(CarType.PLAIN, CarType.TAXI, CarType.POLICE)) {
+        for ((type, shell) in typesAndShells().filter { it.first != CarType.FIRE_TRUCK }) {
             for (lane in LANES) {
-                val frame = frameWithOneCar(type, lane)
+                val frame = frameWithOneCar(type, lane, shell = shell)
                 val px = unitPx(lane, type)
                 val centreX = CAR_PROGRESS * (WIDTH + 2 * CAR_TRAVEL_MARGIN) - CAR_TRAVEL_MARGIN
                 val groundY = lane * HEIGHT
@@ -822,10 +980,21 @@ class VehicleOccupantScaleTest {
                 var worstGap = Float.MAX_VALUE
                 var worstAt = ""
                 var rowsChecked = 0
-                for (y in screenY(-11f)..screenY(CHIN_LOCAL_Y)) {
+                // **From four units below the crown, not from the pane's ceiling.** The band the
+                // criterion is about is the head band, and its top two units are the tip of the
+                // hair, where a head is a couple of pixels wide and two crowns are legitimately
+                // close: what the criterion is about is whether two *people* read as two, and
+                // that is decided below the dome. v4.18's pane happened to start below the
+                // crown so the question never arose; v4.19's is 25 units and starts four above
+                // it, and scanning those rows asks whether two hair-tips are separated rather
+                // than whether two people are.
+                val crown = SceneObjectRenderer.CAR_SILL_Y_UNITS -
+                    SceneObjectRenderer.HEAD_CAR_ANCHOR_Y_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
+                for (y in screenY(crown + 4f)..screenY(CHIN_LOCAL_Y)) {
                     if (y < 0 || y >= HEIGHT) continue
-                    val xFrom = (centreX - 34f * px).toInt().coerceIn(0, WIDTH - 1)
-                    val xTo = (centreX + 34f * px).toInt().coerceIn(0, WIDTH - 1)
+                    val (cabL, cabR) = cabinPane(shell!!)
+                    val xFrom = (centreX + cabL * px).toInt().coerceIn(0, WIDTH - 1)
+                    val xTo = (centreX + cabR * px).toInt().coerceIn(0, WIDTH - 1)
                     // The pane's own extent is where glass is; inside it, every run that is *not*
                     // glass is an occupant. Taking the complement rather than matching the
                     // occupant palette is deliberate: the palette misses the woman's brown hair
@@ -917,6 +1086,12 @@ class VehicleOccupantScaleTest {
             // The same road with the car held off screen: `progress` below -0.05 is culled by the
             // draw loop, and the road's own width comes from the layout rather than from the cars
             // that survive, so the two frames differ by exactly one vehicle.
+            // v4.19: a plain car wears one of three bodies and they are deliberately not the
+            // same height, so the prediction has to ask which one this vehicle is rather than
+            // assume the family's reference.
+            val shell = CarShell.forCar(
+                CarObject(lane, 0f, -CAR_PROGRESS, 0, true, CarType.PLAIN),
+            )
             val empty = frameWithOneCar(CarType.PLAIN, lane, progress = -0.5f)
             val frame = frameWithOneCar(CarType.PLAIN, lane)
             val rowA = IntArray(WIDTH)
@@ -941,9 +1116,9 @@ class VehicleOccupantScaleTest {
                 }
             }
             val height = (bottom - top + 1).toFloat()
-            val predicted = SceneSpace.CAR_SPRITE_UNITS_TALL * unitPx(lane, CarType.PLAIN)
+            val predicted = shell.unitsTall * unitPx(lane, CarType.PLAIN)
             assertEquals(
-                "a plain car on lane $lane measured $height px",
+                "a plain $shell on lane $lane measured $height px",
                 predicted,
                 height,
                 2.5f,
@@ -1015,13 +1190,21 @@ class VehicleOccupantScaleTest {
         const val MIN_BLOB_AREA = 40
 
         /**
-         * Where the head-to-head gap stops being measured: the chin line, plus margin.
+         * Where the head-to-head gap stops being measured: the chin line, less a margin.
          *
-         * The lowest seasonal chin in the seatable cast is the winter woman's, at local y 9.15
-         * measured off the artwork; 7.5 stops safely above all four. Below it the two busts are
-         * *meant* to meet -- see [theTwoHeadsAreSeparatedByClearGlass].
+         * **Derived in v4.19 rather than stated.** It was the literal 7.5, chosen against a sill
+         * of 12; the sill is 9 now and the chin sits at 4.72, so the old number was three units
+         * *below* the chin -- inside the shoulder band, where the busts are meant to meet and
+         * where the seat back between them is legitimately visible. Scanning there asked the
+         * two-runs question of three objects.
+         *
+         * The chin is the bust canvas's own geometry: the head is [HEAD_CAR_HEAD_UNITS] of the
+         * [HEAD_CAR_ANCHOR_Y_UNITS]-unit canvas, so the rest of the canvas below it is neck and
+         * shoulders, and the chin is that much above the sill.
          */
-        const val CHIN_LOCAL_Y = 7.5f
+        val CHIN_LOCAL_Y = SceneObjectRenderer.CAR_SILL_Y_UNITS -
+            (SceneObjectRenderer.HEAD_CAR_ANCHOR_Y_UNITS - SceneObjectRenderer.HEAD_CAR_HEAD_UNITS) *
+            SceneObjectRenderer.CAR_OCCUPANT_SCALE - 0.5f
 
         /** Anti-aliased fringe is not an occupant. Two pixels of run is. */
         const val MIN_RUN_PX = 2
@@ -1039,10 +1222,32 @@ class VehicleOccupantScaleTest {
          */
         const val MIN_FACE_AREA = 250
 
-        // Glass geometry, in the car's local units, derived rather than restated: rc5 blits the
-        // one pane at -21 and it is 47 units wide.
-        val GLASS_LEFT_UNITS = SceneObjectRenderer.CAR_GLASS_ORIGIN_X_UNITS
-        val GLASS_RIGHT_UNITS =
-            SceneObjectRenderer.CAR_GLASS_ORIGIN_X_UNITS + SceneObjectRenderer.CAR_GLASS_WIDTH_UNITS
+        /**
+         * The cabin pane a body's occupants sit in, in that body's own local units.
+         *
+         * Derived from [CarShell] rather than restated. The estate's glass sprite also carries
+         * the third window over the load bay, which is not cabin glazing: measuring against it
+         * would flatter the pillar light and flatten the fill, so the cabin pane stops at the
+         * B-pillar. The number is the sprite's first pane, read off the artwork.
+         */
+        fun cabinPane(shell: CarShell): Pair<Float, Float> {
+            val left = shell.glassXUnits
+            val width = if (shell == CarShell.ESTATE) ESTATE_CABIN_PANE_WIDTH_UNITS else shell.glassWidthUnits
+            return left to left + width
+        }
+
+        /** The estate's cabin pane alone, sill to sill, without the third window. */
+        const val ESTATE_CABIN_PANE_WIDTH_UNITS = 60f
+
+        /** The appliance's cab glass, painted into its body: see `firetruck_body.svg`. */
+        val TRUCK_PANE = -33.5f to -4f
+
+        /** The two shared lamp lenses, in local units: `car_lamp_front` and `car_lamp_rear`. */
+        const val LAMP_FRONT_W_UNITS = 6f
+        const val LAMP_REAR_W_UNITS = 4f
+        const val LAMP_H_UNITS = 4f
+
+        /** `police_stripe` / `taxi_checker` are 120x27 px: 40 x 9 local units. */
+        const val LIVERY_HEIGHT_UNITS = 9f
     }
 }

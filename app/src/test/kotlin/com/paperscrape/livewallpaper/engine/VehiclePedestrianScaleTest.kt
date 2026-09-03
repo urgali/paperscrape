@@ -67,12 +67,28 @@ class VehiclePedestrianScaleTest {
     /** And the vehicles keep theirs, so this release cannot be read as having resized the world. */
     @Test
     fun `the vehicles keep their declared heights`() {
-        // v4.20: the redesigned saloon stands 50 units (roof -13 to ground 37) and the metres
-        // moved with the units, so the car grew on screen by design and a unit stayed a unit.
-        assertEquals(1.51f, SceneSpace.CAR_METRES_TALL, 0.0001f)
+        // v4.19: three bodies, one metre-per-unit. The height table's reference pair is the
+        // saloon's; the other two derive their metres from the same constant, so a unit is the
+        // same pixel on all three and CAR_BASE_SCALE stays a single number.
+        assertEquals(0.0302f, SceneSpace.CAR_UNIT_METRES, 0.0001f)
+        assertEquals(56f, SceneSpace.CAR_SPRITE_UNITS_TALL, 0.0001f)
+        assertEquals(1.6912f, SceneSpace.CAR_METRES_TALL, 0.0001f)
         assertEquals(2.9f, SceneSpace.FIRE_TRUCK_METRES_TALL, 0.0001f)
-        assertEquals(50f, SceneSpace.CAR_SPRITE_UNITS_TALL, 0.0001f)
         assertEquals(68f, SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL, 0.0001f)
+        // Each body's metres are its own units times the shared constant, and none of them may
+        // drift from that: a per-body metre would give a per-body scale and three unit sizes.
+        for (shell in CarShell.entries) {
+            assertEquals(
+                "$shell metres must come from the shared metre-per-unit",
+                SceneSpace.CAR_UNIT_METRES * shell.unitsTall, shell.metresTall, 0.0001f,
+            )
+        }
+        // The estate is the long one, by the margin the pass was asked for.
+        assertTrue(
+            "the estate must be visibly longer than the saloon: " +
+                "${CarShell.ESTATE.lengthUnits} against ${CarShell.SALOON.lengthUnits}",
+            CarShell.ESTATE.lengthUnits >= CarShell.SALOON.lengthUnits * 1.10f,
+        )
     }
 
     /** A child is a fixed fraction of an adult, drawn shorter inside the same canvas. */
@@ -160,7 +176,13 @@ class VehiclePedestrianScaleTest {
     fun `a fire engine towers over a car in the same lane`() {
         for (lane in listOf(SceneSpace.ROAD_LANE_FAR_Y_FRACTION, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)) {
             val ratio = fireTruckOn(lane) / carOn(lane)
-            assertEquals("fire truck / car at $lane", 2.9f / 1.51f, ratio, 0.0001f)
+            // The cars grew in v4.19 (1.51 m -> 1.6912 m for the reference saloon), so the
+            // appliance towers by less than it did and still unmistakably towers.
+            assertEquals(
+                "fire truck / car at $lane",
+                SceneSpace.FIRE_TRUCK_METRES_TALL / SceneSpace.CAR_METRES_TALL, ratio, 0.0001f,
+            )
+            assertTrue("and it must still read as the big vehicle", ratio > 1.6f)
         }
     }
 
@@ -214,15 +236,25 @@ class VehiclePedestrianScaleTest {
      */
     @Test
     fun `an occupant is the table's head in its pane and against its vehicle`() {
-        // rc2: the head is the height table's, seat-fitted (see CAR_OCCUPANT_SCALE's doc), and
-        // the pane was sized around it. The derived shares: a head is 72.4% of the sedan's
-        // 23-unit pane and 69.4% of the cab's 17, 33.3% of the sedan's height and 17.3% of the
-        // appliance's -- a person-sized person in a car-sized car.
-        val sedanHead = SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
+        // The head is the height table's, seat-fitted (see CAR_OCCUPANT_SCALE's doc), and every
+        // cabin was drawn around it rather than the other way about. The derived shares below are
+        // consequences, recorded so an accidental change to either the scale or a pane shows up
+        // as a number rather than as a picture nobody looked at.
+        val carHead = SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
         val cabHead = SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.FIRE_TRUCK_OCCUPANT_SCALE
-        assertEquals("driver head over pane", 0.724f, sedanHead / SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS, 0.002f)
-        assertEquals("cab head over pane", 0.694f, cabHead / SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS, 0.002f)
-        assertEquals("driver head over vehicle", 0.333f, sedanHead / SceneSpace.CAR_SPRITE_UNITS_TALL, 0.002f)
+        assertEquals("driver head over pane", 0.666f, carHead / SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS, 0.002f)
+        assertEquals("cab head over pane", 0.621f, cabHead / SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS, 0.002f)
+        // The same head on all three bodies, because they share one metre-per-unit: the share of
+        // each vehicle differs only because the vehicles are different heights.
+        for (shell in CarShell.entries) {
+            assertEquals(
+                "$shell: the occupant is the same size whichever car they ride in",
+                carHead, SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE,
+                0.0001f,
+            )
+            val share = carHead / shell.unitsTall
+            assertTrue("$shell: head over vehicle is $share, outside a sane band", share in 0.27f..0.32f)
+        }
         assertEquals("cab head over vehicle", 0.173f, cabHead / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL, 0.002f)
     }
 
@@ -332,11 +364,18 @@ class VehiclePedestrianScaleTest {
      */
     @Test
     fun `the glass stops short of the beltline and the accessories ride the sill`() {
-        assertEquals("the glass top", -11f, SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS, 0.001f)
-        assertEquals("the sill", 12f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.002f)
+        // v4.19: the cabin's vertical layout is shared by all three bodies -- top -16, sill 9,
+        // 25 units -- and it is what the height table asks for rather than what a roof allowed.
+        assertEquals("the glass top", -16f, SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS, 0.001f)
+        assertEquals("the sill", 9f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.002f)
         assertTrue(
-            "the sill must stay above the arch tops at y=15",
-            SceneObjectRenderer.CAR_SILL_Y_UNITS < 15f,
+            "the sill must stay above the arch crowns, which are one wheel radius plus the air " +
+                "above the wheel centre",
+            SceneObjectRenderer.CAR_SILL_Y_UNITS <
+                SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS -
+                SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS -
+                SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS -
+                SceneObjectRenderer.WHEEL_ARCH_AIR_UNITS,
         )
         assertEquals(
             "the police stripe and the taxi chequer are blitted at the sill, whatever it is",
@@ -350,95 +389,113 @@ class VehiclePedestrianScaleTest {
             SceneObjectRenderer.CAR_GLASS_SPRITE_HEIGHT_UNITS,
             0.0001f,
         )
-        assertEquals("so the stretch is retired", 1f, SceneObjectRenderer.CAR_GLASS_Y_SCALE, 0.0001f)
     }
 
     /**
-     * Both busts stay inside the one pane, clear of both pillars, and the driver sits forward.
+     * Both busts stay inside every pane, clear of both pillars, with the driver forward.
      *
-     * rc5 geometry. rc4 seated one person because a 42-unit glasshouse could not light two
-     * frontal heads; the pane is 47 units now and the shell gave the length up out of its bonnet
-     * (the arithmetic is at [SceneObjectRenderer.CAR_HEAD_X_UNITS]). Constant-side, what can be
-     * asserted without a renderer is the *envelope*: the widest member's whole content box,
-     * placed and scaled the way `drawCar` places it, at both seats, keeping at least 13% of the
-     * glass's nominal width to each edge -- and the driver's head centre landing in the forward
-     * half of the pane, which is the rc5 criterion that a car reads as being driven.
+     * **The clearance is a share of the head, not of the pane** -- v4.19 re-derives the criterion
+     * item 6 of `BACKLOG_v4_19.md` asked about. Against the pane it moved every time the glass
+     * did, which is how v4.18 ended up lowering it from 15% to 13% to pay for a wider cabin.
+     * Against the head it says the thing that actually matters: a head must not look wedged into
+     * its pillar.
      *
-     * The clearances that matter are per row and per pillar and belong on rendered pixels;
-     * `VehicleOccupantScaleTest` measures those, and the pane fill with them.
+     * **The floor is 15%, and it comes from legibility at the size a car is actually drawn.** The
+     * smallest a car is ever rendered is the far lane, where the projection puts **1.242 px on a
+     * local unit** at the reference 1080x2340 device (`CAR_BASE_SCALE * perspectiveScaleAt(0.834)
+     * * sceneScale(2340)`, measured rather than estimated). A band of glass thinner than about
+     * 3 px reads as an antialiasing seam between two shapes rather than as daylight between two
+     * people, and 3 px / 1.242 = 2.41 units, which is 13.3% of an adult head's 18.08. Rounded up
+     * to **15%** so the floor has margin over the threshold it is derived from rather than
+     * sitting exactly on it: 15% is 2.71 units, 3.4 px in the far lane and 3.9 in the near.
+     *
+     * Constant-side this checks the envelope on all three bodies: the widest seatable content
+     * box, placed and scaled the way `drawCar` places it, at both seats. The per-row, per-pillar
+     * numbers on rendered pixels are `VehicleOccupantScaleTest`'s.
      */
     @Test
     fun `both busts stay inside the glass, clear of both pillars, driver forward`() {
         val scale = SceneObjectRenderer.CAR_OCCUPANT_SCALE
-        val driver = contentSpanX(
-            placementX = SceneObjectRenderer.CAR_HEAD_X_UNITS,
-            anchorX = SceneObjectRenderer.HEAD_CAR_ANCHOR_X_UNITS,
-            scale = scale,
-            contentLeftUnits = HEAD_CAR_CONTENT_LEFT_UNITS,
-            contentRightUnits = HEAD_CAR_CONTENT_RIGHT_UNITS,
-        )
-        val passenger = contentSpanX(
-            placementX = SceneObjectRenderer.CAR_PASSENGER_X_UNITS,
-            anchorX = SceneObjectRenderer.HEAD_CAR_ANCHOR_X_UNITS,
-            scale = scale,
-            contentLeftUnits = HEAD_CAR_CONTENT_LEFT_UNITS,
-            contentRightUnits = HEAD_CAR_CONTENT_RIGHT_UNITS,
-        )
-        val glassLeft = SceneObjectRenderer.CAR_GLASS_ORIGIN_X_UNITS
-        val clearance = 0.13f * SceneObjectRenderer.CAR_GLASS_WIDTH_UNITS
-        assertTrue(
-            "the driver presses the A-pillar: ${driver.first} vs ${glassLeft + clearance}",
-            driver.first >= glassLeft + clearance,
-        )
-        assertTrue(
-            "the passenger presses the C-pillar: ${passenger.second} vs ${GLASS_RIGHT_UNITS - clearance}",
-            passenger.second <= GLASS_RIGHT_UNITS - clearance,
-        )
+        val headWidth = (HEAD_CAR_CONTENT_RIGHT_UNITS - HEAD_CAR_CONTENT_LEFT_UNITS) * scale
+        val clearance = PILLAR_LIGHT_MIN_HEAD_SHARE * headWidth
+        for (shell in CarShell.entries) {
+            val driver = contentSpanX(
+                placementX = SceneObjectRenderer.CAR_HEAD_X_UNITS,
+                anchorX = SceneObjectRenderer.HEAD_CAR_ANCHOR_X_UNITS,
+                scale = scale,
+                contentLeftUnits = HEAD_CAR_CONTENT_LEFT_UNITS,
+                contentRightUnits = HEAD_CAR_CONTENT_RIGHT_UNITS,
+            )
+            val passenger = contentSpanX(
+                placementX = SceneObjectRenderer.CAR_PASSENGER_X_UNITS,
+                anchorX = SceneObjectRenderer.HEAD_CAR_ANCHOR_X_UNITS,
+                scale = scale,
+                contentLeftUnits = HEAD_CAR_CONTENT_LEFT_UNITS,
+                contentRightUnits = HEAD_CAR_CONTENT_RIGHT_UNITS,
+            )
+            val glassLeft = shell.glassXUnits
+            val glassRight = glassLeft + cabinPaneWidth(shell)
+            assertTrue(
+                "$shell: the driver presses the A-pillar: ${driver.first} vs ${glassLeft + clearance}",
+                driver.first >= glassLeft + clearance,
+            )
+            assertTrue(
+                "$shell: the passenger presses the C-pillar: ${passenger.second} vs ${glassRight - clearance}",
+                passenger.second <= glassRight - clearance,
+            )
+            val paneCentre = glassLeft + cabinPaneWidth(shell) / 2f
+            assertTrue(
+                "$shell: the driver's head centre must fall in the forward half of the cabin: " +
+                    "${SceneObjectRenderer.CAR_HEAD_X_UNITS} against a centre of $paneCentre " +
+                    "(the artwork drives toward local -x)",
+                SceneObjectRenderer.CAR_HEAD_X_UNITS < paneCentre,
+            )
+        }
         assertTrue(
             "the passenger must sit behind the driver, not beside or ahead of them",
             SceneObjectRenderer.CAR_PASSENGER_X_UNITS > SceneObjectRenderer.CAR_HEAD_X_UNITS,
         )
         // And by more than the widest head band: the two heads may not touch at all, whatever
-        // the rendered gap measurement then says. 18.08 u is the widest ink any seatable bust
-        // carries between its crown and its chin, measured off the artwork by OccupantHeadFitTest.
+        // the rendered gap measurement then says. The widest ink any *seatable* bust carries
+        // between crown and chin is the winter girl's 22 units -- v4.18 could quote 18.08 here
+        // because only adults were seated; v4.19 seats children, so the number is hers.
         assertTrue(
             "the seat pitch is only " +
                 "${SceneObjectRenderer.CAR_PASSENGER_X_UNITS - SceneObjectRenderer.CAR_HEAD_X_UNITS} u " +
-                "against a widest head band of 18.08 u -- the two heads would overlap",
-            SceneObjectRenderer.CAR_PASSENGER_X_UNITS - SceneObjectRenderer.CAR_HEAD_X_UNITS > 18.08f,
-        )
-        // The pane's own centre at mid height: the sprite rakes 3 units at the windscreen and 3
-        // at the backlight, so its mid-height centre is the nominal centre.
-        val paneCentre = glassLeft + SceneObjectRenderer.CAR_GLASS_WIDTH_UNITS / 2f
-        assertTrue(
-            "the driver's head centre must fall in the forward half of the glass: " +
-                "${SceneObjectRenderer.CAR_HEAD_X_UNITS} against a centre of $paneCentre " +
-                "(the artwork drives toward local -x)",
-            SceneObjectRenderer.CAR_HEAD_X_UNITS < paneCentre,
+                "against a widest head band of $WIDEST_SEATABLE_HEAD_UNITS u -- the heads would overlap",
+            SceneObjectRenderer.CAR_PASSENGER_X_UNITS - SceneObjectRenderer.CAR_HEAD_X_UNITS >
+                WIDEST_SEATABLE_HEAD_UNITS,
         )
     }
 
     /**
-     * The pane is the sprite, and the sprite is the pane.
+     * Each pane is its own sprite, and the sprite is the pane.
      *
-     * [SceneObjectRenderer.CAR_GLASS_WIDTH_UNITS] is what every width criterion divides by, so it
-     * has to be `car_window`'s own width and not a number that once was. Measured off the PNG.
+     * Every width criterion divides by a body's declared glass width, so it has to be that
+     * body's own `car_window_*` width and not a number that once was. Measured off each PNG.
      */
     @Test
-    fun `the declared pane width is the glass sprite's own width`() {
-        val image = javax.imageio.ImageIO.read(java.io.File(drawableDir(), "car_window.png"))
-        assertEquals(
-            "CAR_GLASS_WIDTH_UNITS vs car_window.png (${image.width} px)",
-            image.width / SpriteBlitter.SPRITE_PIXELS_PER_UNIT,
-            SceneObjectRenderer.CAR_GLASS_WIDTH_UNITS,
-            0.0001f,
-        )
-        assertEquals(
-            "and its height is the pane height",
-            image.height / SpriteBlitter.SPRITE_PIXELS_PER_UNIT,
-            SceneObjectRenderer.CAR_GLASS_SPRITE_HEIGHT_UNITS,
-            0.0001f,
-        )
+    fun `each declared pane width is its glass sprite's own width`() {
+        for (shell in CarShell.entries) {
+            val name = when (shell) {
+                CarShell.COMPACT -> "car_window_compact.png"
+                CarShell.SALOON -> "car_window_saloon.png"
+                CarShell.ESTATE -> "car_window_estate.png"
+            }
+            val image = javax.imageio.ImageIO.read(java.io.File(drawableDir(), name))
+            assertEquals(
+                "$shell glassWidthUnits vs $name (${image.width} px)",
+                image.width / SpriteBlitter.SPRITE_PIXELS_PER_UNIT,
+                shell.glassWidthUnits,
+                0.0001f,
+            )
+            assertEquals(
+                "$shell: and its height is the shared pane height",
+                image.height / SpriteBlitter.SPRITE_PIXELS_PER_UNIT,
+                SceneObjectRenderer.CAR_GLASS_SPRITE_HEIGHT_UNITS,
+                0.0001f,
+            )
+        }
     }
 
     /**
@@ -514,9 +571,33 @@ class VehiclePedestrianScaleTest {
         const val HEAD_CAR_CONTENT_LEFT_UNITS = 5f / 3f
         const val HEAD_CAR_CONTENT_RIGHT_UNITS = 130f / 3f
 
-        /** The glass's own right edge, derived rather than restated. */
-        val GLASS_RIGHT_UNITS =
-            SceneObjectRenderer.CAR_GLASS_ORIGIN_X_UNITS + SceneObjectRenderer.CAR_GLASS_WIDTH_UNITS
+        /**
+         * The floor for pillar light and head gap alike, as a share of the head's own width.
+         * See the pillar test for where 12% comes from.
+         */
+        const val PILLAR_LIGHT_MIN_HEAD_SHARE = 0.15f
+
+        /**
+         * The widest crown-to-chin ink any seatable bust carries: the winter girl's bunches.
+         * Measured off the shipped artwork by the pass's criteria sweep.
+         */
+        const val WIDEST_SEATABLE_HEAD_UNITS = 22f
+
+        /**
+         * The width of the pane the occupants actually sit in.
+         *
+         * For two of the bodies that is the whole glass sprite. The estate's sprite also carries
+         * the third window over the load bay, which is not cabin glazing: counting it would
+         * flatter the pillar light and flatten the fill, so the cabin pane is measured to the
+         * end of the first pane instead.
+         */
+        fun cabinPaneWidth(shell: CarShell): Float = when (shell) {
+            CarShell.ESTATE -> ESTATE_CABIN_PANE_WIDTH_UNITS
+            else -> shell.glassWidthUnits
+        }
+
+        /** The estate's cabin pane alone, sill to sill, without the third window. */
+        const val ESTATE_CABIN_PANE_WIDTH_UNITS = 60f
 
         /**
          * Where `police_stripe` and `taxi_checker` are actually blitted, **read from the source**.

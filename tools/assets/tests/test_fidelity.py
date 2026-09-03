@@ -219,7 +219,9 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         ]
 
     def test_every_sprite_with_a_source_is_covered(self):
-        self.assertEqual(138, len(self.results))
+        # v4.19: one car body and one glass became three of each, the two full-car-width lamp
+        # overlays became four small shared lenses, and four adult bases were retired. Net +2.
+        self.assertEqual(140, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

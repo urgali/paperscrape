@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="327" height="150" viewBox="-56.5 -19 109 50">
+<!--
+  Concept B — la Berlina: tre volumi classica, cofano lungo e baule vero.
+
+  Cofano di 26 unita' fino al parabrezza, cabina arretrata, coda piatta con un
+  accenno di pinna sopra il fanale. E' la vettura di riferimento della famiglia:
+  108 unita', la lunghezza contro cui la giardinetta si misura.
+
+  Vocabolario condiviso v4.19: fondo scocca y=30, terra y=37,
+  ruota r=11 dentro arco concentrico r=12.5 (un'unita' d'aria),
+  vano vetro identico sulle tre vetture (cielo -16, davanzale 9).
+  Altezza governata: 56 unita'. Lunghezza: 108 unita'.
+  Coordinate locali di scena: il minimo del viewBox E' l'origine del blit.
+  Fronte a sinistra.
+-->
+<g fill="#dcdcdc" stroke="#dcdcdc" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">
+  <path fill-rule="evenodd" d="M-56 30 L-56 11 Q-56 5.6 -50.6 5 L-36 1.8 Q-33.4 1.4 -31.6 0 L-29 -13.6 Q-26.6 -18.5 -21.6 -18.5 L22 -18.5 Q26.6 -18.5 28.8 -15 L36.4 -2.2 L47 -0.6 Q52 0 52 4.6 L52 30 Z M-48.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M23.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z"/>
+</g>
+<path fill-rule="evenodd" d="M-56 30 L-56 11 Q-56 5.6 -50.6 5 L-36 1.8 Q-33.4 1.4 -31.6 0 L-29 -13.6 Q-26.6 -18.5 -21.6 -18.5 L22 -18.5 Q26.6 -18.5 28.8 -15 L36.4 -2.2 L47 -0.6 Q52 0 52 4.6 L52 30 Z M-48.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M23.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z" fill="#ededed"/>
+<clipPath id="shell"><path clip-rule="evenodd" d="M-56 30 L-56 11 Q-56 5.6 -50.6 5 L-36 1.8 Q-33.4 1.4 -31.6 0 L-29 -13.6 Q-26.6 -18.5 -21.6 -18.5 L22 -18.5 Q26.6 -18.5 28.8 -15 L36.4 -2.2 L47 -0.6 Q52 0 52 4.6 L52 30 Z M-48.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M23.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z"/></clipPath>
+<g clip-path="url(#shell)">
+<path d="M-56 23 L52 23 L52 30 L-56 30 Z" fill="#e6e6e6"/>
+<rect x="-54" y="9.6" width="104" height="1.4" rx="0.7" fill="#ffffff"/>
+<path d="M-2 11.6 L-3 28" stroke="#d8d8d8" stroke-width="1.1" fill="none"/>
+<path d="M18 11.6 L17 28" stroke="#d8d8d8" stroke-width="1.1" fill="none"/>
+<rect x="-11" y="12.4" width="4.4" height="1.5" rx="0.75" fill="#cbcbcb"/>
+<rect x="9" y="12.4" width="4.4" height="1.5" rx="0.75" fill="#cbcbcb"/>
+<rect x="-55.2" y="6.6" width="7.6" height="5.6" rx="2" fill="#cccccc"/>
+<rect x="45.8" y="3.2" width="5.6" height="5.6" rx="1.6" fill="#cccccc"/>
+</g>
+</svg>

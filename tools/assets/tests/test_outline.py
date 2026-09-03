@@ -44,9 +44,14 @@ OCCUPANTS = [
     for who in ("man", "woman", "boy", "girl")
     for season in ("summer", "winter")
 ] + [
-    f"person_{who}_{season}_head_car"
-    for who in ("man", "woman", "boy", "girl")
-    for season in ("summer", "winter")
+    # v4.19 retired the four adult vehicle bases (duplicates of one of their own tone
+    # copies that no draw path could reach), so the adults are measured on the heir the
+    # registry's `retiredBases` names -- the same pixels under the surviving name. The
+    # children's bases still ship.
+    "person_man_summer_head_car_skin1", "person_man_winter_head_car_skin1",
+    "person_woman_summer_head_car_skin0", "person_woman_winter_head_car_skin0",
+    "person_boy_summer_head_car", "person_boy_winter_head_car",
+    "person_girl_summer_head_car", "person_girl_winter_head_car",
 ]
 
 

@@ -87,8 +87,8 @@ class SpriteCanvasConventionTest {
         // convention, which is why it is closed as one rather than fixed sprite by sprite.
         val all = sprites()
         val touching = all.count { touchesAnEdge(ImageIO.read(it)) }
-        assertEquals("258 sprites are expected", 258, all.size)
-        assertEquals("212 of them reach a canvas edge", 212, touching)
+        assertEquals("260 sprites are expected", 260, all.size)
+        assertEquals("220 of them reach a canvas edge", 220, touching)
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

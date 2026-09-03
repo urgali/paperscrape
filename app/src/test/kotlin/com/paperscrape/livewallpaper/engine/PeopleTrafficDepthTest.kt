@@ -110,15 +110,18 @@ class PeopleTrafficDepthTest {
             SceneSpace.REFERENCE_SCREEN_HEIGHT_PX
         val roof = SceneSpace.ROAD_LANE_FAR_Y_FRACTION - carHeightFraction
         val overlap = deepestPedestrianRow() - roof
+        // v4.19: the reference saloon grew from 50 to 56 local units and from 1.51 m to 1.6912 m,
+        // so a far-lane car's roof stands higher and the overlap the old draw order would have
+        // cost is correspondingly larger. Re-measured, not relaxed.
         assertEquals(
             "the deepest figure's feet, below a far-lane car's roof, in fractions of screen height",
-            0.0100f,
+            0.0135f,
             overlap,
             0.0015f,
         )
         assertEquals(
             "which on a 2400 px screen is this many pixels of pedestrian over car",
-            24f,
+            32f,
             overlap * SceneSpace.REFERENCE_SCREEN_HEIGHT_PX,
             4f,
         )

@@ -19,6 +19,87 @@ guessed. Dates are recorded from the next release onward.
 
 ---
 
+## v4.19 — three cars on the road, and criteria that were finally derived
+
+**Prepared, not published.** `versionCode = 50`, `versionName = "4.19"`. Prepared 2026-09-03. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is the prepared
+**v4.18**. Verification report: `release-verification/V4_19_REPORT.md`.
+
+**What it is.** A concept pass drew three replacement car bodies from a blank sheet and the
+maintainer kept all three. This release puts them on the road, lengthens the estate so it is
+visibly the long one, redraws the fire engine into the same drawing language, seats children, and
+re-derives the geometric criteria v4.18 had never derived. No renderer refactor.
+
+1. **Three bodies, rotating stably.** `CarShell` carries the compact, the saloon and the estate.
+   A plain car's body is a **pure function of the vehicle's own immutable identity** and is
+   resolved once, at runtime construction, so nothing per-frame can reach it -- the structural
+   difference from v4.17's falling leaves, which took their colour from `i % visibleCount` over a
+   list the visibility pass rebuilt. A taxi is always the compact and a police car always the
+   saloon, which also spares their liveries from having to fit three different door lines.
+   Distribution over the shipped catalogue: saloon 43, estate 26, compact 16 of 85 plain cars.
+
+2. **One metre-per-unit for the whole family.** The three bodies are deliberately different
+   heights (57, 56, 57.8 units), so governing each by its own metres-over-units would have given
+   each its own scale and made a local unit mean three different numbers of pixels. `SceneSpace`
+   fixes the metre-per-unit instead (v4.18's own 1.51/50) and every body derives its metres from
+   it, which is what lets three silhouettes read as one set and keeps `CAR_BASE_SCALE` a single
+   number. The reference saloon is consequently 1.6912 m against v4.18's 1.51 m: the cars grew
+   because the *artwork* grew, not by a comfort factor.
+
+3. **The estate is 124 units against the saloon's 108 -- 14.81% longer**, gained at the nose and
+   at the tail. The brief's premise needed one correction in its own favour: the two bodies were
+   not 392 px and 352 px, they were **the same 108 units**, and the pair of numbers came from a
+   blob measurement merging adjacent cars. Same defect, different number, same fix.
+
+4. **Children ride.** v4.18 recorded this as a decision rather than a defect: a child's bust is
+   wider across the shoulders than an adult's and dropped the pillar light to 11-15% in the one
+   cabin that shell could hold. The three new cabins were drawn around the widest of them and the
+   seat pitch was chosen on the winter girl rather than on the adults -- at 20 units her bunches
+   left 0.33 units of clear glass between the heads, at 23 they leave 3.34. The passenger is now
+   any of the four families and is never the driver's own.
+
+5. **The criteria, derived rather than inherited.** The pillar light is a share of the **head's**
+   own width now, not the pane's, so it stops moving whenever the glass does -- item 6 of the
+   backlog. Its floor, 15%, comes from legibility at the size a car is actually drawn: 1.242 px
+   per local unit in the far lane, a band of glass under ~3 px reading as an antialiasing seam,
+   3/1.242 = 13.3% of an adult head, rounded up. The fill criterion keeps v4.18's 50% but is
+   measured crown-to-chin over the occupied pane, so the neck row that could never satisfy it
+   (item 2) is not part of any band. Measured across three bodies x four family/season pairs:
+   pillar light 18.2-63.0%, head gap 15.2-38.6%, fill 50.8-66.3%, **zero** occupant pixels
+   outside the glass.
+
+6. **The fire engine joined the same annata.** Concentric wheel arches with a car-unit of air,
+   the cars' corner radii and lower band, a cab-over nose with an upright screen that has room for
+   a table-sized head, three equipment lockers moved off the row its own arches were eating -- and
+   the two lamp lenses every car carries, which gives it a **red rear lamp it never had**.
+
+7. **A v4.18 defect fixed in passing.** The police car's night beacons were absolute coordinates
+   tuned for a roof a later v4.18 pass then moved by arithmetic: the bar followed the roof, the
+   lit rectangles did not, and every night beacon since has glowed about seven units right of its
+   own dome. They are derived from the bar's origin now.
+
+8. **Memory: 28.256 MiB against the 28.5 ceiling, which was not raised.** Two levers paid for
+   three bodies. The four redundant adult base busts were deleted (297 792 B) after verifying
+   pixel-by-pixel that each was byte-identical to one of its own tone copies, with the retirement
+   declared in the registry so the "a derived variant's base must ship" rule breaks loudly rather
+   than silently. And v4.18's two lamp overlays -- 282x18 px each, almost entirely transparent --
+   became four small lenses shared by all three bodies *and* the appliance: 2 880 B against
+   40 608.
+
+**Also answered, from the concept pass's report:** the phone showing the static system image
+rather than PaperScrape is not a crash. There is no crash record of the package anywhere on the
+device; force-stopping the process makes `WallpaperManagerService` rebind with a null component,
+resolve to the system's `ImageWallpaper`, and **persist** it. Reproduced twice, captured, and
+recorded as `BACKLOG_v4_19.md` item 13.
+
+1271 JVM tests, 134 instrumented tests executed on the OnePlus 6T, 108 asset-tool tests, asset
+pipeline `PIXEL_IDENTICAL 140/140`, two traffic goldens regenerated with zero changed pixels
+outside the vehicles, and a matched release-vs-release performance A/B on the phone with v4.18
+rebuilt from its own ZIP: 29.897 fps against 29.856, 0 dropped and 0 janky in both, CPU 22.2-24.9%
+against 21.6-25.5%.
+
+---
+
 ## v4.18 — the art-direction release: the street redrawn
 
 **Prepared, not published.** `versionCode = 49`, `versionName = "4.18"`. Prepared 2026-09-01,

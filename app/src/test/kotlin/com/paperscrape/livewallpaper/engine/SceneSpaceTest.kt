@@ -114,10 +114,16 @@ class SceneSpaceTest {
 
     @Test
     fun `a pedestrian standing on the near row clears the far lane's traffic`() {
-        // People are drawn after the cars, so an overlap between the two would paint a pedestrian
-        // over a vehicle that is standing closer to the viewer than they are. The band has enough
-        // room that the case does not arise; it stops being true silently if the road creeps back
-        // up, which is exactly the kind of move this pass made.
+        // **This used to assert that the two bands never overlap, on the premise that people are
+        // drawn after the cars. That premise stopped being true in v4.6**, which moved `drawPeople`
+        // ahead of the vehicle loop precisely so that a car -- always the nearer object -- paints
+        // over a pedestrian. v4.19's taller bodies do now reach up past the near pavement line,
+        // and that is correct occlusion rather than a defect: `PeopleTrafficDepthTest` measures
+        // the overlap and pins the ordering that resolves it.
+        //
+        // What is still worth asserting here is the depth relation the ordering rests on: every
+        // pavement row is *behind* every lane, so drawing people first can never put a figure in
+        // front of traffic.
         val personTop = SceneSpace.PAVEMENT_NEAR_Y_FRACTION -
             SceneSpace.PERSON_SPRITE_UNITS_TALL * SceneSpace.PERSON_BASE_SCALE *
             SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION) /
@@ -127,8 +133,14 @@ class SceneSpaceTest {
             SceneSpace.perspectiveScaleAt(SceneSpace.ROAD_LANE_FAR_Y_FRACTION) /
             SceneSpace.REFERENCE_SCREEN_HEIGHT_PX
         assertTrue(
-            "a near-row pedestrian overlaps the far lane's cars",
-            SceneSpace.PAVEMENT_NEAR_Y_FRACTION < carTop,
+            "the near pavement must stand behind the far lane, which is what makes drawing " +
+                "people before traffic correct",
+            SceneSpace.PAVEMENT_NEAR_Y_FRACTION < SceneSpace.ROAD_LANE_FAR_Y_FRACTION,
+        )
+        assertTrue(
+            "and a car must be tall enough to reach the pavement row it stands in front of, " +
+                "otherwise the ordering would be untested by any real frame",
+            carTop < SceneSpace.PAVEMENT_NEAR_Y_FRACTION,
         )
         assertTrue("sanity: the person is drawn above their own feet", personTop < SceneSpace.PAVEMENT_NEAR_Y_FRACTION)
     }

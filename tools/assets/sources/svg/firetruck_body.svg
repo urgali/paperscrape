@@ -1,93 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="294" height="135" viewBox="1 8 98 45">
+<svg xmlns="http://www.w3.org/2000/svg" width="297" height="174" viewBox="-49.5 -24.5 99 58">
 <!--
-  A fire appliance rather than a red box.
+  L'autopompa v4.19, riportata all'annata delle tre vetture.
 
-  The proportions were never the problem and are not touched: length over height is 1.66 here
-  against a real pumper's 2.5, and a saloon in this same set is 2.02 against a real one's 3.2, so
-  the two vehicles are compressed by the same amount and the engine is exactly as elongated
-  relative to a car as it should be. What made it read as a big stylised car was the drawing. The
-  shell was a single rectangle with one small chamfer; the largest unbroken area in the sprite was
-  the blank nose under the windscreen; the cream stripe ran only 52 of the 98 units and stopped
-  dead against the cab; and the beacons sat among the ladder's rungs.
+  La 4.18 la lasciava con spigoli vivi e ruote piccole sotto un fondo piatto: due
+  generazioni di disegno affiancate sul veicolo piu' grande della scena. Qui prende
+  lo stesso vocabolario: archi CONCENTRICI alla ruota con un'unita'-auto d'aria,
+  stessi raggi di raccordo, stessa fascia inferiore, stessi fanali (gli sprite
+  condivisi con le auto) — e per la prima volta un fanale ROSSO in coda, cosi' la
+  direzione si legge dal solo veicolo come sulle vetture.
 
-  So: the body roof now stands five units proud of the cab roof, which is the one silhouette cue
-  that says truck and not car and is why the canvas starts at y=8 instead of y=4. The nose is
-  raked over twelve units instead of seven. The stripe runs the full 94 units and crosses the cab.
-  Each locker is an aluminium roll-up shutter now: a silver panel with slats inside a darker
-  frame. The slat texture is the one visual that says fire appliance and nothing else at this
-  scale, and it is what the plain red panels of the earlier drawing were always trying to be.
-  Four concepts were rendered side by side before this one was chosen; the plain-panel body
-  read as a red box at the far lane, and the shutters still read as equipment bays there. There is a headlight. The ladder is shorter and starts where the body does, so
-  the cab roof belongs to the beacons and nothing is drawn over them.
+  Vive nel proprio metro-per-unita': 2,9 m su 68 unita' contro gli 0,0302 m/u delle
+  auto, quindi un'unita' qui vale 1.4122 unita'-auto. I raccordi sono scritti
+  divisi per quel fattore, cosi' e' il RESO a combaciare, non il numero.
 
-  Two more things arrived with the second pass. The upper body was still one unbroken red
-  field, 55 by 19 units and by then the largest flat area left in the drawing, so it carries
-  two upper equipment bays; and the chassis grew a front bumper and a rear tailboard, which
-  is what an appliance has where a car has nothing. The wheels went with them, to radius ten
-  against the saloon's nine, sitting on the same road line.
-
-  The cab window is `rect 10 15 25 17` since rc2 (scene x -40..-15, y -11..6) and is what
-  FIRE_TRUCK_SILL_Y_UNITS, FIRE_TRUCK_HEAD_X_UNITS and FIRE_TRUCK_GLASS_HEIGHT_UNITS are measured
-  from. It grew from 26x14 at (9,17) when the occupants moved onto the height table: a
-  table-sized head with 10-25% of air needs 17 units of glass, the top rises to two units under
-  the cab roof, the sill drops to meet the cream stripe, and the left edge steps one unit right
-  so the taller pane clears the raked nose.
+  Ruota r=10.5 (contro le 11 delle auto: 14.8 unita'-auto, piu' grande come
+  dev'essere), arco r=11.71, tandem posteriore a 24.7 unita' = 1,175 diametri.
+  Tetto cabina -16 contro tetto corpo -24: e' la riga che separa un camion
+  da un'auto ingrandita. Terra y=37, fondo scocca y=32.04.
 -->
-<g id="paperscrape-outline" fill="#dcdcdc" stroke="#dcdcdc" stroke-width="1.0" stroke-linejoin="round" stroke-linecap="round">
-  
-<path d="M5 52 L5 24 L13 15 L42 15 L42 10 L97 10 L99 12 L99 52 Z"></path>
-        <path d="M3 50 L3 22 L11 13 L40 13 L40 8 L95 8 L97 10 L97 50 Z"></path>
-        <rect x="40" y="8" width="2" height="42"></rect>
-        <rect x="10" y="15" width="25" height="17"></rect>
-        <rect x="46" y="17" width="22" height="12"></rect>
-        <rect x="71" y="17" width="22" height="12"></rect>
-        <rect x="3" y="32" width="94" height="6"></rect>
-        <rect x="45" y="39.2" width="15.6" height="7.6"></rect>
-        <rect x="62" y="39.2" width="15.6" height="7.6"></rect>
-        <rect x="79" y="39.2" width="15.6" height="7.6"></rect>
-        <rect x="1" y="46" width="98" height="7"></rect>
-        <rect x="3" y="43.5" width="8" height="4.5" rx="1"></rect>
-        <rect x="89" y="43.5" width="9" height="5.5" rx="1"></rect>
-
+<g fill="#dcdcdc" stroke="#dcdcdc" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">
+  <path fill-rule="evenodd" d="M-49 32.043 L-49 4 Q-49 -1 -44 -1.6 L-40 -2.4 Q-36.6 -2.8 -35.4 -5.2 L-32 -13 Q-31 -16 -27.6 -16 L-2 -16 L-2 -21.4 Q-2 -24 1 -24 L44 -24 Q49 -24 49 -19 L49 32.043 Z M-45.7081 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M-2.38314 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M22.2919 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z"/>
 </g>
-  
-<path d="M5 52 L5 24 L13 15 L42 15 L42 10 L97 10 L99 12 L99 52 Z" fill="#AE352D"></path>
-        <path d="M3 50 L3 22 L11 13 L40 13 L40 8 L95 8 L97 10 L97 50 Z" fill="#D4453B"></path>
-        <rect x="40" y="8" width="2" height="42" fill="#AE352D"></rect>
-        <rect x="10" y="15" width="25" height="17" fill="#B9D8E4"></rect>
-        <rect x="46" y="17" width="22" height="12" fill="#8E2A24"></rect>
-        <rect x="47" y="17.8" width="20" height="10.4" fill="#C9CDD3"></rect>
-        <rect x="47" y="19.2" width="20" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="47" y="21.7" width="20" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="47" y="24.2" width="20" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="47" y="26.7" width="20" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="71" y="17" width="22" height="12" fill="#8E2A24"></rect>
-        <rect x="72" y="17.8" width="20" height="10.4" fill="#C9CDD3"></rect>
-        <rect x="72" y="19.2" width="20" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="72" y="21.7" width="20" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="72" y="24.2" width="20" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="72" y="26.7" width="20" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="3" y="32" width="94" height="6" fill="#FBF4E6"></rect>
-        <rect x="45" y="39.2" width="15.6" height="7.6" fill="#8E2A24"></rect>
-        <rect x="45.8" y="39.8" width="14" height="6.2" fill="#8E2A24"></rect>
-        <rect x="46.8" y="40.599999999999994" width="12" height="4.6" fill="#C9CDD3"></rect>
-        <rect x="46.8" y="42.0" width="12" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="46.8" y="44.5" width="12" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="62" y="39.2" width="15.6" height="7.6" fill="#8E2A24"></rect>
-        <rect x="62.8" y="39.8" width="14" height="6.2" fill="#8E2A24"></rect>
-        <rect x="63.8" y="40.599999999999994" width="12" height="4.6" fill="#C9CDD3"></rect>
-        <rect x="63.8" y="42.0" width="12" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="63.8" y="44.5" width="12" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="79" y="39.2" width="15.6" height="7.6" fill="#8E2A24"></rect>
-        <rect x="79.8" y="39.8" width="14" height="6.2" fill="#8E2A24"></rect>
-        <rect x="80.8" y="40.599999999999994" width="12" height="4.6" fill="#C9CDD3"></rect>
-        <rect x="80.8" y="42.0" width="12" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="80.8" y="44.5" width="12" height="0.9" fill="#A9AEB6"></rect>
-        <rect x="4.2" y="39.2" width="10" height="6" rx="2" fill="#8E2A24"></rect>
-        <rect x="5" y="40" width="8.4" height="4.4" rx="1.6" fill="#FBF4E6"></rect>
-        <rect x="1" y="46" width="98" height="7" fill="#4A4A50"></rect>
-        <rect x="3" y="43.5" width="8" height="4.5" rx="1" fill="#B8BCC2"></rect>
-        <rect x="89" y="43.5" width="9" height="5.5" rx="1" fill="#B8BCC2"></rect>
-
-
+<path fill-rule="evenodd" d="M-49 32.043 L-49 4 Q-49 -1 -44 -1.6 L-40 -2.4 Q-36.6 -2.8 -35.4 -5.2 L-32 -13 Q-31 -16 -27.6 -16 L-2 -16 L-2 -21.4 Q-2 -24 1 -24 L44 -24 Q49 -24 49 -19 L49 32.043 Z M-45.7081 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M-2.38314 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M22.2919 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z" fill="#D6362E"/>
+<clipPath id="shell"><path clip-rule="evenodd" d="M-49 32.043 L-49 4 Q-49 -1 -44 -1.6 L-40 -2.4 Q-36.6 -2.8 -35.4 -5.2 L-32 -13 Q-31 -16 -27.6 -16 L-2 -16 L-2 -21.4 Q-2 -24 1 -24 L44 -24 Q49 -24 49 -19 L49 32.043 Z M-45.7081 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M-2.38314 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M22.2919 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z"/></clipPath>
+<g clip-path="url(#shell)">
+<path d="M-49 22 L49 22 L49 32.043 L-49 32.043 Z" fill="#B82A24"/>
+<rect x="-48" y="8.4" width="96" height="4.2" rx="1.4" fill="#F2E4C9"/>
+<path d="M-33.5 6 L-29.6 -13 L-4 -13 L-4 6 Z" fill="#B9D8E4"/>
+<rect x="2" y="0.4" width="13" height="7.2" rx="1.2" fill="#C9CDD2"/>
+<rect x="18" y="0.4" width="13" height="7.2" rx="1.2" fill="#C9CDD2"/>
+<rect x="34" y="0.4" width="13" height="7.2" rx="1.2" fill="#C9CDD2"/>
+<path d="M-2 6 L-2 22" stroke="#d8d8d8" stroke-width="1.1" fill="none"/>
+<rect x="-47.8" y="-1.4" width="7.6" height="5.6" rx="2" fill="#cccccc"/>
+<rect x="43" y="3.0" width="5.6" height="5.6" rx="1.8" fill="#cccccc"/>
+</g>
 </svg>

@@ -587,18 +587,53 @@ object SceneSpace {
      * body reaches 68 over the same wheel line.
      */
     /**
-     * v4.20: the redrawn saloon stands 50 units from roof to wheel contact (roof -13, ground 37)
-     * against the old 48, and the metres moved with the units so a unit is still the same pixel:
-     * 1.45 x 50/48 = 1.5104. The car is therefore ~4% taller on screen, which the redesign pass
-     * judged against the road on the device -- the raised beltline wanted a touch more body height
-     * and the lane comfortably holds it.
+     * **What one local unit of car artwork is worth in metres.** This, not a per-body height, is
+     * the constant the vehicle family is built on since v4.19.
+     *
+     * v4.18 had one car, so a height in metres over a height in units said the same thing. v4.19
+     * ships three ([CarShell]) and they are deliberately *not* the same height: the compact
+     * stands 57 units, the saloon 56, the estate 57.8. Governing each one by its own
+     * metres-over-units would give each its own scale, and a unit would then mean a different
+     * number of pixels on each body -- which is precisely how three drawings stop reading as one
+     * set. Fixing the metre-per-unit instead makes every body, every wheel radius, every corner
+     * radius and every seat position directly comparable across the family, and lets
+     * [CAR_BASE_SCALE] stay a single number.
+     *
+     * The value is v4.18's own: 1.51 m over 50 units. **Nothing about how large a car draws
+     * changed by arithmetic** -- what changed is that the artwork itself grew, and it grew in
+     * metres because it grew in units.
      */
-    const val CAR_METRES_TALL = 1.51f
-    const val CAR_SPRITE_UNITS_TALL = 50f
+    const val CAR_UNIT_METRES = 1.51f / 50f
+
+    /**
+     * The saloon, kept as the family's reference pair for the height table and for every test
+     * that compares a car against a pedestrian.
+     *
+     * These are [CarShell.SALOON]'s own numbers, restated here because the height table is where
+     * the scene's sizes are read from. The other two bodies derive their metres the same way,
+     * through [CAR_UNIT_METRES]; see [CarShell.metresTall].
+     */
+    const val CAR_SPRITE_UNITS_TALL = 56f
+    const val CAR_METRES_TALL = CAR_UNIT_METRES * CAR_SPRITE_UNITS_TALL
+
+    /**
+     * The fire engine keeps a metre-per-unit of its own (2.9 m over 68 units = 0.0426 m/u against
+     * the cars' 0.0302), and that is deliberate rather than an oversight. It is a different
+     * vehicle drawn at a different size; forcing it onto the cars' unit would need a 96-unit-tall
+     * canvas to reach 2.9 m, which costs 0.29 MiB of decoded sprite for no visible gain. What has
+     * to match is the *rendered* treatment, and v4.19's redraw achieves that by dividing its
+     * radii by the ratio between the two units -- see `firetruck_body.svg`.
+     */
     const val FIRE_TRUCK_METRES_TALL = 2.9f
     const val FIRE_TRUCK_SPRITE_UNITS_TALL = 68f
 
-    /** Base scale for the low-sedan silhouette shared by the plain, police and taxi cars. */
+    /**
+     * The one scale every car body is drawn at.
+     *
+     * Because metres are [CAR_UNIT_METRES] times units for all three bodies, this reduces to the
+     * metre-per-unit times the reference projection: the body's own height cancels out. Three
+     * silhouettes, one scale, and a local unit that means the same pixel on each of them.
+     */
     val CAR_BASE_SCALE: Float get() = scaleForHeight(CAR_METRES_TALL, CAR_SPRITE_UNITS_TALL)
 
     /** Base scale for the fire engine, which has its own taller body. */

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="279" height="153" viewBox="-48.5 -20 93 51">
+<!--
+  Concept A — la Compatta: monovolume cittadino, un volume e mezzo.
+
+  Muso corto e arrotondato, parabrezza molto inclinato che nasce quasi sopra
+  l'asse anteriore, tetto lungo e portellone raccordato. E' la piu' corta delle
+  tre (92 unita') e la piu' alta: la vettura che da' piu' cabina per meno strada.
+
+  Vocabolario condiviso v4.19: fondo scocca y=30, terra y=37,
+  ruota r=11 dentro arco concentrico r=12.5 (un'unita' d'aria),
+  vano vetro identico sulle tre vetture (cielo -16, davanzale 9).
+  Altezza governata: 57 unita'. Lunghezza: 92 unita'.
+  Coordinate locali di scena: il minimo del viewBox E' l'origine del blit.
+  Fronte a sinistra.
+-->
+<g fill="#dcdcdc" stroke="#dcdcdc" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">
+  <path fill-rule="evenodd" d="M-48 30 L-48 10 Q-48 5 -43 4.4 L-36 2.4 Q-34.4 2 -33.4 0.6 L-28 -14.4 Q-25.6 -19.5 -20.4 -19.5 L28 -19.5 Q33.4 -19.5 35.4 -15.6 L41.8 2.6 Q44 8.4 44 13 L44 30 Z M-42.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M17.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z"/>
+</g>
+<path fill-rule="evenodd" d="M-48 30 L-48 10 Q-48 5 -43 4.4 L-36 2.4 Q-34.4 2 -33.4 0.6 L-28 -14.4 Q-25.6 -19.5 -20.4 -19.5 L28 -19.5 Q33.4 -19.5 35.4 -15.6 L41.8 2.6 Q44 8.4 44 13 L44 30 Z M-42.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M17.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z" fill="#ededed"/>
+<clipPath id="shell"><path clip-rule="evenodd" d="M-48 30 L-48 10 Q-48 5 -43 4.4 L-36 2.4 Q-34.4 2 -33.4 0.6 L-28 -14.4 Q-25.6 -19.5 -20.4 -19.5 L28 -19.5 Q33.4 -19.5 35.4 -15.6 L41.8 2.6 Q44 8.4 44 13 L44 30 Z M-42.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M17.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z"/></clipPath>
+<g clip-path="url(#shell)">
+<path d="M-48 23 L44 23 L44 30 L-48 30 Z" fill="#e6e6e6"/>
+<rect x="-46" y="9.6" width="88" height="1.4" rx="0.7" fill="#ffffff"/>
+<path d="M-2 11.6 L-3 28" stroke="#d8d8d8" stroke-width="1.1" fill="none"/>
+<path d="M20 11.6 L19 28" stroke="#d8d8d8" stroke-width="1.1" fill="none"/>
+<rect x="-11" y="12.4" width="4.4" height="1.5" rx="0.75" fill="#cbcbcb"/>
+<rect x="11" y="12.4" width="4.4" height="1.5" rx="0.75" fill="#cbcbcb"/>
+<rect x="-47.2" y="5.6" width="7.6" height="5.6" rx="2" fill="#cccccc"/>
+<rect x="37.7" y="4.5" width="5.6" height="5.6" rx="1.6" fill="#cccccc"/>
+</g>
+</svg>

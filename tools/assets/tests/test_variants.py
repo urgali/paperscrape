@@ -244,8 +244,12 @@ class ByConstructionIdentityTest(unittest.TestCase):
         tone = {"woman": "skin0", "man": "skin1", "boy": "skin2"}
         declared = [g for g in self.groups if g.state == "IDENTICAL_BY_CONSTRUCTION"]
         # 24 through rc3 (three characters x two seasons x four sprite slots); rc4's frontal
-        # vehicle heads add the same three characters x two seasons on one more slot.
-        self.assertEqual(30, len(declared), "thirty identities are expected")
+        # vehicle heads added the same three characters x two seasons on one more slot, for 30.
+        # v4.19 removed four of them: the *adult* vehicle busts' base drawings were deleted, so
+        # the man's and the woman's `head_car` identities have nothing left to pair -- there is no
+        # duplicate to declare because there is no duplicate. The boy's two survive, his base
+        # still shipping. See `retiredBases` in the registry.
+        self.assertEqual(26, len(declared), "twenty-six identities are expected")
         for group_ in declared:
             base, variant = sorted(group_.members, key=len)
             kind = base.split("_")[1]

@@ -116,8 +116,8 @@ class OccupantHeadFitTest {
         // Every summer frontal face, in metres, through both vehicle scales. Winter is exempt
         // deliberately -- see the class comment: beanie over the forehead, scarf over the chin.
         for ((name, skin) in listOf(
-            "person_man_summer_head_car" to intArrayOf(0xDC, 0xA9, 0x7C),
-            "person_woman_summer_head_car" to intArrayOf(0xF0, 0xC9, 0xA6),
+            "person_man_summer_head_car_skin1" to intArrayOf(0xDC, 0xA9, 0x7C),
+            "person_woman_summer_head_car_skin0" to intArrayOf(0xF0, 0xC9, 0xA6),
         )) {
             val face = faceHeightUnits(name, skin)
             for ((vehicle, scale, metresPerUnit) in listOf(
@@ -161,7 +161,7 @@ class OccupantHeadFitTest {
     fun `a winter occupant's head with its headwear measures a winter pedestrian's`() {
         for ((who, skin) in listOf("man" to SKIN_OF["man"]!!, "woman" to SKIN_OF["woman"]!!)) {
             val walkBlock = headBlockMetres("person_${who}_winter_walk0", skin, PEDESTRIAN_METRES_PER_UNIT)
-            val carBlock = headBlockMetres("person_${who}_winter_head_car", skin, occupantMetresPerUnit())
+            val carBlock = headBlockMetres(carHeadFile(who, "winter"), skin, occupantMetresPerUnit())
             val ratio = carBlock / walkBlock
             assertTrue(
                 "$who in winter: the occupant's head with headwear is ${"%.4f".format(carBlock)} m " +
@@ -173,7 +173,7 @@ class OccupantHeadFitTest {
             // the two drawings cover different amounts of face. It runs 0.88 (man) to 1.58
             // (woman); a band that admits both is a band that says "this is not a size".
             val walkFace = faceHeightUnits("person_${who}_winter_walk0", skin) * PEDESTRIAN_METRES_PER_UNIT
-            val carFace = faceHeightUnits("person_${who}_winter_head_car", skin) * occupantMetresPerUnit()
+            val carFace = faceHeightUnits(carHeadFile(who, "winter"), skin) * occupantMetresPerUnit()
             val faceRatio = carFace / walkFace
             assertTrue(
                 "$who in winter: visible-skin ratio ${"%.3f".format(faceRatio)} -- if this ever " +
@@ -186,18 +186,29 @@ class OccupantHeadFitTest {
     // ------------------------------------------------------------------ 3. the air band
 
     @Test
-    fun `every occupant leaves 10-25 percent of air above the head, hat or no hat`() {
+    fun `every occupant leaves the right band of air above the head, hat or no hat`() {
         // Content height off each PNG's alpha box, times the vehicle scale, against the pane.
-        // The whole family is asserted in the sedan -- the children cannot be seated anywhere
-        // today (one seat, adults drive), but their artwork obeys the pane the day a vehicle can
-        // carry them. The appliance is asserted for the adults, its only lawful crew.
+        //
+        // **v4.19 splits the band by family, because children now ride.** A child's bust is drawn
+        // shorter than an adult's inside the same canvas -- that is what makes a child read as a
+        // child -- so a child seated in the same pane necessarily leaves *more* air above their
+        // head. That is correct: a child sits lower in a car. Holding them to the adults' ceiling
+        // would mean either scaling children up to adult size or shrinking the pane until the
+        // adults hit the roof, and both are the v4.18 mistake of bending the artwork to a number.
+        //
+        // The floor is the one that matters and it is the same for everybody: 10%, below which a
+        // head touches the roof line. The ceiling says the cabin is not a fishbowl, and a child
+        // is allowed the extra 5 points their own proportions produce.
         for (name in HEAD_CAR_FAMILY) {
+            val isChild = "boy" in name || "girl" in name
+            val ceiling = if (isChild) 0.30f else 0.25f
             val content = contentHeightUnits(name)
             val sedanAir = 1f - content * SceneObjectRenderer.CAR_OCCUPANT_SCALE /
                 SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS
             assertTrue(
-                "$name in the sedan leaves ${"%.1f".format(sedanAir * 100)}% of air",
-                sedanAir in 0.10f..0.25f,
+                "$name in a car leaves ${"%.1f".format(sedanAir * 100)}% of air, " +
+                    "outside 10%..${"%.0f".format(ceiling * 100)}%",
+                sedanAir in 0.10f..ceiling,
             )
             if ("man" in name || "woman" in name) {
                 val cabAir = 1f - content * SceneObjectRenderer.FIRE_TRUCK_OCCUPANT_SCALE /
@@ -256,9 +267,13 @@ class OccupantHeadFitTest {
                 val walkBase = "person_${who}_${season}_walk0"
                 assertTrue("$walkBase.png missing", File(drawableDir, "$walkBase.png").isFile)
                 val carBase = "person_${who}_${season}_head_car"
+                // v4.19 deleted the four adult base drawings -- duplicates of one of their own
+                // skin copies that no draw path could reach -- so coverage is asserted on the
+                // tone files, which are what the renderer actually blits.
                 assertTrue(
-                    "$carBase.png missing: the pedestrians offer $who/$season and the vehicles do not",
-                    File(drawableDir, "$carBase.png").isFile,
+                    "${carHeadFile(who, season)}.png missing: the pedestrians offer " +
+                        "$who/$season and the vehicles do not",
+                    File(drawableDir, "${carHeadFile(who, season)}.png").isFile,
                 )
                 for (skin in 0..2) {
                     if (File(drawableDir, "${walkBase}_skin$skin.png").isFile) {
@@ -363,8 +378,8 @@ class OccupantHeadFitTest {
 
     private companion object {
         val HEAD_CAR_FAMILY = listOf(
-            "person_man_summer_head_car", "person_man_winter_head_car",
-            "person_woman_summer_head_car", "person_woman_winter_head_car",
+            "person_man_summer_head_car_skin1", "person_man_winter_head_car_skin1",
+            "person_woman_summer_head_car_skin0", "person_woman_winter_head_car_skin0",
             "person_boy_summer_head_car", "person_boy_winter_head_car",
             "person_girl_summer_head_car", "person_girl_winter_head_car",
         )
@@ -379,5 +394,30 @@ class OccupantHeadFitTest {
             "boy" to intArrayOf(0xA9, 0x71, 0x4B),
             "girl" to intArrayOf(0xEF, 0xB9, 0x94),
         )
+
+        /**
+         * Which `_skinN` file carries each family's own tone -- the one the deleted base drawing
+         * used to be.
+         *
+         * v4.19 removed the four adult `person_*_head_car` bases: they were byte-identical in
+         * pixels to one of their own skin copies and no draw path could reach them, so they were
+         * 297 792 B of the decoded-sprite budget spent on duplicates (item 7 of
+         * `BACKLOG_v4_19.md`). The measurements here move to the surviving copy rather than to
+         * an arbitrary tone, which is why the map is not simply skin0 everywhere: the man's base
+         * was skin1 and the woman's was skin0. Verified pixel-by-pixel against the deleted files
+         * before they were removed.
+         */
+        val BASE_SKIN_OF = mapOf("man" to 1, "woman" to 0)
+
+        /**
+         * The shipped file a family's own tone lives in.
+         *
+         * The children's base drawings still ship -- v4.19 deleted only the four *adult* bases,
+         * and the girl's base is not even a duplicate of one of her skins -- so their measurements
+         * stay on the base. The adults' move to the copy their base was byte-identical to.
+         */
+        fun carHeadFile(who: String, season: String): String =
+            BASE_SKIN_OF[who]?.let { "person_${who}_${season}_head_car_skin$it" }
+                ?: "person_${who}_${season}_head_car"
     }
 }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="243" height="75" viewBox="-30 -16 81 25">
+<!--
+  Concept C — le due luci della Giardinetta: l'abitacolo (due sedute) e il
+  terzo finestrino del vano di carico, separati da 6 unita' di montante in lamiera.
+  Rientrato 2 unita' dal profilo opaco della cabina;
+  cielo -16, davanzale 9, 25 unita' di altezza.
+-->
+<path d="M-30 9 L-20 -16 L28 -16 L30 9 Z" fill="#B9D8E4"/>
+<path d="M36 9 L36 -16 L49 -16 L51 9 Z" fill="#B9D8E4"/>
+</svg>

@@ -11,16 +11,42 @@ that was.
 
 ## Current status
 
+**v4.19 prepared — not published, not approved.**
+
+`versionCode = 50`, `versionName = "4.19"`. **No tag, no push, no GitHub Release.** Baseline:
+the prepared **v4.18**. The account is in `RELEASE_HISTORY.md`; the verification report is
+`release-verification/V4_19_REPORT.md`; what is still open is `BACKLOG_v4_19.md`, which v4.19
+updates in place — items 2, 4 and 6 closed, item 7 partly, and items 13, 14 and 15 added.
+Publication is the maintainer's decision and has not been taken.
+
+```
+v4.19 [x]
+ |- three car bodies (compact, saloon, estate) rotating from the vehicle's own immutable
+ |  identity, resolved once at runtime construction so nothing per-frame can reach the choice
+ |- one metre-per-unit for the whole family, so three different heights still read as one set
+ |  and a local unit is the same pixel on each: the reference car is 1.6912 m, was 1.51
+ |- the estate lengthened at both ends to 124 units against the saloon's 108, +14.81%
+ |- children ride: the cabins were drawn around the widest bust in the set rather than the
+ |  children being narrowed, and the seat pitch was chosen on the winter girl
+ |- the pillar light re-derived against the head instead of the pane (backlog item 6), floor 15%
+ |  from legibility at 1.242 px per unit in the far lane; fill measured crown-to-chin, so the
+ |  neck row that could never satisfy it (item 2) is out of every band
+ |- the fire engine redrawn in the same language, and given the red rear lamp it never had
+ |- the police car's night beacons, absolute since 4.18's rc5, derived from the bar's own origin
+ \- 28.256 MiB of sprites against an unraised 28.5 ceiling: four redundant adult bases retired
+    with the retirement declared, and the two lamp overlays replaced by four shared lenses
+
+v4.18 [x] prepared, not published
+```
+
 **v4.18 prepared — not published, not approved.**
 
 `versionCode = 49`, `versionName = "4.18"`. **No tag, no push, no GitHub Release.** Baseline:
 the published **v4.17**. The full account of the eight passes that make up 4.18 lives in
-`RELEASE_HISTORY.md`; the verification report is `release-verification/V4_18_REPORT.md`, and
-what 4.18 ships without is `BACKLOG_v4_19.md`.
-Publication is the maintainer's decision and has not been taken.
+`RELEASE_HISTORY.md`; the verification report is `release-verification/V4_18_REPORT.md`.
 
 The status tree below this line records **v4.6** and was not maintained by the releases between
-4.6 and 4.18; it is kept as history rather than silently rewritten.
+4.6 and 4.19; it is kept as history rather than silently rewritten.
 
 **v4.6 prepared -- the people you can see through a windscreen, and three things only looking
 would have found.**

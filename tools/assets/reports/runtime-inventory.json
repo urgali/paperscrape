@@ -12,10 +12,6 @@
       "person_man_summer_head_window",
       "person_man_summer_head_window_skin1"
     ],
-    "1d1ecdfbe13ef9e5774450c0900695d44c4be1ac96170cc51aa7487323da9371": [
-      "person_man_winter_head_car",
-      "person_man_winter_head_car_skin1"
-    ],
     "1ded99da0f61c4bfdb73037ba74d09bd9baa082865104135834bc0aaa148757f": [
       "person_woman_summer_head_window",
       "person_woman_summer_head_window_skin0"
@@ -27,10 +23,6 @@
     "280937dc1b264abedfcffa6057b3d0a4af679af783753c53d4c02ca4554e5308": [
       "person_woman_summer_walk0",
       "person_woman_summer_walk0_skin0"
-    ],
-    "2df28babd6ac99c9246f908c2ad7df5943d63f1ac42f85fcb6cbdc1fda8f9dea": [
-      "person_woman_summer_head_car",
-      "person_woman_summer_head_car_skin0"
     ],
     "51833af4616ab356e4215c378d0ba808b282bcd17d25926b9931ec74fcbf2812": [
       "person_boy_summer_walk2",
@@ -84,10 +76,6 @@
       "person_man_winter_head_window",
       "person_man_winter_head_window_skin1"
     ],
-    "bf0d9cf76167539031e0e222cdf6fb2c606f4c475c9701b47f24cfa431ba1fd5": [
-      "person_man_summer_head_car",
-      "person_man_summer_head_car_skin1"
-    ],
     "c0d1952ce83f5257b1f14f8d6730b09bdaa5e9228a451e4927bba13c086090fd": [
       "person_woman_summer_walk2",
       "person_woman_summer_walk2_skin0"
@@ -107,10 +95,6 @@
     "e72e4b7b8854bd505252b78bb208987c64a426406c3e2437252b983ed38ddd28": [
       "person_woman_winter_walk1",
       "person_woman_winter_walk1_skin0"
-    ],
-    "f2002468cb8d6b397dbb446bed097ae4e24b8440bc9556a8961dfe26b98b633c": [
-      "person_woman_winter_head_car",
-      "person_woman_winter_head_car_skin0"
     ],
     "fe0dd53da401829e4d041d4fb379b4a5d93f3e4c6417e74aa23303c549d81444": [
       "person_woman_summer_walk1",
@@ -376,101 +360,251 @@
       "content_bbox": [
         0,
         0,
-        285,
-        117
+        279,
+        153
       ],
-      "content_height": 117,
-      "content_width": 285,
-      "decoded_bytes": 133380,
-      "distinct_colour_count": 73,
-      "file_bytes": 3136,
+      "content_height": 153,
+      "content_width": 279,
+      "decoded_bytes": 170748,
+      "distinct_colour_count": 69,
+      "file_bytes": 3931,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 117,
+      "height": 153,
       "mode": "RGBA",
-      "name": "car_body",
+      "name": "car_body_compact",
+      "on_grid": true,
+      "opaque_rgb_count": 41,
+      "pixels_sha256": "b3946d07ce857b07328f377fe5a4f0cceeeea9cfbc5a838491424565ad1be3bf",
+      "sha256": "7c492d17257aa7290d6e3a240d78dbc5da3b6112021b0b1ce00858ad5abb1688",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 279
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        375,
+        156
+      ],
+      "content_height": 156,
+      "content_width": 375,
+      "decoded_bytes": 234000,
+      "distinct_colour_count": 72,
+      "file_bytes": 4206,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 156,
+      "mode": "RGBA",
+      "name": "car_body_estate",
+      "on_grid": true,
+      "opaque_rgb_count": 44,
+      "pixels_sha256": "08c4459231daf26ab532e37b55631a6aa8412189db581a8bcf956c9e1356def7",
+      "sha256": "85050d39b6086e33912ec85c177324f09ba32fcd6c111d4d0014d9cc0a5fbbad",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 375
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        327,
+        150
+      ],
+      "content_height": 150,
+      "content_width": 327,
+      "decoded_bytes": 196200,
+      "distinct_colour_count": 68,
+      "file_bytes": 4351,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 150,
+      "mode": "RGBA",
+      "name": "car_body_saloon",
       "on_grid": true,
       "opaque_rgb_count": 40,
-      "pixels_sha256": "6bfc25ca4d579ec60d1f1f64da587656ffd1c47c3c95b0d0cbea481aa1ce4901",
-      "sha256": "64955bd9914243466d36ede2d25fd69193c4dc652679e4ec1fb41eb65b2ac12b",
+      "pixels_sha256": "2bda3d5df94b418d17de573c72a1610c53470e384bad1ea1ed30ea264746c740",
+      "sha256": "191d58be9987ef4b05ace283b9729178b5978e15a780284be8fb6dffa6748567",
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
-      "width": 285
-    },
-    {
-      "content_bbox": [
-        2,
-        2,
-        280,
-        15
-      ],
-      "content_height": 13,
-      "content_width": 278,
-      "decoded_bytes": 20304,
-      "distinct_colour_count": 25,
-      "file_bytes": 415,
-      "fully_opaque": false,
-      "has_alpha_channel": true,
-      "height": 18,
-      "mode": "RGBA",
-      "name": "car_lights",
-      "on_grid": true,
-      "opaque_rgb_count": 2,
-      "pixels_sha256": "ae076bd009d37f8c8d1eeaa6145a6bc2ce075913879ff660219dff2c8b0b94ba",
-      "sha256": "3c640a2dd0709e23da38fa9dec16d66a3ffab8fc78cb4825ec911511cbd55dae",
-      "transparent_padding_bytes": 5848,
-      "transparent_padding_fraction": 0.2880220646178093,
-      "width": 282
-    },
-    {
-      "content_bbox": [
-        2,
-        2,
-        280,
-        15
-      ],
-      "content_height": 13,
-      "content_width": 278,
-      "decoded_bytes": 20304,
-      "distinct_colour_count": 25,
-      "file_bytes": 466,
-      "fully_opaque": false,
-      "has_alpha_channel": true,
-      "height": 18,
-      "mode": "RGBA",
-      "name": "car_lights_day",
-      "on_grid": true,
-      "opaque_rgb_count": 2,
-      "pixels_sha256": "28df2c6a0405a5ea53feaeb97186cc2df6feabbf581ec8d5696de81b3403ab6b",
-      "sha256": "d8840d4aa0e2380c410ce5bad352ac75d58621ef7f9b3c0a3af7c51d03b26fc4",
-      "transparent_padding_bytes": 5848,
-      "transparent_padding_fraction": 0.2880220646178093,
-      "width": 282
+      "width": 327
     },
     {
       "content_bbox": [
         0,
         0,
-        162,
-        69
+        18,
+        12
       ],
-      "content_height": 69,
-      "content_width": 162,
-      "decoded_bytes": 44712,
-      "distinct_colour_count": 19,
-      "file_bytes": 640,
+      "content_height": 12,
+      "content_width": 18,
+      "decoded_bytes": 864,
+      "distinct_colour_count": 10,
+      "file_bytes": 208,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 69,
+      "height": 12,
       "mode": "RGBA",
-      "name": "car_window",
+      "name": "car_lamp_front",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "f06b943e151b8005c603c51718590c6b73cb2d04f8cbd2fa41f9dc8eb793a305",
-      "sha256": "2b0dfbf0ab4e21591f2650a41d232d179c265a00f80f0ec02cc369a3c96bc271",
+      "pixels_sha256": "ae00c9cc75f28fed1fd7359873cb5adae51f97693080909a04c00c16383e1314",
+      "sha256": "80b1dc093e719f72654101fe64d8a9c3335d81aafd784e65517089e2569f8e07",
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
-      "width": 162
+      "width": 18
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        18,
+        12
+      ],
+      "content_height": 12,
+      "content_width": 18,
+      "decoded_bytes": 864,
+      "distinct_colour_count": 10,
+      "file_bytes": 193,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 12,
+      "mode": "RGBA",
+      "name": "car_lamp_front_lit",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "fe2e8a7f93b2eeee2b2f27baf413b814491b7d016f7e9badaab64e5d9c5941f4",
+      "sha256": "be7ae8ea7a9928983134216739d04b7033fd2d4f46b310dc7747fd1abd1061a3",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 18
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        12,
+        12
+      ],
+      "content_height": 12,
+      "content_width": 12,
+      "decoded_bytes": 576,
+      "distinct_colour_count": 10,
+      "file_bytes": 204,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 12,
+      "mode": "RGBA",
+      "name": "car_lamp_rear",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "c732e4ea5526d59eed97435363d3b257f8d3c9b135f28b987c2c845108b361f4",
+      "sha256": "59106f890bf03ccd166bb2ac2ddbe305a782cbfb5c99fa6da2a83d5fb103137c",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 12
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        12,
+        12
+      ],
+      "content_height": 12,
+      "content_width": 12,
+      "decoded_bytes": 576,
+      "distinct_colour_count": 10,
+      "file_bytes": 200,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 12,
+      "mode": "RGBA",
+      "name": "car_lamp_rear_lit",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "0b7bc26cd46ecf16df709a39ae82914fc28f3845542d9789430da0f94cfca2cf",
+      "sha256": "3a9ec99552dce444fb2b80b273f99da299b791c38cbd8b6f9b62875917ba4e23",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 12
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        186,
+        75
+      ],
+      "content_height": 75,
+      "content_width": 186,
+      "decoded_bytes": 55800,
+      "distinct_colour_count": 18,
+      "file_bytes": 759,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 75,
+      "mode": "RGBA",
+      "name": "car_window_compact",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "de3cec035c3019ad50fdf89edb20f304326205e5b42723b4e4e8cd6ac5e31121",
+      "sha256": "91cd3e21ef57d0097a277a4ab4f2033bafb00289ee0a9107d81c0170cf47e3a9",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 186
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        243,
+        75
+      ],
+      "content_height": 75,
+      "content_width": 243,
+      "decoded_bytes": 72900,
+      "distinct_colour_count": 17,
+      "file_bytes": 704,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 75,
+      "mode": "RGBA",
+      "name": "car_window_estate",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "707ebfd8d88ed174c09c33aea5e79b4bd7e201dee45ebf9019727863218625aa",
+      "sha256": "812c931b505f959275ebcf9b62fe225ded6367e678ee8ad64f0936579e994c45",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 243
+    },
+    {
+      "content_bbox": [
+        0,
+        0,
+        177,
+        75
+      ],
+      "content_height": 75,
+      "content_width": 177,
+      "decoded_bytes": 53100,
+      "distinct_colour_count": 15,
+      "file_bytes": 671,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 75,
+      "mode": "RGBA",
+      "name": "car_window_saloon",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "320f97b33d8bd90ad8a8f5b96e4c21a657ad7e4b15ac0d6777111c061e976d91",
+      "sha256": "8222a45b4b3240f7ceb92f317b9385849731b761ac49a8522f63938c52daaac4",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 177
     },
     {
       "content_bbox": [
@@ -576,51 +710,51 @@
       "content_bbox": [
         0,
         0,
-        294,
-        135
+        297,
+        174
       ],
-      "content_height": 135,
-      "content_width": 294,
-      "decoded_bytes": 158760,
-      "distinct_colour_count": 107,
-      "file_bytes": 2077,
+      "content_height": 174,
+      "content_width": 297,
+      "decoded_bytes": 206712,
+      "distinct_colour_count": 188,
+      "file_bytes": 5279,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 135,
+      "height": 174,
       "mode": "RGBA",
       "name": "firetruck_body",
       "on_grid": true,
-      "opaque_rgb_count": 88,
-      "pixels_sha256": "ec35ee700c81d983a98a31de0b331f2773d1b0b518af81b72bd7aa88beb6b1b7",
-      "sha256": "92197855e22799b7e5af9e2701b7ae2cb2a587e6a8792e15f6baff8f33191a2f",
+      "opaque_rgb_count": 161,
+      "pixels_sha256": "e979277d245571624cc612f15e64a699e2e1ae902f841595d39470aec3a62210",
+      "sha256": "6f3e051d176ae40fecb3d444d96854a13afafb38389e7cdd23499a50dd5e938d",
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
-      "width": 294
+      "width": 297
     },
     {
       "content_bbox": [
         0,
-        1,
-        174,
-        42
+        0,
+        150,
+        21
       ],
-      "content_height": 41,
-      "content_width": 174,
-      "decoded_bytes": 29232,
-      "distinct_colour_count": 20,
-      "file_bytes": 524,
+      "content_height": 21,
+      "content_width": 150,
+      "decoded_bytes": 12600,
+      "distinct_colour_count": 36,
+      "file_bytes": 634,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 42,
+      "height": 21,
       "mode": "RGBA",
       "name": "firetruck_ladder",
       "on_grid": true,
-      "opaque_rgb_count": 2,
-      "pixels_sha256": "1997a956d4fc74b69cce9dadb103f719fa5d16927d72beba3da5275d5a35e117",
-      "sha256": "36b8db76aa171ad57d72ed1a2226eaec22b479043c68fea21416627fe488a313",
-      "transparent_padding_bytes": 696,
-      "transparent_padding_fraction": 0.023809523809523808,
-      "width": 174
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "7780156daefa1963e98cceb7711c64d6f7a769615eeefcf080c58ee4266d89f8",
+      "sha256": "e5f831c331082e7ad93e26eb6e49079b1dfb857cfedcc8106cd1fa16852558c4",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 150
     },
     {
       "content_bbox": [
@@ -3508,31 +3642,6 @@
       "content_width": 116,
       "decoded_bytes": 74448,
       "distinct_colour_count": 139,
-      "file_bytes": 3585,
-      "fully_opaque": false,
-      "has_alpha_channel": true,
-      "height": 132,
-      "mode": "RGBA",
-      "name": "person_man_summer_head_car",
-      "on_grid": true,
-      "opaque_rgb_count": 107,
-      "pixels_sha256": "bf0d9cf76167539031e0e222cdf6fb2c606f4c475c9701b47f24cfa431ba1fd5",
-      "sha256": "c35241e1d5b183ee9081a62a5b35c098c877197b59bd6d4c4d8fc27df87c39eb",
-      "transparent_padding_bytes": 15520,
-      "transparent_padding_fraction": 0.20846765527616593,
-      "width": 141
-    },
-    {
-      "content_bbox": [
-        11,
-        4,
-        127,
-        131
-      ],
-      "content_height": 127,
-      "content_width": 116,
-      "decoded_bytes": 74448,
-      "distinct_colour_count": 139,
       "file_bytes": 3749,
       "fully_opaque": false,
       "has_alpha_channel": true,
@@ -3996,31 +4105,6 @@
       "transparent_padding_bytes": 6396,
       "transparent_padding_fraction": 0.050980392156862744,
       "width": 123
-    },
-    {
-      "content_bbox": [
-        5,
-        1,
-        130,
-        131
-      ],
-      "content_height": 130,
-      "content_width": 125,
-      "decoded_bytes": 74448,
-      "distinct_colour_count": 156,
-      "file_bytes": 3947,
-      "fully_opaque": false,
-      "has_alpha_channel": true,
-      "height": 132,
-      "mode": "RGBA",
-      "name": "person_man_winter_head_car",
-      "on_grid": true,
-      "opaque_rgb_count": 123,
-      "pixels_sha256": "1d1ecdfbe13ef9e5774450c0900695d44c4be1ac96170cc51aa7487323da9371",
-      "sha256": "060ac3e9389655c6417f59307f72e3274ce3955dda36267e55e514da3cae999f",
-      "transparent_padding_bytes": 9448,
-      "transparent_padding_fraction": 0.12690737158822266,
-      "width": 141
     },
     {
       "content_bbox": [
@@ -4508,31 +4592,6 @@
       "content_width": 116,
       "decoded_bytes": 74448,
       "distinct_colour_count": 166,
-      "file_bytes": 3743,
-      "fully_opaque": false,
-      "has_alpha_channel": true,
-      "height": 132,
-      "mode": "RGBA",
-      "name": "person_woman_summer_head_car",
-      "on_grid": true,
-      "opaque_rgb_count": 130,
-      "pixels_sha256": "2df28babd6ac99c9246f908c2ad7df5943d63f1ac42f85fcb6cbdc1fda8f9dea",
-      "sha256": "aa5a06c99c6412821d78e317542aeec7957b376adaf399e5a1fec1593127b8d5",
-      "transparent_padding_bytes": 15520,
-      "transparent_padding_fraction": 0.20846765527616593,
-      "width": 141
-    },
-    {
-      "content_bbox": [
-        11,
-        4,
-        127,
-        131
-      ],
-      "content_height": 127,
-      "content_width": 116,
-      "decoded_bytes": 74448,
-      "distinct_colour_count": 166,
       "file_bytes": 3886,
       "fully_opaque": false,
       "has_alpha_channel": true,
@@ -4996,31 +5055,6 @@
       "transparent_padding_bytes": 8332,
       "transparent_padding_fraction": 0.06641160529252352,
       "width": 123
-    },
-    {
-      "content_bbox": [
-        5,
-        1,
-        130,
-        131
-      ],
-      "content_height": 130,
-      "content_width": 125,
-      "decoded_bytes": 74448,
-      "distinct_colour_count": 184,
-      "file_bytes": 4086,
-      "fully_opaque": false,
-      "has_alpha_channel": true,
-      "height": 132,
-      "mode": "RGBA",
-      "name": "person_woman_winter_head_car",
-      "on_grid": true,
-      "opaque_rgb_count": 151,
-      "pixels_sha256": "f2002468cb8d6b397dbb446bed097ae4e24b8440bc9556a8961dfe26b98b633c",
-      "sha256": "76c0835ab77d94b79f20cab633201df2b354cae6cb2285fdd3a3fba83953e371",
-      "transparent_padding_bytes": 9448,
-      "transparent_padding_fraction": 0.12690737158822266,
-      "width": 141
     },
     {
       "content_bbox": [
@@ -5526,14 +5560,14 @@
       "content_bbox": [
         0,
         0,
-        132,
+        120,
         27
       ],
       "content_height": 27,
-      "content_width": 132,
-      "decoded_bytes": 14256,
+      "content_width": 120,
+      "decoded_bytes": 12960,
       "distinct_colour_count": 4,
-      "file_bytes": 172,
+      "file_bytes": 167,
       "fully_opaque": true,
       "has_alpha_channel": true,
       "height": 27,
@@ -5541,11 +5575,11 @@
       "name": "police_stripe",
       "on_grid": true,
       "opaque_rgb_count": 4,
-      "pixels_sha256": "a189b818eee57cc1f2eb548976cc825c3781ad7e59ffe2daeb15093dcbb6e06d",
-      "sha256": "44d936a3a0e731146ea0a2b2c9f3e7f83d2dc351cc429550941008f2fac980fc",
+      "pixels_sha256": "59c25775a125ad06d4a1185eccbd8a6fff64907eb6422411085736d149fbcd14",
+      "sha256": "34f98e000f5f806f250b05ce9fad097fbdca2fc6f3b9419172929606a4b92276",
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
-      "width": 132
+      "width": 120
     },
     {
       "content_bbox": [
@@ -6326,14 +6360,14 @@
       "content_bbox": [
         0,
         0,
-        132,
+        120,
         27
       ],
       "content_height": 27,
-      "content_width": 132,
-      "decoded_bytes": 14256,
+      "content_width": 120,
+      "decoded_bytes": 12960,
       "distinct_colour_count": 4,
-      "file_bytes": 185,
+      "file_bytes": 182,
       "fully_opaque": true,
       "has_alpha_channel": true,
       "height": 27,
@@ -6341,11 +6375,11 @@
       "name": "taxi_checker",
       "on_grid": true,
       "opaque_rgb_count": 4,
-      "pixels_sha256": "8e355def790b9ec5b9d86396ec64d0d4f146ee2664afd65687f67bc9c8723ddb",
-      "sha256": "9ba69e23a9cd8b36434e5bcba91271db1bcdc2ad9d67f4bf77651cc4752184de",
+      "pixels_sha256": "e8481d908b51630ed14891ae7053c871d6f643f1dd814894484e6ea1e93e5c0a",
+      "sha256": "fc8143d7d9ee738ddb6096a518073bc7e8f8964d13b1c78c5831ba8fc38bbc72",
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
-      "width": 132
+      "width": 120
     },
     {
       "content_bbox": [

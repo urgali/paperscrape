@@ -23,6 +23,7 @@ Run from `tools/assets/`:
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 import unittest
@@ -67,6 +68,7 @@ class ShippedCoverageTest(unittest.TestCase):
         self.specs = registry.load(REGISTRY_PATH)
         self.by_name = {s.name: s for s in self.specs}
         self.shipped = shipped_names()
+        self.registry_document = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
 
     def test_every_shipped_png_has_a_registry_entry(self):
         # The direction that broke. A sprite can reach `res/drawable-nodpi` from an
@@ -80,16 +82,36 @@ class ShippedCoverageTest(unittest.TestCase):
         # deleted, so every measurement made against it is made against nothing.
         self.assertEqual(sorted(set(self.by_name) - self.shipped), [])
 
-    def test_every_derived_variant_names_a_base_that_also_ships(self):
+    def test_every_derived_variant_names_a_base_that_also_ships_or_a_declared_heir(self):
         # `<base>_skin<tone>` is not a free-form name: the generator reads the base
         # sprite to produce it, so a variant whose base is gone cannot be regenerated
         # and cannot be checked against anything.
+        #
+        # v4.19 added the one lawful exception, and it is a *declaration* rather than a
+        # loosening. Four adult vehicle busts shipped a base drawing that was
+        # pixel-identical to one of its own tone copies and that no draw path could
+        # reach -- 297 792 B of the decoded-sprite budget spent on duplicates (item 7 of
+        # BACKLOG_v4_19.md). Deleting them is only safe because the base's pixels
+        # survive under another name, so the registry has to say which name that is:
+        # `retiredBases` maps the gone base to its heir, the heir must itself ship, and
+        # the generator regenerates the other tones from the heir instead.
+        retired = self.registry_document.get("retiredBases", {})
         for name in sorted(self.shipped):
             match = DERIVED_SUFFIX.match(name)
             if not match:
                 continue
+            base = match.group("base")
             with self.subTest(name=name):
-                self.assertIn(match.group("base"), self.by_name)
+                if base in self.by_name:
+                    continue
+                self.assertIn(
+                    base, retired,
+                    f"{name} derives from {base}, which neither ships nor is declared retired",
+                )
+                self.assertIn(
+                    retired[base], self.by_name,
+                    f"{base} is declared retired in favour of {retired[base]}, which does not ship",
+                )
 
     def test_a_derived_variant_declares_the_same_geometry_as_its_base(self):
         """A recolour moves paint, never coverage.

@@ -107,6 +107,12 @@ object ThemePreviewScenes {
     private const val ROAD_BOTTOM = 229f
     private const val ROW_CARS = 214f
 
+    /** See [car]: where a wheelless preview car's painted floor sits, kept from v4.18. */
+    private const val PREVIEW_CAR_FLOOR_DROP = 28f
+
+    /** The bottom edge of every v4.19 body, plus the half-unit of paper rim below it. */
+    private const val CAR_PAINTED_FLOOR_UNITS = 30.5f
+
     /** `SceneObjectCatalog` maps these two themes' tree slots to `PALM_TREE`. */
     private val PALM_THEMES = setOf("beach", "desert")
 
@@ -280,9 +286,15 @@ object ThemePreviewScenes {
 
         // --- cars -----------------------------------------------------------------------------
         if (c.cars.visible) {
-            cars += PreviewItem(76f, ROW_CARS, 0.42f, car(c.cars.colorDay1))
-            cars += PreviewItem(236f, ROW_CARS, 0.42f, car(c.cars.colorDay2))
-            if (cityLike) cars += PreviewItem(168f, ROW_CARS, 0.40f, car(blendRgb(c.cars.colorDay1, 0xFFC1443B.toInt(), 0.6f)))
+            // One of each body, so the gallery shows the variety the road now has.
+            cars += PreviewItem(76f, ROW_CARS, 0.42f, car(CarShell.SALOON, c.cars.colorDay1))
+            cars += PreviewItem(236f, ROW_CARS, 0.42f, car(CarShell.ESTATE, c.cars.colorDay2))
+            if (cityLike) {
+                cars += PreviewItem(
+                    168f, ROW_CARS, 0.40f,
+                    car(CarShell.COMPACT, blendRgb(c.cars.colorDay1, 0xFFC1443B.toInt(), 0.6f)),
+                )
+            }
         }
 
         // --- lake life ------------------------------------------------------------------------
@@ -610,10 +622,26 @@ object ThemePreviewScenes {
         PreviewSprite(R.drawable.easteregg_pattern, -16f, -25f),
     )
 
-    private fun car(c: Int) = listOf(
-        PreviewSprite(R.drawable.car_body, -48f, -11f, c),
-        PreviewSprite(R.drawable.car_window, -20f, -6f),
-    )
+    /**
+     * A preview car, on one of the three v4.19 bodies.
+     *
+     * The gallery draws no wheels, so a car here stands on its **painted floor** rather than on
+     * its tyres, and the two offsets are derived from that rather than hand-copied: v4.18's
+     * thumbnails put that floor [PREVIEW_CAR_FLOOR_DROP] units below the item's ground line, and
+     * keeping the number keeps every thumbnail where it was while the bodies underneath it
+     * change. The glass then follows the body by the gap the renderer itself uses, so the two
+     * cannot drift apart the way this file's hand-copied pairs have before.
+     */
+    private fun car(shell: CarShell, c: Int): List<PreviewSprite> {
+        val oy = PREVIEW_CAR_FLOOR_DROP - (CAR_PAINTED_FLOOR_UNITS - shell.bodyYUnits)
+        return listOf(
+            PreviewSprite(shell.bodyRes, shell.bodyXUnits, oy, c),
+            PreviewSprite(
+                shell.glassRes, shell.glassXUnits,
+                oy + (SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS - shell.bodyYUnits),
+            ),
+        )
+    }
 
     private fun sailboat() = listOf(
         PreviewSprite(R.drawable.sailboat_sail, -35f, -50f),

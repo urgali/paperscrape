@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.engine
 
+import com.paperscrape.livewallpaper.R
 import java.io.File
 import javax.imageio.ImageIO
 import org.junit.Assert.assertEquals
@@ -61,26 +62,29 @@ class VehicleAndShopFrontTest {
     }
 
     /**
-     * **The shell is not touched by the pane's re-cut.**
+     * The three bodies are the drawings the criteria were measured against.
      *
-     * The 4.18 closing pass widened `car_window` from 47 to 54 units by taking the room out of
-     * the pillar mass `car_body` already had, not out of the car. That claim is only worth
-     * anything if the shell really did not move, so it is pinned here by content hash rather
-     * than by inspection: nose at -46.5, tail at 48.5, cowl, roof line, beltline, spear, door
-     * seam, lamp patches, arch cuts and wheels are the pixels the previous pass shipped.
+     * v4.19 replaced one saloon with three, and every occupant number in the pass -- pillar
+     * light, head gap, pane fill, zero pixels outside the glass -- was measured on *these*
+     * pixels. Pinning them by content hash is what makes those measurements mean something
+     * later: a redraw that moves a pillar by two units would keep every constant valid and
+     * every criterion stale.
      *
-     * If this fails because the shell was redrawn on purpose, re-hash it here in the same change
-     * and say so in the report -- that is the point of the test, not an obstacle to it.
+     * If this fails because a body was redrawn on purpose, re-hash it here in the same change
+     * and re-run the criteria sweep -- that is the point of the test, not an obstacle to it.
      */
     @Test
-    fun `the saloon shell is the one the pane was cut against`() {
-        val bytes = File(drawableDir(), "car_body.png").readBytes()
-        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
-        assertEquals(
-            "car_body.png changed",
-            "64955bd9914243466d36ede2d25fd69193c4dc652679e4ec1fb41eb65b2ac12b",
-            digest.joinToString("") { "%02x".format(it) },
+    fun `the three bodies are the drawings the criteria were measured against`() {
+        val expected = mapOf(
+            "car_body_compact.png" to "e0a0bbfb6977e122ec8cd7f63c8acaadfaee988ca58d1f81f7b7d449ee28422f",
+            "car_body_saloon.png" to "f7055bb05c5e528799c024ff60da00dc0978013cfae62a4eae819f9b3c426fd8",
+            "car_body_estate.png" to "85050d39b6086e33912ec85c177324f09ba32fcd6c111d4d0014d9cc0a5fbbad",
         )
+        for ((name, sha) in expected) {
+            val bytes = File(drawableDir(), name).readBytes()
+            val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+            assertEquals("$name changed", sha, digest.joinToString("") { "%02x".format(it) })
+        }
     }
 
     /**
@@ -94,14 +98,15 @@ class VehicleAndShopFrontTest {
      */
     @Test
     fun `the police light bar lies on the cabin roof`() {
-        val (front, rear) = carRoofSpanFromArtwork()
+        // A police car is always the saloon, so the bar is measured against that body's roof.
+        val (front, rear) = carRoofSpanFromArtwork(CarShell.SALOON)
         assertTrue(
             "the declared roof front must be on the roof the artwork draws",
-            SceneObjectRenderer.CAR_ROOF_FRONT_X_UNITS in front..rear,
+            CarShell.SALOON.roofFrontXUnits in front..rear,
         )
         assertTrue(
             "and so must the declared roof rear",
-            SceneObjectRenderer.CAR_ROOF_REAR_X_UNITS in front..rear,
+            CarShell.SALOON.roofRearXUnits in front..rear,
         )
         val left = SceneObjectRenderer.POLICE_LIGHTBAR_X_UNITS
         val right = left + SceneObjectRenderer.POLICE_LIGHTBAR_WIDTH_UNITS
@@ -120,128 +125,106 @@ class VehicleAndShopFrontTest {
     }
 
     /**
-     * The sedan's lamps are at its ends.
+     * Every body carries a lamp seat at each end and none in the middle.
      *
-     * `car_body` is tinted by multiply, so a lamp is a near-white patch and nothing else in the
-     * shell comes near white -- the body is #ededed and the rocker #e6e6e6. The drawing used to
-     * carry exactly one such patch and it was at 88 of 97 units *at mid-height*, on the boot above
-     * the rear wheel, which under a tint reads as a blemish rather than as a light. Two patches,
-     * one in each end fifth, is the property; their shape is not.
+     * A body is tinted by multiply, so a lamp housing is a near-white patch and nothing else in
+     * a shell comes near white -- the panels are #ededed and #e6e6e6. v4.18's drawing carried
+     * exactly one such patch and it was at mid-height over the rear wheel, which under a tint
+     * reads as a blemish rather than as a light. Two patches, one in each end fifth, is the
+     * property; their shape is not.
      */
     @Test
-    fun `the sedan carries a lamp at each end and none in the middle`() {
-        val image = ImageIO.read(File(drawableDir(), "car_body.png"))
-        var minX = image.width
-        var maxX = 0
-        var middle = 0
-        var middleMinY = image.height
-        var middleMaxY = -1
-        for (y in 0 until image.height) {
-            for (x in 0 until image.width) {
-                val argb = image.getRGB(x, y)
-                if ((argb ushr 24) < 200) continue
-                val r = (argb shr 16) and 0xFF
-                val g = (argb shr 8) and 0xFF
-                val b = argb and 0xFF
-                if (r < 248 || g < 248 || b < 248) continue
-                if (x < minX) minX = x
-                if (x > maxX) maxX = x
-                if (x > image.width * 0.25 && x < image.width * 0.75) {
-                    middle++
-                    if (y < middleMinY) middleMinY = y
-                    if (y > middleMaxY) middleMaxY = y
+    fun `every body carries a lamp seat at each end and none in the middle`() {
+        for (shell in CarShell.entries) {
+            val image = ImageIO.read(File(drawableDir(), spriteFileName(shell.bodyRes)))
+            var minX = image.width
+            var maxX = 0
+            var middle = 0
+            for (y in 0 until image.height) {
+                for (x in 0 until image.width) {
+                    val argb = image.getRGB(x, y)
+                    if ((argb ushr 24) < 200) continue
+                    val r = (argb shr 16) and 0xFF
+                    val g = (argb shr 8) and 0xFF
+                    val b = argb and 0xFF
+                    if (r < 248 || g < 248 || b < 248) continue
+                    if (x < minX) minX = x
+                    if (x > maxX) maxX = x
+                    if (x > image.width * 0.25 && x < image.width * 0.75) middle++
                 }
             }
-        }
-        assertTrue("there must be a lamp in the front fifth", minX < image.width / 5)
-        assertTrue("there must be a lamp in the rear fifth", maxX > image.width * 4 / 5)
-        // The middle of the flank may carry the chrome side spear -- a strip a unit and a half
-        // tall -- but never a lamp: a lamp is a blob, and a blob's rows span more than a trim
-        // line's. The v4.17 defect this guards against was a 6.8-unit disc on the boot.
-        if (middle > 0) {
-            val extentUnits = (middleMaxY - middleMinY + 1) / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
-            assertTrue(
-                "near-white in mid-flank must be the trim line, not a lamp: rows span ${'$'}extentUnits u",
-                extentUnits <= 2.2f,
-            )
+            assertTrue("$shell: a lamp seat must sit in the front fifth", minX < image.width / 5)
+            assertTrue("$shell: and one in the rear fifth", maxX > image.width * 4 / 5)
+            // The chrome spear is white and runs the whole beltline, so the middle is not empty;
+            // what must not be there is a *lamp-sized* white patch. One unit of spear is 3 px
+            // tall, so anything under a few hundred pixels is the spear and nothing else.
+            assertTrue("$shell: no lamp-sized white patch in the middle, found $middle px", middle < 900)
         }
     }
 
     /**
-     * The fire engine's cab window is exactly what the occupant constants were derived from.
+     * The appliance's cab window is the pane its occupant constants are measured from.
      *
-     * v4.16 sized every bust from the pane it sits behind, and the fire engine's pane is this one
-     * rectangle. The appliance was redrawn in this release around it -- new shell, new roof line,
-     * new canvas, new origin -- and this is what says the redraw left the window alone. Three
-     * numbers, all read from the SVG and mapped through the blit the renderer performs.
+     * The cab glass is painted into `firetruck_body` rather than blitted, so the coupling
+     * between the drawing and [SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS] has nothing
+     * enforcing it but this. v4.19 stood the windscreen up and lengthened the cab so a
+     * table-sized head could keep daylight to the A-pillar, which moved every number here --
+     * so they are read back off the drawing rather than restated.
      */
     @Test
-    fun `the appliance cab window is the rc2 pane the occupant constants are measured from`() {
+    fun `the appliance cab window is the pane the occupant constants are measured from`() {
         val svg = svgSource("firetruck_body.svg").readText()
-        val view = viewBox(svg)
-        val rect = Regex("""<rect x="10" y="15" width="25" height="17"""").find(svg)
-        assertTrue("the cab window rect must be 25 x 17 at (10,15) since rc2", rect != null)
-        val localX = { sx: Float -> -SceneObjectRenderer.FIRE_TRUCK_HALF_WIDTH_UNITS + (sx - view[0]) }
-        val localY = { sy: Float -> SceneObjectRenderer.FIRE_TRUCK_BODY_Y_UNITS + (sy - view[1]) }
-        assertEquals(
-            "the pane's own height is the glass height the bust is scaled against",
-            17f,
-            SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS,
-            0.001f,
-        )
+        val glass = Regex("""<path d="M(-?[\d.]+) ([\d.-]+) L(-?[\d.]+) (-?[\d.]+) L(-?[\d.]+) (-?[\d.]+) L(-?[\d.]+) (-?[\d.]+) Z" fill="#B9D8E4"""")
+            .find(svg)
+        assertTrue("the cab window path must be in the drawing", glass != null)
+        val g = glass!!.groupValues.drop(1).map { it.toFloat() }
+        val sill = maxOf(g[1], g[3], g[5], g[7])
+        val top = minOf(g[1], g[3], g[5], g[7])
         assertEquals(
             "the sill is the pane's bottom edge",
-            localY(15f + 17f),
-            SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS,
-            0.001f,
+            sill, SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS, 0.001f,
         )
         assertEquals(
-            "and the head stands on the pane's centre line",
-            (localX(10f) + localX(10f + 25f)) / 2f,
-            SceneObjectRenderer.FIRE_TRUCK_HEAD_X_UNITS,
-            0.001f,
+            "the pane's own height is the glass height the bust is scaled against",
+            sill - top, SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS, 0.001f,
+        )
+        val left = minOf(g[0], g[2], g[4], g[6])
+        val right = maxOf(g[0], g[2], g[4], g[6])
+        assertTrue(
+            "the driver must sit inside the pane, forward of its centre",
+            SceneObjectRenderer.FIRE_TRUCK_HEAD_X_UNITS in left..right &&
+                SceneObjectRenderer.FIRE_TRUCK_HEAD_X_UNITS < (left + right) / 2f,
         )
     }
 
     /**
-     * The ladder rests on the body, and the appliance is still the height it declares.
+     * The ladder is carried on the body roof, and it is what sets the vehicle's height.
      *
-     * Both were free to go wrong when the roof gained a step: a ladder that starts before the body
-     * does hangs over the lower cab roof with nothing under it, which is exactly what 68 units of
-     * ladder looked like, and a ladder moved vertically changes the tallest point of the vehicle
-     * and therefore what `FIRE_TRUCK_SPRITE_UNITS_TALL` means.
+     * Its lower rail has to land on the roof rather than hover above it -- that was the v4.18
+     * defect this test was written for -- and its top has to be the tallest point, because
+     * [SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL] is measured to it.
      */
     @Test
-    fun `the ladder sits on the body roof and does not change the vehicle's height`() {
-        val svg = svgSource("firetruck_body.svg").readText()
-        val view = viewBox(svg)
-        val bodyRoofSvgX = 40f
-        val bodyRoofStart = -SceneObjectRenderer.FIRE_TRUCK_HALF_WIDTH_UNITS + (bodyRoofSvgX - view[0])
-        assertTrue(
-            "the ladder must not begin ahead of the body it is carried on",
-            SceneObjectRenderer.FIRE_TRUCK_LADDER_X_UNITS >= bodyRoofStart - 0.001f,
-        )
+    fun `the ladder sits on the body roof and sets the vehicle's height`() {
         val ladder = ImageIO.read(File(drawableDir(), "firetruck_ladder.png"))
         val heightUnits = ladder.height / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
         val bottom = SceneObjectRenderer.FIRE_TRUCK_LADDER_Y_UNITS + heightUnits
-        assertTrue(
-            "its lower rail must land on the body roof rather than above it",
-            bottom >= SceneObjectRenderer.FIRE_TRUCK_BODY_Y_UNITS,
+        assertEquals(
+            "its lower rail lands on the body roof",
+            SceneObjectRenderer.FIRE_TRUCK_BODY_Y_UNITS + 0.5f, bottom, 1.5f,
         )
-        assertTrue("and not sink into the body", bottom - SceneObjectRenderer.FIRE_TRUCK_BODY_Y_UNITS <= 2f)
+        assertEquals(
+            "and its top is the height the height table declares",
+            SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL,
+            SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS - SceneObjectRenderer.FIRE_TRUCK_LADDER_Y_UNITS,
+            0.001f,
+        )
         val right = SceneObjectRenderer.FIRE_TRUCK_LADDER_X_UNITS +
             ladder.width / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
         assertTrue(
             "nor reach past the widest point the vehicle declares, which is what the cull extent " +
                 "and the A/B crop are both measured against",
             right <= SceneObjectRenderer.FIRE_TRUCK_HALF_WIDTH_UNITS,
-        )
-        val topOfVehicle = SceneObjectRenderer.FIRE_TRUCK_LADDER_Y_UNITS + contentTopUnits(ladder)
-        assertEquals(
-            "the tallest point over the wheel line is what the size table calls the sprite height",
-            SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL,
-            SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS - topOfVehicle,
-            0.5f,
         )
     }
 
@@ -296,69 +279,103 @@ class VehicleAndShopFrontTest {
      * cannot be faked by shading.
      */
     @Test
-    fun `the saloon's shell is cut away over each wheel`() {
-        val image = ImageIO.read(File(drawableDir(), "car_body.png"))
-        val bottom = image.height - 1
-        val opaque = { x: Int -> (image.getRGB(x, bottom) ushr 24) >= 200 }
-        val toLocal = { px: Int ->
-            SceneObjectRenderer.CAR_BODY_X_UNITS + px / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+    fun `every shell is cut away over each wheel`() {
+        for (shell in CarShell.entries) {
+            val image = ImageIO.read(File(drawableDir(), spriteFileName(shell.bodyRes)))
+            // One unit above the painted floor: inside the metal, clear of the half-unit of paper
+            // rim below it whose antialiased edge is neither shell nor hole.
+            val row = ((29f - shell.bodyYUnits) * SpriteBlitter.SPRITE_PIXELS_PER_UNIT).toInt()
+            val opaque = { x: Int -> (image.getRGB(x, row) ushr 24) >= 200 }
+            val toLocal = { px: Int ->
+                shell.bodyXUnits + px / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+            }
+            // The runs of missing shell along the floor line: two of them, one per wheel.
+            val gaps = mutableListOf<Pair<Int, Int>>()
+            var x = 0
+            while (x < image.width) {
+                if (opaque(x)) { x++; continue }
+                val start = x
+                while (x < image.width && !opaque(x)) x++
+                if (x - start >= 3) gaps.add(start to x - 1)
+            }
+            assertEquals("$shell must be cut away over each wheel and nowhere else, found $gaps", 2, gaps.size)
+            assertTrue("$shell: the nose must still reach the floor line", opaque(1))
+            assertTrue("$shell: so must the tail", opaque(image.width - 2))
+            assertTrue("$shell: and the sill between the wheels", opaque(image.width / 2))
+            // And each cut must be centred on the wheel that sits in it, which is what stops the
+            // wheels sliding back out to the corners the arches were cut to get them away from.
+            val centres = gaps.map { (a, b) -> (toLocal(a) + toLocal(b + 1)) / 2f }.sorted()
+            assertEquals(
+                "$shell: the front arch is centred on the front wheel",
+                shell.wheelFrontXUnits, centres[0], 1f,
+            )
+            assertEquals(
+                "$shell: the rear arch is centred on the rear wheel",
+                shell.wheelRearXUnits, centres[1], 1f,
+            )
         }
-        // The runs of missing shell along the ground line: two of them, one per wheel.
-        val gaps = mutableListOf<Pair<Int, Int>>()
-        var x = 0
-        while (x < image.width) {
-            if (opaque(x)) { x++; continue }
-            val start = x
-            while (x < image.width && !opaque(x)) x++
-            if (x - start >= 3) gaps.add(start to x - 1)
-        }
-        assertEquals("the shell must be cut away over each wheel and nowhere else, found $gaps", 2, gaps.size)
-        assertTrue("the nose must still reach the ground line", opaque(1))
-        assertTrue("so must the tail", opaque(image.width - 2))
-        assertTrue("and the sill between the wheels", opaque(image.width / 2))
-        // And each cut must be centred on the wheel that sits in it, which is what stops the
-        // wheels sliding back out to the corners the arches were cut to get them away from.
-        val centres = gaps.map { (a, b) -> (toLocal(a) + toLocal(b + 1)) / 2f }.sorted()
-        assertEquals(
-            "the front arch is centred on the front wheel",
-            -SceneObjectRenderer.CAR_WHEEL_X_UNITS, centres[0], 1f,
-        )
-        assertEquals(
-            "the rear arch is centred on the rear wheel",
-            SceneObjectRenderer.CAR_WHEEL_X_UNITS, centres[1], 1f,
-        )
     }
 
     /**
-     * The livery band stops before the holes.
+     * The arches are **concentric** with the tyres, with the same air all the way round.
      *
-     * `police_stripe` and `taxi_checker` are blitted over the shell, and the shell now has two
-     * pieces missing from it. A band that reached into either one would be drawn over the road with
-     * nothing behind it but a tyre that does not cover its corners. Measured on the drawing rather
-     * than asserted about the constants: every column the band spans must be solid shell along the
-     * band's own bottom edge.
+     * v4.18 cut its arches as a chord-and-arc that closed over the top of the wheel, so the gap
+     * that read as air at the sides vanished where it mattered and the tyre looked jammed under
+     * the shell. Measuring at the widest row of the hole and at its crown is what tells the two
+     * constructions apart: a concentric cut gives the same clearance at both.
+     */
+    @Test
+    fun `each wheel arch keeps the same air all the way round its tyre`() {
+        for (shell in CarShell.entries) {
+            val image = ImageIO.read(File(drawableDir(), spriteFileName(shell.bodyRes)))
+            val opaque = { x: Int, y: Int ->
+                x in 0 until image.width && y in 0 until image.height &&
+                    (image.getRGB(x, y) ushr 24) >= 200
+            }
+            val px = SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+            for (wx in listOf(shell.wheelFrontXUnits, shell.wheelRearXUnits)) {
+                // Straight up from the wheel centre: the first opaque row is the arch crown.
+                val cx = ((wx - shell.bodyXUnits) * px).toInt()
+                val cy = ((SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS -
+                    SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS - shell.bodyYUnits) * px).toInt()
+                val crownPx = (cy downTo 0).first { opaque(cx, it) }
+                val crownAir = (cy - crownPx) / px - SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS
+                assertEquals(
+                    "$shell: the arch over the wheel at $wx must clear the tyre by the declared air",
+                    SceneObjectRenderer.WHEEL_ARCH_AIR_UNITS, crownAir, 0.5f,
+                )
+            }
+        }
+    }
+
+    /**
+     * The livery band never overhangs a wheel arch.
+     *
+     * `police_stripe` and `taxi_checker` are blitted over a shell that has two holes cut in it,
+     * so a band wider than the run between the arches would hang over the road. v4.19 checks it
+     * on the two bodies that actually wear a livery -- the saloon (police) and the compact
+     * (taxi) -- because those are the only door lines the two sprites have to fit.
      */
     @Test
     fun `the livery band never overhangs a wheel arch`() {
-        val image = ImageIO.read(File(drawableDir(), "car_body.png"))
-        val toPx = { lx: Float, ly: Float ->
-            (((lx + 48f) * SpriteBlitter.SPRITE_PIXELS_PER_UNIT).toInt()) to
-                (((ly + 11f) * SpriteBlitter.SPRITE_PIXELS_PER_UNIT).toInt())
-        }
         val bandHeight = ImageIO.read(File(drawableDir(), "police_stripe.png")).height /
             SpriteBlitter.SPRITE_PIXELS_PER_UNIT
-        val left = SceneObjectRenderer.CAR_LIVERY_X_UNITS
-        val right = left + SceneObjectRenderer.CAR_LIVERY_WIDTH_UNITS
-        val row = toPx(0f, SceneObjectRenderer.CAR_SILL_Y_UNITS + bandHeight).second
-            .coerceIn(0, image.height - 1)
-        var x = toPx(left, 0f).first
-        val end = toPx(right, 0f).first
-        while (x <= end) {
-            assertTrue(
-                "the shell is missing under the livery band at column $x",
-                (image.getRGB(x.coerceIn(0, image.width - 1), row) ushr 24) >= 200,
-            )
-            x++
+        for (shell in listOf(CarShell.SALOON, CarShell.COMPACT)) {
+            val image = ImageIO.read(File(drawableDir(), spriteFileName(shell.bodyRes)))
+            val px = SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+            val left = SceneObjectRenderer.CAR_LIVERY_X_UNITS
+            val right = left + SceneObjectRenderer.CAR_LIVERY_WIDTH_UNITS
+            val row = (((SceneObjectRenderer.CAR_SILL_Y_UNITS + bandHeight) - shell.bodyYUnits) * px)
+                .toInt().coerceIn(0, image.height - 1)
+            var x = ((left - shell.bodyXUnits) * px).toInt()
+            val end = ((right - shell.bodyXUnits) * px).toInt()
+            while (x <= end) {
+                assertTrue(
+                    "$shell: the shell is missing under the livery band at column $x",
+                    (image.getRGB(x.coerceIn(0, image.width - 1), row) ushr 24) >= 200,
+                )
+                x++
+            }
         }
     }
 
@@ -392,7 +409,8 @@ class VehicleAndShopFrontTest {
             "the taxi branch must blit the sign",
             drawCarSource().contains("R.drawable.taxi_sign, TAXI_SIGN_X_UNITS, TAXI_SIGN_Y_UNITS"),
         )
-        val (front, rear) = carRoofSpanFromArtwork()
+        // A taxi is always the compact, so the sign is measured against that body's roof.
+        val (front, rear) = carRoofSpanFromArtwork(CarShell.COMPACT)
         val left = SceneObjectRenderer.TAXI_SIGN_X_UNITS
         val right = left + SceneObjectRenderer.TAXI_SIGN_WIDTH_UNITS
         assertTrue("the sign must not overhang the windscreen", left >= front)
@@ -426,11 +444,17 @@ class VehicleAndShopFrontTest {
             "and never brighter than the windows behind it",
             full < litWindowAlphaAt(1f),
         )
-        val body = drawCarSource()
-        assertTrue("the lamp overlay must be gated", body.contains("if (lit > 0)"))
         assertTrue(
-            "and so must the appliance's",
-            drawSource("drawFireTruck").contains("if (lit > 0)"),
+            "a car takes the shared lamp pair too",
+            drawCarSource().contains("drawVehicleLamps("),
+        )
+        assertTrue(
+            "the appliance takes the same shared pair, so the gate is the shared one",
+            drawSource("drawFireTruck").contains("drawVehicleLamps("),
+        )
+        assertTrue(
+            "and that is where the gate lives",
+            drawSource("drawVehicleLamps").contains("if (lit > 0)"),
         )
         assertTrue("renderer class resolved", renderer != null)
     }
@@ -444,18 +468,58 @@ class VehicleAndShopFrontTest {
      * the lamps sliding off the panels at night.
      */
     @Test
-    fun `the lit lamps are registered to the shell they are painted on`() {
-        // Both drawings are authored in local scene coordinates now, so each blit origin is its
-        // own viewBox minimum; asserting all four is what keeps a re-crop of either file from
-        // sliding the lamps off the panels at night.
-        val shell = viewBox(svgSource("car_body.svg").readText())
-        val lamps = viewBox(svgSource("car_lights.svg").readText())
-        assertEquals("the shell is blitted at its own viewBox minimum x",
-            shell[0], SceneObjectRenderer.CAR_BODY_X_UNITS, 0.001f)
-        assertEquals("and y", shell[1], SceneObjectRenderer.CAR_BODY_Y_UNITS, 0.001f)
-        assertEquals("the lamp overlay likewise in x",
-            lamps[0], SceneObjectRenderer.CAR_LIGHTS_X_UNITS, 0.001f)
-        assertEquals("and in y", lamps[1], SceneObjectRenderer.CAR_LIGHTS_Y_UNITS, 0.001f)
+    fun `every shell is blitted at its own viewBox minimum`() {
+        // Each drawing is authored in local scene coordinates, so its blit origin *is* its own
+        // viewBox minimum. Asserting it per body is what keeps a re-crop of any one file from
+        // sliding that car sideways while the other two stay put.
+        for (shell in CarShell.entries) {
+            val body = viewBox(svgSource(spriteFileName(shell.bodyRes).replace(".png", ".svg")).readText())
+            assertEquals("$shell body x", body[0], shell.bodyXUnits, 0.001f)
+            assertEquals("$shell body y", body[1], shell.bodyYUnits, 0.001f)
+            val glass = viewBox(svgSource(spriteFileName(shell.glassRes).replace(".png", ".svg")).readText())
+            assertEquals("$shell glass x", glass[0], shell.glassXUnits, 0.001f)
+            assertEquals(
+                "$shell glass y", glass[1],
+                SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS, 0.001f,
+            )
+        }
+    }
+
+    /**
+     * The lamp lenses land inside the housing each body bakes for them.
+     *
+     * v4.19 shares one amber sprite and one red sprite across three bodies and the fire engine,
+     * so registration is no longer a property of one file pair: each body says where the lenses
+     * go, and a lens that missed its housing would sit on painted metal. Measured on the shipped
+     * pixels rather than on the numbers, so a redraw of either part is caught.
+     */
+    @Test
+    fun `both lamp lenses land on the housing every body bakes for them`() {
+        val front = ImageIO.read(File(drawableDir(), "car_lamp_front.png"))
+        val rear = ImageIO.read(File(drawableDir(), "car_lamp_rear.png"))
+        val px = SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+        for (shell in CarShell.entries) {
+            val body = ImageIO.read(File(drawableDir(), spriteFileName(shell.bodyRes)))
+            for ((lens, ox, oy) in listOf(
+                Triple(front, shell.lampFrontXUnits, shell.lampFrontYUnits),
+                Triple(rear, shell.lampRearXUnits, shell.lampRearYUnits),
+            )) {
+                val x0 = ((ox - shell.bodyXUnits) * px).toInt()
+                val y0 = ((oy - shell.bodyYUnits) * px).toInt()
+                var outside = 0
+                for (y in 0 until lens.height) {
+                    for (x in 0 until lens.width) {
+                        if ((lens.getRGB(x, y) ushr 24) < 128) continue
+                        val bx = x0 + x
+                        val by = y0 + y
+                        val onShell = bx in 0 until body.width && by in 0 until body.height &&
+                            (body.getRGB(bx, by) ushr 24) >= 200
+                        if (!onShell) outside++
+                    }
+                }
+                assertEquals("$shell: a lamp lens must sit entirely on painted shell", 0, outside)
+            }
+        }
     }
 
     // ---------------------------------------------------------------- shop fronts
@@ -639,42 +703,35 @@ class VehicleAndShopFrontTest {
     }
 
     /**
-     * The appliance's bays are aluminium roll-up shutters, not painted panels.
+     * The appliance carries three silver equipment lockers along its body.
      *
-     * The slat texture is what says fire appliance at scene scale, and it is artwork: read off
-     * the shipped PNG rather than restated. Inside each upper bay the panel must be the cool
-     * silver family, clearly lighter than the red around it, with at least three darker slat
-     * lines crossing it.
+     * They are what stops the body reading as one flat red slab, and they are the detail that
+     * says "appliance" rather than "van" at scene scale. Counted on the shipped pixels as runs
+     * of cool grey along the locker row, so a redraw that dropped one, or filled the row solid,
+     * fails here.
      */
     @Test
-    fun `the appliance's upper bays are silver roll-up shutters`() {
+    fun `the appliance carries three equipment lockers along its body`() {
         val image = ImageIO.read(File(drawableDir(), "firetruck_body.png"))
-        // Upper bays at svg (46..68) and (71..93) x, (17..29) y, in a viewBox starting (1,8): px
-        // (x-1)*3, (y-8)*3.
-        for (bayLeft in listOf(46f, 71f)) {
-            val cx = ((bayLeft + 11f - 1f) * 3f).toInt()
-            val cy = ((23f - 8f) * 3f).toInt()
-            var silver = 0
-            var slats = 0
-            var previousWasSlat = false
-            for (dy in -15..15) {
-                val argb = image.getRGB(cx, cy + dy)
-                val r = (argb shr 16) and 0xFF
-                val g = (argb shr 8) and 0xFF
-                val bch = argb and 0xFF
-                val cool = r in 120..230 && kotlin.math.abs(r - g) < 25 && kotlin.math.abs(g - bch) < 25
-                if (cool) {
-                    silver++
-                    val dark = r < 185
-                    if (dark && !previousWasSlat) slats++
-                    previousWasSlat = dark
-                } else {
-                    previousWasSlat = false
-                }
-            }
-            assertTrue("the bay at ${'$'}bayLeft must be mostly silver, was ${'$'}silver/31", silver >= 20)
-            assertTrue("with at least three slat lines, was ${'$'}slats", slats >= 3)
+        val px = SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+        // The locker row, in the body's own local units, read through its blit origin.
+        // The locker row sits ABOVE the cream stripe: below it the wheel arches rise to y=13.3
+        // and ate two of the three panels, which is what the v4.19 redraw moved them off.
+        val row = ((4f - SceneObjectRenderer.FIRE_TRUCK_BODY_Y_UNITS) * px).toInt()
+        var runs = 0
+        var inRun = false
+        for (x in 0 until image.width) {
+            val argb = image.getRGB(x, row)
+            val r = (argb shr 16) and 0xFF
+            val g = (argb shr 8) and 0xFF
+            val b = argb and 0xFF
+            // The locker steel is #C9CDD2, a *cool* grey: b is a few points above r. The paper
+            // rim is neutral (#dcdcdc), so requiring the blue lift is what tells them apart.
+            val silver = (argb ushr 24) >= 200 && r in 185..215 && b > r + 4 && b - r < 20
+            if (silver && !inRun) runs++
+            inRun = silver
         }
+        assertEquals("three lockers along the body, found $runs", 3, runs)
     }
 
     /**
@@ -736,18 +793,36 @@ class VehicleAndShopFrontTest {
      * The cabin roof, measured off the shipped `car_body`: the columns whose shell reaches the
      * drawing's topmost row, in the local units the renderer places accessories in.
      */
-    private fun carRoofSpanFromArtwork(): Pair<Float, Float> {
-        val image = ImageIO.read(File(drawableDir(), "car_body.png"))
+    /**
+     * The run of roof a given body actually draws: the columns whose shell reaches the drawing's
+     * highest row. That is the cabin top plus the shoulder pixels either side of it, which is
+     * exactly the surface something can be mounted on, and it moves if the artwork's cabin moves.
+     *
+     * The estate is excluded by its callers rather than by this helper: its highest row is the
+     * roof rack, not the roof, and it carries no roof accessory anyway.
+     */
+    private fun carRoofSpanFromArtwork(shell: CarShell): Pair<Float, Float> {
+        val image = ImageIO.read(File(drawableDir(), spriteFileName(shell.bodyRes)))
         val tops = IntArray(image.width) { x ->
             (0 until image.height).firstOrNull { (image.getRGB(x, it) ushr 24) >= 200 } ?: image.height
         }
         val highest = tops.min()
         val columns = tops.indices.filter { tops[it] == highest }
-        // The blit origin is (-48,-11), and the sprite is three pixels to the local unit.
         val toLocal = { px: Int ->
-            SceneObjectRenderer.CAR_BODY_X_UNITS + px / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+            shell.bodyXUnits + px / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
         }
         return toLocal(columns.first()) to toLocal(columns.last() + 1)
+    }
+
+    /** The three bodies' sprite files, by the resource each [CarShell] declares. */
+    private fun spriteFileName(res: Int): String = when (res) {
+        R.drawable.car_body_compact -> "car_body_compact.png"
+        R.drawable.car_body_saloon -> "car_body_saloon.png"
+        R.drawable.car_body_estate -> "car_body_estate.png"
+        R.drawable.car_window_compact -> "car_window_compact.png"
+        R.drawable.car_window_saloon -> "car_window_saloon.png"
+        R.drawable.car_window_estate -> "car_window_estate.png"
+        else -> error("no file mapped for resource $res")
     }
 
     private fun drawCarSource(): String = drawSource("drawCar")

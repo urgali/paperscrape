@@ -200,6 +200,10 @@ the artwork or in the number that places it:
 - The car-driver head was placed by centring its canvas, which is right for a
   60x60 sprite and wrong for a 171x162 one with a `CONTENT_BOTTOM_CENTRE` anchor:
   the bust landed a third of the way down the door. Now placed anchor-first.
+- **v4.19 redrew the appliance again**, into the language the three new car bodies share:
+  arches concentric with the tyre, the same corner radii and lower band, a cab-over nose with an
+  upright screen, and the two lamp lenses the whole fleet shares -- which is where its first rear
+  lamp came from.
 - The fire truck shared `car_body`, so its silhouette was a sedan's. It has its
   own body sprite now.
 
@@ -493,10 +497,15 @@ The three scales are quotients, so the next complaint about occupant size has to
 the artwork; it cannot be answered with a fourth tuned constant, which is the failure mode §2
 records five times in three releases.
 
-**What was deliberately not done:** the car was not enlarged. Its 1.45 m is an honest
-roof-to-wheel-contact reading of the artwork, the projection reproduces it to within a pixel of
-anti-aliasing, and making the vehicle bigger so its occupants would fit is resizing the wrong
-object.
+**What was deliberately not done *then*:** the car was not enlarged, because making a vehicle
+bigger so its occupants would fit is resizing the wrong object.
+
+**v4.19 enlarged it anyway, and the difference is which object was redrawn.** The concept pass did
+not scale the old car up to make room; it drew three new bodies around the people, and the metres
+followed the units because the artwork itself grew -- the reference car is 1.6912 m against 1.51,
+in a family that shares one metre-per-unit so a unit is the same pixel on all three. The rule this
+paragraph protects is intact: nothing was resized to fit; the thing that had to change was the
+cabin, and it was the cabin that changed.
 
 ### Decoration placement comes from the foliage's own content box **[OBSERVED]**
 

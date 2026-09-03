@@ -431,6 +431,11 @@ class ShippedSourcesTest(unittest.TestCase):
                 # `R.drawable.leaf_pile` literally and the loop is written once rather
                 # than twice. Same shape as the lookups above -- the sprite is named at
                 # the call site, not at the blit.
+                # v4.19: a car's body and its glass are chosen from `CarShell`, which the
+                # runtime resolves once per vehicle from the vehicle's own identity. Same shape
+                # as the lookups above -- the sprite is named in the enum, not at the blit.
+                or site.expression == "shell.bodyRes"
+                or site.expression == "shell.glassRes"
                 or site.expression == "drawable"
                 or "R.drawable." in site.expression
                 or "[" in site.expression,

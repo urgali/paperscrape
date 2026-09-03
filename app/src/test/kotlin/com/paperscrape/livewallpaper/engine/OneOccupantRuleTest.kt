@@ -105,19 +105,35 @@ class OneOccupantRuleTest {
      * two same-family occupants are identical in all three of family, hair and clothing whatever
      * the tone does.
      *
-     * Read out of `drawCar` rather than restated, the way this file reads the window rule: the
-     * passenger's family index must be the driver's complement, which makes the property hold by
-     * construction for every seed rather than for the seeds a test happens to try. The tone is
-     * asserted to still come from a seed channel, because forcing the family apart must not
-     * quietly make every car the same pair.
+     * Read out of `drawCar` rather than restated, the way this file reads the window rule -- but
+     * v4.19 makes the property checkable directly instead, because children now ride and the
+     * passenger is no longer simply "the other adult". The rule is that the passenger's family is
+     * never the driver's, chosen from the remaining three; the expression is exercised over the
+     * whole seed space rather than grepped for, which is stronger than the string match this used
+     * to do. The tone is asserted to still come from a seed channel, because forcing the family
+     * apart must not quietly make every car the same pair.
      */
     @Test
     fun `the two occupants of a car are never the same family`() {
         val source = drawCarSource()
+        // The shipped expression, exercised over every seed rather than matched as text.
+        var sawChild = false
+        for (seed in 0 until 100_000) {
+            val driverKindIdx = seed % 2
+            val passengerKindIdx = (driverKindIdx + 1 + seed / 7 % 3) % 4
+            assertTrue(
+                "seed $seed seats two of the same family",
+                passengerKindIdx != driverKindIdx,
+            )
+            assertTrue("seed $seed picks a family outside the four", passengerKindIdx in 0..3)
+            assertTrue("the driver is always an adult", driverKindIdx in 0..1)
+            if (passengerKindIdx >= 2) sawChild = true
+        }
+        assertTrue("children must actually be reachable as passengers", sawChild)
         assertTrue(
-            "the passenger's family must be the driver's complement, not its own seed channel; " +
-                "found no `1 - driverKindIdx` in drawCar",
-            Regex("""val passengerKindIdx = 1 - driverKindIdx""").containsMatchIn(source),
+            "and the shipped call site must be that expression",
+            Regex("""val passengerKindIdx = \(driverKindIdx \+ 1 \+ driverSeed / 7 % 3\) % 4""")
+                .containsMatchIn(source),
         )
         assertTrue(
             "the driver's family must still vary with the seed",
