@@ -81,8 +81,40 @@ class SpriteGeometryTest {
      * alternative above remains the cheaper answer if pressure is ever measured on a real
      * device. The ceiling is set just above the measured figure, as always, so the next pass
      * has to come here and say so too.
+     *
+     * **v4.20 raises it to 29 MiB, and this is that argument.** It buys the clothing-colour axis
+     * that item 5 of `BACKLOG_v4_19.md` has been asking for since v4.18 -- a second outfit for the
+     * two adult families, two seasons and three tones, 12 sprites at 74 448 B = **893 376 B**.
+     *
+     * *First, the space was looked for rather than asked for.* Six sprites came out of the set:
+     * `house_window` and the three `road_*` drawings, which no call site has ever blitted (212 328
+     * B), and the two boy vehicle bases, verified byte-for-byte identical to their own `_skin2`
+     * and regenerable from it with zero differing pixels (148 896 B). That is 361 224 B recovered
+     * -- real space, not accounting -- and it takes the set from 28.256 MiB to **27.912 MiB**, so
+     * 616 596 B were free under the old ceiling. The axis needs 893 376. It does not fit, and the
+     * shortfall is 276 780 B.
+     *
+     * *Then, and only then, the ceiling.* The set lands at 30 161 196 B = **28.764 MiB**, and 29
+     * MiB is the next figure just above it, leaving 247 508 B -- the same "just above the measured
+     * figure" every paragraph here has used, for the same reason: the pass after this one has to
+     * come here and argue too.
+     *
+     * *What it costs, measured rather than reasoned about.* The v4.20 pass report carries the PSS
+     * of the release build running as the live wallpaper, A/B against v4.19 rebuilt from its own
+     * ZIP at the same theme and the same elapsed time. The authorisation for this raise was
+     * explicitly conditional on that number not moving beyond the noise, and the item was to be
+     * refused outright if it did. The worst case this budget measures is unchanged in kind:
+     * sprites decode on demand and no frame decodes both outfits of one family in one tone.
+     *
+     * *How much of the frame it actually changes.* The garment is a band of 21 canvas px across
+     * the shoulders, which is 7 canvas units and so **3.330 local units** at
+     * [SceneObjectRenderer.CAR_OCCUPANT_SCALE]. On the reference 1080x2340 device that is
+     * **4.14 px in the far lane** (1.2418 px per unit) and **4.78 px in the near one** (1.4360) --
+     * above the 3 px legibility floor v4.19 derived for the pillar light, in both lanes, but not
+     * by much. Recorded here because "it fits" and "it shows" are different questions and the
+     * paragraphs above only answer the first.
      */
-    private val decodedByteBudget = 28L * 1024L * 1024L + 512L * 1024L
+    private val decodedByteBudget = 29L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {

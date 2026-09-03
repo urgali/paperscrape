@@ -56,16 +56,16 @@ def _reached_only_by_lookup(name: str) -> bool:
     them is ever named literally at a blit, so there is nothing to attribute -- which
     is why they are excused here rather than counted as agreeing.
 
-    The three `road_*` sprites are a different case with the same symptom: nothing
-    blits them at all. They are orphans, recorded as such in the registry and in
-    `ROADMAP.md`, and they will leave this predicate when they are wired up or
-    deleted.
+    The three `road_*` sprites used to be a different case with the same symptom:
+    nothing blitted them at all. **v4.20 deleted them**, along with `house_window`,
+    rather than leaving them excused here -- an orphan excused by a predicate is an
+    orphan nobody is going to wire up. `SpriteReachabilityTest` now fails on any new
+    one, so this predicate no longer has to carry them.
     """
     return (
         name.startswith("person_")
         or name.startswith("moon_")
         or name.startswith("santa_sleigh_")
-        or name in ("road_asphalt", "road_curb", "road_line")
     )
 
 

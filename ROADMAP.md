@@ -11,16 +11,37 @@ that was.
 
 ## Current status
 
-**v4.19 prepared — not published, not approved.**
+**v4.20 prepared — not published, not approved.**
 
-`versionCode = 50`, `versionName = "4.19"`. **No tag, no push, no GitHub Release.** Baseline:
-the prepared **v4.18**. The account is in `RELEASE_HISTORY.md`; the verification report is
-`release-verification/V4_19_REPORT.md`; what is still open is `BACKLOG_v4_19.md`, which v4.19
-updates in place — items 2, 4 and 6 closed, item 7 partly, and items 13, 14 and 15 added.
+`versionCode = 51`, `versionName = "4.20"`. **No tag, no push, no GitHub Release.** Baseline:
+**v4.19, which the maintainer reports as published** — that is recorded on their word, not on a
+measurement taken here: this working tree has no tag for it and nothing in it can reach the remote.
+The account is in `RELEASE_HISTORY.md`.
+
+**The backlog is closed.** `BACKLOG_v4_19.md` is replaced by `BACKLOG_v4_20.md`, in which all
+fifteen of its items carry an outcome — resolved, rejected, or documented with the measurement that
+settled it — plus the two found during the pass. There is no open-debt section, and the guards that
+watch the documented items are listed there rather than left to be rediscovered.
+
 Publication is the maintainer's decision and has not been taken.
 
 ```
-v4.19 [x]
+v4.20 [x] a maintenance pass: the backlog goes to zero
+ |- the three car bodies dealt 4/3/3 instead of hashed. The hash was fine and its input was not:
+ |  a candidate's lane and queue slot carry exactly ten values, so it dealt one fixed hand --
+ |  5/3/2, measured as 51/31/19 on the shipped catalogue
+ |- and the same ten values, all odd, made `driverSeed % 2` constant: **every car in every theme
+ |  was driven by a woman** and no boy had ever ridden. Both are tables now
+ |- one vehicle per special type: eight of the twelve themes carried a duplicate, eleven in all
+ |- the clothing-colour axis, 12 sprites, so a garment stops being a family's identity
+ |- 361 224 B of unreachable sprites recovered before the ceiling was raised 28.5 -> 29 MiB,
+ |  and the dead table that kept them referenced for lint is gone with them
+ |- a one-shot migration for themes saved before pass six: duplicate storefronts and duplicate
+ |  special vehicles, repaired per entry so a malformed one cannot cost the whole store
+ |- `VehicleOccupantAbCapture` renders both directions, checked on the frame
+ \- the Adreno golden gap turned from a rediscovery into a guard that fires at 2% of a 3% gate
+
+v4.19 [x] published (the maintainer's report)
  |- three car bodies (compact, saloon, estate) rotating from the vehicle's own immutable
  |  identity, resolved once at runtime construction so nothing per-frame can reach the choice
  |- one metre-per-unit for the whole family, so three different heights still read as one set
@@ -630,7 +651,7 @@ closed by v4.0** -- `targetSdk` and `compileSdk` are both 37 now.
 | 2 | **Star-field cost, if it still matters** | Most stars became single `drawCircle` points shortly before v1.0, which cut the per-frame count to roughly a third. Whether the remainder is still worth attention is a question for a device, not for a static count. |
 | 3 | **Mountain paths rebuilt per frame** | Two `Path` objects per mountain per frame, from the CPU audit. Real allocation on a draw path; worth doing only if the device shows it. |
 | 4 | **Per-vehicle-type toggles** | Cars, taxis, police and fire engines share one visibility switch. Small, self-contained, low value — do it when something else is already open in that file. |
-| 5 | **Orphan resources** | Four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) and 20 `UnusedResources` lint warnings. Either wire them up or delete them; leaving them is what makes the lint baseline unreadable. |
+| 5 | ~~**Orphan resources**~~ | **Done in v4.20.** The four sprites nothing blits (`house_window`, `road_asphalt`, `road_curb`, `road_line`) were deleted with their SVG sources -- 212 328 B of decoded budget -- and so was the table in `SceneObjectRenderer` that existed only to keep eight more of them referenced so `UnusedResources` would stay quiet. `SpriteReachabilityTest` now fails on a new unreachable sprite *and* on a sprite table that is declared and never read, which is the mechanism rather than the instance. See item 7 of `BACKLOG_v4_20.md`. |
 | 6 | **Device pass on the parts v2.14 did not reach** | v2.14 saw the five destinations, the colour scheme and the settings shells rendering on a Pixel 9, which closes the bottom-spacing half of this. Still unseen: the twelve mini-scene previews (verified by rasterising the scene description the code produces, not by the app drawing it), and v2.12's sun/moon and people work. The updater's end-to-end run left this row for **D13** and was done in v3.0. |
 | 7 | **README / lint / KDoc tidying** | `UseKtx`, `ObsoleteSdkInt`, `DataExtractionRules`, and KDoc that has accumulated layers across releases. |
 

@@ -748,10 +748,29 @@ has to move the glass or the artwork and cannot be answered with a fourth consta
 
 **v4.19: three bodies, one metre-per-unit.** `CarShell` carries a compact, a saloon and an estate,
 and a plain car picks one from its own immutable identity (`laneYFraction`, `startDelaySeconds`),
-bit-mixed and resolved **once** in `CarRuntime`'s constructor -- nothing per-frame can reach the
-choice, which is the structural guard against v4.17's falling-leaf defect. A taxi is always the
-compact and a police car always the saloon, so their roof accessories and liveries are drawn to one
-roof and one door line each.
+resolved **once** in `CarRuntime`'s constructor -- nothing per-frame can reach the choice, which is
+the structural guard against v4.17's falling-leaf defect. A taxi is always the compact and a police
+car always the saloon, so their roof accessories and liveries are drawn to one roof and one door
+line each.
+
+**v4.20: that identity has exactly ten values, and everything derived from it is a table.** The two
+fields are a lane constant (one of two) and a point on an arithmetic progression (one of
+`CAR_SLOTS_PER_LANE`), the same ten in every theme the app ships. So a hash of them is not sampling
+a distribution -- it deals one fixed hand, once, forever. v4.19's avalanche mix dealt 5/3/2 bodies
+(43/26/16 of 85 civilian cars) and the occupant seed, whose ten values all happen to be odd, made
+`driverSeed % 2` constant: **every car in every theme was driven by a woman**, and no boy ever rode.
+
+`SceneObjectCatalog.candidateIndexOf` recovers that index by inverting the expression the candidate
+was generated from, and `CarShell` and `SeatedOccupants` deal from it: the body 4/3/3, the driver's
+family 5/5, the passenger's over the other three, both tones 4/3/3, and which of the two adult
+outfits both seats wear. Each deal is as even as ten items allow and is ordered so no lane repeats a
+value at consecutive queue positions. The stability contract is unchanged -- these are still pure
+functions of the vehicle's own immutable fields, resolved outside any per-frame path.
+
+The lesson is not about hashing. A hash cannot create entropy that the input does not have, and the
+test that should have caught the driver defect did exercise the shipped expression -- over a hundred
+thousand seeds the app cannot produce. Where a car's identity feeds a choice, the space is ten and
+the honest answer is a table that can be read and counted.
 
 The three bodies are deliberately different heights, so `SceneSpace` governs the family by a
 **metre-per-unit** (`CAR_UNIT_METRES`, v4.18's own 1.51/50) rather than by a height: each body's

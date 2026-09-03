@@ -96,56 +96,79 @@ class OneOccupantRuleTest {
     }
 
     /**
-     * **A car never carries the same person twice.**
+     * **A car never carries the same person twice, and this time over the seeds that exist.**
      *
-     * The rc5 defect this pins: the passenger's family came from its own seed channel and only
-     * the *tone* was forced apart when family and tone both collided, so two women — or two men —
-     * could share a car. In this artwork a family carries its hairstyle **and** its clothing
-     * (every woman bust is the red top with the yellow band, every man bust the blue one), so
-     * two same-family occupants are identical in all three of family, hair and clothing whatever
-     * the tone does.
+     * The rc5 defect this pins: the passenger's family came from its own seed channel and only the
+     * *tone* was forced apart when family and tone both collided, so two women -- or two men --
+     * could share a car. In this artwork a family carries its hairstyle and, until v4.20, its
+     * clothing, so two same-family occupants were identical in all three of family, hair and
+     * clothing whatever the tone did.
      *
-     * Read out of `drawCar` rather than restated, the way this file reads the window rule -- but
-     * v4.19 makes the property checkable directly instead, because children now ride and the
-     * passenger is no longer simply "the other adult". The rule is that the passenger's family is
-     * never the driver's, chosen from the remaining three; the expression is exercised over the
-     * whole seed space rather than grepped for, which is stronger than the string match this used
-     * to do. The tone is asserted to still come from a seed channel, because forcing the family
-     * apart must not quietly make every car the same pair.
+     * ### Why this test passed for a release while the street had one driver
+     *
+     * It exercised the shipped expression over `seed in 0 until 100_000` and proved the *rule* --
+     * a passenger is never the driver -- which was true. What it could not see is that the app
+     * never produces a hundred thousand seeds. `driverSeed` is
+     * `abs((laneYFraction * 7919 + startDelaySeconds * 131).toInt())` over two lane constants and
+     * five queue slots: **ten values, 6643 to 7033, every one of them odd**, because they step by
+     * 42. So `driverSeed % 2` was 1 in all ten and every car in every theme was driven by a woman,
+     * with no boy ever a passenger. A test over a seed space the program cannot reach proves
+     * something about a function, not about the app.
+     *
+     * So it now runs over [SceneObjectCatalog.candidateIndexOf]'s ten, which are all there are, and
+     * asserts the population as well as the rule.
      */
     @Test
     fun `the two occupants of a car are never the same family`() {
-        val source = drawCarSource()
-        // The shipped expression, exercised over every seed rather than matched as text.
-        var sawChild = false
-        for (seed in 0 until 100_000) {
-            val driverKindIdx = seed % 2
-            val passengerKindIdx = (driverKindIdx + 1 + seed / 7 % 3) % 4
-            assertTrue(
-                "seed $seed seats two of the same family",
-                passengerKindIdx != driverKindIdx,
-            )
-            assertTrue("seed $seed picks a family outside the four", passengerKindIdx in 0..3)
-            assertTrue("the driver is always an adult", driverKindIdx in 0..1)
-            if (passengerKindIdx >= 2) sawChild = true
+        val cars = ThemeCatalog.ALL
+            .flatMap { SceneObjectCatalog.layoutFor(it.id, it.accentColor).cars }
+            .filter { it.type.seatsTwo }
+        assertTrue("no seated traffic to check", cars.isNotEmpty())
+
+        val drivers = mutableSetOf<Int>()
+        val passengers = mutableSetOf<Int>()
+        for (spec in cars) {
+            val driver = SeatedOccupants.driverKind(spec)
+            val passenger = SeatedOccupants.passengerKind(spec)
+            assertTrue("a car seats two of the same family", driver != passenger)
+            assertTrue("the driver must be an adult", driver in 0..1)
+            assertTrue("the passenger must be one of the four families", passenger in 0..3)
+            drivers += driver
+            passengers += passenger
         }
-        assertTrue("children must actually be reachable as passengers", sawChild)
-        assertTrue(
-            "and the shipped call site must be that expression",
-            Regex("""val passengerKindIdx = \(driverKindIdx \+ 1 \+ driverSeed / 7 % 3\) % 4""")
-                .containsMatchIn(source),
+        assertEquals("both adults must actually drive, not just be allowed to", setOf(0, 1), drivers)
+        assertEquals(
+            "all four families must actually ride -- under the old hash only two ever did",
+            setOf(0, 1, 2, 3), passengers,
         )
+    }
+
+    /**
+     * And the shipped call site takes them from there, rather than from a seed.
+     *
+     * Read out of `drawCar`'s own source, the way this file reads the window rule: the property is
+     * *where the choice is made*. A hash of the candidate's fields would pass the test above on any
+     * day its ten values happened to land well.
+     */
+    @Test
+    fun `drawCar deals its occupants instead of hashing them`() {
+        val source = drawCarSource()
+        for (call in listOf(
+            "SeatedOccupants.driverKind(c.spec)",
+            "SeatedOccupants.driverSkin(c.spec)",
+            "SeatedOccupants.passengerKind(c.spec)",
+            "SeatedOccupants.passengerSkin(c.spec)",
+            "SeatedOccupants.outfit(c.spec)",
+        )) {
+            assertTrue("drawCar must take its occupants from $call", source.contains(call))
+        }
         assertTrue(
-            "the driver's family must still vary with the seed",
-            Regex("""val driverKindIdx = driverSeed % 2""").containsMatchIn(source),
+            "the seed hash that made every driver a woman must not come back",
+            !source.contains("val driverSeed"),
         )
-        assertTrue(
-            "both seats must still draw their skin tone from a seed channel",
-            Regex("""val driverSkinIdx = driverSeed / \d+ % 3""").containsMatchIn(source) &&
-                Regex("""val passengerSkinIdx = driverSeed / \d+ % 3""").containsMatchIn(source),
-        )
-        // And the table the two indices address really is [kind][season][skin] with the two
-        // adult families first, so "the complement" means the other adult and not a child.
+
+        // And the table the indices address really is [kind][season][skin] with the two adult
+        // families first, so "the driver is an adult" means the first two rows.
         val table = rendererSource().readText()
             .substringAfter("private val personCarHeadSkinDrawables = arrayOf(")
             .substringBefore("\n    )")

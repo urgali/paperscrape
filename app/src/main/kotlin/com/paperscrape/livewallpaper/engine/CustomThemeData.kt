@@ -483,7 +483,7 @@ fun customThemeEntryFromJson(json: JSONObject): CustomThemeEntry = CustomThemeEn
  * When bumping, add the corresponding step to [migrateCustomThemeJson] and a test that loads a
  * fixture of the old shape and asserts the migrated result.
  */
-const val CUSTOM_THEME_SCHEMA_VERSION = 3
+const val CUSTOM_THEME_SCHEMA_VERSION = 4
 
 /**
  * Version reported for data written before schema versioning existed (v73 and earlier). Such
@@ -575,10 +575,106 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
     // coordinates that no longer describe any road the app draws, so a future reader knows
     // those numbers were already advisory when it was written.
 
+    // 3 -> 4: two things a stored theme can carry that its generator can no longer produce.
+    //
+    // Both are the same shape of problem -- a generator was fixed and the themes saved before the
+    // fix were not -- and both are genuinely one-shot, which is what makes them migrations rather
+    // than another canonicalise-on-load: the *content* of a saved theme is the user's, and
+    // rewriting it on every read would be the app second-guessing them forever. Rewriting it once,
+    // for a defect the app itself shipped, is a repair.
+    //
+    //  - **Duplicate storefronts** (item 9 of `BACKLOG_v4_19.md`). Pass six made the catalogue emit
+    //    exactly one restaurant and one bar per tile ([SceneObjectCatalog.singleShopPerVariant])
+    //    and never migrated what was already saved, so a theme older than that can still show two
+    //    of the same shop on one tile.
+    //  - **Duplicate special vehicles** (items 11 and 14, closed for new themes in v4.20). The same
+    //    story one release later: the per-type cap is applied where the types are rolled, which
+    //    does nothing for a theme rolled before it existed.
+    //
+    // **Neither step may be able to fail the read.** `customThemeDataFromJsonString` turns any
+    // exception from here into `CustomThemeData.EMPTY`, which is every saved theme the user has;
+    // the DataStore corruption fixed in v3.1 is the reminder of what that costs. So each entry is
+    // repaired inside its own `runCatching` and anything unexpected leaves that entry exactly as it
+    // was found. The failure mode is "this one theme is not repaired", never "there are no themes".
+    if (fromVersion < 4) {
+        forEachEntry(root) { entry ->
+            runCatching {
+                val layout = entry.optJSONObject("layout") ?: return@runCatching
+                migrateDuplicateStorefronts(layout.optJSONArray("staticObjects"))
+                migrateDuplicateSpecialVehicles(layout.optJSONArray("cars"))
+            }
+        }
+    }
+
     // Future breaking changes add one step each, in order, above this line:
-    //   if (fromVersion < 4) { ...rewrite root...; }
+    //   if (fromVersion < 5) { ...rewrite root...; }
     root.put("schemaVersion", CUSTOM_THEME_SCHEMA_VERSION)
     return CUSTOM_THEME_SCHEMA_VERSION
+}
+
+/**
+ * Keeps one commercial building per storefront variant and moves the rest to tower depths.
+ *
+ * The same rule and the same arithmetic as [SceneObjectCatalog.singleShopPerVariant], applied to a
+ * stored layout instead of a generated one: of the shop-band candidates
+ * (`depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH`), the depth-middle one of each half-band
+ * either side of [SceneSpace.SHOP_VARIANT_DEPTH_SPLIT] stays a shop, and every other one keeps its
+ * slot, its x and its size and takes a tower depth interleaved across the tower band.
+ *
+ * Only `depthFraction` moves, and only for the surplus. A shop's depth *is* what makes it a shop
+ * (see [SceneSpace.BUILDING_TOWER_MAX_DEPTH]), so this changes what a building is drawn as and
+ * nothing else about the theme -- not its colours, not its density, not how many buildings it has.
+ *
+ * Idempotent by construction: after it runs there is at most one shop per half-band, so a second
+ * run finds nothing to move. That matters because a payload is migrated on every load until the
+ * user next saves it.
+ */
+private fun migrateDuplicateStorefronts(objects: JSONArray?) {
+    if (objects == null) return
+    val shopIndices = (0 until objects.length()).filter { i ->
+        val obj = objects.optJSONObject(i) ?: return@filter false
+        obj.optString("type") == SceneObjectType.SKYSCRAPER.name &&
+            obj.optFinite("depthFraction", 0f) >= SceneSpace.BUILDING_TOWER_MAX_DEPTH
+    }
+    if (shopIndices.size <= 1) return
+    fun depthOf(i: Int) = objects.getJSONObject(i).optFinite("depthFraction", 0f)
+    fun middleByDepth(indices: List<Int>): Int? =
+        indices.sortedBy { depthOf(it) }.let { if (it.isEmpty()) null else it[it.size / 2] }
+    val kept = setOfNotNull(
+        middleByDepth(shopIndices.filter { depthOf(it) < SceneSpace.SHOP_VARIANT_DEPTH_SPLIT }),
+        middleByDepth(shopIndices.filter { depthOf(it) >= SceneSpace.SHOP_VARIANT_DEPTH_SPLIT }),
+    )
+    val demoted = shopIndices.filterNot { it in kept }
+    if (demoted.isEmpty()) return
+    demoted.forEachIndexed { rank, i ->
+        objects.getJSONObject(i).put(
+            "depthFraction",
+            (SceneSpace.BUILDING_TOWER_MAX_DEPTH * (2 * rank + 1) / (2f * demoted.size)).toDouble(),
+        )
+    }
+}
+
+/**
+ * Demotes a stored theme's surplus special vehicles to [CarType.PLAIN], one of each type kept.
+ *
+ * The road side of the same story: [SceneObjectCatalog.capSpecialsToOnePerType] caps the types
+ * where they are rolled, which repairs nothing that was rolled before it existed -- and eight of
+ * the twelve *shipped* themes were in that state, so a user's saved copies of them are too.
+ *
+ * The first of each type is the one kept, matching the generator exactly, so a repaired theme and a
+ * freshly generated one agree. Only `type` changes: the surplus vehicle keeps its lane, its slot,
+ * its speed and its colour, so the theme still has the same number of cars on the same road.
+ */
+private fun migrateDuplicateSpecialVehicles(cars: JSONArray?) {
+    if (cars == null || cars.length() <= 1) return
+    val seen = HashSet<String>()
+    for (i in 0 until cars.length()) {
+        val car = cars.optJSONObject(i) ?: continue
+        val type = car.optString("type", CarType.PLAIN.name)
+        if (type == CarType.PLAIN.name) continue
+        if (CarType.entries.none { it.name == type }) continue
+        if (!seen.add(type)) car.put("type", CarType.PLAIN.name)
+    }
 }
 
 /**

@@ -15,7 +15,94 @@ summary** — the one to read when picking up the project after a gap.
 Neither `CHANGELOG.md` nor the release notes record release dates, and this
 repository was received without Git history, so **no release date before v73
 can be stated accurately**. They are deliberately left blank rather than
-guessed. Dates are recorded from the next release onward.
+guessed. Dates are recorded from v73 onward.
+
+This is the whole of what item 12 of the v4.19 backlog said, and v4.20 closed that item by
+moving the note here rather than by leaving it on a list of things to do. There is nothing
+to fix: the information does not exist, and it is recorded where somebody looking for a
+release date will be standing.
+
+---
+
+## v4.20 — the backlog goes to zero
+
+**Prepared, not published.** `versionCode = 51`, `versionName = "4.20"`. Prepared 2026-09-03. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.19**, which
+the maintainer reports as published — recorded on their word, since nothing in this working tree
+can confirm it.
+
+**What it is.** A maintenance pass with no new artwork direction. Its object was to leave
+`BACKLOG_v4_19.md` with no item lacking a decision, and it does: `BACKLOG_v4_20.md` replaces it
+with fifteen outcomes plus the two found on the way. Five items were fixed, four decided against or
+documented with the measurement that settled them, and the rest had already closed in v4.19.
+
+1. **The three car bodies are dealt, not hashed — and so are the people in them.** v4.19 mixed a
+   candidate's lane and start delay through a 32-bit avalanche and took it modulo three. The
+   mixing was sound; its input was not. **Those two fields carry exactly ten values between them**,
+   the same ten in every theme the app ships, so the hash was not sampling a distribution but
+   dealing one fixed hand: five saloons, three estates, two compacts, which is the 43/26/16 of 85
+   the v4.19 notes recorded. Four-three-three is the most even deal ten slots admit, and the estate
+   takes the fourth because a taxi is always a compact and a patrol car always a saloon, so on a
+   road carrying one of each the estate is the body with nothing already spoken for. Measured over
+   2 015 civilian cars: **compact 30.2%, saloon 30.0%, estate 39.8%**.
+
+2. **And the same ten values had every car driven by a woman.** Found while preparing the clothing
+   axis, and worse than the distribution it was found beside. `driverSeed` is
+   `abs(laneYFraction * 7919 + startDelaySeconds * 131)`, so it has ten values too — 6643 to 7033,
+   stepping by 42, **every one of them odd**. `driverSeed % 2` was therefore 1 in all ten, and
+   index 1 is the woman: across the twelve themes' 120 cars, no man had ever driven, and the
+   passenger was only ever a man or a girl, so **no boy had ever ridden** despite v4.19 seating
+   children specifically so all four families could. `SeatedOccupants` deals all five choices over
+   the ten identities. `OneOccupantRuleTest` did exercise the shipped expression — over a hundred
+   thousand seeds the app cannot produce, which proved a property of the function and nothing about
+   the app; it runs over the ten that exist now.
+
+3. **One vehicle per special type.** Each of the ten candidates rolled its type independently, so
+   nothing stopped two coming up the same: **eight of the twelve shipped themes** carried a
+   duplicate, eleven vehicles in all, and over 250 generator seeds 171 did. That is the two fire
+   engines the v4.19 night capture photographed. The cap is applied where the types are rolled, and
+   a surplus special becomes a plain car rather than disappearing, so the road keeps its traffic.
+
+4. **A clothing-colour axis, so a garment stops being a family's identity.** Twelve sprites: a
+   second outfit for both adult families, two seasons, three tones. The garment turned out to be a
+   single flat colour on all four busts — the entry's "yellow band" is a *headband*, and the man's
+   winter blue is his hat — so the existing verified recolour was the right tool. The replacement
+   is the other adult family's garment paint for the same season, so no colour was invented. The
+   move had to be confined to the garment and two pixels around it: unrestricted it caught the hat
+   outlines, 93 pixels of the man's winter bust moving by more than 24 levels.
+
+5. **The sprite set, and the mechanism that hid its dead weight.** 361 224 B recovered *before* the
+   ceiling was touched — the four sprites nothing has ever blitted, and the two boy vehicle bases,
+   verified byte-identical to their own `_skin2`. The girl's two bases stay and are declared
+   `orphan` with the measurement that justifies them: hers are not duplicates, and regenerating her
+   tones from a heir moves 165 to 406 pixels against zero for every base that was retired. The
+   table in `SceneObjectRenderer` that kept eight of these referenced so `UnusedResources` would
+   stay quiet is gone, and `SpriteReachabilityTest` fails on that shape rather than on its
+   instances. The ceiling moved 28.5 → **29 MiB** afterwards, with the argument where the limit
+   lives; the set is 28.764 MiB.
+
+6. **A migration for themes saved before pass six.** Custom-theme schema 3 → 4 repairs duplicate
+   storefronts and duplicate special vehicles in stored themes. Each entry is repaired inside its
+   own `runCatching`, because the reader turns any exception out of the migration into "no saved
+   themes at all" — the shape of the v3.1 DataStore corruption.
+
+7. **Two measurement instruments repaired.** `VehicleOccupantAbCapture` hardcoded `reverse = true`,
+   so every frame it had ever produced faced left by construction, and those frames had been read
+   as evidence about direction. It renders both now, with an assertion that checks the picture
+   rather than the flag. And `tools/generate_skin_variants.py` had not run since v4.19 retired four
+   of the sources it requires — the tool the registry points at for regenerating variants could not
+   regenerate anything. It reproduces all 120 shipped variants byte-identically again.
+
+8. **The Adreno golden gap is a guard instead of a rediscovery.** 1.18/1.07/0.92% of the outline
+   when the metric was derived, 1.2–1.4% when v4.19 re-measured, against a 3% gate — under the gate
+   on both environments and re-measured by hand three times because nothing recorded it.
+   `GlDriverGapGuardTest` measures it every run and fails at 2%, which is above the worst figure
+   ever recorded and a third below the gate.
+
+**Known and deliberate.** Item 10 (shops and towers sharing a palette entry) is **rejected**: it
+needs a theme-and-backup schema change and the painted shop fronts already differentiate them.
+Item 17, new and open by choice, is that one malformed saved theme still costs the whole store —
+the obvious fix would let the next save silently discard the damaged theme, which is worse.
 
 ---
 

@@ -105,7 +105,7 @@ object RandomSceneGenerator {
         }
 
         val carCount = rnd.nextInt(0, 3)
-        val cars = (0 until carCount).map { index ->
+        val rolled = (0 until carCount).map { index ->
             // Lane, speed and direction are the canonical ones, not rolls of their own. A random
             // lane y put chaos-theme cars on a band of their own that the road was then stretched
             // to cover, and a random speed inside a lane is what makes a queue collapse into a
@@ -122,6 +122,14 @@ object RandomSceneGenerator {
                 type = if (rnd.nextFloat() < 0.75f) CarType.PLAIN else CarType.entries.random(rnd),
             )
         }
+
+        // The per-type cap is applied *after* the roll rather than in place of it, so the random
+        // sequence this generator consumes is untouched and a chaos theme keeps the colours it
+        // always had. Two fire engines in a two-car theme is the same defect the catalogue's own
+        // cap closes, and a chaos theme is where it would read worst.
+        // See `SceneObjectCatalog.capSpecialsToOnePerType`.
+        val capped = SceneObjectCatalog.capSpecialsToOnePerType(rolled.map { it.type })
+        val cars = rolled.mapIndexed { index, car -> car.copy(type = capped[index]) }
 
         return SceneObjectLayout(staticObjects = staticObjects, cars = cars)
     }

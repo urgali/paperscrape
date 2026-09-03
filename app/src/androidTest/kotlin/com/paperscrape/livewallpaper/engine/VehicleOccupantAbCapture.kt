@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -55,6 +56,68 @@ class VehicleOccupantAbCapture {
     private fun asked(): Boolean =
         InstrumentationRegistry.getArguments().getString("captureAb")?.toBoolean() == true
 
+    // ------------------------------------------------------------------ the one assertion
+
+    /**
+     * The harness renders the direction it is asked for -- the one thing in this file that
+     * asserts, and the only one that runs without `-e captureAb true`.
+     *
+     * Until v4.20 [car] hardcoded `reverse = true`, so every frame this harness had ever produced
+     * faced left **by construction**. That is not a cosmetic limit: the frames were read as
+     * evidence about which way the traffic drives, and they could not have shown anything else.
+     * Item 8 of `BACKLOG_v4_19.md`, and the reason it is closed by a parameter *plus* a test
+     * rather than by a parameter: a default argument is exactly the kind of thing that quietly
+     * goes back to one value, and the next reader would have no way to tell.
+     *
+     * It checks the picture, not the flag. Each direction is rendered on an empty street -- no
+     * scenery, so the only cabin glass in the frame is the car's -- and the glass has to be found
+     * where `drawCar`'s own x mapping puts it for that direction, which is on opposite sides of
+     * the screen. Asserting `spec.reverse == reverse` would pass on a build that ignored the flag.
+     */
+    @Test
+    fun bothDirectionsAreActuallyRendered() {
+        val lane = SceneSpace.ROAD_LANE_NEAR_Y_FRACTION
+        val progress = 0.3f
+        val unitPx = SceneSpace.CAR_BASE_SCALE *
+            SceneSpace.perspectiveScaleAt(lane) * SceneSpace.sceneScale(HEIGHT.toFloat())
+        for ((facing, reverse) in DIRECTIONS) {
+            val frame = render(
+                listOf(car(CarType.PLAIN, lane, progress, reverse)),
+                peopleDensity = 0f,
+                scenery = false,
+            )
+            // Looked for inside the car's own rectangle and inside the rectangle a car facing the
+            // other way would occupy. The frame is searched nowhere else on purpose: cabin glass
+            // is a pale blue and so is a good deal of the sky, which is exactly why `reportVehicle`
+            // crops before it measures.
+            val here = glassInVehicleBox(frame, centreXOf(progress, reverse), lane, unitPx)
+            val there = glassInVehicleBox(frame, centreXOf(progress, !reverse), lane, unitPx)
+            frame.recycle()
+            assertTrue(
+                "no cabin glass where drawCar puts a '$facing'-facing car " +
+                    "(centre ${fmt(centreXOf(progress, reverse))} px)",
+                here > 0,
+            )
+            assertTrue(
+                "a '$facing'-facing car put more glass where a car facing the other way belongs " +
+                    "($there px against $here) -- the direction is being ignored",
+                here > there * 4,
+            )
+        }
+    }
+
+    /** Glass pixels inside the rectangle a vehicle centred at [centreX] would occupy. */
+    private fun glassInVehicleBox(frame: Bitmap, centreX: Float, lane: Float, unitPx: Float): Int {
+        val ground = lane * HEIGHT
+        val left = (centreX - CAR_HALF_WIDTH_UNITS * unitPx).toInt().coerceIn(0, WIDTH - 1)
+        val right = (centreX + CAR_HALF_WIDTH_UNITS * unitPx).toInt().coerceIn(0, WIDTH - 1)
+        val top = (ground - CAR_TALLEST_UNITS * unitPx).toInt().coerceIn(0, HEIGHT - 1)
+        val bottom = ground.toInt().coerceIn(0, HEIGHT - 1)
+        if (right <= left || bottom <= top) return 0
+        val pixels = crop(frame, left, top, right - left + 1, bottom - top + 1)
+        return pixels.count { near(it, GLASS) }
+    }
+
     // ------------------------------------------------------------------ the scenes
 
     @Test
@@ -63,11 +126,13 @@ class VehicleOccupantAbCapture {
         val dir = outputDir()
         for (type in CarType.entries) {
             for ((laneName, lane) in LANES) {
-                val name = "${type.name.lowercase()}_$laneName"
-                val frame = render(listOf(car(type, lane, PROGRESS_CENTRE)), peopleDensity = 0f)
-                write(frame, dir, name)
-                reportVehicle(name, frame, type, lane, PROGRESS_CENTRE)
-                frame.recycle()
+                for ((facing, reverse) in DIRECTIONS) {
+                    val name = "${type.name.lowercase()}_${laneName}_$facing"
+                    val frame = render(listOf(car(type, lane, PROGRESS_CENTRE, reverse)), peopleDensity = 0f)
+                    write(frame, dir, name)
+                    reportVehicle(name, frame, type, lane, PROGRESS_CENTRE, reverse)
+                    frame.recycle()
+                }
             }
         }
     }
@@ -86,11 +151,17 @@ class VehicleOccupantAbCapture {
         val dir = outputDir()
         for (type in CarType.entries) {
             for ((laneName, lane) in LANES) {
-                val name = "winter_${type.name.lowercase()}_$laneName"
-                val frame = render(listOf(car(type, lane, PROGRESS_CENTRE)), peopleDensity = 0f, winter = true)
-                write(frame, dir, name)
-                reportVehicle(name, frame, type, lane, PROGRESS_CENTRE)
-                frame.recycle()
+                for ((facing, reverse) in DIRECTIONS) {
+                    val name = "winter_${type.name.lowercase()}_${laneName}_$facing"
+                    val frame = render(
+                        listOf(car(type, lane, PROGRESS_CENTRE, reverse)),
+                        peopleDensity = 0f,
+                        winter = true,
+                    )
+                    write(frame, dir, name)
+                    reportVehicle(name, frame, type, lane, PROGRESS_CENTRE, reverse)
+                    frame.recycle()
+                }
             }
         }
     }
@@ -100,11 +171,14 @@ class VehicleOccupantAbCapture {
     fun captureAStreetWithTrafficAndPedestrians() {
         if (!asked()) return
         val dir = outputDir()
+        // Direction follows the lane here, exactly as `SceneObjectCatalog` sets it: the near lane
+        // drives right and the far lane left. The old capture drove all four the same way, which
+        // is what made it useless as direction evidence.
         val cars = listOf(
-            car(CarType.PLAIN, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.22f),
-            car(CarType.TAXI, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.66f),
-            car(CarType.POLICE, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.32f),
-            car(CarType.FIRE_TRUCK, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.76f),
+            car(CarType.PLAIN, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.22f, reverse = true),
+            car(CarType.TAXI, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.66f, reverse = true),
+            car(CarType.POLICE, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.32f, reverse = false),
+            car(CarType.FIRE_TRUCK, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.76f, reverse = false),
         )
         val frame = render(cars, peopleDensity = 1f)
         write(frame, dir, "street_day")
@@ -115,6 +189,7 @@ class VehicleOccupantAbCapture {
                 spec.type,
                 spec.laneYFraction,
                 -spec.startDelaySeconds,
+                spec.reverse,
             )
         }
         frame.recycle()
@@ -180,10 +255,10 @@ class VehicleOccupantAbCapture {
     fun captureAnAutumnStreet() {
         if (!asked()) return
         val cars = listOf(
-            car(CarType.PLAIN, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.22f),
-            car(CarType.TAXI, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.66f),
-            car(CarType.POLICE, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.32f),
-            car(CarType.FIRE_TRUCK, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.76f),
+            car(CarType.PLAIN, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.22f, reverse = true),
+            car(CarType.TAXI, SceneSpace.ROAD_LANE_FAR_Y_FRACTION, 0.66f, reverse = true),
+            car(CarType.POLICE, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.32f, reverse = false),
+            car(CarType.FIRE_TRUCK, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION, 0.76f, reverse = false),
         )
         val dir = outputDir()
         for (step in 0 until 4) {
@@ -354,12 +429,21 @@ class VehicleOccupantAbCapture {
 
     // ------------------------------------------------------------------ rendering
 
-    private fun car(type: CarType, lane: Float, progress: Float) = CarObject(
+    /**
+     * One vehicle, standing still at [progress] across the screen, facing whichever way is asked.
+     *
+     * [reverse] used to be hardcoded `true`, which made every frame this harness has ever produced
+     * a left-facing one **by construction** -- and that is not a small blemish: it was read as
+     * evidence about which way the traffic drives and cost a wrong conclusion. Item 8 of
+     * `BACKLOG_v4_19.md`. The parameter is the whole fix; `bothDirectionsAreActuallyRendered`
+     * is what stops it silently reverting to one direction again.
+     */
+    private fun car(type: CarType, lane: Float, progress: Float, reverse: Boolean = true) = CarObject(
         laneYFraction = lane,
         speedFraction = 0f,
         startDelaySeconds = -progress,
         color = 0xFFB4513C.toInt(),
-        reverse = true,
+        reverse = reverse,
         type = type,
     )
 
@@ -459,6 +543,17 @@ class VehicleOccupantAbCapture {
     // ------------------------------------------------------------------ measuring
 
     /**
+     * Where `drawCar` puts a vehicle's centre, for a given progress and direction.
+     *
+     * The same expression the renderer uses, and the reason it is a function rather than a line
+     * inside the report: both directions are captured now, so both have to be located.
+     */
+    private fun centreXOf(progress: Float, reverse: Boolean): Float {
+        val raw = progress * (WIDTH + 2 * CAR_MARGIN) - CAR_MARGIN
+        return if (reverse) WIDTH - raw else raw
+    }
+
+    /**
      * Every number the A/B turns on, for one vehicle, on one line.
      *
      * **Measured inside the vehicle's own rectangle and nowhere else.** The scene is full -- houses
@@ -470,11 +565,17 @@ class VehicleOccupantAbCapture {
      * Faces are found by colour and connectivity, the glass by colour; neither is read back from
      * the constants this release moved. The line is plain text so two builds can be diffed by eye.
      */
-    private fun reportVehicle(name: String, frame: Bitmap, type: CarType, lane: Float, progress: Float) {
+    private fun reportVehicle(
+        name: String,
+        frame: Bitmap,
+        type: CarType,
+        lane: Float,
+        progress: Float,
+        reverse: Boolean = true,
+    ) {
         val base = if (type == CarType.FIRE_TRUCK) SceneSpace.FIRE_TRUCK_BASE_SCALE else SceneSpace.CAR_BASE_SCALE
         val unitPx = base * SceneSpace.perspectiveScaleAt(lane) * SceneSpace.sceneScale(HEIGHT.toFloat())
-        // `reverse = true`, so drawCar mirrors the progress across the screen.
-        val centreX = WIDTH - (progress * (WIDTH + 2 * CAR_MARGIN) - CAR_MARGIN)
+        val centreX = centreXOf(progress, reverse)
         val ground = lane * HEIGHT
         val left = (centreX - CAR_HALF_WIDTH_UNITS * unitPx).toInt().coerceIn(0, WIDTH - 1)
         val right = (centreX + CAR_HALF_WIDTH_UNITS * unitPx).toInt().coerceIn(0, WIDTH - 1)
@@ -625,6 +726,15 @@ class VehicleOccupantAbCapture {
             "far" to SceneSpace.ROAD_LANE_FAR_Y_FRACTION,
             "near" to SceneSpace.ROAD_LANE_NEAR_Y_FRACTION,
         )
+
+        /**
+         * Both ways a vehicle can face, which is the axis this harness used to be blind to.
+         *
+         * `reverse` is the renderer's own flag and `true` is the leftward one -- see `drawCar`,
+         * where it both mirrors the x mapping and flips the blit, because the artwork faces left.
+         */
+        val DIRECTIONS = listOf("left" to true, "right" to false)
+
 
         val SKIN_TONES = listOf(
             intArrayOf(240, 201, 166),

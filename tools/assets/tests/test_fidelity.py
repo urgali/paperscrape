@@ -221,7 +221,10 @@ class ShippedAgainstSourceTest(unittest.TestCase):
     def test_every_sprite_with_a_source_is_covered(self):
         # v4.19: one car body and one glass became three of each, the two full-car-width lamp
         # overlays became four small shared lenses, and four adult bases were retired. Net +2.
-        self.assertEqual(140, len(self.results))
+        # v4.20 removed six more: the four sprites nothing has ever blitted (`house_window` and
+        # the three `road_*`) and the two boy vehicle bases, which are byte-for-byte their own
+        # `_skin2`. Both halves of item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md.
+        self.assertEqual(134, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

@@ -589,6 +589,28 @@ object GlGolden {
         /** Above this fraction, outlines are somewhere else rather than merely drawn differently. */
         const val MAX_DISPLACED_FRACTION = 0.03
 
+        /**
+         * The band the **characterised driver gap** must stay inside -- item 1 of
+         * `BACKLOG_v4_19.md`, closed in v4.20 as a guard rather than as a fix.
+         *
+         * The goldens are authored on the emulator's reference driver and the phone's Adreno 630
+         * places edges differently, so on the device every one of them arrives with a displacement
+         * that is not a regression and never will be. That gap is measured, it is under the gate,
+         * and closing it properly would mean per-driver golden sets -- double the maintenance and
+         * an ambiguous answer to "which is *the* golden". So it stays, and what changes is that it
+         * is now watched instead of rediscovered.
+         *
+         * **Where 2% comes from.** The gap measured 1.18 / 1.07 / 0.92% when the metric was
+         * derived and 1.2-1.4% when v4.19 re-measured it, against a [MAX_DISPLACED_FRACTION] of
+         * 3%. Two percent sits about 40% above the worst figure ever recorded -- far enough that
+         * ordinary variation between driver revisions does not reach it -- and a third below the
+         * gate, so it fires while the gate still has headroom and someone can look at *why* the
+         * gap grew before a golden run starts failing outright. It is a smoke alarm, not a limit:
+         * nothing is permitted or forbidden by it that [MAX_DISPLACED_FRACTION] does not already
+         * decide.
+         */
+        const val CHARACTERISED_MAX_DISPLACED_FRACTION = 0.02
+
         fun of(expected: IntArray, actual: IntArray, width: Int, height: Int): Double {
             val expectedEdges = edgesOf(expected, width, height)
             val actualEdges = edgesOf(actual, width, height)

@@ -942,16 +942,6 @@
       "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
     },
     {
-      "id": "boy_head_car",
-      "axis": "season",
-      "members": [
-        "person_boy_summer_head_car",
-        "person_boy_winter_head_car"
-      ],
-      "state": "DISTINCT",
-      "reason": "Summer wears the character's own hair or cap; winter the bust translation of the character's winter headwear, with the seatbelt both seasons carry. The seasonal pair is distinct artwork like every other person sprite's."
-    },
-    {
       "id": "boy_head_car_skin0",
       "axis": "season",
       "members": [
@@ -1022,24 +1012,64 @@
       "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
     },
     {
-      "id": "boy_summer_head_car_own_tone",
-      "axis": "skin",
+      "id": "man_head_car_alt_skin0",
+      "axis": "season",
       "members": [
-        "person_boy_summer_head_car",
-        "person_boy_summer_head_car_skin2"
+        "person_man_summer_head_car_alt_skin0",
+        "person_man_winter_head_car_alt_skin0"
       ],
-      "state": "IDENTICAL_BY_CONSTRUCTION",
-      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so this character recoloured to their own tone is the character unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py."
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
     },
     {
-      "id": "boy_winter_head_car_own_tone",
-      "axis": "skin",
+      "id": "man_head_car_alt_skin1",
+      "axis": "season",
       "members": [
-        "person_boy_winter_head_car",
-        "person_boy_winter_head_car_skin2"
+        "person_man_summer_head_car_alt_skin1",
+        "person_man_winter_head_car_alt_skin1"
       ],
-      "state": "IDENTICAL_BY_CONSTRUCTION",
-      "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so this character recoloured to their own tone is the character unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py."
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+    },
+    {
+      "id": "man_head_car_alt_skin2",
+      "axis": "season",
+      "members": [
+        "person_man_summer_head_car_alt_skin2",
+        "person_man_winter_head_car_alt_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+    },
+    {
+      "id": "woman_head_car_alt_skin0",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_car_alt_skin0",
+        "person_woman_winter_head_car_alt_skin0"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+    },
+    {
+      "id": "woman_head_car_alt_skin1",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_car_alt_skin1",
+        "person_woman_winter_head_car_alt_skin1"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+    },
+    {
+      "id": "woman_head_car_alt_skin2",
+      "axis": "season",
+      "members": [
+        "person_woman_summer_head_car_alt_skin2",
+        "person_woman_winter_head_car_alt_skin2"
+      ],
+      "state": "DISTINCT",
+      "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
     }
   ],
   "sprites": [
@@ -2188,32 +2218,6 @@
       "notes": ""
     },
     {
-      "name": "house_window",
-      "category": "house",
-      "width": 66,
-      "height": 66,
-      "contentBox": [
-        0,
-        0,
-        66,
-        66
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "TINTABLE",
-      "usage": "orphan",
-      "anchorRule": "PART_LOCAL",
-      "anchor": [
-        0,
-        0
-      ],
-      "season": "all",
-      "source": {
-        "kind": "svg",
-        "file": "house_window.svg"
-      },
-      "notes": "Present in the asset library but reached from no call site, so it has no scale or anchor the code can be checked against. Whether the orphans should ship at all is ROADMAP.md 5.5 and 7.2, not an asset question."
-    },
-    {
       "name": "house_window_lit",
       "category": "house",
       "width": 66,
@@ -2626,32 +2630,6 @@
       "source": {
         "kind": "svg",
         "file": "penguin_feet.svg"
-      },
-      "notes": ""
-    },
-    {
-      "name": "person_boy_summer_head_car",
-      "category": "person",
-      "width": 141,
-      "height": 132,
-      "contentBox": [
-        19,
-        14,
-        139,
-        131
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "referenced",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        79,
-        131
-      ],
-      "season": "summer",
-      "source": {
-        "kind": "svg",
-        "file": "person_boy_summer_head_car.svg"
       },
       "notes": ""
     },
@@ -3148,32 +3126,6 @@
         "reason": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
       },
       "notes": "Skin tone 2 of person_boy_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_boy_summer_walk2 that was not propagated."
-    },
-    {
-      "name": "person_boy_winter_head_car",
-      "category": "person",
-      "width": 141,
-      "height": 132,
-      "contentBox": [
-        6,
-        12,
-        129,
-        131
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "referenced",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        67,
-        131
-      ],
-      "season": "winter",
-      "source": {
-        "kind": "svg",
-        "file": "person_boy_winter_head_car.svg"
-      },
-      "notes": ""
     },
     {
       "name": "person_boy_winter_head_car_skin0",
@@ -3682,7 +3634,7 @@
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
-      "usage": "referenced",
+      "usage": "orphan",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
       "anchor": [
         69,
@@ -3693,7 +3645,7 @@
         "kind": "svg",
         "file": "person_girl_summer_head_car.svg"
       },
-      "notes": ""
+      "notes": "Shipped but blitted by nothing, and deliberately so: this is the exact source tools/generate_skin_variants.py recolours to produce this character's three tone copies, and it is not a duplicate of any of them. The girl's own painted skin (239, 185, 148) is a fourth colour that no shipped file carries -- the three canonical TONES are the woman's, the man's and the boy's. v4.20 measured what retiring it would cost: regenerating her other two tones from skin0 instead reproduces 165-406 pixels differently at the anti-aliased edges (summer 291/195, winter 406/165), against 0 for the boy's base, which IS skin2. So the boy's base was retired and this one was not. Item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md."
     },
     {
       "name": "person_girl_summer_head_car_skin0",
@@ -4202,7 +4154,7 @@
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
-      "usage": "referenced",
+      "usage": "orphan",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
       "anchor": [
         69,
@@ -4213,7 +4165,7 @@
         "kind": "svg",
         "file": "person_girl_winter_head_car.svg"
       },
-      "notes": ""
+      "notes": "Shipped but blitted by nothing, and deliberately so: this is the exact source tools/generate_skin_variants.py recolours to produce this character's three tone copies, and it is not a duplicate of any of them. The girl's own painted skin (239, 185, 148) is a fourth colour that no shipped file carries -- the three canonical TONES are the woman's, the man's and the boy's. v4.20 measured what retiring it would cost: regenerating her other two tones from skin0 instead reproduces 165-406 pixels differently at the anti-aliased edges (summer 291/195, winter 406/165), against 0 for the boy's base, which IS skin2. So the boy's base was retired and this one was not. Item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md."
     },
     {
       "name": "person_girl_winter_head_car_skin0",
@@ -4710,6 +4662,84 @@
       "notes": "Skin tone 2 of person_girl_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk2 that was not propagated."
     },
     {
+      "name": "person_man_summer_head_car_alt_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (78, 159, 181) -> (228, 98, 62), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_head_car_alt_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (78, 159, 181) -> (228, 98, 62), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_summer_head_car_alt_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (78, 159, 181) -> (228, 98, 62), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
       "name": "person_man_summer_head_car_skin0",
       "category": "person",
       "width": 141,
@@ -5202,6 +5232,84 @@
         "reason": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
       },
       "notes": "Skin tone 2 of person_man_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_man_winter_head_car_alt_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (71, 105, 143) -> (191, 65, 48), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_head_car_alt_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (71, 105, 143) -> (191, 65, 48), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_man_winter_head_car_alt_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (71, 105, 143) -> (191, 65, 48), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
     },
     {
       "name": "person_man_winter_head_car_skin0",
@@ -5698,6 +5806,84 @@
       "notes": "Skin tone 2 of person_man_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk2 that was not propagated."
     },
     {
+      "name": "person_woman_summer_head_car_alt_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_head_car_alt_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_summer_head_car_alt_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        11,
+        4,
+        127,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        69,
+        131
+      ],
+      "season": "summer",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
       "name": "person_woman_summer_head_car_skin0",
       "category": "person",
       "width": 141,
@@ -6190,6 +6376,84 @@
         "reason": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
       },
       "notes": "Skin tone 2 of person_woman_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk2 that was not propagated."
+    },
+    {
+      "name": "person_woman_winter_head_car_alt_skin0",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_head_car_alt_skin1",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
+    },
+    {
+      "name": "person_woman_winter_head_car_alt_skin2",
+      "category": "person",
+      "width": 141,
+      "height": 132,
+      "contentBox": [
+        5,
+        1,
+        130,
+        131
+      ],
+      "scale": "SCENE_UNITS",
+      "tint": "FIXED_ART",
+      "usage": "referenced",
+      "anchorRule": "CONTENT_BOTTOM_CENTRE",
+      "anchor": [
+        67,
+        131
+      ],
+      "season": "winter",
+      "source": {
+        "kind": "none",
+        "reason": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md."
+      },
+      "notes": ""
     },
     {
       "name": "person_woman_winter_head_car_skin0",
@@ -7024,84 +7288,6 @@
       "notes": ""
     },
     {
-      "name": "road_asphalt",
-      "category": "road",
-      "width": 402,
-      "height": 102,
-      "contentBox": [
-        0,
-        0,
-        402,
-        102
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "orphan",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        201,
-        102
-      ],
-      "season": "all",
-      "source": {
-        "kind": "svg",
-        "file": "road_asphalt.svg"
-      },
-      "notes": "Present in the asset library but reached from no call site, so it has no scale or anchor the code can be checked against. Whether the orphans should ship at all is ROADMAP.md 5.5 and 7.2, not an asset question."
-    },
-    {
-      "name": "road_curb",
-      "category": "road",
-      "width": 402,
-      "height": 18,
-      "contentBox": [
-        0,
-        0,
-        402,
-        18
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "orphan",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        201,
-        18
-      ],
-      "season": "all",
-      "source": {
-        "kind": "svg",
-        "file": "road_curb.svg"
-      },
-      "notes": "Present in the asset library but reached from no call site, so it has no scale or anchor the code can be checked against. Whether the orphans should ship at all is ROADMAP.md 5.5 and 7.2, not an asset question."
-    },
-    {
-      "name": "road_line",
-      "category": "road",
-      "width": 54,
-      "height": 9,
-      "contentBox": [
-        0,
-        0,
-        54,
-        9
-      ],
-      "scale": "SCENE_UNITS",
-      "tint": "FIXED_ART",
-      "usage": "orphan",
-      "anchorRule": "CONTENT_BOTTOM_CENTRE",
-      "anchor": [
-        27,
-        9
-      ],
-      "season": "all",
-      "source": {
-        "kind": "svg",
-        "file": "road_line.svg"
-      },
-      "notes": "Present in the asset library but reached from no call site, so it has no scale or anchor the code can be checked against. Whether the orphans should ship at all is ROADMAP.md 5.5 and 7.2, not an asset question."
-    },
-    {
       "name": "sailboat_hull",
       "category": "lake",
       "width": 252,
@@ -7805,9 +7991,15 @@
     }
   ],
   "retiredBases": {
+    "person_boy_summer_head_car": "person_boy_summer_head_car_skin2",
+    "person_boy_winter_head_car": "person_boy_winter_head_car_skin2",
     "person_man_summer_head_car": "person_man_summer_head_car_skin1",
+    "person_man_summer_head_car_alt": "person_man_summer_head_car_alt_skin1",
     "person_man_winter_head_car": "person_man_winter_head_car_skin1",
+    "person_man_winter_head_car_alt": "person_man_winter_head_car_alt_skin1",
     "person_woman_summer_head_car": "person_woman_summer_head_car_skin0",
-    "person_woman_winter_head_car": "person_woman_winter_head_car_skin0"
+    "person_woman_summer_head_car_alt": "person_woman_summer_head_car_alt_skin0",
+    "person_woman_winter_head_car": "person_woman_winter_head_car_skin0",
+    "person_woman_winter_head_car_alt": "person_woman_winter_head_car_alt_skin0"
   }
 }

@@ -165,6 +165,36 @@ object SceneObjectCatalog {
         }
     }
 
+    /**
+     * A car candidate's own slot in the ten the road has: `queue slot * 2 + (near lane ? 0 : 1)`.
+     *
+     * **There are exactly ten, in every theme the app ships**, and that is the single fact behind
+     * both [CarShell]'s body deal and [SeatedOccupants]'s. A candidate's lane is one of two
+     * constants and its start delay is one of [CAR_SLOTS_PER_LANE] points on an arithmetic
+     * progression, so anything derived from those two fields -- however well mixed -- is choosing
+     * from ten values, not sampling a distribution. Hashing them produced 5/3/2 bodies and a driver
+     * who was a woman in all ten.
+     *
+     * This is not a hash and deliberately reads back the very numbers the candidate was generated
+     * from: `startDelaySeconds` is `CAR_LOOP_ENTRY_PROGRESS + CAR_LOOP_SPAN * slot /
+     * CAR_SLOTS_PER_LANE`, so inverting that expression returns the slot, and `laneYFraction` is
+     * one of the two lane constants. [canonicaliseTraffic] forces every stored theme onto that same
+     * grid on **every** load, so there is no such thing here as a candidate off it; a theme
+     * carrying more cars than one loop holds wraps, which is what the modulo is for rather than a
+     * clamp that would pile the surplus onto one answer.
+     */
+    fun candidateIndexOf(spec: CarObject): Int {
+        val slots = CAR_SLOTS_PER_LANE
+        val raw = Math.round((spec.startDelaySeconds - CAR_LOOP_ENTRY_PROGRESS) * slots / CAR_LOOP_SPAN)
+        val slot = ((raw % slots) + slots) % slots
+        val near = spec.laneYFraction >= LANE_MIDPOINT
+        return slot * 2 + if (near) 0 else 1
+    }
+
+    /** Halfway between the two lane constants: which side of it a car sits decides its lane. */
+    private const val LANE_MIDPOINT =
+        (SceneSpace.ROAD_LANE_NEAR_Y_FRACTION + SceneSpace.ROAD_LANE_FAR_Y_FRACTION) / 2f
+
     /** Same for every theme and every one of the 5 structural customizable categories -- see the
      * class doc. [seasonalDecorationCandidates] uses this same constant for its own categories. */
     const val CANDIDATES_PER_CATEGORY = 10
@@ -365,8 +395,9 @@ object SceneObjectCatalog {
      * every candidate must always render the same type, the same way its lane/speed are fixed at
      * generation time), mostly [CarType.PLAIN] with a minority of each special type so they read
      * as an occasional sighting rather than every third car being a police car. */
-    private fun generateCarCandidates(seed: Int, accentColor: Int): List<CarObject> {
+    internal fun generateCarCandidates(seed: Int, accentColor: Int): List<CarObject> {
         val rnd = Random(seed)
+        val types = capSpecialsToOnePerType((0 until CANDIDATES_PER_CATEGORY).map { pickCarType(rnd) })
         return (0 until CANDIDATES_PER_CATEGORY).map { i ->
             val nearLane = i % 2 == 0
             val slot = i / 2 // position of this car within its own lane's queue
@@ -386,8 +417,39 @@ object SceneObjectCatalog {
                 // The near lane is the one nearer the viewer, so it carries the traffic that
                 // drives to the right; `reverse` is what sends a car leftward.
                 reverse = !nearLane,
-                type = pickCarType(rnd),
+                type = types[i],
             )
+        }
+    }
+
+    /**
+     * At most one vehicle of each special type in a candidate set -- items 11 and 14 of
+     * `BACKLOG_v4_19.md`, which are the same defect counted twice.
+     *
+     * [pickCarType] rolls each candidate independently, so nothing stopped two of them coming up
+     * the same special type: at a tenth each over ten candidates, **26.4% of seeds produce two or
+     * more fire engines** and as many produce two or more patrol cars. It is not a rare corner --
+     * it was photographed three times across the v4.19 evidence, most recently two fire engines in
+     * the same lane in the same night frame.
+     *
+     * The cap belongs here rather than in the renderer because "how many of each type this theme
+     * has" is decided exactly once, at generation, and every candidate of a theme shares the one
+     * road: capping the *set* is therefore strictly stronger than capping what is on screen, and it
+     * needs no per-frame state to enforce. A surplus special becomes a [CarType.PLAIN] -- it keeps
+     * its slot, its lane, its speed and its colour, so the density slider and the shell deal still
+     * govern the same ten candidates, and the road keeps the same number of cars on it.
+     *
+     * The first occurrence is the one kept, which makes the result a pure function of the roll
+     * sequence and so as stable and as reproducible as everything else the generator decides.
+     */
+    internal fun capSpecialsToOnePerType(rolled: List<CarType>): List<CarType> {
+        val seen = HashSet<CarType>()
+        return rolled.map { type ->
+            when {
+                type == CarType.PLAIN -> type
+                seen.add(type) -> type
+                else -> CarType.PLAIN
+            }
         }
     }
 

@@ -71,30 +71,64 @@ class VehicleOccupantScaleTest {
         progress: Float = CAR_PROGRESS,
         shell: CarShell? = null,
     ): Bitmap {
-        val delay = if (shell == null) -progress else delayForShell(shell, lane, type, progress)
-        val layout = SceneObjectLayout(
-            staticObjects = emptyList(),
-            cars = listOf(
-                CarObject(
-                    laneYFraction = lane,
-                    speedFraction = 0f,
-                    startDelaySeconds = delay,
-                    color = 0xFFB4513C.toInt(),
-                    reverse = reverse,
-                    type = type,
-                ),
-            ),
-        )
-        return render(layout, peopleVisible = false)
+        val spec = carSpecFor(type, lane, reverse, progress, shell)
+        val layout = SceneObjectLayout(staticObjects = emptyList(), cars = listOf(spec))
+        // A car whose identity had to be chosen starts at its own queue slot and is *driven* to
+        // where the measurement wants it, at one unit of progress per second, so it arrives at
+        // exactly [progress]. A car whose identity does not matter is simply placed there.
+        return render(layout, peopleVisible = false, advanceBy = progress + spec.startDelaySeconds)
     }
 
-    private fun delayForShell(shell: CarShell, lane: Float, type: CarType, progress: Float): Float {
-        for (i in 0 until 20_000) {
-            val candidate = -progress - i * 1e-6f
-            val spec = CarObject(lane, 0f, candidate, 0, true, type)
-            if (CarShell.forCar(spec) == shell) return candidate
+    /**
+     * The vehicle a case describes: its type, its lane, its direction, and -- when the case is
+     * about a particular body -- an identity that actually produces that body.
+     *
+     * **This used to nudge `startDelaySeconds` by a millionth of a second until the hash landed
+     * where it was wanted, and v4.20 made that impossible on purpose.** A candidate's identity is
+     * its lane and its *queue slot*, and the slot is one of [SceneObjectCatalog.CAR_SLOTS_PER_LANE]
+     * points on the loop -- so a millionth of a second no longer changes anything, because
+     * `SceneObjectCatalog.candidateIndexOf` quantises to the grid the catalogue actually generates
+     * on. The road has ten identities and a test may pick among those ten; it may not conjure an
+     * eleventh.
+     *
+     * That leaves the fixture's real problem, which the old approach hid: `startDelaySeconds` was
+     * doing two jobs at once. It set the identity *and*, with `speedFraction = 0`, the car's
+     * position on screen. Those two cannot both be free. So they are separated the way the app
+     * separates them -- the delay is the identity, and the *progress* is where the car has driven
+     * to since -- and [frameWithOneCar] advances the scene to put the car exactly where every
+     * measurement here already expects it. No production seam, and the car is a car the catalogue
+     * could have generated.
+     */
+    private fun carSpecFor(
+        type: CarType,
+        lane: Float,
+        reverse: Boolean,
+        progress: Float,
+        shell: CarShell?,
+    ): CarObject {
+        val delay = if (shell == null) -progress else gridDelayForShell(shell, lane, type)
+        return CarObject(
+            laneYFraction = lane,
+            // One unit of progress per second, so `advanceBy` reads as "how far it still has to
+            // go". Zero when the identity was not chosen, which leaves those cases exactly as they
+            // were: the car is placed by its delay and never moves.
+            speedFraction = if (shell == null) 0f else 1f,
+            startDelaySeconds = delay,
+            color = 0xFFB4513C.toInt(),
+            reverse = reverse,
+            type = type,
+        )
+    }
+
+    /** The canonical queue slot, of the five the road has, that puts [type] on [shell] in [lane]. */
+    private fun gridDelayForShell(shell: CarShell, lane: Float, type: CarType): Float {
+        for (slot in 0 until SceneObjectCatalog.CAR_SLOTS_PER_LANE) {
+            val delay = SceneObjectCatalog.CAR_LOOP_ENTRY_PROGRESS +
+                SceneObjectCatalog.CAR_LOOP_SPAN * slot / SceneObjectCatalog.CAR_SLOTS_PER_LANE
+            val spec = CarObject(lane, 0f, delay, 0, true, type)
+            if (CarShell.forCar(spec) == shell) return delay
         }
-        error("no start delay within a hair of $progress puts a $type on the $shell")
+        error("no queue slot on lane $lane puts a $type on the $shell")
     }
 
     /**
@@ -117,7 +151,7 @@ class VehicleOccupantScaleTest {
     private fun frameWithPeopleOnly(): Bitmap =
         render(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), peopleVisible = true)
 
-    private fun render(layout: SceneObjectLayout, peopleVisible: Boolean): Bitmap {
+    private fun render(layout: SceneObjectLayout, peopleVisible: Boolean, advanceBy: Float = 0f): Bitmap {
         val defaults = defaultCustomizationFor(THEME_ID)
         val customization = defaults.copy(
             cars = defaults.cars.copy(visible = true, density = 1f),
@@ -132,6 +166,7 @@ class VehicleOccupantScaleTest {
         val target = CanvasSceneTarget()
         target.bind(Canvas(bitmap))
         val renderer = SceneObjectRenderer(layout, customization, context, THEME_ID)
+        if (advanceBy != 0f) renderer.update(advanceBy)
         renderer.draw(
             target,
             GroundGeometry(shiftXWrapped = 0f, tileWidth = WIDTH.toFloat()),
@@ -145,6 +180,26 @@ class VehicleOccupantScaleTest {
     }
 
     // ------------------------------------------------------------------ measuring
+
+    /**
+     * The driver's face, identified by **where it is** rather than by how big it is.
+     *
+     * These tests used to take the tallest face in the frame, and that worked for one release by
+     * accident: the driver was a woman in every car the app could produce (see [SeatedOccupants]),
+     * and a woman's face is the taller of the two. With the seats dealt properly a man drives half
+     * the cars and the tallest face in the frame is then the *passenger*, so the measurement
+     * silently changed subject.
+     *
+     * The vehicle artwork faces left when `reverse` is set, and every frame here is built with it
+     * set, so the driver is the leading -- leftmost -- face. That is the same rule
+     * `aCivilianCarSeatsADriverForwardAndAPassengerBehind` asserts the renderer obeys, which is
+     * what makes it safe to rely on here.
+     */
+    private fun driverFace(frame: Bitmap): Blob {
+        val faces = skinBlobs(frame)
+        check(faces.isNotEmpty()) { "no face in the frame at all" }
+        return faces.minByOrNull { it.centreX }!!
+    }
 
     /** One connected run of skin-coloured pixels: a face, a hand, or a bare leg. */
     private class Blob(val minX: Int, val maxX: Int, val minY: Int, val maxY: Int, val area: Int) {
@@ -424,19 +479,27 @@ class VehicleOccupantScaleTest {
         // both lanes: headPx(occupant) / depthScale(vehicle lane) must equal
         // headPx(adult pedestrian) / depthScale(pavement row) within +/-10%. The tallest face on
         // a people-only street is the nearest adult, standing on the near pavement row.
+        // The tallest face on a people-only street is the nearest **man**: his hairline sits 78
+        // rows up against the woman's 66, so "tallest" selects his family as well as his depth.
+        // Both sides are therefore divided by their own family's visible skin before they are
+        // compared -- otherwise this measures how much fringe a driver has, which is the artefact
+        // item 3 of the backlog is about, and it is only by accident that it did not before: the
+        // driver this fixture happened to build was always a man too.
         val pedestrian = tallestFace(frameWithPeopleOnly())
-        val pedestrianNormalised =
-            pedestrian.height / SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION)
+        val pedestrianNormalised = pedestrian.height /
+            SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION) / MAN_FACE_UNITS
         for ((type, shell) in typesAndShells()) {
             for (lane in LANES) {
                 val frame = frameWithOneCar(type, lane, shell = shell)
-                val driver = tallestFace(frame)
-                val driverNormalised = driver.height / SceneSpace.perspectiveScaleAt(lane)
+                val driver = driverFace(frame)
+                val spec = carSpecFor(type, lane, reverse = true, progress = CAR_PROGRESS, shell = shell)
+                val driverNormalised =
+                    driver.height / SceneSpace.perspectiveScaleAt(lane) / driverFaceUnits(spec)
                 val ratio = driverNormalised / pedestrianNormalised
                 assertTrue(
-                    "$type on lane $lane: driver face ${driver.height} px (${"%.1f".format(driverNormalised)} " +
+                    "$type on lane $lane: driver face ${driver.height} px (${"%.2f".format(driverNormalised)} " +
                         "normalised) vs pedestrian ${pedestrian.height} px " +
-                        "(${"%.1f".format(pedestrianNormalised)}) -- ratio ${"%.3f".format(ratio)}",
+                        "(${"%.2f".format(pedestrianNormalised)}) -- ratio ${"%.3f".format(ratio)}",
                     ratio in 0.9f..1.1f,
                 )
                 frame.recycle()
@@ -464,10 +527,14 @@ class VehicleOccupantScaleTest {
                 } else {
                     SceneObjectRenderer.CAR_OCCUPANT_SCALE
                 }
-                val predicted = driverFaceUnits(lane, -CAR_PROGRESS) * scale * unitPx(lane, type)
-                val driver = faces.maxByOrNull { it.height }!!
+                // Which of the two adults drives is dealt from the candidate's own slot, so the
+                // prediction asks the same table `drawCar` does rather than re-deriving it.
+                val spec = carSpecFor(type, lane, reverse = true, progress = CAR_PROGRESS, shell = shell)
+                val predicted = driverFaceUnits(spec) * scale * unitPx(lane, type)
+                val driver = driverFace(frame)
                 assertEquals(
-                    "$type on lane $lane: driver face measured ${driver.height} px",
+                    "$type on lane $lane ($shell, driver ${if (driverFaceUnits(spec) == MAN_FACE_UNITS) "man" else "woman"}): " +
+                        "driver face measured ${driver.height} px",
                     predicted,
                     driver.height.toFloat(),
                     1.5f,
@@ -1156,13 +1223,29 @@ class VehicleOccupantScaleTest {
          * Which of the two drives is a pure function of the car's lane and start delay, so the
          * prediction picks the same way `drawCar` does.
          */
-        const val MAN_FACE_UNITS = 77f / 3f
-        const val WOMAN_FACE_UNITS = 82f / 3f
+        /**
+         * The visible skin a seated adult shows, crown of the hairline to chin, in canvas units.
+         *
+         * **These were 77 and 82, and the woman's was wrong by a fifth.** Measured on the shipped
+         * busts, the man's skin spans **78 rows** and the woman's **66** -- her fringe cuts a much
+         * lower hairline than his flat-top, which is what the old comment said and what the old
+         * numbers then contradicted by making hers the larger.
+         *
+         * It survived a release because **no test could reach it.** This fixture built its car with
+         * `startDelaySeconds = -0.5`, whose seed is even, so the fixture's driver was always the
+         * *man*; the app's ten real delays are all odd, so the app's driver was always the *woman*
+         * (see `SeatedOccupants`). The one constant that was checked was the one the app never
+         * used, and the one the app used was never checked. Neither half is visible from inside
+         * the other.
+         *
+         * Measured with the same ±4 tolerance the frame scan uses, on all three tones and both
+         * outfits: the extent is identical across them, so the recolours cost nothing here.
+         */
+        const val MAN_FACE_UNITS = 78f / 3f
+        const val WOMAN_FACE_UNITS = 66f / 3f
 
-        fun driverFaceUnits(lane: Float, startDelaySeconds: Float): Float {
-            val seed = kotlin.math.abs((lane * 7919f + startDelaySeconds * 131f).toInt())
-            return if (seed % 2 == 0) MAN_FACE_UNITS else WOMAN_FACE_UNITS
-        }
+        fun driverFaceUnits(spec: CarObject): Float =
+            if (SeatedOccupants.driverKind(spec) == SeatedOccupants.MAN) MAN_FACE_UNITS else WOMAN_FACE_UNITS
 
         /** The shipped skin palette, from `tools/generate_skin_variants.py`. */
         val SKIN_TONES = listOf(

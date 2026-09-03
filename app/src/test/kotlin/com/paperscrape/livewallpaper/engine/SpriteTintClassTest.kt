@@ -138,10 +138,17 @@ class SpriteTintClassTest {
     /**
      * Sprites no call site reaches, so there is no blit to agree or disagree with.
      *
-     * Whether the orphans should exist at all is its own question (`ROADMAP.md`, 5.5 and 7.2);
-     * classifying them here would answer it by implication.
+     * **Empty since v4.20, and that is the point.** It held `house_window` and the three `road_*`
+     * drawings, and the question of whether they should exist at all was deferred here and in
+     * `ROADMAP.md` for four releases. v4.20 answered it by deleting them: nothing had ever blitted
+     * them, they cost 212 328 B of the decoded-sprite budget, and an exemption list is where an
+     * unreachable sprite goes to be forgotten. `SpriteReachabilityTest` now fails on a new one.
+     *
+     * The two `person_girl_*_head_car` bases are also unreachable and deliberately still ship --
+     * they are not in this list because they are declared `usage: "orphan"` in the registry, with
+     * the measurement that justifies them, which is where such a statement belongs.
      */
-    private val orphans = listOf("house_window", "road_asphalt", "road_curb", "road_line")
+    private val orphans = emptyList<String>()
 
     // --- The masks -----------------------------------------------------------------------------
 

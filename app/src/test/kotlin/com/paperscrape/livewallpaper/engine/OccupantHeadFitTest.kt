@@ -267,9 +267,10 @@ class OccupantHeadFitTest {
                 val walkBase = "person_${who}_${season}_walk0"
                 assertTrue("$walkBase.png missing", File(drawableDir, "$walkBase.png").isFile)
                 val carBase = "person_${who}_${season}_head_car"
-                // v4.19 deleted the four adult base drawings -- duplicates of one of their own
-                // skin copies that no draw path could reach -- so coverage is asserted on the
-                // tone files, which are what the renderer actually blits.
+                // v4.19 deleted the four adult base drawings and v4.20 the two boy ones --
+                // duplicates of one of their own skin copies that no draw path could reach -- so
+                // coverage is asserted on the tone files, which are what the renderer actually
+                // blits. See `carHeadFile`.
                 assertTrue(
                     "${carHeadFile(who, season)}.png missing: the pedestrians offer " +
                         "$who/$season and the vehicles do not",
@@ -380,7 +381,7 @@ class OccupantHeadFitTest {
         val HEAD_CAR_FAMILY = listOf(
             "person_man_summer_head_car_skin1", "person_man_winter_head_car_skin1",
             "person_woman_summer_head_car_skin0", "person_woman_winter_head_car_skin0",
-            "person_boy_summer_head_car", "person_boy_winter_head_car",
+            "person_boy_summer_head_car_skin2", "person_boy_winter_head_car_skin2",
             "person_girl_summer_head_car", "person_girl_winter_head_car",
         )
 
@@ -399,22 +400,26 @@ class OccupantHeadFitTest {
          * Which `_skinN` file carries each family's own tone -- the one the deleted base drawing
          * used to be.
          *
-         * v4.19 removed the four adult `person_*_head_car` bases: they were byte-identical in
-         * pixels to one of their own skin copies and no draw path could reach them, so they were
-         * 297 792 B of the decoded-sprite budget spent on duplicates (item 7 of
-         * `BACKLOG_v4_19.md`). The measurements here move to the surviving copy rather than to
-         * an arbitrary tone, which is why the map is not simply skin0 everywhere: the man's base
-         * was skin1 and the woman's was skin0. Verified pixel-by-pixel against the deleted files
-         * before they were removed.
+         * v4.19 removed the four adult `person_*_head_car` bases and v4.20 the two boy ones: each
+         * was byte-identical in pixels to one of its own skin copies and no draw path could reach
+         * it, so together they were 446 688 B of the decoded-sprite budget spent on duplicates
+         * (item 7 of `BACKLOG_v4_19.md`, closed in `BACKLOG_v4_20.md`). The measurements here move
+         * to the surviving copy rather than to an arbitrary tone, which is why the map is not
+         * simply skin0 everywhere: the man's base was skin1, the woman's skin0 and the boy's
+         * skin2. Verified pixel-by-pixel against the deleted files before they were removed --
+         * v4.20 re-measured its two at zero differing pixels, and re-derived the other tones from
+         * the heir to check they come back byte-identical.
          */
-        val BASE_SKIN_OF = mapOf("man" to 1, "woman" to 0)
+        val BASE_SKIN_OF = mapOf("man" to 1, "woman" to 0, "boy" to 2)
 
         /**
          * The shipped file a family's own tone lives in.
          *
-         * The children's base drawings still ship -- v4.19 deleted only the four *adult* bases,
-         * and the girl's base is not even a duplicate of one of her skins -- so their measurements
-         * stay on the base. The adults' move to the copy their base was byte-identical to.
+         * Only the **girl's** base drawings still ship, and for a reason worth keeping: hers is
+         * not a duplicate of any of her tones. Her own painted skin is a fourth colour, so
+         * regenerating her other tones from `_skin0` instead moves 165-406 anti-aliased pixels
+         * against zero for every base that was retired. Her measurements therefore stay on the
+         * base; every other family's move to the copy its base was byte-identical to.
          */
         fun carHeadFile(who: String, season: String): String =
             BASE_SKIN_OF[who]?.let { "person_${who}_${season}_head_car_skin$it" }

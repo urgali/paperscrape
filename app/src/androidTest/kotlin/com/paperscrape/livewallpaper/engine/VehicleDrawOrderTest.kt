@@ -125,11 +125,29 @@ class VehicleDrawOrderTest {
     private companion object {
         /** rc4: the occupant is a `head_car` skin drawable -- any adult member, either season,
          * any tone, since the driver's identity is a per-candidate roll. */
+        /**
+         * Every sprite a seated occupant can be.
+         *
+         * It used to list the twelve adult first-outfit tones, which was every occupant there was.
+         * v4.20 doubled the adult rows with the clothing axis and v4.19 had already made a child a
+         * possible passenger, so a list of twelve stopped being "an occupant" and became "some
+         * occupants" -- and the failure mode is silent in the wrong direction: the test reports
+         * *no occupant drawn* and blames the renderer. It did exactly that on the police car, whose
+         * candidate slot happens to deal the second outfit.
+         */
         val OCCUPANT_HEADS = setOf(
             R.drawable.person_man_summer_head_car_skin0, R.drawable.person_man_summer_head_car_skin1, R.drawable.person_man_summer_head_car_skin2,
             R.drawable.person_man_winter_head_car_skin0, R.drawable.person_man_winter_head_car_skin1, R.drawable.person_man_winter_head_car_skin2,
             R.drawable.person_woman_summer_head_car_skin0, R.drawable.person_woman_summer_head_car_skin1, R.drawable.person_woman_summer_head_car_skin2,
             R.drawable.person_woman_winter_head_car_skin0, R.drawable.person_woman_winter_head_car_skin1, R.drawable.person_woman_winter_head_car_skin2,
+            R.drawable.person_man_summer_head_car_alt_skin0, R.drawable.person_man_summer_head_car_alt_skin1, R.drawable.person_man_summer_head_car_alt_skin2,
+            R.drawable.person_man_winter_head_car_alt_skin0, R.drawable.person_man_winter_head_car_alt_skin1, R.drawable.person_man_winter_head_car_alt_skin2,
+            R.drawable.person_woman_summer_head_car_alt_skin0, R.drawable.person_woman_summer_head_car_alt_skin1, R.drawable.person_woman_summer_head_car_alt_skin2,
+            R.drawable.person_woman_winter_head_car_alt_skin0, R.drawable.person_woman_winter_head_car_alt_skin1, R.drawable.person_woman_winter_head_car_alt_skin2,
+            R.drawable.person_boy_summer_head_car_skin0, R.drawable.person_boy_summer_head_car_skin1, R.drawable.person_boy_summer_head_car_skin2,
+            R.drawable.person_boy_winter_head_car_skin0, R.drawable.person_boy_winter_head_car_skin1, R.drawable.person_boy_winter_head_car_skin2,
+            R.drawable.person_girl_summer_head_car_skin0, R.drawable.person_girl_summer_head_car_skin1, R.drawable.person_girl_summer_head_car_skin2,
+            R.drawable.person_girl_winter_head_car_skin0, R.drawable.person_girl_winter_head_car_skin1, R.drawable.person_girl_winter_head_car_skin2,
         )
     }
 }

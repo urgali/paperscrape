@@ -247,9 +247,11 @@ class ByConstructionIdentityTest(unittest.TestCase):
         # vehicle heads added the same three characters x two seasons on one more slot, for 30.
         # v4.19 removed four of them: the *adult* vehicle busts' base drawings were deleted, so
         # the man's and the woman's `head_car` identities have nothing left to pair -- there is no
-        # duplicate to declare because there is no duplicate. The boy's two survive, his base
-        # still shipping. See `retiredBases` in the registry.
-        self.assertEqual(26, len(declared), "twenty-six identities are expected")
+        # duplicate to declare because there is no duplicate. v4.20 removed the boy's two the same
+        # way, which takes the `head_car` slot out of this count entirely: every base that was a
+        # duplicate of its own tone has now been retired in favour of that tone.
+        # See `retiredBases` in the registry.
+        self.assertEqual(24, len(declared), "twenty-four identities are expected")
         for group_ in declared:
             base, variant = sorted(group_.members, key=len)
             kind = base.split("_")[1]
