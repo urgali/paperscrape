@@ -1,0 +1,44 @@
+# Gradle
+.gradle/
+build/
+app/build/
+.kotlin/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# Keystores - never commit *release* signing keys
+*.jks
+*.keystore
+# EXCEPTION: debug.keystore is deliberately committed and tracked. It holds no real security
+# value (standard public debug alias "androiddebugkey", password "android" — the same Android's
+# own tooling uses by default) and exists solely so every build (local or CI) is signed with the
+# same certificate, so app updates between versions actually work. Never apply this exception to
+# a release/production keystore.
+!debug.keystore
+
+# Logs
+*.log
+
+# Asset pipeline: generated output only.
+# `tools/assets/staging/` holds sprites rendered from the SVG sources. It is
+# derived, it is rebuilt by `python3 -m paperscrape_assets render`, and it must
+# never be confused with `app/src/main/res/drawable-nodpi/`, which is the
+# runtime asset directory and IS tracked. Everything else under tools/assets --
+# the sources, the registry, the tooling and the reports under reports/ -- is
+# tracked on purpose: the reports are the evidence for the fidelity figures
+# quoted in RELEASE_HISTORY.md.
+tools/assets/staging/
+tools/assets/**/__pycache__/
+
+# Local AI assistant instructions — intentionally NOT versioned.
+# CLAUDE.md holds machine-specific environment setup and session working notes.
+# It must never be committed, never be included in a release artifact, and never
+# be referenced from a tracked file. See AI_PROJECT_RULES.md section 10.3.
+CLAUDE.md
