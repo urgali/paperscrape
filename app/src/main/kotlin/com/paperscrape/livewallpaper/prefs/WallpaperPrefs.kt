@@ -264,6 +264,22 @@ class WallpaperPrefs(private val context: Context) {
         val PEOPLE_NIGHT_DENSITY = floatPreferencesKey("people_night_density")
 
         /**
+         * Night-time car density. Same shape and same upgrade rule as [PEOPLE_NIGHT_DENSITY]:
+         * absent for every install that predates v4.22, which
+         * [PeopleDensity.resolveNightDensity] reads as "use the daytime value" -- the scene after
+         * the update is the scene before it.
+         */
+        val CARS_NIGHT_DENSITY = floatPreferencesKey("cars_night_density")
+
+        /**
+         * The business hours (Fase 4). Absent keys read as the [SceneCustomization] defaults:
+         * toggle off, which renders identically to the feature not existing.
+         */
+        val BUSINESS_HOURS_ENABLED = booleanPreferencesKey("business_hours_enabled")
+        val BUSINESS_OPEN_HOUR = floatPreferencesKey("business_open_hour")
+        val BUSINESS_CLOSE_HOUR = floatPreferencesKey("business_close_hour")
+
+        /**
          * The saved-themes document an import has written here but not yet into its own store.
          *
          * **BCK-06.** An import writes two DataStores and there is no transaction spanning them, so
@@ -486,6 +502,15 @@ class WallpaperPrefs(private val context: Context) {
             stored = prefs[Keys.PEOPLE_NIGHT_DENSITY],
             dayDensity = prefs[Keys.density(ObjectCategory.PEOPLE)] ?: defaults.people.density,
         ),
+        // The cars' night density resolves through the same rule as the pedestrians', against the
+        // cars' own daytime value -- see Keys.CARS_NIGHT_DENSITY.
+        carsNightDensity = PeopleDensity.resolveNightDensity(
+            stored = prefs[Keys.CARS_NIGHT_DENSITY],
+            dayDensity = prefs[Keys.density(ObjectCategory.CARS)] ?: defaults.cars.density,
+        ),
+        businessHoursEnabled = prefs[Keys.BUSINESS_HOURS_ENABLED] ?: defaults.businessHoursEnabled,
+        businessOpenHour = prefs[Keys.BUSINESS_OPEN_HOUR] ?: defaults.businessOpenHour,
+        businessCloseHour = prefs[Keys.BUSINESS_CLOSE_HOUR] ?: defaults.businessCloseHour,
             trees = readVariantConfig(prefs, ObjectCategory.TREES, defaults.trees),
             snowmen = readVariantConfig(prefs, ObjectCategory.SNOWMEN, defaults.snowmen),
             gifts = readVariantConfig(prefs, ObjectCategory.GIFTS, defaults.gifts),
@@ -634,6 +659,10 @@ class WallpaperPrefs(private val context: Context) {
         variant(ObjectCategory.EASTER_EGGS, c.easterEggs)
         variant(ObjectCategory.PUMPKINS, c.pumpkins)
         this[Keys.PEOPLE_NIGHT_DENSITY] = c.peopleNightDensity
+        this[Keys.CARS_NIGHT_DENSITY] = c.carsNightDensity
+        this[Keys.BUSINESS_HOURS_ENABLED] = c.businessHoursEnabled
+        this[Keys.BUSINESS_OPEN_HOUR] = c.businessOpenHour
+        this[Keys.BUSINESS_CLOSE_HOUR] = c.businessCloseHour
         this[Keys.HILLS_VARIATION] = c.hillsVariation
         this[Keys.SNOW_PILES] = c.snowPiles
         this[Keys.LEAF_PILES] = c.leafPiles
@@ -899,6 +928,31 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setPeopleNightDensity(density: Float, forThemeId: String) =
         context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.PEOPLE_NIGHT_DENSITY] = density
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /** The night-time car density. The daytime one is `setCategoryDensity(CARS, ...)`. */
+    suspend fun setCarsNightDensity(density: Float, forThemeId: String) =
+        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.CARS_NIGHT_DENSITY] = density
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    suspend fun setBusinessHoursEnabled(enabled: Boolean, forThemeId: String) =
+        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.BUSINESS_HOURS_ENABLED] = enabled
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    suspend fun setBusinessOpenHour(hour: Float, forThemeId: String) =
+        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.BUSINESS_OPEN_HOUR] = hour
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    suspend fun setBusinessCloseHour(hour: Float, forThemeId: String) =
+        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.BUSINESS_CLOSE_HOUR] = hour
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
@@ -1324,8 +1378,15 @@ class WallpaperPrefs(private val context: Context) {
         prefs.remove(Keys.autoMode2(category))
         // People carry a second density that lives outside the per-category keys; resetting the
         // category has to clear it too, or "reset to default" would leave the night population
-        // wherever the user had dragged it.
+        // wherever the user had dragged it. Cars carry the same pair since v4.22, and the
+        // buildings carry the business hours -- same rule, same reason, for each.
         if (category == ObjectCategory.PEOPLE) prefs.remove(Keys.PEOPLE_NIGHT_DENSITY)
+        if (category == ObjectCategory.CARS) prefs.remove(Keys.CARS_NIGHT_DENSITY)
+        if (category == ObjectCategory.BUILDINGS) {
+            prefs.remove(Keys.BUSINESS_HOURS_ENABLED)
+            prefs.remove(Keys.BUSINESS_OPEN_HOUR)
+            prefs.remove(Keys.BUSINESS_CLOSE_HOUR)
+        }
         prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
     }
 
@@ -1371,8 +1432,14 @@ class WallpaperPrefs(private val context: Context) {
         // exists to prevent), "reset everything to defaults" left the slider where the user had
         // dragged it, and a backup restore left it for the first post-restore edit to pick up.
         // `resetCategory(PEOPLE, ...)` has always removed it; this is the same field, in the wipe
-        // that is supposed to clear everything.
+        // that is supposed to clear everything. The v4.22 additions below are the same class of
+        // field -- per-theme scratch outside the per-category loop -- added here the day they were
+        // born so the leak this comment records cannot repeat with a new name.
         remove(Keys.PEOPLE_NIGHT_DENSITY)
+        remove(Keys.CARS_NIGHT_DENSITY)
+        remove(Keys.BUSINESS_HOURS_ENABLED)
+        remove(Keys.BUSINESS_OPEN_HOUR)
+        remove(Keys.BUSINESS_CLOSE_HOUR)
         remove(Keys.HILLS_VARIATION)
         remove(Keys.SNOW_PILES)
         remove(Keys.LEAF_PILES)

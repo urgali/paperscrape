@@ -11,20 +11,33 @@ that was.
 
 ## Current status
 
-**v4.21 prepared — not published, not approved.**
+**v4.22 prepared — not published, not approved.**
 
-`versionCode = 52`, `versionName = "4.21"`. **No tag, no push, no GitHub Release.** Baseline:
-**v4.20, prepared and not published either.** The last release the maintainer reports as published
+`versionCode = 53`, `versionName = "4.22"`. **No tag, no push, no GitHub Release.** Baseline:
+**v4.21, prepared and not published either.** The last release the maintainer reports as published
 is **v4.19**, and that is recorded on their word, not on a measurement taken here: this working tree
 has no tag for it and nothing in it can reach the remote. The account is in `RELEASE_HISTORY.md`.
 
-**The backlog carries two open items on purpose.** `BACKLOG_v4_20.md` is replaced by
-`BACKLOG_v4_21.md`, which keeps its numbering and carries forward the one item v4.20 left open.
-Of the new items, two are open and say what closing them would take: the emulator side of the GL
-golden decision, which is a single run on a machine that has one, and the palm, which is now the
-only tree still drawn in the old language and is an artistic pass rather than a defect.
+**The backlog is `BACKLOG_v4_22.md`**, which keeps the numbering: items 18, 20, 25 and 30 are
+carried forward unchanged, item 29 is closed with derived gates (each between its measured floor
+and its measured weakest regression), and item 31 is new — every one of those gates' floors is an
+observation on one device, and closing that takes a machine this one is not.
 
 Publication is the maintainer's decision and has not been taken.
+
+```
+v4.22 [x] four features in five phases, around a mid-pass maintainer checkpoint
+ |- the Cars slider is an explicit, maximally-spaced, nested count (curve A, chosen on device);
+ |  0% now means one sporadic car, and the remap is deliberately unmigrated
+ |- membership changes only off screen — for slider drags and for the dusk that now moves the
+ |  count by itself, because the cars carry a night density on the pedestrians' exact model
+ |- shops, bar and towers keep opening hours behind a default-off, bitwise-inert toggle: outside
+ |  them nobody stands at the glass and the windows stay dark even at night; houses are homes.
+ |  The fade is smoothEdge's own twilight over the opening span; the clock is DayPhase.hour24
+ \- item 29 closed: noise floor measured at 0.0000% (byte-identical cross-run PNGs), three new
+    gate scenes committed, four regressions measured, gates at half the weakest signal, seen red
+    under "the setting does nothing" mutations
+```
 
 ```
 v4.21 [x] the tree redrawn: "Quercia larga", chosen from three built proposals

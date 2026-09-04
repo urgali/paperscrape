@@ -234,8 +234,8 @@ class SceneCustomizationStructureTest {
             )
             assertEquals(
                 "colour change to $name must not change which cars render",
-                layout.cars.filter { base.keepCar(it) },
-                layout.cars.filter { mutated.keepCar(it) },
+                base.keptCars(layout.cars, "christmas".hashCode()),
+                mutated.keptCars(layout.cars, "christmas".hashCode()),
             )
         }
     }

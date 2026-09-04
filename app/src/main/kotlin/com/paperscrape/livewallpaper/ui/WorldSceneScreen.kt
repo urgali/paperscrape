@@ -548,12 +548,53 @@ private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: Strin
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
         )
+        SettingSwitchRow(
+            title = "Business hours",
+            subtitle = "Shops and towers keep opening hours: outside them nobody stands at " +
+                "their windows and the glass stays dark even at night. Houses are homes and " +
+                "keep their evening lights.",
+            checked = customization.businessHoursEnabled,
+            onCheckedChange = { scope.launch { prefs.setBusinessHoursEnabled(it, forThemeId) } },
+        )
+        if (customization.businessHoursEnabled) {
+            PreferenceSlider(
+                label = { shown -> Text("Open from: ${formatHour(shown)}", style = MaterialTheme.typography.bodyMedium) },
+                value = customization.businessOpenHour,
+                onCommit = { committed -> scope.launch { prefs.setBusinessOpenHour(quantiseToQuarterHour(committed), forThemeId) } },
+                valueRange = 0f..24f,
+            )
+            PreferenceSlider(
+                label = { shown -> Text("Until: ${formatHour(shown)}", style = MaterialTheme.typography.bodyMedium) },
+                value = customization.businessCloseHour,
+                onCommit = { committed -> scope.launch { prefs.setBusinessCloseHour(quantiseToQuarterHour(committed), forThemeId) } },
+                valueRange = 0f..24f,
+            )
+            Text(
+                "The hours follow the scene's own clock, so a frozen time of day obeys them " +
+                    "too. Closing past midnight works (09:00 until 02:00). Setting both to the " +
+                    "same time means always open.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
     editingTarget?.let { target ->
         ColorPickerDialog(title = target.label, initialColor = target.color,
             onConfirm = { c -> target.onChange(c); editingTarget = null }, onDismiss = { editingTarget = null })
     }
 }
+
+/** A decimal hour as the clock text the two business sliders print, quantised to 15 minutes. */
+private fun formatHour(hour: Float): String {
+    val q = quantiseToQuarterHour(hour)
+    val h = q.toInt() % 24
+    val m = ((q - q.toInt()) * 60).toInt()
+    return "%02d:%02d".format(h, m)
+}
+
+/** The stored value matches the printed one: both round to the same quarter hour. */
+private fun quantiseToQuarterHour(hour: Float): Float =
+    (Math.round(hour.coerceIn(0f, 24f) * 4f) / 4f)
 
 @Composable
 private fun HillsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
@@ -686,6 +727,25 @@ private fun CarsSubScreen(customization: SceneCustomization, forThemeId: String,
             title = "Cars", config = customization.cars, category = ObjectCategory.CARS,
             forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+            densityLabel = "Day density",
+            afterDensity = {
+                // The night half of the pair, in the People screen's own shape: the twin slider
+                // directly under the day one, and a line saying how the two meet.
+                PreferenceSlider(
+                    label = { shown -> Text("Night density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
+                    value = customization.carsNightDensity,
+                    onCommit = { committed -> scope.launch { prefs.setCarsNightDensity(committed, forThemeId) } },
+                    valueRange = 0f..1f,
+                )
+                Text(
+                    "The road fills and empties across dusk and dawn, one car at a time and " +
+                        "always off screen - a car never pops into the middle of the road. The " +
+                        "bottom of either slider keeps one last car driving; an empty road is " +
+                        "the Show Cars switch.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
         )
     }
     editingTarget?.let { target ->

@@ -19,7 +19,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import com.paperscrape.livewallpaper.engine.keepCar
+import com.paperscrape.livewallpaper.engine.keptCars
+import com.paperscrape.livewallpaper.engine.legacyKeepCar
 
 /**
  * The two file formats: a whole-app backup, and a single shareable theme.
@@ -485,7 +486,7 @@ class BackupAndThemeShareTest {
         // and it still shows only the 10% of traffic the author had on screen
         assertTrue(
             "the import put all the traffic back",
-            imported.layout.cars.count { imported.customization.keepCar(it) } < raw.cars.size,
+            imported.customization.keptCars(imported.layout.cars, imported.theme.id.hashCode()).size < raw.cars.size,
         )
     }
 
@@ -553,7 +554,9 @@ class BackupAndThemeShareTest {
             theme = ThemeCatalog.byId("beach"),
             layout = SceneObjectLayout(
                 staticObjects = raw.staticObjects,
-                cars = raw.cars.filter { thinned.keepCar(it) },
+                // legacyKeepCar: the fixture reconstructs what the pre-v4.3 save path wrote, and
+                // that path filtered with the threshold selection of its own era.
+                cars = raw.cars.filter { thinned.legacyKeepCar(it) },
             ),
             customization = thinned,
         )

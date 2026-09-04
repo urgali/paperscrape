@@ -518,4 +518,22 @@ class SunPositionCalculatorTest {
             0f,
         )
     }
+
+    /**
+     * `DayPhase.hour24` is the hour the phase was computed for, wrapped onto the clock (v4.22).
+     *
+     * It exists so that anything scheduled on the clock -- the business hours are the first --
+     * reads the hour that moved the sun, `fixedHour` included, instead of a clock of its own.
+     * The field must therefore be exactly the input, modulo 24: a phase that reported a
+     * different hour than the one that placed the sun would let the shops and the sky disagree
+     * about what time it is.
+     */
+    @Test
+    fun `the phase carries the hour that computed it, wrapped onto the clock`() {
+        for (hour in floatArrayOf(0f, 1f, 6f, 13.25f, 20f, 23.99f)) {
+            assertEquals(hour, SunPositionCalculator.compute(hour24 = hour).hour24, 1e-5f)
+        }
+        assertEquals("a wrapped input reports its clock hour", 1.5f, SunPositionCalculator.compute(hour24 = 25.5f).hour24, 1e-5f)
+        assertEquals("a negative input wraps forward", 23f, SunPositionCalculator.compute(hour24 = -1f).hour24, 1e-4f)
+    }
 }

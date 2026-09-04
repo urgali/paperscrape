@@ -210,6 +210,15 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     // has no such key, and reading falls back to that theme's own daytime density -- so an old
     // saved theme keeps behaving exactly as it did.
     put("peopleNightDensity", peopleNightDensity.toDouble())
+    // The cars' pair of the same field, beside the cars block for the same reason. A theme saved
+    // before v4.22 has no such key, and reading falls back to that theme's own daytime car
+    // density -- the upgrade rule PeopleDensity.resolveNightDensity states, applied to a payload.
+    put("carsNightDensity", carsNightDensity.toDouble())
+    // The business hours (v4.22). Absent from every older payload; reading falls back to the
+    // defaults, whose toggle-off state renders identically to the feature not existing.
+    put("businessHoursEnabled", businessHoursEnabled)
+    put("businessOpenHour", businessOpenHour.toDouble())
+    put("businessCloseHour", businessCloseHour.toDouble())
     put("trees", trees.toJson())
     put("snowmen", snowmen.toJson())
     put("gifts", gifts.toJson())
@@ -313,6 +322,16 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
             json.optJSONObject("people")?.optFinite("density", defaults.people.density)
                 ?: defaults.people.density,
         ),
+        // Same fallback shape as the people's: a pre-v4.22 payload has no night key, and its
+        // night traffic must be its day traffic -- the payload's own, not the default's.
+        carsNightDensity = json.optFinite(
+            "carsNightDensity",
+            json.optJSONObject("cars")?.optFinite("density", defaults.cars.density)
+                ?: defaults.cars.density,
+        ),
+        businessHoursEnabled = json.optBoolean("businessHoursEnabled", defaults.businessHoursEnabled),
+        businessOpenHour = json.optFinite("businessOpenHour", defaults.businessOpenHour),
+        businessCloseHour = json.optFinite("businessCloseHour", defaults.businessCloseHour),
         trees = json.optJSONObject("trees")?.let { objectVariantConfigFromJson(it, defaults.trees) } ?: defaults.trees,
         // Seasonal decorations ARE part of a saved custom theme's JSON now -- per-theme editable
         // and saveable exactly like the structural categories above (see the ObjectCategory doc
@@ -829,18 +848,24 @@ fun CustomThemeData.repairBuiltInOverrides(): CustomThemeData {
  * that expression from the canonical list and the entry's own baked customization has to
  * reproduce the stored list exactly, car for car.
  *
- * That is what turns the partial-inventory repair from a guess into a check. `keepCar` is a
+ * That is what turns the partial-inventory repair from a guess into a check. [legacyKeepCar] is a
  * threshold on a fixed per-car fraction, so the old filter could only ever emit one of eleven
  * nested subsets of a ten-car list; requiring an exact match against the one the entry's own
  * density selects refuses everything else, including any list this build cannot account for. If
  * the canonical layout is ever regenerated differently, the match simply stops succeeding and
  * nothing is written -- the failure mode is "leave it alone", which is the right one.
+ *
+ * **[legacyKeepCar], not the live selection.** The predicate here is the *author's*: the pre-v4.3
+ * save path filtered with the threshold selection every release before v4.22 shipped, so its
+ * output can only be reconstructed by that same frozen expression. v4.22 moved rendering to a
+ * distributed count ([CarSelection]); following it here would silently stop every pre-v4.3
+ * damaged install from matching, and the repair would never run again.
  */
 private fun oldSaveWouldHaveWritten(
     canonical: List<CarObject>,
     customization: SceneCustomization,
 ): List<CarObject> =
-    SceneObjectCatalog.canonicaliseTraffic(canonical.filter { customization.keepCar(it) })
+    SceneObjectCatalog.canonicaliseTraffic(canonical.filter { customization.legacyKeepCar(it) })
 
 /**
  * The stored blob, or `null` if there is one and it cannot be read.

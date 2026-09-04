@@ -119,7 +119,9 @@ PaperScrape/
 | `LakeLanes.kt` | Which lane each lake decoration occupies and how deep it sits, so boats cannot share a line and a leaping dolphin sorts by where its body is rather than by the lane it left. |
 | `CandidateNoise.kt` | The stable per-candidate pseudo-random values the stateless candidate model is built on: same slot, same value, every frame, with density thinning and colour-variant assignment deliberately drawn from uncorrelated streams. |
 | `CloudCoverage.kt` | How many clouds a cover fraction means, shared by the theme's own setting and Live Weather's. |
-| `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern. |
+| `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern -- and since v4.22 the day/night crossfade model the car count borrows (`CarSelection.densityAt`): one "a crossfade, not a threshold" rule, two users. |
+| `CarSelection.kt` | Which cars a density means (v4.22): an explicit count from 1 to every slot, filled in an order whose every prefix has the largest minimum loop gap, seeded per theme, applied per frame against each runtime's stored rank and only ever off screen. |
+| `BusinessHours.kt` | How open the shops and towers are at a scene hour (v4.22): a toggle that defaults to bitwise-off, `open == close` as always-open, wraparound spans, and a boundary fade that is `SunPositionCalculator.smoothEdge`'s own twilight over the opening span. Runs on `DayPhase.hour24` -- the hour that moved the sun -- never a clock of its own. |
 | `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview (v3.7). The preview builds its objects from the same sprites at the same offsets by hand, and the snow cap's copy had drifted 3 units right and 2 down; both now read from here. |
 | `SkyscraperSpriteLayout.kt` | The same for a tower (v3.8). The only other group that earned it: its roof snow carried the renderer's four-term offset as a folded sum, and its lit night facade sat six units off the wall it is documented to lie exactly on. An audit of all 55 shared drawables found no third case — the rest are plain literals that agree, and hoisting those would guard against nothing. |
 | `SpriteCache.kt` / `SpriteCacheIndex.kt` | The bitmap cache and its bookkeeping. The index is `SpriteCache`'s own `private val` — ids, byte counts and LRU order in `IntArray`s, deliberately free of Android types so the eviction logic is unit-testable, and cleared by the same `clear()` the memory-pressure path calls. |
@@ -1048,6 +1050,13 @@ Every window in the scene crossfades between two constants on the frame's own `n
 (`#FFE79A`, warm light). `windowGlassColor` is the only place that blends them, and the restaurant
 and the skyscraper both call it.
 
+Since v4.22 the *commercial* buildings' night is scaled by the business openness before it
+reaches those ramps (`BusinessHours`, off by default and then arithmetically absent): outside
+their hours the shops, the bar and the towers hold their unlit daytime glass whatever the sky
+does, and their window occupants' dealt count thins the same way. The houses' windows never
+consult it — `BusinessHoursWiringTest` pins both call systems and the houses' exemption by
+reading the call sites, the way `SkyscraperWindowTest` already pins the colour coupling.
+
 **A tintable window asset is a white mask.** `restaurant_window` always was one; v4.12 made
 `skyscraper_wall_lit` one too, regenerating it from its SVG through the normal pipeline. Before
 that it carried warm `#ffe9a8` artwork and could only ever be shown at night, which is why the
@@ -1138,20 +1147,25 @@ three tiers:
    to rebuild.
 
 Only `ObjectVariantConfig.visible` and `.density` can change *which* objects
-exist, because those are the only fields `keepCandidate`/`keepCar` read.
-Everything else — all 48 category colours, the sky/stars/clouds/precipitation/
-rainbow/mountain/lake/bird sections, hill variation, the seasonal palette
-flags — is consumed at draw time. `SceneCustomization.staticStructurallyEquals`
-and `.carsStructurallyEquals` encode that distinction as pure, allocation-free
-field comparisons (not a hash: a collision would silently skip a needed
-rebuild).
+exist, because those are the only fields `keepCandidate` and the car selection
+(`CarSelection`, since v4.22) read. Everything else — all 48 category colours,
+the sky/stars/clouds/precipitation/rainbow/mountain/lake/bird sections, hill
+variation, the seasonal palette flags — is consumed at draw time.
+`SceneCustomization.staticStructurallyEquals` and `.carsStructurallyEquals`
+encode that distinction as pure, allocation-free field comparisons (not a hash:
+a collision would silently skip a needed rebuild).
 
 The static and car lists are compared separately so that changing, say, house
 density rebuilds the static objects **without** resetting every car's in-flight
 `progress` along the road. Rebuilding the static list is visually free, since
 `StaticRuntime` holds only an `idleSeed` derived deterministically from its
-spec; rebuilding the car list is not, which is why it is gated on the car
-config alone.
+spec; rebuilding the car list is not, which is why it is gated on the cars'
+**visibility** alone. A car *density* change rebuilds nothing at all since
+v4.22: the slider maps to an explicit count (1 car at 0%, all ten slots at
+100% — `CarSelection`), every inventory slot keeps a ticking runtime whatever
+the count, and membership flips per car only while that car is off the drawn
+span of its loop — so an addition drives in from the edge, a removal finishes
+the pass it is on, and nothing pops into or out of the middle of the road.
 
 Before this, any difference at all reconstructed the whole renderer.
 
@@ -1729,9 +1743,10 @@ sequencing live in `ROADMAP.md`.
 10. **Test coverage is narrow, but less so than this entry used to claim.** The JVM suite
     covers the pure deterministic logic, and the sentence that stood here for many releases —
     *"no automated test in this project observes a rendered frame on either backend"* — has been
-    false since v3.2: 22 Canvas goldens and 3 GL goldens do exactly that, and v3.7 added a
-    region-targeted GL gate. (The Canvas figure is the number of Canvas *assertions* --
-    `SceneGoldenTest` plus `PeopleGoldenTest` -- not the number of PNGs in
+    false since v3.2: 25 Canvas goldens (as of v4.22) and 3 GL goldens do exactly that, and v3.7
+    added a region-targeted GL gate; v4.22 added derived per-focus gates on the settings scenes.
+    (The Canvas figure is the number of Canvas *assertions* --
+    `SceneGoldenTest`, `PeopleGoldenTest` and `SettingsGateScenesTest` -- not the number of PNGs in
     `androidTest/assets/golden/`, which also holds the three `gl-*.png`. Counting the directory is
     how the handover notes came to say 30; v4.21 corrected it and added `GoldenUniquenessTest`.) What remains true is the shape of the gap. The engine lifecycle, the
     preferences layer and the Compose UI are still untested and still cannot be unit tested

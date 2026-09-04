@@ -22,7 +22,11 @@ import org.junit.Test
  * By **density**, never by visibility: `drawRoad` returns early when the Cars category is switched
  * off, so a `visible = false` baseline would take the tarmac away with the traffic and the
  * difference between two frames would be the road. Rendering the same scene at density 0 and at
- * density 1 and differencing gives exactly the pixels that category paints.
+ * density 1 and differencing gives the pixels that category paints — since v4.22 minus one car:
+ * the bottom of the density range keeps a single car (see `CarSelection`), and by the nesting
+ * property it is also in the full-density set at the identical phase, so it cancels out of the
+ * diff. What is measured is therefore the other nine slots' traffic, which still puts vehicles
+ * on both lanes of this frame — the assertions below check that rather than assume it.
  */
 class VehicleScalePixelTest {
 

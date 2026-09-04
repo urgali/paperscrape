@@ -44,7 +44,6 @@ import com.paperscrape.livewallpaper.engine.SceneObjectLayout
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.engine.keepCandidate
-import com.paperscrape.livewallpaper.engine.keepCar
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
@@ -512,9 +511,9 @@ internal fun snapshotEntry(
         // traffic is on it."* `drawRoad` obeyed it at frame time; this obeys it at save time.
         //
         // **The saved theme still looks the same.** The entry carries `activeCustomization`, and
-        // `keepCar` applies it at render time to the same full list, which reproduces exactly the
-        // traffic that was on screen when the user pressed save -- `SavedThemeCarLayoutTest` pins
-        // that as an equality, not as an approximation.
+        // the car selection (`keptCars`) applies it at render time to the same full list, which
+        // reproduces exactly the traffic that was on screen when the user pressed save --
+        // `SavedThemeCarLayoutTest` pins that as an equality, not as an approximation.
         cars = rawLayout.cars,
     )
     return CustomThemeEntry(id = targetId, name = targetName, theme = theme, layout = layout, customization = activeCustomization)

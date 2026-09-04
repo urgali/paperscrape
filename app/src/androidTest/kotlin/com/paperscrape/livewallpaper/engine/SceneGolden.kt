@@ -173,17 +173,18 @@ object SceneGolden {
         }
 
         // The second, tighter pass, for scenes that are about one small part of the picture. See
-        // [MAX_FOCUS_DIFFERING_FRACTION].
+        // [MAX_FOCUS_DIFFERING_FRACTION], and [GoldenFocus.maxDifferingFraction] for the derived
+        // per-focus gates of v4.22.
         for (focus in scene.focus + extraFocus) {
             val inFocus = countDiffering(expected, actual, focus.left, focus.top, focus.right, focus.bottom)
             val focusFraction = inFocus.toDouble() / focus.area
-            if (focusFraction > MAX_FOCUS_DIFFERING_FRACTION) {
+            if (focusFraction > focus.maxDifferingFraction) {
                 reject(scene, actual, expected)
                 fail(
                     "Golden '${scene.name}' changed inside '${focus.label}' " +
                         "(${focus.left},${focus.top})-(${focus.right},${focus.bottom}): $inFocus of " +
-                        "${focus.area} pixels differ (${"%.2f".format(focusFraction * 100)}%, limit " +
-                        "${"%.2f".format(MAX_FOCUS_DIFFERING_FRACTION * 100)}%). This is the part of " +
+                        "${focus.area} pixels differ (${"%.4f".format(focusFraction * 100)}%, limit " +
+                        "${"%.4f".format(focus.maxDifferingFraction * 100)}%). This is the part of " +
                         "the frame the golden is about; the whole frame passed. The rendered frame " +
                         "and a diff are in ${outputDir()}.",
                 )
@@ -191,6 +192,16 @@ object SceneGolden {
             }
         }
     }
+
+    /**
+     * The share of [focus] on which two frames disagree, by the same per-pixel rule a golden
+     * uses. Public for the v4.22 gate-derivation tests, which show each derived gate standing
+     * between the measured floor and the regression it must catch rather than asserting that it
+     * does.
+     */
+    fun differingFractionIn(expected: Bitmap, actual: Bitmap, focus: GoldenFocus): Double =
+        countDiffering(expected, actual, focus.left, focus.top, focus.right, focus.bottom)
+            .toDouble() / focus.area
 
     private fun reject(scene: GoldenScene, actual: Bitmap, expected: Bitmap) {
         write(actual, File(outputDir(), "${scene.name}-actual.png"))

@@ -11,7 +11,24 @@ import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
  * therefore has to be measured over the patch it is painted in, or it passes whatever happens
  * there. Naming that patch is [GoldenScene.focus].
  */
-class GoldenFocus(val left: Int, val top: Int, val right: Int, val bottom: Int, val label: String) {
+class GoldenFocus(
+    val left: Int,
+    val top: Int,
+    val right: Int,
+    val bottom: Int,
+    val label: String,
+    /**
+     * The fraction of this rectangle allowed to differ, defaulting to the shared
+     * [SceneGolden.MAX_FOCUS_DIFFERING_FRACTION] every focus has always used.
+     *
+     * A focus may carry a **tighter, derived** limit instead (v4.22 Fase 5): the settings gates
+     * place theirs between the measured noise floor and the weakest regression that must fail,
+     * with both numbers written at the declaration. The default is not a tolerance change --
+     * every pre-existing focus keeps the limit it always had -- and a derived limit is only ever
+     * *below* the shared one, so nothing an old focus rejected is newly forgiven.
+     */
+    val maxDifferingFraction: Double = SceneGolden.MAX_FOCUS_DIFFERING_FRACTION,
+) {
     val area: Int get() = (right - left) * (bottom - top)
 }
 

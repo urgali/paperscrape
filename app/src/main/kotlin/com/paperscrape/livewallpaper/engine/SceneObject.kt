@@ -385,11 +385,18 @@ object SceneObjectCatalog {
      * dashed centre line sat above all of it, because there was nothing on the far side to
      * separate.
      *
-     * Lane comes from the candidate index rather than from the seed, so both lanes are always
-     * populated whatever the density and whatever the theme; direction follows from the lane, so
-     * the near lane runs right and the far lane runs left and no two cars meet head-on in the same
-     * lane. `startDelaySeconds` already staggers same-lane candidates by ~3.6 s, which is what
-     * keeps them apart once they are no longer sharing one lane with everything else.
+     * Lane comes from the candidate index rather than from the seed, so the *inventory* always
+     * offers both lanes whatever the theme; direction follows from the lane, so the near lane
+     * runs right and the far lane runs left and no two cars meet head-on in the same lane.
+     * `startDelaySeconds` already staggers same-lane candidates by ~3.6 s, which is what keeps
+     * them apart once they are no longer sharing one lane with everything else.
+     *
+     * This used to claim both lanes are always *populated* whatever the density, and since v4.22
+     * that is deliberately no longer true: the density slider maps to an explicit car count whose
+     * bottom is **one car in the whole scene**, so at low counts one lane stands empty -- which
+     * lane comes from the theme's seed, not from a constant, so it is not the same lane in every
+     * theme. See [CarSelection]. What this generator guarantees is unchanged: ten candidates,
+     * five per lane, uniformly spaced around the loop.
      *
      * Vehicle type is a stable weighted pick per candidate index (not `Random()` per frame --
      * every candidate must always render the same type, the same way its lane/speed are fixed at

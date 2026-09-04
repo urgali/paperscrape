@@ -82,7 +82,9 @@ class BeachRoadRepairTest {
         return (0..2).maxOf { kotlin.math.abs(lane[it] - ground[it]) } > 12
     }
 
-    /** How many pixels the vehicles paint, isolated by density -- never by visibility. */
+    /** How many pixels the vehicles paint, isolated by density -- never by visibility. Since
+     * v4.22 the bottom of the density range keeps one car, so this is the paint of the *other*
+     * nine -- still orders of magnitude above the threshold it is compared with. */
     private fun vehiclePixels(): Int {
         val none = render(carsDensity = 0f)
         val all = render(carsDensity = 1f)

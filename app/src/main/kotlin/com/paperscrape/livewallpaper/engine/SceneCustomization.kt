@@ -11,7 +11,15 @@ package com.paperscrape.livewallpaper.engine
  */
 data class ObjectVariantConfig(
     val visible: Boolean,
-    /** 0f..1f — fraction of a theme's candidate slots for this category that actually render. */
+    /**
+     * 0f..1f — how populated the category is.
+     *
+     * For static categories, the fraction of a theme's candidate slots that actually render
+     * (each slot keeps or drops itself by a stable per-slot hash — [keepCandidate]). For cars
+     * the same 0..1 maps onto an explicit **count** instead, 1 car at 0f and every slot at 1f,
+     * because ten candidates are too few for independent thresholds to approximate a density —
+     * see [CarSelection].
+     */
     val density: Float,
     val colorDay1: Int,
     val colorNight1: Int,
@@ -260,12 +268,52 @@ data class SceneCustomization(
      * between two frames.
      *
      * Deliberately a field of its own rather than a second density on every
-     * [ObjectVariantConfig]: pedestrians are the only category whose population plausibly depends
-     * on the hour, and giving houses and mountains a night density would be a preference that can
-     * never mean anything. It governs the same pedestrians `people.density` always has -- drivers,
-     * passengers and the figures in lit windows are drawn elsewhere and are untouched.
+     * [ObjectVariantConfig]: a night density only means something for a category whose population
+     * *moves* -- things that come and go, so that "fewer of them after dark" describes behaviour
+     * rather than redecorating. Pedestrians move; so does traffic, which is why cars carry the
+     * same pair since v4.22 ([carsNightDensity]) -- this comment used to say pedestrians were the
+     * only such category, and the traffic feature is exactly the counterexample. Houses and
+     * mountains stand still: giving them a night density would make buildings dissolve at dusk,
+     * a preference that cannot mean anything about a landscape. It governs the same pedestrians
+     * `people.density` always has -- drivers, passengers and the figures in lit windows are drawn
+     * elsewhere and are untouched.
      */
     val peopleNightDensity: Float = DEFAULT_PEOPLE_NIGHT_DENSITY,
+    /**
+     * How much traffic drives **after dark**, 0f..1f.
+     *
+     * The cars' own half of the pair [peopleNightDensity] describes: [cars]`.density` is the
+     * daytime figure, this is the night one, and the count in force is the blend of the two on
+     * the scene's own `dayBlend` (`CarSelection.densityAt` -> `countFor`) -- the road fills and
+     * empties over the length of dusk, car by car and only off screen, never between two frames.
+     * The blended density feeds the same explicit count the day slider does; there is no second
+     * threshold and no parallel selection.
+     *
+     * Defaults equal to the daytime default, and resolves to the daytime *setting* for a user
+     * upgrading from a build that had one slider ([PeopleDensity.resolveNightDensity]), so the
+     * scene after the update is the scene before it until somebody moves the new control.
+     */
+    val carsNightDensity: Float = DEFAULT_CARS_NIGHT_DENSITY,
+    /**
+     * Whether the commercial buildings keep opening hours at all.
+     *
+     * **Off by default, and off means bitwise-identical to before the feature existed**: every
+     * window and every occupant behaves as it always has, and the two hours below are inert (the
+     * settings screen only lets them be edited while this is on). See [BusinessHours] for what
+     * "open" and "closed" do, which buildings count as a business, and why the houses never do.
+     */
+    val businessHoursEnabled: Boolean = false,
+    /**
+     * When the businesses open, decimal hours 0..24.
+     *
+     * `open == close` means always open — "always closed" is the buildings' visibility switch,
+     * not an hour. The pair may wrap midnight (09:00–02:00 is a valid business day). The default
+     * pair is only a seed for the editors: it means nothing until [businessHoursEnabled] is on,
+     * and an ordinary shop day is the least surprising place for the sliders to start.
+     */
+    val businessOpenHour: Float = DEFAULT_BUSINESS_OPEN_HOUR,
+    /** When the businesses close — see [businessOpenHour] for the boundary rules. */
+    val businessCloseHour: Float = DEFAULT_BUSINESS_CLOSE_HOUR,
     val trees: ObjectVariantConfig,
     // Fall Colors / Winter-Christmas Colors: NOT their own placeable object category (no
     // visibility/density/color-variant shape like the seasonal decorations below) -- they're a
@@ -504,6 +552,7 @@ data class SceneCustomization(
                 colorDay1 = 0, colorNight1 = 0, colorDay2 = 0, colorNight2 = 0,
             ),
             peopleNightDensity = DEFAULT_PEOPLE_NIGHT_DENSITY,
+            carsNightDensity = DEFAULT_CARS_NIGHT_DENSITY,
             parasols = ObjectVariantConfig(
                 visible = true,
                 density = 0.65f, // see houses' own comment on this same default-density change
@@ -588,6 +637,24 @@ data class SceneCustomization(
 const val DEFAULT_PEOPLE_NIGHT_DENSITY = 1f
 
 /**
+ * The night-time car density a fresh install starts with. Equal to the cars' daytime default for
+ * the same reason [DEFAULT_PEOPLE_NIGHT_DENSITY] equals the pedestrians': until the user moves
+ * the new slider, v4.22 nights look exactly like v4.21 nights.
+ */
+const val DEFAULT_CARS_NIGHT_DENSITY = 1f
+
+/**
+ * Where the business-hours editors start, inert until the toggle is on.
+ *
+ * Not derived, and not derivable: a default shop day is a seed for two sliders nobody has moved,
+ * behind a toggle that defaults to off. 09:00–20:00 is stated as "an ordinary shop day" and
+ * carries no other meaning; with the toggle off the rendered scene is identical whatever these
+ * hold, which `BusinessHours.opennessAt` guarantees by returning 1 before reading them.
+ */
+const val DEFAULT_BUSINESS_OPEN_HOUR = 9f
+const val DEFAULT_BUSINESS_CLOSE_HOUR = 20f
+
+/**
  * The arc-height range, in fractions of screen height.
  *
  * These are the bounds the renderer has always clamped to, now named once and shared with the
@@ -640,7 +707,8 @@ private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantCo
 }
 
 /** Whether this candidate slot should actually render, given the current config. Types with no
- * customization category (e.g. CAR, which uses [keepCar] instead) are always kept.
+ * customization category (e.g. CAR, whose membership is a distributed count -- see [keptCars]
+ * and [CarSelection]) are always kept.
  *
  * The two storefronts are exempt from density thinning (not from the category's visibility
  * toggle): since rc3 the catalogue emits exactly one restaurant and one bar per tile
@@ -659,7 +727,20 @@ fun SceneCustomization.keepCandidate(spec: StaticSceneObject): Boolean {
     return stableFraction(spec, salt = 0f) < config.density
 }
 
-fun SceneCustomization.keepCar(spec: CarObject): Boolean =
+/**
+ * The car selection every release **before v4.22** shipped: an independent threshold on a stable
+ * per-candidate fraction.
+ *
+ * **Frozen, and not a render-time path.** Rendering selects cars by explicit count since v4.22 —
+ * see [CarSelection] and [keptCars] for why a threshold over ten candidates deals a fixed hand
+ * rather than a distribution. This expression survives for exactly one caller:
+ * `oldSaveWouldHaveWritten` in `CustomThemeData.kt` reconstructs, byte for byte, the car list the
+ * pre-v4.3 save path wrote into a damaged override, and that save path filtered with *this*
+ * predicate. The reconstruction is the repair's proof of authorship, so it must keep reproducing
+ * the historical algorithm however the live selection evolves. Changing this function breaks the
+ * repair of every install damaged before v4.3.
+ */
+internal fun SceneCustomization.legacyKeepCar(spec: CarObject): Boolean =
     cars.visible && stableFraction(spec, salt = 0f) < cars.density
 
 /** Which of the 2 color variants (0 or 1) this instance uses. Salted differently from
@@ -910,13 +991,20 @@ fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Bool
         pumpkins.structurallyEquals(other.pumpkins)
 
 /**
- * Whether two configs would produce the same set of rendered cars. Separate from
- * [staticStructurallyEquals] so that changing, say, house density rebuilds the static objects
- * without resetting every car's in-flight `progress` along the road.
+ * Whether two configs would produce the same set of rendered cars **at every hour** -- the two
+ * densities are two ends of the dusk crossfade, so the night one is as structural as the day one.
+ * Separate from [staticStructurallyEquals] so that changing, say, house density touches nothing
+ * about the traffic at all.
+ *
+ * The renderer no longer consults this to decide a rebuild: only a visibility flip rebuilds the
+ * runtimes, and any density difference -- day or night -- is picked up by the per-frame count in
+ * `SceneObjectRenderer.update`, applied per car and off screen (see [CarSelection]). What this
+ * predicate still states, and what its test still pins, is which fields can change the picture's
+ * *structure* at all: everything else on [cars] is consumed at draw time.
  */
 fun SceneCustomization.carsStructurallyEquals(other: SceneCustomization): Boolean =
-    cars.structurallyEquals(other.cars)
+    cars.structurallyEquals(other.cars) && carsNightDensity == other.carsNightDensity
 
-/** The subset of a category config that [keepCandidate]/[keepCar] actually read. */
+/** The subset of a category config that [keepCandidate] and the car selection actually read. */
 private fun ObjectVariantConfig.structurallyEquals(other: ObjectVariantConfig): Boolean =
     visible == other.visible && density == other.density

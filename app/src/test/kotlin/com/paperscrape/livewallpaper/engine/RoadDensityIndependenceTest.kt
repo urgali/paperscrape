@@ -50,7 +50,10 @@ class RoadDensityIndependenceTest {
             val custom = customizationWithCarDensity(density)
             // Filtering happens on the runtime list; the road's own span is taken from `cars`
             // regardless, which is what makes this constant.
-            assertTrue("density $density kept cars it should not", cars.count { custom.keepCar(it) } <= cars.size)
+            assertTrue(
+                "density $density kept cars it should not",
+                custom.keptCars(cars, themeSeed = 0).size <= cars.size,
+            )
             assertEquals("road margin moved at density $density", expected, marginOf(cars), screenHeightFractionTolerance)
         }
     }
@@ -59,17 +62,18 @@ class RoadDensityIndependenceTest {
     fun `the density-filtered list really does give a different road`() {
         // The defect, reproduced against the code path that used to feed drawRoad. Without this
         // the test above would pass just as happily on the broken version.
+        //
+        // Since v4.22 the selection balances the lanes, so a thinned list only collapses onto one
+        // lane at the count where it *must*: a single car. That is still exactly the collapse the
+        // device saw -- a span of zero -- and it is the strongest form the defect can take now,
+        // because at any count above one both lanes are populated and the filtered span matches
+        // the layout's by construction rather than by luck.
         val cars = canonicalCars()
-        val thinned = cars.filter { customizationWithCarDensity(0.2f).keepCar(it) }
-        assertTrue("the fixture must actually thin the traffic", thinned.size < cars.size)
+        val thinned = customizationWithCarDensity(0f).keptCars(cars, themeSeed = 0)
+        assertEquals("the new zero is one car in the whole scene", 1, thinned.size)
 
-        val lanesLeft = thinned.map { it.laneYFraction }.distinct()
-        if (lanesLeft.size < 2) {
-            // One lane left, which is the collapse the device saw: the raw span is zero.
-            assertEquals(0f, (thinned.maxOf { it.laneYFraction } - thinned.minOf { it.laneYFraction }), 1e-7f)
-        } else {
-            assertNotEquals(marginOf(cars), marginOf(thinned))
-        }
+        // One lane left, which is the collapse the device saw: the raw span is zero.
+        assertEquals(0f, (thinned.maxOf { it.laneYFraction } - thinned.minOf { it.laneYFraction }), 1e-7f)
     }
 
     @Test
@@ -102,12 +106,20 @@ class RoadDensityIndependenceTest {
     fun `car density changes how many cars render`() {
         // The half of the slider that is supposed to work, kept alongside so a future change that
         // fixes the geometry by disconnecting the slider entirely would fail here.
+        //
+        // The bottom of the slider means one car since v4.22, not zero: "no cars" belongs to the
+        // visibility switch. Both endpoints are asserted with their new meanings.
         val cars = canonicalCars()
-        val none = cars.count { customizationWithCarDensity(0f).keepCar(it) }
-        val all = cars.count { customizationWithCarDensity(1f).keepCar(it) }
-        assertEquals(0, none)
+        val bottom = customizationWithCarDensity(0f).keptCars(cars, themeSeed = 0).size
+        val all = customizationWithCarDensity(1f).keptCars(cars, themeSeed = 0).size
+        val hidden = customizationWithCarDensity(1f)
+            .let { it.copy(cars = it.cars.copy(visible = false)) }
+            .keptCars(cars, themeSeed = 0)
+            .size
+        assertEquals(1, bottom)
         assertEquals(cars.size, all)
-        assertTrue(all > 0)
+        assertEquals(0, hidden)
+        assertTrue(all > bottom)
     }
 
     @Test

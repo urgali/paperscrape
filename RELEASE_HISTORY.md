@@ -24,6 +24,60 @@ release date will be standing.
 
 ---
 
+## v4.22 — the traffic learns to count, and the settings learn to be caught failing
+
+**Prepared, not published.** `versionCode = 53`, `versionName = "4.22"`. Prepared 2026-09-04. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.21**,
+prepared and not published either.
+
+**What it is.** Four features in five phases, delivered in two halves around a maintainer
+checkpoint (the mid-pass ZIP `c72ad53c…`; this entry describes the whole).
+
+1. **The Cars density slider is an explicit count** (`CarSelection`). The per-candidate threshold
+   dealt a fixed hand over the ten-value candidate identity — the v4.19/v4.20 arithmetic again —
+   and at the reported 30–40% could park two survivors bumper to bumper. The count now fills
+   slots in an order whose every prefix has the largest minimum loop gap (`[0,2,4,1,3]` per lane,
+   lanes alternating, rotation and first lane from the theme seed: 6 near / 6 far across the
+   twelve shipped themes), and the sets nest, so the slider only ever adds or removes. **The
+   scale changed meaning on purpose**: 0% now keeps one sporadic car ("no cars" is the visibility
+   switch), 100% keeps all ten as always. No migration — the remap is the fix. The maintainer
+   chose the linear curve (A) from three live 35% captures on the device.
+2. **Membership changes only off screen.** Every inventory slot keeps a runtime ticking forever
+   (phases stay evenly spaced), and a count change — slider or dusk — flips each car's membership
+   only while it is outside the drawn span of its loop. Seen working and seen failing: a mutation
+   that flipped on-screen made a vehicle vanish mid-road in the dusk test's frame 50.
+3. **The cars got a night density** (Fase 3), the pedestrians' model verbatim: same
+   `PeopleDensity.at` crossfade on `dayBlend`, same `stored ?: day` upgrade rule, blended density
+   into the same count — no parallel threshold. The `peopleNightDensity` comment that called
+   pedestrians the only hour-dependent category is corrected, openly.
+4. **The commercial buildings got opening hours** (Fase 4, `BusinessHours`): toggle off by
+   default and bitwise inert (measured: 0.0 differing pixels with absurd hours), shops/bar/towers
+   only — houses are homes and keep their evening windows — `open == close` = always open,
+   wraparound spans, and a boundary fade that is `smoothEdge`'s own twilight over the opening
+   span (12% of it at each end — derived, not chosen). It reads `DayPhase.hour24`, the hour that
+   moved the sun, so `fixedHour` governs it too; `System.currentTimeMillis()` appears nowhere.
+   Both window systems — lit overlays and `drawWindowOccupant` — go through one openness, pinned
+   by a source-reading wiring test because no pixel test can prove a *pair* of call sites.
+5. **Item 29 closed with derived gates** (Fase 5). The noise floor was measured first —
+   byte-identical PNGs across separate instrumented runs, a process restart and a device reboot,
+   0.0000% on every rectangle tried — then each of the four regressions this release must catch
+   got a committed frame (three new scenes: `traffic-day-sparse`, `traffic-night-quiet`,
+   `shops-closed-night` — before them, no golden exercised any non-default value of these
+   settings), its weakest signal measured on the device (0.283%, 7.61%, 14.01%, 2.01%), and a
+   gate at half the signal (`SettingsGates`, per-focus limits via
+   `GoldenFocus.maxDifferingFraction`; every pre-existing focus keeps its old limit). The
+   derivation re-runs on every suite pass (`…StandsBetweenFloorAndSignal`), and all three new
+   goldens were seen failing under "the setting does nothing" mutations. The floor being one
+   device's observation is item 31 of `BACKLOG_v4_22.md`.
+
+Counts as of this release: JVM 1331, instrumented 148, Python 108, all executed, none skipped;
+25 Canvas assertions + 3 GL, 27 committed PNGs, `GoldenUniquenessTest` active. No sprites added;
+the 29 MiB ceiling and its 154 124 B margin are untouched. CPU not re-measured (no protocol run;
+the draw path gained one arithmetic count and one flag compare per car per frame, and one
+openness computation per frame).
+
+---
+
 ## v4.21 — the tree redrawn, and the numbers that had been describing the old one
 
 **Prepared, not published.** `versionCode = 52`, `versionName = "4.21"`. Prepared 2026-09-03. No

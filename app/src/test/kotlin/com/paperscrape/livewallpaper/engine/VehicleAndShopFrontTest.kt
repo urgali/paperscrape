@@ -636,8 +636,11 @@ class VehicleAndShopFrontTest {
             bar.contains("R.drawable.restaurant_window"),
         )
         assertTrue(
-            "and it must be lit from behind after dark like every other window in the scene",
-            bar.contains("windowGlassColor(barNight)"),
+            "and it must be lit from behind after dark like every other window in the scene -- " +
+                "through the business-hours night since v4.22, which is the sky's own night " +
+                "whenever the toggle is off",
+            bar.contains("windowGlassColor(barGlassNight)") &&
+                bar.contains("val barGlassNight = barNight * businessOpenness"),
         )
     }
 

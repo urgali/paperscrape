@@ -1036,8 +1036,11 @@ class PaperRenderer(
         // the other way around).
         drawLake(canvas, dayPhase, elapsedSeconds)
         drawHillLayers(canvas, dayPhase)
-        objectRenderer.update(deltaSeconds)
-        objectRenderer.draw(canvas, objectGroundGeometry, dayPhase.dayBlend, elapsedSeconds, screenWidth.toFloat(), screenHeight.toFloat())
+        // The blend and the hour both come from the frame's own dayPhase: the blend drives the
+        // dusk crossfade of the car count, the hour drives the business hours, and neither may be
+        // re-derived from a clock of its own -- fixedHour must move them exactly as it moves the sun.
+        objectRenderer.update(deltaSeconds, dayPhase.dayBlend)
+        objectRenderer.draw(canvas, objectGroundGeometry, dayPhase.dayBlend, elapsedSeconds, screenWidth.toFloat(), screenHeight.toFloat(), dayPhase.hour24)
 
         val fireworksEnabled = theme.hasFireworks && dayPhase.dayBlend < 0.35f
         fireworkEffect.update(deltaSeconds, fireworksEnabled, screenWidth.toFloat(), screenHeight.toFloat())

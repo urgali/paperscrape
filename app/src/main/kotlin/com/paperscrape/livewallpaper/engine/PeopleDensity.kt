@@ -1,10 +1,15 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * How many pedestrians are on the street right now, given the two densities and the time of day.
+ * How populated a day/night category is right now, given the two densities and the time of day.
  *
  * Pure and separate from the renderer because both halves of it are worth pinning: the crossfade,
  * and the upgrade rule for users who set a density before there were two of them.
+ *
+ * Written for the pedestrians and named for them; since v4.22 the car count blends its two
+ * densities through the same two functions (see `CarSelection.densityAt`). One model, two users,
+ * on purpose — the rules below are statements about *a* day/night density pair, and duplicating
+ * them per category would let two copies of "a crossfade, not a threshold" drift apart.
  */
 object PeopleDensity {
 

@@ -66,6 +66,15 @@ class PeopleGoldenTest {
             label = "pavement",
         )
 
+        /** [PAVEMENT] again, carrying the derived density gate instead of the shared limit --
+         * the v4.22 Fase 5 metric for item 29. Function, not val: [SettingsGates] documents the
+         * derivation and the gate reads clearer built at its use site. */
+        fun pavementDensityGate() = GoldenFocus(
+            left = PAVEMENT.left, top = PAVEMENT.top, right = PAVEMENT.right, bottom = PAVEMENT.bottom,
+            label = "pavement density gate",
+            maxDifferingFraction = SettingsGates.PEOPLE_DENSITY_GATE,
+        )
+
         /** The band the buildings' windows sit in, above the pavement and below the roofline. */
         val FACADES = GoldenFocus(
             left = 0,
@@ -108,9 +117,70 @@ class PeopleGoldenTest {
             )
     }
 
-    /** A thinned street. Density this low selects a single group. */
+    /** A thinned street. Density this low selects a single group.
+     *
+     * Since v4.22 the frame also carries the **density gate** (Fase 5, item 29): the same
+     * pavement rectangle asserted a second time at [SettingsGates.PEOPLE_DENSITY_GATE], the
+     * derived limit that a density regression — measured, not assumed — cannot pass. The scene's
+     * own [PAVEMENT] focus keeps the limit it always had; the gate is an *additional* assertion
+     * at this site, which is exactly the shape item 29 said closing it would take: a metric
+     * chosen by derivation, the weakest regression and the floor measured, the gate in between
+     * (see `theDensityGateStandsBetweenFloorAndSignal` below, which re-measures on every run).
+     */
     @Test
-    fun `people-single`() = SceneGolden.assertMatches(people(0.2f, name = "people-single"))
+    fun `people-single`() = SceneGolden.assertMatches(
+        people(0.2f, name = "people-single"),
+        extraFocus = listOf(pavementDensityGate()),
+    )
+
+    /**
+     * The people-density regressions, measured against the gate on every run.
+     *
+     * The two regressions of the v4.21 item-29 table, re-measured here rather than quoted: the
+     * weakest that must fail (every pedestrian hidden — 0.283% of the band when it was first
+     * measured) and the reported one (the density ignored, 0.2 drawn as 1 — 0.711%). Both must
+     * clear [SettingsGates.PEOPLE_DENSITY_GATE]; the floor under it is the byte-identity of
+     * cross-run captures (v4.22 report), asserted here in its in-process form.
+     */
+    @Test
+    fun theDensityGateStandsBetweenFloorAndSignal() {
+        val gate = pavementDensityGate()
+        val base = SceneGolden.render(people(0.2f, name = "people-single"))
+        val again = SceneGolden.render(people(0.2f, name = "people-single"))
+        org.junit.Assert.assertEquals(
+            "in-process floor must be exact",
+            0.0, SceneGolden.differingFractionIn(base, again, gate), 0.0,
+        )
+        again.recycle()
+
+        val hidden = SceneGolden.render(
+            GoldenScene(
+                name = "people-single",
+                dayPhase = GoldenScene.day(),
+                customise = { it.copy(people = it.people.copy(visible = false, density = 0.2f), peopleNightDensity = 0.2f) },
+            ),
+        )
+        val hiddenFraction = SceneGolden.differingFractionIn(base, hidden, gate)
+        hidden.recycle()
+        val ignored = SceneGolden.render(people(1f, name = "people-single"))
+        val ignoredFraction = SceneGolden.differingFractionIn(base, ignored, gate)
+        ignored.recycle()
+        base.recycle()
+        android.util.Log.i(
+            "GATEDERIVE",
+            "people density: hidden=${"%.4f".format(hiddenFraction * 100)}% " +
+                "ignored=${"%.4f".format(ignoredFraction * 100)}% " +
+                "gate=${"%.4f".format(SettingsGates.PEOPLE_DENSITY_GATE * 100)}%",
+        )
+        org.junit.Assert.assertTrue(
+            "the weakest regression (${hiddenFraction * 100}%) must clear the gate",
+            hiddenFraction > SettingsGates.PEOPLE_DENSITY_GATE,
+        )
+        org.junit.Assert.assertTrue(
+            "the reported regression (${ignoredFraction * 100}%) must clear the gate",
+            ignoredFraction > SettingsGates.PEOPLE_DENSITY_GATE,
+        )
+    }
 
     /**
      * A full street, on the same theme as `people-single` — **and it is the `day` frame.**

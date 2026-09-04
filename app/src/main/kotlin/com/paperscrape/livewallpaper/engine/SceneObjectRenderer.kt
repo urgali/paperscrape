@@ -36,8 +36,23 @@ private class StaticRuntime(val spec: StaticSceneObject) {
     val idleSeed = (spec.tileFractionX * 97f) % 6.28f
 }
 
-private class CarRuntime(val spec: CarObject) {
+private class CarRuntime(val spec: CarObject, val layoutIndex: Int, val selectionRank: Int) {
     var progress = -spec.startDelaySeconds // negative = still waiting to start
+
+    /**
+     * Whether this slot's car is on the road at all. The runtime itself outlives the setting:
+     * every inventory slot keeps a ticking runtime whatever the count, so the loop phases stay
+     * evenly spaced forever, and the count only decides which of them draw.
+     */
+    var active = true
+
+    /**
+     * Where [active] is headed. The two differ only while a membership change waits for its car
+     * to leave the screen -- see `SceneObjectRenderer.update`'s sync and [CarSelection.offScreen]:
+     * a car that is visible finishes its pass, a car that is not appears from its loop entry, and
+     * nothing pops into or out of the middle of the road.
+     */
+    var targetActive = true
 
     /**
      * Which of the three bodies this car wears, resolved **once** here.
@@ -56,7 +71,7 @@ class SceneObjectRenderer(
     customization: SceneCustomization = SceneCustomization.DEFAULT,
     private val context: Context,
     /**
-     * The theme this scene belongs to, used only to seed the people system.
+     * The theme this scene belongs to, seeding the people system and the car selection.
      *
      * Hashed exactly the way every other effect's seed is (`theme.id.hashCode()`, whose value the
      * Java language specifies exactly), so a theme produces the same street on every device and
@@ -65,6 +80,9 @@ class SceneObjectRenderer(
      */
     private val themeId: String = "",
 ) {
+
+    /** The per-theme seed [CarSelection] reads -- see [themeId] for why it is the id's hash. */
+    private val themeSeed = themeId.hashCode()
 
     /**
      * The active per-category configuration.
@@ -80,8 +98,10 @@ class SceneObjectRenderer(
      *    such as clouds or the lake): nothing is rebuilt, every runtime keeps its state;
      *  - **static structure** (a category's visibility or density): the static runtime list is
      *    rebuilt, cars are untouched and keep running;
-     *  - **car structure** (car visibility or density): the car list is rebuilt, which
-     *    legitimately restarts cars because the set of cars itself changed.
+     *  - **car visibility**: the car list is rebuilt, which legitimately restarts cars because
+     *    the set of runtimes itself changed;
+     *  - **car density**: nothing is rebuilt at all. The count change is applied per car, off
+     *    screen, by [update]'s membership sync -- see [retargetCarRuntimes].
      *
      * Rebuilding the static list is visually free: [StaticRuntime] holds only `idleSeed`, derived
      * deterministically from its spec, so a rebuilt object resumes exactly where the old one was.
@@ -91,7 +111,12 @@ class SceneObjectRenderer(
             val previous = field
             field = value
             if (!previous.staticStructurallyEquals(value)) rebuildStaticRuntimes()
-            if (!previous.carsStructurallyEquals(value)) rebuildCarRuntimes()
+            // Cars split the structural case in two. Visibility genuinely changes the set of
+            // runtimes and rebuilds as before. A density change -- day or night slider -- needs
+            // nothing at all here: since v4.22 [update] re-derives the count every frame from the
+            // sliders and the scene's own dayBlend, and applies it per car, off screen. A rebuild
+            // would reset every car to its start delay, which empties the road for a slider drag.
+            if (previous.cars.visible != value.cars.visible) rebuildCarRuntimes()
         }
 
     /**
@@ -120,23 +145,45 @@ class SceneObjectRenderer(
      * order is depth order. The two lanes overlap vertically by design, so a near car has to
      * paint over a far one -- and candidate index alternates lanes, which would otherwise put a
      * far car on top of the near car it is passing.
+     *
+     * **One runtime per inventory slot, whatever the density.** Membership is the [CarRuntime]'s
+     * `active` flag, not the list itself: every slot ticks along its loop even while retired, so
+     * the even spacing laid out at generation survives any number of count changes -- a slot
+     * re-activated an hour later is exactly where its phase says it should be, not wherever a
+     * fresh start delay would drop it relative to the cars already driving.
      */
-    private fun buildCarRuntimes(): List<CarRuntime> = layout.cars
-        .filter { spec -> customization.keepCar(spec) }
-        .map { CarRuntime(it) }
-        .sortedBy { it.spec.laneYFraction }
+    private fun buildCarRuntimes(): List<CarRuntime> {
+        if (!customization.cars.visible) return emptyList()
+        // Ranked once here; per frame the count is compared against each runtime's stored rank
+        // (see [update]), so the dusk/dawn crossfade moves the membership without allocating or
+        // sorting anything. The initial actives are the daytime count -- every runtime starts off
+        // screen (progress <= -0.3), so the first update()'s sync corrects the membership to the
+        // hour's real count before anything can be drawn.
+        val ranks = CarSelection.selectionRanks(layout.cars, themeSeed)
+        val n = CarSelection.countFor(customization.cars.density, layout.cars.size)
+        return layout.cars
+            .mapIndexed { index, spec ->
+                CarRuntime(spec, index, ranks[index]).apply {
+                    active = ranks[index] < n
+                    targetActive = active
+                }
+            }
+            .sortedBy { it.spec.laneYFraction }
+    }
 
     private fun rebuildStaticRuntimes() {
         staticRuntimes = buildStaticRuntimes()
     }
 
     /**
-     * Rebuilding cars resets each car's `progress`, so this runs only when the *set* of cars
-     * changed -- never for a colour edit or an unrelated slider.
+     * Rebuilding cars resets each car's `progress`, so this runs only when the *set* of runtimes
+     * changed -- the category's visibility, never a colour edit, an unrelated slider, or since
+     * v4.22 the density (see [retargetCarRuntimes]).
      */
     private fun rebuildCarRuntimes() {
         carRuntimes = buildCarRuntimes()
     }
+
 
     /**
      * The lane pair the road is painted around, taken from the theme's **whole** car list.
@@ -165,6 +212,16 @@ class SceneObjectRenderer(
         color = 0x33000000
     }
     private val sprites = SpriteBlitter(context)
+
+    /**
+     * This frame's commercial openness, 0..1 -- see [BusinessHours] and [draw]'s `hour24`.
+     *
+     * A field set once per frame rather than a parameter threaded through every building call:
+     * the two systems it governs (window-lit overlays and [drawWindowOccupant]) sit several
+     * frames deep in the draw tree, and the value is a per-frame constant like the paints are.
+     * 1 whenever the toggle is off, which is the default -- and 1 must render bitwise as before.
+     */
+    private var businessOpenness = 1f
 
     companion object {
         /**
@@ -1041,8 +1098,25 @@ class SceneObjectRenderer(
     private val roadEdgeColor = 0xFF3D3A33.toInt()
     private val roadLineColor = 0xFFF3E6D0.toInt()
 
-    fun update(deltaSeconds: Float) {
+    /**
+     * Advances the traffic and keeps its membership in step with the hour.
+     *
+     * [dayBlend] is the scene's own blend, passed in rather than re-derived, because the count in
+     * force is now a function of it: the day and night densities crossfade exactly the way the
+     * pedestrians' do (`CarSelection.densityAt`), so at dusk the target count slides down on its
+     * own and the road empties car by car -- each one finishing the pass it is on, because the
+     * sync below only ever flips a car that is off the visible span. Nothing here allocates: the
+     * count is arithmetic and each runtime compares it against its stored selection rank.
+     */
+    fun update(deltaSeconds: Float, dayBlend: Float = 1f) {
+        val targetCount = CarSelection.countFor(
+            CarSelection.densityAt(customization.cars.density, customization.carsNightDensity, dayBlend),
+            layout.cars.size,
+        )
         for (c in carRuntimes) {
+            // Every runtime advances, active or retired. A retired slot that stopped ticking
+            // would re-enter at an arbitrary phase against the cars that kept driving, and the
+            // even spacing the generator laid out would be gone the first time a count went up.
             c.progress += deltaSeconds * c.spec.speedFraction
             // Wrap by subtracting the span, never by assigning a fixed value. Snapping every car
             // back to exactly -0.3 discarded the head start it had over the car behind it, so a
@@ -1050,6 +1124,14 @@ class SceneObjectRenderer(
             // the congestion reported from the device. Subtracting keeps the phase, so a queue
             // laid out evenly at generation time stays evenly spaced indefinitely.
             if (c.progress > 1.3f) c.progress -= SceneObjectCatalog.CAR_LOOP_SPAN
+            // Membership sync: a count change -- a slider, or the dusk crossfade above -- takes
+            // effect per car, and only while that car is off the visible span: an addition
+            // drives in from its loop entry, a removal finishes the pass it is on. On screen,
+            // nothing ever pops.
+            c.targetActive = c.selectionRank < targetCount
+            if (c.active != c.targetActive && CarSelection.offScreen(c.progress)) {
+                c.active = c.targetActive
+            }
         }
     }
 
@@ -1398,7 +1480,21 @@ class SceneObjectRenderer(
         }
     }
 
-    fun draw(canvas: SceneCanvas, geom: GroundGeometry, dayBlend: Float, elapsedSeconds: SceneTime, screenWidth: Float, screenHeight: Float) {
+    /**
+     * [hour24] is the scene's effective clock hour -- `DayPhase.hour24`, the value that moved the
+     * sun this frame, never a clock read of this class's own. It exists for the business hours:
+     * [businessOpenness] is derived from it once per frame and consumed by the commercial and
+     * tower drawing below. Defaulted to noon so the many tests that draw a frame directly keep
+     * compiling; with the default customization (`businessHoursEnabled = false`) the value is
+     * irrelevant, because the openness is constantly 1.
+     */
+    fun draw(canvas: SceneCanvas, geom: GroundGeometry, dayBlend: Float, elapsedSeconds: SceneTime, screenWidth: Float, screenHeight: Float, hour24: Float = 12f) {
+        businessOpenness = BusinessHours.opennessAt(
+            customization.businessHoursEnabled,
+            customization.businessOpenHour,
+            customization.businessCloseHour,
+            hour24,
+        )
         leafSourceCount = 0
         drawGroundFlowers(canvas, geom, screenWidth, screenHeight)
         drawGroundPiles(canvas, geom, screenWidth, screenHeight)
@@ -1466,7 +1562,14 @@ class SceneObjectRenderer(
         drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend)
 
         for (c in carRuntimes) {
-            if (c.progress < -0.05f || c.progress > 1.05f) continue
+            if (!c.active) continue
+            // The same span CarSelection.offScreen reads: a car outside it is not drawn, which
+            // is precisely why that is the only place its membership may change.
+            if (c.progress < CarSelection.ON_SCREEN_MIN_PROGRESS ||
+                c.progress > CarSelection.ON_SCREEN_MAX_PROGRESS
+            ) {
+                continue
+            }
             drawCar(canvas, c, screenWidth, screenHeight, dayBlend)
         }
     }
@@ -2363,7 +2466,13 @@ class SceneObjectRenderer(
         // v4.2 passes how many windows this building has, because occupancy is now a count dealt
         // across the building's own panes rather than a coin flipped at each one. See
         // [WindowOccupants.occupantCount] for the tail that removes.
-        if (!WindowOccupants.isOccupied(seed, buildingSeed, windowIndex, windowCount, kind)) return
+        //
+        // The business hours thin that dealt count rather than the occupants' alpha: a
+        // half-transparent person is a rendering artefact (the lesson the birds' dusk recorded),
+        // so across the closing fade the occupants leave one at a time, highest deal rank first.
+        // Houses never consult the hours -- see [BusinessHours].
+        val openness = if (kind == WindowBuildingKind.HOUSE) 1f else businessOpenness
+        if (!WindowOccupants.isOccupied(seed, buildingSeed, windowIndex, windowCount, kind, openness)) return
         // Indoors: see [Exposure]. The hat belongs to the street, not to the room behind the pane.
         val seasonIdx = seasonIndexFor(Exposure.INDOORS)
         val occupant = WindowOccupants.occupantAt(seed, buildingSeed, windowIndex)
@@ -2836,7 +2945,11 @@ class SceneObjectRenderer(
         val wallColor = customization.colorFor(r.spec, dayBlend)
         val trimColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
 
-        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
+        // A tower is a business, so outside its hours the glass holds its unlit daytime colour
+        // whatever the sky is doing: the same [windowGlassColor] ramp, driven by a night that the
+        // closing fade scales away. At openness 1 -- the default, the toggle off -- this is
+        // arithmetically `1f - dayBlend`, the expression it always was. See [BusinessHours].
+        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f) * businessOpenness
 
         drawGroundShadow(canvas, width * 0.6f)
         drawSprite(
@@ -2955,7 +3068,10 @@ class SceneObjectRenderer(
         if (customization.winterColorsEnabled) {
             drawSprite(canvas, R.drawable.restaurant_roof_snow, RESTAURANT_ROOF_SNOW_X, RESTAURANT_ROOF_SNOW_Y)
         }
-        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
+        // The restaurant is a business: its night, like the tower's, is scaled by the closing
+        // fade, so outside hours every window of the building -- upper storey and frontage both
+        // -- stays in its unlit daytime state. At openness 1 this is `1f - dayBlend` exactly.
+        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f) * businessOpenness
         // **The storey over the shop was a blank slab.** `restaurant_wall` carries no openings
         // above its string course -- the bar's carries three, a large house four -- so in a row
         // with two houses the restaurant was the one building with a dead first floor, and at
@@ -3054,13 +3170,16 @@ class SceneObjectRenderer(
             BAR_FRONT_FIELD_LEFT_X, BAR_FRONT_FIELD_TOP_Y,
             BAR_FRONT_FIELD_RIGHT_X, BAR_FRONT_FIELD_TOP_Y + BAR_FRONT_EDGE_HEIGHT, fillPaint,
         )
+        // The glass follows the business hours; the joinery above keeps following the sky --
+        // painted wood darkens with the light, not with the licence. See [BusinessHours].
+        val barGlassNight = barNight * businessOpenness
         for (wx in barFrontPaneX) {
-            drawTintedSprite(canvas, R.drawable.restaurant_window, wx, BAR_FRONT_PANE_Y, windowGlassColor(barNight))
+            drawTintedSprite(canvas, R.drawable.restaurant_window, wx, BAR_FRONT_PANE_Y, windowGlassColor(barGlassNight))
         }
         drawSprite(canvas, R.drawable.bar_door, BAR_DOOR_X, -28f)
         // The upper storey's windows, the same drawable the houses use so a shop's first floor
         // cannot drift from a house's.
-        val barLit = litWindowAlpha((1f - dayBlend).coerceIn(0f, 1f))
+        val barLit = litWindowAlpha(barGlassNight)
         for ((wi, wx) in floatArrayOf(-34f, -11f, 12f).withIndex()) {
             drawSprite(canvas, R.drawable.house_shared_window, wx, -82f)
             drawSpriteFaded(canvas, R.drawable.house_window_lit, wx, -83f, barLit)

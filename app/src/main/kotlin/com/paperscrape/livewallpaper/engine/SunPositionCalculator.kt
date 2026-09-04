@@ -29,6 +29,16 @@ object SunPositionCalculator {
         /** Vertical position (arc height), 0 = horizon, 1 = zenith */
         val celestialY: Float,
         val isSunVisible: Boolean,
+        /**
+         * The clock hour this phase was computed for, wrapped onto 0..24.
+         *
+         * Carried so that anything scheduled on the clock -- the business hours are the first --
+         * reads **the hour that moved the sun**, whether that came from the real clock or from
+         * the user's `fixedHour`. Reading a clock of its own is exactly the defect this field
+         * exists to make unnecessary: a scene frozen at 23:00 whose shops keep daytime hours
+         * because the phone says 14:00.
+         */
+        val hour24: Float,
     )
 
     /**
@@ -59,8 +69,9 @@ object SunPositionCalculator {
         }
     }
 
-    /** `x` brought onto the 24-hour clock, for any `x`, negative included. */
-    private fun wrap24(x: Float): Float = ((x % 24f) + 24f) % 24f
+    /** `x` brought onto the 24-hour clock, for any `x`, negative included. Internal because
+     * [BusinessHours] runs its own clock spans through the same arithmetic — one wrap rule. */
+    internal fun wrap24(x: Float): Float = ((x % 24f) + 24f) % 24f
 
     fun compute(
         hour24: Float,
@@ -103,6 +114,7 @@ object SunPositionCalculator {
             celestialX = celestialX,
             celestialY = celestialY,
             isSunVisible = isDay,
+            hour24 = wrap24(hour24),
         )
     }
 
@@ -124,15 +136,27 @@ object SunPositionCalculator {
      */
     private const val TERMINATOR_BLEND = 0.5f
 
-    /** Eases the first/last 12% of the arc so twilight fades smoothly instead of snapping. */
-    private fun smoothEdge(t: Float): Float {
-        val edge = 0.12f
+    /**
+     * Eases the first/last [TWILIGHT_EDGE_FRACTION] of the arc so twilight fades smoothly
+     * instead of snapping.
+     *
+     * Internal because it is **the** twilight of this scene, and [BusinessHours] deliberately
+     * borrows it rather than choosing a fade of its own: a shop's lights come up over the first
+     * 12% of its opening span and go down over the last 12%, exactly the way daylight does over
+     * the solar arc. One easing, two arcs — duplicating the function would only guard against a
+     * typo while letting the two twilights drift apart.
+     */
+    internal fun smoothEdge(t: Float): Float {
+        val edge = TWILIGHT_EDGE_FRACTION
         return when {
             t < edge -> t / edge
             t > 1f - edge -> (1f - t) / edge
             else -> 1f
         }
     }
+
+    /** The share of an arc the twilight ramp occupies, at each of its two ends. */
+    internal const val TWILIGHT_EDGE_FRACTION = 0.12f
 
     /**
      * The local civil hour as a decimal, quantised to the minute -- `HOUR_OF_DAY + MINUTE / 60`.

@@ -70,7 +70,7 @@ class SpecialVehicleDensityTest {
                 val customization = SceneCustomization.DEFAULT.let {
                     it.copy(cars = it.cars.copy(visible = true, density = step / 20f))
                 }
-                val visible = cars.filter { customization.keepCar(it) }
+                val visible = customization.keptCars(cars, theme.id.hashCode())
                 assertEquals(
                     "${theme.id} at density ${step * 5}% shows more than one of a special type",
                     emptyMap<CarType, Int>(), surplus(visible),

@@ -551,11 +551,14 @@ added, fails exactly here and nowhere else.
 
 - **Do not count goldens by listing the directory.** `androidTest/assets/golden/` holds the Canvas
   PNGs *and* the three `gl-*.png`. The Canvas count is the number of Canvas **assertions** --
-  `SceneGoldenTest` plus `PeopleGoldenTest`, one `assertMatches` each, no parameterised tests. A
+  `SceneGoldenTest`, `PeopleGoldenTest` and (since v4.22) `SettingsGateScenesTest`, one
+  `assertMatches` each, no parameterised tests. A
   v4.19 report labelled the directory count "Canvas goldens" and a later document added the three
   GL ones on top of it, which is how "30 Canvas goldens" entered the handover notes for a suite
-  that had 24. v4.21 corrected the documents and removed two duplicate frames; the count now is
-  **22 Canvas assertions, 3 GL, 24 committed PNGs**, and `GoldenUniquenessTest` is the guard that
+  that had 24. v4.21 corrected the documents and removed two duplicate frames; as of v4.22 the count is
+  **25 Canvas assertions, 3 GL, 27 committed PNGs** (Fase 5 of v4.22 added three gate scenes:
+  `traffic-day-sparse`, `traffic-night-quiet` and `shops-closed-night`, in
+  `SettingsGateScenesTest`), and `GoldenUniquenessTest` is the guard that
   keeps two names from sharing one picture. Note the asymmetry it allows and the reason: two *tests*
   may assert one PNG — `SceneGoldenTest.day` and `PeopleGoldenTest.people-at-full-density` both
   measure `day.png`, with different focus rectangles — because a focus is an assertion over a region

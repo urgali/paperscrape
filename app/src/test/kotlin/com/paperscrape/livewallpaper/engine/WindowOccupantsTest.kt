@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -254,5 +255,62 @@ class WindowOccupantsTest {
             WindowOccupants.isOccupied(999, 100_003, it, 16, WindowBuildingKind.SKYSCRAPER)
         }
         assertEquals(before, after)
+    }
+
+    // ---------------------------------------------------------------- business openness (v4.22)
+
+    /** Openness 1 -- the default, and every house always -- is bitwise the pre-v4.22 answer. */
+    @Test
+    fun `full openness changes nothing about occupancy`() {
+        for (seed in seeds(50)) {
+            for (kind in WindowBuildingKind.entries) {
+                for (window in 0 until 16) {
+                    assertEquals(
+                        WindowOccupants.isOccupied(seed, 100_003, window, 16, kind),
+                        WindowOccupants.isOccupied(seed, 100_003, window, 16, kind, openness = 1f),
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `zero openness empties every window`() {
+        for (seed in seeds(50)) {
+            for (window in 0 until 16) {
+                assertFalse(
+                    WindowOccupants.isOccupied(seed, 100_003, window, 16, WindowBuildingKind.SKYSCRAPER, openness = 0f),
+                )
+            }
+        }
+    }
+
+    /**
+     * Across a closing fade the occupants leave one at a time and nobody arrives: the occupied
+     * set at any openness is a subset of the set at any higher openness. This is what makes the
+     * fade read as people going home rather than as a population being reshuffled -- the same
+     * nesting rule the car count keeps.
+     */
+    @Test
+    fun `lowering the openness only ever removes occupants`() {
+        for (seed in seeds(50)) {
+            var previous: List<Boolean>? = null
+            var openness = 1f
+            while (openness >= 0f) {
+                val now = (0 until 16).map {
+                    WindowOccupants.isOccupied(seed, 100_003, it, 16, WindowBuildingKind.SKYSCRAPER, openness)
+                }
+                previous?.let { wider ->
+                    for (i in now.indices) {
+                        assertFalse(
+                            "seed $seed openness $openness seated window $i that a more open hour had empty",
+                            now[i] && !wider[i],
+                        )
+                    }
+                }
+                previous = now
+                openness -= 0.05f
+            }
+        }
     }
 }

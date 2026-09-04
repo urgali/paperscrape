@@ -35,6 +35,11 @@ internal fun ObjectCategorySection(
     scope: CoroutineScope,
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
     showTitle: Boolean = true,
+    /** What the density slider calls itself -- "Day density" where a night twin sits beside it. */
+    densityLabel: String = "Density",
+    /** Rendered directly under the density slider -- the cars put their night twin here, so the
+     * pair reads as a pair instead of being split by the colour section. */
+    afterDensity: @Composable () -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showTitle) SectionTitle(title)
@@ -47,11 +52,12 @@ internal fun ObjectCategorySection(
         )
 
         PreferenceSlider(
-            label = { shown -> Text("Density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
+            label = { shown -> Text("$densityLabel: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = config.density,
             onCommit = { committed -> scope.launch { prefs.setCategoryDensity(category, committed, forThemeId) } },
             valueRange = 0f..1f,
         )
+        afterDensity()
 
         Text(
             "Each one randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",

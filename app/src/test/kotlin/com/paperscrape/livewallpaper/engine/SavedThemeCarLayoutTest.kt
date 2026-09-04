@@ -54,19 +54,28 @@ class SavedThemeCarLayoutTest {
         pendingCustomizationThemeId = "beach",
     )
 
-    /** The pre-fix behaviour, kept only so the tests can say what they are ruling out. */
+    /**
+     * The pre-fix behaviour, kept only so the tests can say what they are ruling out.
+     *
+     * [legacyKeepCar] on purpose: the pre-v4.3 save path filtered with the threshold selection of
+     * its own era, and reconstructing its output (here, and in the shipped repair's own
+     * `oldSaveWouldHaveWritten`) must keep using that frozen expression however the live
+     * selection evolves.
+     */
     private fun saveBeachAtTheOldWay(customization: SceneCustomization) =
         saveBeachAt(customization).let {
-            it.copy(layout = it.layout.copy(cars = rawBeach.cars.filter { car -> customization.keepCar(car) }))
+            it.copy(layout = it.layout.copy(cars = rawBeach.cars.filter { car -> customization.legacyKeepCar(car) }))
         }
 
     private fun defaults() = defaultCustomizationFor("beach")
     private fun atDensity(d: Float) = defaults().let { it.copy(cars = it.cars.copy(density = d)) }
     private fun carsOff() = defaults().let { it.copy(cars = it.cars.copy(visible = false)) }
 
-    /** What the renderer computes from an entry, without needing a renderer. */
+    /** What the renderer computes from an entry, without needing a renderer. The seed is the
+     * theme id's hash, exactly as `PaperRenderer` passes it -- "beach" for this override. */
     private fun hasRoad(entry: CustomThemeEntry) = entry.layout.cars.isNotEmpty()
-    private fun visibleCars(entry: CustomThemeEntry) = entry.layout.cars.count { entry.customization.keepCar(it) }
+    private fun visibleCars(entry: CustomThemeEntry) =
+        entry.customization.keptCars(entry.layout.cars, entry.theme.id.hashCode()).size
 
     private fun reload(entry: CustomThemeEntry): CustomThemeEntry =
         customThemeDataFromJsonString(CustomThemeData(overrides = mapOf("beach" to entry)).toJsonString())
@@ -140,9 +149,10 @@ class SavedThemeCarLayoutTest {
     fun `a theme saved at a given density shows exactly the traffic it had when saved`() {
         for (density in listOf(1f, 0.65f, 0.4f, 0.2f, 0.1f)) {
             val customization = atDensity(density)
-            val onScreenBefore = rawBeach.cars.filter { customization.keepCar(it) }
+            val seed = "beach".hashCode()
+            val onScreenBefore = customization.keptCars(rawBeach.cars, seed)
             val saved = reload(saveBeachAt(customization))
-            val onScreenAfter = saved.layout.cars.filter { saved.customization.keepCar(it) }
+            val onScreenAfter = saved.customization.keptCars(saved.layout.cars, seed)
             assertEquals(
                 "the traffic changed when the theme was saved at density $density",
                 onScreenBefore,
@@ -347,11 +357,11 @@ class SavedThemeCarLayoutTest {
      * **The repair restores the traffic the density actually asks for, which the damaged theme
      * was not showing either.**
      *
-     * Measured here, and worth stating because it was not obvious: a thinned list does not even
-     * render the cars it kept. `keepCar` thresholds a fraction derived from a car's lane and its
-     * loop slot, and `canonicaliseTraffic` reassigns both **by position in the stored list** — so
-     * six cars saved at 50% come back with six *new* fractions, and 50% of those is five. The
-     * damaged theme shows 5; the whole inventory at the same 50% shows the 6 the user chose.
+     * The count is a function of the inventory's own size (`1 + round(d · (available − 1))`, see
+     * `CarSelection.countFor`), so capping the inventory caps the traffic twice over: the whole
+     * ten-car list at 50% shows `1 + round(4.5)` = 6 cars, while the damaged six-car list at the
+     * same 50% shows only `1 + round(2.5)` = 4. The repair puts the inventory back and with it
+     * the count the density asks for.
      *
      * So the repair does change what is on screen, upward, and toward the setting. That is the
      * fix, not a side effect of it.
@@ -361,15 +371,15 @@ class SavedThemeCarLayoutTest {
         val damaged = thinnedOverride(atDensity(0.5f)).overrides.getValue("beach")
         val repaired = thinnedOverride(atDensity(0.5f)).repairBuiltInOverrides().overrides.getValue("beach")
 
-        val wanted = rawBeach.cars.count { atDensity(0.5f).keepCar(it) }
+        val wanted = atDensity(0.5f).keptCars(rawBeach.cars, "beach".hashCode()).size
         assertEquals("the whole inventory at 50% is not six cars", 6, wanted)
         assertEquals(
             "the repaired theme does not show what its density asks for",
-            wanted, repaired.layout.cars.count { repaired.customization.keepCar(it) },
+            wanted, visibleCars(repaired),
         )
         assertEquals(
             "the damaged fixture was already showing the right traffic",
-            5, damaged.layout.cars.count { damaged.customization.keepCar(it) },
+            4, visibleCars(damaged),
         )
     }
 
@@ -379,13 +389,14 @@ class SavedThemeCarLayoutTest {
         val damaged = thinnedOverride(atDensity(0.5f)).overrides.getValue("beach")
         val repaired = thinnedOverride(atDensity(0.5f)).repairBuiltInOverrides().overrides.getValue("beach")
         val wideOpen = atDensity(1f)
+        val seed = "beach".hashCode()
         assertEquals(
             "the damaged theme could already show all its traffic",
-            6, damaged.layout.cars.count { wideOpen.keepCar(it) },
+            6, wideOpen.keptCars(damaged.layout.cars, seed).size,
         )
         assertEquals(
             "the repaired theme still cannot show the traffic it lost",
-            rawBeach.cars.size, repaired.layout.cars.count { wideOpen.keepCar(it) },
+            rawBeach.cars.size, wideOpen.keptCars(repaired.layout.cars, seed).size,
         )
     }
 

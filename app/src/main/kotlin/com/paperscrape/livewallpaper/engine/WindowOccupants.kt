@@ -156,9 +156,19 @@ internal object WindowOccupants {
         windowIndex: Int,
         windowCount: Int,
         kind: WindowBuildingKind,
+        /**
+         * How open the building is, 0..1 -- [BusinessHours] for commercial kinds, constantly 1
+         * for houses. Applied to the dealt count, not per window: at openness x a building shows
+         * `round(count · x)` of its occupants, so across a closing fade they leave one at a time
+         * in reverse deal order, and at 1 the expression is bitwise the pre-v4.22 one.
+         */
+        openness: Float = 1f,
     ): Boolean {
         if (windowIndex < 0 || windowIndex >= windowCount) return false
-        val occupied = occupantCount(seed, buildingSeed, windowCount, kind)
+        val dealt = occupantCount(seed, buildingSeed, windowCount, kind)
+        val occupied =
+            if (openness >= 1f) dealt
+            else Math.round(dealt * openness.coerceIn(0f, 1f))
         if (occupied <= 0) return false
         if (occupied >= windowCount) return true
         return SeededBalance.rankOf(
