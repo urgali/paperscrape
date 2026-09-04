@@ -241,23 +241,87 @@ class PreviewRendererAgreementTest {
         println("Filone 4: $checked skyscraper sprite placements checked across ${ThemeCatalog.ALL.size} themes")
     }
 
+    // -- the two shops (v4.21 snow audit) ------------------------------------------------------
+
     /**
-     * **The boundary of this work, asserted.** Only the two groups with demonstrated drift risk are
-     * shared; the other 47 sprites agree today as plain literals and are deliberately left alone.
+     * **The third drift, closed the same way.** v4.18 crowned both shops with cornices and v4.19
+     * rebuilt their winter drifts to lie on those crowns; the preview kept drawing the drifts at
+     * their pre-cornice origins — `(-48,-102)` and `(-43,-98)` — and never drew a cornice at all.
+     * So for two releases the gallery showed the uncrowned silhouette with snow hovering where the
+     * old parapet used to be, which is exactly the tree's v3.7 failure and the tower's v3.8 one.
+     *
+     * Both cornices and both drifts now read the renderer's constants, and this asserts it for
+     * every theme that draws a shop, drift origins included, so a fourth copy cannot reappear.
+     */
+    @Test
+    fun `the shop cornices and their drifts sit where the wallpaper puts them`() {
+        val expected: Map<Int, Pair<Float, Float>> = mapOf(
+            R.drawable.restaurant_cornice to
+                (SceneObjectRenderer.RESTAURANT_CORNICE_X to SceneObjectRenderer.RESTAURANT_CORNICE_Y),
+            R.drawable.bar_cornice to
+                (SceneObjectRenderer.BAR_CORNICE_X to SceneObjectRenderer.BAR_CORNICE_Y),
+            R.drawable.restaurant_roof_snow to
+                (SceneObjectRenderer.RESTAURANT_ROOF_SNOW_X to SceneObjectRenderer.RESTAURANT_ROOF_SNOW_Y),
+            R.drawable.bar_roof_snow to
+                (SceneObjectRenderer.BAR_ROOF_SNOW_X to SceneObjectRenderer.BAR_ROOF_SNOW_Y),
+        )
+        var checked = 0
+        var cornices = 0
+        for (theme in ThemeCatalog.ALL) {
+            val parts = previewParts(theme.id)
+            for (part in parts) {
+                expected[part.resId]?.let {
+                    assertEquals("theme ${theme.id} x of ${part.resId}", it.first, part.ox, 0f)
+                    assertEquals("theme ${theme.id} y of ${part.resId}", it.second, part.oy, 0f)
+                    checked++
+                }
+            }
+            // A shop without its crown is the pre-v4.18 silhouette; a wall must not appear alone.
+            for ((wall, cornice) in listOf(
+                R.drawable.restaurant_wall to R.drawable.restaurant_cornice,
+                R.drawable.bar_wall to R.drawable.bar_cornice,
+            )) {
+                val walls = parts.count { it.resId == wall }
+                val crowns = parts.count { it.resId == cornice }
+                assertEquals("theme ${theme.id}: every shop wall carries its cornice", walls, crowns)
+                cornices += crowns
+            }
+            // And the drift only ever lies on a crowned shop: no snow without the wall under it.
+            assertTrue(
+                "theme ${theme.id}: a shop drift needs its shop",
+                parts.none { it.resId == R.drawable.restaurant_roof_snow } ||
+                    parts.any { it.resId == R.drawable.restaurant_wall },
+            )
+        }
+        assertTrue("expected to have checked some shop parts, checked $checked", checked > 0)
+        assertTrue("expected at least one crowned shop across the gallery", cornices > 0)
+        // The pre-cornice origins, named so a revert is unambiguous rather than a silent slide.
+        assertTrue(-48f != SceneObjectRenderer.RESTAURANT_ROOF_SNOW_X)
+        assertTrue(-43f != SceneObjectRenderer.BAR_ROOF_SNOW_X)
+    }
+
+    /**
+     * **The boundary of this work, asserted.** Only the three groups with demonstrated drift risk
+     * are shared; the other sprites agree today as plain literals and are deliberately left alone.
      *
      * Stated as a test so that "extend it to everything" is a decision somebody has to take
      * knowingly rather than a drift in the other direction.
      */
     @Test
-    fun `only the two groups with demonstrated risk are shared`() {
+    fun `only the three groups with demonstrated risk are shared`() {
         val shared = setOf(
             R.drawable.tree_trunk, R.drawable.tree_canopy,
             R.drawable.tree_canopy_snowcap, R.drawable.tree_dead_branches,
             R.drawable.skyscraper_canopy, R.drawable.skyscraper_wall,
             R.drawable.skyscraper_wall_lit, R.drawable.skyscraper_entrance,
             R.drawable.skyscraper_setback, R.drawable.skyscraper_roof_snow,
+            R.drawable.restaurant_cornice, R.drawable.restaurant_roof_snow,
+            R.drawable.bar_cornice, R.drawable.bar_roof_snow,
         )
-        assertEquals("the shared set should be the tree's four and the tower's six", 10, shared.size)
+        assertEquals(
+            "the shared set should be the tree's four, the tower's six and the shops' four",
+            14, shared.size,
+        )
         // A sprite the preview uses that is not in the shared set is fine -- that is the point.
         val used = ThemeCatalog.ALL.flatMap { previewParts(it.id) }.map { it.resId }.toSet()
         assertTrue("the shared sprites should all actually be drawn", shared.count { it in used } >= 8)

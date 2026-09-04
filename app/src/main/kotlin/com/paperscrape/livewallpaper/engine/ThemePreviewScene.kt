@@ -516,7 +516,20 @@ object ThemePreviewScenes {
 
     private fun restaurant(wall: Int, snow: Boolean): List<PreviewSprite> {
         val parts = mutableListOf(PreviewSprite(R.drawable.restaurant_wall, -50f, -96f, wall))
-        if (snow) parts += PreviewSprite(R.drawable.restaurant_roof_snow, -48f, -102f)
+        // The v4.18 cornice and its v4.19 drift, read from the renderer's constants rather than
+        // copied: the preview drew the drift at its pre-cornice origin `(-48,-102)` -- cut for the
+        // uncrowned wall -- for two releases after the wallpaper had moved on, and never drew the
+        // cornice at all. Same drift, same fix as the tree's snow cap (v3.7) and the tower's (v3.8).
+        parts += PreviewSprite(
+            R.drawable.restaurant_cornice,
+            SceneObjectRenderer.RESTAURANT_CORNICE_X, SceneObjectRenderer.RESTAURANT_CORNICE_Y, wall,
+        )
+        if (snow) {
+            parts += PreviewSprite(
+                R.drawable.restaurant_roof_snow,
+                SceneObjectRenderer.RESTAURANT_ROOF_SNOW_X, SceneObjectRenderer.RESTAURANT_ROOF_SNOW_Y,
+            )
+        }
         parts += PreviewSprite(R.drawable.restaurant_awning, -34f, -46f)
         parts += PreviewSprite(R.drawable.restaurant_window, -35f, -45f, blendRgb(wall, 0xFFFFFFFF.toInt(), 0.35f))
         parts += PreviewSprite(R.drawable.restaurant_door, 8f, -28f, blendRgb(wall, 0xFF000000.toInt(), 0.35f))
@@ -526,7 +539,17 @@ object ThemePreviewScenes {
 
     private fun bar(wall: Int, snow: Boolean): List<PreviewSprite> {
         val parts = mutableListOf(PreviewSprite(R.drawable.bar_wall, -45f, -92f, wall))
-        if (snow) parts += PreviewSprite(R.drawable.bar_roof_snow, -43f, -98f)
+        // Cornice and drift shared with the renderer -- see restaurant() above for the drift this closes.
+        parts += PreviewSprite(
+            R.drawable.bar_cornice,
+            SceneObjectRenderer.BAR_CORNICE_X, SceneObjectRenderer.BAR_CORNICE_Y, wall,
+        )
+        if (snow) {
+            parts += PreviewSprite(
+                R.drawable.bar_roof_snow,
+                SceneObjectRenderer.BAR_ROOF_SNOW_X, SceneObjectRenderer.BAR_ROOF_SNOW_Y,
+            )
+        }
         parts += PreviewSprite(R.drawable.bar_door, -10f, -28f, blendRgb(wall, 0xFF000000.toInt(), 0.35f))
         parts += PreviewSprite(R.drawable.house_shared_window, -34f, -82f)
         parts += PreviewSprite(R.drawable.house_shared_window, 14f, -82f)
@@ -566,9 +589,23 @@ object ThemePreviewScenes {
         return parts
     }
 
+    /**
+     * v4.21 moved both of these, and they are the reason this function is worth a comment.
+     *
+     * The fir's own origin went from (-39,-122) to (-40,-122) because the new sprite is 80 units
+     * wide rather than 78. The snow's went from the fir's origin to (-28,-112) of its own, because
+     * `tree_fir_snow` is no longer a full-canvas copy of the fir: it is trimmed to its content and
+     * carries the offset of the cut. **The two are one derivation** — the same pair of numbers
+     * appears in `SceneObjectRenderer.drawFir`, and a redraw that moves one and not the other
+     * slides the snow off the shoulders it was cut for.
+     *
+     * The baubles below are left where they were: they are `star_sparkle` blits placed by eye on
+     * a flat 320x240 card, not the wallpaper's `drawChristmasLights` ellipse, and this release
+     * changes no decoration artwork.
+     */
     private fun fir(snow: Boolean, lights: Boolean): List<PreviewSprite> {
-        val parts = mutableListOf(PreviewSprite(R.drawable.tree_fir, -39f, -122f))
-        if (snow) parts += PreviewSprite(R.drawable.tree_fir_snow, -39f, -122f)
+        val parts = mutableListOf(PreviewSprite(R.drawable.tree_fir, -40f, -122f))
+        if (snow) parts += PreviewSprite(R.drawable.tree_fir_snow, -28f, -112f)
         if (lights) {
             parts += PreviewSprite(R.drawable.star_sparkle, -26f, -110f, 0xFFF2C14E.toInt(), alpha = 220)
             parts += PreviewSprite(R.drawable.star_sparkle, 2f, -84f, 0xFFE8483C.toInt(), alpha = 220)

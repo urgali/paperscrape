@@ -303,7 +303,24 @@ class TrailingCropTest(unittest.TestCase):
 #: coordinate it had before. What remains is `EXCLUSIONS`, which is a list of
 #: decisions rather than a backlog -- the canvas-anchored sky sprites, whose origin
 #: constants would have to be split per sprite, and the two palm fronds.
-KNOWN_PENDING_CROP_COUNT = 0
+# v4.21: two, both deliberate, both the same reason.
+#
+# `tree_canopy_snowcap` and `tree_dead_branches` are blitted at the crown's own
+# origin -- `TreeSpriteLayout.SNOWCAP_X == CANOPY_X` and `DEAD_BRANCHES_X ==
+# CANOPY_X` -- so that a snow cap and a set of bare limbs meet the trunk exactly
+# where the leaves did, and so that a redraw has to move both or neither. The
+# leading transparent margin each one carries (6 and 11 units) *is* that shared
+# origin. Cropping it is not free: it would turn the equality into a derived
+# offset, which is a weaker guard than the one v3.7 had to install after the
+# preview and the renderer drifted apart on exactly this pair of sprites.
+#
+# The trailing padding on both was removed in the same release, because that
+# needs no compensation and costs nothing. What is left is ~55 KB of decoded
+# memory that could be recovered by giving both sprites derived origins; the
+# release did not need it (133 KB of headroom under the 29 MiB ceiling) and the
+# guard is worth more than the bytes. Recorded as an open item in
+# `BACKLOG_v4_21.md` rather than left for someone to rediscover here.
+KNOWN_PENDING_CROP_COUNT = 2
 
 
 class ShippedSetTest(unittest.TestCase):

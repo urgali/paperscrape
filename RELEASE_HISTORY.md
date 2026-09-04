@@ -24,6 +24,155 @@ release date will be standing.
 
 ---
 
+## v4.21 — the tree redrawn, and the numbers that had been describing the old one
+
+**Prepared, not published.** `versionCode = 52`, `versionName = "4.21"`. Prepared 2026-09-03. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.20**, prepared
+and not published either; the last release the maintainer reports as published is v4.19.
+
+**What it is.** An artistic pass on one object, taken in two phases. Phase 1 built three whole tree
+families — canopy, trunk, snow cap, bare limbs and fir apiece — installed each on the OnePlus 6T and
+photographed all six states of each from the live wallpaper, then stopped: the choice was the
+maintainer's, made by looking. They chose **"Quercia larga"**, a cushion of foliage wider than it is
+tall on a stocky forked stem, and asked for one change to it — a star on the fir instead of the
+gold sphere. Phase 2 is this release.
+
+The v4.20 crown read, in the maintainer's words, as hard polygons on a straight rod: a lollipop. The
+new one is 101 x 66 units of scalloped cushion in three horizontal bands of paper, on a 32 x 62-unit
+stem that flares at the foot and forks into the foliage. **The tree got wider, not taller** — the
+crown still tops out at 118 units — so `SceneSpace`'s size table, and every scale derived from it,
+is untouched.
+
+1. **The occlusion pass had been modelling a tree that no longer existed.** `SceneObjectCatalog`
+   decides where a shop may stand by boxing everything nearer to it, and its tree boxes were
+   literals from the v4.20 artwork: crown `± 41`, stem `± 5`. The new stem is `± 16` — **three times
+   wider than the box that was placing shops around it** — and nothing failed, because `baseScale`
+   is derived from a variant's declared *height* and this redraw changed only widths. No scale, no
+   cull extent and no golden could see it. `ShopFrontVisibilityTest` carried the same four stale
+   numbers, deliberately duplicated so that "a bug in the pass and a bug in the measurement have to
+   agree" — and they agreed. The lesson recorded in `BACKLOG_v4_21.md` is that a duplicate guards
+   against a typo and never against a stale premise; what caught it was going back to the sprites.
+
+   Re-derived from the shipped content boxes on both sides, and the 40% ceiling held **without being
+   touched**: over the twelve built-in layouts the worst occlusion fell from **38.53% to 31.17%** and
+   the mean from 24.59% to 24.56%. Eight shops of twenty-four moved, six of them by one to three
+   probe steps; not one tree had to be stepped aside. A wider crown made the picture better, because
+   the pass re-parks until it reaches its 32% target tier and the old worst case had been sitting in
+   the ceiling tier.
+
+2. **The snow cap repeats the crown by construction now, not by care.** v76.1 had to redraw the cap
+   once because it had been cut for a different crown and left a rim of foliage above the snow, and
+   `TreeArtworkAlignmentTest` has guarded it since by sampling four rows — which a wrong cap can
+   pass. The new cap's source clips its three snow bands against a copy of `tree_canopy`'s own
+   circles, so its silhouette *is* the crown's wherever the snow covers full width. Measured on the
+   shipped pixels: zero cap pixels outside the crown, and the first **94 of 114 rows** carry the
+   crown's own first and last opaque column. The test asserts the subset property on every row and
+   requires that exact-match run to reach 24 units from the top.
+
+   One assertion was deleted rather than adjusted. The v3.7 "centre the cap by the canvas-width
+   difference" hypothesis is arithmetically a no-op now that both canvases are the same width, so it
+   could no longer fail; what it was evidence for — that the shared origin is the only place the cap
+   fits — is asserted directly over five displacements instead.
+
+3. **The leaves were re-derived, and the density did not move at all.** `recordLeafSource`'s spawn
+   band is the crown's content box, and the new one is `centre -85, half-height 33, half-width 51`
+   against v4.20's `-81 / 37 / 41`: 24% wider, its lower edge 8 units lower. Density was measured on
+   **both builds on this phone**, eight trees at five depths, forty samples each — and came back
+   bit-identical: 2877 / 3197 / 3836 / 4155 / 4155 leaves. The per-crown allotment saturates at
+   `MAX_LEAVES_PER_SOURCE` across the whole tree depth band on this screen, so a wider crown cannot
+   shed more. That is a finding, not a coincidence, and it is why "comparable" turned out to be
+   "the same".
+
+   The 7.3 px margin in `FallingLeafContinuityTest` was re-derived too, and the honest answer is
+   that it was never a canopy measurement: it is `hypot(4,6)`, the leaf oval's own bounding radius.
+
+4. **`tree_fir_snow` stopped paying for its anchor.** It used to be drawn on a full copy of the
+   fir's canvas so both could blit at one origin, and the 28 units of transparency that cost were a
+   declared load-bearing margin. Trimmed to its content with its own derived origin — `(-28,-112)`
+   against the fir's `(-40,-122)` — it recovers **211 680 B**, the largest single item in the
+   release's sprite budget. The family lands at 1 177 416 B, **+93 384 B** against v4.20, and the
+   set at 28.853 MiB with 154 KB of headroom: **the 29 MiB ceiling was not raised.**
+
+5. **The GL goldens are authored on the device now.** The redraw moved all three by 8.80% of their
+   outline against a 3% gate — a real change, and this machine has no emulator to regenerate them
+   on. Rather than regenerate elsewhere on trust or ship three red tests, the release used the
+   symmetry the characterised driver gap already had: authoring on the Adreno makes the device side
+   exact and leaves the emulator side displaced by the same 0.92–1.18% that the device side used to
+   carry, inside the same untouched gate. **No tolerance was moved.** The one thing that derivation
+   does not prove — that the emulator really lands there — is item 20 of the backlog and is a
+   one-run debt.
+
+6. **The v4.21 phase-1 snow audit ships with it.** The maintainer suspected Christmas roofs had no
+   snow. They do: `winterColorsEnabled` is set by the Christmas theme, all five building types carry
+   an overlay, and the towers are the *far* variant rather than a separate distant path. What the
+   audit did find was **the third preview/renderer drift of the same family**, after the tree's in
+   v3.7 and the tower's in v3.8: the gallery drew both shops' winter drifts at their pre-v4.18
+   origins and never drew the cornices at all, so for two releases it showed an uncrowned silhouette
+   with snow hovering where the old parapet had been. Origins hoisted and shared, cornices added,
+   `PreviewRendererAgreementTest` extended to a third group — and `BuildingRoofSnowTest` now
+   enumerates every `SceneVariant`, so a new one that ships without a snow decision fails rather
+   than shipping bare.
+
+**Goldens.** 24 of the 27 PNGs then committed moved. Attribution before regeneration, by band:
+**100% of the Canvas drift is in the object band** — zero pixels in sky, hills, road or foreground,
+across all 21 changed Canvas goldens. The GL frames additionally carry 0.75–1.2% outside that band,
+which is the driver gap and not this change: the Canvas goldens prove it, since they render the same
+regions through the same code on the same device and show exactly zero.
+
+7. **Three corrections before publication, and none of them is in the wallpaper.** A re-measurement
+   of the prepared archive found three things worth closing first.
+
+   **The golden count in the documents was wrong, and the way it was wrong is worth keeping.** The
+   handover notes said "30 Canvas goldens and 3 GL"; the suite had 24 Canvas and 3 GL. `V4_19_REPORT`
+   labelled a row `Canvas goldens | 27`, which is the **file count of
+   `androidTest/assets/golden/`** and therefore includes the three `gl-*.png`; a later document added
+   the 3 GL on top of it and counted them twice. The rule that makes the number re-checkable, and
+   which the corrected documents now state: **the Canvas count is the number of Canvas assertions —
+   `SceneGoldenTest` plus `PeopleGoldenTest`, one `assertMatches` each — not the number of files in
+   the directory.** The historical reports were left as signed, with an errata appended to
+   `V4_19_REPORT`; `SharedGoldenScenes` lost a hand-maintained count of its own ("the other eleven
+   Canvas goldens"; there were nineteen) in favour of naming the rule.
+
+   **Three pairs of goldens were byte-identical, and two of them are now one PNG each.**
+   `people-mixed` = `theme-winter` and `people-commercial` = `theme-desert`: in both cases the two
+   tests described the same scene, because `PeopleGoldenTest`'s `customise` block is a **no-op at
+   density 1** — the defaults already carry `people(visible = true, density = 1f)` — and
+   `people-commercial` never used the helper at all. A second PNG of one scene has no way to fail
+   that the first does not already have, so the theme halves were deleted and their whole-frame
+   claims moved to the surviving tests, which additionally carry a focus rectangle. Nothing stopped
+   being asserted: the same pixels are still compared, under one name instead of two. The suite is
+   **22 Canvas assertions, 3 GL, 24 committed PNGs**.
+
+   The third pair, `day` = `people-group`, was held back one pass for a decision, and then closed
+   the same way once its premise had been **measured** rather than argued: reflected field by field,
+   `people-single` and `day` differ in exactly two of forty `SceneCustomization` fields, both of them
+   the people density. So they are one scene at two densities, and `people-group`'s assertion moved
+   onto `day.png` — `SceneGolden.assertMatches` gained an `extraFocus` parameter, three lines, so a
+   focus rectangle can be supplied at the assertion site without touching the shared scene object.
+   `SharedGoldenScenes.day()` is unchanged and the GL suite still measures only `SUN_GLOW`, verified
+   by running it: `0.000% of 64516px` before and after. `people-group.png` was deleted, not
+   regenerated.
+
+   **`GoldenUniquenessTest` is the guard**, over the whole committed directory rather than one class,
+   because the defect had already been fixed once *inside* `PeopleGoldenTest` and came back *between*
+   classes when the theme goldens were added. It shipped `@Ignore`d for one pass — a red suite and an
+   allowlist were both worse — and is **active now**, seen failing on a deliberately duplicated frame
+   before being trusted. The suite is **22 Canvas assertions, 3 GL, 24 committed PNGs**.
+
+   **And one thing the verification found that nobody was looking for.** The pavement focus does not
+   catch a change in how many people there are: with the density ignored entirely, `people-single`
+   moves 279 px — 0.711% of the band against a 2% limit, 0.097% of the frame against 0.2%, both
+   passing. The claim these two frames had carried since v4.2 was stronger than the assertions behind
+   it, and the wording is now the reduced one the measurements support. It is item 29, left open
+   rather than closed by moving a tolerance.
+
+**Known limitation.** The live re-verification of leaf continuity across a home-screen swipe could
+not exercise its condition on this device: the launcher does not send wallpaper offsets, measured as
+2 px of scene movement across a full-page swipe. What was verified live is that leaves detach at the
+crown's lower edge and reach their own ground line. The condition itself is covered by
+`FallingLeafContinuityTest`, which drives the real renderer at two scroll offsets *on this phone*
+with a tree carried off screen.
+
 ## v4.20 — the backlog goes to zero
 
 **Prepared, not published.** `versionCode = 51`, `versionName = "4.20"`. Prepared 2026-09-03. No

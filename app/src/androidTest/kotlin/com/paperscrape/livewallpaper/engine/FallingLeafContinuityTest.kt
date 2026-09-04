@@ -101,6 +101,23 @@ class FallingLeafContinuityTest {
      * box's bottom edge now, with a margin covering the oval's own extent, and this drives the
      * real renderer over a whole fall cycle to prove no drawn leaf ever intersects the box. The
      * box is the canopy blit's, mapped through the same transform it was drawn with.
+     *
+     * ### Where 7.3 comes from, re-derived for v4.21
+     *
+     * It is the leaf's own bounding radius and nothing else: `drawFallingLeaves` draws every leaf
+     * as `drawOval(-4,-6,4,6)` **unscaled**, so the furthest any of its pixels sits from the point
+     * this recorder captures is `hypot(4,6) = 7.211`, and 7.3 rounds that up. It does not depend
+     * on the canopy, which is why the "Quercia larga" redraw leaves it at 7.3 — the honest
+     * re-derivation of this number is the finding that it was never a canopy measurement.
+     *
+     * What the redraw *did* move is the clearance the spawn point has to give: `recordLeafSource`
+     * detaches a leaf at `(centre + halfHeight + 4) * scale + 8` px below the ground line, i.e.
+     * 4 scene units plus 8 raw pixels under the crown's content bottom. In v4.20 the canopy canvas
+     * carried slack below its content and those 4 units partly paid for it; the new canvas is
+     * trimmed to the drawing, so the crown's box bottom **is** its content bottom at -52, and the
+     * whole 4 units + 8 px are clearance. 8 px alone already clears 7.21 at any scale, so the
+     * property holds by construction rather than by margin — and the forty samples below still
+     * measure it, because a future spawn-point change should fail loudly here.
      */
     @Test
     fun noLeafIsEverDrawnInsideItsCrownsBoundingBox() {

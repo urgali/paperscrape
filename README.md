@@ -111,11 +111,15 @@ The flow reports four states — checking, downloading, verifying, ready to inst
 left stuck on any of them: a cancelled download returns the screen to the offer rather than freezing
 on a progress bar. (v2.13–v2.16 could hang on `Downloading`; that was **D13**, fixed in v3.0.)
 
-**Assets.** 125 PNGs in `app/src/main/res/drawable-nodpi/`, each generated from an SVG
-source under `tools/assets/sources/svg/`. A Python pipeline renders, measures and checks
-them against a registry (`sources/sprites.json`) that records every sprite's size,
-content box, anchor rule, scale convention and tint class — and against the Kotlin call
-sites that blit them.
+**Assets.** Every shipped PNG in `app/src/main/res/drawable-nodpi/` carries a registry entry in
+`tools/assets/sources/sprites.json`, and most are generated from an SVG source under
+`tools/assets/sources/svg/`; the rest are the per-skin-tone recolours, produced from a drawn sprite
+by `tools/generate_skin_variants.py` and declared as such. A Python pipeline renders, measures and
+checks them against that registry — which records every sprite's size, content box, anchor rule,
+scale convention and tint class — and against the Kotlin call sites that blit them.
+(Counts are deliberately not written here: `ls app/src/main/res/drawable-nodpi/*.png | wc -l` is the
+answer, and a number kept by hand in a document goes stale. Measured at v4.21: 266 PNGs, 134 of them
+with an SVG source, 132 recolours.)
 
 ---
 
@@ -131,7 +135,7 @@ app/src/main/kotlin/com/paperscrape/livewallpaper/
               and the normalised model they both produce
   location/   optional location for sunrise/sunset and weather
   update/     GitHub release check
-app/src/main/res/drawable-nodpi/   the 125 shipped sprites
+app/src/main/res/drawable-nodpi/   the shipped sprites
 app/src/test/                      Kotlin unit tests
 tools/assets/                      SVG sources, sprite registry, Python pipeline
 release-notes/                     user-facing notes, one file per release

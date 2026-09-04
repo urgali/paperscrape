@@ -1,18 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="234" height="366" viewBox="0 0 78 122">
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="366" viewBox="2 0 80 122">
   <!--
-    The Christmas fir: four stacked paper tiers over a trunk, in the same vocabulary as
-    tree_canopy's stacked polygons. 122 local units tall, the same as the leafy tree, so the two
-    are governed by one metre-per-unit family and a fir cannot drift out of scale with the wood
-    it stands in.
+    Proposta C, l'abete: tozzo e largo come la quercia accanto a cui sta. Tre falde
+    piene e basse, tagliate quasi dritte ma ciascuna con la sua piccola inclinazione,
+    come carta tagliata a mano libera e impilata. Apice smussato con stella in punta.
+    122 unita', arte fissa, tronco nei bruni di famiglia.
 
-    Fixed art. A fir is a species, not a theme colour, and the tiers carry their own two greens
-    the way the palm fronds carry theirs.
+    La stella e' la stessa quattro punte delle proposte A e B, allargata alle
+    proporzioni di questa scocca: mezze diagonali 6.5 x 7.5 contro le 6 x 6 di A,
+    perche' l'abete tozzo e' largo 84 unita' contro le 78 di A e una stella alla
+    misura di A ci leggerebbe piu' piccola. Scende 5 unita' dentro la falda alta,
+    esattamente come in A, cosi' la neve le si posa attorno alla base.
   -->
-<rect x="35" y="104" width="8" height="18" rx="1.5" fill="#533217"></rect>
-        <polygon points="39,66 0,104 78,104" fill="#3A7044"></polygon>
-        <polygon points="39,42 8,78 70,78" fill="#2E5E38"></polygon>
-        <polygon points="39,20 17,52 61,52" fill="#3A7044"></polygon>
-        <polygon points="39,2 26,28 52,28" fill="#2E5E38"></polygon>
-        <polygon points="39,0 33.4,8 44.6,8" fill="#F2C24A"></polygon>
-        <polygon points="39,14 33.4,6 44.6,6" fill="#F2C24A"></polygon>
+  <!-- tronco tozzo -->
+  <path d="M 37,122 C 38,119 38.6,114 38.8,106 L 45.2,106 C 45.4,114 46,119 47,122 Z" fill="#533217"/>
+  <!-- falda bassa: orlo appena inclinato a destra -->
+  <path d="M 42,58
+           C 33,72 20,84 6,91
+           C 3.4,92.3 2,94.4 2,96.6
+           L 82,99.4
+           C 82.2,97.2 80.9,95 78.4,93.6
+           C 64.4,85.8 51,73 42,58 Z" fill="#3A7044"/>
+  <!-- falda media: inclinata dall'altra parte -->
+  <path d="M 42,32
+           C 35.5,44 26,55 15.5,61.5
+           C 13.2,62.9 12,64.9 12.1,66.9
+           L 72.5,64.5
+           C 72.3,62.5 71,60.7 68.7,59.5
+           C 58.2,54 48.5,44 42,32 Z" fill="#2E5E38"/>
+  <!-- falda alta, apice smussato -->
+  <path d="M 42,10
+           C 38,18.5 32.5,26.5 26.5,31.5
+           C 24.7,33 23.9,34.8 24.1,36.5
+           L 60.5,38.2
+           C 60.6,36.4 59.7,34.6 57.8,33.2
+           C 51.8,28.5 46,19.5 42,10 Z" fill="#3A7044"/>
+  <!-- stella in punta -->
+  <path d="M 42,0 L 44.4,5.1 L 48.5,7.5 L 44.4,9.9 L 42,15 L 39.6,9.9 L 35.5,7.5 L 39.6,5.1 Z" fill="#F2C24A"/>
 </svg>

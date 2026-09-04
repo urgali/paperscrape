@@ -11,19 +11,43 @@ that was.
 
 ## Current status
 
-**v4.20 prepared — not published, not approved.**
+**v4.21 prepared — not published, not approved.**
 
-`versionCode = 51`, `versionName = "4.20"`. **No tag, no push, no GitHub Release.** Baseline:
-**v4.19, which the maintainer reports as published** — that is recorded on their word, not on a
-measurement taken here: this working tree has no tag for it and nothing in it can reach the remote.
-The account is in `RELEASE_HISTORY.md`.
+`versionCode = 52`, `versionName = "4.21"`. **No tag, no push, no GitHub Release.** Baseline:
+**v4.20, prepared and not published either.** The last release the maintainer reports as published
+is **v4.19**, and that is recorded on their word, not on a measurement taken here: this working tree
+has no tag for it and nothing in it can reach the remote. The account is in `RELEASE_HISTORY.md`.
 
-**The backlog is closed.** `BACKLOG_v4_19.md` is replaced by `BACKLOG_v4_20.md`, in which all
-fifteen of its items carry an outcome — resolved, rejected, or documented with the measurement that
-settled it — plus the two found during the pass. There is no open-debt section, and the guards that
-watch the documented items are listed there rather than left to be rediscovered.
+**The backlog carries two open items on purpose.** `BACKLOG_v4_20.md` is replaced by
+`BACKLOG_v4_21.md`, which keeps its numbering and carries forward the one item v4.20 left open.
+Of the new items, two are open and say what closing them would take: the emulator side of the GL
+golden decision, which is a single run on a machine that has one, and the palm, which is now the
+only tree still drawn in the old language and is an artistic pass rather than a defect.
 
 Publication is the maintainer's decision and has not been taken.
+
+```
+v4.21 [x] the tree redrawn: "Quercia larga", chosen from three built proposals
+ |- a cushion wider than it is tall on a stocky forked stem, replacing an octagon on a rod.
+ |  Wider, not taller: the crown still tops out at 118 units, so no scale was renegotiated
+ |- the occlusion pass had been boxing a stem three times narrower than the one it was placing
+ |  shops around, and its test carried the same stale numbers. Re-derived on both sides; the
+ |  40% ceiling held untouched and the worst case *improved*, 38.53% -> 31.17%
+ |- the snow cap is clipped against a copy of the crown's own circles, so it repeats it by
+ |  construction: 0 pixels off the crown, 94 of 114 rows identical
+ |- the leaf spawn band re-derived; density measured on both builds and bit-identical, because
+ |  the per-crown allotment was already saturated
+ |- `tree_fir_snow` trimmed onto its own origin: -211 KB, and the 29 MiB ceiling was not raised
+ |- the three GL goldens are authored on the device now, using the symmetry of a driver gap that
+ |  was already characterised. No tolerance moved; the emulator side is a declared one-run debt
+ |- and before publication: the golden count in the documents corrected (22 Canvas, not 30 -- the
+ |  directory listing had been read as the Canvas count), three byte-identical duplicate frames
+ |  removed across two passes, and `GoldenUniquenessTest` added and now active, seen failing on a
+ |  deliberately duplicated frame before being trusted
+ \- the last of the three needed its premise measured first: `people-single` and `day` differ in
+    exactly two of forty customization fields, both the people density, so the duplicate PNG went
+    and its focus moved onto `day.png` without touching the shared scene. Verifying it turned up
+    item 29 -- the pavement focus does not catch a change in how many people there are
 
 ```
 v4.20 [x] a maintenance pass: the backlog goes to zero

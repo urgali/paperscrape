@@ -1,5 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="30" height="132" viewBox="4 0 10 44">
-  
-<rect x="4" y="0" width="10" height="44" rx="3" fill="#8C5A38"></rect>
-        <rect x="8" y="0" width="6" height="44" fill="#533217"></rect>
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="186" viewBox="0 0 32 62">
+  <!--
+    Proposta C: tronco tozzo a sagoma unica - base svasata, fuso corto, forcella a V
+    larga le cui braccia entrano nel cuscino di fogliame. Il fianco destro porta la
+    banda d'ombra di famiglia. Tela 32x62, base al fondo, blit a (-16,-62).
+    Punte braccia in unita' oggetto: sinistra (-8,-60) -> tela (8,2);
+    destra (8,-62) -> tela (24,0).
+  -->
+  <!-- sagoma unica: su per il braccio sinistro, giu' nel cavallo della V,
+       su per il braccio destro, giu' lungo il fianco destro fino alla base -->
+  <path d="M 2,62
+           C 6.5,58 9.5,52 10.8,44
+           C 11.6,39 12.2,35 12.6,31
+           C 12.2,24 10.4,15 6.4,2
+           L 11.4,2
+           C 14,10 15.4,18 16,25
+           C 17,17.6 19,9 22.2,0
+           L 27.2,0
+           C 23.6,11 21.2,22 20,31
+           C 20.3,35 20.8,39 21.4,44
+           C 22.6,52 25.6,58 30,62
+           Z" fill="#8C5A38"/>
+  <!-- banda d'ombra: il fianco destro del fuso e del braccio destro -->
+  <path d="M 16.2,62
+           C 16.2,52 16.4,42 16.8,33
+           C 18,22.5 20,11 22.2,0
+           L 27.2,0
+           C 23.6,11 21.2,22 20,31
+           C 20.3,35 20.8,39 21.4,44
+           C 22.6,52 25.6,58 30,62
+           Z" fill="#533217"/>
+  <!-- piedi radicali, bassi e tondi -->
+  <path d="M 0,62 C 2.6,60.4 4.4,58 5.4,55 C 6.6,58 6.6,60.6 7.4,62 Z" fill="#6B4326"/>
+  <path d="M 32,62 C 29.6,60.6 27.9,58.4 26.9,55.6 C 26,58.4 26.2,60.8 25.4,62 Z" fill="#6B4326"/>
 </svg>

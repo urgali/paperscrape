@@ -338,3 +338,16 @@ units to the right of its own dome. v4.19 derives them from the bar's own origin
   byte-identical when pulled back, and left running as the phone's wallpaper.
 
 **Status: PREPARED — NOT PUBLISHED.**
+
+---
+
+## Errata (added v4.21, 2026-09-04)
+
+The row `| Canvas goldens | 27 |` in §7 counts the **files in `androidTest/assets/golden/`**, which
+includes the three `gl-*.png`. The number of Canvas goldens at v4.19 was **24** — 16 assertions in
+`SceneGoldenTest` and 8 in `PeopleGoldenTest` — as `V4_18_REPORT.md` states correctly ("the other 22
+Canvas goldens" plus the 2 it regenerated). Adding the 3 GL goldens to this row's 27 is how the
+figure "30 golden Canvas e 3 GL" entered later handover notes, counting the GL goldens twice.
+
+Nothing else in this report is affected: no test, threshold or measurement depended on the label.
+The tables above are left exactly as they were signed.

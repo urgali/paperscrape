@@ -12,11 +12,18 @@ import org.junit.runner.RunWith
 /**
  * The driver gap is characterised, and this is what keeps it that way.
  *
- * The three GL goldens are authored on the emulator's reference driver. On the OnePlus 6T's Adreno
- * 630 the same build renders the same scene with its edges in slightly different places -- 1.18 /
+ * The three GL goldens are authored on **the OnePlus 6T's Adreno 630 since v4.21**, and were
+ * authored on the emulator's reference driver before it. Whichever way round, the same build
+ * renders the same scene with its edges in slightly different places on the other driver -- 1.18 /
  * 1.07 / 0.92% of the outline when [GlGolden.EdgeDisplacement] was derived, 1.2-1.4% when v4.19
  * re-measured it, against a 3% gate. It passes on both environments and it is not a test failure on
  * either.
+ *
+ * **The flip is why this test did not have to change.** It measures the gap between whatever driver
+ * is running and whatever is committed, so it reads ~0 on the authoring environment and the
+ * characterised gap on the other one -- it simply now reads them from the opposite ends. See
+ * [GlGolden.EdgeDisplacement] for why the reference environment moved and for the one thing that
+ * derivation does not prove.
  *
  * That is item 1 of `BACKLOG_v4_19.md`, and v4.20 closes it **as a decision, not as a fix**: the
  * two ways to actually remove it are per-driver golden sets, which double the maintenance and make
@@ -29,8 +36,8 @@ import org.junit.runner.RunWith
  * [GlGolden.EdgeDisplacement.CHARACTERISED_MAX_DISPLACED_FRACTION] -- while the real gate still has
  * a third of its headroom left, so there is time to look before a golden run starts failing.
  *
- * On the emulator it measures ~0, which is correct and not a reason to skip it: a run that reported
- * nothing would be indistinguishable from a run that did not happen.
+ * On the authoring environment it measures ~0, which is correct and not a reason to skip it: a run
+ * that reported nothing would be indistinguishable from a run that did not happen.
  */
 @RunWith(AndroidJUnit4::class)
 class GlDriverGapGuardTest {

@@ -127,7 +127,11 @@ class ShopFrontVisibilityTest {
             SceneSpace.SceneVariant.HOUSE_LARGE -> 75f
             SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR -> 34f
             SceneSpace.SceneVariant.TOWER -> 45f
-            SceneSpace.SceneVariant.TREE -> 41f
+            // v4.21: re-measured off `tree_canopy` at its blit origin -- 101 units of content at
+            // -50 spans x -50..51. Read from the artwork here as it is read from the artwork in
+            // the catalogue, and deliberately not imported from it: the whole point of this file
+            // is that a wrong number has to be typed twice to hide a covered shop.
+            SceneSpace.SceneVariant.TREE -> 51f
             SceneSpace.SceneVariant.PALM_TREE -> 20f
             SceneSpace.SceneVariant.PARASOL -> 34f
             else -> 0f
@@ -155,9 +159,11 @@ class ShopFrontVisibilityTest {
         val g = refH * SceneSpace.groundYFraction(o.depthFraction)
         val x = o.tileFractionX * tile
         return when (v) {
+            // v4.21 "Quercia larga": crown 101x66 u blitted at (-50,-80) under the -38 lift, so
+            // object x -50..51 / y -118..-52; stem 32x62 u at (-16,-62).
             SceneSpace.SceneVariant.TREE -> listOf(
-                floatArrayOf(x - 41f * s, g - 118f * s, x + 41f * s, g - 44f * s),
-                floatArrayOf(x - 5f * s, g - 44f * s, x + 5f * s, g),
+                floatArrayOf(x - 51f * s, g - 118f * s, x + 51f * s, g - 52f * s),
+                floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g),
             )
             SceneSpace.SceneVariant.PALM_TREE -> listOf(
                 floatArrayOf(x - 20f * s, g - 90.33f * s, x + 20f * s, g - 53.5f * s),
@@ -181,7 +187,7 @@ class ShopFrontVisibilityTest {
         val g = refH * SceneSpace.groundYFraction(o.depthFraction)
         val x = o.tileFractionX * tile
         return when (v) {
-            SceneSpace.SceneVariant.TREE -> floatArrayOf(x - 5f * s, g - 44f * s, x + 5f * s, g)
+            SceneSpace.SceneVariant.TREE -> floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g)
             SceneSpace.SceneVariant.PALM_TREE -> floatArrayOf(x - 6f * s, g - 58f * s, x + 5f * s, g)
             SceneSpace.SceneVariant.PARASOL -> floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             else -> null

@@ -113,14 +113,45 @@ class PeopleGoldenTest {
     fun `people-single`() = SceneGolden.assertMatches(people(0.2f, name = "people-single"))
 
     /**
-     * A full street, on the same theme as `people-single`.
+     * A full street, on the same theme as `people-single` — **and it is the `day` frame.**
      *
-     * The pair is the 20%-versus-100% evidence: two frames of one theme differing only in the
-     * density, so the difference between them *is* what the setting does. v4.1 could only argue
-     * this from a simulated threshold table.
+     * ### Why this asserts `day.png` rather than a `people-group.png`
+     *
+     * There was a `people-group` golden until v4.21, built as `people(1f, …)`. That block is a
+     * **no-op at density 1**: `SceneCustomization.DEFAULT` already carries `people(visible = true,
+     * density = 1f)` and `DEFAULT_PEOPLE_NIGHT_DENSITY = 1f`, and `sunset` overrides neither. So it
+     * described `SharedGoldenScenes.day()`'s inputs exactly and its PNG came out byte-identical to
+     * `day.png` — **measured across all forty `SceneCustomization` fields, exactly two differed
+     * between it and `people-single`, both of them the people density.**
+     *
+     * A second PNG of one scene has no way to fail that the first does not already have, so the
+     * PNG went and this assertion moved onto `day.png`, carrying [PAVEMENT] as an extra focus at
+     * the assertion site. `SharedGoldenScenes.day()` is untouched: the GL suite iterates
+     * `scene.focus`, so adding a rectangle there would have changed what `GlSceneGoldenTest`
+     * measures. See `SceneGolden.assertMatches`'s own note and `GoldenUniquenessTest`.
+     *
+     * ### What the pair with `people-single` is, and what it is not
+     *
+     * It is two frames of one theme differing **only** in the people density — that much is
+     * measured, field by field. Their committed PNGs genuinely differ, so the setting demonstrably
+     * changes the picture, and the two frames side by side are what a human looks at to see how.
+     *
+     * **It is not, at today's tolerances, an assertion that the density still works**, and the
+     * previous wording here — "the difference between them *is* what the setting does" — claimed
+     * more than the gates deliver. Measured on this device, rendering `people-single` as if the
+     * density were ignored entirely (0.2 drawn as 1) moves **279 px: 0.711% of the pavement band
+     * against a 2% limit, and 0.097% of the frame against a 0.2% limit. Both gates pass.** Hiding
+     * *every* pedestrian moves 390 px on this frame and 111 px on `people-single`'s, and passes
+     * too. The pavement focus is a guard against a figure being drawn in the wrong *place*, which
+     * moves two rectangles' worth of pixels; it is not a guard against there being fewer of them.
+     *
+     * That gap is older than this change and is unaffected by it — it is the same on either PNG —
+     * so it is recorded as item 29 of `BACKLOG_v4_21.md` rather than closed here by moving a
+     * tolerance, which would be tuning a metric to reach a verdict.
      */
     @Test
-    fun `people-group`() = SceneGolden.assertMatches(people(1f, name = "people-group"))
+    fun `people-at-full-density`() =
+        SceneGolden.assertMatches(SharedGoldenScenes.day(), extraFocus = listOf(PAVEMENT))
 
     /**
      * More than one skin tone in one frame.
@@ -140,6 +171,14 @@ class PeopleGoldenTest {
      * two frames drawn by one piece of code is the claim about variety that no single frame can
      * make. `winter` carries the evenest mix the catalogue produces -- three men, two women, two
      * boys and two girls.
+     *
+     * **This frame is also the winter theme's frame, and since v4.21 it is the only one.**
+     * `SceneGoldenTest.themeWinter` described these same inputs — the `customise` block below is a
+     * no-op at density 1, because `winter`'s defaults already carry `people(visible = true,
+     * density = 1f)` — so its PNG came out byte-identical to this one and its whole-frame assertion
+     * could not fail on its own. It was removed; this one keeps the pixels, adds [PAVEMENT], and
+     * inherits its claim: **winter dressing on the whole frame**, coats and hats and settled snow,
+     * asserted here rather than under a second name.
      */
     @Test
     fun `people-mixed`() =
@@ -180,6 +219,13 @@ class PeopleGoldenTest {
      * `desert`'s restaurant at tile fraction 0.433 holds a woman on tone 0, and the focus is her
      * pane rather than the facade band, because a golden about one bust has to be measured over
      * the bust. Against v4.1 this rectangle contains an empty window.
+     *
+     * **This frame is also the desert theme's frame, and since v4.21 it is the only one.** This
+     * scene never used the [people] helper — it is the theme's own defaults at `day()` — which is
+     * exactly what `SceneGoldenTest.themeDesert` was, so the two PNGs were byte-identical and the
+     * second assertion carried nothing the first did not. It was removed; this one keeps the pixels,
+     * keeps [RESTAURANT_FRONT], and inherits its claim: **the desert palette on the whole frame**,
+     * palms and sand and no grass, asserted here rather than under a second name.
      */
     @Test
     fun `people-commercial`() = SceneGolden.assertMatches(

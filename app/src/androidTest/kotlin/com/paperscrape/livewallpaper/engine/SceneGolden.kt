@@ -120,8 +120,18 @@ object SceneGolden {
         return bitmap
     }
 
-    /** Renders [scene] and asserts it still looks like its committed golden. */
-    fun assertMatches(scene: GoldenScene) {
+    /**
+     * Renders [scene] and asserts it still looks like its committed golden.
+     *
+     * [extraFocus] adds focus rectangles **at the assertion site**, on top of whatever the scene
+     * itself declares. It exists for one situation and should not grow past it: two tests that
+     * describe the same scene must share one PNG (see `GoldenUniquenessTest`), and when one of
+     * those scenes is a [SharedGoldenScenes] entry it cannot absorb the other's focus — the GL
+     * suite iterates `scene.focus` too, so a rectangle added there would silently change what
+     * `GlSceneGoldenTest` measures against `gl-<name>.png`. Passing it here instead leaves the
+     * shared scene object untouched and keeps the extra rectangle in the suite that owns the claim.
+     */
+    fun assertMatches(scene: GoldenScene, extraFocus: List<GoldenFocus> = emptyList()) {
         val actual = render(scene)
         if (updating()) {
             write(actual, File(outputDir(), "${scene.name}.png"))
@@ -164,7 +174,7 @@ object SceneGolden {
 
         // The second, tighter pass, for scenes that are about one small part of the picture. See
         // [MAX_FOCUS_DIFFERING_FRACTION].
-        for (focus in scene.focus) {
+        for (focus in scene.focus + extraFocus) {
             val inFocus = countDiffering(expected, actual, focus.left, focus.top, focus.right, focus.bottom)
             val focusFraction = inFocus.toDouble() / focus.area
             if (focusFraction > MAX_FOCUS_DIFFERING_FRACTION) {

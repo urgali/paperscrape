@@ -490,9 +490,11 @@ added, fails exactly here and nowhere else.
 - **`elapsedSeconds` freezes at ~12 days** of visible uptime. If a bug report
   says "the wallpaper stopped moving", this is the first suspect.
 - **The asset generators are lost, but a replacement pipeline now exists.**
-  `tools/assets/` (Phase 3.1) regenerates **125 of the 221** shipped sprites from
-  committed SVG sources; the other **96** are declared gaps (`source.kind = "none"`)
-  in `tools/assets/sources/sprites.json`,
+  `tools/assets/` (Phase 3.1) regenerates from committed SVG sources every shipped sprite that
+  has one — **134 of 266 as measured at v4.21** — while the other **132** are the per-skin-tone
+  recolours, which carry `source.kind = "none"` and name the generator that makes them
+  (`tools/generate_skin_variants.py`) in `tools/assets/sources/sprites.json`. Re-measure rather
+  than quoting these: `paperscrape-assets validate` prints both numbers,
   which since Phase 3.5 also declares every seasonal variant group and whether its
   members currently differ.
   Set up with `pip install --break-system-packages -r tools/assets/requirements.txt`
@@ -532,13 +534,32 @@ added, fails exactly here and nowhere else.
   interpreted render path. Measure the release build, or say plainly that the number is a debug
   one. Hidden, both drop to **0.0%** -- the engine idles correctly and that is the figure that
   matters for battery.
-- **The GL goldens are tied to the driver they were captured on.** They live in
-  `androidTest/assets/golden/gl-*.png` and were taken under the emulator's `swiftshader_indirect`.
-  On an Adreno 630 the same build differs by **1.1-1.7%** at the >=16 channel gate whose limit is
-  0.5%, while all 30 Canvas goldens pass. The Canvas ones are software-rendered and portable; the
-  GL ones are a regression check against one reference driver. Run them on the emulator. Do not
-  regenerate them from a phone, and do not raise the tolerance to make a phone pass -- that would
-  trade a real check for a green tick.
+- **The GL goldens are tied to the driver they were captured on, and since v4.21 that driver is
+  this phone's.** They live in `androidTest/assets/golden/gl-*.png`. They were taken under the
+  emulator's `swiftshader_indirect` until v4.21 re-authored them on the OnePlus 6T's Adreno 630,
+  because the tree redraw moved all three by 8.80% against a 3% gate and this machine has no
+  emulator to regenerate them on. The gap between the two drivers is symmetric and characterised
+  -- 0.92-1.18% of the outline, against a gate of 3% -- so flipping which side is exact left the
+  gate untouched; `BACKLOG_v4_21.md` item 19 carries the decision and item 20 the one thing it
+  does not prove.
+
+  What has not changed is the rule: the Canvas goldens are software-rendered and portable, the GL
+  ones are a regression check against **one** reference driver, and you do not raise a tolerance to
+  make a different driver pass -- that trades a real check for a green tick. What has changed is
+  which environment is the reference. Regenerate them on the device; the first run on a machine
+  with an emulator has to confirm all three still pass there.
+
+- **Do not count goldens by listing the directory.** `androidTest/assets/golden/` holds the Canvas
+  PNGs *and* the three `gl-*.png`. The Canvas count is the number of Canvas **assertions** --
+  `SceneGoldenTest` plus `PeopleGoldenTest`, one `assertMatches` each, no parameterised tests. A
+  v4.19 report labelled the directory count "Canvas goldens" and a later document added the three
+  GL ones on top of it, which is how "30 Canvas goldens" entered the handover notes for a suite
+  that had 24. v4.21 corrected the documents and removed two duplicate frames; the count now is
+  **22 Canvas assertions, 3 GL, 24 committed PNGs**, and `GoldenUniquenessTest` is the guard that
+  keeps two names from sharing one picture. Note the asymmetry it allows and the reason: two *tests*
+  may assert one PNG — `SceneGoldenTest.day` and `PeopleGoldenTest.people-at-full-density` both
+  measure `day.png`, with different focus rectangles — because a focus is an assertion over a region
+  of the same frame. What must not repeat is two *PNGs* of one scene.
 - **Do not fix a size/alignment bug with a per-asset constant.** That is how
   the project accumulated five such patches in three releases. Find the
   system-level cause.

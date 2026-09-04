@@ -24,7 +24,8 @@ class SpriteMeasurementClaimTest {
         val expected = mapOf(
             "bird_body" to (90 to 24),
             "dolphin_body" to (345 to 174),
-            "tree_canopy" to (246 to 222),
+            // v4.21 redrew the crown: 303x198 px = 101x66 u, the "Quercia larga" cushion.
+            "tree_canopy" to (303 to 198),
             "person_man_summer_head_window" to (159 to 171),
         )
         for ((name, size) in expected) {

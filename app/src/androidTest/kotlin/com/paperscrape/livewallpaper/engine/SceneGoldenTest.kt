@@ -11,8 +11,11 @@ import org.junit.runner.RunWith
  *
  * The set is chosen to cover the axes that can break independently of each other -- time of day,
  * cloud cover, precipitation kind, storm strength, the lake and its traffic, and a spread of themes
- * -- rather than to be exhaustive. Fourteen frames is a suite that runs in seconds and that someone
- * will actually look at when one of them fails.
+ * -- rather than to be exhaustive. It is deliberately a suite that runs in seconds and that someone
+ * will actually look at when one of them fails, which is a property of its size rather than of any
+ * particular count: the number of Canvas goldens is the number of assertions in this class plus
+ * `PeopleGoldenTest`'s, and is not restated here because a hand-maintained count goes stale in
+ * exactly the way v4.21 found three of them had.
  *
  * See [SceneGolden] for how a frame is made reproducible and how to regenerate one honestly.
  */
@@ -21,9 +24,11 @@ class SceneGoldenTest {
 
     // -- Time of day ------------------------------------------------------------------------
 
-    // Three of the fourteen scenes are defined in [SharedGoldenScenes] rather than here, because
-    // [GlSceneGoldenTest] renders those same three through the GL backend and compares them
-    // against these same PNGs. See that object for why they are shared rather than copied.
+    // Some scenes are defined in [SharedGoldenScenes] rather than here. Three of those --
+    // `day`, `lakeBusy` and `thunderstorm` -- are rendered by [GlSceneGoldenTest] through the GL
+    // backend and compared against these same PNGs, which is why they must be defined once rather
+    // than copied; the traffic pair lives there for the same reason against `TrafficGoldenTest`.
+    // See that object.
     @Test
     fun day() = SceneGolden.assertMatches(SharedGoldenScenes.day())
 
@@ -206,18 +211,25 @@ class SceneGoldenTest {
 
     // -- Themes -------------------------------------------------------------------------------
 
-    /** Three themes that exercise different parts of the scene: winter dressing, a desert
-     * palette with palms and no grass, and the built city. */
-    @Test
-    fun themeWinter() = SceneGolden.assertMatches(
-        GoldenScene(name = "theme-winter", dayPhase = GoldenScene.day(), themeId = "winter"),
-    )
-
-    @Test
-    fun themeDesert() = SceneGolden.assertMatches(
-        GoldenScene(name = "theme-desert", dayPhase = GoldenScene.day(), themeId = "desert"),
-    )
-
+    /**
+     * The built city at night, which is the one theme frame this class still owns.
+     *
+     * **`theme-winter` and `theme-desert` used to stand here and were removed in v4.21.** Neither
+     * was a scene of its own: `theme-winter` described the same inputs as
+     * `PeopleGoldenTest.people-mixed` and `theme-desert` the same as
+     * `PeopleGoldenTest.people-commercial`, because both of those build their scene from the
+     * theme's defaults and the `customise` block they pass is a no-op at density 1. The four PNGs
+     * came out as two, byte-identical in pairs, and a second PNG of one scene has no way to fail
+     * that the first does not already have — see `GoldenUniquenessTest` for that derivation.
+     *
+     * Nothing stopped being asserted. Those two frames are still compared whole-frame against the
+     * same pixels, under the `people-*` names, and there they additionally carry a focus rectangle;
+     * the winter-dressing and desert-palette claims moved with them. What went is one of each pair
+     * of identical PNGs and the assertion that carried no information of its own.
+     *
+     * `theme-city` stays because it is genuinely a different frame: `night()` rather than `day()`,
+     * and no other golden renders the built city after dark.
+     */
     @Test
     fun themeCity() = SceneGolden.assertMatches(
         GoldenScene(name = "theme-city", dayPhase = GoldenScene.night(), themeId = "city"),

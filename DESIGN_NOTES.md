@@ -507,6 +507,55 @@ in a family that shares one metre-per-unit so a unit is the same pixel on all th
 paragraph protects is intact: nothing was resized to fit; the thing that had to change was the
 cabin, and it was the cabin that changed.
 
+### A cap that repeats a crown should be cut out of it, not drawn beside it **[OBSERVED]**
+
+The snow cap has been cut wrong once already: v76.1 found it sitting 2 units below the crown's ridge
+and 5 short of each shoulder, leaving a green rim above the snow. It was redrawn by hand to repeat
+the crown's upper vertices, and a test was written to sample four rows and check the two agreed.
+
+**v4.21 replaced the care with a construction.** The cap's source now clips its three snow bands
+against a copy of `tree_canopy`'s own circles, so its silhouette *is* the crown's wherever the snow
+covers full width — there is no second drawing to keep in agreement, only one shape used twice.
+Measured on the shipped pixels: zero cap pixels outside the crown, and the first 94 of its 114 rows
+carry the crown's own first and last opaque column.
+
+Two consequences worth stating, because both were learned the hard way:
+
+- **Copy every band's circles into the clip, not just the top ones.** The crown's inner bands are
+  offset up and left, so they poke half a unit past the outer band on the upper-left shoulder. Half
+  a unit is 1.5 px on the 3x grid, which is enough to make the first opaque column differ and the
+  test fail — correctly, because the cap really would have been narrower than the crown there.
+- **A test can then assert the property instead of sampling it.** Four sampled rows can be passed by
+  a wrong cap. The re-derived test asserts subset-on-every-row plus an exact-match run measured from
+  the top, and both are true by construction rather than by tuning.
+
+The same argument applies to any overlay cut to another sprite's outline. If you find yourself
+matching vertices by hand, clip instead.
+
+### A redraw invalidates every number measured off the old drawing, including the ones in tests **[OBSERVED]**
+
+The "Quercia larga" changed the tree's width and nothing else — same 118 units tall, same ground
+line — and that is exactly why it was dangerous. `SceneSpace.SceneVariant.baseScale` is derived from
+a variant's declared **height**, so a width-only redraw moves no scale, no cull extent and no
+golden: **nothing in the scale pipeline can see it.**
+
+What could see it were three places holding the crown's and stem's half-extents as literals, all
+three measured off v4.20's artwork:
+
+| where | held | actual |
+|---|---|---|
+| `SceneObjectCatalog.occluderBoxes` | crown `± 41`, stem `± 5 / -44` | `± 51`, `± 16 / -62` |
+| `SceneObjectCatalog.verticalMemberBox` | stem `± 5 / -44` | `± 16 / -62` |
+| `ShopFrontVisibilityTest`, deliberately duplicated | the same four | the same four |
+
+The duplication in the test is a good rule that did not help here, and the reason is worth keeping:
+**a duplicate guards against a typo, never against a stale premise**, because a redraw invalidates
+both copies in the same instant. Nothing failed until somebody went back to the sprites and
+measured them.
+
+So: when artwork is redrawn, grep for its dimensions and its half-extents before trusting a green
+suite. The suite is measuring the same wrong number twice.
+
 ### Decoration placement comes from the foliage's own content box **[OBSERVED]**
 
 A tree's Christmas lights are scattered across an ellipse the caller measures off

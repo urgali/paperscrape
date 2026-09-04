@@ -13,10 +13,14 @@ import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
  * Defining them once is what makes the GL suite's claim ("the two backends draw the same picture")
  * checkable at all.
  *
- * Only these three are shared, because only these three are the ones P1-4 selected: between them
- * they cover the geometries the two backends build by genuinely different routes — a radial
- * gradient against a triangle fan, a linear gradient against stepped columns, and analytic arcs
- * against tessellated ones. The other eleven Canvas goldens stay where they are.
+ * Only three are shared **with the GL suite**, because only those three are the ones P1-4 selected:
+ * between them they cover the geometries the two backends build by genuinely different routes — a
+ * radial gradient against a triangle fan, a linear gradient against stepped columns, and analytic
+ * arcs against tessellated ones. Every other Canvas golden is defined by the class that asserts it.
+ *
+ * (This paragraph used to end by counting those others. It said eleven, there were nineteen, and
+ * v4.21 found it while correcting three stale golden counts at once — so it now names the rule
+ * instead of a number that has to be kept in step by hand.)
  */
 object SharedGoldenScenes {
 

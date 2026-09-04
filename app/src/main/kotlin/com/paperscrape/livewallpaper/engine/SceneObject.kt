@@ -585,7 +585,9 @@ object SceneObjectCatalog {
         SceneSpace.SceneVariant.HOUSE_LARGE -> 75f
         SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR -> 34f
         SceneSpace.SceneVariant.TOWER -> 45f
-        SceneSpace.SceneVariant.TREE -> 41f
+        // v4.21: 51, not 41. The "Quercia larga" crown is `tree_canopy`'s 101 units of content
+        // blitted at -50, so it spans x -50..51 and the wider side governs a symmetric reach.
+        SceneSpace.SceneVariant.TREE -> 51f
         SceneSpace.SceneVariant.PALM_TREE -> 20f
         else -> 0f
     }
@@ -707,9 +709,18 @@ object SceneObjectCatalog {
     /**
      * What one object puts between the viewer and anything behind it, as (left, top, right,
      * bottom) boxes at the reference viewport. A building is its body; a tree is its crown (the
-     * canopy blit's own -118..-44, see recordLeafSource's measurements of the same artwork) AND
-     * its trunk (the 10x44-unit blit at TreeSpriteLayout.TRUNK_X/Y); a palm is fan and trunk; a
-     * parasol is canopy and pole (drawParasol's own 34-unit wedge fan on a 5x50 pole).
+     * canopy blit's own -118..-52, the same content box `recordLeafSource` measures off the same
+     * artwork) AND its trunk (the 32x62-unit blit at TreeSpriteLayout.TRUNK_X/Y); a palm is fan
+     * and trunk; a parasol is canopy and pole (drawParasol's own 34-unit wedge fan on a 5x50 pole).
+     *
+     * **v4.21 re-derived the tree's two boxes and they grew in both directions.** The crown went
+     * from ±41 to ±51 and its lower edge from -44 to -52; the trunk went from a 10-unit rod to a
+     * 32-unit forked stem reaching -62. Nothing here is a taste judgement -- each number is the
+     * shipped sprite's content box at its blit origin -- but the consequence is real: a tree now
+     * shadows a shop front from further away and its stem is three times as wide, so the
+     * separation pass below has strictly more work to do than it did in v4.20. That the twelve
+     * built-in layouts still settle inside the same 40% ceiling is measured, not assumed, and
+     * `ShopFrontVisibilityTest` is where it is measured.
      */
     private fun occluderBoxes(o: StaticSceneObject): List<FloatArray> {
         val v = SceneObjectRenderer.variantFor(o)
@@ -718,8 +729,8 @@ object SceneObjectCatalog {
         val x = o.tileFractionX * REF_SCREEN_W * 2f
         return when (v) {
             SceneSpace.SceneVariant.TREE -> listOf(
-                floatArrayOf(x - 41f * s, g - 118f * s, x + 41f * s, g - 44f * s),
-                floatArrayOf(x - 5f * s, g - 44f * s, x + 5f * s, g),
+                floatArrayOf(x - 51f * s, g - 118f * s, x + 51f * s, g - 52f * s),
+                floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g),
             )
             SceneSpace.SceneVariant.PALM_TREE -> listOf(
                 floatArrayOf(x - 20f * s, g - 90.33f * s, x + 20f * s, g - 53.5f * s),
@@ -744,7 +755,12 @@ object SceneObjectCatalog {
         val g = REF_SCREEN_H * SceneSpace.groundYFraction(o.depthFraction)
         val x = o.tileFractionX * REF_SCREEN_W * 2f
         return when (v) {
-            SceneSpace.SceneVariant.TREE -> floatArrayOf(x - 5f * s, g - 44f * s, x + 5f * s, g)
+            // v4.21: the forked stem's widest point is its flared foot, 32 units across, and it
+            // stands 62 tall. Modelling it as that full rectangle is deliberately the strict
+            // reading -- the stem is a V and narrows above the foot -- because the rule this box
+            // serves is "a door and a window stay clear for their whole height", and a box that
+            // under-reports the foot would let a trunk park on a doorway.
+            SceneSpace.SceneVariant.TREE -> floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g)
             SceneSpace.SceneVariant.PALM_TREE -> floatArrayOf(x - 6f * s, g - 58f * s, x + 5f * s, g)
             SceneSpace.SceneVariant.PARASOL -> floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             else -> null

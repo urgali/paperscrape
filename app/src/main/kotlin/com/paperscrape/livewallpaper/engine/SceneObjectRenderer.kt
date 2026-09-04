@@ -309,6 +309,21 @@ class SceneObjectRenderer(
         const val BAR_CORNICE_Y = -108f
 
         /**
+         * The shops' winter drifts, named for the same reason the cornices above are: the v4.21
+         * snow audit found the gallery preview still drawing both at their pre-v4.18 origins --
+         * `(-48,-102)` and `(-43,-98)`, cut for the uncrowned walls -- while the wallpaper's
+         * drifts had been rebuilt in v4.19 to lie on the cornices. That is the tree snow cap's
+         * drift (v3.7) and the tower's (v3.8) happening a third time, so the shops join the two
+         * groups whose offsets are shared rather than copied. The values are the renderer's,
+         * unchanged: each drift is registered to its own cornice's crown, per the derivation in
+         * the two SVG sources.
+         */
+        const val RESTAURANT_ROOF_SNOW_X = -26f
+        const val RESTAURANT_ROOF_SNOW_Y = -111.5f
+        const val BAR_ROOF_SNOW_X = -50f
+        const val BAR_ROOF_SNOW_Y = -110.5f
+
+        /**
          * The bar's street-level glazing and the height its sign hangs at.
          *
          * The panes are the restaurant's frontage drawable -- one shop-window drawing shared by
@@ -1238,7 +1253,13 @@ class SceneObjectRenderer(
         val halfHeightUnits: Float
         val halfWidthUnits: Float
         when (variant) {
-            SceneSpace.SceneVariant.TREE -> { centreUnits = -81f; halfHeightUnits = 37f; halfWidthUnits = 41f }
+            // v4.21, re-derived for the "Quercia larga" and not carried over: the crown is
+            // `tree_canopy`'s 101x66 u of content blitted at (-50,-80) inside the -38 lift, so in
+            // object space it is x -50..51, y -118..-52. Centre -85, half-height 33, half-width 51
+            // (the wider of the two sides, so the band covers the whole crown). The band is 24%
+            // wider than v4.20's 41 and its bottom edge sits 8 units lower -- both consequences of
+            // the artwork, which is why these are stated as the content box rather than tuned.
+            SceneSpace.SceneVariant.TREE -> { centreUnits = -85f; halfHeightUnits = 33f; halfWidthUnits = 51f }
             SceneSpace.SceneVariant.PALM_TREE -> { centreUnits = -72f; halfHeightUnits = 18.5f; halfWidthUnits = 20f }
             else -> return
         }
@@ -2426,10 +2447,18 @@ class SceneObjectRenderer(
      * rather than a new sprite: they are the same objects the Gifts decoration already draws.
      */
     private fun drawFir(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime) {
-        drawGroundShadow(canvas, 24f)
-        drawSprite(canvas, R.drawable.tree_fir, -39f, -122f)
+        drawGroundShadow(canvas, 26f)
+        // v4.21: the stocky fir of the "Quercia larga" family -- `tree_fir` is 240x366 px = 80x122
+        // u, content filling its canvas, so it blits at (-40,-122) and stands x -40..40.
+        drawSprite(canvas, R.drawable.tree_fir, -40f, -122f)
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.tree_fir_snow, -39f, -122f)
+            // **The snow carries its own origin, and that is the point of it.** `tree_fir_snow` is
+            // cut out of the fir's own frame at (14,10) and trimmed to its content, 168x234 px =
+            // 56x78 u: a full-canvas copy of the fir would have cost 211 680 B of transparency,
+            // the single largest item in this release's sprite budget. So it blits at
+            // (-40+14, -122+10) = (-28,-112). The two offsets are one derivation -- move the fir
+            // and this moves with it, or the snow slides off the shoulders it was cut for.
+            drawSprite(canvas, R.drawable.tree_fir_snow, -28f, -112f)
         }
         drawChristmasLights(canvas, r, elapsed, centerY = -66f, radiusX = 22f, radiusY = 34f)
         // Three presents at the foot, sized against the fir rather than against the scene: the
@@ -2492,27 +2521,32 @@ class SceneObjectRenderer(
             TreeSpriteLayout.CANOPY_X, TreeSpriteLayout.CANOPY_Y, leafColor,
         )
         if (customization.winterColorsEnabled) {
-            // The cap is cut to this canopy's own outline: its top edge repeats the crown's
-            // upper vertices exactly, so the snow reaches both shoulders and the ridge instead
-            // of sitting inside them. It was a 216x126 cap at (-36,-78), which is 2 units below
-            // the crown's ridge and 5 short of each shoulder -- enough to leave a green rim
-            // above the snow and bare green corners either side of it. Redrawn at 234x126 with
-            // an origin derived from the crown rather than guessed; if the canopy art changes,
-            // both move together.
+            // The cap is cut to this canopy's own outline, and in v4.21 that stopped being a
+            // statement about care and became one about construction: the cap's source clips its
+            // three snow bands against a copy of `tree_canopy`'s own circles, so its silhouette
+            // *is* the crown's wherever the snow covers full width. Measured on the shipped
+            // pixels: zero cap pixels fall outside the crown, and the first 94 of its 114 rows
+            // have the crown's own first and last opaque column. Below that the scalloped lower
+            // edge bites in, which is the drawing.
+            //
+            // v76.1 had to redraw this cap because it had been cut for a different crown and left
+            // a green rim above the snow; the clip is what stops that recurring. Same canvas and
+            // same origin as the crown, per [TreeSpriteLayout] -- if the canopy art changes, both
+            // are re-derived in the same pass or neither is.
             drawSprite(
                 canvas, R.drawable.tree_canopy_snowcap,
                 TreeSpriteLayout.SNOWCAP_X, TreeSpriteLayout.SNOWCAP_Y,
             )
         }
         // Inside the canopy's own transform, and scattered across the canopy's own measured
-        // content: `tree_canopy` is 246x222 px with content filling it, which is
-        // (-41,-80)..(41,-6) once blitted at this origin, so its centre is (0,-43) and its half
-        // extents are 41 x 37. The radii below are inset from those for the crown's five lobes,
-        // which pull the silhouette in near the top and bottom, and for the light's own radius.
+        // content: `tree_canopy` is 303x198 px with content filling it, which is
+        // (-50,-80)..(51,-14) in this lifted space, so its centre is (0.5,-47) and its half
+        // extents are 50.5 x 33. The radii below are inset from those for the cushion's scalloped
+        // rim, which pulls the silhouette in all along its edge, and for the light's own radius.
         // The Christmas layer, not the winter one. These hung off `winterColorsEnabled`, which
         // made a plain snowy January impossible: every winter tree came with fairy lights.
         if (customization.christmasDecorationsEnabled) {
-            drawChristmasLights(canvas, r, elapsed, centerY = -43f, radiusX = 30f, radiusY = 26f)
+            drawChristmasLights(canvas, r, elapsed, centerY = -47f, radiusX = 38f, radiusY = 24f)
         }
         canvas.restore()
     }
@@ -2919,7 +2953,7 @@ class SceneObjectRenderer(
         // A flat roof, so the cap is a drift standing proud of the parapet rather than following a
         // pitch. Its canvas puts the wall's own top edge 8 units down. See [drawSmallHouse].
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.restaurant_roof_snow, -26f, -111.5f)
+            drawSprite(canvas, R.drawable.restaurant_roof_snow, RESTAURANT_ROOF_SNOW_X, RESTAURANT_ROOF_SNOW_Y)
         }
         val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
         // **The storey over the shop was a blank slab.** `restaurant_wall` carries no openings
@@ -3002,7 +3036,7 @@ class SceneObjectRenderer(
         drawTintedSprite(canvas, R.drawable.bar_cornice, BAR_CORNICE_X, BAR_CORNICE_Y, wallColor)
         // Same construction as the restaurant's, cut to this wall's narrower 90 units.
         if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.bar_roof_snow, -50f, -110.5f)
+            drawSprite(canvas, R.drawable.bar_roof_snow, BAR_ROOF_SNOW_X, BAR_ROOF_SNOW_Y)
         }
         val barNight = (1f - dayBlend).coerceIn(0f, 1f)
         // **The painted pub front.** v4.18 glazed the street level and it still read as a slab,

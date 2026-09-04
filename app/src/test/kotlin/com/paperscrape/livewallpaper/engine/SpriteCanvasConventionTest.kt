@@ -21,14 +21,23 @@ import org.junit.Test
  * half-stroke would add transparent margin to two hundred files and move every origin that reads
  * them, to recover a pixel of stroke nobody has ever reported seeing.
  *
- * The twelve that do *not* touch an edge are the exceptions `ARCHITECTURE.md` describes: sprites
+ * The ones that do *not* touch an edge are the exceptions `ARCHITECTURE.md` describes: sprites
  * whose transparent margin is load-bearing because their anchor is measured against it -- the sun
  * and moon centred in a fixed disc, the glow, the sparkle, the firework, a bird centred on its
- * flight path, and `tree_fir_snow`, which hangs off a declared attachment point.
+ * flight path.
  *
- * So the convention is the rule, the eleven are the declared exceptions, and this test is where
- * both are written down. A thirteenth sprite growing a margin, or one of these twelve losing its own,
- * is a change to how something is anchored and fails here rather than moving quietly on screen.
+ * So the convention is the rule, the listed few are the declared exceptions, and this test is where
+ * both are written down. A sprite growing a margin nobody declared, or a declared one losing its
+ * own, is a change to how something is anchored and fails here rather than moving quietly on screen.
+ *
+ * **v4.21 moved `tree_fir_snow` out of the exceptions**, and it is worth saying why, because the
+ * direction is unusual: it did not lose an anchor, it stopped paying for one. The sprite used to be
+ * drawn on a full copy of the fir's canvas so that both could blit at one origin, and the 28 units
+ * of transparency that cost were the "load-bearing margin". Trimming it to its content and giving
+ * it its own origin -- `(-28,-112)` against the fir's `(-40,-122)`, derived from the same viewBox --
+ * recovers 211 680 B of decoded memory, the largest single item in this release's sprite budget,
+ * and registers the two just as tightly. Its two exceptions here became one derivation there.
+ * Both counts below moved with it, in the direction that means less waste, not more.
  */
 class SpriteCanvasConventionTest {
 
@@ -54,7 +63,8 @@ class SpriteCanvasConventionTest {
         "star_sparkle",
         "sun_body",
         "sun_glow",
-        "tree_fir_snow",
+        // `tree_fir_snow` was here until v4.21 trimmed it to its content and gave it its own blit
+        // origin. See this class's own doc for why that is a recovery rather than a lost anchor.
     )
 
     @Test
@@ -88,7 +98,8 @@ class SpriteCanvasConventionTest {
         val all = sprites()
         val touching = all.count { touchesAnEdge(ImageIO.read(it)) }
         assertEquals("266 sprites are expected", 266, all.size)
-        assertEquals("216 of them reach a canvas edge", 216, touching)
+        // 216 until v4.21 trimmed `tree_fir_snow` onto its own content.
+        assertEquals("217 of them reach a canvas edge", 217, touching)
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

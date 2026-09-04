@@ -398,13 +398,22 @@ object SceneSpace {
         HOUSE_LARGE(7.6f, 145f),
 
         /**
-         * Trunk to crown; the trunk is 37 % of it.
+         * Trunk to crown; the trunk is 53 % of it.
          *
          * **118 units, not 122.** Measured from the two blits that make a tree: `tree_trunk`
-         * (30x132 px = 10x44 u) at (-5,-44), and `tree_canopy` (246x222 px = 82x74 u) at
+         * (96x186 px = 32x62 u) at (-16,-62), and `tree_canopy` (303x198 px = 101x66 u) at
          * `TreeSpriteLayout.CANOPY_Y` = -80 inside the canopy's own `translate(0,-38)`, so the
          * crown tops out at -118. The entry said 122 and the tree was therefore reading 9.48 m
          * rather than the 9.8 it declared.
+         *
+         * **v4.21 redrew both sprites and this entry did not move**, which is the point worth
+         * recording: the "Quercia larga" is a wider tree, not a taller one. The crown still tops
+         * out at -118 and the foot still stands on 0, so the metres-per-unit the whole size table
+         * is argued against is untouched and no other object's scale had to be renegotiated. The
+         * trunk's share of the height went from 37 % to 53 % because the stocky forked stem is
+         * 62 units against the old rod's 44 -- the crown sits lower and spreads instead of
+         * perching. Height stays the governed dimension; width followed the artwork, exactly as
+         * this enum's own preamble says it should.
          *
          * The metre is what moved, not the artwork. 9.8 was tuned by eye in v76.6 "for presence
          * beside the houses", so the drawn size is the decision and the declaration was the thing
@@ -421,9 +430,12 @@ object SceneSpace {
          * tree rather than shorter.** `variantFor` never returns FIR -- a fir is a *state* of a
          * TREE candidate (`SceneObjectRenderer.standsAsFir`), so it is drawn under TREE's scale
          * and this `baseScale` is not applied; the only other reference is a `-> Unit` arm in the
-         * draw dispatch. `tree_fir` is 234x366 px = 78x122 u blitted at (-39,-122), so a fir
+         * draw dispatch. `tree_fir` is 240x366 px = 80x122 u blitted at (-40,-122), so a fir
          * occupies 122 units where the leafy tree occupies 118, and at 0.0803 m/unit that is
-         * 9.8 m against the tree's 9.479.
+         * 9.8 m against the tree's 9.479. (v4.21 redrew the fir into the "Quercia larga" family --
+         * stocky, three full skirts, a star at the tip -- and kept it at 122 units for the reason
+         * this paragraph gives: one metre governs both, so a fir cannot drift out of scale with
+         * the wood it stands in.)
          *
          * This entry used to say 9.3 m, and `SceneSpaceTest` pinned "a fir is shorter than a
          * tree". **Both were wrong, and the project said so itself.** v2.8 introduced the entry as

@@ -1300,8 +1300,11 @@ declared: `probe` renders a fixed document and compares its hash to a recorded
 value, so a toolchain change is detected instead of silently invalidating every
 recorded figure.
 
-**Coverage as shipped: all 221 sprites carry a registry entry, and 125 of them carry
-an SVG source; the remaining 96 declare `source.kind = "none"`.** Every sprite being
+**Coverage as shipped: every sprite carries a registry entry, and every *drawn* sprite carries an
+SVG source; the ones that declare `source.kind = "none"` are the per-skin-tone recolours, which name
+their generator instead.** Measured at v4.21: 266 entries, 134 with an SVG, 132 recolours —
+`paperscrape-assets validate` prints the three numbers, which is where to read them rather than
+here. Every sprite being
 *described* by the registry is new in v76 and is the single most consequential thing
 the V2 asset library changed; being *regenerable* is a separate, smaller set.
 `tools/assets/README.md` states the registry-to-`res` relation as a rule rather than a
@@ -1726,8 +1729,11 @@ sequencing live in `ROADMAP.md`.
 10. **Test coverage is narrow, but less so than this entry used to claim.** The JVM suite
     covers the pure deterministic logic, and the sentence that stood here for many releases —
     *"no automated test in this project observes a rendered frame on either backend"* — has been
-    false since v3.2: 14 Canvas goldens and 3 GL goldens do exactly that, and v3.7 added a
-    region-targeted GL gate. What remains true is the shape of the gap. The engine lifecycle, the
+    false since v3.2: 22 Canvas goldens and 3 GL goldens do exactly that, and v3.7 added a
+    region-targeted GL gate. (The Canvas figure is the number of Canvas *assertions* --
+    `SceneGoldenTest` plus `PeopleGoldenTest` -- not the number of PNGs in
+    `androidTest/assets/golden/`, which also holds the three `gl-*.png`. Counting the directory is
+    how the handover notes came to say 30; v4.21 corrected it and added `GoldenUniquenessTest`.) What remains true is the shape of the gap. The engine lifecycle, the
     preferences layer and the Compose UI are still untested and still cannot be unit tested
     without being decoupled from `Canvas` and `Context` first, which is deferred item **B5**.
     Two narrower gaps worth naming, both found in v3.7 and neither scheduled:

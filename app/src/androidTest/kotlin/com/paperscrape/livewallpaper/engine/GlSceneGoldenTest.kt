@@ -7,7 +7,7 @@ import org.junit.runner.RunWith
 /**
  * The backend that actually ships, under visual test.
  *
- * Every one of the fourteen Canvas goldens renders through `CanvasSceneTarget`. That is the right
+ * Every Canvas golden renders through `CanvasSceneTarget`. That is the right
  * choice and is not what this changes — a golden drawn by code the app does not ship proves nothing
  * about the code it does. But `GlSceneTarget` is what draws the wallpaper on every device where
  * EGL works, it approximates the same picture by completely different arithmetic, and until v3.2

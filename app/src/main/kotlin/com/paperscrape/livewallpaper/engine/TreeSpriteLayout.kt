@@ -22,16 +22,30 @@ package com.paperscrape.livewallpaper.engine
  * drift was demonstrated, and hoisting all sixty-odd sprites would be a refactor of
  * `SceneObjectRenderer` that nothing has asked for and no evidence supports.
  *
- * ### The numbers are the renderer's, unchanged
+ * ### The numbers were the renderer's, unchanged — until v4.21 redrew the tree
  *
- * Every value below is what `drawTree` already blitted, so **the wallpaper draws exactly what it
- * drew before** — the goldens are the proof and none was regenerated. What moved is the preview.
+ * From v3.7 to v4.20 every value below was what `drawTree` already blitted, so the wallpaper drew
+ * exactly what it drew before and no golden was regenerated; what moved was only the preview.
+ *
+ * **v4.21 is the first release that moves them**, because the artwork itself was redrawn: the
+ * "Quercia larga" replaces an octagon on a straight rod with a scalloped cushion on a stocky
+ * forked trunk. Every offset here is re-derived from the new sprites' own content boxes, stated
+ * below beside each one, and the goldens moved with them — attributed region by region rather
+ * than regenerated on faith. The point of the object is unchanged and is now load-bearing in a
+ * way it was not before: the preview and the renderer read *these* numbers, so a redraw moves
+ * both or neither.
  */
 internal object TreeSpriteLayout {
 
-    /** The trunk, blitted in the object's own space. */
-    const val TRUNK_X = -5f
-    const val TRUNK_Y = -44f
+    /**
+     * The trunk, blitted in the object's own space.
+     *
+     * v4.21: `tree_trunk` is 96x186 px = 32x62 u with content filling its canvas, so the blit at
+     * (-16,-62) puts the foot on the ground line and the fork's shoulders at -62. The v4.20 rod
+     * was 10x44 u at (-5,-44) — a third as wide and 18 units shorter.
+     */
+    const val TRUNK_X = -16f
+    const val TRUNK_Y = -62f
 
     /**
      * The lift `drawTree` applies (`canvas.translate(0f, -38f)`) before drawing the crown, so the
@@ -42,8 +56,19 @@ internal object TreeSpriteLayout {
      */
     const val CANOPY_LIFT_Y = -38f
 
-    /** The crown, in the lifted space. */
-    const val CANOPY_X = -41f
+    /**
+     * The crown, in the lifted space.
+     *
+     * v4.21: `tree_canopy` is 303x198 px = 101x66 u, content filling its canvas (the source's
+     * viewBox starts at x=2 because that is where the drawing starts, so the canvas *is* the
+     * content). Blitted here and lifted by [CANOPY_LIFT_Y] the crown occupies object x -50..51,
+     * y -118..-52 — 8 units of overlap onto the fork's arms, which end at -60 and -62, so no sway
+     * angle the tree reaches can open a seam between foliage and trunk.
+     *
+     * The crown top stays at -118, which is what keeps `SceneSpace.SceneVariant.TREE`'s declared
+     * 118 units true across the redraw: the artwork got wider, not taller.
+     */
+    const val CANOPY_X = -50f
     const val CANOPY_Y = -80f
 
     /**

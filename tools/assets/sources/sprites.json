@@ -7784,13 +7784,13 @@
     {
       "name": "tree_canopy",
       "category": "vegetation",
-      "width": 246,
-      "height": 222,
+      "width": 303,
+      "height": 198,
       "contentBox": [
         0,
         0,
-        246,
-        222
+        303,
+        198
       ],
       "scale": "SCENE_UNITS",
       "tint": "TINTABLE",
@@ -7805,18 +7805,18 @@
         "kind": "svg",
         "file": "tree_canopy.svg"
       },
-      "notes": ""
+      "notes": "v4.21 'Quercia larga': cuscino di fogliame piu' largo che alto (101x66 u contro 82x74), orlo smerlato, tre fasce orizzontali di carta piu' la luce sul colmo. Sostituisce l'ottagono su tronco dritto che leggeva come un lecca-lecca. Tela rifilata al contenuto, viewBox a x=2. Chioma e calotta si ri-derivano insieme: la maschera di clip di tree_canopy_snowcap e' la copia dei cerchi di questo file."
     },
     {
       "name": "tree_canopy_snowcap",
       "category": "vegetation",
-      "width": 228,
-      "height": 111,
+      "width": 294,
+      "height": 114,
       "contentBox": [
+        18,
         0,
-        0,
-        228,
-        111
+        294,
+        114
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -7831,18 +7831,18 @@
         "kind": "svg",
         "file": "tree_canopy_snowcap.svg"
       },
-      "notes": "Redrawn in v76.1 so the cap follows tree_canopy's own crown outline: its top edge repeats the crown's upper vertices, so the snow reaches both shoulders and the ridge. The shipped 216x126 cap sat inside them, leaving a green rim above the snow and bare corners either side. Sized and anchored from the canopy, so the two must be re-derived together."
+      "notes": "v4.21: neve sul colmo della 'Quercia larga'. Il bordo superiore non e' disegnato ma RITAGLIATO sulla sagoma della chioma - la clipPath copia tutti i cerchi di tree_canopy, non solo i superiori, perche' le fasce interne sono spostate in alto a sinistra e sporgono di mezza unita'. Cosi' la calotta ripete la corona per costruzione: zero pixel fuori dalla corona, e le prime 94 righe di 114 hanno la stessa prima e ultima colonna opaca. Tela e origine della chioma (viewBox x=2, y=0, blit -50/-80): non possono scivolare l'una sull'altra. Se la chioma cambia, questa maschera si ricopia nello stesso passaggio. Lato destro e fondo rifilati al contenuto in v4.21; le 6 unita' di margine a sinistra restano perche' sono l'origine condivisa con la chioma (SNOWCAP_X == CANOPY_X)."
     },
     {
       "name": "tree_dead_branches",
       "category": "vegetation",
-      "width": 246,
-      "height": 222,
+      "width": 282,
+      "height": 198,
       "contentBox": [
-        1,
+        33,
         0,
-        245,
-        222
+        281,
+        198
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -7857,17 +7857,17 @@
         "kind": "svg",
         "file": "tree_dead_branches.svg"
       },
-      "notes": "Halloween crown: bare forked limbs on the canopy canvas, so it blits at the canopy origin and meets the trunk where the canopy did. Fixed art in the trunk browns rather than tintable -- a dead tree is not a theme colour, and tinting it with a leaf colour is the one thing that would give the effect away."
+      "notes": "v4.21: corona di Halloween della 'Quercia larga' - le due braccia della forcella proseguono in rami nodosi che si allargano quanto si allargava il cuscino. Sta sulla TELA DELLA CHIOMA (303x198, stessa origine di blit) anche se il disegno ne occupa 83 unita' di 101: i rami sono naturalmente piu' stretti del fogliame, e la tela condivisa e' cio' che garantisce che incontrino il tronco dove lo incontravano le foglie. Il margine trasparente e' dichiarato, non spreco. Arte fissa nei bruni del tronco. Lato destro rifilato al contenuto in v4.21; le 11 unita' di margine a sinistra restano perche' sono l'origine condivisa con la chioma (DEAD_BRANCHES_X == CANOPY_X)."
     },
     {
       "name": "tree_fir",
       "category": "vegetation",
-      "width": 234,
+      "width": 240,
       "height": 366,
       "contentBox": [
         0,
         0,
-        234,
+        240,
         366
       ],
       "scale": "SCENE_UNITS",
@@ -7883,18 +7883,18 @@
         "kind": "svg",
         "file": "tree_fir.svg"
       },
-      "notes": "The Christmas fir. 122 local units tall, the same as the leafy tree, so one metre-per-unit family governs both and a fir cannot drift out of scale with the wood it stands in."
+      "notes": "v4.21: l'abete della 'Quercia larga' - tozzo e largo come la latifoglia accanto a cui sta, tre falde piene tagliate quasi dritte, ciascuna con la sua inclinazione, come carta tagliata a mano libera. Stella in punta (quattro punte, la stessa lingua delle altre proposte, allargata a 6.5x7.5 mezze diagonali per le proporzioni di questa scocca). 122 unita' come la latifoglia: una sola famiglia metro-per-unita' governa entrambe."
     },
     {
       "name": "tree_fir_snow",
       "category": "vegetation",
-      "width": 186,
-      "height": 252,
+      "width": 168,
+      "height": 234,
       "contentBox": [
-        49,
-        6,
-        185,
-        251
+        0,
+        0,
+        168,
+        234
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -7909,33 +7909,33 @@
         "kind": "svg",
         "file": "tree_fir_snow.svg"
       },
-      "notes": "Snow lying on tree_fir's four tiers, cut to their own shoulders. A layer over the tree, never the tree tinted white."
+      "notes": "v4.21: neve sulle spalle delle tre falde, con la stessa lieve inclinazione di ciascuna. Tela rifilata al contenuto (viewBox 14 10 56 78 nel frame di tree_fir), quindi ha ORIGINE DI BLIT PROPRIA (-28,-112) contro la (-40,-122) dell'abete: le due si ricavano dalla stessa viewBox e vanno mosse insieme. Il rifilo recupera 211 680 B, la voce piu' grossa del budget v4.21."
     },
     {
       "name": "tree_trunk",
       "category": "vegetation",
-      "width": 30,
-      "height": 132,
+      "width": 96,
+      "height": 186,
       "contentBox": [
         0,
         0,
-        30,
-        132
+        96,
+        186
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
       "usage": "referenced",
       "anchorRule": "CONTENT_BOTTOM_CENTRE",
       "anchor": [
-        15,
-        132
+        48,
+        186
       ],
       "season": "all",
       "source": {
         "kind": "svg",
         "file": "tree_trunk.svg"
       },
-      "notes": ""
+      "notes": "v4.21: tronco tozzo della 'Quercia larga' - sagoma unica, base svasata, forcella a V le cui braccia entrano nel cuscino di fogliame, doppio piede radicale, banda d'ombra sul fianco destro. 32x62 u contro i 10x44 del fuso dritto precedente."
     },
     {
       "name": "water_splash0",

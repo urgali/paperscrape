@@ -19,7 +19,7 @@ import kotlin.math.abs
  *
  * ## Why this exists
  *
- * All 14 Canvas goldens go through [CanvasSceneTarget], which is the right choice and is not in
+ * Every Canvas golden goes through [CanvasSceneTarget], which is the right choice and is not in
  * question: a golden produced by drawing code the app does not ship proves nothing about the code
  * it does. The consequence, recorded as P1-4 in the v3.0 assessment, is that [GlSceneTarget] —
  * ~690 lines of hand tessellation, batching, atlas UVs and premultiplied blending, and the backend
@@ -583,6 +583,30 @@ object GlGolden {
      *
      * [MAX_DISPLACED_FRACTION] sits at 3%: over twice the worst driver difference measured, and a
      * quarter of the smallest real drift. `GlGoldenMetricTest` holds both ends of that.
+     *
+     * ### v4.21: the three GL goldens are authored on the device now, and the gap changed sign
+     *
+     * The tree redraw moved all three by 8.8% of their outline — a real change, four times the
+     * worst driver difference, and nothing a tolerance should absorb. Regenerating them needed the
+     * emulator that authored them, and this machine has none: no `/dev/kvm`, no system image. The
+     * two obvious answers were both bad — regenerate somewhere else and take the result on trust,
+     * or ship three red tests.
+     *
+     * **The third answer is the one the table above already contained.** The Adreno-versus-emulator
+     * gap is symmetric: it is a property of the pair, not of one side. Authoring on the OnePlus 6T
+     * makes the device side exact and leaves the emulator side displaced by the same 0.92–1.18%
+     * that the device side used to carry — comfortably inside the same untouched 3% gate. Nothing
+     * was widened and nothing was excused; the reference environment moved from the emulator to the
+     * device, deliberately, and this paragraph is the record of it.
+     *
+     * Two things follow, and the second is a debt:
+     *
+     *  - `GlDriverGapGuardTest` keeps working unchanged and now reports ~0 on the device and the
+     *    characterised gap on the emulator, which is the same guard read from the other end.
+     *  - **The emulator side is unverified.** It is a derivation from a measured symmetric gap, not
+     *    an observation, and it cannot be observed here. The first run on a machine with an
+     *    emulator must confirm all three still pass there; until it does, that is a declared
+     *    limitation and is recorded as such in `BACKLOG_v4_21.md`.
      */
     internal object EdgeDisplacement {
 

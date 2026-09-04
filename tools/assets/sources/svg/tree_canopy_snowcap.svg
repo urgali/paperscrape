@@ -1,11 +1,102 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="228" height="111" viewBox="1 2 76 37">
-<g id="paperscrape-outline" fill="#9fb0bd" stroke="#9fb0bd" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round">
-  
-<polygon points="1,24 25,2 55,2 77,24 70,36 57,29 44,39 30,30 16,36"></polygon>
-        <polygon points="1,24 25,2 55,2 77,24 70,31 57,24 44,34 30,25 16,31"></polygon>
-</g>
-  
-<polygon points="1,24 25,2 55,2 77,24 70,36 57,29 44,39 30,30 16,36" fill="#DCE7EF"></polygon>
-        <polygon points="1,24 25,2 55,2 77,24 70,31 57,24 44,34 30,25 16,31" fill="#FFFFFF"></polygon>
+<svg xmlns="http://www.w3.org/2000/svg" width="294" height="114" viewBox="2 0 98 38">
+  <!--
+    v4.21: la neve adagiata sul colmo largo della "Quercia larga". Uno strato SOPRA
+    l'albero, mai l'albero tinto di bianco - la ragione che DESIGN_NOTES da' per ogni
+    altra calotta.
 
+    **Il bordo superiore non e' disegnato: e' ritagliato.** La maschera di clip qui
+    sotto e' la copia esatta dei cerchi di `tree_canopy` (fasce bassa, media, alta e
+    luce - tutte quelle che possono definire la sagoma, non le sole superiori: le
+    fasce interne sono spostate in alto a sinistra e sporgono di mezza unita' sul
+    fianco alto-sinistro, che a 3 px per unita' basta a far divergere la colonna
+    opaca di un pixel). Cosi' la calotta ripete la corona **per costruzione** invece
+    che per taratura a mano, e `TreeArtworkAlignmentTest` non puo' passare per un
+    pixel: la calotta e' un sottoinsieme della corona a ogni riga, e coincide con
+    essa ovunque il proprio disegno copra tutta la larghezza.
+
+    Tela e ORIGINE sono quelle della chioma - stessa viewBox x=2, stesso y=0, blit
+    alla stessa (-50,-80) - come impone `TreeSpriteLayout`: calotta e corona non
+    possono scivolare l'una sull'altra. Altezza e lato destro sono rifilati al
+    contenuto (38 unita' contro le 66 della chioma, 98 di larghezza contro 101);
+    resta il margine di 6 unita' a SINISTRA, ed e' quello a portare l'origine
+    condivisa. Toglierlo vorrebbe dire dare alla calotta un'origine derivata invece
+    che uguale - si puo' fare, costa una sessantina di KB di memoria decodificata in
+    meno, e non e' stato fatto in v4.21 perche' l'uguaglianza e' una guardia con una
+    storia: e' la deriva anteprima/renderer che v3.7 ha dovuto correggere.
+
+    Se la chioma viene ridisegnata, questa maschera va ricopiata dalla chioma nuova
+    nello stesso passaggio: le due si ri-derivano insieme, mai una sola.
+  -->
+  <defs>
+    <clipPath id="crown">
+      <!-- fascia bassa -->
+      <circle cx="16" cy="46" r="14"/>
+      <circle cx="34" cy="50" r="15"/>
+      <circle cx="53" cy="51" r="15"/>
+      <circle cx="72" cy="49" r="15"/>
+      <circle cx="90" cy="44" r="13"/>
+      <circle cx="24" cy="32" r="16"/>
+      <circle cx="45" cy="28" r="18"/>
+      <circle cx="67" cy="29" r="17"/>
+      <circle cx="86" cy="32" r="14"/>
+      <circle cx="35" cy="16" r="14"/>
+      <circle cx="55" cy="13" r="13"/>
+      <circle cx="72" cy="17" r="12"/>
+      <!-- fascia media -->
+      <circle cx="17" cy="42.5" r="12.5"/>
+      <circle cx="34" cy="46" r="13.5"/>
+      <circle cx="53" cy="47" r="13.5"/>
+      <circle cx="71" cy="45" r="13.5"/>
+      <circle cx="88" cy="40.5" r="11.5"/>
+      <circle cx="24" cy="29.5" r="14.5"/>
+      <circle cx="45" cy="25.5" r="16.5"/>
+      <circle cx="66" cy="26.5" r="15.5"/>
+      <circle cx="84" cy="29.5" r="12.5"/>
+      <circle cx="34.5" cy="14.5" r="12.5"/>
+      <circle cx="54.5" cy="11.5" r="11.5"/>
+      <circle cx="70.5" cy="15.5" r="10.5"/>
+      <!-- fascia alta -->
+      <circle cx="26" cy="26" r="11"/>
+      <circle cx="44" cy="21.5" r="13"/>
+      <circle cx="63" cy="22.5" r="12"/>
+      <circle cx="80" cy="26" r="9"/>
+      <circle cx="34" cy="12.5" r="10"/>
+      <circle cx="53" cy="9.5" r="9.5"/>
+      <circle cx="69" cy="13.5" r="8.5"/>
+      <!-- luce sul colmo -->
+      <circle cx="38" cy="10.5" r="7"/>
+      <circle cx="50" cy="7.8" r="6.5"/>
+      <circle cx="30" cy="17" r="6"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#crown)">
+    <!-- ombra fredda della neve: l'orlo che la stacca dal fogliame -->
+    <path d="M -2,0 L 106,0 L 106,28
+             C 100,33 95,34 91,31
+             C 88,36 82,37 78,33.5
+             C 75,38 68,38.5 64,34.5
+             C 61,38.5 54,39 50,35
+             C 47,39 40,39 36,35
+             C 33,38.5 26,38 23,34
+             C 19,36.5 13,35 11,30.5
+             C 7,32.5 3,30.5 1,26 L -2,24 Z" fill="#9FB0BD"/>
+    <!-- il corpo della neve -->
+    <path d="M -2,-2 L 106,-2 L 106,25.5
+             C 100,30.5 95,31.5 91,28.5
+             C 88,33.5 82,34.5 78,31
+             C 75,35.5 68,36 64,32
+             C 61,36 54,36.5 50,32.5
+             C 47,36.5 40,36.5 36,32.5
+             C 33,36 26,35.5 23,31.5
+             C 19,34 13,32.5 11,28
+             C 7,30 3,28 1,23.5 L -2,21.5 Z" fill="#DCE7EF"/>
+    <!-- la luce piena sul colmo -->
+    <path d="M -2,-4 L 106,-4 L 106,18
+             C 99,23 92,24 87,20.5
+             C 82,25 74,25.5 69,21.5
+             C 63,26 55,26 50,21.5
+             C 44,25.5 36,25 32,21
+             C 27,24 20,23 16,19
+             C 11,21 5,19 2,14.5 L -2,13 Z" fill="#FFFFFF"/>
+  </g>
 </svg>
