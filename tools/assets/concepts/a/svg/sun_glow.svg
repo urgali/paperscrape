@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
+  <!--
+    Concept A "Strati" - v4.23 fase 1. La risposta piu' diretta alla nota del
+    maintainer: i raggi non ci sono piu'. Resta il solo alone radiale, che
+    DESIGN_NOTES sanziona esplicitamente per il bagliore del sole; l'ambiente
+    attorno al disco lo da' gia' drawRadialGlow del renderer. Stessa tela
+    396x396 e stessa origine (-198) dello sprite spedito.
+  -->
+  <defs>
+    <radialGradient id="g_sunglow_a">
+      <stop offset="0"    stop-color="#F7CE64" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#F0A03C" stop-opacity="0.22"/>
+      <stop offset="1"    stop-color="#F0A03C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="198" cy="198" r="198" fill="url(#g_sunglow_a)"/>
+</svg>

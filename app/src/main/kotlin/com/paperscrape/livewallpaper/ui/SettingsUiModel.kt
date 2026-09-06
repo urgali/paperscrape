@@ -56,6 +56,34 @@ data class LiveWeatherUiState(
 )
 
 /**
+ * What the "Realistic Moon Phases" control shows, and whether it accepts a tap at all.
+ *
+ * **The renderer already decides this; the control was the only part that had not been told.**
+ * `PaperRenderer.drawMoonWithPhase` draws `moon_jack_o_lantern`, always full, and returns before
+ * it ever reads `moon.realisticPhases` while `halloweenEnabled` is on -- because a carved face
+ * that waxed and waned would be a lit fraction of a grin, which reads as a rendering fault rather
+ * than as a decoration. The switch stayed live and did nothing, and a control that moves without
+ * effect teaches the user that the setting is broken.
+ *
+ * **[shownOn] is not what is stored, and nothing writes the difference back.** While Halloween is
+ * on the control shows off and locked; the user's own value is untouched in the DataStore and is
+ * what [shownOn] returns again the moment Halloween goes off. Writing `false` into the preference
+ * to make the switch look right would destroy a setting the user chose, which is exactly what
+ * `PeopleDensity.resolveNightDensity`'s own derivation forbids: a settings change is not entitled
+ * to silently alter what an existing user had set up.
+ *
+ * @property shownOn what the switch is drawn as. The stored value, or `false` while overridden.
+ * @property interactive whether the switch accepts a tap.
+ * @property overriddenByHalloween whether the override is in force, and therefore whether the row
+ *   owes the user the sentence that says why.
+ */
+data class MoonPhasesUiState(
+    val shownOn: Boolean,
+    val interactive: Boolean,
+    val overriddenByHalloween: Boolean,
+)
+
+/**
  * The translation layer between the settings UI's grouped choices and the preference flags that
  * have always backed them.
  *
@@ -134,6 +162,20 @@ object SettingsUiModel {
             drivingTheScene = liveWeatherEnabled && status.isDrivingTheScene,
         )
     }
+
+    /**
+     * How the "Realistic Moon Phases" row must be drawn, given the stored value and Halloween.
+     *
+     * Deliberately a pure function of the two flags rather than an expression inlined in the
+     * composable: this is the whole of the rule, it is the thing that must not start writing to
+     * the preference, and here it is readable and testable on the JVM. See [MoonPhasesUiState].
+     */
+    fun moonPhases(storedRealisticPhases: Boolean, halloweenEnabled: Boolean): MoonPhasesUiState =
+        MoonPhasesUiState(
+            shownOn = storedRealisticPhases && !halloweenEnabled,
+            interactive = !halloweenEnabled,
+            overriddenByHalloween = halloweenEnabled,
+        )
 
     /** Reads the pair of stored palette flags as one choice. */
     fun seasonalPalette(fallColorsEnabled: Boolean, winterColorsEnabled: Boolean): SeasonalPalette = when {

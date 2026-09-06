@@ -1,0 +1,84 @@
+{
+ "schemaVersion": 2,
+ "note": "Giro 1d: V2 (scelta dal maintainer) messa a punto su due parametri - opacita' dell'anello (1.0 in tutte e tre, contro lo 0.75 di V2) e gradiente (com'e' / assente / riscaldato). Sceglie il maintainer.",
+ "sprites": [
+  {
+   "name": "sun_glow (v2 rifinita a)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    1,
+    1,
+    395,
+    395
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "a/sun_glow.svg"
+   },
+   "notes": "V2 rifinita: anello 154-166 #F7CE64 a opacita' 1.0; gradiente 0.40/0.16 invariato."
+  },
+  {
+   "name": "sun_glow (v2 rifinita b)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    32,
+    32,
+    364,
+    364
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "b/sun_glow.svg"
+   },
+   "notes": "V2 rifinita: anello a opacita' 1.0; NESSUN gradiente."
+  },
+  {
+   "name": "sun_glow (v2 rifinita c)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    1,
+    1,
+    395,
+    395
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "c/sun_glow.svg"
+   },
+   "notes": "V2 rifinita: anello a opacita' 1.0; gradiente rinforzato/riscaldato 0.55 #FBE289 / 0.28 #F0A03C / 0 #E08A2E."
+  }
+ ]
+}

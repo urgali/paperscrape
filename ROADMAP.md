@@ -11,19 +11,41 @@ that was.
 
 ## Current status
 
-**v4.22 prepared — not published, not approved.**
+**v4.23 prepared — not published, not approved, and not verified here.**
 
-`versionCode = 53`, `versionName = "4.22"`. **No tag, no push, no GitHub Release.** Baseline:
-**v4.21, prepared and not published either.** The last release the maintainer reports as published
+`versionCode = 54`, `versionName = "4.23"`. **No tag, no push, no GitHub Release.** Baseline:
+**v4.22, prepared and not published either.** The last release the maintainer reports as published
 is **v4.19**, and that is recorded on their word, not on a measurement taken here: this working tree
 has no tag for it and nothing in it can reach the remote. The account is in `RELEASE_HISTORY.md`.
 
-**The backlog is `BACKLOG_v4_22.md`**, which keeps the numbering: items 18, 20, 25 and 30 are
-carried forward unchanged, item 29 is closed with derived gates (each between its measured floor
-and its measured weakest regression), and item 31 is new — every one of those gates' floors is an
-observation on one device, and closing that takes a machine this one is not.
+**The backlog is `BACKLOG_v4_23.md`**, which keeps the numbering: items 18, 25 and 30 are carried
+forward from `BACKLOG_v4_22.md` unchanged, and items 37 onward are new to this release. Round 2C
+closed items 41 and 47, closed the moon's half of item 40, and opened item 48. Item 25 (the
+palm) is carried forward with a note rather than a change: after the sky, it is the most visible
+piece of the old drawing language left, and which family is revisited next is the maintainer's
+call.
 
-Publication is the maintainer's decision and has not been taken.
+The final verification is the maintainer's, on a clean extraction, with `:app:testDebugUnitTest`
+and `:app:connectedDebugAndroidTest`. Publication is the maintainer's decision and has not been
+taken.
+
+```
+v4.23 [x] the sky cut with scissors: eight celestial sprites redrawn from concept B "Forbici"
+ |- sun, sunburst, four moon phases, the pumpkin moon and the star sparkle, promoted through the
+ |  asset pipeline from committed SVG sources; every canvas unchanged, so the decoded sprite set
+ |  and every blit origin are exactly what they were
+ |- the sparkle is blitted at twice the scale (STAR_SPRITE_RADIUS_DIVISOR 32 -> 16) and redrawn
+ |  for it: a waist that survives the reduction instead of a one-pixel cross. No star moved
+ |- the tile extents re-derived from what is actually drawn rather than doubling the star radius,
+ |  which would have hidden the same symptom by changing the star field itself
+ |- 16 of 24 Canvas goldens regenerated after a per-region attribution; the four gate rectangles
+ |  measure zero on every scene, the three GL goldens deliberately untouched, no tolerance moved
+ |- round 2C: a golden for the pumpkin moon, with Halloween AND realistic phases both on, so the
+ |  frame can fail if the renderer's override ever leaks. First committed frame in which a
+ |  celestial body is drawn clear of the cloud band -- no other one contained a sun or a moon
+ \- round 2C: the "Realistic Moon Phases" switch is shown off and locked under Halloween, with
+    the reason. The stored preference is overridden, never written: it comes back per theme
+```
 
 ```
 v4.22 [x] four features in five phases, around a mid-pass maintainer checkpoint

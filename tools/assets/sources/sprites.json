@@ -2301,10 +2301,10 @@
       "width": 240,
       "height": 240,
       "contentBox": [
-        122,
-        18,
-        222,
-        222
+        120,
+        21,
+        220,
+        219
       ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
@@ -2319,7 +2319,7 @@
         "kind": "svg",
         "file": "moon_crescent.svg"
       },
-      "notes": "Terminator arc corrected in v76.1. The shipped path closed the lit limb with `A52 34 0 0 0`, an ellipse whose 52-unit x-radius bulged 12 units past the disc and 12 past the canvas, so the crescent was clipped flat by its own 240px edge -- the vertical cut reported from the device. The arc is now `A20 34 0 0 0`, which stays inside the disc."
+      "notes": "Redrawn for v4.23 from concept B \"Forbici\", 40 vertices like the rest of the family. The lit limb is cut, not arced: the v76.1 note this entry used to carry described an SVG arc (`A52 34 0 0 0` corrected to `A20 34 0 0 0`, which had bulged past the canvas and been clipped flat on the device) that belonged to the retired artwork and no longer exists in the source. Same canvas, convention and anchor."
     },
     {
       "name": "moon_full",
@@ -2327,10 +2327,10 @@
       "width": 240,
       "height": 240,
       "contentBox": [
-        18,
-        18,
-        222,
-        222
+        19,
+        19,
+        221,
+        220
       ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
@@ -2345,7 +2345,7 @@
         "kind": "svg",
         "file": "moon_full.svg"
       },
-      "notes": ""
+      "notes": "Redrawn for v4.23 from concept B \"Forbici\": 40 vertices, 9 degrees per facet, which is the step the whole moon family uses. Same canvas, convention and anchor as the artwork it replaces."
     },
     {
       "name": "moon_gibbous",
@@ -2353,10 +2353,10 @@
       "width": 240,
       "height": 240,
       "contentBox": [
-        66,
-        18,
-        222,
-        222
+        65,
+        21,
+        220,
+        219
       ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
@@ -2371,7 +2371,7 @@
         "kind": "svg",
         "file": "moon_gibbous.svg"
       },
-      "notes": "Terminator arc corrected in v76.1, same defect family as moon_crescent. The shipped path used `A20 34 0 1 0`: a large-arc flag on an under-sized radius, which drew a thin crescent rather than a gibbous and left the crater circle outside the lit shape as a floating dot. Now `A18 34 0 0 1`, bulging away from the lit limb so more than half the disc is lit."
+      "notes": "Redrawn for v4.23 from concept B \"Forbici\", 40 vertices like the rest of the family. The terminator is cut, not arced: the v76.1 note this entry used to carry described an SVG arc (`A20 34 0 1 0` corrected to `A18 34 0 0 1`) that belonged to the retired artwork and no longer exists in the source. Same canvas, convention and anchor."
     },
     {
       "name": "moon_half",
@@ -2379,10 +2379,10 @@
       "width": 240,
       "height": 240,
       "contentBox": [
-        120,
-        18,
-        222,
-        222
+        118,
+        21,
+        218,
+        219
       ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
@@ -2397,7 +2397,7 @@
         "kind": "svg",
         "file": "moon_half.svg"
       },
-      "notes": ""
+      "notes": "Redrawn for v4.23 from concept B \"Forbici\", 40 vertices like the rest of the family. Same canvas, convention and anchor as the artwork it replaces."
     },
     {
       "name": "moon_jack_o_lantern",
@@ -2405,10 +2405,10 @@
       "width": 240,
       "height": 240,
       "contentBox": [
-        18,
-        18,
-        222,
-        222
+        20,
+        21,
+        218,
+        218
       ],
       "scale": "CANVAS_PIXELS",
       "tint": "TINTABLE",
@@ -2423,7 +2423,7 @@
         "kind": "svg",
         "file": "moon_jack_o_lantern.svg"
       },
-      "notes": "Halloween moon. Carved rather than painted: the face is cut out of the disc with an even-odd path, so the sky shows through the eyes, the nose and the grin -- the same paper-cutout move the rest of the library makes, and the reason it still reads at 48 px across. Shares CELESTIAL_DISC_ORIGIN_UNITS with the sun and the phases, so its canvas has to match theirs exactly."
+      "notes": "Halloween moon, redrawn for v4.23 from concept B \"Forbici\", variant zucca/minima. Still carved rather than painted -- the face is cut out of the disc with an even-odd path, so the sky shows through the eyes, the nose and the grin, which is the same paper-cutout move as the rest of the library and the reason it still reads at 48 px across. It shares CELESTIAL_DISC_ORIGIN_UNITS with the sun and the phases, so its canvas has to match theirs exactly, and it does."
     },
     {
       "name": "palmtree_fronds",
@@ -7657,10 +7657,10 @@
       "width": 180,
       "height": 180,
       "contentBox": [
-        3,
-        3,
-        177,
-        177
+        14,
+        8,
+        168,
+        164
       ],
       "scale": "SCENE_UNITS",
       "tint": "FIXED_ART",
@@ -7675,7 +7675,7 @@
         "kind": "svg",
         "file": "star_sparkle.svg"
       },
-      "notes": "The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 32, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it."
+      "notes": "Redrawn for v4.23 from concept B \"Forbici\", for the doubled sprite scale that release also ships (PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR went 32 -> 16): a full waist of 24-28 units against the old ~12, four unequal points (N 82, E 78, S 74, O 76) and concave two-segment sides. The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it."
     },
     {
       "name": "sun_body",
@@ -7683,10 +7683,10 @@
       "width": 240,
       "height": 240,
       "contentBox": [
-        18,
-        18,
-        222,
-        222
+        21,
+        21,
+        224,
+        227
       ],
       "scale": "CANVAS_PIXELS",
       "tint": "FIXED_ART",
@@ -7701,7 +7701,7 @@
         "kind": "svg",
         "file": "sun_body.svg"
       },
-      "notes": ""
+      "notes": "Redrawn for v4.23 from concept B \"Forbici\": a disc cut with scissors rather than struck with a compass -- a faceted rim with a hand-cut wobble, and the paper's own cream. Same 240x240 canvas, same CANVAS_PIXELS convention and same SPRITE_CENTRE anchor as the artwork it replaces, so CELESTIAL_DISC_ORIGIN_UNITS and every call site are unchanged."
     },
     {
       "name": "sun_glow",
@@ -7727,7 +7727,7 @@
         "kind": "svg",
         "file": "sun_glow.svg"
       },
-      "notes": ""
+      "notes": "Redrawn for v4.23 from concept B \"Forbici\", variant alone/v2_rifinita/c: a compass-struck ring at full opacity with a warmed gradient (0.55 #FBE289 / 0.28 #F0A03C). Same 396x396 canvas and same contentBox as the artwork it replaces, so SUN_GLOW_ORIGIN_UNITS (-198) is unchanged and the ray ring still sits outside the disc's 120 units."
     },
     {
       "name": "taxi_checker",

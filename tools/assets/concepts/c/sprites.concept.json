@@ -1,0 +1,162 @@
+{
+ "schemaVersion": 2,
+ "note": "Registro dei concept v4.23 fase 1: stesso schema di sources/sprites.json, tenuto qui perche' questi sprite NON sono spediti e il registro principale descrive solo il set spedito.",
+ "sprites": [
+  {
+   "name": "moon_crescent",
+   "category": "sky",
+   "width": 240,
+   "height": 240,
+   "contentBox": [
+    122,
+    18,
+    222,
+    222
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    120,
+    120
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "moon_crescent.svg"
+   },
+   "notes": "Concept C 'Traforo' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+  },
+  {
+   "name": "moon_full",
+   "category": "sky",
+   "width": 240,
+   "height": 240,
+   "contentBox": [
+    18,
+    18,
+    222,
+    222
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    120,
+    120
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "moon_full.svg"
+   },
+   "notes": "Concept C 'Traforo' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+  },
+  {
+   "name": "moon_half",
+   "category": "sky",
+   "width": 240,
+   "height": 240,
+   "contentBox": [
+    120,
+    18,
+    222,
+    222
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    120,
+    120
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "moon_half.svg"
+   },
+   "notes": "Concept C 'Traforo' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+  },
+  {
+   "name": "star_sparkle",
+   "category": "sky",
+   "width": 180,
+   "height": 180,
+   "contentBox": [
+    3,
+    3,
+    177,
+    177
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    90,
+    90
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "star_sparkle.svg"
+   },
+   "notes": "Concept C 'Traforo' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+  },
+  {
+   "name": "sun_body",
+   "category": "sky",
+   "width": 240,
+   "height": 240,
+   "contentBox": [
+    18,
+    18,
+    222,
+    222
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    120,
+    120
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "sun_body.svg"
+   },
+   "notes": "Concept C 'Traforo' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+  },
+  {
+   "name": "sun_glow",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    40,
+    40,
+    356,
+    356
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "sun_glow.svg"
+   },
+   "notes": "Concept C 'Traforo' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+  }
+ ]
+}

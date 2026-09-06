@@ -1,0 +1,84 @@
+{
+ "schemaVersion": 2,
+ "note": "Varianti d'alone del giro 1b per il concept B - tre risposte alla richiesta del maintainer ('un unico cerchio intorno al sole'). Una sola sostituira' sun_glow.svg del concept; la scelta e' del maintainer.",
+ "sprites": [
+  {
+   "name": "sun_glow (v1)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    22,
+    22,
+    375,
+    375
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "v1/sun_glow.svg"
+   },
+   "notes": "Anello di carta tagliato a mano, senza gradiente, senza ombra."
+  },
+  {
+   "name": "sun_glow (v2)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    1,
+    1,
+    395,
+    395
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "v2/sun_glow.svg"
+   },
+   "notes": "Anello pulito (a compasso) sopra il gradiente radiale ridotto; senza ombra."
+  },
+  {
+   "name": "sun_glow (v3)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    19,
+    21,
+    385,
+    381
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "v3/sun_glow.svg"
+   },
+   "notes": "Anello spesso tagliato a mano con l'ombra portata di B (+6,+8, 13%); senza gradiente."
+  }
+ ]
+}

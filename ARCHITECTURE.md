@@ -649,8 +649,14 @@ own x. They are equal, because the sprite is centred on the star; they were
 asymmetric while `star_sparkle.png` was blitted with the wrong scale convention,
 and a test pins them so a change to either the asset or the convention has to come
 back through them. The range is derived from what is actually drawn rather than
-from what was intended. In practice it holds 2 copies, and 3 only in the ~1 % of
-the cycle where a sprite extent crosses a seam.
+from what was intended: since v4.23 both are literally
+`STAR_SPRITE_HALF_UNITS / STAR_SPRITE_RADIUS_DIVISOR × MAX_STAR_RADIUS_PX`, which is
+10.5 px, rather than the star's own radius. **The two stopped being the same number
+when v4.23 halved the divisor**: the sprite reached `0.9375 × radius` before and
+reaches `1.875 × radius` now, so reserving the radius went from a deliberate
+over-reservation to a two-fold under-reservation, which drops a tile copy at a seam.
+In practice it holds 2 copies, and 3 only in the ~2 % of the cycle where a sprite
+extent crosses a seam.
 Neighbouring copies never draw the same star twice in the same place, so there is
 nothing to read as a repetition.
 
@@ -1365,8 +1371,9 @@ rather than trusted, so it cannot drift away from the PNG it describes.
 Two entries carry a `notes` field recording a disagreement between the V2 manifest
 and the shipped call sites, resolved in opposite directions. `star_sparkle` is
 declared `CANVAS_PIXELS` by the manifest, which is defect D-1 restated — read as
-raw pixels the 180 px sparkle covers 180 local units against a star's own 32 — so
-the registry keeps the call site's `SCENE_UNITS`. `santa_sleigh_scene` is declared
+raw pixels the 180 px sparkle covers 180 local units against a star's own
+`STAR_SPRITE_RADIUS_DIVISOR`, 16 since v4.23 and 32 before it — so the registry
+keeps the call site's `SCENE_UNITS`. `santa_sleigh_scene` is declared
 `SCENE_UNITS` where the call site said `CANVAS_PIXELS`, and there the manifest was
 right because the sprite genuinely was re-authored on the grid, so the call site
 moved. Size, convention and origin are only correct together; when two of them
@@ -1743,14 +1750,22 @@ sequencing live in `ROADMAP.md`.
 10. **Test coverage is narrow, but less so than this entry used to claim.** The JVM suite
     covers the pure deterministic logic, and the sentence that stood here for many releases —
     *"no automated test in this project observes a rendered frame on either backend"* — has been
-    false since v3.2: 25 Canvas goldens (as of v4.22) and 3 GL goldens do exactly that, and v3.7
-    added a region-targeted GL gate; v4.22 added derived per-focus gates on the settings scenes.
+    false since v3.2: 26 Canvas goldens (counted 2026-09-06, after v4.23) and 3 GL goldens do
+    exactly that, and v3.7
+    added a region-targeted GL gate; v4.22 added derived per-focus gates on the settings scenes;
+    v4.23 added `halloween-moon`, the first committed frame in which a celestial body is drawn
+    clear of the cloud band.
     (The Canvas figure is the number of Canvas *assertions* --
     `SceneGoldenTest`, `PeopleGoldenTest` and `SettingsGateScenesTest` -- not the number of PNGs in
     `androidTest/assets/golden/`, which also holds the three `gl-*.png`. Counting the directory is
     how the handover notes came to say 30; v4.21 corrected it and added `GoldenUniquenessTest`.) What remains true is the shape of the gap. The engine lifecycle, the
     preferences layer and the Compose UI are still untested and still cannot be unit tested
     without being decoupled from `Canvas` and `Context` first, which is deferred item **B5**.
+    v4.23 narrowed one corner of that and no more: the settings screens' *derivations* are pure and
+    unit-tested (`SettingsUiModel`, and `MoonPhaseControlTest` for the Halloween override), and the
+    call sites that consume them are pinned by reading the source, because there is no
+    `createComposeRule` in this tree and nothing composes a screen in a test. **No composable is
+    rendered by any test**, so the gap this entry describes is unchanged in kind.
     Two narrower gaps worth naming, both found in v3.7 and neither scheduled:
     **no golden contains a vehicle** (car `progress` starts negative and the goldens render one
     frame with `deltaSeconds = 0`, so no car has entered the frame), and the preview/renderer

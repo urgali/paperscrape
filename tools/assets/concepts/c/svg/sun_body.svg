@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Concept C "Traforo" - v4.23 fase 1. I raggi come parte della silhouette,
+    non appendici: il disco e' tagliato in UN pezzo con dodici punte
+    triangolari che toccano il raggio 102 (il lembo dello sprite spedito) e
+    valli ad arco sul raggio 84 - le valli sono cio' che le forbici hanno
+    portato via. Sopra, il solo secondo pezzo: il cuore r=62. Due toni.
+  -->
+  <path d="M 222.0 120.0 L 203.7 127.3 A 84 84 0 0 1 196.1 155.5 L 208.3 171.0 L 188.8 168.2 A 84 84 0 0 1 168.2 188.8 L 171.0 208.3 L 155.5 196.1 A 84 84 0 0 1 127.3 203.7 L 120.0 222.0 L 112.7 203.7 A 84 84 0 0 1 84.5 196.1 L 69.0 208.3 L 71.8 188.8 A 84 84 0 0 1 51.2 168.2 L 31.7 171.0 L 43.9 155.5 A 84 84 0 0 1 36.3 127.3 L 18.0 120.0 L 36.3 112.7 A 84 84 0 0 1 43.9 84.5 L 31.7 69.0 L 51.2 71.8 A 84 84 0 0 1 71.8 51.2 L 69.0 31.7 L 84.5 43.9 A 84 84 0 0 1 112.7 36.3 L 120.0 18.0 L 127.3 36.3 A 84 84 0 0 1 155.5 43.9 L 171.0 31.7 L 168.2 51.2 A 84 84 0 0 1 188.8 71.8 L 208.3 69.0 L 196.1 84.5 A 84 84 0 0 1 203.7 112.7 Z" fill="#F0A03C"/>
+  <circle cx="120" cy="120" r="62" fill="#F7CE64"/>
+</svg>

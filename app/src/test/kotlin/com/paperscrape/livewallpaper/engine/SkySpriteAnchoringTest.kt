@@ -34,7 +34,11 @@ class SkySpriteAnchoringTest {
      * @param scale the convention its call site passes
      * @param origin the origin argument at that call site, in the caller's local units
      * @param nominalRadiusUnits the radius the caller's own `canvas.scale` is expressed against:
-     *   120 for the sun and moon (`radius / 120f`), 32 for a star (`star.radius / 32f`)
+     *   120 for the sun and moon (`radius / 120f`), [PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR]
+     *   for a star (`star.radius / STAR_SPRITE_RADIUS_DIVISOR`). Taken from the renderer's own
+     *   constant rather than written as a number: it was a literal 32 until v4.23 halved the
+     *   divisor, and a literal here would have gone on describing the old blit while the call
+     *   site drew at the new one -- which is the whole failure mode this file exists to catch.
      */
     private data class SkySprite(
         val name: String,
@@ -90,7 +94,7 @@ class SkySpriteAnchoringTest {
             "star_sparkle",
             PaperRenderer.STAR_SPRITE_SCALE,
             PaperRenderer.STAR_SPRITE_ORIGIN_UNITS,
-            32f,
+            PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR,
         ),
     )
 
@@ -162,30 +166,37 @@ class SkySpriteAnchoringTest {
     }
 
     /**
-     * A star sparkle must fill the star's own radius without exceeding it.
+     * A star sparkle must be read under the convention its call site passes -- which is a claim
+     * about a *ratio* to the star's nominal radius, not about a fixed size.
      *
-     * This was an equality against the full diameter until the padding normalisation, when the
-     * sprite lost the 6px transparent margin per side that made its *canvas* exactly `2 x radius`
-     * while its *artwork* only ever reached 0.9375 of that. Equality would now be a claim about
-     * padding rather than about the drawing, so the property is stated as the bracket it always
-     * really was.
+     * This was an equality against the full diameter until the padding normalisation, then a
+     * bracket of `(0.5, 1]` radii while the divisor was 32 and the sprite reached 0.9375. **v4.23
+     * halved the divisor, so the sprite now reaches 1.875 radii and the old upper bound would
+     * fail on artwork that is behaving exactly as designed** -- the star is a position and a
+     * brightness, and nothing requires the drawing that marks it to stay inside a radius the
+     * viewer never sees. The bracket is restated as `(1, 3)` rather than deleted, because what it
+     * is really for survives the change of size.
      *
-     * The bracket still catches what it exists to catch. The two authoring conventions are a
-     * factor of [SpriteBlitter.SPRITE_PIXELS_PER_UNIT] apart, so any window narrower than 3:1
-     * admits only one of them: reading this sprite as raw pixels would put it at 90 units against
-     * the star's 32, and a sprite a third of the size would fall below the lower bound.
+     * What it is really for: the two authoring conventions are a factor of
+     * [SpriteBlitter.SPRITE_PIXELS_PER_UNIT] apart, so any window narrower than 3:1 admits only
+     * one of them. Read as raw pixels this sprite would cover 90 units against the star's 16 --
+     * 5.625 radii, far above the upper bound -- and a sprite a third of the size would land at
+     * 0.625, below the lower one. The lower bound carries the v4.23 decision as well: a sparkle
+     * that did not exceed the radius would be the pre-4.23 size the redraw exists to replace.
      */
     @Test
-    fun `a star sparkle fills the star's radius without exceeding it`() {
+    fun `a star sparkle reaches past the star's radius, by a factor no convention error could give`() {
         val star = skySprites.first { it.name == "star_sparkle" }
-        val reach = sideUnits(star) / 2f
+        val radii = sideUnits(star) / 2f / star.nominalRadiusUnits
         assertTrue(
-            "star_sparkle reaches $reach units, past the star's own ${star.nominalRadiusUnits}",
-            reach <= star.nominalRadiusUnits + 0.001f,
+            "star_sparkle reaches only $radii of the star's radius, which is the size the " +
+                "v4.23 redraw replaced",
+            radii > 1f,
         )
         assertTrue(
-            "star_sparkle reaches only $reach units of the star's ${star.nominalRadiusUnits}",
-            reach > star.nominalRadiusUnits / 2f,
+            "star_sparkle reaches $radii radii: at or past 3, which is what reading it under " +
+                "the wrong scale convention would give",
+            radii < 3f,
         )
     }
 
@@ -208,13 +219,20 @@ class SkySpriteAnchoringTest {
 
     /**
      * `PaperRenderer`'s star extents must be what the sprite actually reaches. They are in canvas
-     * pixels and the sprite's own span is in local units scaled by `star.radius / 32`, so the
-     * reach is `sideUnits / 2 / 32 * radius`.
+     * pixels and the sprite's own span is in local units scaled by
+     * `star.radius / STAR_SPRITE_RADIUS_DIVISOR`, so the reach is
+     * `sideUnits / 2 / STAR_SPRITE_RADIUS_DIVISOR * radius`.
+     *
+     * The divisor is read from the renderer, not written as a literal. It was a literal 32 here
+     * until v4.23 halved it, and a literal would have left this test asserting that the extents
+     * cover a reach the sprite no longer has: green while the tile range under-reserved by a
+     * factor of two and clipped sparkles at the star field's seam.
      */
     @Test
     fun `the star extents cover what the sprite actually reaches`() {
         val star = skySprites.first { it.name == "star_sparkle" }
-        val reach = sideUnits(star) / 2f / 32f * PaperRenderer.MAX_STAR_RADIUS_PX
+        val reach = sideUnits(star) / 2f /
+            PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR * PaperRenderer.MAX_STAR_RADIUS_PX
         assertTrue(
             "left extent ${PaperRenderer.STAR_SPRITE_LEFT_EXTENT_PX} does not cover $reach",
             PaperRenderer.STAR_SPRITE_LEFT_EXTENT_PX >= reach - 0.001f,

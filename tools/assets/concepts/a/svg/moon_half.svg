@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Concept A "Strati" - v4.23 fase 1. La mezzaluna stratificata con la
+    stessa regola della falce: le fasce condividono le punte e il lembo
+    (A102) e differiscono solo nell'arco del terminatore - dritto per la
+    base, rx 36 e 72 per le fasce chiare verso il lembo. Un cratere del tono
+    medio. Maschera tintabile, quattro toni della famiglia della Quercia.
+  -->
+  <path d="M120 18 A102 102 0 1 1 120 222 L120 18 Z" fill="#DCDCDC"/>
+  <path d="M120 18 A102 102 0 1 1 120 222 A36 102 0 0 0 120 18 Z" fill="#EEEEEE"/>
+  <path d="M120 18 A102 102 0 1 1 120 222 A72 102 0 0 0 120 18 Z" fill="#FAFAFA"/>
+  <circle cx="193" cy="105" r="12" fill="#E3E3E3"/>
+  <circle cx="172" cy="163" r="8"  fill="#E7E7E7"/>
+</svg>

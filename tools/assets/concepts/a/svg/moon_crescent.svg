@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Concept A "Strati" - v4.23 fase 1. La falce stratificata: tre fasce di
+    carta che condividono le punte (120,18)-(120,222) e il lembo esterno
+    (A102), e differiscono solo nell'arco del terminatore: rx 60 / 74 / 88.
+    Cosi' le fasce si annidano esattamente - scure verso il terminatore,
+    chiare sul lembo - senza che nessun arco sporga dalla sagoma di base,
+    che e' identica allo sprite spedito. Un cratere del tono medio sul lembo.
+  -->
+  <path d="M120 18 A102 102 0 1 1 120 222 A60 102 0 0 0 120 18 Z" fill="#DCDCDC"/>
+  <path d="M120 18 A102 102 0 1 1 120 222 A74 102 0 0 0 120 18 Z" fill="#EEEEEE"/>
+  <path d="M120 18 A102 102 0 1 1 120 222 A88 102 0 0 0 120 18 Z" fill="#FAFAFA"/>
+  <circle cx="197" cy="112" r="11" fill="#E4E4E4"/>
+</svg>

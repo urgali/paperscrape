@@ -816,18 +816,11 @@ class VehicleOccupantScaleTest {
                 val centreX = CAR_PROGRESS * (WIDTH + 2 * CAR_TRAVEL_MARGIN) - CAR_TRAVEL_MARGIN
                 val groundY = lane * HEIGHT
                 val isTruck = type == CarType.FIRE_TRUCK
-                val (paneL, paneR) = if (isTruck) TRUCK_PANE else cabinPane(shell!!)
-                val paneT = if (isTruck) {
-                    SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS -
-                        SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS
-                } else {
-                    SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS
-                }
-                val paneB = if (isTruck) {
-                    SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS
-                } else {
-                    SceneObjectRenderer.CAR_SILL_Y_UNITS
-                }
+                val pane = glassPane(type, shell)
+                val paneL = pane[0]
+                val paneR = pane[1]
+                val paneT = pane[2]
+                val paneB = pane[3]
                 val pixels = IntArray(WIDTH * HEIGHT)
                 frame.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
                 var outside = 0
@@ -1317,6 +1310,36 @@ class VehicleOccupantScaleTest {
             val left = shell.glassXUnits
             val width = if (shell == CarShell.ESTATE) ESTATE_CABIN_PANE_WIDTH_UNITS else shell.glassWidthUnits
             return left to left + width
+        }
+
+        /**
+         * The whole glass pane a body's occupants sit behind — left, right, top, bottom — in that
+         * body's own local units.
+         *
+         * **This is `cabinPane` plus the two vertical edges, and it exists as a function on
+         * purpose.** The four numbers used to be computed inline inside
+         * `noOccupantPixelLeavesTheGlass`, whose body is large enough that the BV6600's runtime
+         * evaluated the two vertical ones as `0.0` while the constants they are assigned from read
+         * -16.0 and 9.0 correctly on the same line — a degenerate, zero-height pane that counted
+         * every occupant pixel as being outside the glass. The arithmetic is unchanged, every
+         * constant is the same one, and the branch is the same branch; only where it is evaluated
+         * moved. See `BACKLOG_v4_22.md` item 35.
+         */
+        fun glassPane(type: CarType, shell: CarShell?): FloatArray {
+            val isTruck = type == CarType.FIRE_TRUCK
+            val (left, right) = if (isTruck) TRUCK_PANE else cabinPane(shell!!)
+            val top = if (isTruck) {
+                SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS -
+                    SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS
+            } else {
+                SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS
+            }
+            val bottom = if (isTruck) {
+                SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS
+            } else {
+                SceneObjectRenderer.CAR_SILL_Y_UNITS
+            }
+            return floatArrayOf(left, right, top, bottom)
         }
 
         /** The estate's cabin pane alone, sill to sill, without the third window. */

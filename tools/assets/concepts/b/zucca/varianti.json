@@ -1,0 +1,36 @@
+{
+ "schemaVersion": 2,
+ "note": "Fase 2 / Parte A: due varianti della zucca del giro 1d, entrambe dentro il vincolo (silhouette tonda, un foglio, fori passanti come unico dispositivo). Bordo, naso e bocca-a-fascia del 1d riusati alla lettera dove indicato. Sceglie il maintainer guardando le catture.",
+ "sprites": [
+  {
+   "name": "moon_jack_o_lantern (minima)",
+   "category": "sky",
+   "width": 240,
+   "height": 240,
+   "contentBox": [20, 21, 218, 218],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [120, 120],
+   "season": "all",
+   "source": { "kind": "svg", "file": "minima/moon_jack_o_lantern.svg" },
+   "notes": "Bordo, naso e bocca a fascia con quattro zanne del giro 1d, invariati. Cambiano SOLO gli occhi: cuneo tagliato a mano (sei vertici, +/-1.5), alto all'esterno e stretto verso il naso, sopracciglio che scende verso il naso. Media pixel opachi 244.1."
+  },
+  {
+   "name": "moon_jack_o_lantern (spinta)",
+   "category": "sky",
+   "width": 240,
+   "height": 240,
+   "contentBox": [20, 21, 218, 218],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [120, 120],
+   "season": "all",
+   "source": { "kind": "svg", "file": "spinta/moon_jack_o_lantern.svg" },
+   "notes": "Stesso bordo e naso del 1d. Tre spinte dentro il disco: occhi a cuneo con sopracciglio piu' ripido; ghigno a sega (un foro solo, 38..202, tre zanne dal labbro superiore e due dal labbro inferiore sfalsate, angoli che salgono); quattro costolature affusolate ritagliate nella corona alta del disco. Media pixel opachi 244.1."
+  }
+ ]
+}

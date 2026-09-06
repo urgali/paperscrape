@@ -70,6 +70,16 @@ alone**. A shop is recognisable by its hanging sign, a fire truck by its ladder
   the runtime `MULTIPLY` tint as gentle shading. Kept per-object and
   low-strength, never scene-wide.
 
+- **Cut edges, not struck ones (v4.23)**: an edge in this scene is cut with
+  scissors — faceted, with a small hand-drawn wobble — not swept with a compass.
+  Every family followed that from the V2 library except the sky, whose sun, moons
+  and sparkle stayed geometric; concept B "Forbici" brought them across. A moon's
+  rim is 40 vertices at 9° with ±2 units of wobble, its terminator is **cut** rather
+  than drawn as an SVG arc, and the sunburst is a struck ring outside the disc with
+  a soft halo behind it rather than a band of rays overlapping it. **The one arc that
+  survives is the ambient `RadialGradient` glow**, which is an effect rather than a
+  sprite. When a sky sprite is next redrawn, this is the rule it has to satisfy.
+
 ### Complexity limits **[OBSERVED]**
 
 A scene object is assembled from a small number of separate sprites — typically
@@ -555,6 +565,36 @@ measured them.
 
 So: when artwork is redrawn, grep for its dimensions and its half-extents before trusting a green
 suite. The suite is measuring the same wrong number twice.
+
+**v4.23's celestial redraw is the same lesson with a different shape, and worth reading beside the
+tree's.** The eight sky sprites kept their canvases exactly — 240, 396, 180 — so nothing that reads
+a PNG's size could see the change at all: `SkySpriteAnchoringTest`, `SpriteGeometryTest` and the
+decoded-byte budget were all green before, during and after, and the sprite footprint did not move
+by one byte. What the release did move was the *scale the sparkle is blitted at*
+(`PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR`, 32 → 16), and four numbers were measured off the old
+pairing of that scale with the old artwork:
+
+| where | held | why it was wrong afterwards |
+|---|---|---|
+| `STAR_SPRITE_{LEFT,RIGHT}_EXTENT_PX` | `MAX_STAR_RADIUS_PX` | the tile extents are the *sprite's* reach, `30 / divisor × radius`; at 16 that is 10.5 px, so reserving 5.6 under-reserved by 2× and would clip a sparkle at the star field's seam |
+| `SkySpriteAnchoringTest`, twice | a literal `32` | the test would have gone on asserting that the extents cover a reach the sprite no longer has |
+| `BackgroundScrollGeometryTest`, deliberately duplicated | `2.4f + 3.2f` | the same duplicate-versus-stale-premise trap as the tree's, and it behaved the same way |
+| two doc comments and one inline one | "reaches 0.9375 of the radius", "ray ring at 150..198" | both true of the old pairing, both false after, and neither can fail a test |
+
+**The trap that is specific to a scale change: raising the wrong constant makes the symptom go
+away.** Doubling `MAX_STAR_RADIUS_PX` also makes the tiles wide enough, and it is wrong — the
+largest star is exactly the size it always was, and that constant is read by `regenerateStars`,
+which would then draw a different star field. The rule that catches it is the one this whole
+section is about: derive the constant from what is actually drawn (`STAR_SPRITE_HALF_UNITS /
+STAR_SPRITE_RADIUS_DIVISOR × MAX_STAR_RADIUS_PX`) rather than picking whichever number makes the
+assertion pass.
+
+**And a comment can carry a stale premise as easily as a constant.** `STAR_POINT_COLOR`'s said "the
+cream the sparkle art is drawn in" while being `#FFF6DC` against the artwork's `#FBF4E6` — a gap of
+4/2/10 levels, invisible on a two-pixel dot, and therefore uncatchable by looking at the device.
+v4.23 corrected the colour rather than the sentence, because the sentence stated the property that
+was wanted, and added `StarFieldColourTest`, which reads the one fully-opaque colour out of
+`star_sparkle.png` and asserts the constant equals it.
 
 ### Decoration placement comes from the foliage's own content box **[OBSERVED]**
 

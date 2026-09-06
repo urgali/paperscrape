@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
+  <!--
+    Giro 1b, variante ALONE V2 "Anello pulito sopra l'alone" - concept B.
+    L'anello e' a compasso, NON tagliato a mano, per scelta dichiarata: alla
+    dimensione di scena il tremolio di B su una corona sottile leggerebbe
+    come "cerchio un po' storto" (lo stesso destino del bordo della luna), e
+    una linea sottile o e' pulita o e' sbagliata. Corona 154-166 (12 unita',
+    ~8 px a schermo), opacita' 0.75. Il gradiente radiale RESTA (0.40/0.16
+    come nei petali di B): e' la variante che misura a occhio il rischio
+    "impastato" - alone morbido + anello netto sovrapposti. Niente ombra.
+  -->
+  <defs>
+    <radialGradient id="g_sunglow_b_v2">
+      <stop offset="0"    stop-color="#F7CE64" stop-opacity="0.40"/>
+      <stop offset="0.55" stop-color="#F0A03C" stop-opacity="0.16"/>
+      <stop offset="1"    stop-color="#F0A03C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="198" cy="198" r="198" fill="url(#g_sunglow_b_v2)"/>
+  <path fill-rule="evenodd" fill="#F7CE64" opacity="0.75" d="M 198 198 m -166,0 a 166,166 0 1,0 332,0 a 166,166 0 1,0 -332,0 Z M 198 198 m -154,0 a 154,154 0 1,1 308,0 a 154,154 0 1,1 -308,0 Z"/>
+</svg>

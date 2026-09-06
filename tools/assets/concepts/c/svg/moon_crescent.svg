@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Concept C "Traforo" - v4.23 fase 1. La falce con la stessa sagoma dello
+    sprite spedito (arco v76.1 in scala 3x) e due crateri FORATI presso il
+    lembo: di notte le due luci del cielo dentro la falce sono il marchio del
+    concept. Maschera tintabile a un tono, mottling zero.
+  -->
+  <path fill-rule="evenodd" fill="#FFFFFF" d="M120 18 A102 102 0 1 1 120 222 A60 102 0 0 0 120 18 Z
+    M 196 100 m -11 0 a 11 11 0 1 0 22 0 a 11 11 0 1 0 -22 0 Z
+    M 183 150 m -7 0 a 7 7 0 1 0 14 0 a 7 7 0 1 0 -14 0 Z"/>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
+  <!--
+    Concept B "Forbici" - v4.23 fase 1. I raggi non tolti ma domati: dodici
+    petali di carta a punta arrotondata - base stretta a 148, ventre a 172,
+    punta smussata a 196 - al posto degli otto triangoli acuminati. Restano
+    nell'anello 150..198 dal centro che il sito di chiamata documenta. L'alone
+    radiale resta ma piu' basso (0.40/0.16), perche' la corolla porta gia'
+    presenza sua.
+  -->
+  <defs>
+    <radialGradient id="g_sunglow_b">
+      <stop offset="0"    stop-color="#F7CE64" stop-opacity="0.40"/>
+      <stop offset="0.55" stop-color="#F0A03C" stop-opacity="0.16"/>
+      <stop offset="1"    stop-color="#F0A03C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="198" cy="198" r="198" fill="url(#g_sunglow_b)"/>
+  <g fill="#F7CE64" opacity="0.62">
+    <path d="M 344.6 177.4 C 367.1 166.7 387.4 183.1 394.0 198.0 C 387.4 212.9 367.1 229.3 344.6 218.6 Z"/>
+    <path d="M 335.2 253.4 C 360.1 255.4 369.5 279.8 367.7 296.0 C 354.6 305.6 328.8 309.7 314.6 289.1 Z"/>
+    <path d="M 289.1 314.6 C 309.7 328.8 305.6 354.6 296.0 367.7 C 279.8 369.5 255.4 360.1 253.4 335.2 Z"/>
+    <path d="M 218.6 344.6 C 229.3 367.1 212.9 387.4 198.0 394.0 C 183.1 387.4 166.7 367.1 177.4 344.6 Z"/>
+    <path d="M 142.6 335.2 C 140.6 360.1 116.2 369.5 100.0 367.7 C 90.4 354.6 86.3 328.8 106.9 314.6 Z"/>
+    <path d="M 81.4 289.1 C 67.2 309.7 41.4 305.6 28.3 296.0 C 26.5 279.8 35.9 255.4 60.8 253.4 Z"/>
+    <path d="M 51.4 218.6 C 28.9 229.3 8.6 212.9 2.0 198.0 C 8.6 183.1 28.9 166.7 51.4 177.4 Z"/>
+    <path d="M 60.8 142.6 C 35.9 140.6 26.5 116.2 28.3 100.0 C 41.4 90.4 67.2 86.3 81.4 106.9 Z"/>
+    <path d="M 106.9 81.4 C 86.3 67.2 90.4 41.4 100.0 28.3 C 116.2 26.5 140.6 35.9 142.6 60.8 Z"/>
+    <path d="M 177.4 51.4 C 166.7 28.9 183.1 8.6 198.0 2.0 C 212.9 8.6 229.3 28.9 218.6 51.4 Z"/>
+    <path d="M 253.4 60.8 C 255.4 35.9 279.8 26.5 296.0 28.3 C 305.6 41.4 309.7 67.2 289.1 81.4 Z"/>
+    <path d="M 314.6 106.9 C 328.8 86.3 354.6 90.4 367.7 100.0 C 369.5 116.2 360.1 140.6 335.2 142.6 Z"/>
+  </g>
+</svg>

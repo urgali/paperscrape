@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Concept C "Traforo" - v4.23 fase 1. La mezzaluna con la sagoma esatta
+    dello sprite spedito e i crateri FORATI presso il lembo, come le altre
+    lune del concept. Maschera tintabile a un tono, mottling zero.
+  -->
+  <path fill-rule="evenodd" fill="#FFFFFF" d="M120 18 A102 102 0 1 1 120 222 L120 18 Z
+    M 190 104 m -12 0 a 12 12 0 1 0 24 0 a 12 12 0 1 0 -24 0 Z
+    M 168 162 m -7 0 a 7 7 0 1 0 14 0 a 7 7 0 1 0 -14 0 Z
+    M 152 74 m -6 0 a 6 6 0 1 0 12 0 a 6 6 0 1 0 -12 0 Z"/>
+</svg>

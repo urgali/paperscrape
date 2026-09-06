@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Fase 2 / Parte A - concept B, zucca variante SPINTA. Stesso bordo del giro 1d,
+    stesso naso, stesso vincolo (tonda, un foglio, solo fori passanti). Tre spinte,
+    tutte DENTRO il disco:
+    1. OCCHI - il cuneo, con sopracciglio piu' ripido (il vertice interno scende a
+       y 111 invece di 106) e coda esterna piu' alta: lo sguardo si chiude, cattivo.
+    2. BOCCA - il ghigno a sega della zucca intagliata: un foro solo, piu' largo
+       (38..202) e piu' alto, con tre zanne dal labbro superiore e due dal labbro
+       inferiore sfalsate, angoli che salgono. Il 1d aveva zanne solo in alto.
+    3. COSTOLATURE - quattro solchi affusolati (6 -> 2.5 unita') ritagliati nella
+       corona alta del disco, dove la faccia non arriva, che seguono i meridiani di
+       una zucca: sono l'unica cosa che il vincolo lascia aperta e trasformano il
+       disco in una zucca senza toccare la silhouette. Passanti come tutto il resto.
+    Maschera tintabile, un tono #F4F4F4.
+  -->
+  <path fill-rule="evenodd" fill="#F4F4F4" d="M 217.7 120.0 L 217.2 135.7 L 215.4 150.7 L 208.4 164.0 L 201.5 179.0 L 189.6 188.7 L 178.0 200.7 L 165.6 207.2 L 150.3 213.1 L 135.4 216.4 L 120.0 217.8 L 104.5 215.9 L 89.1 212.5 L 75.9 208.3 L 60.8 200.5 L 49.2 189.9 L 38.2 177.5 L 33.7 165.1 L 25.8 150.2 L 24.0 135.6 L 22.1 120.0 L 20.1 104.2 L 27.3 90.1 L 30.9 75.1 L 39.0 63.0 L 48.7 49.3 L 60.8 41.5 L 75.0 30.5 L 90.0 25.1 L 104.5 21.9 L 120.0 21.4 L 135.7 22.5 L 150.8 24.7 L 165.1 32.6 L 179.2 38.2 L 189.2 51.0 L 199.4 61.8 L 208.2 74.1 L 215.0 89.3 L 216.5 104.5 Z
+ M 43.0 72.6 L 74.4 87.9 L 102.1 111.9 L 95.9 127.0 L 69.0 119.2 L 50.5 111.6 Z
+ M 197.4 70.9 L 164.6 89.5 L 136.1 109.9 L 145.5 126.5 L 172.2 119.2 L 189.4 111.5 Z
+ M 110.0 122.2 L 131.4 123.3 L 121.0 143.9 Z
+ M 39.2 147.3 L 61.1 139.8 L 72.3 159.8 L 86.1 141.0 L 99.1 165.8 L 113.2 142.9 L 126.7 164.8 L 142.6 142.8 L 158.0 160.7 L 171.6 139.8 L 202.8 146.2 L 193.4 170.3 L 177.3 190.6 L 156.7 180.6 L 140.2 200.4 L 121.5 184.8 L 103.9 200.6 L 86.3 180.9 L 66.4 190.1 L 47.1 169.5 Z
+ M 88.2 33.4 L 94.8 34.3 L 96.9 49.4 L 96.8 66.4 L 94.2 66.4 L 90.8 49.4 Z
+ M 144.3 33.5 L 150.7 34.6 L 149.5 50.4 L 144.6 66.0 L 143.3 66.0 L 143.2 50.6 Z
+ M 59.1 48.2 L 65.5 47.6 L 69.7 61.6 L 71.9 73.5 L 69.0 74.2 L 62.5 61.7 Z
+ M 175.0 48.1 L 181.5 48.6 L 178.1 60.8 L 172.0 73.9 L 168.4 73.4 L 170.5 60.4 Z"/>
+</svg>

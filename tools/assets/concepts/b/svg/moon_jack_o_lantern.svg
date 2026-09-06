@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Giro 1d - concept B, la zucca RIFATTA DA CAPO. Conservato il DISPOSITIVO,
+    non il disegno: e' l'unica luna coi fori passanti e a ~100 px deve dire
+    "Halloween" a colpo d'occhio. Tutto il resto e' nuovo, nel linguaggio di
+    B: bordo tagliato a mano (40 vertici, +/-2.2) e FORI TAGLIATI A MANO -
+    due occhi a cuneo asimmetrici inclinati verso il naso, un naso a
+    triangolo storto, una bocca larga unica con quattro zanne che scendono
+    dal labbro superiore, tutti poligoni con tremolio +/-1.4-1.6. NESSUNA
+    coordinata viene dalla faccia spedita (li' occhi 48,78/99,108/..., bocca a
+    curve C con denti come fori separati; qui numeri e forme diverse, un solo
+    foro per la bocca). I fori sono grandi apposta: a 158 px di disco gli
+    occhi sono ~30x20 px e la bocca ~100x38 px, leggibili a colpo d'occhio.
+    NIENTE anello esterno, per scelta: la zucca spedita usava l'anello per
+    dare profondita' a un disco a compasso; qui il bordo tagliato e i fori
+    irregolari portano l'identita' da soli, e B e' "un foglio, un taglio" -
+    un secondo foglio attorno sarebbe la terza generazione nello stesso
+    sprite. Maschera tintabile, un tono #F4F4F4.
+  -->
+  <path fill-rule="evenodd" fill="#F4F4F4" d="M 217.7 120.0 L 217.2 135.7 L 215.4 150.7 L 208.4 164.0 L 201.5 179.0 L 189.6 188.7 L 178.0 200.7 L 165.6 207.2 L 150.3 213.1 L 135.4 216.4 L 120.0 217.8 L 104.5 215.9 L 89.1 212.5 L 75.9 208.3 L 60.8 200.5 L 49.2 189.9 L 38.2 177.5 L 33.7 165.1 L 25.8 150.2 L 24.0 135.6 L 22.1 120.0 L 20.1 104.2 L 27.3 90.1 L 30.9 75.1 L 39.0 63.0 L 48.7 49.3 L 60.8 41.5 L 75.0 30.5 L 90.0 25.1 L 104.5 21.9 L 120.0 21.4 L 135.7 22.5 L 150.8 24.7 L 165.1 32.6 L 179.2 38.2 L 189.2 51.0 L 199.4 61.8 L 208.2 74.1 L 215.0 89.3 L 216.5 104.5 Z
+ M 49.7 85.0 L 94.0 69.9 L 103.2 98.5 L 63.2 107.5 Z M 144.5 71.5 L 189.0 85.6 L 177.4 105.2 L 136.1 97.7 Z M 110.0 122.2 L 131.4 123.3 L 121.0 143.9 Z M 42.4 149.4 L 62.5 146.1 L 73.8 164.7 L 87.7 148.4 L 103.2 169.6 L 117.2 148.7 L 136.7 172.9 L 153.1 148.6 L 169.0 164.7 L 181.5 147.3 L 197.3 151.7 L 190.0 179.0 L 161.5 197.6 L 121.1 204.7 L 76.6 196.7 L 52.8 178.7 Z"/>
+</svg>

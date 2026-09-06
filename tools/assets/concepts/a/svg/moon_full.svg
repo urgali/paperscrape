@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Concept A "Strati" - v4.23 fase 1. Maschera tintabile a quattro toni di
+    grigio, gli stessi rapporti della chioma della Quercia: base #DCDCDC
+    (pavimento del mottling, 13.7%), fasce via via piu' chiare spostate in
+    alto a sinistra, colmo bianco. I crateri sono dischetti del tono di base
+    posati sopra le fasce chiare: nello sprite spedito stavano a 4 livelli dal
+    disco (#fbfbfb su #ffffff) ed erano invisibili; qui stanno a 20-27 livelli
+    e si leggono. Media dei pixel opachi ben sopra 220 (il disco chiaro domina).
+  -->
+  <circle cx="120" cy="120" r="102" fill="#DCDCDC"/>
+  <circle cx="116" cy="116" r="88"  fill="#ECECEC"/>
+  <circle cx="112" cy="112" r="72"  fill="#F7F7F7"/>
+  <circle cx="102" cy="103" r="36"  fill="#FFFFFF"/>
+  <circle cx="90"  cy="86"  r="15"  fill="#E3E3E3"/>
+  <circle cx="144" cy="138" r="19"  fill="#DFDFDF"/>
+  <circle cx="94"  cy="148" r="10"  fill="#E3E3E3"/>
+</svg>

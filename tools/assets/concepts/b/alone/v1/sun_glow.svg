@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
+  <!--
+    Giro 1b, variante ALONE V1 "Anello di carta" - concept B. La richiesta del
+    maintainer ("un unico cerchio intorno al sole") eseguita nel linguaggio di
+    B e in niente altro: UN anello di carta pieno, bordi tagliati a mano
+    (30 vertici, tremolio +/-2.4 su entrambi i bordi, evenodd), r 150-176,
+    dentro l'anello 150..198 documentato al sito di chiamata. NIENTE
+    gradiente: la variante che prova se l'alone morbido serve ancora quando
+    c'e' l'anello. Niente ombra: su una corona di 26 unita' l'ombra a +6+8
+    sarebbe un filo scuro ambiguo, e il sole ce l'ha gia' (scelta scritta,
+    vedi report). Un tono, opacita' 0.62.
+    RISCHIO DICHIARATO: a scena il tremolio vale ~1.6 px; e un anello pieno
+    senza tratteggio CONVERGE sulla silhouette dell'anello del concept C
+    (li' 24 trattini, qui pieno) - detto nel report, non nascosto.
+  -->
+  <path fill-rule="evenodd" fill="#F7CE64" opacity="0.62" d="M 374.4 198.0 L 372.3 235.0 L 358.6 269.9 L 339.3 300.7 L 315.1 329.5 L 285.3 352.4 L 251.7 364.0 L 216.2 374.3 L 179.7 372.9 L 143.9 366.0 L 110.2 349.2 L 80.5 328.1 L 57.1 302.4 L 36.4 269.9 L 24.1 234.5 L 22.6 198.0 L 26.3 161.2 L 39.4 126.5 L 55.5 95.0 L 81.8 66.5 L 111.2 45.3 L 144.1 32.7 L 179.8 25.0 L 216.2 22.1 L 252.7 31.2 L 286.4 45.7 L 315.8 65.9 L 339.7 93.5 L 359.6 126.1 L 367.8 161.8 Z M 346.3 198.0 L 343.2 229.4 L 335.5 258.8 L 319.8 286.4 L 296.9 309.6 L 273.3 328.0 L 244.9 341.7 L 213.6 345.9 L 182.5 348.7 L 151.4 341.2 L 123.1 327.9 L 98.5 309.6 L 78.0 286.5 L 60.4 259.3 L 52.5 228.8 L 48.8 198.0 L 51.2 166.6 L 61.3 137.2 L 75.1 110.8 L 98.6 86.2 L 122.7 68.4 L 151.6 55.6 L 182.2 47.0 L 213.8 48.2 L 244.3 53.3 L 272.9 67.6 L 299.6 85.9 L 318.9 109.1 L 335.5 136.2 L 345.3 166.8 Z"/>
+</svg>

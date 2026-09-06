@@ -1,0 +1,58 @@
+{
+ "schemaVersion": 2,
+ "note": "Giro 1c: due varianti di corona ATTACCATA al disco per il concept B; differiscono per la sola profondita' degli smerli. Sceglie il maintainer.",
+ "sprites": [
+  {
+   "name": "sun_glow (smerli_bassi)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    68,
+    67,
+    335,
+    336
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "smerli_bassi/sun_glow.svg"
+   },
+   "notes": "Corona attaccata, 16 lobi, picchi a r=132 (valli 104, base 94). Senza gradiente, con ombra."
+  },
+  {
+   "name": "sun_glow (smerli_alti)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    44,
+    43,
+    358,
+    359
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "smerli_alti/sun_glow.svg"
+   },
+   "notes": "Corona attaccata, 16 lobi, picchi a r=156 (valli 104, base 94). Senza gradiente, con ombra. Unica differenza: la profondita'."
+  }
+ ]
+}

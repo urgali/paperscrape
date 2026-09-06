@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
+  <!--
+    Giro 1d, V2 RIFINITA "a": anello pieno, alone com'e'. V2 (scelta dal maintainer) messa a punto
+    su due soli parametri, senza ridisegno: anello a compasso 154-166 in #F7CE64,
+    identico a V2, ma a OPACITA' 1.0 (carta ritagliata, come ogni altro pezzo di
+    B: a 0.75 era l'unico velo del concept, e il giallo caldo velato sul cielo
+    freddo desaturava in grigio); gradiente 0.40/0.16 (quello di V2), invariato. Niente ombra, come V2.
+  -->
+  <defs>
+    <radialGradient id="g">
+      <stop offset="0"    stop-color="#F7CE64" stop-opacity="0.40"/>
+      <stop offset="0.55" stop-color="#F0A03C" stop-opacity="0.16"/>
+      <stop offset="1"    stop-color="#F0A03C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="198" cy="198" r="198" fill="url(#g)"/>
+  <path fill-rule="evenodd" fill="#F7CE64" d="M 198 198 m -166,0 a 166,166 0 1,0 332,0 a 166,166 0 1,0 -332,0 Z M 198 198 m -154,0 a 154,154 0 1,1 308,0 a 154,154 0 1,1 -308,0 Z"/>
+</svg>

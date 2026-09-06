@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Concept C "Traforo" - v4.23 fase 1. Maschera tintabile a UN tono: disco
+    bianco r=102 con i crateri FORATI (il cielo passa attraverso: tinta la
+    luna di qualunque colore, i crateri restano cielo) e una fenditura ad
+    arco sottile ritagliata parallela al lembo in basso a destra, che
+    suggerisce la sfera per sola assenza di carta. I fori sono piccoli e
+    raggruppati fuori centro, in alto a sinistra, con uno vicino al lembo
+    basso: e' una luna, non una palla da bowling. Mottling zero.
+  -->
+  <path fill-rule="evenodd" fill="#FFFFFF" d="M 222 120 A 102 102 0 1 1 18 120 A 102 102 0 1 1 222 120 Z
+    M 86 78 m -12 0 a 12 12 0 1 0 24 0 a 12 12 0 1 0 -24 0 Z
+    M 116 103 m -7 0 a 7 7 0 1 0 14 0 a 7 7 0 1 0 -14 0 Z
+    M 68 118 m -6 0 a 6 6 0 1 0 12 0 a 6 6 0 1 0 -12 0 Z
+    M 103 170 m -9 0 a 9 9 0 1 0 18 0 a 9 9 0 1 0 -18 0 Z
+    M 202.1 163.7 A 93 93 0 0 1 163.7 202.1 L 161.3 197.7 A 88 88 0 0 0 197.7 161.3 Z"/>
+</svg>

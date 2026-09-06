@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!--
+    Concept A "Strati" - v4.23 fase 1. Il sole eseguito con la ricetta della
+    Quercia larga: quattro strati di carta incollati leggermente fuori centro,
+    la luce spostata in alto a sinistra come sul colmo del cuscino di fogliame.
+    Nessun contorno, nessuna ombra portata: la profondita' e' tutta nello
+    scarto fra gli strati. Fixed-art, colori finali.
+    Disco r=102 centrato (120,120) come lo sprite spedito: stessa tela 240,
+    stesso contentBox (18,18,222,222), stessa origine al sito di chiamata.
+  -->
+  <circle cx="120" cy="120" r="102" fill="#DC8428"/>
+  <circle cx="115" cy="115" r="88"  fill="#F0A03C"/>
+  <circle cx="111" cy="111" r="70"  fill="#F7CE64"/>
+  <circle cx="102" cy="102" r="38"  fill="#FBE289"/>
+</svg>

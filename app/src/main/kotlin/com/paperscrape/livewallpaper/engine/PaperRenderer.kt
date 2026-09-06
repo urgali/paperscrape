@@ -488,22 +488,63 @@ class PaperRenderer(
         /** Largest star radius [regenerateStars] can produce, in canvas pixels. */
         const val MAX_STAR_RADIUS_PX = 2.4f + 3.2f
 
+        /**
+         * What [drawStars] divides a star's radius by before blitting the sparkle.
+         *
+         * **This is the sprite's scale, not the star's size.** [MAX_STAR_RADIUS_PX] is untouched
+         * by it: halving this divisor doubles how far the *drawing* reaches from the star it
+         * marks, and changes nothing about where stars are, how many there are, or how large the
+         * point stars are.
+         *
+         * It was 32 until v4.23, which put the largest sparkle at `30/32 x 5.6 = 5.25` px of
+         * reach -- about 10 px across, and measured on the device the shape inside that was a
+         * one-pixel cross rather than a star. v4.23 halves it to 16 and ships artwork drawn for
+         * the size that produces (`BACKLOG_v4_22.md` item 29's "configuration 1"): the same four
+         * unequal points, on a waist wide enough to survive the reduction.
+         */
+        const val STAR_SPRITE_RADIUS_DIVISOR = 16f
+
+        /**
+         * Half the sparkle bitmap's own span, in the local units [SpriteScale.SCENE_UNITS]
+         * establishes: `star_sparkle.png` is 180px, which is `180 / SPRITE_PIXELS_PER_UNIT = 60`
+         * local units, so its centre sits 30 units from either edge.
+         *
+         * [STAR_SPRITE_ORIGIN_UNITS] is the negation of this, which is what puts the bitmap's
+         * centre on the star, and `SkySpriteAnchoringTest` reads the PNG's own header to check
+         * that pairing -- so this 30 is pinned against the asset rather than restated from it.
+         */
+        const val STAR_SPRITE_HALF_UNITS = 30f
+
         /** How far a star sprite reaches left of, and right of, the star's own x.
          *
-         * Symmetric, because `star_sparkle.png` is drawn as a [SpriteScale.SCENE_UNITS] sprite:
-         * its 180px cover `180 / SPRITE_PIXELS_PER_UNIT = 60` local units, and the origin `-30`
-         * puts the bitmap's centre on the star, so the sprite reaches `0.9375 * radius`. These
-         * constants deliberately reserve the full radius instead: over-reserving costs a
-         * comparison, and under-reserving would drop a tile copy at a seam. The sprite has no
-         * transparent margin left to distinguish bitmap from content, so the two readings that
-         * used to differ now coincide.
+         * Symmetric, because `star_sparkle.png` is centred on the star, and **derived rather than
+         * chosen**: the bitmap covers [STAR_SPRITE_HALF_UNITS] local units either side of the
+         * centre, and [drawStars] scales local units by `radius / STAR_SPRITE_RADIUS_DIVISOR`, so
+         * the widest a sparkle can reach is `30 / 16 x 5.6 = 10.5` canvas pixels.
+         *
+         * **This is why halving the divisor had to come back here.** The reach is a function of
+         * the divisor, not of [MAX_STAR_RADIUS_PX] -- the largest star is the same size it always
+         * was -- so doubling the star radius would have been the wrong repair for the right
+         * symptom. Until v4.23 these read `MAX_STAR_RADIUS_PX` unqualified: with a divisor of 32
+         * the sprite reached `0.9375 x radius`, and reserving the whole radius was a deliberate
+         * over-reservation. At 16 it reaches `1.875 x radius`, so reserving the radius would be an
+         * *under*-reservation, and an under-reservation drops a tile copy at a seam -- a sparkle
+         * clipped where the star field wraps.
+         *
+         * Reserved on the *bitmap*, not on the artwork inside it: the redrawn sparkle leaves a
+         * transparent margin again (its content box is `14,8..168,164`, so the drawing itself
+         * reaches at most `82/3` units, `9.57` px), and the two readings that had coincided while
+         * the sprite filled its canvas differ once more. Over-reserving those 0.93 px costs one
+         * comparison; under-reserving costs a visible clip.
          *
          * They exist as named constants, rather than being folded into the tile bounds, because
          * the tile range must be derived from what is actually drawn: they were asymmetric while
          * the sprite was blitted with the wrong scale convention, and a test asserts them so a
          * future change to either the asset or the convention has to come back through here. */
-        const val STAR_SPRITE_LEFT_EXTENT_PX = MAX_STAR_RADIUS_PX
-        const val STAR_SPRITE_RIGHT_EXTENT_PX = MAX_STAR_RADIUS_PX
+        const val STAR_SPRITE_LEFT_EXTENT_PX =
+            STAR_SPRITE_HALF_UNITS / STAR_SPRITE_RADIUS_DIVISOR * MAX_STAR_RADIUS_PX
+        const val STAR_SPRITE_RIGHT_EXTENT_PX =
+            STAR_SPRITE_HALF_UNITS / STAR_SPRITE_RADIUS_DIVISOR * MAX_STAR_RADIUS_PX
 
         // ---- Sky sprite blit geometry ----------------------------------------------------
         //
@@ -711,15 +752,33 @@ class PaperRenderer(
          */
         const val STAR_SPARKLE_EVERY = 5
 
-        /** The cream the sparkle art is drawn in, so a point and a sparkle are the same star. */
-        const val STAR_POINT_COLOR = 0xFFFFF6DC.toInt()
+        /**
+         * The cream the sparkle art is drawn in, so a point and a sparkle are the same star.
+         *
+         * **It was `#FFF6DC` until v4.23 and the sparkle has never been that colour.** The shipped
+         * artwork is `#FBF4E6` and so is the redraw, a difference of 4/2/10 levels -- invisible,
+         * which is exactly why the sentence above stayed true-looking for four releases while
+         * being false. Two ways to stop it lying were available: correct the sentence, or correct
+         * the colour. The colour is corrected, because the sentence states the property that is
+         * actually wanted, and `StarFieldColourTest` now reads the one fully-opaque colour out of
+         * `star_sparkle.png` and asserts this constant equals it -- so the next redraw either
+         * keeps the cream or is made to come back here.
+         */
+        const val STAR_POINT_COLOR = 0xFFFBF4E6.toInt()
 
         /**
          * How much of a star's radius a point covers.
          *
-         * The sparkle sprite reaches 0.94 of the radius at its four tips but is much narrower
-         * between them, so a disc of the same radius would read as a noticeably fatter star. This
-         * matches its apparent weight instead of its extent.
+         * A star is a position and a brightness; the radius is what both treatments are expressed
+         * against, and a point covers 0.55 of it. The sparkle sprite is much narrower between its
+         * four tips than at them, so a disc of the same radius would read as a noticeably fatter
+         * star. This matches its apparent weight instead of its extent.
+         *
+         * **The extent it is not matching is no longer 0.94 of the radius.** v4.23 halved
+         * [STAR_SPRITE_RADIUS_DIVISOR], so a sparkle reaches 1.875 of the radius, and this number
+         * was deliberately not rescaled with it: [drawStars] draws a field that is mostly faint
+         * points with a few bright stars in it, and growing the points with the sparkles would
+         * give back the uniform field that split was made to avoid.
          */
         const val STAR_POINT_RADIUS_SCALE = 0.55f
 
@@ -772,21 +831,29 @@ class PaperRenderer(
 
         val CELESTIAL_DISC_SCALE = SpriteScale.CANVAS_PIXELS
 
-        /** Centres the 396px sunburst in that same space, putting its ray ring at 150..198
-         * units -- outside the disc's own 120, which is what makes it read as a sunburst.
+        /** Centres the 396px sunburst in that same space, putting its ring outside the disc's own
+         * 120 units -- which is what makes it read as a sunburst rather than a fatter sun.
+         *
+         * **The ring is at 154..166 units, not the 150..198 this said until v4.23.** The old
+         * artwork was a band of rays spanning 111..190 that overlapped the disc's edge; the
+         * concept B glow is a compass-struck ring at full opacity with a soft warm halo behind it
+         * reaching 197. Only the outer number was ever load-bearing -- the ring has to start past
+         * 120 -- and it still is, by 34 units instead of 30. The canvas, the convention and this
+         * origin are unchanged, which is why the redraw needed no call-site change.
          *
          * The sprite was 444px with 24px of transparent margin per side until the padding
-         * normalisation; the rays are in the same place, because the origin moved by exactly the
-         * margin that was removed. */
+         * normalisation; the origin moved by exactly the margin that was removed. */
         const val SUN_GLOW_ORIGIN_UNITS = -198f
         val SUN_GLOW_SCALE = SpriteScale.CANVAS_PIXELS
 
-        /** Centres the 180px sparkle in the `star.radius / 32f` space of a star. Read as an
-         * oversampled sprite it covers 60 units, so it reaches 0.9375 of the star's own radius --
-         * which is what the artwork always reached: the sprite was 192px with 6px of transparent
-         * margin per side, and the padding normalisation removed the margin and moved the origin
-         * by the same 2 units. */
-        const val STAR_SPRITE_ORIGIN_UNITS = -30f
+        /** Centres the 180px sparkle in the `star.radius / STAR_SPRITE_RADIUS_DIVISOR` space of a
+         * star. Read as an oversampled sprite it covers 60 units, so with v4.23's divisor of 16 it
+         * reaches 1.875 of the star's own radius -- the star being a position and a brightness
+         * here, not an outline the drawing has to stay inside.
+         *
+         * Derived from [STAR_SPRITE_HALF_UNITS] rather than written as its own -30, so the origin
+         * and the tile extents cannot disagree about how big the bitmap is. */
+        const val STAR_SPRITE_ORIGIN_UNITS = -STAR_SPRITE_HALF_UNITS
         val STAR_SPRITE_SCALE = SpriteScale.SCENE_UNITS
 
         /**
@@ -1217,12 +1284,16 @@ class PaperRenderer(
             canvas.save()
             canvas.translate(star.x, star.y)
             canvas.rotate(elapsedSeconds.cycleOf(12f, star.phase * 60f, 360f))
-            val s = star.radius / 32f
+            val s = star.radius / STAR_SPRITE_RADIUS_DIVISOR
             canvas.scale(s, s)
             // star_sparkle.png is authored at the SPRITE_PIXELS_PER_UNIT oversample: 180px cover
             // 60 local units, so [STAR_SPRITE_ORIGIN_UNITS] centres it on the star and it reaches
-            // 0.9375 of the star's radius -- the extent the artwork always had, once its
-            // transparent margin per side is discounted. It was blitted as CANVAS_PIXELS until
+            // [STAR_SPRITE_HALF_UNITS] / [STAR_SPRITE_RADIUS_DIVISOR] = 1.875 of the star's
+            // radius. **It reached 0.9375 of it until v4.23, and that number is now wrong
+            // wherever it survives**: the divisor halved and the artwork was redrawn for the
+            // size that produces, so a sparkle is deliberately wider than the star it marks.
+            // [STAR_SPRITE_LEFT_EXTENT_PX] carries the same change, because the star field is
+            // tiled and the tile range is derived from this reach. It was blitted as CANVAS_PIXELS until
             // v73.7, which made it three times too large and hung it off the star's lower right,
             // because v72's 64px artwork -- which was a raw-pixel sprite, and correct as one --
             // was replaced with a 3x redraw in v73 without the call site following. **The V2
@@ -1295,16 +1366,20 @@ class PaperRenderer(
             // (mistaken for a moon) rather than a soft glow -- removed, the existing
             // RadialGradient glow above already provides the ambient falloff on its own.
             //
-            // sun_glow.png is 396x396 and its rays sit in a ring 150..198px from its own centre,
-            // so as a raw-pixel sprite it covers 396 local units and has to be anchored at
-            // -396/2 for that ring to land at 150..198 units -- outside the disc's own 120, which
-            // is what makes it read as a sunburst. It was 444x444 with 24px of transparent margin
-            // per side until the padding normalisation: the ring is measured from the sprite's
-            // own centre, so removing a symmetric margin left it exactly where it was.
+            // sun_glow.png is 396x396 and its ring sits 154..166px from its own centre, so as a
+            // raw-pixel sprite it covers 396 local units and has to be anchored at -396/2 for
+            // that ring to land at 154..166 units -- outside the disc's own 120, which is what
+            // makes it read as a sunburst. **The ring was a band of rays at 111..190 until
+            // v4.23's redraw**, which replaced them with a compass-struck ring at full opacity
+            // over a soft warm halo reaching 197; the number that carries the argument is that
+            // the ring starts past 120, and it still does. It was 444x444 with 24px of
+            // transparent margin per side until the padding normalisation: the ring is measured
+            // from the sprite's own centre, so removing a symmetric margin left it exactly where
+            // it was.
             // It was anchored at -74 until v73.7: that is -(444/2)/SPRITE_PIXELS_PER_UNIT, the
             // origin an oversampled sprite would want, and it hung the rays off the disc's lower
             // right. The oversampled reading is not the alternative it looks like: it would put
-            // the ring at 50..66 units, entirely hidden behind the disc.
+            // the ring at 51..55 units, entirely hidden behind the disc.
             // Both are fixed art in the V2 asset set -- a two-tone orange disc and a yellow ray
             // ring with its own falloff -- so neither takes the user's sun colour any more.
             // Multiplying finished art by a chosen colour compounds two hues instead of

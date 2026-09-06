@@ -474,8 +474,15 @@ class BackgroundScrollGeometryTest {
 
         /** Written as the same expressions the renderer uses, not as their decimal values:
          * `2.4f + 3.2f` is 5.6000004f in binary32, so a literal `5.6f` would not be the same
-         * number and the comparison below would be asserting rounding rather than agreement. */
-        const val LEFT_EXTENT = 2.4f + 3.2f
-        const val RIGHT_EXTENT = 2.4f + 3.2f
+         * number and the comparison below would be asserting rounding rather than agreement.
+         *
+         * v4.23 made the extents a *derived* quantity -- the sprite's own half-span scaled by
+         * `MAX_STAR_RADIUS_PX / STAR_SPRITE_RADIUS_DIVISOR`, which is `30 / 16 x 5.6 = 10.5` px --
+         * so the expression repeated here is that one, in the same association and order the
+         * renderer evaluates it in. Repeating it rather than reading the constant is the point of
+         * this file's last test: the tile geometry above is reasoned about against these numbers,
+         * and reading the renderer's own would make that test assert nothing. */
+        const val LEFT_EXTENT = 30f / 16f * (2.4f + 3.2f)
+        const val RIGHT_EXTENT = 30f / 16f * (2.4f + 3.2f)
     }
 }

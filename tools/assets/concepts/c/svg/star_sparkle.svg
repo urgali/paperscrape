@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+  <!--
+    Concept C "Traforo" - v4.23 fase 1. La scintilla con il cuore FORATO: un
+    rombo ritagliato al centro, il cielo passa nel mezzo. Alla dimensione
+    massima della scintilla (16-20 px) il foro si legge come un punto scuro
+    vivo; nelle scintille piccole scompare e resta la sagoma di sempre.
+    Crema dei punti-stella del renderer.
+  -->
+  <path fill-rule="evenodd" fill="#FBF4E6"
+        d="M 90 3 L 103.5 76.5 L 177 90 L 103.5 103.5 L 90 177 L 76.5 103.5 L 3 90 L 76.5 76.5 Z
+           M 90 60 L 97 83 L 120 90 L 97 97 L 90 120 L 83 97 L 60 90 L 83 83 Z"/>
+</svg>

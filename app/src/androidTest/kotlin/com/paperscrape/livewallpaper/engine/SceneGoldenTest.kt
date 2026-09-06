@@ -235,6 +235,85 @@ class SceneGoldenTest {
         GoldenScene(name = "theme-city", dayPhase = GoldenScene.night(), themeId = "city"),
     )
 
+    // -- Seasonal decoration --------------------------------------------------------------------
+
+    /**
+     * **The carved moon, with realistic phases switched on** -- the one celestial sprite no
+     * committed frame drew until v4.23 (`BACKLOG_v4_23.md` item 41).
+     *
+     * ### Why both flags are on, and why one of them would be worthless
+     *
+     * `PaperRenderer.drawMoonWithPhase` blits `moon_jack_o_lantern`, always full, and **returns
+     * before it reads `moon.realisticPhases`** while `halloweenEnabled` is on; its own comment
+     * carries the reason (a face that waxed and waned would be a lit fraction of a grin, which
+     * reads as a rendering fault). That early return is the invariant, and a golden with Halloween
+     * on and phases *off* could not pin it: with nothing to ignore, the frame would come out
+     * identical whether the guard stood or fell. **Both flags on is what gives this frame a way to
+     * fail** -- if the phase path ever leaked through, the disc drawn here would become one of the
+     * four phase silhouettes in the moon's own colour instead of the orange lantern, which is the
+     * whole 79-pixel disc moving. It is the same requirement `SettingsGateScenesTest` derives its
+     * gates from: a proof needs a frame that could fail.
+     *
+     * Both are written down here rather than inherited. `realisticPhases` already defaults to true
+     * and the `halloween` theme already presets `halloweenEnabled`, but a scene is a description of
+     * its inputs ([GoldenScene]'s own doc), and an invariant that depends on two defaults staying
+     * put is not written down at all.
+     *
+     * ### Why the `halloween` theme
+     *
+     * It is the one theme that presets the flag, so this frame is a configuration a user actually
+     * reaches by choosing a theme rather than a pair of switches assembled onto an unrelated
+     * scene. It also brings the horror sky and the pumpkins with it, which is what makes the frame
+     * carry information no other golden does -- `night` and `theme-city` are the only other deep-
+     * night frames and neither is this sky, this ground or this moon.
+     *
+     * ### The clouds are off, and that is the whole of item 40 applied to the moon
+     *
+     * **Measured, not assumed: the first capture of this scene did not contain the pumpkin at
+     * all.** With the theme's default cloud band the moon is behind it — `CloudBand` puts the band
+     * at `800 * (0.06 + (0.6 - 0.42) * 0.5) = 120`, which is the top of the disc, and the band is
+     * drawn after the celestial body — so the frame came out with a faint glow above the cloud
+     * line and nothing else. That is `BACKLOG_v4_23.md` item 40's finding happening again on the
+     * other body: eight of the existing goldens are byte-blind to the sky for exactly this reason.
+     * A golden that cannot see the sprite it is named after asserts nothing about it, so the
+     * clouds are turned off here. Nothing else in the scene is arranged around the moon.
+     *
+     * ### The focus, derived
+     *
+     * At [GoldenScene.night]'s hour 1, with sunrise 6 and sunset 20, `arcT = wrap24(1 - 20) / 10 =
+     * 0.5`, so `celestialX = 0.5` and `celestialY = sin(0.5*PI) = 1`: the moon is at the apex of
+     * its arc, centred. With [PaperRenderer.CELESTIAL_MARGIN_FRACTION] 0.12 and the default
+     * `sunCloudHeight` 0.42 that puts it at
+     * `cx = 0.12*360 + 0.5*(360 - 2*0.12*360) = 180`, `cy = 0.62*800 - 0.42*800 = 160`, with
+     * `radius = 360 * 0.055 * 2 = 39.6`. The sprite is blitted at `CELESTIAL_DISC_ORIGIN_UNITS`
+     * (-120) scaled by `radius / 120`, so it covers exactly the disc's own 79.2 px square; the
+     * rectangle below is that square rounded outward.
+     *
+     * It carries the shared [SceneGolden.MAX_FOCUS_DIFFERING_FRACTION], not a derived gate: this
+     * golden pins a sprite, not a settings gate, and no tolerance is moved for it. What it adds
+     * over the whole-frame rule is the face -- the eyes, nose and grin are cut *through* the paper,
+     * so they are a few hundred pixels of sky showing through, and the frame's own budget of 576
+     * would forgive the face closing up while the disc stayed put.
+     */
+    @Test
+    fun halloweenMoon() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "halloween-moon",
+            dayPhase = GoldenScene.night(),
+            themeId = "halloween",
+            customise = {
+                it.copy(
+                    halloweenEnabled = true,
+                    moon = it.moon.copy(visible = true, realisticPhases = true),
+                    clouds = it.clouds.copy(visible = false),
+                )
+            },
+            focus = listOf(
+                GoldenFocus(140, 120, 220, 200, "the carved disc, phases on and overridden"),
+            ),
+        ),
+    )
+
     private fun weather(cloud: Float, type: PrecipitationType?, intensity: Float, storm: Boolean) =
         LiveWeatherSnapshot(
             precipitationType = type,

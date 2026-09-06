@@ -74,6 +74,15 @@ person to open either file finds the decision beside the number that justifies i
 
 ## 20 — The emulator side of item 19 is unverified
 
+> **CHIUSA IL 2026-09-05 dal pass di migrazione al dispositivo nuovo.** Questa voce chiedeva che un
+> secondo ambiente confermasse i tre golden GL, e nominava l'emulatore perché era l'unico secondo
+> ambiente immaginabile allora. Il secondo ambiente è arrivato da un'altra parte: il dispositivo di
+> test è cambiato in un **Blackview BV6600 con GPU PowerVR GE8320**. I tre golden GL, autorati
+> sull'Adreno 630, **passano**; `GlDriverGapGuardTest` misura uno spostamento dei bordi di
+> **day 0,00%, lake-busy 0,01%, thunderstorm 0,24%** contro il cancello del **3,00%** — meno dello
+> 0,92–1,18% caratterizzato fra Adreno ed emulatore. Il debito è **pagato**, non cancellato. Vedi
+> `BACKLOG_v4_22.md` voce 34.
+
 **OPEN, and deliberately small.** That the emulator will land within 0.92–1.18% of the
 device-authored goldens is a derivation from a measured symmetric gap, not an observation: it cannot
 be observed on this machine. **The first run on a machine with an emulator must confirm all three
@@ -185,6 +194,13 @@ drift from the renderer — it never agreed with the renderer, by design.
 
 ## 27 — Two ceilings, one pass: what the tree redraw spent
 
+> **RECORD STORICO DEL ONEPLUS 6T — non è lo stato corrente (marcato 2026-09-05).** Tutti i numeri
+> di questa voce vengono dal OnePlus 6T (Snapdragon 845, Adreno 630, Android 15), che non è più
+> accessibile; e il «67–68%» porta già i due qualificatori delle voci 32 e 33 (è il **thread di
+> rendering** di una **build di debug**). Sul dispositivo corrente il thread di disegno sta a
+> **42,71%** di un core e il costo per frame è **14,43 ms** su un intervallo di 33,3 ms. Vedi
+> `BACKLOG_v4_22.md` voce 34.
+
 **DOCUMENTED.** The "Quercia larga" spent margin on two different ceilings in the same release, and
 they are recorded together here because the second one is easy to discover only after the first has
 already been spent.
@@ -200,6 +216,41 @@ inside its own spread).
 protocol — same theme, same elapsed settle, same process history, and CPU summed over the package's
 **threads** rather than the pid alone — and a badly taken measurement is worse than none, because it
 becomes the number the next person quotes. If it needs re-measuring, do it properly or not at all.
+
+> **AGGIORNAMENTO 2026-09-05 — rimisurato, e il numero va letto diversamente.** Un pass di sola
+> misura ha ripreso questa cifra col protocollo che questo paragrafo chiedeva (build di debug dallo
+> ZIP verificata byte-per-byte, tema Autumn, CPU sommata sui thread da `/proc/<pid>/stat`, finestre
+> di 60 s, riscaldamento dichiarato). Esito: **il 67–68% è il costo del solo thread di rendering**
+> (`PaperScrapeGlTh`, misurato **67,50%** sulla v4.22, indistinguibile sulla v4.21), **non** del
+> processo, che sulla stessa build sta a **~108% di un core** (v4.22 108,45% su n=18; v4.21 109,00%
+> su n=10; la differenza fra le due versioni è −0,55 pt, 0,49 sd, cioè nulla di misurabile). Il
+> `Jit thread pool` a 37,22% è il resto, ed è l'artefatto di build di debug già noto. Quindi: il
+> **67–68% è ora MISURATO** ma va etichettato *thread di rendering, build di debug*; i **3–4 punti
+> fra v4.20 e v4.21 restano DICHIARATO**, perché chiuderli richiede di costruire e misurare anche
+> la v4.20. A schermo spento il processo scende a **0,12%**. Conto completo nella voce **32** di
+> `BACKLOG_v4_22.md` e in `V4_22_MISURA_CPU_REPORT.md`.
+
+> **SECONDO AGGIORNAMENTO 2026-09-05 — misurato anche su una build simil-release, ed è qui che il
+> numero va a finire.** L'audit dello spreco sul percorso GL ha costruito una build con R8 acceso e
+> `debuggable = false` (firmata col `debug.keystore` committato; la firma di release del maintainer
+> non è stata toccata) e ha rimisurato **la stessa scena, nella stessa configurazione, senza
+> strumentazione**:
+>
+> | | debug | simil-release |
+> |---|---|---|
+> | processo intero | 102,69% di un core | **27,72%** |
+> | `PaperScrapeGlTh` | 64,06% | **24,42%** |
+> | `Jit thread pool` | 33,61% | **assente** |
+>
+> **Stato attuale del numero di questa voce, detto per intero.** Il «64% → 67–68%» di questa voce è
+> **della v4.21**, è stato scritto come **DICHIARATO** e come *costo del processo*. Oggi:
+> il **67–68%** è **MISURATO** ma è il **thread di rendering di una build di debug** (voce 32,
+> riprodotto a 67,50%); il **costo del processo in debug** è ~**103–108%**; e il **costo sulla build
+> che gira sul telefono dell'utente** è **27,72% di processo / 24,42% di thread di rendering**, su
+> **un** core di otto. I **3–4 punti fra v4.20 e v4.21 restano DICHIARATO** e non sono stati
+> riprodotti: chiuderli richiede di costruire e misurare anche la v4.20, cosa che nessuno dei due
+> pass ha fatto. Conto completo nella voce **33** di `BACKLOG_v4_22.md` e in
+> `V4_22_AUDIT_SPRECO_GL_REPORT.md`.
 
 **Sprites — MISURATO in this pass, independently of the figure that was handed over.** 266 PNGs in
 `app/src/main/res/drawable-nodpi`, decoded ARGB_8888 footprint **30 254 580 B = 28,853 MiB** against

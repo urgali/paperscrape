@@ -24,6 +24,82 @@ release date will be standing.
 
 ---
 
+## v4.23 — the sky cut with scissors
+
+**Prepared, not published.** `versionCode = 54`, `versionName = "4.23"`. Prepared 2026-09-06. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.22**,
+prepared and not published either.
+
+**What it is.** One artwork family, promoted after a four-round concept pass, plus the one renderer
+change the new artwork was drawn for and the constants that had been describing the old pairing.
+
+1. **The eight celestial sprites are redrawn** from concept B, "Forbici": `sun_body`, `sun_glow`,
+   `moon_full`, `moon_gibbous`, `moon_half`, `moon_crescent`, `moon_jack_o_lantern` and
+   `star_sparkle`. The sky was the last family still drawn with a compass — smooth circles, swept
+   terminator arcs — while the rest of the scene had been cut with scissors since the V2 library.
+   The moons are 40-vertex rims with a hand-cut wobble, their terminators are cut rather than
+   arced, the sunburst is a struck ring at full opacity over a warmed halo instead of a band of
+   rays overlapping the disc, and the pumpkin moon's face is cut through the paper so the sky shows
+   through it.
+2. **The star sparkle is blitted at twice the scale** — `PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR`
+   went 32 to 16 — and the sparkle was redrawn for the size that produces. At the old scale the
+   largest sparkle was about 10 px across and its waist was ~13% of its radius, which at that size
+   is a one-pixel cross; the redraw carries a 27–31% waist, so there is a shape inside the 20 px.
+   **No star moved, none was added, and the point stars are exactly the size they were.**
+3. **The two constants and three comments that had been describing the old pairing** were
+   re-derived rather than patched: `STAR_SPRITE_{LEFT,RIGHT}_EXTENT_PX` now come from
+   `STAR_SPRITE_HALF_UNITS / STAR_SPRITE_RADIUS_DIVISOR × MAX_STAR_RADIUS_PX` = 10.5 px instead of
+   reading `MAX_STAR_RADIUS_PX` unqualified, which after the scale change would have under-reserved
+   the star field's tile range by a factor of two and clipped a sparkle at its seam. **Doubling
+   `MAX_STAR_RADIUS_PX` would have hidden the same symptom and been wrong** — the largest star is
+   the size it always was, and `regenerateStars` reads that constant.
+4. **`STAR_POINT_COLOR` is the sparkle's own cream.** Its comment said "the cream the sparkle art is
+   drawn in" while holding `#FFF6DC` against the artwork's `#FBF4E6` — four releases of an
+   invisible, and therefore uncatchable, false claim. The colour was corrected rather than the
+   sentence, and `StarFieldColourTest` now reads the one fully-opaque colour out of
+   `star_sparkle.png` and asserts the constant equals it.
+
+**What it costs.** Nothing measurable in memory: every canvas is byte-for-byte the size it was —
+240×240 (six), 396×396, 180×180 — so the decoded sprite set stays at 30 254 580 B against the 29 MiB
+ceiling, leaving the same 154 124 B of margin it had before.
+
+**Goldens.** 16 of the 24 Canvas goldens moved and were regenerated on the device that runs the
+test, each after a per-region attribution: every differing pixel in every scene lies at y ≤ 495, in
+the sky band and the sun's own region, and the four gate rectangles measure **0 differing pixels**
+on every scene. Eight were byte-identical and were not touched — the sun is behind the cloud band
+in most day scenes, which is why fewer moved than the sky redraw suggests. **The three GL goldens
+were deliberately not regenerated**: the Canvas frames of all three GL scenes (`day`, `lake-busy`,
+`thunderstorm`) are byte-identical, so nothing in those scenes changed, and `GlDriverGapGuardTest`
+still reads day 0.00% / lake-busy 0.01% / thunderstorm 0.24% against the 3% gate — the same three
+numbers as v4.22. No tolerance was moved and `SettingsGates` was not touched.
+
+5. **The "Realistic Moon Phases" switch stops lying.** `drawMoonWithPhase` has always blitted the
+   carved lantern, always full, and returned before it read `moon.realisticPhases` while Halloween
+   was on — a face that waxed and waned would be a lit fraction of a grin. The settings row did not
+   know, and stayed live and inert. It is now shown off and locked with a line saying why and where
+   to undo it, the way the cloud and precipitation rows have handled Live Weather since v3.1.
+   **The stored preference is overridden, never written**: turning Halloween off restores the
+   user's own value, per theme. The rule is `PeopleDensity.resolveNightDensity`'s — a settings
+   change may not silently alter what an existing user set up — and the single-writer property is
+   what `MoonPhaseControlTest` exists to keep true. **The renderer was not touched.**
+
+**Goldens, part two (round 2C).** One golden added, `halloween-moon`: the `halloween` theme at deep
+night with **`halloweenEnabled` and `moon.realisticPhases` both on**, which is what gives it a way
+to fail — with phases off there would be nothing for the override to ignore. Measured at the frame's
+own scale, a leak of the phase path would move 809–3 449 px against a whole-frame budget of 576.
+Its clouds are off deliberately: the first capture had the lantern behind the cloud band and
+contained no pumpkin at all, which is `BACKLOG_v4_23.md` item 40 happening live. **It is the first
+committed frame in which any celestial body is drawn clear of the cloud band** — read off the
+committed PNGs, the moon's own square is flat cloud grey in all five night goldens and no frame
+drew a sun or a moon before this one. 28 PNGs, 26 Canvas assertions, `GoldenUniquenessTest` green.
+No existing golden moved, no tolerance was touched, the three GL goldens were left alone.
+
+**What it does not change.** No persisted data, no scene geometry, no call site in the renderer: the
+eight sprites kept their canvases, their scale conventions and their anchors, so every blit origin
+in `PaperRenderer` is the number it was. No setting was added, removed or renumbered — the one
+settings change is that an existing switch is disabled while it is overridden, and nothing writes
+to it.
+
 ## v4.22 — the traffic learns to count, and the settings learn to be caught failing
 
 **Prepared, not published.** `versionCode = 53`, `versionName = "4.22"`. Prepared 2026-09-04. No

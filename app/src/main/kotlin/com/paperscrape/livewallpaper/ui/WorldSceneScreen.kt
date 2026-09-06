@@ -311,9 +311,30 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
             checked = customization.moon.visible,
             onCheckedChange = { scope.launch { prefs.setMoonVisible(it, forThemeId) } },
         )
+        // **Halloween's moon is always full, so this control says so instead of pretending.**
+        // `PaperRenderer.drawMoonWithPhase` blits `moon_jack_o_lantern` and returns before it
+        // reads `realisticPhases` while the flag is on -- the renderer's own comment carries the
+        // reason -- and until v4.23 this switch stayed live and did nothing.
+        //
+        // Shown off and locked, **and the stored preference is not touched**: nothing here writes
+        // `false`, so turning Halloween back off restores whatever the user had. The rule is
+        // `PeopleDensity.resolveNightDensity`'s -- a settings change may not silently alter what
+        // an existing user set up. See [SettingsUiModel.moonPhases], which is where the whole
+        // derivation lives so it can be read and tested without Compose.
+        val moonPhases = SettingsUiModel.moonPhases(
+            storedRealisticPhases = customization.moon.realisticPhases,
+            halloweenEnabled = customization.halloweenEnabled,
+        )
         SettingSwitchRow(
-            title = "Realistic Moon Phases", subtitle = "Show real moon phases at night",
-            checked = customization.moon.realisticPhases,
+            title = "Realistic Moon Phases",
+            subtitle = if (moonPhases.overriddenByHalloween) {
+                "Halloween's moon is a carved lantern and is always full. Turn Halloween off in " +
+                    "Seasons & decorations to set this; your choice is kept until then."
+            } else {
+                "Show real moon phases at night"
+            },
+            checked = moonPhases.shownOn,
+            enabled = moonPhases.interactive,
             onCheckedChange = { scope.launch { prefs.setMoonRealisticPhases(it, forThemeId) } },
         )
         ColorSwatchRow("Moon Color", customization.moon.color) {
