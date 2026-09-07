@@ -5,7 +5,10 @@ AI SLOP WARNING! I'm not a developer just a humble Networker. I don't know how t
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current version: v3.0 Stable**
+**Current state: v4.24 prepared, not yet published.** The most recent published release is
+**v4.23**. `ROADMAP.md` carries the current status; `RELEASE_HISTORY.md` carries what each
+release actually contained. The published list is on the repository's Releases page — it is not
+kept by hand here.
 
 ---
 
@@ -24,7 +27,7 @@ moving on its own.
   city, tundra, Easter and Halloween — with optional automatic switching by date, which
   covers every day of the year and moves Easter with the calendar. Each one's gallery card
   draws a small version of that theme's own world, so you can see what you are choosing.
-- **Custom themes.** Save your own, built on any of the ten, and keep them.
+- **Custom themes.** Save your own, built on any of the twelve, and keep them.
 - **Every part of the scene is adjustable.** Houses, buildings, trees, umbrellas,
   cars, people, hills, mountains, clouds, stars, rainbows, the lake and its boats and
   dolphins: each can be shown, hidden, thinned out, and — where the artwork allows it
@@ -48,6 +51,14 @@ moving on its own.
   or the chosen provider needs a key it does not have, it says so and falls back to the
   theme's own weather rather than quietly asking the other service.
 - **Occasional visitors.** Santa's sleigh, fireworks, lightning and birds.
+- **Traffic and shop hours.** The car count is an explicit setting rather than a curve — at
+  its lowest a single sporadic car — and the road quietens by itself at dusk. Shops, the bar
+  and the towers can be given opening hours: outside them nobody stands at the glass and the
+  windows stay dark, even at night. Houses are homes and are unaffected. The toggle is off by
+  default.
+- **Realistic moon phases**, as an optional switch. Halloween overrides it — the carved moon
+  is the theme's own — and shows the switch off and locked while that theme is showing, without
+  overwriting what you chose.
 
 ---
 
@@ -57,8 +68,10 @@ moving on its own.
 no 3D rendering, no perspective projection of geometry, no lighting model. Depth comes
 from layering, from scale, and from where a thing stands on the ground.
 
-All artwork is original and drawn for this project. Every sprite has an SVG source in
-the repository.
+All artwork is original and drawn for this project. Every drawn sprite has an SVG source in
+the repository, and the drawing language is still being revised family by family: the tree
+became a wide oak in v4.21, and the sun, the sunburst, the four moon phases, the carved
+Halloween moon and the star sparkle were redrawn in v4.23.
 
 ---
 
@@ -85,7 +98,7 @@ category. A category's on-screen size is *derived* from a declared real-world he
 the local-unit height its own drawing occupies, rather than authored per sprite, so the
 whole scene stays in proportion and scales with screen height.
 
-**Themes.** `SceneTheme`/`ThemeCatalog` hold the ten built-in palettes; `SceneCustomization`
+**Themes.** `SceneTheme`/`ThemeCatalog` hold the twelve built-in palettes; `SceneCustomization`
 holds per-category visibility, density and colours; `CustomThemeData` serialises user
 themes to JSON with a versioned schema and migrations. `SeasonalThemeRules` decides the
 automatic by-date theme.
@@ -144,6 +157,8 @@ release-notes/                     user-facing notes, one file per release
 Documentation: `ARCHITECTURE.md` (how the code works), `DESIGN_NOTES.md` (visual and
 UX decisions), `ROADMAP.md` (what is next), `RELEASE_HISTORY.md` (what shipped),
 `AI_PROJECT_RULES.md` (rules that always apply), `CHANGELOG.md` (full technical log).
+Closed backlogs and per-release reports are in `docs/archive/`, indexed by
+`docs/archive/README.md`.
 
 ---
 
@@ -188,35 +203,14 @@ uses secrets held in the repository settings and never present in the source tre
 Tags are `vMAJOR.MINOR` and must equal `versionName` in `app/build.gradle.kts`; the
 workflow checks that before it builds anything. `versionCode` is Android's own install
 counter and simply increments by one each release — it is deliberately not tied to the
-tag, because the two answer different questions:
+tag, because the two answer different questions.
 
-| Tag | `versionName` | `versionCode` |
-|---|---|---|
-| `v1.0` | `1.0` | 1 |
-| `v1.1` | `1.1` | 2 |
-| `v2.0` | `2.0` | 4 |
-| `v2.1` | `2.1` | 5 |
-| `v2.2` | `2.2` | 6 |
-| `v2.3` | `2.3` | 7 |
-| `v2.4` | `2.4` | 8 |
-| `v2.5` | `2.5` | 9 |
-| `v2.6` | `2.6` | 10 |
-| `v2.7` | `2.7` | 11 |
-| `v2.8` | `2.8` | 12 |
-| `v2.9` | `2.9` | 13 |
-| `v2.10` | `2.10` | 14 |
-| `v2.11` | `2.11` | 15 |
-| `v2.12` | `2.12` | 16 |
-| `v2.13` | `2.13` | 17 |
-| `v2.14` | `2.14` | 18 |
-| `v2.15` | `2.15` | 19 |
-| `v2.16` | `2.16` | 20 |
-| `v3.0` | `3.0` | 21 |
+The full tag-to-version mapping is not kept here by hand — `git tag --list 'v*' | sort -V`
+and `RELEASE_HISTORY.md` are the answer, and a table maintained in a README goes stale.
 
-Every release is published as latest. There is no pre-release tag form yet; one will
-be added when it is needed. v3.0 is the current stable release. The `versionCode`
-counter only has to increase, not to be contiguous — 3 is unused because no v1.2 was
-ever released.
+Every release is published as latest. There is no pre-release tag form yet; one will be added
+when it is needed. The `versionCode` counter only has to increase, not to be contiguous — 3 is
+unused because no v1.2 was ever released.
 
 ---
 

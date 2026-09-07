@@ -24,6 +24,90 @@ release date will be standing.
 
 ---
 
+## v4.24 — the documentation made readable, and made to say what is true
+
+**Prepared, not published.** `versionCode = 55`, `versionName = "4.24"`. Prepared 2026-09-07. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.23**, which
+**is** published — read from the public GitHub API on 2026-09-07, along with v4.20, v4.21 and
+v4.22, all non-draft and each carrying its APK and checksum.
+
+**What it is.** A documentation review, and the only executable change in it is the two lines of
+`app/build.gradle.kts` that carry the version. No Kotlin, no resource, no sprite, no golden and no
+test was touched.
+
+### What the user gets
+
+Nothing. No artwork, no setting and no behaviour changes, and `release-notes/v4.24.md` says so in
+three sentences.
+
+This release was planned around a cumulative v4.20 → v4.24 note, on the premise that those four
+releases had never been published and that their notes would therefore never reach anybody. **The
+premise was false**, and reading the public GitHub API is what settled it: v4.20 through v4.23 are
+published, non-draft releases with APKs and checksums, dated 2026-09-03 to 2026-09-06. A user
+behind v4.23 already receives those notes, because `UpdateChecker` combines every published
+release newer than theirs. Publishing a cumulative note would have told every user that four
+releases they can see on the Releases page do not exist.
+
+The mistake is worth recording because it is the same one this release exists to fix: `ROADMAP.md`
+had said "the last release the maintainer reports as published is v4.19" since the day that was
+true, nothing in the working tree learns otherwise, and the claim was then read out of the document
+and acted on. The status documents now carry the command that re-reads the Releases API instead.
+
+### What changed in the documentation
+
+- **The mandatory reading list went from 148 824 words to 13 272** (`CLAUDE.md`, `ROADMAP.md`,
+  `AI_PROJECT_RULES.md`, `README.md`). `ARCHITECTURE.md` and `DESIGN_NOTES.md` became *conditional*
+  reads — obligatory before touching code and before touching anything drawn, respectively — and
+  `RELEASE_HISTORY.md` a targeted consultation. Across the whole markdown set only about two
+  thousand words were deleted; the rest moved.
+- **`docs/archive/`** now holds the three closed backlogs, the four `V4_22_*` and seven `V4_23_*`
+  reports, `SANTA_CROP_REPORT.md`, and `ROADMAP_HISTORY.md` — the release-by-release account
+  extracted from `ROADMAP.md`. `docs/archive/README.md` indexes them. **No source file was edited
+  to follow them**: the citations in Kotlin and in the asset tooling are bare file names, not
+  paths, so the index is what resolves them.
+- **Three rules were added to `AI_PROJECT_RULES.md` §14.** 14.9: one report per release, not one
+  per phase — v4.23 produced seven, 27 300 words, for a delta of eight sprites, two constants and
+  one golden. 14.10: no document may contain a paragraph correcting another paragraph of the same
+  document. 14.11: where a number decays, write the command that recomputes it.
+- **12.3 was rewritten rather than annotated.** It had claimed an Android emulator was available,
+  in a paragraph that was itself a correction appended to an earlier wrong one — the exact failure
+  14.10 now forbids. There is no emulator installed; verification runs on a physical device.
+- **Stale counts were replaced by the commands that produce them.** `CLAUDE.md` had said 688 tests
+  (the suite runs 1 340) and 148 instrumented (there are 149); `ARCHITECTURE.md` had said 1 085
+  tests, 132 `person_*` sprites (there are 166), and 0 compiler warnings (there are 19). Its sprite
+  inventory table and its verified-build table are now a command plus, where a run is genuinely
+  being recorded, one dated generation of figures.
+- **`DESIGN_NOTES.md` sections 16-30 were regrouped.** They had accumulated one lesson per pass in
+  chronological order, which made them unconsultable. Each is now a subsection of the thematic
+  section it belongs to — silhouettes and outlines under §2, the stateless splash under §10, window
+  sizing under §9, measurement-before-argument under §14 — and the six weather lessons and two
+  theme-switch lessons became §17 and §16, which did not exist. **No sentence was rewritten**: a
+  line-by-line diff shows zero lines lost.
+- **D1-D5 have one home.** `CLAUDE.md` duplicated the pending-decision list, which is how it came
+  to carry D4 marked answered while `DESIGN_NOTES.md` §12 still called it open. §12 is now the only
+  copy: D2 was added there (it had never been recorded), D4's measurement moved in, and `CLAUDE.md`
+  §8 is a pointer.
+- **`README.md`** states v4.24 prepared, says twelve built-in themes in the two places it had said
+  ten, covers the v4.20-v4.23 features it was missing, and no longer keeps a tag table by hand.
+
+### Verification
+
+Level 3. `testDebugUnitTest` **1 340 tests, 0 failures, 0 errors, 0 skipped**; `lintDebug`
+**29 issues, 0 errors, 0 fatal**; `assembleDebug` **BUILD SUCCESSFUL**, `app-debug.apk` 21.58 MB;
+and the same from a clean extraction of the delivery ZIP. Nineteen pre-existing Kotlin compiler
+warnings are recorded rather than silenced, and are `BACKLOG_v4_24.md` item 2.
+
+**The instrumented suite was deliberately not run.** The only executable change is two integers in
+the version block, which cannot reach anything drawn; the last instrumented run is v4.23 round 2C,
+149 of 149. That is a reasoned omission, not a gap.
+
+### Known limitations carried forward
+
+Everything `BACKLOG_v4_23.md` leaves open is untouched. What this pass found and did not fix is
+`BACKLOG_v4_24.md`.
+
+---
+
 ## v4.23 — the sky cut with scissors
 
 **Prepared, not published.** `versionCode = 54`, `versionName = "4.23"`. Prepared 2026-09-06. No

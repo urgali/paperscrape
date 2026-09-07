@@ -581,24 +581,24 @@ existed last time may be absent now.
 SDK, build tools, Gradle, and any analysis tool to be used. Install only what is
 genuinely necessary and compatible.
 
-12.3. **Never describe as observed anything that was not observed.** The rule is
-unchanged; what it says about the environment is not.
+12.3. **Never describe as observed anything that was not observed.**
 
-**An Android emulator is available** and has been used for real verification
-since v3.0 — golden suites, the P2-5 allocation measurement, the v3.7 GL
-region thresholds under two different GL drivers, and runtime passes through
-MCP. This paragraph said *"No emulator or device is available in this
-environment"* from before that was arranged until v3.7, which was false for
-five releases and risked a session reading it and skipping verification it
-could have done. Corrected here rather than left as a footnote in `ROADMAP.md`.
+**Real verification runs on a physical device, and there is no emulator.** As of
+2026-09-07 this machine has a **Blackview BV6600** attached over `adb` and **no
+`emulator` package, no system-image and no AVD** — `/dev/kvm` is present, so the
+obstacle is the missing packages rather than virtualisation. Golden suites,
+allocation measurements and GL region thresholds all run on the device.
 
-What still holds, and is the actual point of the rule:
+What the rule requires:
 
-- **Check, in the current session, that the emulator is really there.** The
-  environment is not guaranteed; `adb devices` costs nothing.
-- **An emulator is not a phone.** Battery, thermal and tactile behaviour are
-  *never* Claude-verified whatever is running, and a software rasteriser is not
-  a GPU. State those as outstanding.
+- **Check, in the current session, what is actually attached.** `adb devices`
+  costs nothing, and nothing about the environment is guaranteed between sessions.
+- **Neither an emulator nor a borrowed handset is the user's phone.** Battery,
+  thermal and tactile behaviour are *never* Claude-verified whatever is running,
+  and a software rasteriser is not a GPU. State those as outstanding.
+- **A measurement belongs to the hardware it was taken on.** When the device
+  changes, earlier numbers become historical: cite them with their device and
+  date, and do not A/B against hardware that is no longer available.
 - Everything else — what is drawn, what is logged, what a test reports — is
   observable, and where it was observed it must be labelled `verified` with the
   device it was seen on, and where it was not, it must not be.
@@ -814,6 +814,12 @@ approval before any modification.
 pre-release plan, which had been superseded phase by phase and was no longer
 consulted; `RELEASE_HISTORY.md` carries the reasoning that still matters.
 
+Documents that have stopped being current live in **`docs/archive/`**, indexed by
+`docs/archive/README.md`. Source comments and older documents cite them by bare
+file name, which still resolves — the index says where each one went, and moving
+a document into it is therefore not a reason to edit source. Closed backlogs and
+per-release reports belong there; the open backlog and the six documents above
+stay in the repository root.
 
 14.2. **When a new decision changes an existing rule, edit the existing rule.**
 Never append a contradictory instruction alongside it.
@@ -850,6 +856,44 @@ The authoritative state must be stored in the repository/project files, not in
 conversation history. Before a release is considered complete, the assistant
 must verify that the next session can be started using the release ZIP and the
 documented project state.
+
+14.9. **One pass produces one report, and it is the release's report.** Not one
+per phase, not one per round, not one per checkpoint. v4.23 produced seven
+documents totalling 27 300 words for a delta of eight sprites, two constants and
+one golden, and no reader can be expected to hold that. A mid-pass checkpoint is
+a section of the eventual report, or a message to the maintainer; it is not a
+file. Where several documents already exist for one release, they are archived
+together rather than merged.
+
+14.10. **No document may contain a paragraph that corrects another paragraph of
+the same document.** 14.2 says to edit the rule rather than append a contradictory
+one; this is the same requirement applied to a document's own body, and it is the
+failure mode that is easiest to talk yourself into, because appending the
+correction feels like keeping a record. It is not: it leaves two statements
+standing, and a reader who stops at the first one is misled. **Replace the text.**
+If the superseded version has value as history, it goes to `docs/archive/` or to
+`RELEASE_HISTORY.md`, with the date and the reason — not into the paragraph next
+to the one that replaced it.
+
+14.11. **Where a number decays, write the command that recomputes it.** An
+inventory count — tests, sprites, goldens, call sites — is a measurement that
+stops being true the moment the code changes, and a stale one is worse than no
+number because it is quoted with confidence. `CLAUDE.md` claimed **688 tests**
+when the sources held **1 340**, and **148** instrumented tests where there are
+**149**; the golden count has been wrong three times, once by listing a directory
+that contains two kinds of file. A one-liner cannot go stale. Where a number
+genuinely must stay written down — a measurement, an experiment, something that
+was true of a run rather than of the tree — record it **with its date and the
+device it was taken on**, and keep exactly one generation of it. Superseded
+generations go to the report that measured them.
+
+**A date is not enough for an inventory count.** `BACKLOG_v4_21.md` reached the
+weaker version of this rule — "a count is safe if it carries when it was measured
+*or* the command that reproduces it" — and left "688 tests … as of v2.16" standing
+because it was dated. It then survived twenty more releases, because a reader
+opening a document today reads the number, not the date on it. For anything the
+tree can be asked directly — tests, sprites, goldens, call sites — the command is
+the only acceptable form.
 
 ---
 

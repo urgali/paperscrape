@@ -88,6 +88,74 @@ parts beyond that has historically made things look worse, not better.
 
 ---
 
+
+### Silhouettes are judged at the size they are drawn, not at the size they are authored
+
+
+`bird_body` read as a bat for as long as it shipped: a sharp elbow in the leading edge, broad
+wing roots, and a head circle sitting apart from the body — the three things that separate a bat
+from a gull, all present at once. The gull that replaced it has smooth tapered wings sweeping
+back to a point, a head continuous with the body, and a wedge of tail.
+
+Its geometry could not change while its look did. The wing-flap is a **vertical mirror of the
+coordinate frame**, so the body has to sit on y=0 and the wings above it; the redraw kept the
+canvas, the viewBox and that axis exactly, and only the shapes moved.
+
+**The before/after mockup is what caught the dolphin redraw's real defect.** The first version
+put the flukes and the head at the same end — the sprite is drawn inside a mirrored group, and
+the eye had been left at low x, matching the original, while the flukes were moved there too.
+An animal with two tails and no face, and it would have shipped. Artwork changes get a mockup
+for this reason and not as ceremony.
+
+
+### What actually separates a gull from a bat
+
+
+Three things, and it took all three to fix it: notches under each wing that read as claws, a
+hard elbow in the leading edge over broad wing roots, and a head sitting apart from the body.
+Any one alone might have passed. The gull has long tapered wings drawn to a point, a body and
+head in one piece, and a tail that narrows away rather than forking.
+
+**Before touching an animal, read the library's rule off the animals already in it.**
+`bunny_body` and `penguin_body` gave it: three to seven shapes, large primitives, flat tints,
+no outline, almost no interior detail. That rule is also what finally fixed the dolphin —
+nine iterations of trying to carry the whole animal in one outline, and what worked was
+building it the way the bunny is built, a circle for the melon and a wedge for the beak with
+a fusiform body over them.
+
+**Judge it at the size it ships.** The gull is 90 px wide on screen and the dolphin about 48;
+a sprite that only reads at 345 px has not been checked.
+
+
+### An outline goes outside, and is judged over a sequence
+
+
+v2.5's readability edge was clipped to the inside of every shape, which made its thickness a
+function of what each shape happened to overlap. Standing still it looked right. Walking, the band
+appeared and vanished between frames as the arms and legs moved the overlaps — **and every test
+passed, because every test looked at one sprite and the defect only exists across three.**
+
+The replacement draws the whole sprite a second time underneath itself, filled and stroked in the
+outline colour: overlapping strokes merge into one contour, the normal fills hide the internal
+seams, and what is left is a continuous band of one width around the union of the artwork. It
+depends on the union and on nothing else, which is exactly why it is stable.
+
+**Two treatments, because two classes of sprite reach the screen by different arithmetic.** A
+fixed-art sprite carries a dark edge directly. A tintable one cannot: the runtime multiplies it by
+the user's colour, so it must stay a colourless mask, and its edge is a light neutral grey that
+`MULTIPLY` turns into a darker version of whatever colour was chosen. Not a special case — the
+same intent expressed in the only form each class can hold.
+
+**An outer outline grows the silhouette by half the stroke on every side.** That is what makes it
+outer, and it is handled the way a crop is: re-measure the registry, let the anchors follow, move
+the origins that depend on them.
+
+**Anything with frames is verified over its frames.** `test_outline.py` asserts across a walk
+cycle, not within a sprite: one colour for the cycle, the band all the way round each frame, and a
+thickness that cannot vary more than a few percent between them.
+
+---
+
 ## 3. Tintable vs. fixed-art **[OBSERVED]**
 
 This is the single most useful rule the project has established for asset
@@ -919,6 +987,52 @@ Halloween show night. Everything else shows its day palette.
 
 ---
 
+
+### A settings screen is sized to its window, not to the display
+
+
+**[MEASURED — Pixel 9, Android 16, gesture navigation, 1080x2424 at 2.625x]**
+
+The last row of a scrolled-to-the-bottom settings screen was cut off. It had been treated twice as
+a spacing problem, and twice it survived the fix, because it was never one.
+
+Every settings destination is a full-screen `Dialog`. `dumpsys window` reports:
+
+```
+mAttrs={(0,0)(1079x2423) gr=CENTER ... fitTypes=statusBars navigationBars captionBar systemOverlays}
+Frames: frame=[0,142][1079,2361]
+```
+
+The window's frame is **2219 px** — the display less the status bar (142 px) and the gesture bar
+(63 px), which is correct and is what `fitTypes` promises. But its layout parameters ask for
+**2423 px**, because with `usePlatformDefaultWidth = false` Compose measures a dialog's content
+against the display rather than against that frame. `Modifier.fillMaxSize()` therefore laid out
+204 px of content below the window's own bottom edge, where the window clipped it.
+
+So the last rows were never under the gesture bar. They were **outside the window**, and no
+trailing spacer inside the scrolling content can move something back into a window it has already
+overflowed. It also explains the symptom precisely: scrolling did reach the end of the content,
+and the end of the content was off-window.
+
+The corroborating measurement, from inside the dialog: `WindowInsets.safeDrawing` reports **0 px on
+every edge** — which is right, the window already fits the bars — while the same UI hosted by the
+activity reports 63 px at the bottom. Two windows, two correct answers, and content sized against
+the wrong one.
+
+**The rule, from v2.14.** A settings destination's content is given the height of the area its
+window occupies: the display less the insets the *activity* measures, since the activity's window
+does cover the display and does report them. The scaffold inside reserves the dialog's own insets,
+which are zero exactly when the window is already inside the bars — and are real values on a
+device whose dialog window is full-bleed instead, so both arrangements are handled without asking
+which one applies. The trailing spacer goes back to being 24 dp of breathing room, a constant,
+carrying no inset at all.
+
+**Verified by scrolling to the end and reading the position off the accessibility tree**, not by
+eye: the last row of Weather & time moved from y = 2380 — inside the gesture bar's 2361–2424 band
+— to y = 2238.
+
+---
+
 ## 10. Rendering rules **[OBSERVED]**
 
 1. **Pre-render, then blit.** Objects are drawn as cached bitmap blits, not by
@@ -956,6 +1070,42 @@ Halloween show night. Everything else shows its day palette.
    moon) is bounded instead, so it stays in the viewport and never leaves,
    duplicates or pops. Wrapping a layer's shift without also tiling its content
    only moves the single copy off screen and snaps it back.
+
+---
+
+
+### The dolphin's splash is derived from the leap, not remembered across frames
+
+
+The leap is a sine and the animal is drawn only while it is positive, so re-entry is exactly
+where that angle, read as a position in a 0..1 cycle, passes half. The splash occupies a short
+window after that instant, and the frame and the fade come from where the current frame lands
+inside it.
+
+**Nothing is stored.** A "was it above water last frame" flag would need allocating per
+dolphin, keeping across a surface change and a visibility pause, and would be wrong for one
+frame every time the wallpaper resumes mid-leap. Deriving it is correct at exactly the seams
+where remembering it is not.
+
+The splash is scaled by the same factor as the animal that made it, so a distant dolphin throws
+a small one and a near one a bigger, and the two can only ever be wrong together.
+
+
+### The splash fires on both crossings, and still keeps no state
+
+
+The leap is a sine and the animal is above water for the first half of every turn of its
+angle, so as a position in a 0..1 cycle the two crossings are the two ends of that half: out
+at 0, in at 0.5. Each opens a short window, and the two cannot overlap because the window is a
+small fraction of half a cycle.
+
+**One splash per crossing, not one per phase change.** A frame inside a window draws the burst
+at the size and opacity its position calls for; a frame outside both draws nothing. Nothing
+accumulates, nothing trails the animal across the lake, and a dropped frame costs a frame of
+the effect rather than the whole event.
+
+Drawn after the animal, so on the way out it rises up through its own splash. On the way back
+in there is nothing left to cover, so the order costs nothing there.
 
 ---
 
@@ -1015,10 +1165,39 @@ These require explicit maintainer approval before modification.
 | # | Question | Status | Blocks |
 |---|---|---|---|
 | D1 | Contradiction between the README's legal note and provenance statements in source comments | **Deferred by the maintainer.** Recorded, no action taken. | README rewrite; reference-usage rule wording |
+| D2 | Should the summer and winter head sprites actually differ? They are currently byte-identical, and a variant group that declares a distinction its bytes do not carry is the thing `validate` exists to catch. | Open | Seasonal person artwork |
 | D3 | Do people become a fully customisable category (visibility + density + colours) or remain ambient with a single toggle? | Open | People integration |
-| D4 | Is decision #4's colour-fidelity trade-off acceptable on a real device? Never confirmed visually. | Open | Any tint-related work |
+| D4 | ~~Is decision #4's colour-fidelity trade-off acceptable on a real device?~~ | **ANSWERED — yes**, by measurement rather than judgement. See below. | — |
 | D5 | Dependency upgrade window — before or after the rendering work? | Open | Dependency refresh |
 | D7 | The V2 classification retires four user-visible colour behaviours: **Sun Color** no longer reaches the disc or the sunburst, the theme's star colour no longer reaches the sparkle, **Fall Colors** no longer reaches palm fronds, and skyscraper windows no longer light per building. All four are consequences of the artwork carrying its own colours, and none is to be recovered by tinting the new art. **Needs a device look**: if the fixed sun or the fixed palm reads wrong against a given theme, the answer is new artwork, or restoring a mask for that one sprite. | **Partly closed at v4.12** — the skyscraper window is the one case that was answered, and it was answered the way this row anticipated: `skyscraper_wall_lit` was regenerated as a mask and is tinted again, so the tower's windows are cool by day and warm at night like every other window. The sun, the star sparkle and the palm fronds are untouched and this row stays open for them. | Any change to `sun_body`, `sun_glow`, `star_sparkle`, `palmtree_fronds`, `skyscraper_wall_lit` |
+
+#### D4, answered: the `MULTIPLY` tint reads, and saturated colours are not the weak case
+
+**ANSWERED, and the answer is yes.** Measured, not judged: under `MULTIPLY` the skyscraper
+window grid is authored as grey 234 on a 255/244 wall, so a window is always 8.2% darker than
+its wall *in proportion*. Converting that to CIELAB against real tints gives the contrast the
+eye actually gets:
+
+| tint | ΔL* wall vs window |
+|---|---|
+| white / very light | 7.3 / 7.0 |
+| neutral grey `#808080` | 4.2 |
+| **saturated red `#E53935`** | **4.1** |
+| pure red / pure blue | 4.4 / 3.0 |
+| the Big City theme's own default `#454B57` | 2.7 |
+| very dark `#1A1A2E` | 1.2 |
+
+A just-noticeable difference is around ΔL* 1. **Saturated colours are not the weak case** --
+they land at 4.1, well above the theme's own shipped default of 2.7 -- and this was confirmed on
+the emulator: at `#E53935` the window grid reads clearly. The only regime that loses the grid is
+a *very dark* tint, which is inherent to multiplying and is arguably the right look for a dark
+building at midday. Do not "fix" this with an asset change; it would harden the light end, which
+is fine, to rescue a dark end that is behaving as designed.
+
+**v4.12 did change `skyscraper_wall_lit`, and it is not this.** That change made the tower's
+window grid a white mask so the renderer could tint it cool by day and warm at night, which is a
+question about *what colour a window is* and had nothing to do with contrast. The wall's own
+baked grid, the one measured above, is untouched and the guidance here still stands.
 
 ---
 
@@ -1069,222 +1248,9 @@ about whether a change is visually significant, treat it as significant.
 
 ---
 
-## 15. General consistency rule
 
-Every new asset, visual change or UI component must be evaluated **against the
-existing visual system as a whole**, never in isolation. An object that looks
-correct alone but wrong beside its neighbours is wrong.
+### A measurement, where one exists, is the answer
 
-When a new decision changes an existing rule, **edit the existing rule**. Never
-leave two contradictory instructions in this document.
-
-## 16. Halloween: two flags, and a moon that is carved rather than painted
-
-**Halloween and the horror sky are separate switches.** A decoration layer and a palette are
-different statements, and every combination of the two is a scene somebody might want: bare
-trees under an ordinary night sky, an ordinary scene under a lurid orange one, both, or
-neither. Tying them together would repeat exactly what winter and Christmas were split to
-undo — for a whole release "winter" and "Christmas" were synonyms, and nothing failed, because
-each was internally consistent and the defect was only visible as a scene you could not reach.
-
-Neither flag touches winter, Christmas, New Year or the fall palette, in either direction.
-
-**Halloween does two things and no more.** The moon becomes `moon_jack_o_lantern`; every tree
-drops its canopy for `tree_dead_branches`. The pumpkins keep their own switch, for the same
-reason Santa keeps his: one thing with two controls that can disagree is worse than two things
-with one each. The snow cap and the Christmas lights are not disabled by it — they simply have
-nothing to draw on a tree with no foliage.
-
-**The moon's face is cut out of the disc, not laid on top of it.** One `fill-rule="evenodd"`
-path, so the sky shows through the eyes, the nose and the grin. Painting the face in a second
-colour would have been easier and would have stopped reading at around 90 px; the moon is
-drawn at roughly 48. This is the same paper-cutout move the rest of the library makes, and it
-is what makes the shape survive being small. The carved face is always full: a jack-o'-lantern
-that waxed and waned would be a lit fraction of a grin, which reads as a rendering fault.
-
-**The horror sky overrides the user's six sky colours rather than editing them**, so switching
-it off gives the palette back untouched. It keeps the day/night blend, because a sky that never
-changed would stop the sun and the moon meaning anything — but it holds the whole range between
-near-black overhead and one saturated orange at the horizon. Two flat paper tones with a
-gradient between them; nothing photographic.
-
-## 17. The dolphin's splash is derived from the leap, not remembered across frames
-
-The leap is a sine and the animal is drawn only while it is positive, so re-entry is exactly
-where that angle, read as a position in a 0..1 cycle, passes half. The splash occupies a short
-window after that instant, and the frame and the fade come from where the current frame lands
-inside it.
-
-**Nothing is stored.** A "was it above water last frame" flag would need allocating per
-dolphin, keeping across a surface change and a visibility pause, and would be wrong for one
-frame every time the wallpaper resumes mid-leap. Deriving it is correct at exactly the seams
-where remembering it is not.
-
-The splash is scaled by the same factor as the animal that made it, so a distant dolphin throws
-a small one and a near one a bigger, and the two can only ever be wrong together.
-
-## 18. Silhouettes are judged at the size they are drawn, not at the size they are authored
-
-`bird_body` read as a bat for as long as it shipped: a sharp elbow in the leading edge, broad
-wing roots, and a head circle sitting apart from the body — the three things that separate a bat
-from a gull, all present at once. The gull that replaced it has smooth tapered wings sweeping
-back to a point, a head continuous with the body, and a wedge of tail.
-
-Its geometry could not change while its look did. The wing-flap is a **vertical mirror of the
-coordinate frame**, so the body has to sit on y=0 and the wings above it; the redraw kept the
-canvas, the viewBox and that axis exactly, and only the shapes moved.
-
-**The before/after mockup is what caught the dolphin redraw's real defect.** The first version
-put the flukes and the head at the same end — the sprite is drawn inside a mirrored group, and
-the eye had been left at low x, matching the original, while the flukes were moved there too.
-An animal with two tails and no face, and it would have shipped. Artwork changes get a mockup
-for this reason and not as ceremony.
-
-## 19. The Halloween theme presets its two switches without coupling them
-
-`ThemeCatalog` had ten themes and none was Halloween, so there was nowhere to preset anything
-until the eleventh was written. Its own palette — bruised violet overhead, low amber at the
-horizon — matters even though `horrorSkyEnabled` overrides it the moment the theme is chosen:
-**it is what comes back when the user turns the horror sky off**, and a Halloween theme with
-both switches off still has to look like something.
-
-The theme's defaults set `halloweenEnabled`, `horrorSkyEnabled` and the pumpkins. **Presetting
-is not coupling.** It seeds a starting value the way every other theme seeds
-`winterColorsEnabled` or `parasols.visible`; neither flag reads the other, here or anywhere,
-and a test starts from the theme's own defaults and turns each off in turn to prove the other
-survives. Winter, Christmas and the fall palette are untouched: bare branches are not a
-snowfall, October is not December, and bare branches are not autumn leaves either.
-
-The pumpkins joined it rather than being excused from the rule. `BuiltInThemeCoherenceTest`'s
-"pumpkins stay in autumn" became "pumpkins stay in the two themes that are about pumpkins",
-and asserts both directions.
-
-## 20. What actually separates a gull from a bat
-
-Three things, and it took all three to fix it: notches under each wing that read as claws, a
-hard elbow in the leading edge over broad wing roots, and a head sitting apart from the body.
-Any one alone might have passed. The gull has long tapered wings drawn to a point, a body and
-head in one piece, and a tail that narrows away rather than forking.
-
-**Before touching an animal, read the library's rule off the animals already in it.**
-`bunny_body` and `penguin_body` gave it: three to seven shapes, large primitives, flat tints,
-no outline, almost no interior detail. That rule is also what finally fixed the dolphin —
-nine iterations of trying to carry the whole animal in one outline, and what worked was
-building it the way the bunny is built, a circle for the melon and a wedge for the beak with
-a fusiform body over them.
-
-**Judge it at the size it ships.** The gull is 90 px wide on screen and the dolphin about 48;
-a sprite that only reads at 345 px has not been checked.
-
-## 21. The splash fires on both crossings, and still keeps no state
-
-The leap is a sine and the animal is above water for the first half of every turn of its
-angle, so as a position in a 0..1 cycle the two crossings are the two ends of that half: out
-at 0, in at 0.5. Each opens a short window, and the two cannot overlap because the window is a
-small fraction of half a cycle.
-
-**One splash per crossing, not one per phase change.** A frame inside a window draws the burst
-at the size and opacity its position calls for; a frame outside both draws nothing. Nothing
-accumulates, nothing trails the animal across the lake, and a dropped frame costs a frame of
-the effect rather than the whole event.
-
-Drawn after the animal, so on the way out it rises up through its own splash. On the way back
-in there is nothing left to cover, so the order costs nothing there.
-
-## 22. An outline goes outside, and is judged over a sequence
-
-v2.5's readability edge was clipped to the inside of every shape, which made its thickness a
-function of what each shape happened to overlap. Standing still it looked right. Walking, the band
-appeared and vanished between frames as the arms and legs moved the overlaps — **and every test
-passed, because every test looked at one sprite and the defect only exists across three.**
-
-The replacement draws the whole sprite a second time underneath itself, filled and stroked in the
-outline colour: overlapping strokes merge into one contour, the normal fills hide the internal
-seams, and what is left is a continuous band of one width around the union of the artwork. It
-depends on the union and on nothing else, which is exactly why it is stable.
-
-**Two treatments, because two classes of sprite reach the screen by different arithmetic.** A
-fixed-art sprite carries a dark edge directly. A tintable one cannot: the runtime multiplies it by
-the user's colour, so it must stay a colourless mask, and its edge is a light neutral grey that
-`MULTIPLY` turns into a darker version of whatever colour was chosen. Not a special case — the
-same intent expressed in the only form each class can hold.
-
-**An outer outline grows the silhouette by half the stroke on every side.** That is what makes it
-outer, and it is handled the way a crop is: re-measure the registry, let the anchors follow, move
-the origins that depend on them.
-
-**Anything with frames is verified over its frames.** `test_outline.py` asserts across a walk
-cycle, not within a sprite: one colour for the cycle, the band all the way round each frame, and a
-thickness that cannot vary more than a few percent between them.
-
----
-
-## 23. A settings screen is sized to its window, not to the display
-
-**[MEASURED — Pixel 9, Android 16, gesture navigation, 1080x2424 at 2.625x]**
-
-The last row of a scrolled-to-the-bottom settings screen was cut off. It had been treated twice as
-a spacing problem, and twice it survived the fix, because it was never one.
-
-Every settings destination is a full-screen `Dialog`. `dumpsys window` reports:
-
-```
-mAttrs={(0,0)(1079x2423) gr=CENTER ... fitTypes=statusBars navigationBars captionBar systemOverlays}
-Frames: frame=[0,142][1079,2361]
-```
-
-The window's frame is **2219 px** — the display less the status bar (142 px) and the gesture bar
-(63 px), which is correct and is what `fitTypes` promises. But its layout parameters ask for
-**2423 px**, because with `usePlatformDefaultWidth = false` Compose measures a dialog's content
-against the display rather than against that frame. `Modifier.fillMaxSize()` therefore laid out
-204 px of content below the window's own bottom edge, where the window clipped it.
-
-So the last rows were never under the gesture bar. They were **outside the window**, and no
-trailing spacer inside the scrolling content can move something back into a window it has already
-overflowed. It also explains the symptom precisely: scrolling did reach the end of the content,
-and the end of the content was off-window.
-
-The corroborating measurement, from inside the dialog: `WindowInsets.safeDrawing` reports **0 px on
-every edge** — which is right, the window already fits the bars — while the same UI hosted by the
-activity reports 63 px at the bottom. Two windows, two correct answers, and content sized against
-the wrong one.
-
-**The rule, from v2.14.** A settings destination's content is given the height of the area its
-window occupies: the display less the insets the *activity* measures, since the activity's window
-does cover the display and does report them. The scaffold inside reserves the dialog's own insets,
-which are zero exactly when the window is already inside the bars — and are real values on a
-device whose dialog window is full-bleed instead, so both arrangements are handled without asking
-which one applies. The trailing spacer goes back to being 24 dp of breathing room, a constant,
-carrying no inset at all.
-
-**Verified by scrolling to the end and reading the position off the accessibility tree**, not by
-eye: the last row of Weather & time moved from y = 2380 — inside the gesture bar's 2361–2424 band
-— to y = 2238.
-
----
-
-## 24. Two weather providers, and no silent substitution
-
-Live Weather can fetch from Open-Meteo, WeatherAPI.com or OpenWeather. The choice is the user's and the app
-does not revise it: if the selected provider fails, the failure is reported and the selection
-stands. Quietly answering with the other service would make "which provider am I using"
-unanswerable, and the existing behaviour on failure — keep the last good reading, and otherwise
-let the theme's own weather run — is already the right one.
-
-The two differ in one way that reaches the UI. Open-Meteo has a keyless free tier, so a blank key
-is a working state and the key screen says "optional". Neither alternative has one, so a blank key is
-a **configured state with a name**: the provider stays selected, the settings screen says a key is
-required, and **no request is made** — an app that sends a call it knows will be rejected has
-spent a round trip to learn nothing and reports it as a network problem.
-
-Status is reported as one of six states rather than the single "running on the theme's own
-weather" flag v2.13 had, because with a key involved the reasons now need different answers from
-the user: a missing key is one tap from fixed, a dropped request is something to wait out, and a
-dropped request with an earlier reading still on screen is not a fallback at all.
-
----
-
-## 25. A measurement, where one exists, is the answer
 
 **[MEASURED — clean Android 17 emulator, live Open-Meteo, Florence 43.77925 / 11.24626]**
 
@@ -1320,7 +1286,106 @@ under them.
 
 ---
 
-## 26. Live Weather drives both layers, or neither
+## 15. General consistency rule
+
+Every new asset, visual change or UI component must be evaluated **against the
+existing visual system as a whole**, never in isolation. An object that looks
+correct alone but wrong beside its neighbours is wrong.
+
+When a new decision changes an existing rule, **edit the existing rule**. Never
+leave two contradictory instructions in this document.
+
+---
+
+## 16. Themes and their switches
+
+A theme is a palette plus a set of switch positions, and the two are separable. What a theme
+presets, and what a flag is allowed to override, is decided here.
+
+### Halloween: two flags, and a moon that is carved rather than painted
+
+
+**Halloween and the horror sky are separate switches.** A decoration layer and a palette are
+different statements, and every combination of the two is a scene somebody might want: bare
+trees under an ordinary night sky, an ordinary scene under a lurid orange one, both, or
+neither. Tying them together would repeat exactly what winter and Christmas were split to
+undo — for a whole release "winter" and "Christmas" were synonyms, and nothing failed, because
+each was internally consistent and the defect was only visible as a scene you could not reach.
+
+Neither flag touches winter, Christmas, New Year or the fall palette, in either direction.
+
+**Halloween does two things and no more.** The moon becomes `moon_jack_o_lantern`; every tree
+drops its canopy for `tree_dead_branches`. The pumpkins keep their own switch, for the same
+reason Santa keeps his: one thing with two controls that can disagree is worse than two things
+with one each. The snow cap and the Christmas lights are not disabled by it — they simply have
+nothing to draw on a tree with no foliage.
+
+**The moon's face is cut out of the disc, not laid on top of it.** One `fill-rule="evenodd"`
+path, so the sky shows through the eyes, the nose and the grin. Painting the face in a second
+colour would have been easier and would have stopped reading at around 90 px; the moon is
+drawn at roughly 48. This is the same paper-cutout move the rest of the library makes, and it
+is what makes the shape survive being small. The carved face is always full: a jack-o'-lantern
+that waxed and waned would be a lit fraction of a grin, which reads as a rendering fault.
+
+**The horror sky overrides the user's six sky colours rather than editing them**, so switching
+it off gives the palette back untouched. It keeps the day/night blend, because a sky that never
+changed would stop the sun and the moon meaning anything — but it holds the whole range between
+near-black overhead and one saturated orange at the horizon. Two flat paper tones with a
+gradient between them; nothing photographic.
+
+
+### The Halloween theme presets its two switches without coupling them
+
+
+`ThemeCatalog` had ten themes and none was Halloween, so there was nowhere to preset anything
+until the eleventh was written. Its own palette — bruised violet overhead, low amber at the
+horizon — matters even though `horrorSkyEnabled` overrides it the moment the theme is chosen:
+**it is what comes back when the user turns the horror sky off**, and a Halloween theme with
+both switches off still has to look like something.
+
+The theme's defaults set `halloweenEnabled`, `horrorSkyEnabled` and the pumpkins. **Presetting
+is not coupling.** It seeds a starting value the way every other theme seeds
+`winterColorsEnabled` or `parasols.visible`; neither flag reads the other, here or anywhere,
+and a test starts from the theme's own defaults and turns each off in turn to prove the other
+survives. Winter, Christmas and the fall palette are untouched: bare branches are not a
+snowfall, October is not December, and bare branches are not autumn leaves either.
+
+The pumpkins joined it rather than being excused from the rule. `BuiltInThemeCoherenceTest`'s
+"pumpkins stay in autumn" became "pumpkins stay in the two themes that are about pumpkins",
+and asserts both directions.
+
+---
+
+## 17. Weather and the sky
+
+Live Weather reaches the sky, the precipitation and the light, and most of what is written here
+was established by measuring a real forecast against a real render rather than by argument.
+
+### Two weather providers, and no silent substitution
+
+
+Live Weather can fetch from Open-Meteo, WeatherAPI.com or OpenWeather. The choice is the user's and the app
+does not revise it: if the selected provider fails, the failure is reported and the selection
+stands. Quietly answering with the other service would make "which provider am I using"
+unanswerable, and the existing behaviour on failure — keep the last good reading, and otherwise
+let the theme's own weather run — is already the right one.
+
+The two differ in one way that reaches the UI. Open-Meteo has a keyless free tier, so a blank key
+is a working state and the key screen says "optional". Neither alternative has one, so a blank key is
+a **configured state with a name**: the provider stays selected, the settings screen says a key is
+required, and **no request is made** — an app that sends a call it knows will be rejected has
+spent a round trip to learn nothing and reports it as a network problem.
+
+Status is reported as one of six states rather than the single "running on the theme's own
+weather" flag v2.13 had, because with a key involved the reasons now need different answers from
+the user: a missing key is one tap from fixed, a dropped request is something to wait out, and a
+dropped request with an earlier reading still on screen is not a fallback at all.
+
+---
+
+
+### Live Weather drives both layers, or neither
+
 
 **[MEASURED — same session]**
 
@@ -1360,7 +1425,9 @@ Two consequences worth stating:
 
 ---
 
-## 27. A storm is a storm because something is falling out of it
+
+### A storm is a storm because something is falling out of it
+
 
 **[MEASURED — clean Android 17 emulator, live Open-Meteo]**
 
@@ -1392,7 +1459,9 @@ now §29.
 
 ---
 
-## 28. Falling snow is weather; a white roof is a costume
+
+### Falling snow is weather; a white roof is a costume
+
 
 **[MEASURED — live snowfall, Mawson -67.6/62.87, on device]**
 
@@ -1417,7 +1486,9 @@ putting snow on the roofs.
 
 ---
 
-## 29. Bad weather is a blend over the day, not a different sky
+
+### Bad weather is a blend over the day, not a different sky
+
 
 **[MEASURED — clean Android 17 emulator, controlled A–H matrix plus a live Open-Meteo drizzle]**
 
@@ -1427,7 +1498,7 @@ two in the afternoon therefore rendered as **bright blue sky + full sun with ray
 heavy rain** — four statements that cannot all be true, and the one combination this section exists
 to make impossible.
 
-### One number, three consumers
+#### One number, three consumers
 
 `StormAtmosphere.strength(precipitationType, precipitationIntensity, isThunderstorm,
 cloudCoverFraction)` returns 0–1 and is the *only* input to sky darkening, cloud darkening and sun
@@ -1439,7 +1510,7 @@ thunderstorm starts at 0.75 however little is falling at this instant, because a
 black before the first drop and its darkness comes from the depth of the cloud, not from the
 millimetres in the current quarter-hour. Inside "thunderstorm" the scale still rises smoothly.
 
-### A blend, not a palette
+#### A blend, not a palette
 
 `dim(color, strength, desaturation, darkening)` pulls a colour toward **its own** Rec. 601
 luminance, then pulls that luminance down. Both moves are relative to the colour given, never
@@ -1454,7 +1525,7 @@ darkest thing above the horizon. Nothing is driven to black — no outline, no g
 system, no new palette. **This is not the density darkening §27 records as removed**: that was a
 *slider* blended toward black; this is the *forecast* blended out of the theme's own colours.
 
-### Day/night and weather are orthogonal
+#### Day/night and weather are orthogonal
 
 ```
 FINAL SKY = NORMAL DAY/NIGHT SKY + WEATHER STORM BLEND
@@ -1468,7 +1539,7 @@ recognisably daytime.** The moon is not attenuated at all: dimming it risks maki
 unreadable, and the brief scoped the attenuation to the sun. That is a recorded limitation, not an
 oversight.
 
-### The rain response is bent, and that was measured
+#### The rain response is bent, and that was measured
 
 `FULL_INTENSITY_MM` is 8 mm/h — a torrential rate — so the everyday 1–2 mm/h that real forecasts
 report lands near 0.2 of the intensity range. With the rain term linear, the device run showed the
@@ -1493,13 +1564,13 @@ this same release (§28) and darkening it would change a presentation that is kn
 asked about. Snow still picks up the cloud term, because snow arrives under cloud, so a snowy scene
 is mildly flattened rather than untouched.
 
-### Rain reads *better* against the darker sky
+#### Rain reads *better* against the darker sky
 
 The concern with darkening was that it would swallow the precipitation the v2.14 work made visible.
 It does the opposite: the drops are pale and the sky moved away from them, so contrast rose. Every
 row of the matrix from light rain to thunderstorm showed the rain clearly, day and night.
 
-### Cost
+#### Cost
 
 Colour blending and alpha arithmetic on values already being computed. `strength()` is one property
 read and a handful of multiplies once per frame; `dim` is integer maths returning a primitive. No
@@ -1507,7 +1578,9 @@ new texture, no new particle system, no extra draw call, no per-frame allocation
 
 ---
 
-## 30. A lightning bolt comes out of a cloud, and the cloud band is one number
+
+### A lightning bolt comes out of a cloud, and the cloud band is one number
+
 
 **[MEASURED — clean Android 17 emulator, observation build with a shortened strike interval]**
 

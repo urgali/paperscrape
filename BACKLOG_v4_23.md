@@ -2,7 +2,8 @@
 
 **Replaces `BACKLOG_v4_22.md`.** That file's resolved and documented items are settled and are not
 restated; what it left open is carried forward below (items 18, 25, 30). Numbering continues from
-it: items 37 onward are new to this release.
+it: items 37 onward are new to this release. The earlier backlogs moved to `docs/archive/` in
+the documentation pass of 2026-09-07; `docs/archive/README.md` indexes them.
 
 Every item carries an outcome: **RESOLVED** (corrected in code, with a test), **REJECTED** (decided
 against, with the reason), **DOCUMENTED** (nothing to fix; recorded so it is not rediscovered), or
