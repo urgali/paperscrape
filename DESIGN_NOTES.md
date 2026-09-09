@@ -501,19 +501,25 @@ Depth range across the object band is **2.75x**, against 1.51x before Group 4.
 
 ### The size table **[OBSERVED]**
 
-40 local units per metre at the reference line, on a 2400 px screen. Each
+**45** local units per metre at the reference line, on a 2400 px screen. Each
 category declares the real height it should read as and the local-unit height
 its own drawing occupies; its base scale is derived from the two.
 
+*This said 40 until v4.25, and it had been 45 since v2.5* --
+`SceneSpace.PIXELS_PER_METRE_AT_REFERENCE`, which the code calls "the only place
+the world's size is stated". The raise is what took the scene from reading as a
+model of a place to reading as a place, so the stale figure here described a
+world an eighth smaller than the one that ships.
+
 | | read-as height | drawn units |
 |---|---|---|
-| Pumpkin | 0.5 m | 42 |
-| Bunny | 0.885 m | 61 |
+| Bunny | 0.8855 m | 61 |
+| Gift | 0.9048 m | 40 |
 | Easter egg | 1 m | 40 |
-| Gift | 0.905 m | 40 |
-| Penguin | 1.172 m | 49 |
-| Car | 1.45 m | 48 |
-| Snowman | 1.677 m | 74 |
+| Pumpkin | 1.0 m | 42 |
+| Penguin | 1.1717 m | 49 |
+| Snowman | 1.6773 m | 74 |
+| Car | 1.6912 m | 56 |
 | Person (adult) | 1.75 m | 80 |
 | Parasol | 2.9 m | 84 |
 | Fire engine | 2.9 m | 68 |
@@ -523,8 +529,24 @@ its own drawing occupies; its base scale is derived from the two.
 | Palm | 8 m | 90.33 |
 | Restaurant | 8.2 m | 96 |
 | Tree | 9.479 m | 118 |
-| Tower | 16.8 m | 196 |
-| Hot-air balloon | 20 m | 149 |
+| Fir | 9.8 m | 122 |
+| Tower | 15.6 m | 182 |
+
+**Re-read it rather than trusting it**, because this is a copy of a table that
+lives in the code:
+
+```bash
+grep -nE '^ +[A-Z_]+\([0-9.]+f, [0-9.]+f\),' app/src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneSpace.kt
+grep -n 'CAR_UNIT_METRES\|CAR_SPRITE_UNITS_TALL\|PERSON_METRES_TALL\|PERSON_SPRITE_UNITS_TALL\|FIRE_TRUCK_METRES_TALL\|FIRE_TRUCK_SPRITE_UNITS_TALL' app/src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneSpace.kt
+```
+
+*Four rows were wrong when this was checked against the code in v4.25*, and none
+of them by rounding: the pumpkin read 0.5 m against the enum's 1.0, the car
+1.45 m / 48 units against 1.6912 / 56, the tower 16.8 / 196 against 15.6 / 182,
+and a hot-air balloon had a row here although `SceneObjectType` has had no
+balloon in it for releases. The fir was missing. A table of eighteen numbers
+kept by hand beside a table of eighteen numbers kept by the compiler is the
+shape of drift this project keeps finding.
 
 **These are read-as heights, not measurements.** They started from real-world
 sizes and stay within sight of them, because a table anchored to something real
@@ -559,9 +581,11 @@ The table governs whole objects standing on the ground. It says nothing about th
 and there is exactly one place in the scene where a part has to be compared against a whole object:
 the bust behind a windscreen, which is a person seen next to the people walking past.
 
-**The artwork draws a head at 31% of a figure's own height** -- 25.00 of the 80.67 local units a
-walk sprite's content occupies, so an adult's head is 0.547 m. That is a paper-cutout proportion,
+**The artwork draws a head at 30% of a figure's own height** -- 24.3 of the 80 local units the
+size table gives an adult, so an adult's head is **0.5316 m**. That is a paper-cutout proportion,
 roughly a three-and-a-bit-head figure, and it is the proportion the whole cast is drawn in.
+(*This read 25.00 units and 0.547 m until v4.25; the family was redrawn and the constant was
+re-measured on the new artwork -- see the jaw rule below.*)
 
 The busts behind glass were sized against the *window* instead, which is the only thing they can be
 sized against -- a bust that ignored the window would not fit in it -- and the result had never
@@ -584,6 +608,82 @@ followed the units because the artwork itself grew -- the reference car is 1.691
 in a family that shares one metre-per-unit so a unit is the same pixel on all three. The rule this
 paragraph protects is intact: nothing was resized to fit; the thing that had to change was the
 cabin, and it was the cabin that changed.
+
+### The jaw is where the skin narrows, and it is one rule for both poses **[OBSERVED — v4.25]**
+
+Every head in the scene derives from one constant, so **how a head is measured is a design
+decision**, not an implementation detail. B "Rilievo" made that visible by drawing something the
+previous family did not: **a neck in skin**.
+
+The old rule took the jaw as *the end of the face's first contiguous run of skin rows*. With a
+neck painted in a different colour that lands on the chin; with a neck painted in skin it lands
+below the collar, and the constant read a head **half again too tall**. Worse, it was applied to
+one pose only: the walking figures were measured that way and the seated busts were measured
+crown-to-chin, so the two sides of every occupant comparison were on different rules and the
+occupants shipped **17% too small** on the device.
+
+The rule now, for every pose and every measuring site: **the head is the crown of the content down
+to where the skin narrows into the neck** — a head is twenty-odd units across and a neck about a
+third of that, so the jaw is the last row still at least half as wide as the widest.
+`OccupantHeadFitTest` re-measures it on the shipped PNGs so it cannot drift from the artwork
+silently.
+
+**What must never be measured instead: the visible skin.** It is not a dimension; it is a property
+of the haircut. On the four adult drawings this release ships, the skin's share of the head block
+is **0.861** walking and **0.794** seated for the man, **0.623** and **0.733** for the woman — a
+third of the quantity is hair, so two poses of one person cannot agree on it however correctly they
+are scaled. Two instrumented assertions had been built on it and could not be satisfied by any
+scale; they measure the head block now.
+
+### Nothing narrows a head to make it fit something **[OBSERVED — v4.25]**
+
+**A head is as round wherever the same person is drawn.** The three placements of one person —
+walking, at a window, seated in a car — legitimately differ in how much of the figure is visible,
+and they do not differ in the proportion of the head itself. Measured as width over height on the
+shipped set, the narrowest head this project draws is the walking man's at **0.96** and the widest
+the winter girl's at **1.52**; in a car the four families read **1.01 / 1.03 / 1.00 / 1.16**.
+
+The rule is written down because v4.25 broke it and nothing noticed. A constraint that keeps two
+seated occupants clear of each other was expressed in the bust's units and justified against a
+seat pitch in the car's — one bust unit is 0.5255 of a car unit — so the band was twice as tight
+as the car really is, and the head was drawn down to fit it: `head_rx` **9.0**, against **18.0**
+for the same person's head at a window, and a family shipping at 0.61–0.72 of width over height.
+Every size assertion in `OccupantHeadFitTest` was about a head's *height*, which was right, and
+**the width had nothing looking at it at all**. It does now, at a floor of 0.85 — below the
+narrowest head the artwork draws and well above the widest the defect drew.
+
+Two consequences worth carrying forward:
+
+- **When a figure will not fit, the thing to move is the container or the constraint, not the
+  drawing.** This is §7.3 in `AI_PROJECT_RULES.md` said about a person: the cabin was sized around
+  the head (see the glass height's own note in `SceneObjectRenderer`), and the answer to "the two
+  heads are close" was to re-derive the **seat pitch**, not to narrow the heads. At 21.5 units the
+  two occupants' ink comes no closer than 2.06 units of car — more room than v4.24's family had at
+  a 23-unit pitch, where the closest approach was 1.27.
+- **A constraint expressed in one drawing's units and justified against another's is a defect of
+  its own class**, and it has now happened twice in two files. `BACKLOG_v4_25.md` item 61 has the
+  seven unit frames this project carries, the five conversions between them, and what would make
+  the mistake unrepresentable.
+
+### An occupant faces the front, and a symmetric drawing hides which way that is **[OBSERVED — v4.25]**
+
+A vehicle's occupants turn with it: `drawCar` draws body, glass, livery, lamps and both busts
+inside one `scale(dir, 1)`, so the driver is always at the leading seat whichever way the car
+travels. What a three-quarter drawing adds is a *sense* — a face that points somewhere in the
+sprite's own frame — and v4.25's seated family points toward +x, which is the vehicle's rear. Every
+occupant rode backwards, in both directions equally, until `drawSeatedOccupant` was given a
+constant mirror.
+
+**The design rule: any sprite drawn three-quarter acquires a facing, and a facing is a property
+that has to be stated and checked against the object it sits in.** The previous family was frontal
+and symmetric, so it had no wrong side to get wrong — which is exactly why the defect arrived with
+a redraw that improved the artwork. The window busts are three-quarter too and deliberately have
+no rule: somebody at a window may look wherever they like.
+
+**How to see it**: the vehicle lamps are the reference — amber forward, red aft — and reading an
+occupant's facing against them on a rendered frame is what the lamps are for. The acceptance sheet
+in §14 now requires both directions in the judging image, which is the cheap version of the same
+check.
 
 ### A cap that repeats a crown should be cut out of it, not drawn beside it **[OBSERVED]**
 
@@ -774,7 +874,8 @@ a separate slider from any density.
 
 The lake sits at and slightly above the horizon, where `perspectiveScaleAt` is
 at or near zero, so nothing on it can take its size from the ground plane -- it
-would vanish. The water has its own metric (15 px per metre) whose only job is
+would vanish. The water has its own metric (`LAKE_PIXELS_PER_METRE`, **21** px
+per metre -- this said 15) whose only job is
 to keep its inhabitants right relative to *each other*: a 2.6 m dolphin against
 a 6.5 m sailboat.
 
@@ -1245,6 +1346,41 @@ For any significant visual or UX change:
 
 Small technical fixes with no visual impact skip steps 3 and 4. When in doubt
 about whether a change is visually significant, treat it as significant.
+
+### The acceptance sheet: what step 3 has to show before step 4 is possible **[OBSERVED — v4.25]**
+
+**This is a condition, not advice.** Step 4 is the maintainer looking at an image and saying yes.
+An image that cannot show a defect cannot be used to approve the absence of one, so a mockup that
+does not carry all five of the following is not a mockup — it is a picture, and approving it
+approves nothing.
+
+v4.25 is why the list exists. **Four correction rounds happened after the concept had already
+been approved** — squashed heads, reversed facing, seat pitch — and all three defects were
+present and visible in phase 1. Nobody saw them for one reason: the judging images did not show
+them. The busts sat small at the bottom of a family sheet, and every car photographed was
+driving the same way.
+
+1. **Every sprite at the size it is drawn on screen, inside a real frame** — not only enlarged.
+   *Earned twice.* v4.23's star sparkle was drawn well and reduced to a one-pixel cross at its
+   shipping size. v4.25's suggestion of a face read as a visor when enlarged and as eyes at true
+   size; the enlargement would have rejected artwork that is right.
+2. **Every sprite that has a facing, in both directions.** *Earned:* the v4.25 busts faced the
+   boot of the car from phase 1 and survived three review rounds, because every image showed a
+   car travelling one way. One frame with both lanes in it would have ended it on day one.
+3. **Every sprite in the geometry that constrains it** — the bust inside its own window, two
+   occupants in one pane of glass, two pedestrians side by side. *Earned:* the seated head drawn
+   20.7 units wide against the 37.0 it replaced was that width from phase 1, and became visible
+   only when somebody built a comparison for that one question.
+4. **The current artwork beside it, at the same scale, side by side.** Without the "before" next
+   to the "after" a wrong proportion does not read as wrong; it reads as a style.
+5. **The same subject and the same instant on both sides of a comparison.** *Earned:* one series
+   had a different character as the third pedestrian in the two rows, and its whole-scene shots
+   were different moments — which makes every difference in the image unattributable, including
+   the ones that are real.
+
+And one rule of composition that governs all five: **no buried sub-family.** A sheet showing
+twenty sprites where the busts end up small in the last row has not shown the busts. Every
+sub-family gets its own row, at its own scale.
 
 ---
 

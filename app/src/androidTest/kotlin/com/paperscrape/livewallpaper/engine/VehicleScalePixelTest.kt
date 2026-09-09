@@ -276,6 +276,8 @@ class VehicleScalePixelTest {
     }
 
     private companion object {
-        const val CHILD_UNITS = 62f
+        // The ink a child walker occupies, ground shadow included, in its own units. v4.25: 62 on
+        // the artwork this replaces; the redrawn boy measures 63.67 and the girl 64.33, so 64.
+        const val CHILD_UNITS = 64f
     }
 }

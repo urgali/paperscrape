@@ -444,6 +444,19 @@ It deliberately does **not** free-run at the display's refresh rate. `eglSwapBuf
 blocks on vsync, so an unpaced loop would render at 60, 90 or 120 Hz and do two to
 four times the work for motion this slow.
 
+**Counting the threads called `PaperScrapeGlThread` will give you two, and one of
+them is not ours.** The process holds exactly one Java thread of that name — the loop
+above — while `/proc/<pid>/task` shows two. The second is the GPU driver's own worker,
+created the first time anything in the process touches EGL: profiled on the BV6600 it
+is 75% kernel, 11% `libsrv_um.so` (PowerVR's user-mode driver), 3% `gralloc`, and
+contains no `libart` frame at all. It wears our name because Linux gives a new thread
+its creator's `comm` and the driver never renames it — in a process where the settings
+UI initialises EGL first, the same thread appears as `RenderThread`. It costs about
+4.5% of a core while the wallpaper draws and **does not exist** while it is hidden. It
+is not a leak, there is nothing to close, and a CPU figure for the render path should
+be taken for the process rather than by thread name. `BACKLOG_v4_25.md` item 60 has the
+measurement.
+
 **Scene state is owned by the render thread.** A GL context belongs to one thread,
 so drawing had to leave the main looper — which means preferences, theme changes,
 weather snapshots and home-screen offsets now arrive from a different thread than
@@ -786,6 +799,23 @@ metres are that constant times its own units, `CAR_BASE_SCALE` stays a single nu
 unit is the same on-screen pixel on all three. The whole vertical layout of the cabin -- glass top,
 sill, seats, occupant scale -- is shared; only the plan differs. An occupant is therefore exactly
 the same size in every car.
+
+**v4.25: the seat pitch is derived, and an occupant is mirrored.** Two things about
+`drawSeatedOccupant` are load-bearing and neither is obvious from the call site.
+
+The **pitch** (`CAR_PASSENGER_X_UNITS - CAR_HEAD_X_UNITS`, 21.5) is derived from the widest seated
+head **converted into the car's units** — one bust unit is `CAR_OCCUPANT_SCALE` of a car unit, and
+reading one as the other is what drew v4.25's first family narrow enough to fit a band half the
+size of the car. `CarShell.seatOffsetXUnits` then moves *the pair*, never one seat, so the pitch
+cannot change by moving a body's occupants: only the police saloon takes a non-zero offset, because
+its livery bands the low glass and shortens the pane the pair has to sit in.
+
+The **mirror** is a constant `scale(-scale, scale)` on the bust alone, inside `drawCar`'s own
+`scale(dir, 1)`. Direction of travel is already handled by the outer transform — the busts turn
+with the car and the driver is always at the leading seat — so this is not about direction. It is
+about the artwork's own sense: the three-quarter seated family faces +x, which is the vehicle's
+rear. Mirroring about the *anchor* rather than the canvas centre is what keeps the eye axis where
+the seat put it.
 
 **Draw order is depth order for people and traffic too (v4.6).** `drawPeople` runs *before* the
 vehicle loop. Every pavement row including its jitter is above 0.819 of screen height and every

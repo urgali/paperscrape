@@ -12,7 +12,7 @@ where the two appear to differ, that file governs.
 
 ## 1. What to read before working
 
-**Every session, in this order.** Measured 2026-09-07 at **13 272 words**; recount rather than
+**Every session, in this order.** Measured 2026-09-08 at **13 929 words**; recount rather than
 trust that with `wc -w CLAUDE.md ROADMAP.md AI_PROJECT_RULES.md README.md`.
 
 1. **`ROADMAP.md`** — the authoritative operational plan: current state, what is known
@@ -199,12 +199,26 @@ one scene must not exist.
 
 **The one measurement worth keeping as a number**, because it is an experiment and not an
 inventory — **BV6600, 2026-09-05, release-like build, Autumn, 60 s windows, n=3**: process
-**43.56%** of one core (sd 0.50), `PaperScrapeGlTh` **42.71%**, hidden **0.137%**,
-**29.60 fps** from SurfaceFlinger, therefore **14.72 ms of CPU per frame against a 33.3 ms
-interval — 44% of the budget**. Protocol and the superseded OnePlus generations:
-`docs/archive/V4_22_MISURA_CPU_REPORT.md`, `docs/archive/V4_22_AUDIT_SPRECO_GL_REPORT.md`.
+**43.56%** of one core (sd 0.50), hidden **0.137%**, **29.60 fps** from SurfaceFlinger,
+therefore **14.72 ms of CPU per frame against a 33.3 ms interval — 44% of the budget**.
+Protocol and the superseded OnePlus generations: `docs/archive/V4_22_MISURA_CPU_REPORT.md`,
+`docs/archive/V4_22_AUDIT_SPRECO_GL_REPORT.md`.
+
+**Quote the process figure, never a per-thread one.** That line used to carry
+`PaperScrapeGlTh 42.71%` beside it, and the name is ambiguous: **two kernel threads wear it**.
+Only one is ours. The other is the PowerVR driver's own worker — `libsrv_um.so`,
+`PVRSRVBridgeCall`, `gralloc`, and not one frame of `libart` — and it wears our name because
+Linux gives a new thread its creator's `comm` and the driver never renames it. In a process
+where the settings screen touches EGL first, the same driver thread appears as `RenderThread`
+instead. Measured on the home screen in 20 s windows, v4.25 debug build: ours **52.40%** of a
+core, the driver's **4.45%**; with the wallpaper hidden the driver thread does not exist at all
+and ours reads 0.55%. `BACKLOG_v4_25.md` item 60 has the attribution. The archived OnePlus
+reports carry per-thread lines with the same ambiguity and are historical.
+
 **GPU busy is not measurable on this device and must not be estimated**: `kgsl` is
-Adreno-only, MediaTek's `ged` nodes are root-only, and `pvr_fence` counts fences.
+Adreno-only, MediaTek's `ged` nodes are root-only, and `pvr_fence` counts fences. Per-thread
+attribution *is* available — `simpleperf record --app <pkg> -t <tid>` works on the debug build
+(plain `-t` without `--app` is refused: `perf_event_paranoid` is 1).
 
 ---
 

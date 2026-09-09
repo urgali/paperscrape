@@ -41,6 +41,25 @@ internal enum class CarShell(
     val lengthUnits: Float,
     val glassXUnits: Float,
     val glassWidthUnits: Float,
+    /**
+     * How far this body's seat pair sits from where the pane wants it, in local units.
+     *
+     * **One pair of seats serves three cabins, and the three are not the same shape.** The seats
+     * are shared constants -- driver at [SceneObjectRenderer.CAR_HEAD_X_UNITS], passenger at
+     * [SceneObjectRenderer.CAR_PASSENGER_X_UNITS] -- and each body then cuts its own glasshouse
+     * around them. Measured on the rendered frame, the light between an occupant and its pillar
+     * came out at 24% of a head on the compact and **4%** on the police saloon, whose livery
+     * bands the lower glass and shortens the pane it leaves: the same pair, two very different
+     * cabins.
+     *
+     * Derived rather than tuned, and **still load-bearing after the seat pitch was shortened**:
+     * at the 21.5-unit pitch the police saloon measures 8.0% with no offset and 18.0% with this
+     * one, while the plain saloon reads 22.0% and 18.0% -- so the shift costs the body that does
+     * not need it four points it has to spare and gives the body that does the ten it does not.
+     * The compact, the estate and the appliance measure 28-31% with no shift at all, so theirs is
+     * zero: a body whose pane already carries the pair does not get an offset for symmetry's sake.
+     */
+    val seatOffsetXUnits: Float,
     val wheelFrontXUnits: Float,
     val wheelRearXUnits: Float,
     /** The flat run of roof a light bar or a taxi sign can stand on. */
@@ -62,7 +81,7 @@ internal enum class CarShell(
     COMPACT(
         bodyRes = R.drawable.car_body_compact, glassRes = R.drawable.car_window_compact,
         bodyXUnits = -48.5f, bodyYUnits = -20f, unitsTall = 57f, lengthUnits = 92f,
-        glassXUnits = -28f, glassWidthUnits = 62f,
+        glassXUnits = -28f, glassWidthUnits = 62f, seatOffsetXUnits = 0f,
         wheelFrontXUnits = -30f, wheelRearXUnits = 30f,
         roofFrontXUnits = -20.4f, roofRearXUnits = 28f,
         lampFrontXUnits = -46.4f, lampFrontYUnits = 6.4f,
@@ -73,7 +92,7 @@ internal enum class CarShell(
     SALOON(
         bodyRes = R.drawable.car_body_saloon, glassRes = R.drawable.car_window_saloon,
         bodyXUnits = -56.5f, bodyYUnits = -19f, unitsTall = 56f, lengthUnits = 108f,
-        glassXUnits = -27f, glassWidthUnits = 59f,
+        glassXUnits = -27f, glassWidthUnits = 59f, seatOffsetXUnits = -1.4f,
         wheelFrontXUnits = -36f, wheelRearXUnits = 36f,
         roofFrontXUnits = -21.6f, roofRearXUnits = 22f,
         lampFrontXUnits = -54.4f, lampFrontYUnits = 7.4f,
@@ -97,7 +116,7 @@ internal enum class CarShell(
     ESTATE(
         bodyRes = R.drawable.car_body_estate, glassRes = R.drawable.car_window_estate,
         bodyXUnits = -66.5f, bodyYUnits = -20.8f, unitsTall = 57.8f, lengthUnits = 124f,
-        glassXUnits = -30f, glassWidthUnits = 81f,
+        glassXUnits = -30f, glassWidthUnits = 81f, seatOffsetXUnits = 0f,
         wheelFrontXUnits = -42f, wheelRearXUnits = 38f,
         roofFrontXUnits = -21f, roofRearXUnits = 48f,
         lampFrontXUnits = -64.4f, lampFrontYUnits = 5.6f,

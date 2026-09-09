@@ -798,6 +798,18 @@ decision in `DESIGN_NOTES.md`.
 13.5. Elements listed as protected in `DESIGN_NOTES.md` require explicit
 approval before any modification.
 
+13.6. **A mockup must satisfy the acceptance sheet in `DESIGN_NOTES.md` §14**:
+every sprite at the size it is drawn on screen inside a real frame, every sprite
+that has a facing shown in both directions, every sprite inside the geometry that
+constrains it, the current artwork beside it at the same scale, and the same
+subject at the same instant on both sides of any comparison — with no sub-family
+buried in a corner of a sheet. **An image that does not carry those cannot show
+the defects they exist to expose, so approving it approves nothing: it is not a
+mockup, it is a picture.** v4.25 cost four correction rounds after approval for
+three defects that were all present and visible in phase 1 and that no judging
+image displayed.
+
+
 ---
 
 ## 14. Documentation rules

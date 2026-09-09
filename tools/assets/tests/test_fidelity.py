@@ -49,9 +49,16 @@ def runtime_pixels(name: str) -> np.ndarray:
         return np.array(image.convert("RGBA"))
 
 
-def source_pixels(name: str) -> np.ndarray:
-    """The sprite as the pinned toolchain renders its committed SVG source."""
-    return raster.render_svg_file(SVG_DIR / f"{name}.svg").pixels
+def source_pixels(source_file: str) -> np.ndarray:
+    """The sprite as the pinned toolchain renders its committed SVG source.
+
+    Takes the registry's own `source.file` rather than assuming `<name>.svg`. The two coincide for
+    almost every sprite and stopped coinciding in v4.25: the six retired `head_car` bases ship as
+    their heirs (`..._skin1` and friends), so the heir is the entry that carries the source, and
+    the file keeps the retired base's name because that is what the drawing is. Assuming the name
+    is the same latent shortcut `test_outline` had, found the same way.
+    """
+    return raster.render_svg_file(SVG_DIR / source_file).pixels
 
 
 def render_rounded_rect(width: int, height: int, radius: float, fill: str = "#ffffff") -> np.ndarray:
@@ -148,7 +155,7 @@ class RecoveredGeometryTest(unittest.TestCase):
         changed.
         """
         result = fidelity.compare(
-            "house_large_trim", runtime_pixels("house_large_trim"), source_pixels("house_large_trim")
+            "house_large_trim", runtime_pixels("house_large_trim"), source_pixels("house_large_trim.svg")
         )
         self.assertIn(result.verdict, ("PIXEL_IDENTICAL", "EDGE_EQUIVALENT"))
         self.assertEqual(0, result.interior_alpha_mismatch)
@@ -213,7 +220,7 @@ class ShippedAgainstSourceTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.results = [
-            fidelity.compare(spec.name, runtime_pixels(spec.name), source_pixels(spec.name))
+            fidelity.compare(spec.name, runtime_pixels(spec.name), source_pixels(spec.source_file))
             for spec in registry.load(REGISTRY_PATH)
             if spec.has_svg_source
         ]
@@ -224,7 +231,10 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # v4.20 removed six more: the four sprites nothing has ever blitted (`house_window` and
         # the three `road_*`) and the two boy vehicle bases, which are byte-for-byte their own
         # `_skin2`. Both halves of item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md.
-        self.assertEqual(134, len(self.results))
+        # v4.25: +6. The six retired `head_car` bases were the only people in the set with no
+        # source at all -- their heirs were recolours of a drawing that had been deleted. The
+        # v4.25 family is drawn from SVG for every one of them, so the heir now carries it.
+        self.assertEqual(140, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

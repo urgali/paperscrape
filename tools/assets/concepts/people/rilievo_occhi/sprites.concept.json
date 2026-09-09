@@ -1,0 +1,1046 @@
+{
+ "schemaVersion": 2,
+ "note": "Registry of the v4.25 people concept 'rilievo_occhi': the shipped registry's own schema, kept here because these sprites are NOT shipped. Canvases, scale convention, anchor rule and tint class are the shipped ones, so no call site changes.",
+ "sprites": [
+  {
+   "name": "person_man_summer_walk0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    5,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk0.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_walk1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    4,
+    101,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk1.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_walk2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    2,
+    5,
+    116,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk2.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_head_window",
+   "category": "person",
+   "width": 147,
+   "height": 171,
+   "contentBox": [
+    6,
+    0,
+    142,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    74.0,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_head_window.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_man_summer_head_car",
+   "category": "person",
+   "width": 114,
+   "height": 126,
+   "contentBox": [
+    5,
+    0,
+    111,
+    126
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.0,
+    126
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_head_car.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_man_winter_walk0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    15,
+    2,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk0.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_walk1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    2,
+    101,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk1.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_walk2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    1,
+    0,
+    116,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk2.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_head_window",
+   "category": "person",
+   "width": 147,
+   "height": 171,
+   "contentBox": [
+    4,
+    1,
+    142,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    73.0,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_head_window.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_man_winter_head_car",
+   "category": "person",
+   "width": 114,
+   "height": 126,
+   "contentBox": [
+    6,
+    0,
+    112,
+    126
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    126
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_head_car.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_woman_summer_walk0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    10,
+    6,
+    107,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk0.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_walk1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    10,
+    6,
+    105,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    57.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk1.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_walk2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    2,
+    6,
+    116,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk2.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_head_window",
+   "category": "person",
+   "width": 147,
+   "height": 171,
+   "contentBox": [
+    2,
+    1,
+    142,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    72.0,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_head_window.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_woman_summer_head_car",
+   "category": "person",
+   "width": 114,
+   "height": 126,
+   "contentBox": [
+    4,
+    0,
+    112,
+    126
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.0,
+    126
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_head_car.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_woman_winter_walk0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    0,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk0.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_walk1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    2,
+    101,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk1.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_walk2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    1,
+    2,
+    115,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk2.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_head_window",
+   "category": "person",
+   "width": 147,
+   "height": 171,
+   "contentBox": [
+    5,
+    0,
+    141,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    73.0,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_head_window.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_woman_winter_head_car",
+   "category": "person",
+   "width": 114,
+   "height": 126,
+   "contentBox": [
+    6,
+    0,
+    112,
+    126
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    126
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_head_car.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_boy_summer_walk0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    61,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk0.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_walk1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    23,
+    61,
+    107,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    65.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk1.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_walk2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    9,
+    61,
+    110,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk2.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_head_window",
+   "category": "person",
+   "width": 147,
+   "height": 171,
+   "contentBox": [
+    4,
+    3,
+    142,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    73.0,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_head_window.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_boy_summer_head_car",
+   "category": "person",
+   "width": 114,
+   "height": 126,
+   "contentBox": [
+    7,
+    11,
+    112,
+    126
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.5,
+    126
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_head_car.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_boy_winter_walk0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    9,
+    56,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk0.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_walk1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    9,
+    56,
+    95,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    52.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk1.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_walk2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    8,
+    56,
+    110,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk2.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_head_window",
+   "category": "person",
+   "width": 147,
+   "height": 171,
+   "contentBox": [
+    2,
+    7,
+    141,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    71.5,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_head_window.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_boy_winter_head_car",
+   "category": "person",
+   "width": 114,
+   "height": 126,
+   "contentBox": [
+    2,
+    10,
+    111,
+    126
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    56.5,
+    126
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_head_car.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_girl_summer_walk0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    13,
+    59,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    60.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk0.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_walk1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    13,
+    60,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    60.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk1.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_walk2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    7,
+    60,
+    110,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk2.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_head_window",
+   "category": "person",
+   "width": 147,
+   "height": 171,
+   "contentBox": [
+    4,
+    1,
+    147,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    75.5,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_head_window.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_girl_summer_head_car",
+   "category": "person",
+   "width": 114,
+   "height": 126,
+   "contentBox": [
+    5,
+    11,
+    113,
+    126
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    126
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_head_car.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  },
+  {
+   "name": "person_girl_winter_walk0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    47,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk0.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_walk1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    24,
+    46,
+    95,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk1.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_walk2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    7,
+    47,
+    111,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk2.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_head_window",
+   "category": "person",
+   "width": 147,
+   "height": 171,
+   "contentBox": [
+    6,
+    0,
+    141,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    73.5,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_head_window.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_girl_winter_head_car",
+   "category": "person",
+   "width": 114,
+   "height": 126,
+   "contentBox": [
+    6,
+    11,
+    112,
+    126
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    126
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_head_car.svg"
+   },
+   "notes": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at."
+  }
+ ]
+}

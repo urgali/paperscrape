@@ -430,6 +430,11 @@ object GlGolden {
         val total = (WIDTH * HEIGHT).toDouble()
         val coarseFraction = coarse / total
         val fineFraction = fine / total
+        android.util.Log.i(
+            "CANVASCROSS",
+            "${scene.name} coarse=${"%.4f".format(coarseFraction * 100)}% " +
+                "fine=${"%.4f".format(fineFraction * 100)}%",
+        )
 
         if (coarseFraction > Tolerance.CanvasCross.COARSE_MAX_FRACTION ||
             fineFraction > Tolerance.CanvasCross.FINE_MAX_FRACTION

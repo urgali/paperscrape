@@ -1,0 +1,1046 @@
+{
+ "schemaVersion": 2,
+ "note": "Registry of the v4.25 people concept 'stampino': the shipped registry's own schema, kept here because these sprites are NOT shipped. Canvases, scale convention, anchor rule and tint class are the shipped ones, so no call site changes.",
+ "sprites": [
+  {
+   "name": "person_man_summer_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    18,
+    12,
+    111,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk0.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    20,
+    12,
+    103,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk1.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    19,
+    13,
+    104,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk2.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    13,
+    5,
+    146,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    79.5,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_head_window.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_man_summer_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    17,
+    3,
+    120,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    68.5,
+    132
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_head_car.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_man_winter_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    19,
+    0,
+    110,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk0.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    19,
+    0,
+    103,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk1.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    19,
+    0,
+    105,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk2.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    14,
+    0,
+    146,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    80.0,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_head_window.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_man_winter_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    17,
+    7,
+    120,
+    131
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    68.5,
+    131
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_head_car.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_woman_summer_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    13,
+    11,
+    111,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk0.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    12,
+    12,
+    110,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk1.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    13,
+    13,
+    109,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk2.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    14,
+    5,
+    146,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    80.0,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_head_window.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_woman_summer_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    17,
+    0,
+    120,
+    131
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    68.5,
+    131
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_head_car.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_woman_winter_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    19,
+    0,
+    110,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk0.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    20,
+    0,
+    103,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk1.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    19,
+    0,
+    103,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk2.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    13,
+    2,
+    147,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    80.0,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_head_window.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_woman_winter_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    17,
+    7,
+    120,
+    131
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    68.5,
+    131
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_head_car.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_boy_summer_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    19,
+    65,
+    110,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk0.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    26,
+    64,
+    106,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    66.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk1.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    26,
+    64,
+    106,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    66.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk2.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    15,
+    3,
+    146,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    80.5,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_head_window.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_boy_summer_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    19,
+    12,
+    121,
+    131
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    70.0,
+    131
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_head_car.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_boy_winter_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    14,
+    59,
+    110,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk0.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    14,
+    59,
+    97,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk1.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    12,
+    59,
+    97,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    54.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk2.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    14,
+    8,
+    147,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    80.5,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_head_window.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_boy_winter_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    17,
+    28,
+    121,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    69.0,
+    132
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_head_car.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_girl_summer_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    18,
+    65,
+    111,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk0.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    17,
+    66,
+    106,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk1.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    18,
+    65,
+    105,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk2.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    15,
+    3,
+    147,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    81.0,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_head_window.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_girl_summer_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    17,
+    11,
+    121,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    69.0,
+    132
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_head_car.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  },
+  {
+   "name": "person_girl_winter_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    18,
+    45,
+    109,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk0.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    26,
+    44,
+    98,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk1.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    25,
+    45,
+    97,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk2.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    15,
+    0,
+    148,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    81.5,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_head_window.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_girl_winter_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    19,
+    10,
+    121,
+    131
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    70.0,
+    131
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_head_car.svg"
+   },
+   "notes": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands."
+  }
+ ]
+}

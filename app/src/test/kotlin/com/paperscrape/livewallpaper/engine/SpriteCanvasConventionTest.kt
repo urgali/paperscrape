@@ -74,10 +74,14 @@ class SpriteCanvasConventionTest {
         for (file in sprites()) {
             val name = file.nameWithoutExtension
             val touches = touchesAnEdge(ImageIO.read(file))
-            // rc4: the head_car family shares one 47x44 canvas with the eye line at x=23 for all
-            // eight members plus their skin tones, so every member's margin is the registration
-            // that seats it -- load-bearing for the whole family, like car_lights' surround.
-            val loadBearing = name in marginIsLoadBearing || name.contains("_head_car")
+            // **v4.25 removed the `_head_car` exemption, and it is a recovery rather than a
+            // relaxation.** rc4 exempted that family because it shared one 47x44 canvas whose
+            // margin was the registration seating all eight members plus their tones. The v4.25
+            // people are generated with each shared canvas already trimmed onto what the family
+            // drawn on it covers -- the same crop for every member, so the registration is
+            // untouched -- and the family now reaches its own edges like everything else. The
+            // exemption would have gone on hiding a margin nobody needed.
+            val loadBearing = name in marginIsLoadBearing
             if (!touches && !loadBearing) unexpected += name
             if (touches && loadBearing) missing += name
         }
@@ -98,8 +102,10 @@ class SpriteCanvasConventionTest {
         val all = sprites()
         val touching = all.count { touchesAnEdge(ImageIO.read(it)) }
         assertEquals("266 sprites are expected", 266, all.size)
-        // 216 until v4.21 trimmed `tree_fir_snow` onto its own content.
-        assertEquals("217 of them reach a canvas edge", 217, touching)
+        // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
+        // people on canvases trimmed to their own families: the 166 person sprites went from
+        // carrying a margin apiece to reaching an edge, which is why this jumped by 38.
+        assertEquals("255 of them reach a canvas edge", 255, touching)
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

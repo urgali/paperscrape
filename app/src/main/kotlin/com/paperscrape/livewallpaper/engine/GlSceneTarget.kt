@@ -587,13 +587,22 @@ internal class GlSceneTarget : SceneCanvas {
         // that would have been rasterised behind them.
         if (alpha <= 0) return
 
-        // The common case: the sprite is already on the GPU, so the pixels are never asked for and
-        // its size comes from the registry. This is what keeps a per-frame blit off SpriteCache's
-        // synchronised lookup entirely.
-        var index = textures.find(resId)
+        // How far this draw shrinks the sprite decides which pre-reduced copy of it to sample, so
+        // the GPU is handed pixels it can filter at roughly 1:1 rather than minifying them several
+        // times over. See [SpriteDetailLevel] for why the reduction is done here and not with GL
+        // mipmaps, which the shared atlas and ES 2.0's non-power-of-two rules both forbid.
+        val level = SpriteDetailLevel.levelFor(transform.uniformScale())
+
+        // The common case: the sprite is already on the GPU at this level, so the pixels are never
+        // asked for and its size comes from the registry. This is what keeps a per-frame blit off
+        // SpriteCache's synchronised lookup entirely.
+        var index = textures.find(resId, level)
         if (index < 0) {
-            index = textures.register(resId, source.bitmapFor(resId))
+            index = textures.register(resId, level, source.bitmapFor(resId))
             if (index < 0) return
+            // Released even though another level may want these pixels again: the cache re-decodes
+            // on demand, a sprite settles into the one or two levels its scene draws it at within a
+            // frame or two, and holding the bitmap costs heap for the whole life of the process.
             source.onSpriteUploaded(resId)
         }
 

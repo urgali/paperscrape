@@ -28,7 +28,7 @@ object VehiclePresence {
     }
 
     /** How much of the road band a column must carry before it counts as vehicle and not marking. */
-    const val VEHICLE_COLUMN_DEPTH_SHARE = 0.20
+    const val VEHICLE_COLUMN_DEPTH_SHARE = 0.12
 
     fun measure(bitmap: Bitmap): Result {
         val h = bitmap.height
@@ -74,6 +74,20 @@ object VehiclePresence {
             // is what the constant was always for. Measured on both the old goldens and the new:
             // at a quarter the day frame reports three vehicles before and two after, and at a
             // fifth it reports three before and three after, four at night either side.
+            //
+            // **v4.25 re-derived it again, from a fifth to an eighth, and the same thing had
+            // happened one step further along.** `CarNightCrossfadeTest` reported a vehicle
+            // vanishing mid-road at dusk; the frames say otherwise -- the far-lane car is plainly
+            // on the road in every one of them, and it is this count that loses it for three
+            // frames. As the crossfade darkens the car, its body's delta from the tarmac falls
+            // under the threshold and only its darkest slice still qualifies, so its dense run
+            // collapses from twenty-six columns to nine, under the twelve a run needs. Measured
+            // over the eight frames around it: the car's columns carry a median 0.208 of the band
+            // and a tenth percentile of 0.167, a lane dash carries 0.062, and there is nothing in
+            // between -- at 0.16 and below the run is 47 to 54 columns in every frame, at 0.20 it
+            // is nine to twenty-six. An eighth sits midway between the weakest column that must
+            // count and the strongest thing that must not, which is how this constant has been
+            // derived each time.
             columnHit[x] = hits >= (bottom - top) * VEHICLE_COLUMN_DEPTH_SHARE
         }
 

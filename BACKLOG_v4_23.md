@@ -27,7 +27,7 @@ otherwise.
 | 39 | `STAR_POINT_COLOR` was not the colour its own comment named | **RESOLVED** — corrected to the artwork's cream and pinned by a test that reads the PNG |
 | 40 | The Canvas goldens barely exercise the sky | **RESOLVED in part** — the cloud band hid **every** celestial body, the moon in the four night frames as well; item 41's new golden is the first committed frame with one clear of it. The sun's own half stays **OPEN** |
 | 41 | No committed frame draws `moon_jack_o_lantern` | **RESOLVED** — `halloween-moon`, Halloween **and** realistic phases both on, so the frame can fail if the renderer's override ever leaks |
-| 42 | Paper grain as a project-wide device | **OPEN** — a decision for the maintainer that touches every sprite, and must be measured before it is taken |
+| 42 | Paper grain as a project-wide device | **REJECTED in v4.25** — tried twice and removed twice; the colour gate now leaves it 2.4% of mean darkening, which is not a texture |
 | 43 | `reports/runtime-inventory.{json,md}` described a 260-sprite set that ships 266 | **RESOLVED** — regenerated; the budget margin is unchanged and was verified, not assumed |
 | 44 | The preview's fir baubles are `star_sparkle` blits, so they changed with the artwork | **DOCUMENTED** — the follow-up `BACKLOG_v4_21.md` item 26 anticipated |
 | 45 | `sun_body`'s drawing is not centred in its own canvas | **DOCUMENTED** — inherent to the approved artwork, ~2.5 units, not corrected here |
@@ -204,26 +204,40 @@ always carried. `GoldenUniquenessTest` is green with 28 PNGs: no two are byte-id
 
 ## 42 — Paper grain as a device of the project
 
-**OPEN, and registered rather than resolved on purpose.** Concept B reads as cut paper by its edges
-alone: facets, wobble, and flat colour. Real cut paper also has *grain* — a faint fibrous texture
-across the sheet — and every sprite in this project is flat fill. Adopting grain would be the single
-largest change to the look since the V2 library.
+**REJECTED, closed in v4.25 on the measurement rather than on taste.** Concept B reads as cut
+paper by its edges alone: facets, wobble, and flat colour. Real cut paper also has *grain* — a
+faint fibrous texture across the sheet — and every sprite in this project is flat fill. This item
+asked whether to adopt it across the whole 266-sprite set.
 
-It is not a small decision and it is not this pass's:
+**It has been implemented and removed twice already**, and the record is in `CHANGELOG.md`: v56
+scaled the overlay down to three elements after it pegged the little cores, and **v58 deleted it**
+— `PaperGrainTexture.kt`, its drawable and every call site — for two reasons at once, CPU cost and
+colour fidelity. The colour half is the one that settles this: a `MULTIPLY` overlay *always*
+darkens, that build's darkened by about 45%, and a sky set to light blue rendered grey.
+`DESIGN_NOTES.md` §1.5 has carried the decision since.
 
-- **It touches every sprite, not the sky.** Grain on eight celestial sprites and nowhere else would
-  read as a defect, not as a style. The unit of the decision is the whole 266-sprite set.
-- **It has to be measured before it is taken.** Grain is either baked into each PNG — which
-  changes nothing at runtime but multiplies every sprite's entropy, and the set is already 154 124 B
-  under a ceiling that has been raised four times — or applied as an overlay at draw time, which is
-  a new per-frame cost on a device whose whole frame budget is 14.72 ms of 33.3.
-- **It interacts with the tint classes.** A grain baked under `MULTIPLY` darkens with the tint;
-  `SpriteTintClassTest` requires a tintable sprite to average ≥ 220, and the current celestial set
-  sits at 244.1.
+**What the project would allow it today.** `SpriteTintClassTest` requires every tintable sprite to
+average at least 220, because `MULTIPLY` can only darken and a mask that starts dark renders every
+colour at less than the value the user picked. Measured over the 36 tintable sprites in the shipped
+set, the darkest is **`bar_cornice` at a mean of 225.33** — so the whole set has **2.36% of mean
+level** to spend before the colour gate fails. A grain that darkens uniformly between nothing and
+its full depth spends half of it, which puts the deepest permissible grain at about **0.045**.
 
-What closing it would take: a mockup pass on one family in both directions (baked and overlaid), the
-decoded-byte and per-frame numbers for each, and the maintainer's judgement on the look. **No work
-towards it was done here.**
+That is the answer. The effect that was removed for being unfaithful to the user's colours darkened
+by 45%; what the gate permits now is **a twentieth of that**, and a texture a twentieth as deep as
+one that was already called subtle is not a texture — it is noise below the point where anyone
+looking at a phone would see paper. There is no depth that is both visible and inside the gate, so
+there is nothing to mock up and nothing to put to the maintainer.
+
+**Not reproduced here:** a per-frame cost figure for a grain overlay. GPU busy is not measurable on
+this device at all — `kgsl` is Adreno-only, MediaTek's `ged` nodes are root-only — so any GPU
+percentage for this feature belongs to the hardware it was taken on and is not re-measurable in
+this repository. It does not change the outcome: the colour ceiling closes the item on its own,
+and it is the same reason v58 closed it.
+
+**Do not re-open it as an artwork question.** If the look is ever wanted again, the thing to
+propose is *baked per-object shading*, which is what replaced it (`DESIGN_NOTES.md` §1.5) and what
+B "Rilievo" is built on — relief, not fibre.
 
 ## 43 — The committed sprite inventory described a set that has not shipped for two releases
 

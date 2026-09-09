@@ -289,14 +289,17 @@ class SceneObjectRenderer(
          * Where a walking person's sprite origin goes, so its content bottom-centre lands on the
          * pavement line it was placed at.
          *
-         * All ninety-six walk sprites are 123x255 px -- 41x85 local units -- and every one of them
+         * All ninety-six walk sprites are 117x252 px -- 39x84 local units -- and every one of them
          * has its content reaching the canvas's bottom edge, so one pair of numbers covers the set
          * rather than a per-sprite table.
          *
-         * (REN-07: this said "twenty-four sprites, 129x252". The count predates the skin axis, which
-         * multiplied the set by four, and the size predates a crop. `SpriteMeasurementClaimTest`
-         * reads every size quoted in this file back off the artwork, so a third stale measurement
-         * cannot be written here without failing.)
+         * (This has been stale twice. REN-07 found "twenty-four sprites, 129x252" -- the count
+         * predating the skin axis and the size predating a crop -- and v4.25 left "123x255 px,
+         * 41x85 local units" standing after the family was redrawn on a trimmed canvas.
+         * `SpriteMeasurementClaimTest` catches a stale size only in the shape
+         * `` `sprite_name` ... is NxM px ``, which is not the shape of this sentence: recompute
+         * with `file app/src/main/res/drawable-nodpi/person_man_summer_walk0.png` rather than
+         * trusting that a test is watching.)
          */
         // v4.1 removed `PEDESTRIAN_COUNT` and `PEDESTRIAN_THRESHOLD_SALT` from here. The pool size
         // is now [PedestrianPopulation.GROUP_COUNT] -- the same four slots, but each one yields a
@@ -460,10 +463,14 @@ class SceneObjectRenderer(
         const val OCCUPANT_BOX_UNITS = 22f
 
         /** Half a walk sprite's own width, in local units, for the wrap-tile cull. */
-        const val PERSON_HALF_WIDTH_UNITS = 21.5f
+        const val PERSON_HALF_WIDTH_UNITS = 19.5f
 
-        const val PERSON_ANCHOR_X_UNITS = -20.5f
-        const val PERSON_ANCHOR_Y_UNITS = -85f
+        // v4.25: the walk canvas came down from 41x85 to 39x84 units when the family was redrawn,
+        // because the generator now trims each shared canvas onto what the family drawn on it
+        // actually covers. Both constants moved by the trim's own +(1,1): a crop without its
+        // compensation moves the sprite, which is why they are in the same change as the artwork.
+        const val PERSON_ANCHOR_X_UNITS = -19.5f
+        const val PERSON_ANCHOR_Y_UNITS = -84f
 
         // ---- The people behind a windscreen (v4.6) ---------------------------------------
         //
@@ -676,20 +683,30 @@ class SceneObjectRenderer(
         /**
          * The divisor `drawWindowOccupant` scales a bust by, which is **not** the sprite's width.
          *
-         * REN-07. It was written as "the head sprite canvas is 60 units wide" and the canvas is 53:
-         * it was 180 px when the line was written and lost a column in the SCL-01 pass. The bust is
-         * therefore drawn at 53/60 of the nominal 85% of the pane, about 75%, and that is what has
-         * shipped since v4.2 and what the artwork was judged against. Kept, and named for what it
-         * actually is.
+         * REN-07. It was written as "the head sprite canvas is 60 units wide", and the canvas has
+         * never been 60 since: 180 px when the line was written, 159 after the SCL-01 crop, and
+         * **147 px -- 49 units -- on the family v4.25 ships**. So the bust is drawn narrower than
+         * the nominal 85% of the pane, which is what has shipped since v4.2 and what the artwork
+         * was judged against. Kept, and named for what it actually is.
+         *
+         * **Do not re-derive a share of the pane from the canvas width.** A canvas trimmed onto
+         * its own content draws the same picture at the same size -- only the anchor moves with it
+         * -- so the share that means anything is the *head's*, [OCCUPANT_HEAD_PANE_SHARE], which is
+         * 51.9% of the pane and does not move when the canvas is cropped. `OneOccupantRuleTest`
+         * reads the 0.85 and this divisor back out of `drawWindowOccupant`'s source and pins that
+         * share; `SpriteMeasurementClaimTest` pins the canvas width against the shipped PNG.
          */
         const val WINDOW_OCCUPANT_DIVISOR_UNITS = 60f
 
         /**
-         * The window busts' CONTENT_BOTTOM_CENTRE anchor, in their own 53x57-unit canvas: the
+         * The window busts' CONTENT_BOTTOM_CENTRE anchor, in their own 49x57-unit canvas: the
          * midpoint of the eight heads' declared x, and the canvas bottom. Buildings only since
          * rc2; the vehicles' profile family carries its own anchor below.
          */
-        const val WINDOW_HEAD_ANCHOR_X_UNITS = 26.8f
+        // v4.25: 26.8 until the window canvas was trimmed onto what the family covers -- 53 units
+        // wide down to 49, three of them off the left, which is exactly what this moved by. The y
+        // is the canvas bottom and the canvas did not lose a row.
+        const val WINDOW_HEAD_ANCHOR_X_UNITS = 23.8f
         const val WINDOW_HEAD_ANCHOR_Y_UNITS = 57f
 
         /**
@@ -743,11 +760,18 @@ class SceneObjectRenderer(
 
         /**
          * A pedestrian's head, measured off the shipped walking artwork: `person_man_summer_walk0`
-         * carries its hair crown at row 15 and its jaw at row 86 of a 240-row canvas, 71 px = 23.7
-         * of the figure's 80 units. `OccupantTableTest` re-measures the PNG so this cannot drift
+         * carries its hair crown at row 5 and its jaw at row 77 of a 252-row canvas, 73 px = 24.3
+         * of the figure's 80 units. `OccupantHeadFitTest` re-measures the PNG so this cannot drift
          * from the artwork silently.
+         *
+         * **v4.25: 23.7 on the artwork this replaced, and the measurement rule had to change with
+         * it.** The old rule took the jaw as the end of the face's first contiguous run of skin
+         * rows, which worked while the neck was drawn in something other than skin. B "Rilievo"
+         * draws the neck in skin, so that run now ends below the collar and read 29.7 -- a head
+         * half again too tall, on a constant every head in the scene derives from. The rule is now
+         * the width: the head is the wide part of the skin and the neck a strip a third of it.
          */
-        const val PERSON_HEAD_SPRITE_UNITS = 23.7f
+        const val PERSON_HEAD_SPRITE_UNITS = 24.3f
 
         /** That head in scene metres: the one size every head in the scene now derives from. */
         const val OCCUPANT_HEAD_METRES =
@@ -764,30 +788,41 @@ class SceneObjectRenderer(
         const val OCCUPANT_SEATED_FIT = 0.97f
 
         /**
-         * The head's share of the frontal bust artwork: the adult members of
-         * `person_*_head_car` carry their head (crown to chin) as 35 of the shared 47x44 canvas's local
-         * units, the children as 31.5 -- the same 18/20 a child always is. The scales below
-         * divide by the adult head, so an adult's head lands exactly on the table and a child's
-         * comes out 10% shorter, which is what a child is.
+         * The head's share of the seated bust artwork: the adult members of `person_*_head_car`
+         * carry their head -- the crown of the content down to where the skin narrows into the
+         * neck -- as **32.33 to 33.00** of the shared 38x42-unit canvas, the children as
+         * **28.67 to 29.00**, which is 0.890 of the adults and the 0.9 the size table has always
+         * declared. The scales below divide by the adult head, so an adult's head lands exactly
+         * on the table and a child's comes out 10% shorter, which is what a child is.
          *
-         * rc4: the artwork is rc1's frontal family -- the pedestrians' own face with a seatbelt
-         * on the chest -- with its torso baseline raised from 49 to 43 canvas units, because a
-         * bust anchored on the sill must fit its whole content into the 23-unit pane the shell
-         * can carry (there is no clip in [SceneCanvas], so "zero occupant pixels outside the
-         * glass" has to hold by authored geometry, exactly as it did for the profiles, which
-         * carried only 5 units of shoulder for the same reason).
+         * **The measuring rule is the one thing here that is a decision.** This read 35 until
+         * v4.25, taken with the jaw at the end of the face's first run of skin rows; B "Rilievo"
+         * draws the neck in skin, so that rule ran past the collar, the busts read three units
+         * taller than they are, and the occupants shipped **17% too small** on the device --
+         * because this constant and the pedestrian constant it is compared against were being
+         * measured by two different rules. One rule now, both poses, every measuring site;
+         * `OccupantHeadFitTest` re-measures it on the shipped PNGs so it cannot drift silently.
+         *
+         * The artwork is three-quarter with a seatbelt on the chest, its torso baseline placed so
+         * a bust anchored on the sill fits its whole content into the pane the shell can carry:
+         * there is no clip in [SceneCanvas], so "zero occupant pixels outside the glass" has to
+         * hold by authored geometry, exactly as it did for the profile family that preceded it.
          */
-        const val HEAD_CAR_HEAD_UNITS = 35f
+        const val HEAD_CAR_HEAD_UNITS = 32.5f
 
-        /** The frontal family's CONTENT_BOTTOM_CENTRE anchor, in the family's shared
-         * 47x44-unit canvas: x between the eyes (a seat centres the face, not the content box --
+        /** The seated family's CONTENT_BOTTOM_CENTRE anchor, in the family's shared
+         * 38x42-unit canvas: x between the eyes (a seat centres the face, not the content box --
          * the woman's side-swept hair would pull a content-centred seat sideways; every member
          * is authored with its eye line centred here, which is what lets one origin serve all
          * eight), y the shared canvas bottom -- the co-registration rule every person family
          * anchors by (SpriteGeometryTest) -- which the torso baseline's ink sits a third of a
-         * unit above. */
-        const val HEAD_CAR_ANCHOR_X_UNITS = 23f
-        const val HEAD_CAR_ANCHOR_Y_UNITS = 44f
+         * unit above.
+         *
+         * v4.25: 23 and 44 until the car canvas was trimmed onto what the family covers, 47x44
+         * units down to 38x42. The anchor is still the eye line and the canvas bottom; both moved
+         * with the trim, and a crop without its compensation moves the sprite. */
+        const val HEAD_CAR_ANCHOR_X_UNITS = 19f
+        const val HEAD_CAR_ANCHOR_Y_UNITS = 42f
 
         /**
          * One scale per vehicle family, each the same rule: the table head, seat-fitted, in the
@@ -803,10 +838,27 @@ class SceneObjectRenderer(
                 HEAD_CAR_HEAD_UNITS
 
         /**
-         * The two seats, **shared by all three bodies**: driver at -8.5, passenger at 14.5, a
-         * pitch of 23 units about a cabin centre of 3.
+         * The two seats, **shared by all three bodies**: driver at -7.75, passenger at 13.75, a
+         * pitch of **21.5** units about a cabin centre of 3.
          *
-         * ### Why the pitch is 23 and not 20
+         * ### v4.25: 23 until the people were redrawn, and re-derived rather than clipped
+         *
+         * The v4.25 family is drawn three-quarter, and its seated head is **17 units** of car
+         * across. Two of them at the old 23-unit pitch take 40 units of a saloon pane that
+         * measures about 44, which leaves 4 units to split between the two pillar lights where
+         * `everyOccupantClearsItsPillarsByFifteenPercentOfItsHead` asks for 5.1 -- short by 1.1,
+         * on every saloon, at every seat offset. Moving the pair only chooses which pillar the
+         * shortfall lands on: measured, the plain saloon and the police saloon cross at 12-13%
+         * of a head and never both reach 15%.
+         *
+         * **The pitch is what gives it back, and it gives it back to a value the app has already
+         * shipped.** v4.24's seated heads were 18.6 units of car wide at a 23-unit pitch, so they
+         * sat **4.4 units** apart; at 21.5 with a 17-unit head they sit **4.5** apart. Nothing is
+         * being squeezed that was not already this close for releases -- the head keeps the
+         * proportion the artwork was approved at, the cabins keep their shape, and the pair keeps
+         * its own [CAR_SEAT_BACK_X_UNITS] centre because both seats move by the same amount.
+         *
+         * ### Why the pitch was 23 and not 20
          *
          * v4.19 seats children as well as adults, and the widest head in the set is the winter
          * girl's -- 22 units across the bunches against an adult's 18. At the 20-unit pitch the
@@ -847,9 +899,9 @@ class SceneObjectRenderer(
          * which v4.18 measured fill on and could never satisfy (item 2 of the backlog), is not
          * part of any band here.
          */
-        const val CAR_HEAD_X_UNITS = -8.5f
+        const val CAR_HEAD_X_UNITS = -7.75f
         const val CAR_HEAD_Y_UNITS = CAR_SILL_Y_UNITS
-        const val CAR_PASSENGER_X_UNITS = 14.5f
+        const val CAR_PASSENGER_X_UNITS = 13.75f
         const val CAR_PASSENGER_Y_UNITS = CAR_SILL_Y_UNITS
 
         /**
@@ -2479,24 +2531,25 @@ class SceneObjectRenderer(
         val resId = personWindowHeadSkinDrawables[occupant.kindIndex][seasonIdx][occupant.skinIndex]
         // Placed from the sprite's declared anchor, not by centring its canvas -- the same
         // correction v76.1 made to the car driver, applied here for the same reason. The window
-        // heads are 53x57 local units anchored CONTENT_BOTTOM_CENTRE, so centring the canvas put
+        // heads are 49x57 local units anchored CONTENT_BOTTOM_CENTRE, so centring the canvas put
         // the bust's shoulders a third of a pane below the sill. The bust now stands on the
         // window's own lower edge.
         //
-        // **REN-07: this said 60x54, and the divisor below still says 60.** The canvas is 159x171
-        // px, which is 53x57 units; it was 180 px wide when the divisor was written and lost a
-        // column in the SCL-01 pass. Dividing by 60 therefore draws the bust at 53/60 of the
-        // intended 85% of the pane -- about 75% -- so the occupants are a little smaller than the
-        // rule says. Left as it is deliberately: 75% of the pane is what has shipped since v4.2 and
-        // is what the artwork was tuned against by eye, so the number is the record of a decision
-        // even though the reasoning written beside it was wrong. `WindowOccupantScaleTest` pins
-        // both halves so neither can drift again.
+        // **The divisor below is 60 and no canvas has ever been 60 units.** It said 60x54 before
+        // REN-07, the canvas was 159x171 px then and is 147x171 -- 49x57 units -- now. Dividing by
+        // a number wider than the canvas draws the occupant a little smaller than the nominal 85%
+        // of its pane, which is what has shipped since v4.2 and what the artwork was tuned against
+        // by eye, so the number is the record of a decision even though the reasoning first
+        // written beside it was wrong. `SpriteMeasurementClaimTest` pins the canvas width against
+        // the shipped PNG and asserts the divisor is not it; `OneOccupantRuleTest` reads the 0.85
+        // and the divisor back out of this function's own source and pins the head's share of the
+        // pane. Neither can drift without failing.
         val cx = winX + winW / 2f
         val cy = winY + winH
         canvas.save()
         canvas.translate(cx, cy)
         // Not the canvas width -- see the note above. This is the tuned divisor, and 60 is what it
-        // has always been; the canvas is 53 units.
+        // has always been; the canvas is 49 units.
         val s = (winW * 0.85f) / WINDOW_OCCUPANT_DIVISOR_UNITS
         canvas.scale(s, s)
         drawSprite(canvas, resId, -WINDOW_HEAD_ANCHOR_X_UNITS, -WINDOW_HEAD_ANCHOR_Y_UNITS)
@@ -3336,6 +3389,39 @@ class SceneObjectRenderer(
     }
 
     /**
+     * One seated bust, anchored on the sill at [x] and scaled by the vehicle's own occupant
+     * scale. A named method rather than a lambda: the draw path allocates nothing, and two seats
+     * would otherwise be two copies of the same five lines.
+     *
+     * ### The occupant faces the vehicle's front, and that costs one sign
+     *
+     * **The bust is mirrored on the x axis, always.** The whole vehicle -- body, glass, livery,
+     * lamps and both busts -- is already drawn inside `drawCar`'s own `scale(dir, 1)`, so a
+     * seated occupant *does* turn with the direction of travel and the driver is always at the
+     * leading seat. What was wrong is the sense: the seated artwork is drawn three-quarter with
+     * the hair mass toward -x, which puts the face toward +x, and +x in this vehicle's local
+     * frame is its **rear** (the art faces left, the driver sits at the negative
+     * [CAR_HEAD_X_UNITS]). So every occupant in every car was riding turned around, in
+     * both directions equally -- measured on the rendered frame with the amber and red lamps as
+     * the reference, which is what the lamps are there for.
+     *
+     * It was invisible until v4.25 because the family this replaced was drawn **frontal and
+     * symmetric**: a head with no side has no wrong side. The concept's own three-quarter styling
+     * is what gave it one.
+     *
+     * Mirroring about the seat rather than about the sprite's own centre is deliberate and it is
+     * free: the blit origin is the anchor, so a negative x scale reflects the drawing about the
+     * anchor and the eye axis stays exactly where the seat put it.
+     */
+    private fun drawSeatedOccupant(canvas: SceneCanvas, x: Float, y: Float, scale: Float, occupantRes: Int) {
+        canvas.save()
+        canvas.translate(x, y)
+        canvas.scale(-scale, scale)
+        drawSprite(canvas, occupantRes, -HEAD_CAR_ANCHOR_X_UNITS, -HEAD_CAR_ANCHOR_Y_UNITS)
+        canvas.restore()
+    }
+
+    /**
      * Sprite-blit conversion (aesthetic-pass batch 3): body/window are now bitmap blits instead
      * of a `Path`+2 `drawRect` calls every frame, and the single generic car now comes in 4
      * vehicle types (see [CarType]) -- [CarType.PLAIN] keeps the exact same user-tintable
@@ -3344,19 +3430,6 @@ class SceneObjectRenderer(
      * truck roof ladder) blitted on top. Wheels stay vector (2 circles + 2 stroked circles,
      * already cheap, shared unchanged by every type).
      */
-    /**
-     * One seated bust, anchored on the sill at [x] and scaled by the vehicle's own occupant
-     * scale. A named method rather than a lambda: the draw path allocates nothing, and two seats
-     * would otherwise be two copies of the same five lines.
-     */
-    private fun drawSeatedOccupant(canvas: SceneCanvas, x: Float, y: Float, scale: Float, occupantRes: Int) {
-        canvas.save()
-        canvas.translate(x, y)
-        canvas.scale(scale, scale)
-        drawSprite(canvas, occupantRes, -HEAD_CAR_ANCHOR_X_UNITS, -HEAD_CAR_ANCHOR_Y_UNITS)
-        canvas.restore()
-    }
-
     private fun drawCar(canvas: SceneCanvas, c: CarRuntime, screenWidth: Float, screenHeight: Float, dayBlend: Float) {
         val margin = vehicleEdgeMarginPx(screenHeight)
         val travel = screenWidth + margin * 2f
@@ -3527,9 +3600,12 @@ class SceneObjectRenderer(
         // for the twelve measured combinations. So the 16 child busts, 1.136 MiB that had never
         // been decoded in any release, are content now.
         //
-        // **The passenger is drawn before the driver**, because the person in front is the one
-        // who occludes: the two heads overlap across the hair at this seat spacing, and drawing
-        // them the other way round would put the rear passenger in front of the driver.
+        // **The passenger is drawn before the driver**, because if the two ever overlap the person
+        // in front is the one who occludes. On the artwork v4.25 ships they do not: measured over
+        // every seatable pair and every row of the sprites, the closest the two occupants' ink
+        // comes is **2.06 units of car** -- and it was 1.27 on v4.24's family at the old 23-unit
+        // pitch, so this has never been an overlap that a reorder would have exposed. The order is
+        // kept because the margin is one or two units and the next family need not inherit it.
         //
         // Drawn AFTER the livery deliberately: the stripe and the chequer band the doors below
         // the sill, the busts stand on the sill inside the glass, and `VehicleDrawOrderTest`
@@ -3564,15 +3640,19 @@ class SceneObjectRenderer(
                 // adult families' garments exchanged, so equal indices put two different colours
                 // in one car and opposite ones would put the same colour twice.
                 drawSeatedOccupant(
-                    canvas, CAR_PASSENGER_X_UNITS, CAR_PASSENGER_Y_UNITS, occupantScale,
+                    canvas, CAR_PASSENGER_X_UNITS + shell.seatOffsetXUnits, CAR_PASSENGER_Y_UNITS,
+                    occupantScale,
                     carHeadDrawable(
                         SeatedOccupants.passengerKind(c.spec), seasonIdx,
                         SeatedOccupants.passengerSkin(c.spec), outfitIdx,
                     ),
                 )
             }
+            // **The pair moves together, by this body's own offset.** Shifting one seat would
+            // change the seat pitch, which is the one thing about the pair that is shared: see
+            // [CarShell.seatOffsetXUnits] for why a shift is needed at all and how it is derived.
             drawSeatedOccupant(
-                canvas, CAR_HEAD_X_UNITS, CAR_HEAD_Y_UNITS, occupantScale,
+                canvas, CAR_HEAD_X_UNITS + shell.seatOffsetXUnits, CAR_HEAD_Y_UNITS, occupantScale,
                 carHeadDrawable(driverKindIdx, seasonIdx, driverSkinIdx, outfitIdx),
             )
         }

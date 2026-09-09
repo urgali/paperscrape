@@ -12,36 +12,57 @@ always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v4.24 prepared — not published and not approved.**
+**v4.25 prepared — not published and not approved.**
 
-`versionCode = 55`, `versionName = "4.24"`. **No tag, no push, no GitHub Release** — that half is
+`versionCode = 56`, `versionName = "4.25"`. **No tag, no push, no GitHub Release** — that half is
 the maintainer's and has not been done for this version.
 
-**Baseline v4.23, and it is published.** Read from the public GitHub API on 2026-09-07: `v4.20`
-(2026-09-03), `v4.21` and `v4.22` (2026-09-04) and `v4.23` (2026-09-06) are all published,
-non-draft, non-prerelease, each carrying its APK and checksum, and each has a tag. **This
-document said until now that v4.19 was the last published release; that had been true when it
-was written and stopped being true four releases ago.** The maintainer publishes shortly after a
-delivery, and nothing in this working tree learns that on its own — so re-read the API rather
-than this line:
+**Baseline v4.24, and it is published.** Read from the public GitHub API on 2026-09-08: `v4.24` is
+published, non-draft, non-prerelease, with its APK and checksum, as are `v4.20` through `v4.23`.
+This document said until now that v4.24 was prepared and unpublished; that was true when it was
+written. **Re-read the API rather than this line** — nothing in a working tree learns that a
+release went out:
 
 ```bash
 curl -s https://api.github.com/repos/urgali/paperscrape/releases | grep -o '"tag_name": *"[^"]*"' | head
 ```
 
-Consequently `release-notes/v4.24.md` is an ordinary short note. A user behind v4.23 already
-receives the intermediate notes, because `UpdateChecker` combines every published release newer
-than theirs, and those releases exist.
+**Three backlogs are open.** `BACKLOG_v4_23.md` carries the artwork and renderer items — 18, 25, 30
+carried forward, and item 25 (the palm) is now the most visible piece of the old drawing language
+left, since the people are done. `BACKLOG_v4_24.md` carries what the documentation review found and
+did not fix, items 49-55. `BACKLOG_v4_25.md` carries items 56-64, of which five are open: 56 (the GL
+reference frames portray people who no longer exist), 58 (a doc comment defeats the dead-table
+rule), **61** (seven length systems all called `_UNITS`, and the same unit error made twice in one
+release — the search is done and three fixes are proposed), **63** (a redraw left six stale sizes
+under a guard that matches only one shape of sentence), and **64**, which is a question for the
+maintainer rather than a defect: whether the double golden regeneration is a per-release check or a
+per-device one.
 
-**Two backlogs are open.** `BACKLOG_v4_23.md` carries the artwork and renderer items — 18, 25, 30
-carried forward, 37 onward new, item 25 (the palm) still the most visible piece of the old drawing
-language left. `BACKLOG_v4_24.md` carries what the documentation review found and did not fix,
-items 49-54.
+**Verified at Level 3 here.** The numbers are in `docs/archive/V4_25_REPORT.md`.
 
-**Verified at Level 3 here**: `testDebugUnitTest` 1 340 tests green, `lintDebug` 0 errors,
-`assembleDebug` successful, and the same from a clean extraction of the delivery ZIP. The
-instrumented suite was deliberately not re-run — the only executable change in v4.24 is the two
-version lines. Publication is the maintainer's decision and has not been taken.
+```
+v4.25 [x] the people redrawn, and the small figures stopped shimmering
+ |- concept B "Rilievo" with the suggestion of a face, chosen from photographs at real size: 40 SVG
+ |  sources, 132 recolours regenerated, every canvas trimmed onto its own content (1.63 MB of
+ |  decoded budget freed, measured over both shipped sets) with the anchors compensated with it
+ |- one rule for a head in both poses -- the jaw is where the skin narrows into the neck -- which
+ |  closed a 17% occupant-size error, a child drawn at 98% of an adult, and a seated head band that
+ |  overflowed the seat pitch on seven busts of eight
+ |- three defects in the seated occupants, all present since phase 1: a head narrowed to fit a band
+ |  read in the wrong unit (0.61-0.72 of width over height, now 1.00-1.16), a face pointing at the
+ |  boot in every car, and a seat pitch re-derived 23 -> 21.5 so the pillar criterion passes at 15%
+ |  on all six cabins without anything being narrowed
+ |- a stable reduction in the GL path: sprites drawn small are blitted from a copy made for the
+ |  size, cutting shimmer 52% and softening 30% at -3.23 points of process CPU
+ |- 25 Canvas goldens regenerated after a per-region attribution: 2 877 pixels changed, none of
+ |  them outside the three bands the people occupy, and the four gate rectangles measure 0.0000%
+ |  over two independent regenerations that are byte-identical 25 of 25
+ |- the acceptance sheet: DESIGN_NOTES §14 and AI_PROJECT_RULES 13.6 now state what a judging image
+ |  must show, because all three occupant defects were visible in phase 1 and no image displayed one
+ \- four defects the pass found and none of them was the scene: a vehicle detector living on a cliff
+    edge (0.20 -> 0.12), a test normalising a bust by a pedestrian's fringe, the same unit error in
+    two files, and six sizes left stale by the redraw under a guard written to catch exactly that
+```
 
 ```
 v4.24 [x] a documentation review: the documents made to say what is true

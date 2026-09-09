@@ -147,10 +147,6 @@ class VehicleOccupantScaleTest {
             }
         }
 
-    /** The street with nobody driving on it: pedestrians only, so a face found is a pedestrian's. */
-    private fun frameWithPeopleOnly(): Bitmap =
-        render(SceneObjectLayout(staticObjects = emptyList(), cars = emptyList()), peopleVisible = true)
-
     private fun render(layout: SceneObjectLayout, peopleVisible: Boolean, advanceBy: Float = 0f): Bitmap {
         val defaults = defaultCustomizationFor(THEME_ID)
         val customization = defaults.copy(
@@ -204,7 +200,106 @@ class VehicleOccupantScaleTest {
     /** One connected run of skin-coloured pixels: a face, a hand, or a bare leg. */
     private class Blob(val minX: Int, val maxX: Int, val minY: Int, val maxY: Int, val area: Int) {
         val height get() = maxY - minY + 1
+        val width get() = maxX - minX + 1
         val centreX get() = (minX + maxX) / 2f
+    }
+
+    /**
+     * The **head block** on the rendered frame: the crown of the hair down to the jaw, in pixels.
+     * Null when the figure does not stand clear -- see the cap below.
+     *
+     * ### Why this and not the face
+     *
+     * Everything in this class used to be measured on the visible skin -- the face's own run of
+     * skin rows -- and that is not a dimension. It is a property of the haircut. Measured on the
+     * v4.25 family, the skin's share of the head block is **0.861** for a walking man, **0.794**
+     * for the same man seated, **0.623** for a walking woman and **0.733** for her seated: a third
+     * of the quantity is hair, so no scale can make two poses agree on it and a test that asks
+     * them to is asking the wrong question. It was only ever satisfiable while the four drawings
+     * happened to leave similar amounts of face uncovered, and B "Rilievo" -- fuller hair on both
+     * adults, a lock across the woman's cheek -- ended that.
+     *
+     * The head block does not move: it is what [SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS] and
+     * [SceneObjectRenderer.HEAD_CAR_HEAD_UNITS] declare, what every occupant scale is derived
+     * from, and it is the same for both adults -- which is why nothing here has to know which of
+     * them is driving any more.
+     *
+     * ### The rule, which is `OccupantHeadFitTest`'s rule
+     *
+     * That JVM test measures the same block on the shipped PNG: content top for the crown, and for
+     * the jaw *the width* -- the last row of the skin's first run still at least half as wide as
+     * the widest. The neck is drawn in skin since B "Rilievo", so a rule that took the end of the
+     * run would put the jaw below the collar. This reads the same block off painted pixels: the
+     * crown by walking up the face's own columns while [isInk] still finds the figure, the jaw by
+     * that same half-width test on the face blob's rows.
+     *
+     * ### Why the crown is found against a background and not against a palette
+     *
+     * The first attempt matched hair colours and measured one driver right and the next one
+     * thirteen pixels short, because the palette it matched against still had the previous
+     * family's hair in it. A palette written into a test is a copy of the artwork that goes stale
+     * silently. [isInk] asks the question the eye asks instead: for a driver, *not the glass
+     * showing through*; for a pedestrian, *not what this frame looks like with the people switched
+     * off*. Neither has a colour in it.
+     *
+     * ### The cap, and why a figure can decline to be measured
+     *
+     * A pedestrian standing in front of another is one silhouette, and no rule reading painted
+     * pixels can say where the front one's hair ends and the back one's shoulder begins: measured
+     * that way the near woman's head came out 134 px against an expected 38. So the walk is capped
+     * at [CROWN_WALK_CAP] times the face it started from -- the widest head block this artwork
+     * draws is 1.7 faces -- and a figure whose crown is still inked at the cap is reported as
+     * unmeasurable rather than measured wrongly.
+     */
+    private fun headBlock(pixels: IntArray, face: Blob, isInk: (Int) -> Boolean): Int? {
+        val cap = (face.height * CROWN_WALK_CAP).toInt()
+        var up = 0
+        var y = face.minY - 1
+        // Two adjacent inked pixels, not one: a single one is the anti-aliased rim of whatever is
+        // behind the figure, and one such pixel per row would walk this measurement to the horizon.
+        while (y >= 0 && (face.minX until face.maxX).any { isInk(y * WIDTH + it) && isInk(y * WIDTH + it + 1) }) {
+            up++
+            if (up > cap) return null
+            y--
+        }
+        val crown = face.minY - up
+        val widths = IntArray(face.height)
+        for (row in face.minY..face.maxY) {
+            var n = 0
+            for (x in face.minX..face.maxX) if (isSkin(pixels[row * WIDTH + x])) n++
+            widths[row - face.minY] = n
+        }
+        val widest = widths.max()
+        var jaw = face.minY
+        for (i in widths.indices) {
+            if (widths[i] != 0 && widths[i] >= widest / 2f) jaw = face.minY + i
+        }
+        return jaw - crown + 1
+    }
+
+    /**
+     * A driver's head block: inside the pane, ink is everything the glass is not.
+     *
+     * `theOccupantsFillHalfTheGlass` measures its ink the same way and says why: the window is
+     * glass where you can see through it and occupant where you cannot. The walk is floored at the
+     * pane's own top row so that it stops at the glass instead of climbing into the roof.
+     */
+    private fun driverHeadBlock(frame: Bitmap, pixels: IntArray): Int {
+        val glass = glassBox(frame) ?: error("no glass in the frame")
+        val top = glass.minY
+        return headBlock(pixels, driverFace(frame)) { i ->
+            i / WIDTH >= top && (pixels[i] ushr 24) >= 200 && !nearGlass(pixels[i])
+        } ?: error("the driver's head reaches the top of its own pane")
+    }
+
+    /** Glass, or close enough to it to be the pane's own anti-aliased edge. */
+    private fun nearGlass(pixel: Int): Boolean {
+        val r = (pixel shr 16) and 0xFF
+        val g = (pixel shr 8) and 0xFF
+        val b = pixel and 0xFF
+        return abs(r - GLASS[0]) <= INK_DISTANCE &&
+            abs(g - GLASS[1]) <= INK_DISTANCE &&
+            abs(b - GLASS[2]) <= INK_DISTANCE
     }
 
     private fun isOccupantColour(pixel: Int): Boolean {
@@ -362,16 +457,65 @@ class VehicleOccupantScaleTest {
     private fun localY(screenY: Int, lane: Float, type: CarType): Float =
         (screenY - lane * HEIGHT) / unitPx(lane, type) + CAR_LOCAL_ORIGIN_ABOVE_CONTACT_UNITS
 
-    /** The tallest face in a frame, which for the street is the nearest adult. */
-    private fun tallestFace(bitmap: Bitmap): Blob =
-        skinBlobs(bitmap).maxByOrNull { it.height } ?: error("no face found in the frame")
-
     // ------------------------------------------------------------------ the glass
 
     /**
      * The pane is drawn [SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS] tall, on both lanes --
      * 23 units since rc2, measured off the glass's own colour so it is the *drawn* height.
      */
+    /**
+     * Every colour this class scans for is a colour the shipped people are actually painted in.
+     *
+     * The palette above is a copy of the artwork, and a copy goes stale silently: when B
+     * "Rilievo" repainted the family, two of the seven entries stopped matching anything, and
+     * nothing failed -- the scans that use them simply stopped seeing a woman's hair and a boy's
+     * cap. A colour that has left the artwork can only be found by looking for it, so this looks.
+     */
+    @Test
+    fun everyColourThisClassScansForIsOneThePeopleArePaintedIn() {
+        val sprites = listOf(
+            R.drawable.person_man_summer_walk0, R.drawable.person_woman_summer_walk0,
+            R.drawable.person_boy_summer_walk0, R.drawable.person_girl_summer_walk0,
+            R.drawable.person_man_summer_head_car_skin0, R.drawable.person_woman_summer_head_car_skin0,
+            R.drawable.person_boy_summer_head_car_skin0, R.drawable.person_girl_summer_head_car_skin0,
+        )
+        val counts = IntArray(OCCUPANT_EXTRA_COLOURS.size)
+        val options = android.graphics.BitmapFactory.Options().apply { inScaled = false }
+        for (resId in sprites) {
+            val bitmap = android.graphics.BitmapFactory.decodeResource(
+                InstrumentationRegistry.getInstrumentation().targetContext.resources, resId, options,
+            ) ?: error("$resId could not be decoded")
+            for (y in 0 until bitmap.height) {
+                for (x in 0 until bitmap.width) {
+                    val pixel = bitmap.getPixel(x, y)
+                    if ((pixel ushr 24) < 200) continue
+                    val r = (pixel shr 16) and 0xFF
+                    val g = (pixel shr 8) and 0xFF
+                    val b = pixel and 0xFF
+                    for (i in OCCUPANT_EXTRA_COLOURS.indices) {
+                        val want = OCCUPANT_EXTRA_COLOURS[i]
+                        if (abs(r - want[0]) <= 4 && abs(g - want[1]) <= 4 && abs(b - want[2]) <= 4) {
+                            counts[i]++
+                        }
+                    }
+                }
+            }
+            bitmap.recycle()
+        }
+        // A hundred pixels: an occupant colour covers thousands where it is used at all, and a
+        // stray anti-aliased handful is not a colour the artwork paints in.
+        val vanished = OCCUPANT_EXTRA_COLOURS.indices
+            .filter { counts[it] < 100 }
+            .map { "#%02X%02X%02X (%d px)".format(
+                OCCUPANT_EXTRA_COLOURS[it][0], OCCUPANT_EXTRA_COLOURS[it][1],
+                OCCUPANT_EXTRA_COLOURS[it][2], counts[it],
+            ) }
+        assertEquals(
+            "these colours are scanned for but the shipped people no longer paint them: $vanished",
+            emptyList<String>(), vanished,
+        )
+    }
+
     @Test
     fun theGlassIsDrawnAtItsAuthoredHeight() {
         for (lane in LANES) {
@@ -462,85 +606,89 @@ class VehicleOccupantScaleTest {
         }
     }
 
-    /**
-     * The pedestrians, kept as a **secondary** and deliberately wide guard.
+    /*
+     * **The pedestrian guard that used to sit here was retired in v4.25, and it was not relaxed.**
      *
-     * An occupant and a pedestrian stand on different ground lines and the projection is supposed
-     * to draw the nearer one larger, so requiring any particular ordering between them as they are
-     * drawn is not a valid test -- v4.6's `driver >= pedestrian` was that mistake, and it is only
-     * satisfiable by a bust that fills its window. What is asserted is that a driver has not become
-     * absurd in either direction; the proportions this release is chosen on are the occupant's
-     * share of its pane and of its vehicle, in `OneOccupantRuleTest` and
-     * `VehiclePedestrianScaleTest`.
+     * `aDriversFaceMatchesAPedestriansOnceDepthIsRemoved` divided a driver's face and a
+     * pedestrian's by their own family's visible skin and asked the two to agree within 10%. The
+     * quantity is not a dimension -- see [headBlock] -- so it was rebuilt on the head block, and
+     * rebuilt it stopped being able to say anything a pixel can support:
+     *
+     *  * **a pedestrian's depth is not in the frame.** Its ground row would have to be the bottom
+     *    of its own ink, and the scene draws a soft shadow under everything, so that walk ends
+     *    thirty pixels below the heel -- a person read as standing a metre nearer than they are.
+     *    The pavement is a band and its two edges are 8% of projection apart, which is most of the
+     *    criterion's own 10% before anything has been measured.
+     *  * **the two crowns are not measured against the same thing.** A driver's is found against
+     *    the pane, a pedestrian's against the street, and the two backgrounds cost a different
+     *    number of anti-aliased rows -- worth about 5% on a 35-pixel head, in a direction that
+     *    does not cancel.
+     *  * **the crowd hides the figures worth measuring.** At full density this frame paints
+     *    seventeen faces, and the two nearest adults are standing in front of somebody else.
+     *
+     * What it was for is covered where it can be answered exactly: `VehiclePedestrianScaleTest`
+     * asserts *an occupant's head stays in a sane relation to a pedestrian's at the same depth*
+     * on the arithmetic, and `OccupantHeadFitTest` re-measures both heads on the shipped PNGs.
+     * Mutating [SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS] by the 17% this release's first
+     * build was wrong by fails **six** assertions across those two classes -- and passed the
+     * rebuilt pixel version, which is why that version is not here.
      */
-    @Test
-    fun aDriversFaceMatchesAPedestriansOnceDepthIsRemoved() {
-        // The rc2 acceptance criterion, measured off rendered pixels for every vehicle type on
-        // both lanes: headPx(occupant) / depthScale(vehicle lane) must equal
-        // headPx(adult pedestrian) / depthScale(pavement row) within +/-10%. The tallest face on
-        // a people-only street is the nearest adult, standing on the near pavement row.
-        // The tallest face on a people-only street is the nearest **man**: his hairline sits 78
-        // rows up against the woman's 66, so "tallest" selects his family as well as his depth.
-        // Both sides are therefore divided by their own family's visible skin before they are
-        // compared -- otherwise this measures how much fringe a driver has, which is the artefact
-        // item 3 of the backlog is about, and it is only by accident that it did not before: the
-        // driver this fixture happened to build was always a man too.
-        val pedestrian = tallestFace(frameWithPeopleOnly())
-        val pedestrianNormalised = pedestrian.height /
-            SceneSpace.perspectiveScaleAt(SceneSpace.PAVEMENT_NEAR_Y_FRACTION) / MAN_FACE_UNITS
-        for ((type, shell) in typesAndShells()) {
-            for (lane in LANES) {
-                val frame = frameWithOneCar(type, lane, shell = shell)
-                val driver = driverFace(frame)
-                val spec = carSpecFor(type, lane, reverse = true, progress = CAR_PROGRESS, shell = shell)
-                val driverNormalised =
-                    driver.height / SceneSpace.perspectiveScaleAt(lane) / driverFaceUnits(spec)
-                val ratio = driverNormalised / pedestrianNormalised
-                assertTrue(
-                    "$type on lane $lane: driver face ${driver.height} px (${"%.2f".format(driverNormalised)} " +
-                        "normalised) vs pedestrian ${pedestrian.height} px " +
-                        "(${"%.2f".format(pedestrianNormalised)}) -- ratio ${"%.3f".format(ratio)}",
-                    ratio in 0.9f..1.1f,
-                )
-                frame.recycle()
-            }
-        }
-    }
 
     /**
      * Every vehicle type carries a driver of the size its own glass implies, on either lane.
      *
-     * The predicted face height is the sprite's own measured face over the scale the bust is drawn
-     * at over the lane's projection -- three separate things, all of which have to be right for the
-     * measurement to land. A tolerance of a pixel and a half absorbs anti-aliasing on a face whose
-     * edge is a curve.
+     * The predicted head is the artwork's own head over the scale the bust is drawn at over the
+     * lane's projection -- three separate things, all of which have to be right for the
+     * measurement to land.
+     *
+     * **v4.25: the head block, not the face.** The prediction used to be the driver's *visible
+     * skin*, which meant asking [SeatedOccupants] which adult had been dealt this car and using a
+     * different constant for each -- and a quantity that differs between two people of the same
+     * size cannot check a size. [SceneObjectRenderer.HEAD_CAR_HEAD_UNITS] is the same for both
+     * adults, so the prediction no longer has to know who is driving; and because that constant is
+     * also the divisor inside [SceneObjectRenderer.CAR_OCCUPANT_SCALE], what this asserts is the
+     * statement the size table makes: **a driver's head is the scene's one head, at 97%**.
+     *
+     * ### Two figures, because one vehicle is a pixel grid and twelve are a scale
+     *
+     * Measured across all twelve cases, the drawn head lands between 1.3 px under and 2.7 px over
+     * the prediction, and the sign follows the vehicle rather than the lane -- it is where each
+     * bust's crown and jaw fall between two pixel rows, on a head that is 43 to 53 px tall. Two
+     * rasterised edges cannot be averaged away in one frame, so the **mean** carries the check
+     * that matters -- a wrong constant moves all twelve the same way, and the mean is held to
+     * 1.5 px, tighter in relative terms than the 1.5 px this test used on a 31 px face -- while
+     * each individual case is held to 4 px, which no rounding can reach but a misplaced seat can.
      */
     @Test
     fun everyVehicleTypeDrawsItsDriverAtTheSizeItsGlassImplies() {
+        val deviations = ArrayList<Pair<String, Float>>()
         for ((type, shell) in typesAndShells()) {
             for (lane in LANES) {
                 val frame = frameWithOneCar(type, lane, shell = shell)
-                val faces = skinBlobs(frame)
-                assertTrue("$type on $lane has nobody in it", faces.isNotEmpty())
+                val pixels = IntArray(WIDTH * HEIGHT)
+                frame.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
                 val scale = if (type == CarType.FIRE_TRUCK) {
                     SceneObjectRenderer.FIRE_TRUCK_OCCUPANT_SCALE
                 } else {
                     SceneObjectRenderer.CAR_OCCUPANT_SCALE
                 }
-                // Which of the two adults drives is dealt from the candidate's own slot, so the
-                // prediction asks the same table `drawCar` does rather than re-deriving it.
-                val spec = carSpecFor(type, lane, reverse = true, progress = CAR_PROGRESS, shell = shell)
-                val predicted = driverFaceUnits(spec) * scale * unitPx(lane, type)
-                val driver = driverFace(frame)
-                assertEquals(
-                    "$type on lane $lane ($shell, driver ${if (driverFaceUnits(spec) == MAN_FACE_UNITS) "man" else "woman"}): " +
-                        "driver face measured ${driver.height} px",
-                    predicted,
-                    driver.height.toFloat(),
-                    1.5f,
-                )
+                val predicted = SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * scale * unitPx(lane, type)
+                val measured = driverHeadBlock(frame, pixels)
+                deviations += "$type/$shell on lane $lane: $measured px against ${"%.2f".format(predicted)}" to
+                    (measured - predicted)
+                frame.recycle()
             }
         }
+        for ((what, deviation) in deviations) {
+            assertTrue("$what -- ${"%.2f".format(deviation)} px out", abs(deviation) <= 4f)
+        }
+        val mean = deviations.map { it.second }.sum() / deviations.size
+        assertEquals(
+            "the drawn heads are ${"%.2f".format(mean)} px from the size table on average: $deviations",
+            0f,
+            mean,
+            1.5f,
+        )
     }
 
     /**
@@ -602,25 +750,42 @@ class VehicleOccupantScaleTest {
      * The complaint this closes: rc4's single occupant left a big pane with one head in it, and
      * measured on the delivered frame the head filled 26% of the glass on the row the coordinator
      * sampled. "The cabin is empty" was the complaint that opened this whole arc, and it had come
-     * back in a different shape.
+     * back in a different shape. rc5 seats two, which puts it over half.
      *
-     * Measured literally as the criterion is worded -- the summed width of the occupants' ink on
-     * a row, over the width of the glass on that same row -- across every row of the pane band, in
-     * both lanes. Two figures are asserted, because one row is not a picture:
+     * **v4.25 measured 42.9-44.5% here for one build, and the answer was the artwork, not this
+     * number.** The seated head had been drawn 20.7 units wide against the 37.0 of the family it
+     * replaced, at the same height, because the band rule that keeps two occupants clear of each
+     * other was reading the bust's units as though they were the car's -- a constraint twice as
+     * tight as the car actually is (`build_people_concepts.py`, `SEATED_HALF_BAND`). The floors
+     * were briefly re-derived to 40/35% to match what that build drew; the maintainer reversed
+     * that, the head was given back its proportion, and **the criterion is the one it always
+     * was**. A head narrowed to fit a window is the per-asset correction `AI_PROJECT_RULES.md`
+     * forbids, and the cause was on the car's side of the comparison.
+     *
+     * ### How it is measured
+     *
+     * The summed width of the occupants' ink on a row, over the width of the glass on that same
+     * row, across every row of the pane band, in both lanes. Two figures, because one row is not a
+     * picture:
      *
      *  * at the **head band**, the row where the occupants' ink is widest, which is what "the head
      *    fills X% of the glass" means when someone looks at the car;
      *  * **averaged over the head's own rows** (those carrying at least half the band's ink), so a
      *    single flattering row cannot carry the criterion.
      *
-     * Both must reach 50%. The value at the very bottom of the band, four units above the sill, is
-     * *reported* rather than asserted: that row crosses the neck, and a neck is narrower than a
-     * head at any seat count -- rc4 measured 28% there and the arithmetic in
+     * The value at the very bottom of the band, four units above the sill, is *reported* rather
+     * than asserted: that row crosses the neck, and a neck is narrower than a head at any seat
+     * count -- rc4 measured 28% there and the arithmetic in
      * [SceneObjectRenderer.CAR_HEAD_X_UNITS] shows that forcing 50% at the neck and 15% of pillar
      * light cannot both hold in any pane width. Where the two criteria met, the pane went.
      */
     @Test
     fun theOccupantsFillHalfTheGlass() {
+        // Every combination is measured before anything is asserted: a criterion the maintainer
+        // re-reads off a delivered frame is worth reporting in full, and a failure on the first
+        // lane would otherwise hide what the other five do.
+        val measured = ArrayList<String>()
+        val short = ArrayList<String>()
         for (type in listOf(CarType.PLAIN, CarType.TAXI, CarType.POLICE)) {
             for (lane in LANES) {
                 val frame = frameWithOneCar(type, lane)
@@ -691,21 +856,19 @@ class VehicleOccupantScaleTest {
                     "$type lane=$lane band=${"%.1f".format(bandFill * 100)}% " +
                         "mean=${"%.1f".format(mean * 100)}% neck=${"%.1f".format(lowest * 100)}%",
                 )
-                assertTrue(
-                    "$type on lane $lane: the heads fill ${"%.1f".format(bandFill * 100)}% of the " +
-                        "glass at the head band (rc4: 50% at its best row), mean over the head's " +
-                        "rows ${"%.1f".format(mean * 100)}%, at the neck row " +
-                        "${"%.1f".format(lowest * 100)}%",
-                    bandFill >= 0.50f,
-                )
-                assertTrue(
-                    "$type on lane $lane: mean fill over the head's rows is " +
-                        "${"%.1f".format(mean * 100)}%",
-                    mean >= 0.50f,
-                )
+                val line = "$type lane $lane: band ${"%.1f".format(bandFill * 100)}%, " +
+                    "mean ${"%.1f".format(mean * 100)}%, neck ${"%.1f".format(lowest * 100)}%"
+                measured += line
+                if (bandFill < BAND_FILL_FLOOR || mean < MEAN_FILL_FLOOR) short += line
                 frame.recycle()
             }
         }
+        assertTrue(
+            "the heads must fill ${(BAND_FILL_FLOOR * 100).toInt()}% of the glass at the head band " +
+                "and ${(MEAN_FILL_FLOOR * 100).toInt()}% over the head's rows. Short: $short. " +
+                "All six: $measured",
+            short.isEmpty(),
+        )
     }
 
     /**
@@ -903,6 +1066,11 @@ class VehicleOccupantScaleTest {
      */
     @Test
     fun everyOccupantClearsItsPillarsByFifteenPercentOfItsHead() {
+        // Every cabin measured before anything is asserted: three bodies plus the appliance carry
+        // three different panes, and a failure on the first hides what the others do -- which is
+        // exactly how the compact's 20% masked the police saloon's 10% for a whole round.
+        val report = ArrayList<String>()
+        val tight = ArrayList<String>()
         for ((type, shell) in typesAndShells()) {
             val lane = SceneSpace.ROAD_LANE_NEAR_Y_FRACTION
             val frame = frameWithOneCar(type, lane, shell = shell)
@@ -990,18 +1158,30 @@ class VehicleOccupantScaleTest {
                 val paneRight = glassXs.filter { it > headMax }.maxOrNull() ?: continue
                 val gapL = (headMin - paneLeft) / headWidth
                 val gapR = (paneRight - headMax) / headWidth
-                if (minOf(gapL, gapR) < worst) { worst = minOf(gapL, gapR); worstAt = "row $y (L=$gapL R=$gapR)" }
+                if (minOf(gapL, gapR) < worst) {
+                    worst = minOf(gapL, gapR)
+                    val u = unitPx(lane, type)
+                    worstAt = "row $y (L=$gapL R=$gapR) | in car units: pane " +
+                        "${"%.1f".format((paneLeft - centreX) / u)}..${"%.1f".format((paneRight - centreX) / u)}, " +
+                        "ink ${"%.1f".format((headMin - centreX) / u)}..${"%.1f".format((headMax - centreX) / u)}, " +
+                        "runs ${runs.map { "%.1f..%.1f".format((it[0] - centreX) / u, (it[1] - centreX) / u) }}, " +
+                        "headWidth ${"%.1f".format(headWidth / u)}"
+                }
             }
             android.util.Log.i("v419-light", "$type/$shell worst pillar light ${"%.2f".format(worst * 100)}% of head at $worstAt")
-            assertTrue(
-                "$type/$shell: the narrowest head-to-pillar light is " +
-                    "${"%.1f".format(worst * 100)}% of the head's own width at $worstAt",
-                worst >= 0.15f,
-            )
+            report += "$type/$shell ${"%.1f".format(worst * 100)}%"
+            if (worst < 0.15f) {
+                tight += "$type/$shell: the narrowest head-to-pillar light is " +
+                    "${"%.1f".format(worst * 100)}% of the head's own width at $worstAt"
+            }
             frame.recycle()
         }
+        assertTrue(
+            "every occupant must keep 15% of its own head's width between it and the pillar. " +
+                "Tight: $tight. All cabins: $report",
+            tight.isEmpty(),
+        )
     }
-
     /**
      * **The two heads are separated by clear glass, and neither occludes the other.**
      *
@@ -1210,35 +1390,16 @@ class VehicleOccupantScaleTest {
         val LANES = listOf(SceneSpace.ROAD_LANE_FAR_Y_FRACTION, SceneSpace.ROAD_LANE_NEAR_Y_FRACTION)
 
         /**
-         * The adult summer frontal faces, in the sprite's own local units: the skin blob of
-         * `person_man_summer_head_car` is 77 px tall and the woman's 82 -- unlike the profiles
-         * they are not equal, because her fringe and his flat-top cut different hairlines.
-         * Which of the two drives is a pure function of the car's lane and start delay, so the
-         * prediction picks the same way `drawCar` does.
+         * **The visible skin these tests used to measure, and why the numbers are only a comment.**
+         *
+         * The four adult drawings show, crown of the hairline to chin, 62 and 43 rows of skin
+         * walking and 77 and 74 seated -- and the head each of them sits on is the same size in
+         * all four. As a share of the head block that is 0.861, 0.623, 0.794 and 0.733: a third of
+         * the quantity is haircut. Two of these tests were built on it, and B "Rilievo" is where
+         * that stopped working; they measure the head block now (see [headBlock]). The numbers are
+         * kept here because they are the reason, and `OccupantHeadFitTest` re-measures the artwork
+         * itself so nothing here has to hold a copy of it.
          */
-        /**
-         * The visible skin a seated adult shows, crown of the hairline to chin, in canvas units.
-         *
-         * **These were 77 and 82, and the woman's was wrong by a fifth.** Measured on the shipped
-         * busts, the man's skin spans **78 rows** and the woman's **66** -- her fringe cuts a much
-         * lower hairline than his flat-top, which is what the old comment said and what the old
-         * numbers then contradicted by making hers the larger.
-         *
-         * It survived a release because **no test could reach it.** This fixture built its car with
-         * `startDelaySeconds = -0.5`, whose seed is even, so the fixture's driver was always the
-         * *man*; the app's ten real delays are all odd, so the app's driver was always the *woman*
-         * (see `SeatedOccupants`). The one constant that was checked was the one the app never
-         * used, and the one the app used was never checked. Neither half is visible from inside
-         * the other.
-         *
-         * Measured with the same ±4 tolerance the frame scan uses, on all three tones and both
-         * outfits: the extent is identical across them, so the recolours cost nothing here.
-         */
-        const val MAN_FACE_UNITS = 78f / 3f
-        const val WOMAN_FACE_UNITS = 66f / 3f
-
-        fun driverFaceUnits(spec: CarObject): Float =
-            if (SeatedOccupants.driverKind(spec) == SeatedOccupants.MAN) MAN_FACE_UNITS else WOMAN_FACE_UNITS
 
         /** The shipped skin palette, from `tools/generate_skin_variants.py`. */
         val SKIN_TONES = listOf(
@@ -1248,14 +1409,27 @@ class VehicleOccupantScaleTest {
             intArrayOf(239, 185, 148), // girl EFB994
         )
 
-        /** The occupants' non-skin colours: hair and summer shirts, for the outside-glass scan. */
+        /**
+         * The occupants' non-skin colours: hair, headwear and summer shirts, for the scan that
+         * checks nothing of an occupant is painted outside its own pane.
+         *
+         * **Re-measured on the shipped PNGs in v4.25, and two of the seven were wrong.** The list
+         * is a copy of the artwork's palette, and B "Rilievo" repainted the family under it: the
+         * woman's hair had been recorded as `F7CE64`, which is now her hairband and the girl's
+         * shirt, and the boy's shirt as `6BA84F`. Neither colour is a *missing* pixel to that
+         * scan -- it is a pixel the scan cannot see, which is the direction that makes a gate
+         * quietly weaker rather than noisily wrong. Counted over the shipped summer people:
+         * `8C5A38` covers 52 592 pixels and `3F8A4A` 61 029, and both were invisible here.
+         */
         val OCCUPANT_EXTRA_COLOURS = listOf(
-            intArrayOf(0x2B, 0x2A, 0x33), // dark hair (man, boy)
-            intArrayOf(0xF7, 0xCE, 0x64), // woman's hair / girl's shirt
-            intArrayOf(0xC9, 0x8F, 0x5A), // girl's hair
-            intArrayOf(0x4E, 0x9F, 0xB5), // man's shirt
-            intArrayOf(0xE4, 0x62, 0x3E), // woman's shirt
-            intArrayOf(0x6B, 0xA8, 0x4F), // boy's shirt
+            intArrayOf(0x2B, 0x2A, 0x33), // the man's hair
+            intArrayOf(0x8C, 0x5A, 0x38), // the woman's hair
+            intArrayOf(0xF7, 0xCE, 0x64), // her hairband, and the girl's shirt
+            intArrayOf(0xC9, 0x8F, 0x5A), // the girl's hair
+            intArrayOf(0x3F, 0x8A, 0x4A), // the boy's cap
+            intArrayOf(0x4E, 0x9F, 0xB5), // the man's shirt
+            intArrayOf(0xE4, 0x62, 0x3E), // the woman's shirt
+            intArrayOf(0x5F, 0xA8, 0x5A), // the boy's shirt
             intArrayOf(0xEF, 0xDF, 0xC4), // the seatbelt (rc4 frontal busts)
         )
 
@@ -1264,6 +1438,32 @@ class VehicleOccupantScaleTest {
 
         /** Small enough to keep a face, large enough to drop an anti-aliased speck. */
         const val MIN_BLOB_AREA = 40
+
+        /**
+         * How much taller than its own face a head block may be before the figure is treated as
+         * overlapped rather than measured.
+         *
+         * Measured on this frame: a pedestrian standing clear needs 0.6 to 0.8 of a face above it
+         * to reach the crown, and the two that stand in front of somebody else need 3.2 -- they
+         * walk into the head behind. Anywhere in between separates them; 1.5 is the middle.
+         */
+        const val CROWN_WALK_CAP = 1.5f
+
+        /**
+         * How far a colour must move to count as ink rather than as a rasteriser's edge.
+         *
+         * The pane's own anti-aliased rim and the soft edge of a drop shadow sit within a few
+         * levels of the glass, and counting them put a driver's crown two rows above the hair.
+         * 40 of 255 is past every such fringe and far below any colour the artwork actually
+         * paints against either background.
+         */
+        const val INK_DISTANCE = 40
+
+        /** rc5's criterion, unmoved: the heads fill half the glass at the head band... */
+        const val BAND_FILL_FLOOR = 0.50f
+
+        /** ...and half of it averaged over the head's own rows. */
+        const val MEAN_FILL_FLOOR = 0.50f
 
         /**
          * Where the head-to-head gap stops being measured: the chin line, less a margin.

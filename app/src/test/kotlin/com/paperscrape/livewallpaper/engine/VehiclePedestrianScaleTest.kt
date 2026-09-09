@@ -242,8 +242,10 @@ class VehiclePedestrianScaleTest {
         // as a number rather than as a picture nobody looked at.
         val carHead = SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
         val cabHead = SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.FIRE_TRUCK_OCCUPANT_SCALE
-        assertEquals("driver head over pane", 0.666f, carHead / SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS, 0.002f)
-        assertEquals("cab head over pane", 0.621f, cabHead / SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS, 0.002f)
+        // v4.25: 0.666 on the artwork this replaced. The redrawn seated head is measured by the
+        // same rule as the pedestrian it is scaled against, which moved the share it fills.
+        assertEquals("driver head over pane", 0.683f, carHead / SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS, 0.002f)
+        assertEquals("cab head over pane", 0.636f, cabHead / SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS, 0.002f)
         // The same head on all three bodies, because they share one metre-per-unit: the share of
         // each vehicle differs only because the vehicles are different heights.
         for (shell in CarShell.entries) {
@@ -255,7 +257,7 @@ class VehiclePedestrianScaleTest {
             val share = carHead / shell.unitsTall
             assertTrue("$shell: head over vehicle is $share, outside a sane band", share in 0.27f..0.32f)
         }
-        assertEquals("cab head over vehicle", 0.173f, cabHead / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL, 0.002f)
+        assertEquals("cab head over vehicle", 0.178f, cabHead / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL, 0.002f)
     }
 
     /**
@@ -280,7 +282,9 @@ class VehiclePedestrianScaleTest {
         // whatever vehicle they sit in; the +/-10% band is the acceptance criterion's own.
         val pedestrianHead = SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS *
             (SceneSpace.PERSON_METRES_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL)
-        assertEquals("a pedestrian's head, in metres", 0.518f, pedestrianHead, 0.005f)
+        // v4.25: 0.518 m. The v4.25 walker carries a slightly larger head -- 24.3 of its 80
+        // units against 23.7 -- and this is that head in scene metres.
+        assertEquals("a pedestrian's head, in metres", 0.532f, pedestrianHead, 0.005f)
         val perCarUnit = SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL
         val perTruckUnit = SceneSpace.FIRE_TRUCK_METRES_TALL / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL
         for ((label, metres) in listOf(
@@ -303,12 +307,14 @@ class VehiclePedestrianScaleTest {
     fun `the occupant heads are the drawn sizes this release chose`() {
         val actual = drawnHeads()
         // rc2: the table's signature is that every adult head in traffic measures the same at the
-        // same lane, sedan and appliance alike -- 24.53 reference px near, 21.21 far -- because
-        // the size is the person's, not the vehicle's.
-        assertEquals("near-lane driver", 24.53f, actual.getValue("near-lane driver"), 0.05f)
-        assertEquals("far-lane driver", 21.21f, actual.getValue("far-lane driver"), 0.05f)
-        assertEquals("near-lane passenger", 24.53f, actual.getValue("near-lane passenger"), 0.05f)
-        assertEquals("near-lane fire engine driver", 24.53f, actual.getValue("near-lane fire engine driver"), 0.05f)
+        // same lane, sedan and appliance alike, because the size is the person's, not the
+        // vehicle's. v4.25: 24.53/21.21 reference px on the artwork this replaced, 25.15/21.76 on
+        // the redrawn family -- the signature is the equality, and the pair of numbers is what
+        // this release drew.
+        assertEquals("near-lane driver", 25.15f, actual.getValue("near-lane driver"), 0.05f)
+        assertEquals("far-lane driver", 21.76f, actual.getValue("far-lane driver"), 0.05f)
+        assertEquals("near-lane passenger", 25.15f, actual.getValue("near-lane passenger"), 0.05f)
+        assertEquals("near-lane fire engine driver", 25.15f, actual.getValue("near-lane fire engine driver"), 0.05f)
         assertEquals(
             "the appliance's driver head equals the sedan's at the same lane: the table, visible",
             actual.getValue("near-lane driver"),
@@ -348,7 +354,9 @@ class VehiclePedestrianScaleTest {
         )
         assertEquals(
             "the frontal anchor is the family's shared canvas bottom",
-            44f,
+            // v4.25: 44 until the seated canvas was trimmed onto its own family, two units off
+            // the top. The anchor is still the canvas bottom; the canvas is what moved.
+            42f,
             SceneObjectRenderer.HEAD_CAR_ANCHOR_Y_UNITS,
             0.001f,
         )
@@ -459,12 +467,13 @@ class VehiclePedestrianScaleTest {
         // the rendered gap measurement then says. The widest ink any *seatable* bust carries
         // between crown and chin is the winter girl's 22 units -- v4.18 could quote 18.08 here
         // because only adults were seated; v4.19 seats children, so the number is hers.
+        val pitch = SceneObjectRenderer.CAR_PASSENGER_X_UNITS - SceneObjectRenderer.CAR_HEAD_X_UNITS
+        val widestDrawn = WIDEST_SEATABLE_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
         assertTrue(
-            "the seat pitch is only " +
-                "${SceneObjectRenderer.CAR_PASSENGER_X_UNITS - SceneObjectRenderer.CAR_HEAD_X_UNITS} u " +
-                "against a widest head band of $WIDEST_SEATABLE_HEAD_UNITS u -- the heads would overlap",
-            SceneObjectRenderer.CAR_PASSENGER_X_UNITS - SceneObjectRenderer.CAR_HEAD_X_UNITS >
-                WIDEST_SEATABLE_HEAD_UNITS,
+            "the seat pitch is $pitch car units against a widest head band of " +
+                "$WIDEST_SEATABLE_HEAD_UNITS bust units = $widestDrawn car units -- the heads " +
+                "would overlap",
+            pitch > widestDrawn,
         )
     }
 
@@ -549,8 +558,12 @@ class VehiclePedestrianScaleTest {
         contentLeftUnits: Float,
         contentRightUnits: Float,
     ): Pair<Float, Float> {
-        val origin = placementX - anchorX * scale
-        return (origin + contentLeftUnits * scale) to (origin + contentRightUnits * scale)
+        // **Reflected about the anchor, because that is what the blit does.** v4.25 mirrors every
+        // seated bust so it faces the vehicle's front (`drawSeatedOccupant`), and the content box
+        // is not symmetric about the eye axis, so modelling the unmirrored span would check an
+        // envelope the scene never draws.
+        return (placementX - (contentRightUnits - anchorX) * scale) to
+            (placementX - (contentLeftUnits - anchorX) * scale)
     }
 
     private companion object {
@@ -568,8 +581,11 @@ class VehiclePedestrianScaleTest {
 
         /** The widest `person_*_head_car` alpha box on x -- the winter adults -- in the shared
          * 141 px canvas: 5..130 px. */
-        const val HEAD_CAR_CONTENT_LEFT_UNITS = 5f / 3f
-        const val HEAD_CAR_CONTENT_RIGHT_UNITS = 130f / 3f
+        // v4.25: 5/3 and 130/3 on the 47-unit canvas this replaced. The redrawn family sits on a
+        // 38-unit canvas trimmed onto its own content, and the shared ink spans 0..112 px of it --
+        // measured across the eight seatable busts, the union of their content boxes.
+        const val HEAD_CAR_CONTENT_LEFT_UNITS = 0f
+        const val HEAD_CAR_CONTENT_RIGHT_UNITS = 112f / 3f
 
         /**
          * The floor for pillar light and head gap alike, as a share of the head's own width.
@@ -581,7 +597,18 @@ class VehiclePedestrianScaleTest {
          * The widest crown-to-chin ink any seatable bust carries: the winter girl's bunches.
          * Measured off the shipped artwork by the pass's criteria sweep.
          */
-        const val WIDEST_SEATABLE_HEAD_UNITS = 22f
+        // v4.25: 22 until the family was redrawn, then 23 once the generator placed every side
+        // piece inside the declared band, and **34.33 since the proportion pass gave the head
+        // back its width** -- measured across the eight seatable busts between each one's own
+        // crown and jaw. The widest is the summer woman's.
+        //
+        // **This is in the bust's own units and the seat pitch is in the car's**, which are not
+        // the same unit: multiply by `CAR_OCCUPANT_SCALE` before the two are compared. Reading
+        // one as the other is the defect that produced the narrow head in the first place -- it
+        // made the generator's own band twice as tight as the car is -- and it was in this file
+        // as well, where it compared 22.33 against a 23-unit pitch and read the margin as one
+        // unit when it is really eleven.
+        const val WIDEST_SEATABLE_HEAD_UNITS = 103f / 3f
 
         /**
          * The width of the pane the occupants actually sit in.

@@ -26,7 +26,11 @@ class SpriteMeasurementClaimTest {
             "dolphin_body" to (345 to 174),
             // v4.21 redrew the crown: 303x198 px = 101x66 u, the "Quercia larga" cushion.
             "tree_canopy" to (303 to 198),
-            "person_man_summer_head_window" to (159 to 171),
+            // v4.25: 159x171 until the window family was redrawn on a canvas trimmed to what it
+            // covers, then 141x171, and 147x171 once the proportion pass gave the head back the
+            // width it had -- 49 units wide instead of 53, three of them off the left, compensated
+            // at WINDOW_HEAD_ANCHOR_X_UNITS in the same change.
+            "person_man_summer_head_window" to (147 to 171),
         )
         for ((name, size) in expected) {
             val image = ImageIO.read(File(drawableDir(), "$name.png"))
@@ -37,11 +41,14 @@ class SpriteMeasurementClaimTest {
 
     @Test
     fun `the window occupant divisor is a tuned value, not the canvas width`() {
-        // The distinction the comment used to get wrong. 60 is deliberate and 53 is the canvas;
-        // asserting both is what stops somebody "fixing" one into the other.
+        // The distinction the comment used to get wrong. 60 is deliberate and the canvas is the
+        // canvas; asserting both is what stops somebody "fixing" one into the other. The canvas
+        // moved to 49 units in v4.25 -- 53 before it was trimmed, 47 before the head was given
+        // back its width -- and the divisor did not, which is the point: they were never the same
+        // number, and the gap between them is still there.
         val canvasUnits = ImageIO.read(File(drawableDir(), "person_man_summer_head_window.png")).width /
             SpriteBlitter.SPRITE_PIXELS_PER_UNIT
-        assertEquals("the canvas really is 53 units", 53f, canvasUnits, 0.001f)
+        assertEquals("the canvas really is 49 units", 49f, canvasUnits, 0.001f)
         assertEquals(
             "the divisor is 60 and is not the canvas width",
             60f,

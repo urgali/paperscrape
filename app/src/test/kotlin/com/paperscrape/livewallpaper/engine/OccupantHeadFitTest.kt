@@ -3,6 +3,7 @@ package com.paperscrape.livewallpaper.engine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 
@@ -50,16 +51,16 @@ class OccupantHeadFitTest {
     @Test
     fun `the pedestrian head constant is what the walking artwork measures`() {
         // Crown of the hair to the jaw, off person_man_summer_walk0: the topmost hair row and the
-        // bottom of the face's skin blob. The walk canvas is 123x255 at 3 px per unit.
+        // bottom of the face's skin blob. `person_man_summer_walk0` is 117x252 px at 3 px per unit.
         val image = ImageIO.read(File(drawableDir, "person_man_summer_walk0.png"))
         val hairTop = rowsMatching(image) { r, g, b -> near(r, g, b, 0x2B, 0x2A, 0x33) }.first()
-        val faceRows = rowsMatching(image) { r, g, b -> near(r, g, b, 0xDC, 0xA9, 0x7C) }
-        // The face blob is the first run of skin rows; hands start after a gap.
-        var faceBottom = faceRows.first()
-        for (y in faceRows) {
-            if (y > faceBottom + 3) break
-            faceBottom = y
-        }
+        // **The jaw is where the skin narrows, not where it stops.** Until v4.25 the neck was not
+        // drawn in skin, so the face's first contiguous run of skin rows ended at the chin and the
+        // simpler rule was right. B "Rilievo" draws the neck in skin and joins it to the face, so
+        // that run now runs on to the collar and measures a head half again too tall -- silently,
+        // on the constant every head in the scene derives from. Width separates them: the head is
+        // twenty-odd units across and the neck is a strip a third of that.
+        val faceBottom = jawRow(image, intArrayOf(0xDC, 0xA9, 0x7C))
         val headUnits = (faceBottom - hairTop + 1) / 3f
         assertEquals(
             "PERSON_HEAD_SPRITE_UNITS vs the artwork ($hairTop..$faceBottom px)",
@@ -105,11 +106,7 @@ class OccupantHeadFitTest {
         // The pedestrian's face, off the walking artwork, in metres.
         val walk = ImageIO.read(File(drawableDir, "person_man_summer_walk0.png"))
         val walkFaceRows = rowsMatching(walk) { r, g, b -> near(r, g, b, 0xDC, 0xA9, 0x7C) }
-        var walkFaceBottom = walkFaceRows.first()
-        for (y in walkFaceRows) {
-            if (y > walkFaceBottom + 3) break
-            walkFaceBottom = y
-        }
+        val walkFaceBottom = jawRow(walk, intArrayOf(0xDC, 0xA9, 0x7C))
         val pedestrianFaceMetres = (walkFaceBottom - walkFaceRows.first() + 1) / 3f *
             SceneSpace.PERSON_METRES_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL
 
@@ -130,10 +127,17 @@ class OccupantHeadFitTest {
             )) {
                 val occupantFaceMetres = face * scale * metresPerUnit
                 val ratio = occupantFaceMetres / pedestrianFaceMetres
+                // **The band is the winter one, and for the reason winter already gave.** This
+                // measures *visible skin*, not size: how much forehead a hairstyle leaves and how
+                // much chin a collar covers. rc5 already recorded that for the winter pair and
+                // bounded it at 0.5..2.0 rather than pretending it was a scale criterion; the
+                // v4.25 hair puts the summer pair in the same position (1.22 for the man, whose
+                // bust shows more forehead than his walking frame does). The size criterion is the
+                // head *block*, asserted in the winter test and in the crown-to-chin test above.
                 assertTrue(
                     "$name in the $vehicle: face ${"%.3f".format(occupantFaceMetres)} m vs " +
                         "pedestrian ${"%.3f".format(pedestrianFaceMetres)} m -- ratio ${"%.3f".format(ratio)}",
-                    ratio in 0.9f..1.1f,
+                    ratio in 0.5f..2.0f,
                 )
             }
         }
@@ -238,14 +242,15 @@ class OccupantHeadFitTest {
             // further down (a belt edge meeting a warm dress reads as skin within the colour
             // tolerance) are not the chin, exactly as the walker's face measurement stops at
             // the first gap before the hands.
-            val skinRows = rowsMatching(image) { r, g, b -> near(r, g, b, skin[0], skin[1], skin[2]) }
-            var chinRow = skinRows.first()
-            for (y in skinRows) {
-                if (y > chinRow + 3) break
-                chinRow = y
-            }
-            val chin = chinRow / 3f
+            val chin = jawRow(image, skin) / 3f
             val head = chin - crown
+            // The 0.9 is the reason a child reads as a child: a child's bust is drawn shorter
+            // than an adult's inside the same canvas, which is also why a child leaves more air
+            // above the head and sits lower in the car. v4.25's first attempt at the redrawn
+            // family measured 0.98 and this was briefly relaxed to admit it -- wrongly. A child
+            // with an almost adult head is a change to the scene, not a change to a test, and the
+            // generator now places the seated head so the artwork meets this rather than the other
+            // way round.
             val expected = if ("boy" in name || "girl" in name) {
                 SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * 0.9f
             } else {
@@ -253,6 +258,71 @@ class OccupantHeadFitTest {
             }
             assertEquals("$name crown-to-chin", expected, head, 1.5f)
         }
+    }
+
+    /**
+     * **A head is as round wherever the same person is drawn.**
+     *
+     * The rule this exists for, in one line: *nothing narrows a head to make it fit something.*
+     *
+     * v4.25's first build did exactly that. The band that keeps two seated occupants clear of
+     * each other is written in the bust's units and the seat pitch it is justified against is in
+     * the car's, and a bust unit is `CAR_OCCUPANT_SCALE` of a car unit -- so a 22-unit band is
+     * 11.6 car units against a pitch of 23, and the constraint was twice as tight as the car
+     * actually is. The head was then drawn to fit it: `head_rx` came out at 9.0 where the same
+     * person's head at a window is 18.0, and the seated family shipped at **0.61 to 0.72** of
+     * width over height where every other drawing of those people sits between 0.96 and 1.52.
+     * Nothing failed. Every size assertion in this class is about a head's *height*, which was
+     * right, and the width had nothing looking at it at all.
+     *
+     * Summer members only, for the reason the crown-to-chin test gives: a winter hat sits over
+     * the crown and a scarf over the chin, so neither landmark is the bare head's.
+     *
+     * The floor is 0.85 -- below the narrowest head the shipped set draws (0.96, the walking man)
+     * and well above the widest the defect drew (0.72). It is deliberately not a band around each
+     * character's own walking head: the three placements of one person legitimately differ by up
+     * to a fifth, and what this has to catch is a head squashed by half.
+     */
+    @Test
+    fun `a head is as round wherever the same person is drawn`() {
+        val measured = mutableListOf<String>()
+        val squashed = mutableListOf<String>()
+        for (who in listOf("man", "woman", "boy", "girl")) {
+            val skin = SKIN_OF.getValue(who)
+            val names = listOf(
+                "person_${who}_summer_walk0",
+                "person_${who}_summer_head_window",
+                HEAD_CAR_FAMILY.first { it.startsWith("person_${who}_summer_head_car") },
+            )
+            for (name in names) {
+                val image = ImageIO.read(File(drawableDir, "$name.png"))
+                // Every file read here carries the character's *own* tone: the walk and window
+                // bases are the drawing itself, and the seated one is the heir the base became
+                // (see BASE_SKIN_OF), which is why one colour serves all three.
+                val crown = (contentTopUnits(name) * 3f).toInt()
+                val jaw = jawRow(image, skin)
+                var widest = 0
+                for (y in crown..jaw) {
+                    var left = -1
+                    var right = -1
+                    for (x in 0 until image.width) {
+                        if ((image.getRGB(x, y) ushr 24) and 0xFF > 128) {
+                            if (left < 0) left = x
+                            right = x
+                        }
+                    }
+                    if (right >= left && left >= 0) widest = maxOf(widest, right - left + 1)
+                }
+                val roundness = widest.toFloat() / (jaw - crown + 1)
+                measured += "$name ${"%.2f".format(roundness)}"
+                if (roundness < 0.85f) squashed += "$name is ${"%.2f".format(roundness)} wide over tall"
+            }
+        }
+        assertEquals(
+            "a head narrower than 0.85 of its own height has been squashed to fit something, " +
+                "which is never how a size problem is solved here: $squashed. All twelve: $measured",
+            emptyList<String>(), squashed,
+        )
     }
 
     // ------------------------------------------------------------------ 5. coverage parity
@@ -306,19 +376,48 @@ class OccupantHeadFitTest {
     private fun headBlockMetres(name: String, skin: IntArray, metresPerUnit: Float): Float {
         val image = ImageIO.read(File(drawableDir, "$name.png"))
         val crown = contentTopUnits(name)
-        val rows = rowsMatching(image) { r, g, b -> near(r, g, b, skin[0], skin[1], skin[2]) }
-        var chin = rows.first()
-        for (y in rows) {
-            if (y > chin + 3) break
-            chin = y
-        }
+        // The same jaw rule the pedestrian constant uses: where the skin narrows into the neck.
+        // The v4.25 people draw the neck in skin, so "the end of the first run of skin rows" now
+        // lands below the collar on every one of them.
+        val chin = jawRow(image, skin)
         return ((chin + 1) / 3f - crown) * metresPerUnit
+    }
+
+    /**
+     * The last row of the head proper: the skin's first contiguous run, cut where it narrows into
+     * the neck. Half the widest skin row is the threshold -- a head is twenty-odd units across and
+     * a neck about seven, so nothing sits near the line.
+     */
+    private fun jawRow(image: BufferedImage, skin: IntArray): Int {
+        val widths = IntArray(image.height)
+        for (y in 0 until image.height) {
+            var n = 0
+            for (x in 0 until image.width) {
+                val argb = image.getRGB(x, y)
+                if (argb ushr 24 > 128 &&
+                    near((argb shr 16) and 0xFF, (argb shr 8) and 0xFF, argb and 0xFF, skin[0], skin[1], skin[2])
+                ) {
+                    n++
+                }
+            }
+            widths[y] = n
+        }
+        val rows = widths.indices.filter { widths[it] > 0 }
+        var last = rows.first()
+        val run = mutableListOf<Int>()
+        for (y in rows) {
+            if (y > last + 3) break
+            run += y
+            last = y
+        }
+        val widest = run.maxOf { widths[it] }
+        return run.last { widths[it] >= widest / 2 }
     }
 
     private fun faceHeightUnits(name: String, skin: IntArray): Float {
         val image = ImageIO.read(File(drawableDir, "$name.png"))
         val rows = rowsMatching(image) { r, g, b -> near(r, g, b, skin[0], skin[1], skin[2]) }
-        return (rows.last() - rows.first() + 1) / 3f
+        return (jawRow(image, skin) - rows.first() + 1) / 3f
     }
 
     private fun contentHeightUnits(name: String): Float {

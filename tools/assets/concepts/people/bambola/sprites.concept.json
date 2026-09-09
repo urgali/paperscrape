@@ -1,0 +1,1046 @@
+{
+ "schemaVersion": 2,
+ "note": "Registry of the v4.25 people concept 'bambola': the shipped registry's own schema, kept here because these sprites are NOT shipped. Canvases, scale convention, anchor rule and tint class are the shipped ones, so no call site changes.",
+ "sprites": [
+  {
+   "name": "person_man_summer_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    9,
+    11,
+    113,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk0.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    9,
+    11,
+    114,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk1.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    9,
+    11,
+    114,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_walk2.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_summer_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    12,
+    4,
+    149,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    80.5,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_head_window.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_man_summer_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    16,
+    0,
+    122,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    69.0,
+    132
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_summer_head_car.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_man_winter_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    10,
+    10,
+    114,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk0.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    9,
+    10,
+    113,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk1.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    9,
+    10,
+    114,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_walk2.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_man_winter_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    12,
+    0,
+    150,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    81.0,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_head_window.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_man_winter_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    16,
+    5,
+    123,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    69.5,
+    132
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_man_winter_head_car.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_woman_summer_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    9,
+    9,
+    113,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk0.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    9,
+    9,
+    114,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk1.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    9,
+    10,
+    114,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_walk2.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_summer_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    11,
+    2,
+    148,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    79.5,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_head_window.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_woman_summer_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    16,
+    0,
+    122,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    69.0,
+    132
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_summer_head_car.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_woman_winter_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    6,
+    9,
+    117,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk0.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    6,
+    10,
+    116,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk1.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    7,
+    9,
+    116,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_walk2.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_woman_winter_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    13,
+    0,
+    149,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    81.0,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_head_window.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_woman_winter_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    16,
+    5,
+    122,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    69.0,
+    132
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_woman_winter_head_car.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_boy_summer_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    14,
+    64,
+    113,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk0.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    15,
+    63,
+    113,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk1.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    15,
+    62,
+    113,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_walk2.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_summer_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    12,
+    2,
+    149,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    80.5,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_head_window.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_boy_summer_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    15,
+    9,
+    123,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    69.0,
+    132
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_summer_head_car.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_boy_winter_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    12,
+    69,
+    111,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk0.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    13,
+    69,
+    111,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk1.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    12,
+    70,
+    110,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_walk2.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_boy_winter_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    13,
+    6,
+    150,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    81.5,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_head_window.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_boy_winter_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    15,
+    26,
+    122,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    68.5,
+    132
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_boy_winter_head_car.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_girl_summer_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    8,
+    62,
+    115,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk0.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    7,
+    63,
+    115,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk1.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    8,
+    63,
+    115,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_walk2.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_summer_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    13,
+    2,
+    149,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    81.0,
+    171
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_head_window.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_girl_summer_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    15,
+    9,
+    122,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    68.5,
+    132
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_summer_head_car.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  },
+  {
+   "name": "person_girl_winter_walk0",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    14,
+    54,
+    108,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk0.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_walk1",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    15,
+    54,
+    108,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk1.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_walk2",
+   "category": "person",
+   "width": 123,
+   "height": 255,
+   "contentBox": [
+    14,
+    54,
+    109,
+    254
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    254
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_walk2.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Walk frame; co-registered on the shared 41x85-unit canvas, feet on the canvas bottom."
+  },
+  {
+   "name": "person_girl_winter_head_window",
+   "category": "person",
+   "width": 159,
+   "height": 171,
+   "contentBox": [
+    12,
+    0,
+    149,
+    171
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    80.5,
+    171
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_head_window.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline. Window bust on the shared 53x57-unit canvas; unreachable in winter today (seasonIndexFor(INDOORS) always reads the summer column)."
+  },
+  {
+   "name": "person_girl_winter_head_car",
+   "category": "person",
+   "width": 141,
+   "height": 132,
+   "contentBox": [
+    16,
+    7,
+    122,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    69.0,
+    132
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "svg",
+    "file": "person_girl_winter_head_car.svg"
+   },
+   "notes": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline."
+  }
+ ]
+}

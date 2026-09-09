@@ -122,6 +122,18 @@ class SpriteVariantTest {
         val duplicated = byDigest.values
             .filter { it.size > 1 }
             .map { it.sorted() }
+            // **A drawing and its own-tone copy are one picture on purpose**, and the registry
+            // already says so: `tools/assets/sources/sprites.json` declares those pairs
+            // IDENTICAL_BY_CONSTRUCTION and `validate` fails if they ever stop matching. Every
+            // character is rendered in three tones and one of the three is the tone it is drawn
+            // in, so that copy is the recolour applied to itself.
+            //
+            // They surface here only when two encoders happen to agree byte for byte -- the base
+            // comes from the asset pipeline's rasteriser and the copy from the recolour script --
+            // which is why this has been silent until now rather than why it is new. Recognised by
+            // the naming rule rather than by a list, so a genuine duplicate between two different
+            // drawings still fails.
+            .filterNot { group -> group.map { it.replace(Regex("_skin\\d$"), "") }.distinct().size == 1 }
 
         assertEquals(
             "these sprites ship as the same bytes. Either they are one drawing under two names, " +

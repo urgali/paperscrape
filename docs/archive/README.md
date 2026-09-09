@@ -49,9 +49,11 @@ renderer items, **`BACKLOG_v4_24.md`** for what the v4.24 documentation review f
 | [`V4_23_FASE2B_REPORT.md`](V4_23_FASE2B_REPORT.md) | docs pass of 2026-09-07 | The celestial family in production; the sprite-reach constant, not the radius. |
 | [`V4_23_GIRO2C_REPORT.md`](V4_23_GIRO2C_REPORT.md) | docs pass of 2026-09-07 | The pumpkin-moon golden and the locked phases switch. |
 | [`SANTA_CROP_REPORT.md`](SANTA_CROP_REPORT.md) | docs pass of 2026-09-07 | The `santa_sleigh_scene` crop and its origin compensation. |
+| [`V4_25_REPORT.md`](V4_25_REPORT.md) | written here, 2026-09-08 | **The v4.25 release report** — one report for the release, as 14.9 requires, updated in place rather than joined by a second one. Where the second `PaperScrapeGlThread` comes from; the head block replacing the visible skin in two assertions; the tint gate closed at the blit; the three occupant defects (a head narrowed to fit a band read in the wrong unit, a face pointing at the boot, a seat pitch re-derived) and the pane-fill criterion **restored** to 50% rather than lowered; the same unit error found in two files; and the acceptance sheet that came out of all of it. Its first section says which delivered archive it supersedes and why. |
 
 Seven reports for one release is the pattern `AI_PROJECT_RULES.md` 14.9 now forbids: from
-here on a pass produces **one** report per release, not one per phase or per round.
+here on a pass produces **one** report per release, not one per phase or per round — which
+`V4_25_REPORT.md` is the first to do.
 
 ---
 
