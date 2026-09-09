@@ -1,0 +1,136 @@
+{
+ "schemaVersion": 2,
+ "note": "Registry of the v4.26 round-3 combination 'ombra_piena_d2': the shipped registry's own schema, kept here because these sprites are NOT shipped. The bird canvas is smaller than the shipped one on purpose; everything else is the shipped convention.",
+ "sprites": [
+  {
+   "name": "bird_body",
+   "category": "animal",
+   "width": 54,
+   "height": 15,
+   "contentBox": [
+    1,
+    1,
+    54,
+    15
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "bird_body.svg"
+   },
+   "notes": "Bird D2 -- U2 'Smerlato' at 0.60 x: 54x15 canvas, flap axis row 11, two scallops per wing kept 2.5 px deep on the screen. Blit origin (-27, -11). Flap axis is canvas row 11 (blit origin -11): body and head on it, wings above. Faces +x. 54x15 canvas, CANVAS_PIXELS."
+  },
+  {
+   "name": "cloud_body",
+   "category": "sky",
+   "width": 798,
+   "height": 396,
+   "contentBox": [
+    21,
+    9,
+    786,
+    386
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "cloud_body.svg"
+   },
+   "notes": "Cloud V2 'Ombra piena' -- the same as V1 with the shade at 13.3% below white, the most a tintable mask may carry. Content centred on the shipped 798x396 canvas; the flat or fringed base sits at row 372 of 396. Re-derive CloudCoverage.CLOUD_CONTENT_HALF_UNITS from the content box before shipping."
+  },
+  {
+   "name": "dolphin_body",
+   "category": "lake",
+   "width": 345,
+   "height": 174,
+   "contentBox": [
+    4,
+    6,
+    345,
+    174
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "dolphin_body.svg"
+   },
+   "notes": "Concept B 'Rilievo', as delivered in round 1 and chosen by the maintainer. Faces +x, the only way lake decorations drift. Content centred so DOLPHIN_ORIGIN_X/Y_UNITS (-57.3, -29) still land the animal on its leap point."
+  },
+  {
+   "name": "sailboat_hull",
+   "category": "lake",
+   "width": 252,
+   "height": 51,
+   "contentBox": [
+    8,
+    0,
+    252,
+    51
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "sailboat_hull.svg"
+   },
+   "notes": "Concept B 'Rilievo', as delivered in round 1 and chosen by the maintainer. Bow at +x: the sheer rises from 4.6 units at the stern to the prow at row 0 inside the shipped 84x17 canvas, so the origin (-42, 8) is unchanged."
+  },
+  {
+   "name": "sailboat_sail",
+   "category": "lake",
+   "width": 210,
+   "height": 180,
+   "contentBox": [
+    27,
+    0,
+    206,
+    180
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "sailboat_sail.svg"
+   },
+   "notes": "Concept B 'Rilievo', as delivered in round 1 and chosen by the maintainer. Mast at x=43 of 70, forward of amidships; jib forward (+x), mainsail aft. Foot at row 57 so the boom sits on the deck (boat y=+7..+10). Origin (-35, -50) unchanged."
+  }
+ ]
+}

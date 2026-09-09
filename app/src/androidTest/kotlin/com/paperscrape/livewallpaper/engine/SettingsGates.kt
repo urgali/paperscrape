@@ -46,4 +46,44 @@ object SettingsGates {
      * regression catchable at all.
      */
     const val BUSINESS_HOURS_GATE = 0.020075 / 2
+
+    // ---- v4.26: the sky and the water, the two families this release redraws ----------------
+    //
+    // `BACKLOG_v4_25.md` item 65 measured that a release which redrew every person in the scene
+    // left 25 of 26 golden assertions green, because nothing watched the artwork. These three are
+    // the same derivation applied to the surfaces v4.26 redraws, and two of them close item 65's
+    // complaint in its own terms: **the total loss of the family moves less of its rectangle than
+    // the shared 2% focus limit forgives**, so before these gates existed every bird and every
+    // dolphin could disappear and the suite would have gone green.
+    //
+    // `SkyWaterGoldenTest.theSkyAndWaterGatesStandBetweenFloorAndSignal` re-measures every signal
+    // on every run, so these margins cannot rot the way a quoted number would.
+
+    /**
+     * The cloud band on `day`. MISURATO (BV6600, 2026-09-09, `GATEDERIVE`): the weakest regression
+     * that must fail — **half the clouds gone — moves 17.5600%** of the band; floor 0.0000% → gate
+     * at half the signal.
+     *
+     * Half rather than all of them, and the difference matters: the band is 92% cloud, so deriving
+     * from total absence would put the gate at 46% — a number only a structural failure could
+     * reach, which the whole-frame gate already catches. A gate has to be derived from the weakest
+     * regression it must see, not the loudest one that is easy to produce.
+     */
+    const val CLOUD_BAND_GATE = 0.175600 / 2
+
+    /**
+     * The bird band on `day`. MISURATO (same run): **every bird in the scene hidden moves 1.5232%**
+     * of the rectangle — *under* the shared [SceneGolden.MAX_FOCUS_DIFFERING_FRACTION] of 2%. There
+     * is no weaker regression worth deriving from, because the total loss of the family was already
+     * being forgiven. Floor 0.0000% → gate 0.7616%.
+     */
+    const val BIRD_BAND_GATE = 0.015232 / 2
+
+    /**
+     * The water band on `lake-busy`. MISURATO (same run): **every dolphin hidden moves 0.2050%** of
+     * the band, an order of magnitude under the shared 2%. Floor 0.0000% → gate 0.1025%, which is
+     * also below the whole-frame gate's 0.2% — the animals are small and the band is large, and
+     * only a derived limit can tell those apart.
+     */
+    const val WATER_BAND_GATE = 0.002050 / 2
 }

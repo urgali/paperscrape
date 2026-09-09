@@ -43,7 +43,11 @@ class SpriteCanvasConventionTest {
 
     /** Sprites whose transparent margin is deliberate because an anchor is measured against it. */
     private val marginIsLoadBearing = setOf(
-        "bird_body",
+        // `bird_body` was here until v4.26 redrew it as concept A "Colomba" on a 51x21 canvas its
+        // content fills. The registration it needed is unchanged and is still exact -- the flap
+        // axis is canvas row 15 and BIRD_SPRITE_ORIGIN_Y_PX is -15 -- but it is now carried by the
+        // canvas the drawing fills rather than by a margin around it, which is the same recovery
+        // the person families made in v4.25.
         "firework",
         "moon_crescent",
         "moon_full",
@@ -104,8 +108,9 @@ class SpriteCanvasConventionTest {
         assertEquals("266 sprites are expected", 266, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
-        // carrying a margin apiece to reaching an edge, which is why this jumped by 38.
-        assertEquals("255 of them reach a canvas edge", 255, touching)
+        // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
+        // v4.26 redrew the bird on a canvas its content fills.
+        assertEquals("256 of them reach a canvas edge", 256, touching)
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

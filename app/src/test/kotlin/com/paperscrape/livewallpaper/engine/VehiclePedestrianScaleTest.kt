@@ -468,10 +468,10 @@ class VehiclePedestrianScaleTest {
         // between crown and chin is the winter girl's 22 units -- v4.18 could quote 18.08 here
         // because only adults were seated; v4.19 seats children, so the number is hers.
         val pitch = SceneObjectRenderer.CAR_PASSENGER_X_UNITS - SceneObjectRenderer.CAR_HEAD_X_UNITS
-        val widestDrawn = WIDEST_SEATABLE_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
+        val widestDrawn = WIDEST_SEATABLE_HEAD_BUST_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE
         assertTrue(
             "the seat pitch is $pitch car units against a widest head band of " +
-                "$WIDEST_SEATABLE_HEAD_UNITS bust units = $widestDrawn car units -- the heads " +
+                "$WIDEST_SEATABLE_HEAD_BUST_UNITS bust units = $widestDrawn car units -- the heads " +
                 "would overlap",
             pitch > widestDrawn,
         )
@@ -608,7 +608,7 @@ class VehiclePedestrianScaleTest {
         // made the generator's own band twice as tight as the car is -- and it was in this file
         // as well, where it compared 22.33 against a 23-unit pitch and read the margin as one
         // unit when it is really eleven.
-        const val WIDEST_SEATABLE_HEAD_UNITS = 103f / 3f
+        const val WIDEST_SEATABLE_HEAD_BUST_UNITS = 103f / 3f
 
         /**
          * The width of the pane the occupants actually sit in.

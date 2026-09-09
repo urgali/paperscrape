@@ -39,7 +39,11 @@ alone**. A shop is recognisable by its hanging sign, a fire truck by its ladder
 ### Principles that must be preserved
 
 1. Flat colour fills. No rendered gradients on objects, no photographic
-   texture.
+   texture. **"Objects" means the things standing on the ground.** The sky, the
+   clouds, the sun and moon and their glow, and the surface of the water are the
+   atmospheric layer and may carry gradients; everything resting on the ground
+   keeps flat fills and a cut edge. Clarified in v4.26, when a soft-edged cloud
+   read as a violation of this line and was in fact an ambiguity in it.
 2. Silhouette clarity over internal detail.
 3. Ambient pace. No fast or attention-grabbing motion.
 4. Everything the user can recolour must remain legible at every colour they
@@ -62,8 +66,10 @@ alone**. A shop is recognisable by its hanging sign, a fire truck by its ladder
 - **Shadows**: a single soft translucent ellipse (`0x2E000000`) at an object's
   base. Its purpose is anchoring — "this object is standing on the ground" —
   not lighting.
-- **Gradients**: used only for the sky (`LinearGradient`), the sun glow
-  (`RadialGradient`) and a subtle hill highlight. Never on scene objects.
+- **Gradients**: used only in the atmospheric layer — the sky
+  (`LinearGradient`), the sun glow (`RadialGradient`), a subtle hill highlight,
+  the cloud's own vertical ramp and the water's mirror of the sky (both v4.26).
+  Never on scene objects, which are the things standing on the ground.
 - **Transparency**: used for glow, shadow, fades and precipitation alpha.
   Objects themselves are opaque.
 - **Baked shading**: sprites carry low-strength darker mottling that survives
@@ -1260,6 +1266,8 @@ These require explicit maintainer approval before modification.
 | 25 | **Tintable means the PNG is a greyscale mask; fixed-art means the PNG carries its colours. The class is a property of the bytes, decidable by measuring the file.** This supersedes decision 23, which allowed a fixed-art sprite to be a mask coloured at the blit. `SpriteTintClassTest` asserts it in both directions. | v76 | Decision 23 was a repair for artwork that did not honour its own classification, and it worked, but it left the class undecidable from the file — which is how the defect got in. The V2 library authors every sprite to one profile or the other, so the weaker rule is no longer needed, and keeping it would have meant multiplying finished art by leftover constants. | Every sprite, and every blit call site |
 | 26 | **Consequences of decision 25 on user-facing colour controls are accepted, not compensated.** Sun Color drives only the ambient glow; the star colour, Fall Colors on palms, and per-building window lighting no longer act at all. | v76 | Compensating would mean re-introducing a tint over finished art, which is the error decision 25 exists to prevent. If one reads wrong on a device the fix is artwork. Recorded as pending decision D7. | Sun, stars, palms, skyscrapers, fireworks |
 | 18 | **Geometry is recovered by measurement or not at all.** Only shapes determined by their canvas (rectangles, rounded rectangles) are reconstructed; free-form silhouettes and baked mottling are gaps until the redesign. | Phase 3.1 | A best-scoring fit over free parameters is a redraw presented as a recovery. | Reconstruction scope |
+| 31 | **The water is a mirror of the sky, and its far edge is struck rather than bent.** The band is one vertical gradient from the sky's own horizon colour into the theme's lake colour, with the light's path under the sun or the moon; the top edge stays a flat straight line and carries a struck waterline whose colour is derived per frame to clear the sky by a stated luma gap. | v4.26 | Three water treatments were photographed on the device — a mirror, a long swell and rows of illustrator's strokes — and at the height this band is drawn the two wave treatments read as stripes. The waterline exists because a mirror agrees with the sky by construction: measured across the twelve built-in themes at every phase, clear and storm, the sky and the water it reflects come within a CIELab dE of **1.86**. The edge may not be made wavy, because the mountains anchor to the band's nominal top Y and a jittered edge opens a sliver of bare sky. | The lake band, and any future water |
+| 32 | **A colour that has to be seen against something is derived against everything that something can be, not chosen.** `LakeContrastTest` measures a lake sprite against every surface the eleven dolphin-drawing themes can paint and holds it above a gate placed by the v4.22 method. | v4.26 | The v4.25 dolphin was `#4A6A84` on a `#15495C` night sea — dE **1.53** at its worst, below a just-noticeable difference — and it vanished at night and in a storm. Nothing measured it, because nothing could: a sprite's contrast is a property of the sprite *and* of twelve palettes at every phase, which is not something a person checks by looking at one frame. | Every fixed-art sprite drawn on a user-recolourable surface |
 
 ### Pending decisions
 

@@ -12,57 +12,51 @@ always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v4.25 prepared — not published and not approved.**
+**v4.26 prepared — not published and not approved.**
 
-`versionCode = 56`, `versionName = "4.25"`. **No tag, no push, no GitHub Release** — that half is
+`versionCode = 57`, `versionName = "4.26"`. **No tag, no push, no GitHub Release** — that half is
 the maintainer's and has not been done for this version.
 
-**Baseline v4.24, and it is published.** Read from the public GitHub API on 2026-09-08: `v4.24` is
-published, non-draft, non-prerelease, with its APK and checksum, as are `v4.20` through `v4.23`.
-This document said until now that v4.24 was prepared and unpublished; that was true when it was
-written. **Re-read the API rather than this line** — nothing in a working tree learns that a
-release went out:
+**Baseline v4.25, and it is published.** Read from the public GitHub API on 2026-09-09: `v4.25` is
+published, non-draft, non-prerelease, as are `v4.16` through `v4.24`. **Re-read the API rather than
+this line** — nothing in a working tree learns that a release went out:
 
 ```bash
 curl -s https://api.github.com/repos/urgali/paperscrape/releases | grep -o '"tag_name": *"[^"]*"' | head
 ```
 
-**Three backlogs are open.** `BACKLOG_v4_23.md` carries the artwork and renderer items — 18, 25, 30
+**Four backlogs are open.** `BACKLOG_v4_23.md` carries the artwork and renderer items — 18, 25, 30
 carried forward, and item 25 (the palm) is now the most visible piece of the old drawing language
-left, since the people are done. `BACKLOG_v4_24.md` carries what the documentation review found and
-did not fix, items 49-55. `BACKLOG_v4_25.md` carries items 56-64, of which five are open: 56 (the GL
-reference frames portray people who no longer exist), 58 (a doc comment defeats the dead-table
-rule), **61** (seven length systems all called `_UNITS`, and the same unit error made twice in one
-release — the search is done and three fixes are proposed), **63** (a redraw left six stale sizes
-under a guard that matches only one shape of sentence), and **64**, which is a question for the
-maintainer rather than a defect: whether the double golden regeneration is a per-release check or a
-per-device one.
+left, since the people, the sky and the water are done. `BACKLOG_v4_24.md` carries what the
+documentation review found and did not fix, items 49-55. `BACKLOG_v4_25.md` carries 56-65, of which
+**56, 58 and 63 stay open** — 61, 64 and 65 were closed in v4.26. `BACKLOG_v4_26.md` carries 66-71,
+of which **66 is a question for the maintainer** (whether the `perf` build type should be committed,
+with both arguments and a proposal), **67 is open** (the `_UNITS` frame rule reads Kotlin and not
+the generators), and **71 needs ratifying**: the three GL reference frames were re-captured on this
+device's PowerVR driver because the redrawn sky made the Adreno-authored ones impossible for any
+driver to match. That closes `BACKLOG_v4_25.md` item 56 as a consequence rather than as a decision,
+and the cross-driver gap is no longer being measured anywhere.
 
-**Verified at Level 3 here.** The numbers are in `docs/archive/V4_25_REPORT.md`.
+**Verified at Level 3 here.** The numbers are in the v4.26 report.
 
 ```
-v4.25 [x] the people redrawn, and the small figures stopped shimmering
- |- concept B "Rilievo" with the suggestion of a face, chosen from photographs at real size: 40 SVG
- |  sources, 132 recolours regenerated, every canvas trimmed onto its own content (1.63 MB of
- |  decoded budget freed, measured over both shipped sets) with the anchors compensated with it
- |- one rule for a head in both poses -- the jaw is where the skin narrows into the neck -- which
- |  closed a 17% occupant-size error, a child drawn at 98% of an adult, and a seated head band that
- |  overflowed the seat pitch on seven busts of eight
- |- three defects in the seated occupants, all present since phase 1: a head narrowed to fit a band
- |  read in the wrong unit (0.61-0.72 of width over height, now 1.00-1.16), a face pointing at the
- |  boot in every car, and a seat pitch re-derived 23 -> 21.5 so the pillar criterion passes at 15%
- |  on all six cabins without anything being narrowed
- |- a stable reduction in the GL path: sprites drawn small are blitted from a copy made for the
- |  size, cutting shimmer 52% and softening 30% at -3.23 points of process CPU
- |- 25 Canvas goldens regenerated after a per-region attribution: 2 877 pixels changed, none of
- |  them outside the three bands the people occupy, and the four gate rectangles measure 0.0000%
- |  over two independent regenerations that are byte-identical 25 of 25
- |- the acceptance sheet: DESIGN_NOTES §14 and AI_PROJECT_RULES 13.6 now state what a judging image
- |  must show, because all three occupant defects were visible in phase 1 and no image displayed one
- \- four defects the pass found and none of them was the scene: a vehicle detector living on a cliff
-    edge (0.20 -> 0.12), a test normalising a bust by a pedestrian's fringe, the same unit error in
-    two files, and six sizes left stale by the redraw under a guard written to catch exactly that
-```
+v4.26 [x] the sky and the sea redrawn
+ |- the water becomes a mirror of the sky -- concept S1 "Specchio", chosen from photographs on the
+ |  device against a long swell and rows of strokes -- with the light's path under the sun or the
+ |  moon, and a struck waterline whose colour is derived per frame so the shore cannot vanish into
+ |  a sky the water is reflecting
+ |- cloud C1 "Batuffolo" and bird A "Colomba" promoted through the asset pipeline from committed
+ |  SVG sources; the bird drops from 90x24 to 51x21 canvas pixels and its flap axis moves with it,
+ |  so the wing-beat is a wing-beat instead of a mirror of a symmetric shape
+ |- the dolphin's papers derived instead of chosen: CIELab dE 1.53 from the water at its worst on
+ |  the shipped artwork, 17.97 now, against a gate placed by the v4.22 method
+ |- BACKLOG_v4_25 item 61 closed with proposal C: UnitFrameTest fails any expression naming two of
+ |  the seven length systems without one of the five conversions, and it was shown to bite by
+ |  reintroducing the real v4.25 defect
+ |- item 65 closed by derivation: three new gates over the cloud band, the bird band and the water
+ |  band, no tolerance moved and no number lowered
+ \- item 64 decided by the maintainer: the double golden regeneration now runs only on the scenes
+    whose frames changed
 
 ```
 v4.24 [x] a documentation review: the documents made to say what is true

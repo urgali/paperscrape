@@ -22,7 +22,12 @@ class SpriteMeasurementClaimTest {
     @Test
     fun `the sprites are the sizes the comments now say`() {
         val expected = mapOf(
-            "bird_body" to (90 to 24),
+            // v4.26: 90x24 until the bird was redrawn as concept A "Colomba" and reduced to the
+            // size it is actually read at -- ~48 px on screen, about 1.3 person heights. The flap
+            // axis moved with it, from canvas row 18 to row 15, and BIRD_SPRITE_ORIGIN_X/Y_PX
+            // moved to (-25, -15) in the same change: the origin *is* the axis the flap mirrors
+            // about, so a canvas that changes height without it moves the bird.
+            "bird_body" to (51 to 21),
             "dolphin_body" to (345 to 174),
             // v4.21 redrew the crown: 303x198 px = 101x66 u, the "Quercia larga" cushion.
             "tree_canopy" to (303 to 198),

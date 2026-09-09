@@ -1232,13 +1232,13 @@
   {
    "name": "bird_body",
    "category": "animal",
-   "width": 90,
-   "height": 24,
+   "width": 51,
+   "height": 21,
    "contentBox": [
-    1,
     2,
-    89,
-    23
+    0,
+    51,
+    21
    ],
    "scale": "CANVAS_PIXELS",
    "tint": "TINTABLE",
@@ -1253,7 +1253,7 @@
     "kind": "svg",
     "file": "bird_body.svg"
    },
-   "notes": "Redrawn in v76.3. The V2 gull was a flat angular M whose wing tips pointed down, which reads as a bat at the size it is drawn; it is now a swept pair of wings with a body, a head and a beak. Symmetric about its own horizontal centre on purpose: PaperRenderer.drawBirds animates the flap by mirroring the sprite vertically, so anything above the centre line would end up below it for half the cycle. The head points right because birds only ever drift right."
+   "notes": "Redrawn in v4.26 as concept A \"Colomba\", and reduced: the v76.3 gull was 90x24 canvas pixels and read as 1.3 times a person's height at 90; this is 51x21, about 48 px on screen. **The flap axis is canvas row 15**, which is where PaperRenderer blits it (BIRD_SPRITE_ORIGIN_Y_PX -15) and what drawBirds mirrors the sprite about for the down-stroke. The body and the head sit on that row and both wings rise above it, so the mirror actually beats the wings -- the v76.3 drawing was symmetric about its own centre, which meant the flap changed nothing. Head and beak point +x, the only direction birds drift."
   },
   {
    "name": "bunny_body",
@@ -1617,7 +1617,7 @@
     "kind": "svg",
     "file": "cloud_body.svg"
    },
-   "notes": ""
+   "notes": "Redrawn in v4.26 as concept C1 \"Batuffolo\": one mass of four large round lobes over a wide low base, with no cut edge and no second sheet. Its tone is a single vertical ramp inside the one shape (white at the crown to #DEDEDE at the base) and the silhouette is feathered by a 1.5-unit Gaussian blur, so the edge is a passage of alpha rather than a line. A cloud is atmosphere, not an object standing on the ground -- DESIGN_NOTES 4.1 -- which is what lets it carry a gradient. Canvas and content box unchanged, so CloudCoverage.CLOUD_CONTENT_HALF_UNITS still reads 133."
   },
   {
    "name": "dolphin_body",
@@ -1625,8 +1625,8 @@
    "width": 345,
    "height": 174,
    "contentBox": [
-    0,
-    0,
+    4,
+    6,
     345,
     174
    ],
@@ -1643,7 +1643,7 @@
     "kind": "svg",
     "file": "dolphin_body.svg"
    },
-   "notes": "Redrawn in v76.4. The V2 fish read as a shark: pointed snout, tall triangular dorsal, no visible eye or mouth. It is now a porpoise -- rounded melon, curved dorsal, pale belly, pectoral fin, eye and smile line -- and it faces right, which is the only direction lake decorations drift. PaperRenderer.drawLakeDecorations draws it only while it is above the water, so the animal breaches and dives instead of gliding across the surface."
+   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": five papers -- body, belly, dorsal, pectoral and flukes -- each over an under-paper offset 5.5 units. **The two body tones are derived, not chosen**: LakeContrastTest measures every water the eleven dolphin-drawing themes paint and holds the animal above a gate derived by the v4.22 method. The v4.25 back (#4A6A84) sat at CIELab dE 5.2 from the water in its worst case and vanished at night and in a storm; it is now #A19A9C at dE 26.1. Faces +x, the only way lake decorations drift. Content placed so DOLPHIN_ORIGIN_X/Y_UNITS (-57.3, -29) still land the animal on its leap point."
   },
   {
    "name": "easteregg_pattern",
@@ -7293,7 +7293,7 @@
    "width": 252,
    "height": 51,
    "contentBox": [
-    0,
+    8,
     0,
     252,
     51
@@ -7311,7 +7311,7 @@
     "kind": "svg",
     "file": "sailboat_hull.svg"
    },
-   "notes": ""
+   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": the hull and its deck stripe each over an offset under-paper. Bow at +x -- the sheer rises from 4.6 units at the stern to the prow at row 0 inside the unchanged 84x17-unit canvas, so the blit origin (-42, 8) is unchanged."
   },
   {
    "name": "sailboat_sail",
@@ -7319,9 +7319,9 @@
    "width": 210,
    "height": 180,
    "contentBox": [
+    27,
     0,
-    0,
-    210,
+    206,
     180
    ],
    "scale": "SCENE_UNITS",
@@ -7337,7 +7337,7 @@
     "kind": "svg",
     "file": "sailboat_sail.svg"
    },
-   "notes": ""
+   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": mast, mainsail, band, boom and jib, each over an offset under-paper. Mast at x=43 of 70 units, forward of amidships; jib forward (+x), mainsail aft. Foot at row 57 so the boom sits on the deck. Origin (-35, -50) unchanged."
   },
   {
    "name": "santa_sleigh_scene",

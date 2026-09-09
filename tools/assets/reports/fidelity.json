@@ -2,7 +2,6 @@
   "gaps": {
     "person_boy_summer_head_car_skin0": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_boy_summer_head_car_skin1": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_boy_summer_head_car_skin2": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_boy_summer_head_window_skin0": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_summer_head_window_skin1": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_summer_head_window_skin2": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -17,7 +16,6 @@
     "person_boy_summer_walk2_skin2": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_winter_head_car_skin0": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_boy_winter_head_car_skin1": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_boy_winter_head_car_skin2": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
     "person_boy_winter_head_window_skin0": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_winter_head_window_skin1": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_boy_winter_head_window_skin2": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -64,7 +62,6 @@
     "person_man_summer_head_car_alt_skin1": "The second outfit, generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (78, 159, 181) -> (228, 98, 62), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
     "person_man_summer_head_car_alt_skin2": "The second outfit, generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (78, 159, 181) -> (228, 98, 62), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
     "person_man_summer_head_car_skin0": "Generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_man_summer_head_car`, which was the same pixels as person_man_summer_head_car_skin1.",
-    "person_man_summer_head_car_skin1": "This IS the character's own tone and the drawing the other two are generated from. v4.19 retired the duplicate `person_man_summer_head_car`, which carried these exact pixels and which no draw path could reach: 297 792 B of decoded-set budget across the four adult bases, spent on copies (item 7 of BACKLOG_v4_19.md). Verified pixel-identical before removal.",
     "person_man_summer_head_car_skin2": "Generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_man_summer_head_car`, which was the same pixels as person_man_summer_head_car_skin1.",
     "person_man_summer_head_window_skin0": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_summer_head_window_skin1": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -82,7 +79,6 @@
     "person_man_winter_head_car_alt_skin1": "The second outfit, generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (71, 105, 143) -> (191, 65, 48), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
     "person_man_winter_head_car_alt_skin2": "The second outfit, generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (71, 105, 143) -> (191, 65, 48), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
     "person_man_winter_head_car_skin0": "Generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_man_winter_head_car`, which was the same pixels as person_man_winter_head_car_skin1.",
-    "person_man_winter_head_car_skin1": "This IS the character's own tone and the drawing the other two are generated from. v4.19 retired the duplicate `person_man_winter_head_car`, which carried these exact pixels and which no draw path could reach: 297 792 B of decoded-set budget across the four adult bases, spent on copies (item 7 of BACKLOG_v4_19.md). Verified pixel-identical before removal.",
     "person_man_winter_head_car_skin2": "Generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_man_winter_head_car`, which was the same pixels as person_man_winter_head_car_skin1.",
     "person_man_winter_head_window_skin0": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
     "person_man_winter_head_window_skin1": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -99,7 +95,6 @@
     "person_woman_summer_head_car_alt_skin0": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
     "person_woman_summer_head_car_alt_skin1": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
     "person_woman_summer_head_car_alt_skin2": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_woman_summer_head_car_skin0": "This IS the character's own tone and the drawing the other two are generated from. v4.19 retired the duplicate `person_woman_summer_head_car`, which carried these exact pixels and which no draw path could reach: 297 792 B of decoded-set budget across the four adult bases, spent on copies (item 7 of BACKLOG_v4_19.md). Verified pixel-identical before removal.",
     "person_woman_summer_head_car_skin1": "Generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_woman_summer_head_car`, which was the same pixels as person_woman_summer_head_car_skin0.",
     "person_woman_summer_head_car_skin2": "Generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_woman_summer_head_car`, which was the same pixels as person_woman_summer_head_car_skin0.",
     "person_woman_summer_head_window_skin0": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -117,7 +112,6 @@
     "person_woman_winter_head_car_alt_skin0": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
     "person_woman_winter_head_car_alt_skin1": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
     "person_woman_winter_head_car_alt_skin2": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_woman_winter_head_car_skin0": "This IS the character's own tone and the drawing the other two are generated from. v4.19 retired the duplicate `person_woman_winter_head_car`, which carried these exact pixels and which no draw path could reach: 297 792 B of decoded-set budget across the four adult bases, spent on copies (item 7 of BACKLOG_v4_19.md). Verified pixel-identical before removal.",
     "person_woman_winter_head_car_skin1": "Generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_woman_winter_head_car`, which was the same pixels as person_woman_winter_head_car_skin0.",
     "person_woman_winter_head_car_skin2": "Generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_woman_winter_head_car`, which was the same pixels as person_woman_winter_head_car_skin0.",
     "person_woman_winter_head_window_skin0": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
@@ -390,15 +384,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        1,
         2,
-        89,
-        23
+        0,
+        51,
+        21
       ],
-      "candidate_padding_fraction": 0.1444444444444445,
+      "candidate_padding_fraction": 0.039215686274509776,
       "candidate_size": [
-        90,
-        24
+        51,
+        21
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -407,18 +401,18 @@
       "mean_alpha_diff": 0.0,
       "name": "bird_body",
       "reference_bbox": [
-        1,
         2,
-        89,
-        23
+        0,
+        51,
+        21
       ],
-      "reference_padding_fraction": 0.1444444444444445,
+      "reference_padding_fraction": 0.039215686274509776,
       "reference_size": [
-        90,
-        24
+        51,
+        21
       ],
       "size_match": true,
-      "total_pixels": 2160,
+      "total_pixels": 1071,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -1005,12 +999,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
+        4,
+        6,
         345,
         174
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.045677161419290346,
       "candidate_size": [
         345,
         174
@@ -1022,12 +1016,12 @@
       "mean_alpha_diff": 0.0,
       "name": "dolphin_body",
       "reference_bbox": [
-        0,
-        0,
+        4,
+        6,
         345,
         174
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.045677161419290346,
       "reference_size": [
         345,
         174
@@ -2604,14 +2598,55 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        10,
-        22,
-        159,
+        7,
+        11,
+        112,
+        126
+      ],
+      "candidate_padding_fraction": 0.1593567251461988,
+      "candidate_size": [
+        114,
+        126
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_boy_summer_head_car_skin2",
+      "reference_bbox": [
+        7,
+        11,
+        112,
+        126
+      ],
+      "reference_padding_fraction": 0.1593567251461988,
+      "reference_size": [
+        114,
+        126
+      ],
+      "size_match": true,
+      "total_pixels": 14364,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        4,
+        3,
+        142,
         171
       ],
-      "candidate_padding_fraction": 0.18345654492625696,
+      "candidate_padding_fraction": 0.07769423558897248,
       "candidate_size": [
-        159,
+        147,
         171
       ],
       "differing_pixels": 0,
@@ -2621,18 +2656,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_summer_head_window",
       "reference_bbox": [
-        10,
-        22,
-        159,
+        4,
+        3,
+        142,
         171
       ],
-      "reference_padding_fraction": 0.18345654492625696,
+      "reference_padding_fraction": 0.07769423558897248,
       "reference_size": [
-        159,
+        147,
         171
       ],
       "size_match": true,
-      "total_pixels": 27189,
+      "total_pixels": 25137,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2645,15 +2680,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        22,
-        67,
-        113,
-        255
+        17,
+        61,
+        108,
+        252
       ],
-      "candidate_padding_fraction": 0.45455125139486685,
+      "candidate_padding_fraction": 0.4104938271604939,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -2662,18 +2697,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_summer_walk0",
       "reference_bbox": [
-        22,
-        67,
-        113,
-        255
+        17,
+        61,
+        108,
+        252
       ],
-      "reference_padding_fraction": 0.45455125139486685,
+      "reference_padding_fraction": 0.4104938271604939,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2686,15 +2721,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        19,
-        70,
-        113,
-        255
+        23,
+        61,
+        107,
+        252
       ],
-      "candidate_padding_fraction": 0.4455603379563208,
+      "candidate_padding_fraction": 0.45584045584045585,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -2703,18 +2738,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_summer_walk1",
       "reference_bbox": [
-        19,
-        70,
-        113,
-        255
+        23,
+        61,
+        107,
+        252
       ],
-      "reference_padding_fraction": 0.4455603379563208,
+      "reference_padding_fraction": 0.45584045584045585,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2727,15 +2762,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        7,
-        67,
-        116,
-        255
+        9,
+        61,
+        110,
+        252
       ],
-      "candidate_padding_fraction": 0.34666029013231314,
+      "candidate_padding_fraction": 0.3457129290462624,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -2744,18 +2779,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_summer_walk2",
       "reference_bbox": [
-        7,
-        67,
-        116,
-        255
+        9,
+        61,
+        110,
+        252
       ],
-      "reference_padding_fraction": 0.34666029013231314,
+      "reference_padding_fraction": 0.3457129290462624,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2768,14 +2803,55 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        4,
-        19,
-        152,
+        2,
+        10,
+        111,
+        126
+      ],
+      "candidate_padding_fraction": 0.11974380395433026,
+      "candidate_size": [
+        114,
+        126
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_boy_winter_head_car_skin2",
+      "reference_bbox": [
+        2,
+        10,
+        111,
+        126
+      ],
+      "reference_padding_fraction": 0.11974380395433026,
+      "reference_size": [
+        114,
+        126
+      ],
+      "size_match": true,
+      "total_pixels": 14364,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        2,
+        7,
+        141,
         171
       ],
-      "candidate_padding_fraction": 0.17260656883298398,
+      "candidate_padding_fraction": 0.09312964952062697,
       "candidate_size": [
-        159,
+        147,
         171
       ],
       "differing_pixels": 0,
@@ -2785,18 +2861,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_winter_head_window",
       "reference_bbox": [
-        4,
-        19,
-        152,
+        2,
+        7,
+        141,
         171
       ],
-      "reference_padding_fraction": 0.17260656883298398,
+      "reference_padding_fraction": 0.09312964952062697,
       "reference_size": [
-        159,
+        147,
         171
       ],
       "size_match": true,
-      "total_pixels": 27189,
+      "total_pixels": 25137,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2809,15 +2885,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        19,
-        46,
-        110,
-        255
+        9,
+        56,
+        108,
+        252
       ],
-      "candidate_padding_fraction": 0.39362346564642114,
+      "candidate_padding_fraction": 0.3418803418803419,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -2826,18 +2902,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_winter_walk0",
       "reference_bbox": [
-        19,
-        46,
-        110,
-        255
+        9,
+        56,
+        108,
+        252
       ],
-      "reference_padding_fraction": 0.39362346564642114,
+      "reference_padding_fraction": 0.3418803418803419,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2850,15 +2926,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        19,
-        49,
-        110,
-        255
+        9,
+        56,
+        95,
+        252
       ],
-      "candidate_padding_fraction": 0.4023274350390563,
+      "candidate_padding_fraction": 0.4283000949667616,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -2867,18 +2943,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_winter_walk1",
       "reference_bbox": [
-        19,
-        49,
-        110,
-        255
+        9,
+        56,
+        95,
+        252
       ],
-      "reference_padding_fraction": 0.4023274350390563,
+      "reference_padding_fraction": 0.4283000949667616,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2891,15 +2967,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        6,
-        46,
-        117,
-        255
+        8,
+        56,
+        110,
+        252
       ],
-      "candidate_padding_fraction": 0.26035389765662365,
+      "candidate_padding_fraction": 0.32193732193732194,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -2908,18 +2984,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_winter_walk2",
       "reference_bbox": [
-        6,
-        46,
-        117,
-        255
+        8,
+        56,
+        110,
+        252
       ],
-      "reference_padding_fraction": 0.26035389765662365,
+      "reference_padding_fraction": 0.32193732193732194,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2932,15 +3008,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        1,
-        17,
-        137,
-        131
+        5,
+        11,
+        113,
+        126
       ],
-      "candidate_padding_fraction": 0.16698903932946485,
+      "candidate_padding_fraction": 0.13533834586466165,
       "candidate_size": [
-        141,
-        132
+        114,
+        126
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -2949,18 +3025,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_summer_head_car",
       "reference_bbox": [
-        1,
-        17,
-        137,
-        131
+        5,
+        11,
+        113,
+        126
       ],
-      "reference_padding_fraction": 0.16698903932946485,
+      "reference_padding_fraction": 0.13533834586466165,
       "reference_size": [
-        141,
-        132
+        114,
+        126
       ],
       "size_match": true,
-      "total_pixels": 18612,
+      "total_pixels": 14364,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2974,13 +3050,13 @@
       "boundary_confined": true,
       "candidate_bbox": [
         4,
-        25,
-        155,
+        1,
+        147,
         171
       ],
-      "candidate_padding_fraction": 0.1891573798227224,
+      "candidate_padding_fraction": 0.03289970959143895,
       "candidate_size": [
-        159,
+        147,
         171
       ],
       "differing_pixels": 0,
@@ -2991,17 +3067,17 @@
       "name": "person_girl_summer_head_window",
       "reference_bbox": [
         4,
-        25,
-        155,
+        1,
+        147,
         171
       ],
-      "reference_padding_fraction": 0.1891573798227224,
+      "reference_padding_fraction": 0.03289970959143895,
       "reference_size": [
-        159,
+        147,
         171
       ],
       "size_match": true,
-      "total_pixels": 27189,
+      "total_pixels": 25137,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3015,14 +3091,14 @@
       "boundary_confined": true,
       "candidate_bbox": [
         13,
-        67,
-        116,
-        255
+        59,
+        108,
+        252
       ],
-      "candidate_padding_fraction": 0.3826239438864977,
+      "candidate_padding_fraction": 0.3781372948039615,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3032,17 +3108,17 @@
       "name": "person_girl_summer_walk0",
       "reference_bbox": [
         13,
-        67,
-        116,
-        255
+        59,
+        108,
+        252
       ],
-      "reference_padding_fraction": 0.3826239438864977,
+      "reference_padding_fraction": 0.3781372948039615,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3056,14 +3132,14 @@
       "boundary_confined": true,
       "candidate_bbox": [
         13,
-        70,
-        116,
-        255
+        60,
+        108,
+        252
       ],
-      "candidate_padding_fraction": 0.392475689462777,
+      "candidate_padding_fraction": 0.3813593813593814,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3073,17 +3149,17 @@
       "name": "person_girl_summer_walk1",
       "reference_bbox": [
         13,
-        70,
-        116,
-        255
+        60,
+        108,
+        252
       ],
-      "reference_padding_fraction": 0.392475689462777,
+      "reference_padding_fraction": 0.3813593813593814,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3096,15 +3172,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        4,
-        67,
-        119,
-        255
+        7,
+        60,
+        110,
+        252
       ],
-      "candidate_padding_fraction": 0.3106966363781285,
+      "candidate_padding_fraction": 0.32926332926332924,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3113,18 +3189,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_summer_walk2",
       "reference_bbox": [
-        4,
-        67,
-        119,
-        255
+        7,
+        60,
+        110,
+        252
       ],
-      "reference_padding_fraction": 0.3106966363781285,
+      "reference_padding_fraction": 0.32926332926332924,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3137,15 +3213,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        1,
-        12,
-        137,
-        131
+        6,
+        11,
+        112,
+        126
       ],
-      "candidate_padding_fraction": 0.13045347087900283,
+      "candidate_padding_fraction": 0.1513505987190198,
       "candidate_size": [
-        141,
-        132
+        114,
+        126
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3154,18 +3230,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_winter_head_car",
       "reference_bbox": [
-        1,
-        12,
-        137,
-        131
+        6,
+        11,
+        112,
+        126
       ],
-      "reference_padding_fraction": 0.13045347087900283,
+      "reference_padding_fraction": 0.1513505987190198,
       "reference_size": [
-        141,
-        132
+        114,
+        126
       ],
       "size_match": true,
-      "total_pixels": 18612,
+      "total_pixels": 14364,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3178,14 +3254,14 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        4,
-        19,
-        155,
+        6,
+        0,
+        141,
         171
       ],
-      "candidate_padding_fraction": 0.15583508036338223,
+      "candidate_padding_fraction": 0.08163265306122447,
       "candidate_size": [
-        159,
+        147,
         171
       ],
       "differing_pixels": 0,
@@ -3195,18 +3271,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_winter_head_window",
       "reference_bbox": [
-        4,
-        19,
-        155,
+        6,
+        0,
+        141,
         171
       ],
-      "reference_padding_fraction": 0.15583508036338223,
+      "reference_padding_fraction": 0.08163265306122447,
       "reference_size": [
-        159,
+        147,
         171
       ],
       "size_match": true,
-      "total_pixels": 27189,
+      "total_pixels": 25137,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3219,15 +3295,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        9,
-        58,
-        117,
-        255
+        16,
+        47,
+        108,
+        252
       ],
-      "candidate_padding_fraction": 0.32166427546628407,
+      "candidate_padding_fraction": 0.3603310269976937,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3236,18 +3312,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_winter_walk0",
       "reference_bbox": [
-        9,
-        58,
-        117,
-        255
+        16,
+        47,
+        108,
+        252
       ],
-      "reference_padding_fraction": 0.32166427546628407,
+      "reference_padding_fraction": 0.3603310269976937,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3260,15 +3336,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        9,
-        61,
-        117,
-        255
+        24,
+        46,
+        95,
+        252
       ],
-      "candidate_padding_fraction": 0.3319942611190818,
+      "candidate_padding_fraction": 0.5039343372676706,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3277,18 +3353,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_winter_walk1",
       "reference_bbox": [
-        9,
-        61,
-        117,
-        255
+        24,
+        46,
+        95,
+        252
       ],
-      "reference_padding_fraction": 0.3319942611190818,
+      "reference_padding_fraction": 0.5039343372676706,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3301,15 +3377,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        6,
-        58,
-        117,
-        255
+        7,
+        47,
+        111,
+        252
       ],
-      "candidate_padding_fraction": 0.30282161645145866,
+      "candidate_padding_fraction": 0.27689594356261027,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3318,18 +3394,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_winter_walk2",
       "reference_bbox": [
-        6,
-        58,
-        117,
-        255
+        7,
+        47,
+        111,
+        252
       ],
-      "reference_padding_fraction": 0.30282161645145866,
+      "reference_padding_fraction": 0.27689594356261027,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3342,14 +3418,55 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        4,
-        16,
-        152,
+        5,
+        0,
+        111,
+        126
+      ],
+      "candidate_padding_fraction": 0.07017543859649122,
+      "candidate_size": [
+        114,
+        126
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_man_summer_head_car_skin1",
+      "reference_bbox": [
+        5,
+        0,
+        111,
+        126
+      ],
+      "reference_padding_fraction": 0.07017543859649122,
+      "reference_size": [
+        114,
+        126
+      ],
+      "size_match": true,
+      "total_pixels": 14364,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        6,
+        0,
+        142,
         171
       ],
-      "candidate_padding_fraction": 0.15627643532310864,
+      "candidate_padding_fraction": 0.07482993197278909,
       "candidate_size": [
-        159,
+        147,
         171
       ],
       "differing_pixels": 0,
@@ -3359,18 +3476,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_man_summer_head_window",
       "reference_bbox": [
-        4,
-        16,
-        152,
+        6,
+        0,
+        142,
         171
       ],
-      "reference_padding_fraction": 0.15627643532310864,
+      "reference_padding_fraction": 0.07482993197278909,
       "reference_size": [
-        159,
+        147,
         171
       ],
       "size_match": true,
-      "total_pixels": 27189,
+      "total_pixels": 25137,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3384,14 +3501,14 @@
       "boundary_confined": true,
       "candidate_bbox": [
         16,
-        13,
-        110,
-        255
+        5,
+        108,
+        252
       ],
-      "candidate_padding_fraction": 0.27473298262394386,
+      "candidate_padding_fraction": 0.2292768959435626,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3401,17 +3518,17 @@
       "name": "person_man_summer_walk0",
       "reference_bbox": [
         16,
-        13,
-        110,
-        255
+        5,
+        108,
+        252
       ],
-      "reference_padding_fraction": 0.27473298262394386,
+      "reference_padding_fraction": 0.2292768959435626,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3424,15 +3541,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        13,
-        16,
-        113,
-        255
+        17,
+        4,
+        101,
+        252
       ],
-      "candidate_padding_fraction": 0.23800414474732978,
+      "candidate_padding_fraction": 0.2934472934472935,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3441,18 +3558,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_man_summer_walk1",
       "reference_bbox": [
-        13,
-        16,
-        113,
-        255
+        17,
+        4,
+        101,
+        252
       ],
-      "reference_padding_fraction": 0.23800414474732978,
+      "reference_padding_fraction": 0.2934472934472935,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3465,15 +3582,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        13,
-        123,
-        255
+        2,
+        5,
+        116,
+        252
       ],
-      "candidate_padding_fraction": 0.050980392156862786,
+      "candidate_padding_fraction": 0.044973544973545,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3482,18 +3599,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_man_summer_walk2",
       "reference_bbox": [
-        0,
-        13,
-        123,
-        255
+        2,
+        5,
+        116,
+        252
       ],
-      "reference_padding_fraction": 0.050980392156862786,
+      "reference_padding_fraction": 0.044973544973545,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3506,14 +3623,55 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        6,
         0,
-        13,
-        158,
+        112,
+        126
+      ],
+      "candidate_padding_fraction": 0.07017543859649122,
+      "candidate_size": [
+        114,
+        126
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_man_winter_head_car_skin1",
+      "reference_bbox": [
+        6,
+        0,
+        112,
+        126
+      ],
+      "reference_padding_fraction": 0.07017543859649122,
+      "reference_size": [
+        114,
+        126
+      ],
+      "size_match": true,
+      "total_pixels": 14364,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        4,
+        1,
+        142,
         171
       ],
-      "candidate_padding_fraction": 0.0818345654492626,
+      "candidate_padding_fraction": 0.06671440506026971,
       "candidate_size": [
-        159,
+        147,
         171
       ],
       "differing_pixels": 0,
@@ -3523,18 +3681,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_man_winter_head_window",
       "reference_bbox": [
-        0,
-        13,
-        158,
+        4,
+        1,
+        142,
         171
       ],
-      "reference_padding_fraction": 0.0818345654492626,
+      "reference_padding_fraction": 0.06671440506026971,
       "reference_size": [
-        159,
+        147,
         171
       ],
       "size_match": true,
-      "total_pixels": 27189,
+      "total_pixels": 25137,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3547,15 +3705,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        13,
-        10,
-        113,
-        255
+        15,
+        2,
+        108,
+        252
       ],
-      "candidate_padding_fraction": 0.21887454168659337,
+      "candidate_padding_fraction": 0.2114367114367114,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3564,18 +3722,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_man_winter_walk0",
       "reference_bbox": [
-        13,
-        10,
-        113,
-        255
+        15,
+        2,
+        108,
+        252
       ],
-      "reference_padding_fraction": 0.21887454168659337,
+      "reference_padding_fraction": 0.2114367114367114,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3588,15 +3746,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        13,
-        13,
-        113,
-        255
+        17,
+        2,
+        101,
+        252
       ],
-      "candidate_padding_fraction": 0.22843934321696158,
+      "candidate_padding_fraction": 0.28774928774928776,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3605,18 +3763,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_man_winter_walk1",
       "reference_bbox": [
-        13,
-        13,
-        113,
-        255
+        17,
+        2,
+        101,
+        252
       ],
-      "reference_padding_fraction": 0.22843934321696158,
+      "reference_padding_fraction": 0.28774928774928776,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3629,15 +3787,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        1,
         0,
-        10,
-        123,
-        255
+        116,
+        252
       ],
-      "candidate_padding_fraction": 0.039215686274509776,
+      "candidate_padding_fraction": 0.017094017094017144,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3646,18 +3804,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_man_winter_walk2",
       "reference_bbox": [
+        1,
         0,
-        10,
-        123,
-        255
+        116,
+        252
       ],
-      "reference_padding_fraction": 0.039215686274509776,
+      "reference_padding_fraction": 0.017094017094017144,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3670,14 +3828,55 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        4,
-        16,
-        152,
+        0,
+        0,
+        112,
+        126
+      ],
+      "candidate_padding_fraction": 0.01754385964912286,
+      "candidate_size": [
+        114,
+        126
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_woman_summer_head_car_skin0",
+      "reference_bbox": [
+        0,
+        0,
+        112,
+        126
+      ],
+      "reference_padding_fraction": 0.01754385964912286,
+      "reference_size": [
+        114,
+        126
+      ],
+      "size_match": true,
+      "total_pixels": 14364,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        2,
+        1,
+        142,
         171
       ],
-      "candidate_padding_fraction": 0.15627643532310864,
+      "candidate_padding_fraction": 0.05318852687273745,
       "candidate_size": [
-        159,
+        147,
         171
       ],
       "differing_pixels": 0,
@@ -3687,18 +3886,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_woman_summer_head_window",
       "reference_bbox": [
-        4,
-        16,
-        152,
+        2,
+        1,
+        142,
         171
       ],
-      "reference_padding_fraction": 0.15627643532310864,
+      "reference_padding_fraction": 0.05318852687273745,
       "reference_size": [
-        159,
+        147,
         171
       ],
       "size_match": true,
-      "total_pixels": 27189,
+      "total_pixels": 25137,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3711,15 +3910,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        16,
-        13,
+        10,
+        6,
         107,
-        255
+        252
       ],
-      "candidate_padding_fraction": 0.29787980232743505,
+      "candidate_padding_fraction": 0.1906796906796907,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3728,18 +3927,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_woman_summer_walk0",
       "reference_bbox": [
-        16,
-        13,
+        10,
+        6,
         107,
-        255
+        252
       ],
-      "reference_padding_fraction": 0.29787980232743505,
+      "reference_padding_fraction": 0.1906796906796907,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3752,15 +3951,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        16,
-        16,
-        110,
-        255
+        10,
+        6,
+        105,
+        252
       ],
-      "candidate_padding_fraction": 0.28372389606249004,
+      "candidate_padding_fraction": 0.20736670736670737,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3769,18 +3968,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_woman_summer_walk1",
       "reference_bbox": [
-        16,
-        16,
-        110,
-        255
+        10,
+        6,
+        105,
+        252
       ],
-      "reference_padding_fraction": 0.28372389606249004,
+      "reference_padding_fraction": 0.20736670736670737,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3793,15 +3992,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        1,
-        13,
-        122,
-        255
+        2,
+        6,
+        116,
+        252
       ],
-      "candidate_padding_fraction": 0.06641160529252355,
+      "candidate_padding_fraction": 0.04884004884004889,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3810,18 +4009,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_woman_summer_walk2",
       "reference_bbox": [
-        1,
-        13,
-        122,
-        255
+        2,
+        6,
+        116,
+        252
       ],
-      "reference_padding_fraction": 0.06641160529252355,
+      "reference_padding_fraction": 0.04884004884004889,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3834,14 +4033,55 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        6,
         0,
-        2,
-        158,
+        112,
+        126
+      ],
+      "candidate_padding_fraction": 0.07017543859649122,
+      "candidate_size": [
+        114,
+        126
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "person_woman_winter_head_car_skin0",
+      "reference_bbox": [
+        6,
+        0,
+        112,
+        126
+      ],
+      "reference_padding_fraction": 0.07017543859649122,
+      "reference_size": [
+        114,
+        126
+      ],
+      "size_match": true,
+      "total_pixels": 14364,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        5,
+        0,
+        141,
         171
       ],
-      "candidate_padding_fraction": 0.017911655448894725,
+      "candidate_padding_fraction": 0.07482993197278909,
       "candidate_size": [
-        159,
+        147,
         171
       ],
       "differing_pixels": 0,
@@ -3851,18 +4091,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_woman_winter_head_window",
       "reference_bbox": [
+        5,
         0,
-        2,
-        158,
+        141,
         171
       ],
-      "reference_padding_fraction": 0.017911655448894725,
+      "reference_padding_fraction": 0.07482993197278909,
       "reference_size": [
-        159,
+        147,
         171
       ],
       "size_match": true,
-      "total_pixels": 27189,
+      "total_pixels": 25137,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3875,15 +4115,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        13,
+        16,
         0,
-        113,
-        255
+        108,
+        252
       ],
-      "candidate_padding_fraction": 0.1869918699186992,
+      "candidate_padding_fraction": 0.2136752136752137,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3892,18 +4132,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_woman_winter_walk0",
       "reference_bbox": [
-        13,
+        16,
         0,
-        113,
-        255
+        108,
+        252
       ],
-      "reference_padding_fraction": 0.1869918699186992,
+      "reference_padding_fraction": 0.2136752136752137,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3916,15 +4156,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        13,
-        3,
-        113,
-        255
+        16,
+        2,
+        101,
+        252
       ],
-      "candidate_padding_fraction": 0.1965566714490674,
+      "candidate_padding_fraction": 0.2792701126034459,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3933,18 +4173,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_woman_winter_walk1",
       "reference_bbox": [
-        13,
-        3,
-        113,
-        255
+        16,
+        2,
+        101,
+        252
       ],
-      "reference_padding_fraction": 0.1965566714490674,
+      "reference_padding_fraction": 0.2792701126034459,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3957,15 +4197,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        3,
-        0,
-        120,
-        255
+        1,
+        2,
+        115,
+        252
       ],
-      "candidate_padding_fraction": 0.04878048780487809,
+      "candidate_padding_fraction": 0.03337403337403333,
       "candidate_size": [
-        123,
-        255
+        117,
+        252
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -3974,18 +4214,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_woman_winter_walk2",
       "reference_bbox": [
-        3,
-        0,
-        120,
-        255
+        1,
+        2,
+        115,
+        252
       ],
-      "reference_padding_fraction": 0.04878048780487809,
+      "reference_padding_fraction": 0.03337403337403333,
       "reference_size": [
-        123,
-        255
+        117,
+        252
       ],
       "size_match": true,
-      "total_pixels": 31365,
+      "total_pixels": 29484,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4531,12 +4771,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
+        8,
         0,
         252,
         51
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.031746031746031744,
       "candidate_size": [
         252,
         51
@@ -4548,12 +4788,12 @@
       "mean_alpha_diff": 0.0,
       "name": "sailboat_hull",
       "reference_bbox": [
-        0,
+        8,
         0,
         252,
         51
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.031746031746031744,
       "reference_size": [
         252,
         51
@@ -4572,12 +4812,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        27,
         0,
-        0,
-        210,
+        206,
         180
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.14761904761904765,
       "candidate_size": [
         210,
         180
@@ -4589,12 +4829,12 @@
       "mean_alpha_diff": 0.0,
       "name": "sailboat_sail",
       "reference_bbox": [
+        27,
         0,
-        0,
-        210,
+        206,
         180
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.14761904761904765,
       "reference_size": [
         210,
         180

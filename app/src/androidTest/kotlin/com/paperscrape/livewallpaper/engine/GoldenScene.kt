@@ -68,9 +68,12 @@ class GoldenScene(
     val warmUpFrames: Int = 0,
     /** One frame at the render loop's own 30 fps cadence, which is what the wallpaper runs at. */
     val warmUpDeltaSeconds: Float = 1f / 30f,
-    private val themeId: String = "sunset",
-    private val weather: LiveWeatherSnapshot? = null,
-    private val customise: (SceneCustomization) -> SceneCustomization = { it },
+    // Readable, not just applied: `SkyWaterGoldenTest` derives its gates by rendering a scene and
+    // then rendering it again with one family switched off, and the second scene has to be the
+    // first one plus that switch rather than a second description of it that could drift.
+    val themeId: String = "sunset",
+    val weather: LiveWeatherSnapshot? = null,
+    val customise: (SceneCustomization) -> SceneCustomization = { it },
     /**
      * Patches of the frame checked a second time, on their own much smaller area, *in addition* to
      * the whole-frame comparison every golden gets. Empty for a golden about the whole picture.

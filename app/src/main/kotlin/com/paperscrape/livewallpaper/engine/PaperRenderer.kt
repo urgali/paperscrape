@@ -138,6 +138,17 @@ class PaperRenderer(
     // what the code did.
     var liveWeatherOverride: com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot? = null
 
+    // **Where the light is, this frame.** The water is a mirror since v4.26, so it has to know
+    // three things the sky already worked out: whether a body was drawn at all, whether it was the
+    // sun or the moon, and where. Written by [drawSky] and [drawCelestialBody], read by [drawLake],
+    // which runs after both in the same frame -- the scene is composed front to back in one pass on
+    // one thread, so this is a value handed forward, not shared state.
+    private var celestialShownNow = false
+    private var celestialIsSunNow = false
+    private var celestialCxNow = 0f
+    private var skyTopColorNow = 0
+    private var skyHorizonColorNow = 0
+
     // The sky, the hill highlight and the sun/moon glow no longer keep a Paint of their own: a
     // Shader cannot be read back off a Paint, so their gradients are passed to SceneCanvas as
     // explicit stops instead, and each backend realises them its own way.
@@ -421,6 +432,49 @@ class PaperRenderer(
 
         /** Lake sparkles have no density control -- a fixed handful, always drawn. */
         const val LAKE_SPARKLE_POOL_SIZE = 5
+
+        /**
+         * **The water is a mirror (v4.26, concept S1 "Specchio").**
+         *
+         * How far the surface is carried toward the sky's own horizon colour at the far edge of
+         * the band. The near edge stays the theme's lake colour, so the band is one vertical ramp
+         * between the two and the water is the sky, lying down. Chosen over the two wave concepts
+         * from photographs on the device: waves in a band this shallow read as stripes, and the
+         * scene already carries its motion in the sky.
+         */
+        const val LAKE_MIRROR_SKY_SHARE = 0.55f
+
+        /**
+         * **The waterline, and why the lake needs one at all.**
+         *
+         * A mirror reflects the sky, so the closer a theme's sky and lake colours are, the more the
+         * two agree and the less the water's top edge exists. Measured across the twelve built-in
+         * themes at every point of the day/night sweep, both twilight branches, clear and storm,
+         * **against the sky immediately above each theme's own shore**: the separation is a CIELab
+         * dE of **2.16 in the worst case** (Tundra near midday, sky `#D0E7F2` against water
+         * `#D6EAF2`) against a median of 13.93, and in Rec. 601 luma the worst gap is **0.1** --
+         * the sky and the water are the same brightness.
+         *
+         * **The top edge may not be made wavy.** The mountains anchor to the band's own nominal top
+         * Y and a jittered edge dips below it, opening a sliver of bare sky -- that is the whole
+         * argument in [drawLakeBand] and it has not changed. So the distinction is made with a
+         * struck edge instead: a line along the top of the band, in a tone pushed away from the
+         * sky's luma until it clears [WATERLINE_MIN_LUMA_GAP].
+         *
+         * The gap is **14.5**, which is the median separation the twelve themes already produce
+         * measured the same way. Deriving it from the distribution rather than picking it means the
+         * worst theme is lifted to what a typical one already does, and no theme is given an edge
+         * louder than the scene's own habit.
+         */
+        const val WATERLINE_MIN_LUMA_GAP = 14.5f
+        const val WATERLINE_THICKNESS_PX = 2f
+
+        /** The light's path on the water: how many slivers are cut under the sun or the moon. */
+        const val LAKE_GLITTER_POOL_SIZE = 9
+
+        /** The reflected glow's radius, in band heights. It is also its depth -- see
+         * [drawLakeMirrorGlow] for why the two have to be the same number. */
+        const val LAKE_MIRROR_GLOW_RADIUS_BANDS = 0.8f
 
         // The three lake decorations no longer carry a tint constant.
         //
@@ -805,8 +859,8 @@ class PaperRenderer(
          * pixel keeps the coordinate it had; the flip therefore produces exactly the frame it did
          * before. Changing either number without the other moves the bird.
          */
-        const val BIRD_SPRITE_ORIGIN_X_PX = -45f
-        const val BIRD_SPRITE_ORIGIN_Y_PX = -18f
+        const val BIRD_SPRITE_ORIGIN_X_PX = -25f
+        const val BIRD_SPRITE_ORIGIN_Y_PX = -15f
 
         /** Centres a 240px raw-pixel disc in the `radius / 120f` space of the sun and moon. */
         const val CELESTIAL_DISC_ORIGIN_UNITS = -120f
@@ -1246,6 +1300,12 @@ class PaperRenderer(
         // as before and then weathered. That ordering is what keeps "18:30 + heavy rain" a dim
         // sunset instead of a night, and what stops a storm from becoming a palette swap.
         val storm = stormStrength()
+        // The sky's own gradient, weathered: the water reflects the horizon end of it, and the
+        // waterline has to be judged against the sky *immediately above the shore*, which is
+        // neither end. Both are kept rather than recomputed from the theme, which would miss the
+        // storm.
+        skyTopColorNow = StormAtmosphere.dimSky(top, storm)
+        skyHorizonColorNow = StormAtmosphere.dimSky(bottom, storm)
         canvas.drawVerticalGradientRect(
             0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(),
             StormAtmosphere.dimSky(top, storm),
@@ -1330,6 +1390,7 @@ class PaperRenderer(
         offsetX: Float = 0f,
     ) {
         val isSun = dayPhase.isSunVisible
+        celestialShownNow = false // see the field: the water reads this after the sky is drawn
         if (isSun && !sceneCustomization.sun.visible) return
         if (!isSun && !sceneCustomization.moon.visible) return
 
@@ -1339,6 +1400,9 @@ class PaperRenderer(
         val riseHeight = screenHeight * sceneCustomization.sky.sunCloudHeight
             .coerceIn(SUN_CLOUD_HEIGHT_MIN, SUN_CLOUD_HEIGHT_MAX)
         val cy = horizonY - dayPhase.celestialY * riseHeight
+        celestialShownNow = true
+        celestialIsSunNow = isSun
+        celestialCxNow = cx
 
         // doubled -- was too small to read clearly
         val radius = screenWidth * CELESTIAL_RADIUS_FRACTION * 2f
@@ -2347,7 +2411,6 @@ class PaperRenderer(
         val lake = sceneCustomization.lake
         val bandHeight = bottom - top
         lakePaint.color = blendColor(lake.colorNight, lake.colorDay, dayPhase.dayBlend)
-
         // The lake used to be drawn at fixed absolute screen coordinates, entirely independent of
         // scrollProgress -- meaning it stayed dead still while hills/houses scrolled past it, a
         // real bug (reported as "buildings feel tied to the ground, everything else feels almost
@@ -2360,11 +2423,23 @@ class PaperRenderer(
         canvas.save()
         canvas.translate(lakeWrapped, 0f)
         // Three screen-width-wide copies side by side so the translate above never exposes a gap
-        // at either edge, for any wrap value in (-screenWidth, 0].
+        // at either edge -- **and only the copies that actually reach the screen**. `lakeWrapped`
+        // is in (-screenWidth, 0], so at any non-zero wrap the copy at -1 is entirely off the left
+        // edge and is skipped; at a wrap of exactly zero it is kept, because a sparkle drifting at
+        // the very end of that copy still reaches a few pixels past its right edge. Until v4.26 all
+        // three were drawn unconditionally, at every wrap.
         for (tileOffset in -1..1) {
+            val x0 = tileOffset * screenWidth + lakeWrapped
+            if (x0 + screenWidth < 0f || x0 > screenWidth) continue
             drawLakeBand(canvas, (tileOffset * screenWidth).toFloat(), top, bottom, bandHeight, elapsedSeconds)
         }
         canvas.restore()
+        // The waterline is uniform along x, so one call outside the tile loop draws exactly what
+        // three inside it would. The glow and the light's path sit under the celestial body, which
+        // does not scroll with the water, so neither is tiled either.
+        drawWaterline(canvas, top)
+        drawLakeMirrorGlow(canvas, dayPhase, top, bandHeight)
+        drawLakeGlitter(canvas, dayPhase, top, bandHeight, elapsedSeconds, stormStrength())
 
         // **One pass over the water, painted far to near.**
         //
@@ -2415,82 +2490,172 @@ class PaperRenderer(
     private val lakeItemIsDolphin = BooleanArray(LakeLanes.LANE_COUNT)
     private val lakeDrawOrder = IntArray(LakeLanes.LANE_COUNT)
 
-    /** One screen-width-wide copy of the lake's water band + ripple lines, offset horizontally
-     * by [xOffset] -- see [drawLake], which draws 3 of these side by side under one translate.
+    /**
+     * One screen-width-wide copy of the water, offset horizontally by [xOffset] -- see [drawLake],
+     * which draws the copies that reach the screen side by side under one translate.
      *
-     * Reworked after aa reported the lake reading as too plain/flat (a solid rectangle with 4
-     * faint lines). Top edge stays a flat straight line -- that's deliberate, not part of what
-     * needed fixing (see the comment kept below on why: it's what keeps the mountains' fixed
-     * base line from ever opening a sky gap against the lake's edge) -- but the water's own
-     * surface now reads as actual moving water: alternating light/dark horizontal bands (like
-     * light catching ripples at different depths) instead of one flat fill, plus small drifting
-     * sparkle glints near the surface.
+     * **The water is a mirror, and that is the whole of it (v4.26, concept S1 "Specchio").** It is
+     * one vertical gradient from the sky's own horizon colour at the far edge into the theme's lake
+     * colour at the near edge, plus the drifting sparkle glints the band has carried since v46, and
+     * nothing else: no bands, no ripple lines, no waves. Three ways of drawing the surface were
+     * photographed on the device -- a mirror, a long swell and rows of illustrator's strokes -- and
+     * the mirror was chosen: at the height this band is actually drawn, waves read as stripes, and
+     * the light's path ([drawLakeGlitter]) already gives the surface everything it needs to say it
+     * is water rather than a painted rectangle.
+     *
+     * **The top edge is a flat straight line, and must stay one.** An earlier version made it wavy
+     * to blend the lake's far edge into the hills' silhouette -- but once the lake moved to sit
+     * above the hills entirely (v46) its top edge borders plain sky, and worse, the mountains
+     * anchor to the band's own *nominal* top Y while a jittered edge dips below it at some x,
+     * opening a thin sliver of bare sky between the mountain's fixed base and the water. A flat
+     * edge and a fixed mountain base line up exactly, everywhere, always. Where the mirror leaves
+     * that edge too quiet, [drawWaterline] strikes it instead of bending it.
      */
     private fun drawLakeBand(canvas: SceneCanvas, xOffset: Float, top: Float, bottom: Float, bandHeight: Float, elapsedSeconds: SceneTime) {
-        // A plain flat rectangle now, not the wavy top edge an earlier version had. That waviness
-        // was meant to blend the lake's far edge into the hills' own organic silhouette -- but
-        // once the lake moved to sit *above* the hills entirely (v46), its top edge borders plain
-        // sky, not hills, so the waviness no longer served that purpose. Worse, it actively
-        // caused a new bug: mountains anchor to the lake's own *nominal* top Y (a single fixed
-        // value), but the wavy edge's random per-segment jitter could dip *below* that nominal
-        // value at some x positions -- opening a thin sliver of bare sky between the mountain's
-        // fixed base and the lake's actual (jittered) edge right there. A flat edge and a fixed
-        // mountain base line up exactly, everywhere, always.
-        canvas.drawRect(xOffset, top, xOffset + screenWidth, bottom, lakePaint)
+        canvas.drawVerticalGradientRect(
+            xOffset, top, xOffset + screenWidth, bottom,
+            ColorUtils.blendARGB(lakePaint.color, skyHorizonColorNow, LAKE_MIRROR_SKY_SHARE),
+            lakePaint.color,
+        )
+        drawLakeSparkles(canvas, xOffset, top, bandHeight, elapsedSeconds)
+    }
 
-        // Alternating light/dark horizontal bands, each gently undulating and drifting sideways
-        // at its own slow rate -- reads as actual depth/movement in the water rather than a flat
-        // fill with a couple of lines drawn over it.
-        val bandCount = 6
-        for (i in 0 until bandCount) {
-            val fraction = (i + 0.5f) / bandCount
-            val y = top + bandHeight * fraction
-            val bandThickness = bandHeight / bandCount * 0.55f
-            val lighten = if (i % 2 == 0) 0.10f else -0.06f
-            ripplePaint.style = Paint.Style.FILL
-            ripplePaint.color = if (lighten > 0f) {
-                ColorUtils.blendARGB(lakePaint.color, 0xFFFFFFFF.toInt(), lighten)
-            } else {
-                ColorUtils.blendARGB(lakePaint.color, 0xFF000000.toInt(), -lighten)
-            }
-            ripplePaint.alpha = 90
-            val drift = elapsedSeconds.sinAt(0.25f + i * 0.05f, i * 1.3f) * 18f
-            canvas.drawRect(xOffset - 20f + drift, y - bandThickness / 2f, xOffset + screenWidth + 20f + drift, y + bandThickness / 2f, ripplePaint)
-        }
-        ripplePaint.alpha = 255
+    /**
+     * The cut edge of the water, struck along the top of the band.
+     *
+     * See [WATERLINE_MIN_LUMA_GAP] for why the lake needs one and where 19 comes from. The colour
+     * is derived per frame rather than declared: the water's own surface tone is carried toward
+     * black or white -- whichever is *away* from the sky -- by exactly the fraction that puts it
+     * [WATERLINE_MIN_LUMA_GAP] of luma clear of the sky at the horizon, and no further. A theme
+     * whose water is already that far clear gets `t = 0`, which is the water's own colour and
+     * therefore no visible line at all: the edge appears only where it is needed, and it is never
+     * louder than the gap requires.
+     */
+    private fun drawWaterline(canvas: SceneCanvas, top: Float) {
+        val surface = ColorUtils.blendARGB(lakePaint.color, skyHorizonColorNow, LAKE_MIRROR_SKY_SHARE)
+        val skyLuma = rec601Luma(skyAbove(top))
+        val surfaceLuma = rec601Luma(surface)
+        val away = if (surfaceLuma >= skyLuma) 1f else 0f          // white or black, away from the sky
+        val target = if (surfaceLuma >= skyLuma) skyLuma + WATERLINE_MIN_LUMA_GAP else skyLuma - WATERLINE_MIN_LUMA_GAP
+        val anchorLuma = away * 255f
+        val t = ((target - surfaceLuma) / (anchorLuma - surfaceLuma)).coerceIn(0f, 1f)
+        if (t <= 0f) return
+        ripplePaint.style = Paint.Style.FILL
+        ripplePaint.color = ColorUtils.blendARGB(surface, if (away > 0f) 0xFFFFFFFF.toInt() else 0xFF000000.toInt(), t)
+        canvas.drawRect(0f, top, screenWidth.toFloat(), top + WATERLINE_THICKNESS_PX, ripplePaint)
+    }
 
-        // Thin bright ripple lines on top of the bands, same wobble as before.
-        ripplePaint.style = Paint.Style.STROKE
-        ripplePaint.color = ColorUtils.blendARGB(lakePaint.color, 0xFFFFFFFF.toInt(), 0.16f)
-        ripplePaint.strokeWidth = 2f
-        val rippleCount = 4
-        for (i in 0 until rippleCount) {
-            val fraction = (i + 1f) / (rippleCount + 1)
-            val y = top + bandHeight * fraction
-            val wobble = elapsedSeconds.sinAt(0.6f, i * 1.7f) * 6f
-            canvas.drawLine(xOffset + screenWidth * 0.08f + wobble, y, xOffset + screenWidth * 0.92f + wobble, y, ripplePaint)
-        }
+    /**
+     * The sky's own colour at [y], which is what the waterline borders.
+     *
+     * **Not the horizon colour**, and the difference is the whole reason this function exists. The
+     * sky is one gradient from `skyTopColorNow` at y = 0 to `skyHorizonColorNow` at the bottom of
+     * the *screen*, and the water's top edge sits well above that: on Tundra it is at 0.58 of the
+     * screen, where the sky is 25 units of luma away from the colour at the bottom. Deriving the
+     * edge against the wrong end of the gradient produced a line that sat *between* the sky and the
+     * water instead of clear of both -- measured at the shore: sky 225.1, line 228.8, water 232.9.
+     */
+    private fun skyAbove(y: Float): Int =
+        ColorUtils.blendARGB(skyTopColorNow, skyHorizonColorNow, (y / screenHeight).coerceIn(0f, 1f))
 
-        // Small sparkle glints drifting across the surface -- a handful of short bright dashes,
-        // stateless deterministic candidates same as precipitation/clouds.
-        val sparkleCount = LAKE_SPARKLE_POOL_SIZE
+    /** Rec. 601 luma, the weighting [StormAtmosphere.dim] and the rest of the app's colour work use. */
+    private fun rec601Luma(color: Int): Float {
+        val r = (color shr 16) and 0xFF
+        val g = (color shr 8) and 0xFF
+        val b = color and 0xFF
+        return (r * 299 + g * 587 + b * 114) / 1000f
+    }
+
+    /** The drifting glints the surface has carried since v46: a fixed handful, stateless. */
+    private fun drawLakeSparkles(canvas: SceneCanvas, xOffset: Float, top: Float, bandHeight: Float, elapsedSeconds: SceneTime) {
         val sparkleSeed = seedFor(EffectId.LAKE_SPARKLES)
         ripplePaint.style = Paint.Style.STROKE
         ripplePaint.strokeWidth = 1.5f
         ripplePaint.strokeCap = Paint.Cap.ROUND
         ripplePaint.color = ColorUtils.blendARGB(lakePaint.color, 0xFFFFFFFF.toInt(), 0.5f)
-        for (i in 0 until sparkleCount) {
+        for (i in 0 until LAKE_SPARKLE_POOL_SIZE) {
             val phase = CandidateNoise.value(sparkleSeed, i, CandidateNoise.CH_PHASE)
             val laneFraction = CandidateNoise.range(sparkleSeed, i, CandidateNoise.CH_Y, 0.15f, 0.85f)
             val sy = top + bandHeight * laneFraction
-            val drift = elapsedSeconds.cycle(
-                CandidateNoise.range(sparkleSeed, i, CandidateNoise.CH_SPEED, 0.03f, 0.05f),
-                phase,
-            )
+            val drift = elapsedSeconds.cycle(CandidateNoise.range(sparkleSeed, i, CandidateNoise.CH_SPEED, 0.03f, 0.05f), phase)
             val sx = xOffset + drift * screenWidth
             val twinkle = (elapsedSeconds.sinAt(3f, phase * 6.28f) * 0.5f + 0.5f)
             ripplePaint.alpha = (140 * twinkle).toInt().coerceIn(0, 255)
             canvas.drawLine(sx - 5f, sy, sx + 5f, sy, ripplePaint)
+        }
+        ripplePaint.alpha = 255
+    }
+
+    /** One scratch shape, reused for every sliver of the light's path: the draw path allocates
+     * nothing per frame (AI_PROJECT_RULES 5.1). */
+    private val lakeScratchShape = SceneShape(8)
+
+    /**
+     * The sun or the moon reflected as a soft glow on the mirror, directly under the body.
+     *
+     * **The centre is one radius below the waterline, and that is not a look — it is the only way
+     * this can be drawn.** [SceneCanvas] has no clip, so a radial glow centred *at* the top of the
+     * band spills its upper half into the sky above the shore, which is exactly the edge
+     * [drawWaterline] exists to sharpen. The concept build did that: measured against the v4.25
+     * frame, `people-skin` changed 11 rows above its own waterline, under the sun's x and nowhere
+     * else. Placing the centre at `top + radius` puts the glow's own zero alpha on the waterline,
+     * so the reflection reaches the shore and stops there. Its lower half runs under the hills,
+     * which are drawn after the water and cover it.
+     */
+    private fun drawLakeMirrorGlow(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, top: Float, bandHeight: Float) {
+        if (!celestialShownNow) return
+        val low = (1f - dayPhase.celestialY).coerceIn(0f, 1f)
+        val gain = (if (celestialIsSunNow) 0.35f + 0.65f * low else (0.3f + 0.7f * low) * (1f - dayPhase.dayBlend)) *
+            StormAtmosphere.sunVisibility(stormStrength())
+        val bodyColor = if (celestialIsSunNow) sceneCustomization.sun.color else sceneCustomization.moon.color
+        val radius = bandHeight * LAKE_MIRROR_GLOW_RADIUS_BANDS
+        canvas.drawRadialGlow(celestialCxNow, top + radius, radius, bodyColor, (90f * gain).toInt().coerceIn(0, 255))
+    }
+
+    /**
+     * **The light's path**: slivers cut on the water under the sun or the moon, widening and
+     * lengthening toward the near edge the way a real glitter path does. Not tiled -- it sits under
+     * the body, which does not scroll with the water.
+     */
+    private fun drawLakeGlitter(
+        canvas: SceneCanvas,
+        dayPhase: SunPositionCalculator.DayPhase,
+        top: Float,
+        bandHeight: Float,
+        elapsedSeconds: SceneTime,
+        storm: Float,
+    ) {
+        if (!celestialShownNow) return
+        val low = (1f - dayPhase.celestialY).coerceIn(0f, 1f)
+        val gain = if (celestialIsSunNow) {
+            (0.3f + 0.7f * low * low) * StormAtmosphere.sunVisibility(storm)
+        } else {
+            (0.25f + 0.75f * low * low) * kotlin.math.sqrt((1f - dayPhase.dayBlend).coerceIn(0f, 1f))
+        } * (1f - 0.6f * storm)
+        if (gain <= 0.02f) return
+        val bodyColor = if (celestialIsSunNow) sceneCustomization.sun.color else sceneCustomization.moon.color
+        val seed = seedFor(EffectId.LAKE_SPARKLES) xor 0x511
+        ripplePaint.style = Paint.Style.FILL
+        ripplePaint.color = ColorUtils.blendARGB(
+            ColorUtils.blendARGB(lakePaint.color, bodyColor, 0.7f), 0xFFFFFFFF.toInt(), 0.25f,
+        )
+        for (k in 0 until LAKE_GLITTER_POOL_SIZE) {
+            val lane = 0.035f + k * 0.055f + (CandidateNoise.value(seed, k, CandidateNoise.CH_Y) - 0.5f) * 0.024f
+            val y = top + bandHeight * lane
+            val spread = 4f + 70f * lane
+            val phase = CandidateNoise.value(seed, k, CandidateNoise.CH_PHASE)
+            val x = celestialCxNow + (CandidateNoise.value(seed, k, CandidateNoise.CH_X) - 0.5f) * 2f * spread +
+                elapsedSeconds.sinAt(0.7f, phase * 6.28f) * 3f
+            val half = 4f + 26f * lane
+            val thick = 1.2f + 2f * lane
+            val twinkle = elapsedSeconds.sinAt(2.4f, phase * 6.28f) * 0.5f + 0.5f
+            ripplePaint.alpha = (255f * gain * (0.45f + 0.55f * twinkle)).toInt().coerceIn(0, 255)
+            lakeScratchShape.moveTo(x - half, y)
+            lakeScratchShape.lineTo(x - half * 0.3f, y - thick)
+            lakeScratchShape.lineTo(x + half, y)
+            lakeScratchShape.lineTo(x + half * 0.3f, y + thick)
+            lakeScratchShape.close()
+            canvas.drawShape(lakeScratchShape, ripplePaint)
         }
         ripplePaint.alpha = 255
     }

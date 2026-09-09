@@ -24,6 +24,73 @@ release date will be standing.
 
 ---
 
+## v4.26 — the sky and the sea redrawn
+
+**Prepared, not published.** `versionCode = 57`, `versionName = "4.26"`. Prepared 2026-09-09. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.25**, which
+**is** published — read from the public GitHub API on 2026-09-09, along with v4.16 through v4.24.
+
+**What it is.** The last family drawn in the old language was the water and what flies and floats
+on it. Four rounds of concepts were photographed on the BV6600 and the maintainer chose: sea **S1
+"Specchio"**, cloud **C1 "Batuffolo"**, bird **A "Colomba"** at a reduced size, and boats and
+dolphins **B "Rilievo"**. Alongside the artwork, three items of `BACKLOG_v4_25.md` were closed —
+61 (the seven length systems), 64 (the golden regeneration protocol) and 65 (what the golden net
+actually covers).
+
+### What the user gets
+
+- **The water is a mirror of the sky** instead of a flat rectangle with six stripes and four lines
+  across it: one vertical gradient from the sky's own horizon colour into the theme's lake colour,
+  with the sun's or moon's light laid across it as a path of cut glints that widens toward the
+  viewer. The two wave concepts were rejected from the photographs — at the height this band is
+  actually drawn, waves read as stripes.
+- **A struck waterline** where the mirror would otherwise agree with the sky. Derived per frame,
+  and absent where it is not needed.
+- **A soft cloud** with a feathered edge and one vertical ramp, instead of a cut shape with a
+  second sheet behind it. A cloud is weather, not an object standing in the scene.
+- **A smaller bird that actually beats its wings.** 90x24 canvas pixels down to 51x21 — about 1.3
+  person heights, which is what a bird looks like across a valley — with the flap axis moved to
+  the row the body sits on, so the vertical mirror the renderer already applied stopped being a
+  no-op on a symmetric shape.
+- **A dolphin that can be seen at night**, and boats and dolphins in the layered-paper language.
+- **Less drawing per frame for the water**: measured, 28 primitives against the 48 the old band
+  cost, including no longer painting a tile copy that is always off-screen.
+
+### What changed under it
+
+- **The dolphin's colours are derived, not chosen** (`LakeContrastTest`). Every surface the eleven
+  dolphin-drawing themes can paint, across the whole day/night sweep, both twilight branches, clear
+  and storm, both edges of the mirror. The v4.25 back measured **CIELab dE 1.53** from the water at
+  its worst — below a just-noticeable difference for a large flat field. Gate placed by the v4.22
+  method between that floor and the animal's own belly (18.78): **10.16**. Three of the four papers
+  moved; the belly did not, because it is the signal arm.
+- **Item 61 closed with proposal C.** `UnitFrameTest` resolves every `_UNITS` constant in `main`,
+  `test` and `androidTest` to a declared length system and fails any expression naming two of them
+  without one of the five conversions. Frames propagate through local `val`s, which is what the
+  backlog identified as proposal C's own blind spot and is the shape v4.25's second defect actually
+  had. Shown to bite by reintroducing that defect into the tree.
+- **Item 65 closed by derivation.** Three new gates over the cloud band, the bird band and the
+  water band. No tolerance moved and no number lowered.
+- **Item 64 decided by the maintainer**: the double golden regeneration now runs only on the scenes
+  whose frames changed. Written into `SceneGolden`'s doc.
+- **A defect found during promotion**: the reflected glow spilled above the waterline into the sky —
+  measured at 11 rows on `people-skin`, under the sun's x and nowhere else — because `SceneCanvas`
+  has no clip. Its centre is now one radius below the line, so its own zero alpha lands on the shore.
+- **The `perf` build type is removed.** It was in the v4.25 ZIP and in the published `v4.25` tag,
+  carrying a comment saying it was never committed. `BACKLOG_v4_26.md` item 66 asks whether the rule
+  or the practice should change; nothing about the published release needs doing.
+
+### What was measured and what it says
+
+- **"+4.5 points of CPU for every PNG substituted" was the debug build talking.** Re-measured on a
+  release-like build, substituting a sprite costs what repeating the same measurement costs. The
+  figure shaped three rounds of concept work and is a property of the build type, not of artwork.
+- The water's per-frame primitive count: **28**, against 48.
+- Golden attribution before regenerating: 24 scenes, **zero changed pixels below the ground line**
+  in every one of them; 18 of 24 change nothing at all between the bird band and the ground.
+
+---
+
 ## v4.25 — the people redrawn, and a stable reduction for everything small
 
 **Prepared, not published.** `versionCode = 56`, `versionName = "4.25"`. Prepared 2026-09-08. No

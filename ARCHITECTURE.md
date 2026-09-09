@@ -861,6 +861,25 @@ horizon where `perspectiveScaleAt` is at or near zero, so it has its own metric
 each other. Birds, the sleigh, fireworks and the celestial bodies are composed
 for legibility and read neither.
 
+**The surface is a mirror of the sky (v4.26), which makes it the one part of the
+scene that reads a value the sky computed.** `drawSky` keeps the weathered
+horizon colour and `drawCelestialBody` keeps whether a body was drawn, which one
+and where; `drawLake` runs later in the same single-threaded pass and uses all
+four to build the band's gradient, the reflected glow and the light's path. That
+is a value handed forward inside one frame, not shared state — nothing outside
+`draw` reads it, and nothing writes it twice.
+
+Three consequences worth knowing before touching this code. The band's **top edge
+is flat and must stay flat**, because the mountains anchor to its nominal top Y
+and a jittered edge opens a sliver of bare sky at some x; the distinction against
+the sky is made by a struck waterline whose colour is derived per frame instead.
+The reflected glow's **centre sits one radius below the waterline**, because
+`SceneCanvas` has no clip and a glow centred on the line spills its upper half
+into the sky above the shore. And only the **tile copies that reach the screen**
+are drawn: `lakeWrapped` is in `(-screenWidth, 0]`, so the copy at `-1` never
+does, which is a third of the water the pre-v4.26 code painted off-screen every
+frame.
+
 ---
 
 ## 4. Scene management
@@ -1725,12 +1744,14 @@ spans three days either side.
 
 | Suite | Covers |
 |---|---|
-| `SceneGoldenTest` | 16 committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel. `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable. `GoldenFocus` re-checks named patches on their own much smaller area, because 0.2% of a 360x800 frame is 576 pixels and a dolphin covers 160. |
+| `SceneGoldenTest` | Committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel. `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable. `GoldenFocus` re-checks named patches on their own much smaller area, because 0.2% of a 360x800 frame is 576 pixels and a dolphin covers 160. **Do not quote a count here** — `CLAUDE.md` §5 has the command, and the figure that means anything is the number of `assertMatches` calls, not the number of files in the directory. |
 | `GlSceneGoldenTest` | Three of the same scenes rendered through the shipped `GlSceneTarget` on an offscreen EGL pbuffer, configured exactly as `GlRenderThread` configures it, MSAA included. Three gates: against its own committed `gl-*.png`, against the Canvas golden (the claim that the two backends still draw the same picture), and — since v3.7 — **against a named region**. |
 | `PrefsCorruptionRecoveryTest` | That a damaged preferences file costs that store its contents and nothing else, including across a process restart. |
 | `CanvasGradientAllocationTest` | **P2-5.** Records the full argument tuple of every gradient the real renderer asks for over 60 animated frames, and checks the cache builds one `Shader` per *distinct* gradient rather than one per request. |
 | `TrafficGoldenTest` | **v3.8.** That the two traffic goldens actually contain traffic, measured off the finished frame by `VehiclePresence` rather than inferred, that both lanes are occupied, that the frame is bit-identical across two renders, and that three plausible traffic regressions each move more of the frame than the golden's own budget. |
 | `TreeArtworkAlignmentTest` | **v3.8.** That the winter tree's snow cap lands entirely on the crown — 0 of 17 182 opaque pixels off it — which disproves v3.7's report of a 3-unit misalignment. An assertion about the *artwork*, which nothing else checks. |
+| `SkyWaterGoldenTest` | **v4.26**, and it is `BACKLOG_v4_25.md` item 65 closed. Three derived gates — the cloud band, the bird band and the water band — attached as `extraFocus` to golden scenes that already exist, so it adds assertions and no committed PNG. Two of the three are the item's own complaint made concrete: every bird disappearing moves **1.52%** of its rectangle and every dolphin disappearing **0.21%**, both *under* the shared 2% focus limit, so before this the whole family could vanish and the suite would have passed. Each signal is re-measured on every run. |
+| `LakeDrawCallTest` | **v4.26.** Counts every primitive the real renderer asks for, through the real `SceneCanvas`, with the water on and with it off. The difference is the water's own per-frame cost, measured rather than estimated. |
 
 **`GoldenScene.warmUpFrames` is the v3.8 addition.** A car's `progress` starts negative and only
 advances inside `SceneObjectRenderer.update(deltaSeconds)`, so a golden drawn as one frame with

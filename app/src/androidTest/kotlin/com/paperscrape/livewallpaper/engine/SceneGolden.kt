@@ -34,6 +34,26 @@ import kotlin.math.abs
  * to the device's external files dir instead of comparing, then look at what changed and say why in
  * the commit. A golden that changed without a reason in the diff is a regression that has just been
  * blessed.
+ *
+ * **The regeneration protocol, and the one thing v4.26 changed in it.**
+ *
+ * A regeneration pass is: attribute the change region by region *before* regenerating; regenerate;
+ * check the four derived gate rectangles read 0.0000%; move no tolerance; leave the GL references
+ * alone unless the Canvas frames of their own scenes changed; and count **assertions**, never files
+ * in the golden directory.
+ *
+ * The double regeneration -- every changed scene captured twice, in two separate instrumentation
+ * runs, compared byte for byte -- exists to show that the noise floor is exactly zero, so that a
+ * later difference is the scene changing and never the phone. **From v4.26 it is run only on the
+ * scenes whose frames actually changed**, which is `BACKLOG_v4_25.md` item 64 decided by the
+ * maintainer. The argument for it: what the check tests is the renderer plus this phone plus this
+ * Android build, none of which moves between releases, and it has been clean on four separate
+ * executions here across a reboot. The argument it has to answer: a release can introduce
+ * non-determinism of its own, and moving the check to "device changed" would remove the one thing
+ * that would catch it. Restricting it to changed scenes keeps that, because **a newly
+ * non-deterministic scene is a changed scene by definition** -- it cannot match its committed
+ * golden -- while a scene whose bytes did not move has already demonstrated its own determinism by
+ * matching. An unchanged scene is regenerated zero times, not once.
  */
 object SceneGolden {
 

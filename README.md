@@ -5,8 +5,8 @@ AI SLOP WARNING! I'm not a developer just a humble Networker. I don't know how t
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current state: v4.25 prepared, not yet published.** The most recent published release is
-**v4.24**. `ROADMAP.md` carries the current status; `RELEASE_HISTORY.md` carries what each
+**Current state: v4.26 prepared, not yet published.** The most recent published release is
+**v4.25**. `ROADMAP.md` carries the current status; `RELEASE_HISTORY.md` carries what each
 release actually contained. The published list is on the repository's Releases page — it is not
 kept by hand here.
 
@@ -71,8 +71,9 @@ from layering, from scale, and from where a thing stands on the ground.
 All artwork is original and drawn for this project. Every drawn sprite has an SVG source in
 the repository, and the drawing language is still being revised family by family: the tree
 became a wide oak in v4.21, the sun, the sunburst, the four moon phases, the carved Halloween
-moon and the star sparkle were redrawn in v4.23, and the people — walking, at the windows and in
-the cars — in v4.25.
+moon and the star sparkle were redrawn in v4.23, the people — walking, at the windows and in
+the cars — in v4.25, and the sky and the water in v4.26: the cloud, the bird, the sailboat and the
+dolphin, plus the water's own surface, which is drawn by the renderer rather than by a sprite.
 
 ---
 
@@ -132,7 +133,7 @@ by `tools/generate_skin_variants.py` and declared as such. A Python pipeline ren
 checks them against that registry — which records every sprite's size, content box, anchor rule,
 scale convention and tint class — and against the Kotlin call sites that blit them.
 (Counts are deliberately not written here: `ls app/src/main/res/drawable-nodpi/*.png | wc -l` is the
-answer, and a number kept by hand in a document goes stale. Measured at v4.25: 266 PNGs, 140 of them
+answer, and a number kept by hand in a document goes stale. Measured at v4.26: 266 PNGs, 140 of them
 with an SVG source, 126 declared gaps.)
 
 ---

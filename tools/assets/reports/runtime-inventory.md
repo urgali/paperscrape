@@ -7,9 +7,9 @@ from the shipped PNGs; nothing is copied from documentation.
 |---|---|
 | Files | 266 |
 | Unique contents | 266 |
-| Bytes on disk | 1294.3 KB |
+| Bytes on disk | 1328.4 KB |
 | Decoded `ARGB_8888` | 28.62 MB |
-| Of which transparent padding | 4.35 MB (15 %) |
+| Of which transparent padding | 4.38 MB (15 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 24 |
 
@@ -67,7 +67,7 @@ from the shipped PNGs; nothing is copied from documentation.
 | `bar_roof_snow` | 300x18 | RGBA | 0,0,300,18 | 0 % | 16 | yes |
 | `bar_sign` | 246x30 | RGBA | 0,0,246,30 | 0 % | 48 | yes |
 | `bar_wall` | 270x276 | RGBA | 0,0,270,276 | 0 % | 5 | yes |
-| `bird_body` | 90x24 | RGBA | 1,2,89,23 | 14 % | 22 | yes |
+| `bird_body` | 51x21 | RGBA | 2,0,51,21 | 4 % | 0 | yes |
 | `bunny_body` | 102x183 | RGBA | 0,0,102,183 | 0 % | 29 | yes |
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
 | `bunny_tail` | 30x30 | RGBA | 0,0,30,30 | 0 % | 8 | yes |
@@ -81,8 +81,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `car_window_compact` | 186x75 | RGBA | 0,0,186,75 | 0 % | 1 | yes |
 | `car_window_estate` | 243x75 | RGBA | 0,0,243,75 | 0 % | 1 | yes |
 | `car_window_saloon` | 177x75 | RGBA | 0,0,177,75 | 0 % | 1 | yes |
-| `cloud_body` | 798x396 | RGBA | 0,0,798,396 | 0 % | 27 | yes |
-| `dolphin_body` | 345x174 | RGBA | 0,0,345,174 | 0 % | 62 | yes |
+| `cloud_body` | 798x396 | RGBA | 0,0,798,396 | 0 % | 34 | yes |
+| `dolphin_body` | 345x174 | RGBA | 4,6,345,174 | 5 % | 117 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
 | `easteregg_shell` | 96x120 | RGBA | 0,0,96,120 | 0 % | 17 | yes |
 | `firetruck_body` | 297x174 | RGBA | 0,0,297,174 | 0 % | 161 | yes |
@@ -300,8 +300,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `restaurant_sign` | 276x39 | RGBA | 0,0,276,39 | 0 % | 50 | yes |
 | `restaurant_wall` | 300x288 | RGBA | 0,0,300,288 | 0 % | 5 | yes |
 | `restaurant_window` | 90x66 | RGBA | 0,0,90,66 | 0 % | 12 | yes |
-| `sailboat_hull` | 252x51 | RGBA | 0,0,252,51 | 0 % | 3 | yes |
-| `sailboat_sail` | 210x180 | RGBA | 0,0,210,180 | 0 % | 43 | yes |
+| `sailboat_hull` | 252x51 | RGBA | 8,0,252,51 | 3 % | 71 | yes |
+| `sailboat_sail` | 210x180 | RGBA | 27,0,206,180 | 15 % | 77 | yes |
 | `santa_sleigh_scene` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
 | `santa_sleigh_trot` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
 | `skyscraper_canopy` | 132x18 | RGBA | 0,0,132,18 | 0 % | 1 | yes |
