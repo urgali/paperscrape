@@ -418,6 +418,67 @@ class PaperRenderer(
 
         /** How far past the bottom edge a drop keeps falling before it wraps. */
         const val PRECIPITATION_BOTTOM_MARGIN_METRES = 2.67f
+
+        /**
+         * How solidly a drop and a flake are painted at the middle of their fall.
+         *
+         * Named because [PRECIPITATION_MIN_LUMA_GAP] is stated on the composited stroke and has to
+         * divide by them; they were two literals inside the draw loop, which is the shape a number
+         * has when it can quietly stop agreeing with the one that depends on it.
+         */
+        const val RAIN_ALPHA = 190
+        const val SNOW_ALPHA = 220
+
+        /**
+         * **How far a drop has to stand off the sky it falls through, in Rec. 601 luma of the
+         * stroke as it is actually composited.**
+         *
+         * The rain's colour is the theme's own pair blended by the day phase and nothing else,
+         * while the sky it falls through changes with the hour, the twilight branch and the
+         * weather. Nothing kept the two apart, and **eleven of the twelve themes have an hour at
+         * which they are exactly the same brightness**: measured over the twelve themes, the clock
+         * swept in five-minute steps through the real [SunPositionCalculator], clear / live rain /
+         * thunderstorm, and thirteen heights down the stretch of screen the drop crosses with sky
+         * behind it, the worst separation is **0.00** — Easter at **06:35** under live rain, sky
+         * `#878F96` against a drop of `#6A96BE` at 0.54 of the screen — against a median of
+         * **28.62**. At that point the drop differs from the sky in hue only, CIELab dE **20.95**,
+         * and a **1.19 px** stroke at 720x1440 carries no hue at all. That is the whole defect: the
+         * maintainer reported the rain as invisible until it reached the hills.
+         *
+         * **Why luma and not dE, when the dolphin's gate is dE.** `LakeContrastTest` measures a
+         * 40 px animal, where a shared lightness with a different hue still reads. This is a
+         * hairline. Chromatic acuity collapses at that width, so the metric has to be the one the
+         * eye still has there, which is luminance — the same choice, and the same weighting, as
+         * [WATERLINE_MIN_LUMA_GAP], which is the project's other struck hairline.
+         *
+         * **Where 13.47 comes from** — the v4.22 rule, both arms measured on the same sweep: the
+         * floor is the failing case, **0.00**; the signal is the same drop, at the same width and
+         * the same alpha, over the background the maintainer reports it becoming visible against —
+         * the hills — whose median separation is **26.94**. The gate is the midpoint. It is not a
+         * number that looked right: at 13.47 **2 259 of the 10 368 situations measured are corrected
+         * at all**, and the user's chosen colour stays the colour they chose: the worst case above
+         * goes from `#6A96BE` to `#85A9C9`, the same pale blue lifted. The largest carry anywhere in the
+         * sweep is CIELab dE **16.19** — New Year at 08:40, `#7EB2DF` drawn `#6189AB` — and it is
+         * that large because that theme's sky spans the drop's own brightness between the cloud band
+         * and the hills, so one colour has to clear both ends.
+         *
+         * **The one consequence worth knowing about**: because the direction is priced and the
+         * cheaper one wins, it flips when the sky's band crosses the drop, which happens **twice a
+         * day in every theme, at the two ends of it** — Sunset 06:09→06:15, `#81A2C0` to `#4D6D8B`,
+         * and again 19:39→19:45 the other way. It is the same impossibility as the one above, moved
+         * from space into time: the two branches are disjoint, so no continuous choice exists there
+         * either. `PrecipitationContrastTest` bounds it at two per theme per day, so a third would
+         * fail rather than be absorbed.
+         *
+         * **Snow needs none of it and that is measured, not assumed**: over the same sweep the
+         * worst snow-against-sky separation is **19.13**, above the gate, so the correction
+         * resolves to zero for every snow situation there is. It is left on the shared path
+         * because falling snow is precipitation and a second code path would be a second thing to
+         * keep true.
+         *
+         * `PrecipitationContrastTest` carries the whole measurement and fails if any of it moves.
+         */
+        const val PRECIPITATION_MIN_LUMA_GAP = 13.47f
         const val BIRD_POOL_SIZE = 6
         /**
          * The ceiling of [SceneObjectRenderer.leafSourceLeafCount], used only as the candidate
@@ -1289,6 +1350,16 @@ class PaperRenderer(
             val lift = dayPhase.dayBlend.coerceIn(0f, 1f)
             val horrorTop = blendColor(HORROR_SKY_TOP_NIGHT, HORROR_SKY_TOP_DAY, lift)
             val horrorBottom = blendColor(HORROR_SKY_LOW_NIGHT, HORROR_SKY_LOW_DAY, lift)
+            // **Recorded before the early return, not after it.** These two fields mean "the sky
+            // this frame actually drew", and three things downstream read them: the water's mirror,
+            // the struck waterline and the precipitation's derived colour. The horror branch used to
+            // return without writing them, so with the horror sky on they held whatever a previous
+            // frame left -- zero on the first frame, which is transparent black. A lake turned on
+            // under a horror sky therefore mirrored a colour that was never computed. The flag is
+            // independent of the theme (`DESIGN_NOTES.md` §16), so this is reachable in any theme,
+            // not only Halloween.
+            skyTopColorNow = horrorTop
+            skyHorizonColorNow = horrorBottom
             canvas.drawVerticalGradientRect(
                 0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), horrorTop, horrorBottom,
             )
@@ -1909,11 +1980,22 @@ class PaperRenderer(
             isRain = precip.type == PrecipitationType.RAIN
             intensity = precip.intensity
         }
-        precipPaint.color = if (isRain) {
+        // The theme's own colour, which is what the user picked and what the correction below
+        // starts from. It is never replaced -- only carried far enough from the sky's brightness
+        // to be seen, and no further. See [PRECIPITATION_MIN_LUMA_GAP].
+        val themeColour = if (isRain) {
             blendColor(precip.rainColorNight, precip.rainColorDay, dayPhase.dayBlend)
         } else {
             blendColor(precip.snowColorNight, precip.snowColorDay, dayPhase.dayBlend)
         }
+        val baseAlpha = if (isRain) RAIN_ALPHA else SNOW_ALPHA
+        // The gap is stated on the stroke as it is composited, and luma is linear in RGB, so the
+        // separation the *colour* has to carry is the gap divided by the alpha it is drawn at. The
+        // fade at the two ends of the fall is deliberately not part of this: a drop is meant to be
+        // faint as it leaves the cloud and as it lands, and dividing by a fading alpha would drive
+        // the colour to white or black exactly where it is supposed to disappear.
+        val neededColourGap = PRECIPITATION_MIN_LUMA_GAP * 255f / baseAlpha
+        val dropLuma = rec601Luma(themeColour)
 
         val effectOffset = CandidateThreshold.offsetFor(EffectId.PRECIPITATION)
         val fallbackIndex = CandidateThreshold.fallbackIndexFor(intensity, PRECIPITATION_POOL_SIZE, effectOffset)
@@ -1927,6 +2009,18 @@ class PaperRenderer(
         val cloudBandTop = cloudBandTopFor(screenHeight, sceneCustomization.sky.sunCloudHeight)
         val cloudBandHeight = cloudBandHeightFor(screenHeight)
         val fallStartY = cloudBandTop + cloudBandHeight * 0.5f
+        // The sky's brightness at the two ends of the stretch the drop crosses with sky behind it:
+        // the cloud band's own middle, where a drop is born, down to the top of the hills. `skyAbove`
+        // is a lerp and Rec. 601 luma is linear in the channels, so these two bound the whole
+        // stretch and no third sample can fall outside them.
+        val precipHorizonY = screenHeight * SceneSpace.HILL_LAYER_TOP_FRACTION
+        val skyLumaAtFallStart = rec601Luma(skyAbove(fallStartY))
+        val skyLumaAtHorizon = rec601Luma(skyAbove(precipHorizonY))
+        val skyLumaLow = kotlin.math.min(skyLumaAtFallStart, skyLumaAtHorizon)
+        val skyLumaHigh = kotlin.math.max(skyLumaAtFallStart, skyLumaAtHorizon)
+        // One colour for the whole fall, clear of the whole band -- see [standOffFromSky] for the
+        // argument that no per-height correction can be continuous.
+        precipPaint.color = standOffFromSky(themeColour, dropLuma, skyLumaLow, skyLumaHigh, neededColourGap)
         // Every size below is a scene metre turned into pixels for this viewport, the same
         // conversion every object in the scene goes through. See the constants' own doc.
         val metrePx = SceneSpace.pixelsPerMetre(screenHeight.toFloat())
@@ -1980,11 +2074,11 @@ class PaperRenderer(
             }.coerceIn(0f, 1f)
 
             if (isRain) {
-                precipPaint.alpha = (190 * fadeAlpha).toInt()
+                precipPaint.alpha = (RAIN_ALPHA * fadeAlpha).toInt()
                 val len = CandidateNoise.range(seed, i, CandidateNoise.CH_LENGTH, rainLengthMin, rainLengthMax)
                 canvas.drawLine(x, y, x - len * 0.25f, y + len, precipPaint)
             } else {
-                precipPaint.alpha = (220 * fadeAlpha).toInt()
+                precipPaint.alpha = (SNOW_ALPHA * fadeAlpha).toInt()
                 val r = CandidateNoise.range(seed, i, CandidateNoise.CH_WIDTH, snowRadiusMin, snowRadiusMax)
                 canvas.drawCircle(x, y, r, precipPaint)
             }
@@ -2543,6 +2637,53 @@ class PaperRenderer(
         ripplePaint.style = Paint.Style.FILL
         ripplePaint.color = ColorUtils.blendARGB(surface, if (away > 0f) 0xFFFFFFFF.toInt() else 0xFF000000.toInt(), t)
         canvas.drawRect(0f, top, screenWidth.toFloat(), top + WATERLINE_THICKNESS_PX, ripplePaint)
+    }
+
+    /**
+     * [base] carried toward white or black until it is [neededGap] of luma clear of **every** sky
+     * between [skyLumaLow] and [skyLumaHigh], by exactly enough and no further.
+     *
+     * The same shape as [drawWaterline] and for the same reason: a hairline drawn on a surface that
+     * moves cannot have a fixed colour, and the honest fix is to state the separation it needs and
+     * derive the colour from it. [neededGap] is a gap on the *colour*, already divided by the alpha
+     * the stroke is painted at, so what the eye is given is [PRECIPITATION_MIN_LUMA_GAP].
+     *
+     * ### Why one colour for the whole fall, and not one per height
+     *
+     * A drop crosses a gradient, so the obvious answer is to correct it against the sky at its own
+     * height. **That answer cannot exist.** The sky's luma is monotone down the fall and the drop's
+     * is constant, so whenever the two are close the sky crosses the drop somewhere inside it: above
+     * the crossing the drop is the brighter of the two, below it the darker. A correction that
+     * clears the gap everywhere must therefore sit above the sky at one end of the fall and below it
+     * at the other, and those two branches never meet — any such function has a step in it. A step
+     * means lighter-than-sky rain above one line and darker-than-sky rain below it, in the same
+     * frame, which is a worse artefact than the one being fixed. One colour per frame is the only
+     * form that is both continuous and clear of the whole band, and what it costs is that a height
+     * where the rain was already fine is carried along with the height where it was not.
+     *
+     * The direction is the cheaper of the two, priced by how far each has to carry the colour. A
+     * drop already clear of the whole band returns [base] unchanged and is therefore bit-identical
+     * to what v4.26 drew — which is what lets the golden set move only on the scenes where the sky
+     * and the rain actually collided.
+     */
+    private fun standOffFromSky(
+        base: Int,
+        baseLuma: Float,
+        skyLumaLow: Float,
+        skyLumaHigh: Float,
+        neededGap: Float,
+    ): Int {
+        if (baseLuma >= skyLumaHigh + neededGap || baseLuma <= skyLumaLow - neededGap) return base
+        val whiteTarget = skyLumaHigh + neededGap
+        val blackTarget = skyLumaLow - neededGap
+        val whiteSpan = 255f - baseLuma
+        val blackSpan = -baseLuma
+        val tWhite = if (whiteSpan <= 0f) Float.MAX_VALUE else (whiteTarget - baseLuma) / whiteSpan
+        val tBlack = if (blackSpan >= 0f) Float.MAX_VALUE else (blackTarget - baseLuma) / blackSpan
+        val towardWhite = tWhite <= tBlack
+        val t = (if (towardWhite) tWhite else tBlack).coerceIn(0f, 1f)
+        if (t <= 0f) return base
+        return ColorUtils.blendARGB(base, if (towardWhite) 0xFFFFFFFF.toInt() else 0xFF000000.toInt(), t)
     }
 
     /**

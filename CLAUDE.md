@@ -12,7 +12,7 @@ where the two appear to differ, that file governs.
 
 ## 1. What to read before working
 
-**Every session, in this order.** Measured 2026-09-08 at **13 929 words**; recount rather than
+**Every session, in this order.** Measured 2026-09-10 at **14 463 words**; recount rather than
 trust that with `wc -w CLAUDE.md ROADMAP.md AI_PROJECT_RULES.md README.md`.
 
 1. **`ROADMAP.md`** — the authoritative operational plan: current state, what is known
@@ -99,7 +99,10 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 ./gradlew --no-daemon testDebugUnitTest        # what CI's `test` resolves to
 ./gradlew --no-daemon lintDebug
 ./gradlew --no-daemon assembleDebug            # Level 3 only
+./gradlew --no-daemon assemblePerf             # the release-like build every CPU number is taken on
 ```
+
+`perf` runs R8, and **R8 gets OOM-killed here when the machine is busy** (§7). Build it alone.
 
 Asset tooling — **from `tools/assets`, with the venv's interpreter**. There is no
 `paperscrape-assets` console script installed; it is a module:
@@ -123,6 +126,19 @@ adb shell am instrument -w -r -e updateGoldens true -e class <classes> \
   com.paperscrape.livewallpaper.debug.test/androidx.test.runner.AndroidJUnitRunner
 adb shell run-as com.paperscrape.livewallpaper.debug cat files/...    # debug builds only
 ```
+
+**Filter the intermediate rounds; run the whole suite once, at the end.** The full instrumented
+suite is ~40 minutes on this device and a golden pass needs four or five rounds through it —
+attribution, regeneration, re-verification, one per mutation. Every one of those is `am instrument`
+with `-e class` on the classes actually touched: two tests is under a minute, the five Canvas golden
+classes about seven. The whole suite still runs once before delivery and its number is what goes in
+the 12.14 template. Widen the filter the moment you realise a class you left out is involved — the
+thing to avoid is calling something green that was never executed, not the minutes.
+
+**Measure on the host; confirm on the device.** Anything that is arithmetic over the theme's own
+numbers — colour contrast across themes, hours and weathers — is a JVM unit test that runs in
+seconds for every combination. The device is for two things: confirming that the chosen remedy reads
+in the worst case the host found, and taking the captures.
 
 **Capture goldens with `am instrument`, not Gradle with a class filter** — Gradle
 uninstalls the package at the end and takes the written frames with it. `SceneGolden`
@@ -197,6 +213,24 @@ that number then propagated. `GoldenUniquenessTest` keeps two names from sharing
 picture; two *tests* may assert one PNG with different focus rectangles, but two *PNGs* of
 one scene must not exist.
 
+**Every CPU number is taken on the `perf` build type, and it is committed.** It is a fourth build
+type beside `release`, `debug` and the test one: `initWith(release)`, signed with the committed
+`debug.keystore`, `applicationIdSuffix = ".debug"`, `isDebuggable = false`. **Build it, measure on
+it, and name it beside the figure** — `./gradlew --no-daemon assemblePerf`, then
+`adb install -r app/build/outputs/apk/perf/app-perf.apk`.
+
+It is committed on the maintainer's decision in v4.27, replacing the rule that it be rebuilt by
+hand each session and deleted afterwards: that rule failed in v4.25, when the block reached the
+delivery ZIP and the published tag. It is still **never published** — no workflow builds it, CI
+builds `assembleRelease` — and `BuildTypeDeclarationTest` is what keeps that true rather than a
+habit. **Do not delete it at the end of a session**, and do not add a fifth build type without
+changing that test on purpose.
+
+**A figure taken on `debug` is a figure about `debug`.** v4.26 spent three rounds of concept work
+on "+4.5 points of CPU for every PNG substituted", which turned out to be a property of the debug
+build and not of the artwork; re-measured on `perf`, substituting a sprite costs what repeating the
+measurement costs.
+
 **The one measurement worth keeping as a number**, because it is an experiment and not an
 inventory — **BV6600, 2026-09-05, release-like build, Autumn, 60 s windows, n=3**: process
 **43.56%** of one core (sd 0.50), hidden **0.137%**, **29.60 fps** from SurfaceFlinger,
@@ -245,6 +279,12 @@ attribution *is* available — `simpleperf record --app <pkg> -t <tid>` works on
 
 ## 7. Traps that are still true
 
+- **A test that reads a build script can pass without running.** `testDebugUnitTest`'s up-to-date
+  check watches the compiled classes, and `app/build.gradle.kts` and `.github/workflows/` are not
+  among them, so a local run right after changing one reports `UP-TO-DATE` and green without
+  executing `BuildTypeDeclarationTest` at all. Three mutations looked as though nothing caught them
+  for exactly this reason. **After changing a build script or a workflow, add `--rerun-tasks`.** CI
+  is unaffected: a fresh checkout has no previous outcome to reuse.
 - **A green suite on first run is a warning sign, not a result.** Break the code under
   test, confirm the test fails, revert (`AI_PROJECT_RULES.md` 12.11). `SceneTheme.equals`
   compares by `id` alone, so a whole-object equality assertion passes even when every

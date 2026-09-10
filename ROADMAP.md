@@ -12,32 +12,55 @@ always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v4.26 prepared — not published and not approved.**
+**v4.27 prepared — not published and not approved.**
 
-`versionCode = 57`, `versionName = "4.26"`. **No tag, no push, no GitHub Release** — that half is
+`versionCode = 58`, `versionName = "4.27"`. **No tag, no push, no GitHub Release** — that half is
 the maintainer's and has not been done for this version.
 
-**Baseline v4.25, and it is published.** Read from the public GitHub API on 2026-09-09: `v4.25` is
-published, non-draft, non-prerelease, as are `v4.16` through `v4.24`. **Re-read the API rather than
-this line** — nothing in a working tree learns that a release went out:
+**Baseline v4.26, and it is published.** Read from the public GitHub API on 2026-09-10: `v4.26` is
+published, non-draft, non-prerelease, tagged at 2026-09-09 22:21:32 UTC, with its APK attached — as
+are `v4.16` through `v4.25`. **Re-read the API rather than this line** — nothing in a working tree
+learns that a release went out:
 
 ```bash
 curl -s https://api.github.com/repos/urgali/paperscrape/releases | grep -o '"tag_name": *"[^"]*"' | head
 ```
 
-**Four backlogs are open.** `BACKLOG_v4_23.md` carries the artwork and renderer items — 18, 25, 30
-carried forward, and item 25 (the palm) is now the most visible piece of the old drawing language
-left, since the people, the sky and the water are done. `BACKLOG_v4_24.md` carries what the
-documentation review found and did not fix, items 49-55. `BACKLOG_v4_25.md` carries 56-65, of which
-**56, 58 and 63 stay open** — 61, 64 and 65 were closed in v4.26. `BACKLOG_v4_26.md` carries 66-71,
-of which **66 is a question for the maintainer** (whether the `perf` build type should be committed,
-with both arguments and a proposal), **67 is open** (the `_UNITS` frame rule reads Kotlin and not
-the generators), and **71 needs ratifying**: the three GL reference frames were re-captured on this
-device's PowerVR driver because the redrawn sky made the Adreno-authored ones impossible for any
-driver to match. That closes `BACKLOG_v4_25.md` item 56 as a consequence rather than as a decision,
-and the cross-driver gap is no longer being measured anywhere.
+**Five backlogs are open.** `BACKLOG_v4_23.md` carries the artwork and renderer items — 18, 25, 30
+carried forward, and item 25 (the palm) is still the most visible piece of the old drawing language
+left. `BACKLOG_v4_24.md` carries what the documentation review found and did not fix, items 49-55.
+`BACKLOG_v4_25.md` carries 56-65, of which **56, 58 and 63 stay open**. `BACKLOG_v4_26.md` carries
+66-71, of which **67 stays open** (the `_UNITS` frame rule reads Kotlin and not the generators);
+**66 and 71 were both decided by the maintainer in v4.27** — the `perf` build type is committed with
+its check, and the PowerVR re-capture is ratified. `BACKLOG_v4_27.md` carries 72-78, of which **78
+stays open**: a condition rather than work, recording that the cross-driver GL gap is no longer
+measured anywhere and that only a second GPU vendor can bring it back.
 
-**Verified at Level 3 here.** The numbers are in the v4.26 report.
+**Verified at Level 3 here.** The numbers are in the v4.27 report.
+
+```
+v4.27 [x] the rain that could not be seen, and a bird that was not backwards
+ |- rain and sky measured against each other over the twelve themes, the clock swept in five-minute
+ |  steps, clear / live rain / thunderstorm, thirteen heights down the fall -- 10 368 situations, on
+ |  the host. Eleven of the twelve themes have an hour at which the two are the same brightness;
+ |  the worst is 0.00 against a median of 28.62
+ |- the drop's colour derived per frame against the sky it falls through, to a gap placed by the
+ |  v4.22 rule between the 0.00 the failing case gives and the 26.94 the same drop gives over the
+ |  hills. No tolerance moved; a theme already clear is drawn bit-identically to v4.26
+ |- snow measured the same way and left alone with the number: worst 19.39, so the correction never
+ |  fires on it
+ |- `rain-worst-sky`: a golden at the measured worst case, with the test that names it asserting it
+ |  is still the worst case -- the frame and the measurement cannot drift apart
+ |- the reported bird defect does not hold: the sprite already faces its own travel and mirroring it
+ |  would have created the defect. `bird-facing` pins one bird at the size it ships
+ |- DESIGN_NOTES 14: "in both directions" means the directions the shipped build reaches. v4.26 met
+ |  that requirement with a capture-only mirror, which is how the birds were never really judged
+ |- the horror sky never recorded the sky it drew, so a lake under it mirrored a colour that was
+ |  never computed. One line, reachable in any theme
+ \- item 66 decided by the maintainer: the `perf` build type is committed, with the check that keeps
+    committing it safe, and the published APK proved identical with and without it
+
+```
 
 ```
 v4.26 [x] the sky and the sea redrawn
@@ -57,6 +80,7 @@ v4.26 [x] the sky and the sea redrawn
  |  band, no tolerance moved and no number lowered
  \- item 64 decided by the maintainer: the double golden regeneration now runs only on the scenes
     whose frames changed
+```
 
 ```
 v4.24 [x] a documentation review: the documents made to say what is true

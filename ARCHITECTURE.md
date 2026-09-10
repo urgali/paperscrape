@@ -947,6 +947,28 @@ This depends on `drawClouds` running before `drawPrecipitation` in the frame,
 which it does unconditionally. Reversing that order would leave precipitation
 reading a one-frame-stale field.
 
+**A drop's colour is derived per frame, not declared** (v4.27). The theme supplies
+a day/night pair; the sky it falls through changes with the hour, the twilight
+branch and the weather, and in eleven of the twelve themes there is an hour at
+which the two carry the same Rec. 601 luma. `drawPrecipitation` therefore reads
+the sky's luma at the two ends of the stretch a drop crosses with sky behind it —
+the cloud band's own middle down to `SceneSpace.HILL_LAYER_TOP_FRACTION` — and
+`standOffFromSky` carries the theme's colour toward white or black until it clears
+that whole band by `PRECIPITATION_MIN_LUMA_GAP`, and no further. A colour already
+clear is returned unchanged, so a theme that never collided is drawn bit-identically
+to v4.26.
+
+It is **one colour for the whole fall**, and that is forced rather than chosen: the
+sky's luma is monotone down the fall and the drop's is constant, so whenever the two
+are close the sky crosses the drop inside it, and any per-height correction would
+have to sit above the sky at one end and below it at the other with no continuous
+path between. Two samples suffice because both `skyAbove` and the luma weighting are
+linear, so the ends bound the interval.
+
+This reads `skyTopColorNow` / `skyHorizonColorNow`, which `drawSky` writes — and
+which the horror-sky branch did not write before v4.27, because it returned first.
+The water's mirror and the struck waterline read the same two fields.
+
 **Effect offsets are evenly spaced**, `(ordinal + 0.5) / EffectId.COUNT`, giving
 a guaranteed minimum separation of `1 / COUNT`. Hashed offsets were tried first
 and rejected: with nine effects, two landed 0.008 apart and selected identical
@@ -1598,6 +1620,34 @@ version catalog. They were brought to the current stable line in the Phase 2
 upgrade (Compose BOM `2026.08.00`, `core-ktx 1.19.0`, `appcompat 1.8.0`,
 `lifecycle 2.11.0`, `activity-compose 1.13.0`, `datastore-preferences 1.2.1`,
 `coroutines 1.11.0`). Nothing is on an alpha, beta or rc.
+
+### Build types
+
+Four, and the fourth is the one worth explaining.
+
+| Build type | What it is |
+|---|---|
+| `release` | R8 on, resources shrunk, not debuggable. Signed only if the `PAPERSCRAPE_RELEASE_*` environment variables are present — deliberately left **unsigned and uninstallable** rather than silently falling back to something that looks shippable. This is what CI publishes. |
+| `debug` | R8 off, debuggable, `.debug` application id suffix, signed with the committed `debug.keystore`. What the instrumented suite runs against. |
+| `perf` | `initWith(release)` — so R8 and shrinking are on and it is not debuggable — with the debug signing config and the `.debug` suffix. **Committed since v4.27**, and never published. |
+| *(androidTest)* | Not a build type: the instrumented APK, built from `debug`. |
+
+**Why `perf` exists.** The item-32 CPU protocol has to be measured on something users would run. A
+debug build is not that — v4.26 spent three rounds of concept work on a figure ("+4.5 points of CPU
+for every PNG substituted") that turned out to be a property of the debug build rather than of the
+artwork — and a real release build cannot be signed on a development machine, because the release
+key exists only on the maintainer's. `perf` is the intersection: release-like code, debug signature.
+
+**Why it is committed.** Until v4.27 it was written by hand each measuring session and deleted
+afterwards. In v4.25 the deletion did not happen and four lines of build configuration reached the
+delivery ZIP and the published tag. The maintainer's decision in v4.27 was that a rule enforced by
+remembering fails on the session that forgets, and that two sessions measuring the same thing should
+be measuring the same binary.
+
+**What keeps committing it safe.** `BuildTypeDeclarationTest` pins the declared set of build types,
+pins `perf` to `initWith(release)` + the debug signing config + `.debug` + `isDebuggable = false`,
+and asserts that no workflow builds it. The release APK was built with and without the block in
+v4.27 and compared entry by entry; the result is in that release's report.
 
 ### Workflows
 

@@ -1268,6 +1268,7 @@ These require explicit maintainer approval before modification.
 | 18 | **Geometry is recovered by measurement or not at all.** Only shapes determined by their canvas (rectangles, rounded rectangles) are reconstructed; free-form silhouettes and baked mottling are gaps until the redesign. | Phase 3.1 | A best-scoring fit over free parameters is a redraw presented as a recovery. | Reconstruction scope |
 | 31 | **The water is a mirror of the sky, and its far edge is struck rather than bent.** The band is one vertical gradient from the sky's own horizon colour into the theme's lake colour, with the light's path under the sun or the moon; the top edge stays a flat straight line and carries a struck waterline whose colour is derived per frame to clear the sky by a stated luma gap. | v4.26 | Three water treatments were photographed on the device — a mirror, a long swell and rows of illustrator's strokes — and at the height this band is drawn the two wave treatments read as stripes. The waterline exists because a mirror agrees with the sky by construction: measured across the twelve built-in themes at every phase, clear and storm, the sky and the water it reflects come within a CIELab dE of **1.86**. The edge may not be made wavy, because the mountains anchor to the band's nominal top Y and a jittered edge opens a sliver of bare sky. | The lake band, and any future water |
 | 32 | **A colour that has to be seen against something is derived against everything that something can be, not chosen.** `LakeContrastTest` measures a lake sprite against every surface the eleven dolphin-drawing themes can paint and holds it above a gate placed by the v4.22 method. | v4.26 | The v4.25 dolphin was `#4A6A84` on a `#15495C` night sea — dE **1.53** at its worst, below a just-noticeable difference — and it vanished at night and in a storm. Nothing measured it, because nothing could: a sprite's contrast is a property of the sprite *and* of twelve palettes at every phase, which is not something a person checks by looking at one frame. | Every fixed-art sprite drawn on a user-recolourable surface |
+| 33 | **A hairline is derived in luminance, not in colour difference, and one hairline gets one colour per frame.** Decision 32 says a colour that must be seen is derived rather than chosen; this says which metric, and it depends on how wide the thing is. Above a few pixels, CIELab dE — the eye still reads a hue difference at a shared lightness. At one or two pixels it does not, and the derivation is a minimum Rec. 601 luma gap. Where the background is a gradient the drawn element crosses, the gap is cleared against the whole band with **one** colour, because a per-height correction that clears it everywhere provably has a step in it. | v4.27 | The rain was CIELab dE **20.95** from the sky and **0.00** of luma from it at its worst, and could not be seen: dE, the metric that settled the dolphin, called it "clearly different". A raindrop is a **1.19 px** stroke. `PaperRenderer.WATERLINE_MIN_LUMA_GAP` and `PRECIPITATION_MIN_LUMA_GAP` are the two instances, and both are placed by the v4.22 method between a measured floor and a measured signal. | Rain, snow, the struck waterline, and any future line or fleck drawn over a recomputed surface |
 
 ### Pending decisions
 
@@ -1316,6 +1317,9 @@ baked grid, the one measured above, is untouched and the guidance here still sta
 |---|---|---|---|---|
 | Changing cloud density or rain intensity teleports the whole field | Candidates failing the density filter were skipped before consuming the shared RNG stream, shifting every later candidate's values; for clouds the pool size also moved with the density | **Resolved** | Fixed pools with index-addressed attributes | Phase 2.1/2.2 |
 | Also triggered by the hourly live-weather refresh | Same as above; `cloudCoverFraction` feeds the same density input | **Resolved** | Same | Phase 2.1/2.2 |
+| A bird's direction of travel does not read at the size it ships | Not a facing defect: the sprite carries its head at the leading end and the renderer never mirrors it horizontally, so the animal flies the way it is drawn. It is a silhouette defect. At 51 px the head is a 3.6 px disc drawn continuous with the body and the beak a 3.5 px wedge, while the largest shape in the outline is the raised wing — which rises up and forward, and is also the shape of a fanned tail. Reported from a device as the birds flying backwards | Open — the artwork is correct and its legibility is a judgement | None decided. A redraw would have to move weight to the head end without changing the canvas, the viewBox or the flap axis, which the wing-beat is a mirror of. `bird-facing` pins the current frame so a redraw cannot go out unlooked-at | — |
+| Rain the same brightness as the sky it falls through | A fixed colour on a background that varies: the drop's colour is the theme's day/night pair and nothing else, while the sky changes with the hour, the twilight branch and the weather. Eleven of the twelve themes reach 0.00 of Rec. 601 luma separation at some hour. Reported from a device as rain that could not be seen until it reached the hills | **Resolved** | The colour derived per frame against the sky the drop crosses, to a gap placed between a measured floor and a measured signal, and no further. §17 and `PRECIPITATION_MIN_LUMA_GAP` | v4.27 |
+| Water under the horror sky mirrors a colour that was never computed | `drawSky` recorded the sky it drew *after* the horror branch, and that branch returns. With the horror sky on, the two fields held the previous frame's value, and zero — transparent black — on the first | **Resolved** | Both colours recorded before the return | v4.27 |
 | Cars restart from their initial position while dragging any unrelated slider | Every configuration change rebuilds the whole `SceneObjectRenderer`, resetting car runtime progress; the settings write path is undebounced | Open | Debounced persistence + incremental renderer update | — |
 | Sliders feel like they stick near 0 % and 100 % | Not a touch-target problem: the UI thread is flooded by DataStore writes and recompositions during the drag | Open | Same fix as above | — |
 | All animation quantises after days of uptime and freezes at ~12 days | `elapsedSeconds` is an unbounded `Float` | Open | `Double` accumulation, wrapped to a bounded phase before rendering | — |
@@ -1372,9 +1376,22 @@ driving the same way.
    *Earned twice.* v4.23's star sparkle was drawn well and reduced to a one-pixel cross at its
    shipping size. v4.25's suggestion of a face read as a visor when enlarged and as eyes at true
    size; the enlargement would have rejected artwork that is right.
-2. **Every sprite that has a facing, in both directions.** *Earned:* the v4.25 busts faced the
-   boot of the car from phase 1 and survived three review rounds, because every image showed a
-   car travelling one way. One frame with both lanes in it would have ended it on day one.
+2. **Every sprite that has a facing, in every direction the shipped build reaches — and only
+   those.** *Earned twice.* The v4.25 busts faced the boot of the car from phase 1 and survived
+   three review rounds, because every image showed a car travelling one way; one frame with both
+   lanes in it would have ended it on day one. **v4.26 earned the second half.** Its bird sheets
+   did show both directions, and did so through a capture-only patch that mirrored the odd
+   candidates — a mirror that exists in no shipped build, because `drawBirds` moves every bird
+   from left to right and applies no horizontal mirror at all. The sheet satisfied the
+   requirement by drawing something the app cannot draw.
+
+   So: **a direction belongs in the judging image when the shipped build can produce it.** A
+   vehicle travels both ways, so both lanes go in the sheet. A bird flies one way, so the sheet
+   shows one bird facing that way, at the size it ships — and *that* is the fact to check. Where a
+   direction is only reachable with scaffolding, the scaffolding is not the answer: **write down
+   that the direction is unreachable**, which is a fact about the build worth knowing, and judge
+   the one that ships. A capture patch may enlarge, slow down, or place a sprite; it may not
+   change what the sprite is.
 3. **Every sprite in the geometry that constrains it** — the bust inside its own window, two
    occupants in one pane of glass, two pedestrians side by side. *Earned:* the seated head drawn
    20.7 units wide against the 37.0 it replaced was that width from phase 1, and became visible
@@ -1600,6 +1617,50 @@ the only per-strike work is four float rolls.
 **What this section originally deferred** — a thunderstorm darkening the sky and the clouds — was
 raised as an open question rather than silently done, went through its own approval cycle, and is
 now §29.
+
+---
+
+
+### Rain is a hairline on a surface that moves, so its colour cannot be fixed
+
+
+**[MEASURED — v4.27, twelve themes, the clock swept in five-minute steps, on the host]**
+
+The rain's colour is the theme's own day/night pair and nothing else. The sky it falls through
+changes with the hour, with the twilight branch and with the weather. Nothing kept the two apart,
+and **eleven of the twelve themes have an hour at which the rain is exactly the sky's own
+brightness** — the worst is Easter at 06:35 under live rain, sky `#878F96` against a drop of
+`#6A96BE`, **0.00** of Rec. 601 luma apart against a median of 28.62. The maintainer reported it
+from a phone as rain that could not be seen until it reached the hills.
+
+**This is the shoreline problem again**, in the second place it could occur: a fixed colour on a
+background that varies. The rule that comes out of both:
+
+> **Anything drawn as a line or a fleck over a surface the scene recomputes has to derive its own
+> colour from that surface, not declare one.** A large sprite may keep a colour, because a large
+> sprite can differ in hue and still read. A hairline cannot: at one or two pixels the eye has
+> luminance and nothing else, which is why both the struck waterline and the rain are pinned in
+> Rec. 601 luma while the dolphin is pinned in CIELab dE.
+
+The rain is therefore carried toward white or black until it is
+`PaperRenderer.PRECIPITATION_MIN_LUMA_GAP` of luma clear of the sky, and **no further** — a theme
+already clear gets no correction at all and is drawn exactly as it was. The gap is derived rather
+than chosen, by the v4.22 rule, between the 0.00 the failing case produces and the 26.94 the same
+drop produces over the hills, which is the background the defect report itself names as the place
+the rain becomes visible.
+
+**One colour for the whole fall, not one per height, and that is forced rather than preferred.**
+The sky's brightness runs monotonically down the fall and the drop's does not change, so whenever
+the two are close the sky crosses the drop somewhere inside it. A correction that cleared the gap
+at every height would have to be above the sky at one end and below it at the other, and there is
+no continuous way between those two: the frame would carry pale rain above one line and dark rain
+below it. `PaperRenderer.standOffFromSky` carries the argument.
+
+**Snow was measured the same way and left alone**: its worst separation from the sky is 19.13,
+above the gate, so the correction never fires on it. Snow against the *cloud it is born in* is a
+different measurement with a different answer — white on white, 0.00 — and it is deliberately not
+treated here: a flake leaving a white cloud is what the fade-in over the first tenth of the fall
+already exists for.
 
 ---
 

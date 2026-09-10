@@ -40,8 +40,8 @@ android {
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 57
-        versionName = "4.26"
+        versionCode = 58
+        versionName = "4.27"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
@@ -132,6 +132,34 @@ android {
             applicationIdSuffix = ".debug"
             isDebuggable = true
             signingConfig = signingConfigs.getByName("debug")
+        }
+        // **The build the CPU protocol is measured on, and the reason it is committed.**
+        //
+        // `BACKLOG_v4_26.md` item 32's protocol needs a build that is what users run: a debug build
+        // is not (R8 off, no shrinking, and v4.26 measured that a conclusion drawn on one — "+4.5
+        // points of CPU for every PNG substituted" — was a property of the debug build and not of
+        // the artwork), and a real release build cannot be signed on a development machine because
+        // the release key only exists on the maintainer's. So every measuring session used to write
+        // these lines by hand and delete them afterwards, and in v4.25 the deletion is the step that
+        // failed: the block reached the delivery ZIP and the published tag.
+        //
+        // It is committed rather than remembered because a rule enforced by remembering is a rule
+        // that fails on the session that forgets, and because two sessions measuring the same thing
+        // should be measuring the same binary. It holds no secret: it signs with the `debug.keystore`
+        // that is committed at the repository root for exactly this class of reason, and it carries
+        // `.debug` so it installs beside a real one instead of over it.
+        //
+        // **It is never published.** No workflow builds it — CI builds `assembleRelease` for the
+        // release job and `assembleDebug`/`test`/`lint` for the checks — so nothing a user installs
+        // is ever built from here. `BuildTypeDeclarationTest` is what keeps that true: it pins the
+        // exact set of build types this file declares and pins this one to the debug signing config
+        // and the `.debug` suffix, so it cannot quietly turn into something shippable.
+        create("perf") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".debug"
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
         }
     }
 

@@ -314,6 +314,83 @@ class SceneGoldenTest {
         ),
     )
 
+    /**
+     * **One bird, drawn the way the shipped build draws it, big enough to read which way it faces.**
+     *
+     * `DESIGN_NOTES.md` §14 requires a sprite with a facing to be judged in both directions. In
+     * v4.26 that requirement was met by a capture-only patch that mirrored the odd candidates —
+     * a mirror the shipped build does not have — so what was approved was not what ships. §14 now
+     * says the acceptance sheet shows the directions **the shipped build reaches**, and a bird
+     * reaches exactly one: `drawBirds` moves every candidate from left to right and applies no
+     * horizontal mirror at all.
+     *
+     * This is the cheap half of the fix: a frame with a bird in it, on clean sky, at the size it
+     * ships, with the focus rectangle on the animal itself. It cannot say whether the drawing is
+     * good — no test can — but it makes any change to the bird's shape or its facing fail a check
+     * and put the frame in front of somebody. It costs one committed PNG and one assertion.
+     *
+     * **Why these numbers.** Solved from the same candidate noise the renderer uses rather than
+     * chosen: at `sceneSeconds = 0.3` on this theme's seed, bird 0 sits at x 258, y 290 — clear of
+     * the cloud band, clear of both edges — with its flap term positive, which is the pose the
+     * sprite is authored in rather than its vertical mirror. The clouds are switched off so the
+     * frame is about the bird and nothing else.
+     */
+    @Test
+    fun birdFacing() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "bird-facing",
+            dayPhase = GoldenScene.day(),
+            sceneSeconds = 0.3,
+            customise = {
+                it.copy(
+                    birds = it.birds.copy(visible = true, density = 1f),
+                    clouds = it.clouds.copy(visible = false),
+                )
+            },
+            focus = listOf(
+                GoldenFocus(225, 268, 292, 302, "the bird, at the size it ships, facing its own travel"),
+            ),
+        ),
+    )
+
+    /**
+     * **The sky the rain used to vanish into.**
+     *
+     * v4.26 shipped a derived waterline for a case no committed golden portrayed — every lake
+     * golden stood on a theme where the shore was already obvious — and the frame that would have
+     * shown it failing had to be added afterwards. This is the same lesson applied at the moment of
+     * the fix rather than after it: `PrecipitationContrastTest` names the worst
+     * rain-against-sky case the twelve themes can paint, **Easter at 06:35 under live rain**, where
+     * the drop and the sky are 0.00 of Rec. 601 luma apart and differ in hue alone, and this frame
+     * draws exactly it. The test that names it asserts that it is still the worst case, so the two
+     * cannot drift apart silently.
+     *
+     * The focus is the open sky between the cloud band and the hills — the stretch the maintainer
+     * reported the drops as missing from, and the only part of the frame where this can be seen at
+     * all. The whole-frame tolerance cannot see it: at 360x800 the rain covers a few hundred
+     * pixels against the 576 the frame is allowed to differ by.
+     */
+    @Test
+    fun rainWorstSky() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "rain-worst-sky",
+            dayPhase = SunPositionCalculator.compute(hour24 = 6.583f),
+            themeId = "easter",
+            weather = weather(cloud = 0.9f, type = PrecipitationType.RAIN, intensity = 0.6f, storm = false),
+            focus = listOf(
+                // **A derived limit, because the shared one cannot see this** (v4.22 Fase 5).
+                // The default 2% is calibrated for a patch of a few hundred pixels; this one is
+                // 79 200, where 2% is 1 584 and the whole regression is 223. Measured on the
+                // device: the noise floor is **0.0000%** — the frame re-captured byte-identical —
+                // and the weakest regression that must fail, the correction removed entirely, is
+                // **0.2816%**. The limit is the midpoint. Without it the whole-frame check would
+                // be the only thing standing, and it caught that regression by 582 pixels against
+                // a budget of 576.
+                GoldenFocus(0, 250, 360, 470, "the band of open sky the rain crosses", maxDifferingFraction = 0.0014),
+            ),
+        ),
+    )
+
     private fun weather(cloud: Float, type: PrecipitationType?, intensity: Float, storm: Boolean) =
         LiveWeatherSnapshot(
             precipitationType = type,

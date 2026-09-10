@@ -5,8 +5,8 @@ AI SLOP WARNING! I'm not a developer just a humble Networker. I don't know how t
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current state: v4.26 prepared, not yet published.** The most recent published release is
-**v4.25**. `ROADMAP.md` carries the current status; `RELEASE_HISTORY.md` carries what each
+**Current state: v4.27 prepared, not yet published.** The most recent published release is
+**v4.26**. `ROADMAP.md` carries the current status; `RELEASE_HISTORY.md` carries what each
 release actually contained. The published list is on the repository's Releases page — it is not
 kept by hand here.
 
@@ -74,6 +74,12 @@ became a wide oak in v4.21, the sun, the sunburst, the four moon phases, the car
 moon and the star sparkle were redrawn in v4.23, the people — walking, at the windows and in
 the cars — in v4.25, and the sky and the water in v4.26: the cloud, the bird, the sailboat and the
 dolphin, plus the water's own surface, which is drawn by the renderer rather than by a sprite.
+
+Two things in the scene are not sprites at all but **hairlines struck over a surface the scene
+recomputes** — the water's cut edge and the falling rain — and neither can carry a colour of its
+own. Both derive one per frame, far enough from what is behind them to be seen and no further, to a
+separation measured across the twelve themes rather than chosen: the shoreline in v4.26 and the
+rain in v4.27. `DESIGN_NOTES.md` §17 carries the rule and the numbers.
 
 ---
 

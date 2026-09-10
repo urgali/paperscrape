@@ -24,6 +24,118 @@ release date will be standing.
 
 ---
 
+## v4.27 — the rain that could not be seen, and a bird that was not backwards
+
+**Prepared, not published.** `versionCode = 58`, `versionName = "4.27"`. Prepared 2026-09-10. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.26**, which
+**is** published — read from the public GitHub API on 2026-09-10, tagged 2026-09-09 22:21:32 UTC,
+along with v4.16 through v4.25.
+
+**What it is.** Two visible defects reported from the phone, one of which was real and one of which
+was not; the maintainer's two open decisions taken; and the hole in the acceptance sheet that let
+the second report happen in the first place.
+
+### The rain that could not be seen
+
+**Reported**: in the rain, the drops blend into the sky and cannot be seen until they get low
+enough for the background to become hill and earth.
+
+**The mechanism**, as reported and as verified: the drop's colour comes from the theme and is
+fixed, while the sky changes with the hour. One correction — the sky's own gradient does not change
+with the cloud cover; coverage changes what is drawn *over* it, and changes the sky's colour only
+under Live Weather.
+
+**The measurement, on the host.** Twelve themes × the clock swept in five-minute steps through the
+real `SunPositionCalculator` × clear / live rain / thunderstorm × thirteen heights down the stretch
+a drop crosses with sky behind it: 10 368 situations. The metric is the Rec. 601 luma of the stroke
+**as composited** — rain is painted at alpha 190 and luma is linear in RGB, so the separation the
+eye is given is the colour separation scaled by that alpha.
+
+**Eleven of the twelve themes have an hour at which the rain is exactly the sky's own brightness.**
+The worst is 0.00 — Easter at 06:35 under live rain, sky `#878F96` against a drop of `#6A96BE` —
+against a median of 28.62. At that point the two are CIELab dE 20.95 apart, which is the finding
+rather than a detail: **dE is the wrong metric for a hairline.** `LakeContrastTest` uses it for a
+40 px animal; a raindrop is a 1.19 px stroke at 720×1440, where chromatic acuity is gone and only
+luminance is left. Halloween is the one theme that never collides, and only because its sky is
+near-black over a hard orange.
+
+**The remedy, derived by the v4.22 rule with both arms measured on the same sweep**: floor 0.00
+(the failing case), signal 26.94 (the same drop over the hills, which is the background the report
+itself names as where the rain becomes visible), gate the midpoint —
+`PaperRenderer.PRECIPITATION_MIN_LUMA_GAP = 13.47`. The theme's colour is carried toward white or
+black until it is that far clear of the sky **and no further**; a theme already clear is drawn
+bit-identically to v4.26. 2 259 of the 10 368 situations are corrected at all, 21.8 %, and the
+largest carry anywhere is CIELab 16.19.
+
+**One colour for the whole fall, and it is forced.** The sky's luma runs monotonically down the
+fall and the drop's does not change, so whenever they are close the sky crosses the drop inside the
+fall; a correction clearing the gap at every height would have to be above the sky at one end and
+below it at the other, with no continuous path between. The alternative to one colour is a frame
+carrying pale rain above a line and dark rain below it.
+
+**Snow was measured the same way and left alone, with the number**: worst separation 19.13 — Easter
+at 07:39 — above the gate, so the correction never fires on it. Snow against the *cloud* it is born in measures 0.00
+and is recorded as `BACKLOG_v4_27.md` item 75 rather than fixed: a flake leaving a white cloud is
+what the fade-in already exists for.
+
+**Pinned by a frame.** v4.26 shipped a derived waterline for a case no committed golden portrayed.
+`rain-worst-sky` draws the measured worst case with a focus rectangle on the band of open sky, and
+`PrecipitationContrastTest` asserts that it is still the worst case the twelve themes can paint.
+
+### The birds are not backwards
+
+**Reported**: the birds fly tail-first. **Verified, and it does not hold.** The reported mechanism
+is right in every part — `drawBirds` applies only a vertical mirror, which is the wing-beat; no
+horizontal mirror exists in either backend; every bird moves left to right, confirmed on the device
+across four frames — but the shipped sprite already faces that way: `bird_body.png` carries the head
+disc at x 43 and the beak to x 49.5, the tail wedge at x 4–14, blitted at origin (−25, −15) and
+moved toward +x. **Mirroring the source, which was the proposed remedy, would have created the
+defect.**
+
+What is true underneath the report is a size problem, not a direction one: at 51 px the head is a
+3.6 px disc and the beak 3.5 px, while the raised wing is the largest shape in the silhouette and
+rises up and forward, which is also the shape of a fanned tail. Nothing was changed to the artwork,
+because a redraw is a look and needs a mockup and approval. What was added is the cheap half of
+stopping it recurring: `bird-facing`, a golden with one bird on clean sky at the size it ships, with
+the focus on the animal.
+
+### The hole that let it through
+
+`DESIGN_NOTES.md` §14 required a sprite with a facing to be shown in both directions. v4.26's bird
+sheets met it **through a capture-only patch that mirrored the odd candidates** — a mirror the
+shipped build does not have, removed for the release. The requirement was satisfied by a picture of
+something the app cannot draw, so the bird's real facing was never judged at all. §14 now says a
+direction belongs in the judging image when the shipped build can produce it, and that an
+unreachable direction is a fact to report rather than a thing to fake.
+
+### A defect found on the way
+
+The horror sky returned from `drawSky` before recording the two fields that mean "the sky this frame
+drew". Three things read them — the water's mirror, the struck waterline, and now the rain — so with
+the horror sky on they held whatever the last frame left, and zero on the first. A lake turned on
+under a horror sky mirrored a colour that was never computed. The flag is a user switch independent
+of the theme, so it was reachable anywhere; the Halloween defaults leave the lake off, which is why
+nobody had met it.
+
+### The two decisions
+
+**`BACKLOG_v4_26.md` item 66 — the `perf` build type is committed.** The maintainer's call, against
+the rule that it be rebuilt by hand each session and deleted afterwards — the rule that failed in
+v4.25, when the block reached the delivery ZIP and the published tag. It is committed with the
+check that makes committing it safe: `BuildTypeDeclarationTest` pins the declared set of build
+types, pins `perf` to `initWith(release)`, the committed debug keystore, the `.debug` suffix and
+`isDebuggable = false`, and asserts that no workflow builds it. That the published artefact is
+unchanged was **verified, not deduced**: `assembleRelease` was built from a clean tree with the
+block present and with it removed, and the two APKs compared entry by entry.
+
+**Item 71 — the PowerVR re-capture is ratified.** The artwork forced it and no other outcome was
+possible; no tolerance was moved. What it costs is written into `BACKLOG_v4_27.md` item 78 as a
+standing condition rather than left to be rediscovered: `GlDriverGapGuardTest` now proves that this
+device agrees with itself, the cross-driver gap is measured nowhere, and only running the suite on a
+second GPU vendor brings it back.
+
+---
+
 ## v4.26 — the sky and the sea redrawn
 
 **Prepared, not published.** `versionCode = 57`, `versionName = "4.26"`. Prepared 2026-09-09. No
