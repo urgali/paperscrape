@@ -72,16 +72,28 @@ class SpriteMeasurementClaimTest {
         // cloud origin explains its own defect by naming the 768x510 canvas that never existed --
         // so what is checked is a size *attributed to a sprite*: `name` ... `NxM px`. That is the
         // shape every stale measurement in REN-07 had, and the shape a new one would have.
+        // `px` stays **mandatory**, and v4.29 tried dropping it and put it back. The stale claim
+        // the santa crop report had already reported and this test had not caught --
+        // "`santa_sleigh_scene` is 624x168 with a content box of ..." -- names no unit at all, and
+        // making the unit optional to reach it immediately mis-read
+        // "`house_shared_window` is 22x21", which is a true statement in **local units** about a
+        // 66x63 px sprite. A comment that says NxM without a unit is genuinely ambiguous here,
+        // because both frames are in daily use three lines apart.
+        //
+        // So the rule is the other way round: a claim about a sprite's pixels must be *written in
+        // the shape this reads*, and v4.29 rewrote the sleigh's two comments into it rather than
+        // widening the pattern until it produced noise. `BACKLOG_v4_29.md` item 90 records that,
+        // and records what is still uncovered: a pixel claim that omits its unit is invisible.
         val claim = Regex("""`([a-z0-9_]+)(?:\.png)?`[^`\n]{0,40}?is (\d{2,4})x(\d{2,4}) px""")
         var checked = 0
-        for (name in listOf("SceneObjectRenderer.kt", "PaperRenderer.kt")) {
-            val source = File(sourceDir(), name).readText()
+        for (file in kotlinSources()) {
+            val source = file.readText()
             for (match in claim.findAll(source)) {
                 val sprite = File(drawableDir(), match.groupValues[1] + ".png")
                 if (!sprite.isFile) continue
                 val image = ImageIO.read(sprite)
                 assertEquals(
-                    name + " says " + match.groupValues[1] + " is " +
+                    file.name + " says " + match.groupValues[1] + " is " +
                         match.groupValues[2] + "x" + match.groupValues[3],
                     image.width.toString() + "x" + image.height,
                     match.groupValues[2] + "x" + match.groupValues[3],
@@ -91,6 +103,20 @@ class SpriteMeasurementClaimTest {
         }
         assertTrue("the pattern matched nothing, so this test proves nothing", checked > 0)
     }
+
+    /**
+     * Every Kotlin source under `src/main`, because a hand-written file list is the failure this
+     * test exists to catch, happening to this test.
+     *
+     * Until v4.29 the scan above named two files -- `SceneObjectRenderer.kt` and
+     * `PaperRenderer.kt` -- and `BACKLOG_v4_28.md` item 82 then found three stale load-bearing
+     * numbers in `GlTextureAtlas.kt` and `GlTextureCache.kt`, which were simply not being read.
+     * That is the same shape as the stale golden-class list in `CLAUDE.md` §5, which cost v4.28 a
+     * missed `SkyWaterGoldenTest`: **ask the tree, do not keep the list.** Walking the directory
+     * costs a few milliseconds and cannot go out of date.
+     */
+    private fun kotlinSources(): List<File> =
+        walkUp("src/main/kotlin").walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
 
     private fun drawableDir(): File = walkUp("src/main/res/drawable-nodpi")
 

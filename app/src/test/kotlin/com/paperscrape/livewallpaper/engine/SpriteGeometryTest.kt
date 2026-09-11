@@ -164,11 +164,43 @@ class SpriteGeometryTest {
      * 4 667 328 B, and only in a scene that is raining over a lake with adults on the pavement.
      *
      * *The cheaper answer, still on the table.* Everything the v4.1 paragraph says about recolouring
-     * at load time still applies, and `BACKLOG_v4_28.md` item 80 now records a second and larger
-     * one: `SpriteCache` decodes at the resolution the artwork was drawn at, so this 117x252 pose
-     * is decoded at four times the area it is ever blitted at. That item would take the whole set
-     * back under the ceiling this paragraph raises, and it is the reason this is the last raise
-     * that should be argued on coverage alone.
+     * at load time still applies, and `BACKLOG_v4_28.md` item 80 recorded a second and larger one:
+     * `SpriteCache` decodes at the resolution the artwork was drawn at, so this 117x252 pose is
+     * decoded at four times the area it is ever blitted at.
+     *
+     * ---
+     *
+     * ## v4.29: what this number is, which is not what the paragraphs above assumed
+     *
+     * **Item 80 is closed and rejected, by measurement.** Redrawing the set on a grid of 2 would
+     * *magnify* a third of it: `SpriteDrawScaleTest` measures the smallest headroom in the set at
+     * **0.448** and **50 of 305 sprites below the 1.5** that a grid of 2 needs merely to stay at
+     * 1:1 -- palms at 1.011, skyscrapers at 1.045, shop fronts at 1.049, trees at 1.115, and every
+     * sprite the gallery preview draws. The 3x oversample this ceiling's earlier paragraphs treat
+     * as spare has **already been spent**, by the size table and the viewport growing underneath it
+     * over many releases. Do not reopen that road without re-reading that test's output.
+     *
+     * **And the sentence "raising the budget is a decision about memory pressure and atlas sizing"
+     * -- which is this test's own failure message -- was half wrong.** This number has nothing to
+     * do with atlas sizing, and v4.28 raised it to 32 MiB partly on that reading:
+     *
+     * - `GlTextureCache` uploads `reduce(bitmap, SpriteDetailLevel.levelFor(scale))`, sized against
+     *   the scale the sprite is **drawn** at. Authored size does not reach the GPU.
+     * - `SpriteBlitter.onSpriteUploaded` then releases the decoded bitmap, so on the GPU path the
+     *   authored-size pixels are a transient, not a resident.
+     *
+     * So **this is the CPU-side limit and there is now a GPU-side one beside it**:
+     * `SpriteDrawScaleTest.uploadedTexelBudget`, 18 MiB against 17 921 692 B measured. Its comment
+     * carries the argument for splitting them and the table of which limit protects what. Move
+     * neither without reading it.
+     *
+     * **What this one still protects, which is why it was not repointed at texels.** The `Canvas`
+     * backend holds the authored bitmap for every frame and must not release it, and it is not a
+     * fallback only: `ThemePreview.kt` builds a `CanvasSceneTarget` unconditionally, so the
+     * settings and gallery previews decode sprites at authored size on **every** device, GL or not.
+     * The wallpaper itself joins them once EGL has failed `GlLifecyclePolicy.MAX_CONTEXT_REBUILDS`
+     * times. Beside that this bounds the APK and the per-sprite transient decode peak. Those are
+     * real and this is the only thing measuring them.
      */
     private val decodedByteBudget = 32L * 1024L * 1024L
 
@@ -198,7 +230,9 @@ class SpriteGeometryTest {
         }
         assertTrue(
             "the sprite set decodes to $total bytes, past the $decodedByteBudget budget. Raising " +
-                "the budget is a decision about memory pressure and atlas sizing, not a test fix.",
+                "the budget is a decision about what the `Canvas` path holds resident and about " +
+                "the APK, not a test fix -- and it is NOT a decision about GL texture memory or " +
+                "atlas sizing, which is `SpriteDrawScaleTest.uploadedTexelBudget`.",
             total <= decodedByteBudget,
         )
     }

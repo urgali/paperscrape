@@ -23,8 +23,17 @@ import android.opengl.GLUtils
  * the GPU samples it at roughly 1:1 instead of minifying it several times over. A sprite drawn at
  * two very different sizes in one scene therefore holds two entries, keyed by `(resId, level)`.
  *
- * That is fewer texels, not more: the whole shipped set was measured at 18.5 MiB of texture at level
- * 0, and 1.8 MiB once each sprite carries only the levels its scenes actually draw.
+ * That is fewer texels, not more, and by a wide margin — but **the two figures this paragraph used
+ * to quote were both stale, and stale in the direction that made the atlas look roomier than it
+ * was**: it said "18.5 MiB of texture at level 0, and 1.8 MiB once each sprite carries only the
+ * levels its scenes actually draw", when level 0 had reached 31.745 MiB and the reduced figure,
+ * measured on the device rather than modelled, is about four times the 1.8.
+ *
+ * They are not re-typed with fresh numbers here, because re-typing is exactly how they rotted
+ * (`BACKLOG_v4_28.md` item 82, and item 63 before it). The measurements live where they can fail:
+ * `SpriteDrawScaleTest.uploadedTexelBudget` for what the set uploads, and
+ * `SpriteGeometryTest.decodedByteBudget` for what it decodes. The *ratio* the sentence exists to
+ * make still holds and is what matters here.
  *
  * ## Why the size is recorded here, and *which* size
  *

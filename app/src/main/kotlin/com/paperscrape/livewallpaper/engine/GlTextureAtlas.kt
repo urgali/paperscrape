@@ -22,8 +22,10 @@ import android.opengl.GLUtils
  *
  * ## Packing
  *
- * The placement arithmetic lives in [ShelfPacker], which is pure and unit tested; this class only
- * turns a placement into a texture upload.
+ * The placement arithmetic lives in [AtlasPacker], which is pure and unit tested; this class only
+ * turns a placement into a texture upload. It packs to a skyline as of v4.29; the shelf packer it
+ * replaced stranded more than half the atlas in the tails of its rows, and that class comment
+ * carries the census.
  *
  * Nothing is packed speculatively. A theme draws far fewer than the full sprite set, so filling the
  * atlas on first draw keeps it to the working set of the scene actually on screen.
@@ -44,7 +46,7 @@ internal class GlTextureAtlas(
     var textureHandle = 0
         private set
 
-    private val packer = ShelfPacker(size, size, PADDING)
+    private val packer = AtlasPacker(size, size, PADDING)
 
     private val scratch = IntArray(1)
 
@@ -54,10 +56,22 @@ internal class GlTextureAtlas(
     /**
      * Whether [width] x [height] is a candidate for the atlas at all.
      *
-     * Large sprites are excluded on purpose. The sleigh alone is 1563x434, and letting it consume a
-     * third of a shelf row would evict nothing but would push the many small sprites that actually
-     * repeat per frame out into standalone textures — the opposite of what the atlas is for. A
-     * large sprite is also almost always drawn once per frame, so it costs a single batch break.
+     * **This branch has never rejected a shipped sprite, and it is kept anyway.** v4.29 measured
+     * both halves of that sentence, because the comment that used to stand here justified the
+     * limit with a sprite that had not had those dimensions for several releases: it said "the
+     * sleigh alone is 1563x434", and `santa_sleigh_scene` is 594x123 px — the crop recorded in
+     * `SANTA_CROP_REPORT.md`, which landed in v4.19. The largest single dimension anywhere in the
+     * set is `cloud_body`, and **0 of 305 sprites exceed [maxEntryDimension] on either axis**.
+     * Over a twelve-theme walk at full density, 33 000 frames and 314 entries, the dimension
+     * rejection fired **0 times**; what fired was the space rejection, and v4.29 fixed the packer
+     * that was causing it.
+     *
+     * The original reasoning still holds for a sprite that *did* exceed it, which is why the branch
+     * stays. A single 1024-square entry is 4 MiB of texels — a quarter of the whole atlas — and
+     * would push out many small sprites that repeat per frame, which is the opposite of what the
+     * atlas is for. A sprite that large is also almost always drawn once per frame, so standing
+     * outside the atlas costs it a single batch break. **It is a guard against a future sprite, not
+     * a description of this one**; `BACKLOG_v4_29.md` item 89 records the decision to keep it.
      */
     fun accepts(width: Int, height: Int): Boolean =
         width <= maxEntryDimension && height <= maxEntryDimension && packer.fitsAtAll(width, height)
@@ -146,9 +160,28 @@ internal class GlTextureAtlas(
         /**
          * 2048 is the smallest maximum texture size OpenGL ES 2.0 guarantees on the hardware this
          * app targets, so the atlas needs no runtime capability query to be safe. At RGBA that is
-         * 16 MB of texture memory, against the ~16.4 MB the whole sprite set would occupy as
-         * individual textures — so this is a rearrangement of that budget rather than an addition
-         * to it, and in practice a scene fills only a fraction of it.
+         * 16 MiB of texture memory.
+         *
+         * **It is the floor, not a luxury, and the sentence that used to stand here said the
+         * opposite.** It compared the atlas against "the ~16.4 MB the whole sprite set would occupy
+         * as individual textures" and concluded that the atlas "is a rearrangement of that budget
+         * rather than an addition to it, and in practice a scene fills only a fraction of it". Both
+         * halves failed by v4.29:
+         *
+         * - **the figure had rotted.** It is not re-typed here, because re-typing is how it rotted:
+         *   `SpriteDrawScaleTest.uploadedTexelBudget` measures what the set really uploads and
+         *   fails when it moves, and `SpriteGeometryTest.decodedByteBudget` measures what it
+         *   decodes. Read them, not this paragraph.
+         * - **"a fraction of it" was measured and is false.** Walking the twelve themes at their
+         *   *own defaults*, clear weather, the atlas saturated on the **fifth** theme and spilled
+         *   sprites into standalone textures for the rest of the session. 1024 was probed in the
+         *   v4.28 investigation and put 68 of 98 sprites outside the atlas on a single scene.
+         *
+         * So do not shrink this, and do not make it non-square either — [AtlasPacker] takes width
+         * and height separately so 2048x1024 is one line away, and halving the height halves the
+         * rows the census shows being consumed. v4.29 recovered the room by fixing the packer
+         * instead, which is where the waste actually was; `BACKLOG_v4_29.md` item 88 carries the
+         * census and closes the resize question as measured and refused.
          */
         const val DEFAULT_SIZE = 2048
 

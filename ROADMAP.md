@@ -12,34 +12,64 @@ always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v4.28 prepared — not published and not approved.**
+**v4.29 prepared — not published and not approved.**
 
-`versionCode = 59`, `versionName = "4.28"`. **No tag, no push, no GitHub Release** — that half is
+`versionCode = 60`, `versionName = "4.29"`. **No tag, no push, no GitHub Release** — that half is
 the maintainer's and has not been done for this version.
 
-**Baseline v4.27, and it is published.** Read from the public GitHub API on 2026-09-11: `v4.27` is
-published, non-draft, non-prerelease, published at 2026-09-10 16:54:58 UTC, with its APK and its
-`.sha256` attached — as are `v4.16` through `v4.26`. **Re-read the API rather than this line** —
-nothing in a working tree learns that a release went out, and this file had denied v4.27 for a day
-after it shipped, which is the third time the same failure has been recorded
-(`BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md` item 55):
+**Baseline v4.28, and it is published.** Read from the public GitHub API on 2026-09-11: `v4.28` is
+published, non-draft, non-prerelease, published at **2026-09-11 17:47:11 UTC**, with its APK and
+its `.sha256` attached — as are `v4.16` through `v4.27`. **Re-read the API rather than this line**
+— nothing in a working tree learns that a release went out, and this line has now been wrong in
+**both** directions: it denied v4.27 for a day after it shipped, and v4.29's own phase A recorded
+v4.28 as unpublished at 16:36 UTC when it went out at 17:47 the same day. That is the fourth time
+the same failure has been recorded (`BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md` item 55,
+`BACKLOG_v4_29.md` item 86):
 
 ```bash
 curl -s https://api.github.com/repos/urgali/paperscrape/releases | grep -o '"tag_name": *"[^"]*"' | head
 ```
 
-**Three backlogs are open, and three were archived.** `BACKLOG_v4_26.md` carries 66-71, of which
-**67 stays open** (the `_UNITS` frame rule reads Kotlin and not the generators). `BACKLOG_v4_27.md`
-carries 72-78, of which **78 stays open**: a condition rather than work, recording that the
-cross-driver GL gap is no longer measured anywhere. `BACKLOG_v4_28.md` carries 79-85, of which
-**80, 81, 82 and 83 stay open**, and it also **carries forward by name** every item still open in
-`BACKLOG_v4_23.md`, `BACKLOG_v4_24.md` and `BACKLOG_v4_25.md` — items 18, 25, 30, 40, 50-55, 56, 58
-and 63. Those three files moved to [`docs/archive/`](docs/archive/) in this release, under the
-convention the v4.24 documentation pass established; carrying their open items forward by number is
-what makes the move safe, and the numbering stays continuous, so item 25 means the same thing
-wherever it is cited.
+**Two backlogs are open, and five were archived.** `BACKLOG_v4_28.md` carries 79-85, of which
+**83 stays open** — 80, 81 and 82 were closed by measurement in v4.29 and 85 was annotated there
+— and it continues to **carry forward by name** every item still open in `BACKLOG_v4_23.md`,
+`BACKLOG_v4_24.md` and `BACKLOG_v4_25.md`: items 18, 25, 30, 40, 50-55, 56, 58 and 63.
+`BACKLOG_v4_29.md` carries 86-93 and **carries forward by name** the two items left open by the
+backlogs archived in this release: **67** from `BACKLOG_v4_26.md` (the `_UNITS` frame rule reads
+Kotlin and not the generators) and **78** from `BACKLOG_v4_27.md` (a condition rather than work,
+recording that the cross-driver GL gap is no longer measured anywhere). Those two files moved to
+[`docs/archive/`](docs/archive/) in this release, under the convention the v4.24 documentation
+pass established; carrying their open items forward by number is what makes the move safe, and the
+numbering stays continuous, so item 25 means the same thing wherever it is cited.
 
-**Verified at Level 3 here.** The numbers are in the v4.28 report.
+**Verified at Level 3 here.** The numbers are in the v4.29 report.
+
+```
+v4.29 [x] the atlas packer, and a ceiling that measures the right thing
+ |- no artwork moved and no rendering code changed: every golden is byte-identical to v4.28's, which
+ |  is the claim this release is built to make cheaply
+ |- the defect was the packer. `ShelfPacker` kept one row open, so it lost the tail of every row it
+ |  closed and the slack above every entry shorter than its neighbour, and went back for neither --
+ |  99 % of the atlas's rows consumed to hold 42 % of its area
+ |- measured by walking the twelve themes at their OWN defaults, clear weather, day then night: the
+ |  atlas saturates at christmas, the fifth theme, and spills 25 sprites into standalone textures.
+ |  At full density, 34. That is the out-of-the-box product, not a contrived worst case
+ |- replaced by a skyline: zero spilled on both censuses. The obvious cheap fix -- keep every shelf
+ |  open -- was replayed against the recorded insertion order and is no better and sometimes worse,
+ |  so it is recorded as measured and refused rather than left as a suggestion
+ |- the recorded order is the method: the device is the only place the sequence exists, the host is
+ |  where three candidate packers were compared against it in seconds
+ |- item 81 closes the other way round. 27 % was content *area*; the rows were at 55 % on the same
+ |  scene. 2048 is the floor, not a luxury, and non-square is refused for the same reason
+ |- item 80 closed and REJECTED by measurement: the 3x oversample is already spent -- minimum
+ |  headroom 0.448, and 50 of 305 sprites below the 1.5 a grid of 2 needs just to stay at 1:1
+ |- the decoded ceiling is not GPU memory and never was. Two limits now, with two honest names: the
+ |  old one keeps its value and guards the `Canvas` path every device's settings screen takes, and
+ |  a new 18 MiB one measures the texels actually uploaded
+ \- item 82's three stale numbers re-measured rather than re-typed, plus a fourth the santa crop
+    report had already reported and nine releases had not removed; the guard's hand-written file
+    list replaced by a directory walk
+```
 
 ```
 v4.28 [x] a bird that reads, an umbrella in the rain, and a sea that moves

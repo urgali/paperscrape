@@ -22,6 +22,8 @@ and keeps the item numbers, so item 27 means the same thing wherever it is cited
 | [`BACKLOG_v4_23.md`](BACKLOG_v4_23.md) | v4.28 | What v4.23 decided and left open. Items 18, 25, 30, 37–48. Still open when it moved: 18, 25, 30 and the sun's half of 40. |
 | [`BACKLOG_v4_24.md`](BACKLOG_v4_24.md) | v4.28 | What the v4.24 documentation review found and did not fix. Items 49–55; 49 was closed in v4.28, the rest were open when it moved. |
 | [`BACKLOG_v4_25.md`](BACKLOG_v4_25.md) | v4.28 | What v4.25 decided and left open. Items 56–65; 61, 64 and 65 were closed in v4.26, so 56, 58 and 63 were open when it moved. |
+| [`BACKLOG_v4_26.md`](BACKLOG_v4_26.md) | v4.29 | What v4.26 decided and left open. Items 66–71; 66 was decided in v4.27 (item 77) and 71 was ratified by v4.27's item 78, so **67** alone was open when it moved. |
+| [`BACKLOG_v4_27.md`](BACKLOG_v4_27.md) | v4.29 | What v4.27 decided and left open. Items 72–78; **78** alone was open when it moved, and it is a condition rather than work. |
 
 **`BACKLOG_v4_19.md` does not exist and is not a broken reference.** It was deleted
 deliberately when `BACKLOG_v4_20.md` replaced it, and `BACKLOG_v4_20.md` says so in its
@@ -32,13 +34,14 @@ the same thing here, so the citations still resolve."* The sixteen citations of
 they stand: read them against [`BACKLOG_v4_20.md`](BACKLOG_v4_20.md).
 
 **Moving a backlog with open items in it is only safe because the open items are carried
-forward by name.** `BACKLOG_v4_28.md` opens with a table restating every item the three files above
-still leave open — number, source file, one line and its status — so nothing has to be found by
-reading an archived document. The reasoning stays here; the fact that the item is open is in the
-root.
+forward by name.** `BACKLOG_v4_28.md` opens with a table restating every item `BACKLOG_v4_23.md`,
+`BACKLOG_v4_24.md` and `BACKLOG_v4_25.md` still leave open, and `BACKLOG_v4_29.md` does the same
+for the two files v4.29 archived — number, source file, one line and its status — so nothing has to
+be found by reading an archived document. The reasoning stays here; the fact that the item is open
+is in the root.
 
-The open backlogs stay in the repository root: **`BACKLOG_v4_26.md`**, **`BACKLOG_v4_27.md`** and
-**`BACKLOG_v4_28.md`**.
+The open backlogs stay in the repository root: **`BACKLOG_v4_28.md`** (item 83) and
+**`BACKLOG_v4_29.md`** (items 86-92, plus 67 and 78 carried forward).
 
 ---
 

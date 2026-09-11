@@ -97,7 +97,7 @@ PaperScrape/
 | `GlSpriteProgram.kt` | The one shader program; sprites and flat fills share it. |
 | `GlTextureCache.kt` | Drawable resource id → texture handle, UV rectangle and pixel size. Routes each sprite to the atlas or to a texture of its own. |
 | `GlTextureAtlas.kt` | The shared atlas texture and its uploads. |
-| `ShelfPacker.kt` | Where each entry sits in the atlas, as pure testable arithmetic. |
+| `AtlasPacker.kt` | Where each entry sits in the atlas, as pure testable arithmetic. A skyline since v4.29; it was `ShelfPacker.kt` and shelf packing until the census measured what the rows were costing. |
 | `GlRenderThread.kt` | EGL context and surface lifecycle, the render loop, and the cross-thread event queue. |
 | `SceneTransform.kt` | The `save`/`restore`/`translate`/`scale`/`rotate` arithmetic, as pure testable code. |
 | `SpriteCache.kt` | Process-lifetime `Bitmap` cache keyed by resource id. |
@@ -372,14 +372,31 @@ changed.
 `GlTextureCache` decides placement per sprite: into the atlas when it fits, into a
 texture of its own when it does not. Callers get a handle and a UV rectangle either
 way, so a standalone texture is just the `0..1` case. Large sprites are excluded on
-purpose — the sleigh alone is 1563×434, and letting it consume a shelf row would
-push out the small sprites that actually repeat per frame, while itself costing only
-one batch break because it is drawn once.
+purpose — a 1024-square entry would be a quarter of the whole atlas and would push
+out the small sprites that actually repeat per frame, while itself costing only one
+batch break because it is drawn once. **That gate has never rejected a shipped
+sprite**: the largest dimension in the set is `cloud_body`'s, and v4.29 measured the
+dimension rejection firing zero times over a twelve-theme walk. It is kept as a
+guard against a future sprite, not as a description of this one; the comment that
+used to justify it with "the sleigh alone is 1563×434" was describing a canvas the
+v4.19 crop retired.
 
-`ShelfPacker` holds the placement arithmetic, separately and without GL, for the
+`AtlasPacker` holds the placement arithmetic, separately and without GL, for the
 same reason `SceneTransform` is separate: a packing bug is silent. Two entries given
 overlapping rectangles do not throw — one sprite renders with another's pixels inside
 it, in whichever scene happens to draw that pair.
+
+**It packs to a skyline, and until v4.29 it packed to shelves.** A shelf packer keeps
+one row open at a time, so it loses the tail of every row it closes and the slack
+above every entry shorter than the tallest one beside it, and it never goes back for
+either. Measured across the twelve themes at their own defaults, that cost **99 % of
+the atlas's rows to hold 42 % of its area**, saturated on the fifth theme and spilled
+sprites into standalone textures — a batch break per frame each, which is what the
+atlas exists to prevent. The skyline is online, needs no sorting and no deferred
+upload, and is quadratic in skyline segments in a call that already allocates a
+bitmap and uploads it. `release-verification/V4_29_REPORT.md` carries the before and
+after; `AtlasPackerTest` replays a recorded insertion sequence so it cannot regress
+quietly.
 
 Each entry carries a one-pixel transparent border so a bilinear sample near an edge
 finds transparency rather than the neighbouring sprite. The border is uploaded, not

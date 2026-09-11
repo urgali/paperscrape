@@ -724,13 +724,6 @@ class PaperRenderer(
         // possible: constants a test can reach, used by the only code that draws these sprites.
 
         /**
-         * The sleigh's scale and origin, in the units its own `canvas.scale` establishes.
-         *
-         * `santa_sleigh_scene` is 624x168 with a content box of (12,12)-(610,159), so 199.33 x 49
-         * local units of drawing inside a 208 x 56 canvas. The scale keeps the on-screen width
-         * the shipped release had; the origins put the content's centre on the flight point.
-         */
-        /**
          * `firework` is 240x240 -- 80x80 local units -- anchored on its own centre, and a fully
          * expanded burst reaches the ~120px radius the old 18-particle spray peaked at.
          */
@@ -861,6 +854,26 @@ class PaperRenderer(
         const val SPLASH_ORIGIN_X_UNITS = -27f
         const val SPLASH_ORIGIN_Y_UNITS = -18f
 
+        /**
+         * The sleigh's scale and the X half of its origin, in the units its own `canvas.scale`
+         * establishes.
+         *
+         * `santa_sleigh_scene` is 594x123 px -- 198 x 41 local units -- and so is
+         * `santa_sleigh_trot`. An orphaned KDoc here used to say 624x168 "with a content box of
+         * (12,12)-(610,159)", attached to nothing and describing a canvas that stopped existing at
+         * the v4.7 redraw; `SANTA_CROP_REPORT.md` reported it as stale and left it, and v4.29 is
+         * where it was actually removed.
+         *
+         * **-99.67 is knowingly not the centre of the drawing**, and that is the one thing not to
+         * "fix" here. It is `-598/2/3`, from a content width the sprite had before the v4.7 redraw;
+         * the content is 592 px wide, so the group sits about 3 sprite pixels left of the flight
+         * point. `SANTA_CROP_REPORT.md` assessed exactly this and recorded the decision **not** to
+         * realign, because the sleigh addresses its canvas corner on purpose and the registry
+         * anchor is descriptive metadata. Moving it is an artwork judgement, not a tidy-up.
+         *
+         * [SANTA_SLEIGH_SCALE] keeps the on-screen width the shipped release had: 198 local units
+         * at 1.5 is the 297 px the historical raw-pixel pair produced.
+         */
         const val SANTA_SLEIGH_SCALE = 1.5f
         const val SANTA_SLEIGH_ORIGIN_X_UNITS = -99.67f
 
@@ -1420,16 +1433,15 @@ class PaperRenderer(
         santaSleighEffect.draw(canvas, elapsedSeconds, screenWidth.toFloat()) { x, y, dir, alpha ->
             // The sleigh was a 1563x434 raw-pixel sprite reduced by a historical 130/680 divisor
             // and anchored at (-283,+244) -- an origin inherited from a 2040x840 canvas that was
-            // 60 % transparent. V2 redraws it at 624x168 on the authoring grid, which makes it a
+            // 60 % transparent. The V2 redraw put it on the authoring grid, which makes it a
             // SCENE_UNITS sprite and retires both numbers. **The manifest's SCENE_UNITS is right
             // and the shipped call site's CANVAS_PIXELS was the stale half**; the manifest's
             // declared anchor is taken as given here.
             //
-            // [SANTA_SLEIGH_SCALE] holds the on-screen width where it was: the content box is
-            // 598px wide, so 199.33 local units at 1.5 is the 298.8px the old pair produced.
-            // The origin centres the *content* on the flight point, which the old one did not --
-            // it sat 95px right and 130px below it, so the gifts this effect drops appeared to
-            // spawn above the sleigh rather than out of it.
+            // The canvas this paragraph used to quote -- 624x168, content box 598px wide -- is two
+            // canvases out of date: `santa_sleigh_scene` is 594x123 px since v4.19's crop. See
+            // [SANTA_SLEIGH_SCALE] for the current geometry and for why the X origin is
+            // deliberately not the content's centre.
             canvas.save()
             canvas.translate(x, y)
             canvas.scale(dir * SANTA_SLEIGH_SCALE, SANTA_SLEIGH_SCALE)
