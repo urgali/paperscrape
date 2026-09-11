@@ -2,6 +2,36 @@
  "schemaVersion": 4,
  "variants": [
   {
+   "id": "boy_head_car_skin0",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_head_car_skin0",
+    "person_boy_winter_head_car_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
+   "id": "boy_head_car_skin1",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_head_car_skin1",
+    "person_boy_winter_head_car_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
+   "id": "boy_head_car_skin2",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_head_car_skin2",
+    "person_boy_winter_head_car_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
    "id": "boy_head_window",
    "axis": "season",
    "members": [
@@ -242,6 +272,46 @@
    "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a boy recoloured to (169, 113, 75) is the boy unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
   },
   {
+   "id": "girl_head_car",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_head_car",
+    "person_girl_winter_head_car"
+   ],
+   "state": "DISTINCT",
+   "reason": "Summer wears the character's own hair or cap; winter the bust translation of the character's winter headwear, with the seatbelt both seasons carry. The seasonal pair is distinct artwork like every other person sprite's."
+  },
+  {
+   "id": "girl_head_car_skin0",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_head_car_skin0",
+    "person_girl_winter_head_car_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
+   "id": "girl_head_car_skin1",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_head_car_skin1",
+    "person_girl_winter_head_car_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
+   "id": "girl_head_car_skin2",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_head_car_skin2",
+    "person_girl_winter_head_car_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
    "id": "girl_head_window",
    "axis": "season",
    "members": [
@@ -400,6 +470,156 @@
    ],
    "state": "DISTINCT",
    "reason": "The skin recolour is applied to the summer and winter artwork independently, so this pair carries the same seasonal difference as person_girl_summer_walk2 / person_girl_winter_walk2 -- hat, scarf, hood, collar -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both."
+  },
+  {
+   "id": "man_carry0_skin0",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry0_skin0",
+    "person_man_winter_carry0_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry0 / person_man_winter_carry0 -- hat, scarf, collar, sleeves -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_carry0_skin1",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry0_skin1",
+    "person_man_winter_carry0_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry0 / person_man_winter_carry0 -- hat, scarf, collar, sleeves -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_carry0_skin2",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry0_skin2",
+    "person_man_winter_carry0_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry0 / person_man_winter_carry0 -- hat, scarf, collar, sleeves -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_carry1_skin0",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry1_skin0",
+    "person_man_winter_carry1_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry1 / person_man_winter_carry1 -- hat, scarf, collar, sleeves -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_carry1_skin1",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry1_skin1",
+    "person_man_winter_carry1_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry1 / person_man_winter_carry1 -- hat, scarf, collar, sleeves -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_carry1_skin2",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry1_skin2",
+    "person_man_winter_carry1_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry1 / person_man_winter_carry1 -- hat, scarf, collar, sleeves -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_carry2_skin0",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry2_skin0",
+    "person_man_winter_carry2_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry2 / person_man_winter_carry2 -- hat, scarf, collar, sleeves -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_carry2_skin1",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry2_skin1",
+    "person_man_winter_carry2_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry2 / person_man_winter_carry2 -- hat, scarf, collar, sleeves -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_carry2_skin2",
+   "axis": "season",
+   "members": [
+    "person_man_summer_carry2_skin2",
+    "person_man_winter_carry2_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_man_summer_carry2 / person_man_winter_carry2 -- hat, scarf, collar, sleeves -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "man_head_car_alt_skin0",
+   "axis": "season",
+   "members": [
+    "person_man_summer_head_car_alt_skin0",
+    "person_man_winter_head_car_alt_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+  },
+  {
+   "id": "man_head_car_alt_skin1",
+   "axis": "season",
+   "members": [
+    "person_man_summer_head_car_alt_skin1",
+    "person_man_winter_head_car_alt_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+  },
+  {
+   "id": "man_head_car_alt_skin2",
+   "axis": "season",
+   "members": [
+    "person_man_summer_head_car_alt_skin2",
+    "person_man_winter_head_car_alt_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+  },
+  {
+   "id": "man_head_car_skin0",
+   "axis": "season",
+   "members": [
+    "person_man_summer_head_car_skin0",
+    "person_man_winter_head_car_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
+   "id": "man_head_car_skin1",
+   "axis": "season",
+   "members": [
+    "person_man_summer_head_car_skin1",
+    "person_man_winter_head_car_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
+   "id": "man_head_car_skin2",
+   "axis": "season",
+   "members": [
+    "person_man_summer_head_car_skin2",
+    "person_man_winter_head_car_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
   },
   {
    "id": "man_head_window",
@@ -642,6 +862,156 @@
    "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a man recoloured to (220, 169, 124) is the man unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
   },
   {
+   "id": "woman_carry0_skin0",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry0_skin0",
+    "person_woman_winter_carry0_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry0 / person_woman_winter_carry0 -- hat, scarf, collar, sleeves -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_carry0_skin1",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry0_skin1",
+    "person_woman_winter_carry0_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry0 / person_woman_winter_carry0 -- hat, scarf, collar, sleeves -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_carry0_skin2",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry0_skin2",
+    "person_woman_winter_carry0_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry0 / person_woman_winter_carry0 -- hat, scarf, collar, sleeves -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_carry1_skin0",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry1_skin0",
+    "person_woman_winter_carry1_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry1 / person_woman_winter_carry1 -- hat, scarf, collar, sleeves -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_carry1_skin1",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry1_skin1",
+    "person_woman_winter_carry1_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry1 / person_woman_winter_carry1 -- hat, scarf, collar, sleeves -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_carry1_skin2",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry1_skin2",
+    "person_woman_winter_carry1_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry1 / person_woman_winter_carry1 -- hat, scarf, collar, sleeves -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_carry2_skin0",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry2_skin0",
+    "person_woman_winter_carry2_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry2 / person_woman_winter_carry2 -- hat, scarf, collar, sleeves -- in skin tone 0. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_carry2_skin1",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry2_skin1",
+    "person_woman_winter_carry2_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry2 / person_woman_winter_carry2 -- hat, scarf, collar, sleeves -- in skin tone 1. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_carry2_skin2",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_carry2_skin2",
+    "person_woman_winter_carry2_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The v4.28 carrying pose is walker_rilievo with the near arm bent, drawn per season like every other person frame, so this pair carries the same seasonal difference as person_woman_summer_carry2 / person_woman_winter_carry2 -- hat, scarf, collar, sleeves -- in skin tone 2. Members turning identical would mean one season's art was recoloured for both. The un-toned base is generated and deliberately not shipped; see retiredBases and tools/assets/concepts/people/build_carry_sprites.py."
+  },
+  {
+   "id": "woman_head_car_alt_skin0",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_head_car_alt_skin0",
+    "person_woman_winter_head_car_alt_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+  },
+  {
+   "id": "woman_head_car_alt_skin1",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_head_car_alt_skin1",
+    "person_woman_winter_head_car_alt_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+  },
+  {
+   "id": "woman_head_car_alt_skin2",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_head_car_alt_skin2",
+    "person_woman_winter_head_car_alt_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
+  },
+  {
+   "id": "woman_head_car_skin0",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_head_car_skin0",
+    "person_woman_winter_head_car_skin0"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
+   "id": "woman_head_car_skin1",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_head_car_skin1",
+    "person_woman_winter_head_car_skin1"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
+   "id": "woman_head_car_skin2",
+   "axis": "season",
+   "members": [
+    "person_woman_summer_head_car_skin2",
+    "person_woman_winter_head_car_skin2"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
+  },
+  {
    "id": "woman_head_window",
    "axis": "season",
    "members": [
@@ -880,196 +1250,6 @@
    ],
    "state": "IDENTICAL_BY_CONSTRUCTION",
    "reason": "The three skin tones are shipped PaperScrape paint -- the woman's, the man's and the boy's own colours -- so a woman recoloured to (240, 201, 166) is the woman unchanged. These two files are the same drawing and always will be, unless either the tone palette or this character's own skin colour moves, which is exactly what the IDENTICAL_BY_CONSTRUCTION check would then report. See tools/generate_skin_variants.py for why there is no room for a fourth tone that would avoid the collision."
-  },
-  {
-   "id": "man_head_car_skin0",
-   "axis": "season",
-   "members": [
-    "person_man_summer_head_car_skin0",
-    "person_man_winter_head_car_skin0"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "man_head_car_skin1",
-   "axis": "season",
-   "members": [
-    "person_man_summer_head_car_skin1",
-    "person_man_winter_head_car_skin1"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "man_head_car_skin2",
-   "axis": "season",
-   "members": [
-    "person_man_summer_head_car_skin2",
-    "person_man_winter_head_car_skin2"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "woman_head_car_skin0",
-   "axis": "season",
-   "members": [
-    "person_woman_summer_head_car_skin0",
-    "person_woman_winter_head_car_skin0"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "woman_head_car_skin1",
-   "axis": "season",
-   "members": [
-    "person_woman_summer_head_car_skin1",
-    "person_woman_winter_head_car_skin1"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "woman_head_car_skin2",
-   "axis": "season",
-   "members": [
-    "person_woman_summer_head_car_skin2",
-    "person_woman_winter_head_car_skin2"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "boy_head_car_skin0",
-   "axis": "season",
-   "members": [
-    "person_boy_summer_head_car_skin0",
-    "person_boy_winter_head_car_skin0"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "boy_head_car_skin1",
-   "axis": "season",
-   "members": [
-    "person_boy_summer_head_car_skin1",
-    "person_boy_winter_head_car_skin1"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "boy_head_car_skin2",
-   "axis": "season",
-   "members": [
-    "person_boy_summer_head_car_skin2",
-    "person_boy_winter_head_car_skin2"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "girl_head_car",
-   "axis": "season",
-   "members": [
-    "person_girl_summer_head_car",
-    "person_girl_winter_head_car"
-   ],
-   "state": "DISTINCT",
-   "reason": "Summer wears the character's own hair or cap; winter the bust translation of the character's winter headwear, with the seatbelt both seasons carry. The seasonal pair is distinct artwork like every other person sprite's."
-  },
-  {
-   "id": "girl_head_car_skin0",
-   "axis": "season",
-   "members": [
-    "person_girl_summer_head_car_skin0",
-    "person_girl_winter_head_car_skin0"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "girl_head_car_skin1",
-   "axis": "season",
-   "members": [
-    "person_girl_summer_head_car_skin1",
-    "person_girl_winter_head_car_skin1"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "girl_head_car_skin2",
-   "axis": "season",
-   "members": [
-    "person_girl_summer_head_car_skin2",
-    "person_girl_winter_head_car_skin2"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone; distinct artwork exactly as the base pair is."
-  },
-  {
-   "id": "man_head_car_alt_skin0",
-   "axis": "season",
-   "members": [
-    "person_man_summer_head_car_alt_skin0",
-    "person_man_winter_head_car_alt_skin0"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
-  },
-  {
-   "id": "man_head_car_alt_skin1",
-   "axis": "season",
-   "members": [
-    "person_man_summer_head_car_alt_skin1",
-    "person_man_winter_head_car_alt_skin1"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
-  },
-  {
-   "id": "man_head_car_alt_skin2",
-   "axis": "season",
-   "members": [
-    "person_man_summer_head_car_alt_skin2",
-    "person_man_winter_head_car_alt_skin2"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
-  },
-  {
-   "id": "woman_head_car_alt_skin0",
-   "axis": "season",
-   "members": [
-    "person_woman_summer_head_car_alt_skin0",
-    "person_woman_winter_head_car_alt_skin0"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
-  },
-  {
-   "id": "woman_head_car_alt_skin1",
-   "axis": "season",
-   "members": [
-    "person_woman_summer_head_car_alt_skin1",
-    "person_woman_winter_head_car_alt_skin1"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
-  },
-  {
-   "id": "woman_head_car_alt_skin2",
-   "axis": "season",
-   "members": [
-    "person_woman_summer_head_car_alt_skin2",
-    "person_woman_winter_head_car_alt_skin2"
-   ],
-   "state": "DISTINCT",
-   "reason": "The seasonal pair of one generated skin tone of the second outfit; distinct artwork exactly as the first outfit pair is."
   }
  ],
  "sprites": [
@@ -1236,9 +1416,9 @@
    "height": 21,
    "contentBox": [
     2,
-    0,
-    51,
-    21
+    1,
+    50,
+    20
    ],
    "scale": "CANVAS_PIXELS",
    "tint": "TINTABLE",
@@ -1253,7 +1433,7 @@
     "kind": "svg",
     "file": "bird_body.svg"
    },
-   "notes": "Redrawn in v4.26 as concept A \"Colomba\", and reduced: the v76.3 gull was 90x24 canvas pixels and read as 1.3 times a person's height at 90; this is 51x21, about 48 px on screen. **The flap axis is canvas row 15**, which is where PaperRenderer blits it (BIRD_SPRITE_ORIGIN_Y_PX -15) and what drawBirds mirrors the sprite about for the down-stroke. The body and the head sit on that row and both wings rise above it, so the mirror actually beats the wings -- the v76.3 drawing was symmetric about its own centre, which meant the flap changed nothing. Head and beak point +x, the only direction birds drift."
+   "notes": "Redrawn in v4.28 as concept B1 \"Rondine\" -- a deep forked tail, sickle wings swept back, a small head and a short beak. The canvas, the origin and the call site are v4.26's: 51x21 CANVAS_PIXELS, **flap axis canvas row 15**, blitted at BIRD_SPRITE_ORIGIN_Y_PX -15 and mirrored about that row for the down-stroke. What changed is legibility at the 42 px the bird actually reaches: v4.26's \"Colomba\" raised both wings forward, and at that size the two humps were the largest shape in the outline and read as a fanned tail, so the eye turned the animal round. The facing was never wrong -- v4.27 measured that and `bird-facing` pins it -- so nothing here is mirrored; the largest shape simply moved behind the head. Head and beak point +x, the only direction birds drift."
   },
   {
    "name": "bunny_body",
@@ -4662,6 +4842,240 @@
    "notes": "Skin tone 2 of person_girl_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_girl_winter_walk2 that was not propagated."
   },
   {
+   "name": "person_man_summer_carry0_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    5,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, man summer frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_summer_carry0_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    5,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, man summer frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_summer_carry0_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    5,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, man summer frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_summer_carry1_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    4,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, man summer frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_summer_carry1_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    4,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, man summer frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_summer_carry1_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    4,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, man summer frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_summer_carry2_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    2,
+    5,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, man summer frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_summer_carry2_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    2,
+    5,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, man summer frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_summer_carry2_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    2,
+    5,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, man summer frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_summer_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
    "name": "person_man_summer_head_car_alt_skin0",
    "category": "person",
    "width": 114,
@@ -5232,6 +5646,240 @@
     "reason": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
    },
    "notes": "Skin tone 2 of person_man_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_summer_walk2 that was not propagated."
+  },
+  {
+   "name": "person_man_winter_carry0_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    15,
+    2,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, man winter frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_winter_carry0_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    15,
+    2,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, man winter frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_winter_carry0_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    15,
+    2,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, man winter frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_winter_carry1_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    2,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, man winter frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_winter_carry1_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    2,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, man winter frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_winter_carry1_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    2,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, man winter frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_winter_carry2_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    1,
+    0,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, man winter frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_winter_carry2_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    1,
+    0,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, man winter frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_man_winter_carry2_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    1,
+    0,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, man winter frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_man_winter_walk2 are unchanged: the figure is the same walker with one limb redrawn."
   },
   {
    "name": "person_man_winter_head_car_alt_skin0",
@@ -5806,6 +6454,240 @@
    "notes": "Skin tone 2 of person_man_winter_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_man_winter_walk2 that was not propagated."
   },
   {
+   "name": "person_woman_summer_carry0_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    10,
+    6,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, woman summer frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_summer_carry0_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    10,
+    6,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, woman summer frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_summer_carry0_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    10,
+    6,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, woman summer frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_summer_carry1_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    10,
+    6,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, woman summer frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_summer_carry1_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    10,
+    6,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, woman summer frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_summer_carry1_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    10,
+    6,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, woman summer frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_summer_carry2_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    2,
+    6,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, woman summer frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_summer_carry2_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    2,
+    6,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, woman summer frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_summer_carry2_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    2,
+    6,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    55.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, woman summer frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_summer_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
    "name": "person_woman_summer_head_car_alt_skin0",
    "category": "person",
    "width": 114,
@@ -6376,6 +7258,240 @@
     "reason": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
    },
    "notes": "Skin tone 2 of person_woman_summer_walk2. Same canvas, same content box and same anchor as the base -- the recolour changes paint, never coverage -- so any geometry change here is a change to person_woman_summer_walk2 that was not propagated."
+  },
+  {
+   "name": "person_woman_winter_carry0_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    0,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, woman winter frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_winter_carry0_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    0,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, woman winter frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_winter_carry0_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    0,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, woman winter frame 0. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk0 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_winter_carry1_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    2,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, woman winter frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_winter_carry1_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    2,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, woman winter frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_winter_carry1_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    2,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, woman winter frame 1. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk1 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_winter_carry2_skin0",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    1,
+    2,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    54.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 0 of the carrying pose, woman winter frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_winter_carry2_skin1",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    1,
+    2,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    54.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 1 of the carrying pose, woman winter frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk2 are unchanged: the figure is the same walker with one limb redrawn."
+  },
+  {
+   "name": "person_woman_winter_carry2_skin2",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    1,
+    2,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    54.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Generated from the P1 \"Alzato\" carrying pose by tools/assets/concepts/people/build_carry_sprites.py, which draws walker_rilievo with the near arm bent and then applies tools/generate_skin_variants.py's own verified single-colour recolour. The pose has no SVG in sources/: authoring twelve would put a second hand-kept copy of both adult families next to the first. That the drawing path is the shipped one is checked on every run -- the script re-renders the shipped man's three summer walk frames through it and compares them byte for byte. The un-toned base is rendered to tools/assets/concepts/people/carry/ and deliberately not shipped: the call site indexes by tone only. Re-run that script to regenerate these, not `render`."
+   },
+   "notes": "Skin tone 2 of the carrying pose, woman winter frame 2. Same 117x252 canvas and the same (1,1) trim as the walking frames it replaces, so the shipped anchor (-19.5, -84) and the co-registration with person_woman_winter_walk2 are unchanged: the figure is the same walker with one limb redrawn."
   },
   {
    "name": "person_woman_winter_head_car_alt_skin0",
@@ -7938,6 +9054,32 @@
    "notes": "v4.21: tronco tozzo della 'Quercia larga' - sagoma unica, base svasata, forcella a V le cui braccia entrano nel cuscino di fogliame, doppio piede radicale, banda d'ombra sul fianco destro. 32x62 u contro i 10x44 del fuso dritto precedente."
   },
   {
+   "name": "umbrella_canopy",
+   "category": "umbrella",
+   "width": 144,
+   "height": 72,
+   "contentBox": [
+    2,
+    0,
+    142,
+    72
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "umbrella_canopy.svg"
+   },
+   "notes": "v4.28 canopy U1 \"Alta\": a round dome of six alternating panels, 48x24 units. One blit in the walker's own transform, so it mirrors with the figure and costs nothing per season, family or tone. Tintable: the colour is picked per pedestrian from SceneObjectRenderer.UMBRELLA_PALETTE. The handle is a rectangle drawn in code from the hand to the crown -- the parasol pole's recipe -- so the same pose can carry any object later without new artwork."
+  },
+  {
    "name": "water_splash0",
    "category": "lake",
    "width": 162,
@@ -7988,17 +9130,81 @@
     "file": "water_splash1.svg"
    },
    "notes": "Dolphin re-entry, second frame: the crown collapsed to a low mound with the droplets thrown wider and higher. Same canvas as water_splash0."
+  },
+  {
+   "name": "wave_tube_body",
+   "category": "wave",
+   "width": 360,
+   "height": 132,
+   "contentBox": [
+    11,
+    8,
+    299,
+    130
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_tube_body.svg"
+   },
+   "notes": "v4.28 wave WA3 \"Tubo\", the body: the face under the lip, with the hollow beneath it. 120x44 units, the steep face to +x (the direction of travel) and the long back to -x. Tinted per frame to the luma WaveTint derives from the water under it -- see PaperRenderer.WAVE_BODY_LUMA_GAP and WaveContrastTest."
+  },
+  {
+   "name": "wave_tube_crest",
+   "category": "wave",
+   "width": 360,
+   "height": 132,
+   "contentBox": [
+    150,
+    0,
+    358,
+    104
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_tube_crest.svg"
+   },
+   "notes": "v4.28 wave WA3 \"Tubo\", the foam: the lip curling forward into a tube and the spray thrown ahead of it. Same 120x44 canvas as wave_tube_body so the two blit at one origin. Always the lighter of the two papers -- see WaveTint.foamLuma."
   }
  ],
  "retiredBases": {
   "person_boy_summer_head_car": "person_boy_summer_head_car_skin2",
   "person_boy_winter_head_car": "person_boy_winter_head_car_skin2",
+  "person_man_summer_carry0": "person_man_summer_carry0_skin1",
+  "person_man_summer_carry1": "person_man_summer_carry1_skin1",
+  "person_man_summer_carry2": "person_man_summer_carry2_skin1",
   "person_man_summer_head_car": "person_man_summer_head_car_skin1",
   "person_man_summer_head_car_alt": "person_man_summer_head_car_alt_skin1",
+  "person_man_winter_carry0": "person_man_winter_carry0_skin1",
+  "person_man_winter_carry1": "person_man_winter_carry1_skin1",
+  "person_man_winter_carry2": "person_man_winter_carry2_skin1",
   "person_man_winter_head_car": "person_man_winter_head_car_skin1",
   "person_man_winter_head_car_alt": "person_man_winter_head_car_alt_skin1",
+  "person_woman_summer_carry0": "person_woman_summer_carry0_skin0",
+  "person_woman_summer_carry1": "person_woman_summer_carry1_skin0",
+  "person_woman_summer_carry2": "person_woman_summer_carry2_skin0",
   "person_woman_summer_head_car": "person_woman_summer_head_car_skin0",
   "person_woman_summer_head_car_alt": "person_woman_summer_head_car_alt_skin0",
+  "person_woman_winter_carry0": "person_woman_winter_carry0_skin0",
+  "person_woman_winter_carry1": "person_woman_winter_carry1_skin0",
+  "person_woman_winter_carry2": "person_woman_winter_carry2_skin0",
   "person_woman_winter_head_car": "person_woman_winter_head_car_skin0",
   "person_woman_winter_head_car_alt": "person_woman_winter_head_car_alt_skin0"
  }

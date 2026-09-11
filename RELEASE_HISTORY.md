@@ -24,6 +24,148 @@ release date will be standing.
 
 ---
 
+## v4.28 — a bird that reads, an umbrella in the rain, and a sea that moves
+
+**Prepared, not published.** `versionCode = 59`, `versionName = "4.28"`. Prepared 2026-09-11. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.27**, which
+**is** published — read from the public GitHub API on 2026-09-11, published 2026-09-10 16:54:58 UTC
+with its APK attached, along with v4.16 through v4.26. `ROADMAP.md` said otherwise; see below.
+
+**What it is.** Three artwork decisions the maintainer took from three rounds of photographs on the
+device, implemented: the bird redrawn for legibility, an umbrella in the hand of anyone walking in
+the rain, and waves on the lake in bad weather. Plus the ceiling raise the second of those needed,
+with the condition attached to it discharged, and the documentation trap this project keeps falling
+into, sprung for the third time.
+
+### The bird: a silhouette defect, not a facing defect
+
+v4.27 measured that the birds do not fly backwards — the sprite carries its head at the leading end,
+`drawBirds` applies only a vertical mirror, and mirroring the sprite would have **created** the
+defect it was meant to cure. That conclusion held. What it did not explain is why the maintainer saw
+what they saw, and v4.28 is the answer: at the **42 px** a bird reaches, the largest shape in
+"Colomba" was the pair of raised wings, which rise up and *forward* — and a pair of forward humps is
+also the shape of a fanned tail. The eye reads the largest shape, so it read the animal tail-first.
+
+**B1 "Rondine"** moves the weight behind the head: a deep forked tail and sickle wings swept back.
+**Nothing is mirrored.** The canvas is the same 51 × 21, the blit origin the same `(-25, -15)`, and
+the flap axis still canvas row 15, which the wing-beat is a mirror about — so the change is
+weightless against the decoded-sprite budget and touches no geometry at all. The `bird-facing`
+golden was re-authored; it exists for exactly this.
+
+The rule that came out of it is in `DESIGN_NOTES.md` §2: **a silhouette defect and a facing defect
+present identically, and only one of them is fixed by mirroring.**
+
+### The umbrella, and the rule v4.22 wrote for cars and not for people
+
+Pose **P1 "Alzato"** with canopy **U1 "Alta"**: the near arm bent, the hand at cheek height, still
+on all three walk frames while the far arm keeps swinging. Adults only — children walk through the
+rain — and about two in three of them. **Rain only**: the gate is the renderer's single rain
+predicate, the one `drawPrecipitation` paints rain on, so snow is excluded by construction rather
+than by a second rule that could drift.
+
+**The pose is one limb, not a second family.** `build_carry_sprites.py` draws `walker_rilievo` with
+the near arm replaced, and proves on every run that it is the shipped road: it re-renders the
+shipped man's three summer walk frames through the same path and compares them **byte for byte**
+with what ships. 36 PNGs — 2 families × 2 seasons × 3 frames × 3 tones — and no un-toned base,
+because the call site indexes by tone only.
+
+**The handle is a rectangle drawn in code**, from the hand to a point above the head, with only the
+canopy as artwork. That is the parasol pole's recipe and it buys two things: the canopy is tintable,
+so one drawing serves five colours; and the same pose will carry a bag or a case later with no new
+person artwork at all.
+
+**Who carries changes only off screen.** `CarSelection.offScreen`'s own doc says the rule was
+deliberately not extended to pedestrians — *"a pedestrian materialising mid-pavement is forgiven"* —
+and it is right about a pedestrian appearing. It is not right about an **object appearing in the
+hand of a figure already walking**, so v4.28 takes the rule over for this one property, using the
+pedestrians' own tiling: the scene tiles every two screen widths, so each walker has roughly one
+screen width of its loop with no copy on screen, and that is the only moment its umbrella may open
+or close. The cost is the delay — a walker already on screen when the rain starts finishes bare-
+headed, up to about 75 s on the reference device — and that is the right way round.
+
+### The wave: WA3 "Tubo", and a colour derived for the third time
+
+Two tintable masks per wave — a **body**, the face under the curling lip, and the **foam** thrown
+forward off it — in three slots drifting +x across the near lanes, **in rain and thunderstorm only**.
+A clear sky gathers none, and the frame is then identical to v4.27's. The water is not recoloured:
+the mirror, the light's path and the boats' wakes are untouched, and the band's top edge stays flat.
+
+**The colour is derived per frame**, by the same method as v4.26's waterline and v4.27's rain, and
+the sweep is the eight-hundred-odd five-minute steps × three weathers × every theme that draws a
+lake — **2 592 situations**, on the host:
+
+| | |
+|---|---|
+| floor | **9.80** of Rec. 601 luma — how much the mirror's own gradient already varies over one wave's height, at its worst (Beach 07:24, theme rain) |
+| signal | **40** (body) and **60** (foam) — the gaps of the frame the maintainer read as a wave (Beach 12:00, theme rain, surface luma 186.65) |
+| gates | **24.9** and **34.9**, halfway, as the v4.22 rule places every gate |
+
+**One direction does not hold.** Carrying the body always toward black — the obvious rule, and the
+one the proposals used — puts it under 40 of luma in **901 of the 2 592**, every one of them at
+night: darkest surface **44.91** at Beach 00:00 under thunderstorm. So the body goes to the cheaper
+side, toward black above 127.5 of luma and toward white below, exactly as the rain's remedy does,
+and the foam is always the lighter paper by at least its own gate. The direction changes at most
+twice a day on any theme.
+
+**And a gate is a floor, not a target** — the one thing v4.28 added to the method. The proposals
+aimed the renderer at the gate everywhere; by day that read and at night it came out "discreet". The
+renderer now aims at the **signal** at night and the **gate** by day, crossfading on `dayBlend` the
+way the car and people counts do. No new number: both ends were already measured, and what moved is
+which end is aimed at when.
+
+**Where the white runs out.** On Tundra — ice water, `#BFE3EE` — around dawn the surface passes the
+point where foam above it does not exist, and the papers invert: foam dark, body darker still, which
+is the only arrangement that keeps both gaps and their order. **139 of 2 592 situations**, all on
+Tundra; the night target widened it from the 136 the flat gates gave. Looked at on the device at the
+palest case the sweep names (Tundra 07:45, theme rain, surface luma 233.93) rather than left as
+arithmetic.
+
+**A wave is an object on the water, so it is sorted like one.** The proposals drew every wave before
+every boat and every dolphin, so a breaker crossing the near edge was cut off behind a hull plainly
+further away — the sail-and-dolphin defect of v3.1 in a new pair. The waves now enter the same
+far-to-near pass, and the difficulty is that the three categories do not share a reference point: a
+boat's key is its placement point and its hull meets the water **25 boat units below** it, a
+dolphin's key is its lane, a wave's base *is* its waterline. Keyed by its bare base the wave was
+compared against a boat's placement point, and the first burst of frames showed it cutting the sail
+of a nearer boat. The wave's key is its base lifted by the boat's own hull offset, so the two meet
+waterline to waterline; all three properties `LakeLanesTest` fixes survive by construction. Wave
+against dolphin is still off by ~16 px — `BACKLOG_v4_28.md` item 84, with the one-function fix it
+would take and why it is not a wave release's work.
+
+### The ceiling, and the condition on it
+
+The set could not hold the pose: **28 619 568 B** shipped against **1 789 136 B** of margin under
+29 MiB, and **4 667 328 B** wanted. No useful reduced coverage fits — one season only is over by
+755 344 B, one tone only by **47 728 B**, less than half a sprite — and the only thing that does fit
+is one season *and* one tone together, which is a summer-only umbrella on a single skin tone in a
+street of walkers drawn in three.
+
+The space was looked for first, as the v4.20 paragraph in `SpriteGeometryTest` demands, and there is
+none: `SpriteReachabilityTest` now fails any shipped PNG no source names, in both directions, so the
+hunt v4.20 did by hand is a standing check and the set carries no dead weight. The maintainer raised
+the ceiling to **32 MiB** conditionally, in v4.20's own words — the A/B memory measurement must not
+move beyond the noise, and **the umbrella is refused outright if it does**. The set lands at
+**33 286 896 B = 31.745 MiB**, leaving **267 536 B**.
+
+`BACKLOG_v4_28.md` item 80 is why this should be the last raise argued on coverage alone:
+`SpriteCache` decodes at the artwork's resolution, so an adult pedestrian is a 117 × 252 bitmap that
+reaches the screen 37 px tall — roughly 46 times the area drawn, over a family of 202 sprites.
+
+### `ROADMAP.md` said v4.27 was not published. It was.
+
+Third time. The document's own status block carried the recipe and the reason — *"Re-read the API
+rather than this line — nothing in a working tree learns that a release went out"* — three lines
+below the false claim. `BACKLOG_v4_24.md` item 55 named the mechanism and stays open; what v4.28
+adds is the observation that **having the recipe in the document is not enough**, and the shape of
+the check that would actually close it.
+
+Housekeeping that went with it: `BACKLOG_v4_23.md`, `BACKLOG_v4_24.md` and `BACKLOG_v4_25.md` moved
+to `docs/archive/` under the convention the v4.24 pass established, with every item they still leave
+open — 18, 25, 30, 40, 50–55, 56, 58, 63 — **carried forward by number** into `BACKLOG_v4_28.md`,
+which is what makes moving them safe.
+
+---
+
 ## v4.27 — the rain that could not be seen, and a bird that was not backwards
 
 **Prepared, not published.** `versionCode = 58`, `versionName = "4.27"`. Prepared 2026-09-10. No

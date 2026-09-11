@@ -94,12 +94,15 @@ def co_registered_groups(names: set[str]) -> list[Group]:
     definitions = (
         (
             "person_walk",
-            lambda n: n.startswith("person_") and "_walk" in n,
+            lambda n: n.startswith("person_") and ("_walk" in n or "_carry" in n),
             "SceneObjectRenderer.drawPerson",
             "Every walk frame of every kind and season is chosen from personWalkDrawables and "
             "blitted through one origin. The frames do not share a content box -- the mid-stride "
             "frame reaches further to both sides -- so a per-frame crop would move the figure "
-            "between frames.",
+            "between frames. v4.28's carrying frames are in the same group and must be: "
+            "drawPerson swaps a `_carry` frame in for the `_walk` frame of the same walker at the "
+            "same origin, so a crop that moved one against the other would make the figure jump "
+            "the moment it put an umbrella up.",
         ),
         (
             "person_head_window",
@@ -133,6 +136,15 @@ def co_registered_groups(names: set[str]) -> list[Group]:
             "phases are the same disc lit differently, so they must be cropped identically or "
             "the moon would move as it waxes.",
         ),
+        (
+            "wave_tube",
+            lambda n: n.startswith("wave_tube_"),
+            "PaperRenderer.drawWaveItem",
+            "The wave's body and its foam are two masks of one drawing, blitted back to back at "
+            "one origin and tinted to two different lumas. They cover different parts of that "
+            "canvas -- the body sits low and back, the foam curls forward off the top -- so "
+            "cropping either on its own would slide the lip off the face it breaks from.",
+        ),
     )
     groups = []
     for key, predicate, site, reason in definitions:
@@ -154,6 +166,20 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "on the grid would mean padding back what was removed or cropping artwork. The pair also "
         "shares the hand-tuned -87.45 origin, which is anchor semantics. Deferred to the "
         "perspective work.",
+    ),
+    Exclusion(
+        "wave_tube_body",
+        "One of the two masks of the v4.28 wave, which share a 360x132 canvas and one blit "
+        "origin. The pair *is* croppable as a group -- their union leaves 11 empty columns on the "
+        "left -- and the group crop would keep them registered, so the reason to leave it is not "
+        "registration. It is that the artwork is byte-identical to the PNG the maintainer "
+        "approved from the phase-3 photographs, and a crop trades that provenance plus an origin "
+        "compensation with a device look attached for 12 672 decoded bytes across the pair. The "
+        "same trade tree_canopy_snowcap records above, at a fifth of the size.",
+    ),
+    Exclusion(
+        "wave_tube_crest",
+        "The other half of the pair; see wave_tube_body.",
     ),
     Exclusion(
         "tree_fir_snow",

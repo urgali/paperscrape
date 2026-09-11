@@ -206,9 +206,17 @@ print(t,'tests,',f,'failures,',e,'errors')"
 ```
 
 **Do not count goldens by listing the directory.** It holds the Canvas PNGs *and* the three
-`gl-*.png`. The Canvas figure is the number of Canvas **assertions** — `SceneGoldenTest`,
-`PeopleGoldenTest` and `SettingsGateScenesTest`, one `assertMatches` each, no parameterised
-tests. Listing the directory once produced "30 Canvas goldens" for a suite that had 24, and
+`gl-*.png`. The Canvas figure is the number of Canvas **assertions**, one `assertMatches` each,
+no parameterised tests. **Do not keep the list of classes here either** — this paragraph named
+three and there are four, and v4.28 filtered an intermediate golden run on the stale list and
+missed `SkyWaterGoldenTest`, whose `waterline-worst-theme` then failed in the full suite. Ask the
+tree, which also finds the GL suite:
+
+```bash
+grep -rln 'SceneGolden\.assertMatches\|GlGolden\.assertGlBackendUnchanged' app/src/androidTest --include='*.kt'
+```
+
+Listing the directory once produced "30 Canvas goldens" for a suite that had 24, and
 that number then propagated. `GoldenUniquenessTest` keeps two names from sharing one
 picture; two *tests* may assert one PNG with different focus rectangles, but two *PNGs* of
 one scene must not exist.

@@ -1,0 +1,292 @@
+{
+ "schemaVersion": 2,
+ "note": "v4.28 phase-1 wave2 concepts; NOT shipped.",
+ "sprites": [
+  {
+   "name": "wave_a_body",
+   "category": "wave2",
+   "width": 396,
+   "height": 108,
+   "contentBox": [
+    11,
+    9,
+    354,
+    108
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_a_body.svg"
+   },
+   "notes": "Round-2 wave concept wave_a_body: 132x36 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_a_crest",
+   "category": "wave2",
+   "width": 396,
+   "height": 108,
+   "contentBox": [
+    132,
+    0,
+    383,
+    57
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_a_crest.svg"
+   },
+   "notes": "Round-2 wave concept wave_a_crest: 132x36 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_b_foam0",
+   "category": "wave2",
+   "width": 360,
+   "height": 60,
+   "contentBox": [
+    17,
+    32,
+    343,
+    54
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_b_foam0.svg"
+   },
+   "notes": "Round-2 wave concept wave_b_foam0: 120x20 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_b_foam1",
+   "category": "wave2",
+   "width": 360,
+   "height": 60,
+   "contentBox": [
+    8,
+    6,
+    351,
+    60
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_b_foam1.svg"
+   },
+   "notes": "Round-2 wave concept wave_b_foam1: 120x20 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_b_foam2",
+   "category": "wave2",
+   "width": 360,
+   "height": 60,
+   "contentBox": [
+    10,
+    13,
+    333,
+    55
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_b_foam2.svg"
+   },
+   "notes": "Round-2 wave concept wave_b_foam2: 120x20 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_c_body0",
+   "category": "wave2",
+   "width": 324,
+   "height": 108,
+   "contentBox": [
+    18,
+    65,
+    306,
+    108
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_c_body0.svg"
+   },
+   "notes": "Round-2 wave concept wave_c_body0: 108x36 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_c_crest0",
+   "category": "wave2",
+   "width": 324,
+   "height": 108,
+   "contentBox": [
+    103,
+    62,
+    221,
+    80
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_c_crest0.svg"
+   },
+   "notes": "Round-2 wave concept wave_c_crest0: 108x36 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_c_body1",
+   "category": "wave2",
+   "width": 324,
+   "height": 108,
+   "contentBox": [
+    19,
+    7,
+    301,
+    108
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_c_body1.svg"
+   },
+   "notes": "Round-2 wave concept wave_c_body1: 108x36 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_c_crest1",
+   "category": "wave2",
+   "width": 324,
+   "height": 108,
+   "contentBox": [
+    108,
+    0,
+    315,
+    48
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_c_crest1.svg"
+   },
+   "notes": "Round-2 wave concept wave_c_crest1: 108x36 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_c_body2",
+   "category": "wave2",
+   "width": 324,
+   "height": 108,
+   "contentBox": [
+    6,
+    74,
+    318,
+    108
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_c_body2.svg"
+   },
+   "notes": "Round-2 wave concept wave_c_body2: 108x36 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  },
+  {
+   "name": "wave_c_crest2",
+   "category": "wave2",
+   "width": 324,
+   "height": 108,
+   "contentBox": [
+    24,
+    48,
+    299,
+    101
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_c_crest2.svg"
+   },
+   "notes": "Round-2 wave concept wave_c_crest2: 108x36 units, SCENE_UNITS, tintable mask (body masks tinted dark, foam masks tinted light)."
+  }
+ ]
+}

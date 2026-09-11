@@ -114,6 +114,38 @@ An animal with two tails and no face, and it would have shipped. Artwork changes
 for this reason and not as ceremony.
 
 
+### A silhouette has a heaviest shape, and the eye reads it as the back **[DECIDED — v4.28]**
+
+The gull above fixed *what* the bird was. v4.28 fixed *which way round* it read, and the two are
+different problems with the same cause: **the largest shape in an outline is the one the eye uses,
+and everything else is detail it fills in.**
+
+The reported defect was that the birds fly backwards. v4.27 measured that they do not — the head is
+at the leading end, `drawBirds` applies only a vertical mirror, and mirroring the sprite would have
+*created* the defect it was meant to cure. But the report was not wrong about what the maintainer
+saw. At the **42 px** a bird actually reaches, "Colomba" raised both wings up and **forward**, and
+those two humps were the largest shape in the outline. A pair of raised forward humps is also the
+shape of a fanned tail. So the animal read tail-first, and the head — a 3.6 px disc drawn
+continuous with the body — was too small to argue with it.
+
+**The rule that comes out of it:** a silhouette must put its weight where the animal's weight is. In
+a bird that means behind the head, and B1 "Rondine" does it with the two shapes a swallow already
+has — a deep forked tail and sickle wings swept **back**. Nothing was mirrored, nothing moved
+frames, and the registration is untouched: the canvas is still 51 × 21, the blit origin still
+`(-25, -15)`, and the flap axis is still canvas row 15, which the wing-beat mirrors about.
+
+Two consequences worth keeping:
+
+- **A silhouette defect and a facing defect present identically**, and only one of them is fixed by
+  mirroring. Mirroring is the cheap answer and it is wrong here; the test for telling them apart is
+  to ask where the *largest* shape is, not where the head is.
+- **This one could only be judged at 42 px.** On the authoring canvas, at three times that, both
+  drawings read correctly — which is the whole of the rule at the top of this section, arrived at a
+  second time by a different route.
+
+`bird-facing` pins one bird at the size it ships, so neither can go out unlooked-at.
+
+
 ### What actually separates a gull from a bat
 
 
@@ -1317,7 +1349,7 @@ baked grid, the one measured above, is untouched and the guidance here still sta
 |---|---|---|---|---|
 | Changing cloud density or rain intensity teleports the whole field | Candidates failing the density filter were skipped before consuming the shared RNG stream, shifting every later candidate's values; for clouds the pool size also moved with the density | **Resolved** | Fixed pools with index-addressed attributes | Phase 2.1/2.2 |
 | Also triggered by the hourly live-weather refresh | Same as above; `cloudCoverFraction` feeds the same density input | **Resolved** | Same | Phase 2.1/2.2 |
-| A bird's direction of travel does not read at the size it ships | Not a facing defect: the sprite carries its head at the leading end and the renderer never mirrors it horizontally, so the animal flies the way it is drawn. It is a silhouette defect. At 51 px the head is a 3.6 px disc drawn continuous with the body and the beak a 3.5 px wedge, while the largest shape in the outline is the raised wing — which rises up and forward, and is also the shape of a fanned tail. Reported from a device as the birds flying backwards | Open — the artwork is correct and its legibility is a judgement | None decided. A redraw would have to move weight to the head end without changing the canvas, the viewBox or the flap axis, which the wing-beat is a mirror of. `bird-facing` pins the current frame so a redraw cannot go out unlooked-at | — |
+| A bird's direction of travel does not read at the size it ships | Not a facing defect: the sprite carries its head at the leading end and the renderer never mirrors it horizontally, so the animal flies the way it is drawn. It is a silhouette defect. At 51 px the head is a 3.6 px disc drawn continuous with the body and the beak a 3.5 px wedge, while the largest shape in the outline is the raised wing — which rises up and forward, and is also the shape of a fanned tail. Reported from a device as the birds flying backwards | **Resolved** | Concept B1 "Rondine": the largest shape moved behind the head — a deep forked tail and sickle wings swept back — on the same canvas, the same viewBox and the same flap axis. Nothing mirrored. §2, "A silhouette has a heaviest shape, and the eye reads it as the back" | v4.28 |
 | Rain the same brightness as the sky it falls through | A fixed colour on a background that varies: the drop's colour is the theme's day/night pair and nothing else, while the sky changes with the hour, the twilight branch and the weather. Eleven of the twelve themes reach 0.00 of Rec. 601 luma separation at some hour. Reported from a device as rain that could not be seen until it reached the hills | **Resolved** | The colour derived per frame against the sky the drop crosses, to a gap placed between a measured floor and a measured signal, and no further. §17 and `PRECIPITATION_MIN_LUMA_GAP` | v4.27 |
 | Water under the horror sky mirrors a colour that was never computed | `drawSky` recorded the sky it drew *after* the horror branch, and that branch returns. With the horror sky on, the two fields held the previous frame's value, and zero — transparent black — on the first | **Resolved** | Both colours recorded before the return | v4.27 |
 | Cars restart from their initial position while dragging any unrelated slider | Every configuration change rebuilds the whole `SceneObjectRenderer`, resetting car runtime progress; the settings write path is undebounced | Open | Debounced persistence + incremental renderer update | — |
@@ -1663,6 +1695,107 @@ treated here: a flake leaving a white cloud is what the fade-in over the first t
 already exists for.
 
 ---
+
+
+### People carry umbrellas in the rain, and never in the snow **[DECIDED — v4.28]**
+
+An adult walking in the rain puts an umbrella up. Three decisions sit under that one sentence, and
+each is a rule rather than a setting.
+
+**Rain, and only rain.** The gate is the renderer's single rain predicate — exactly the one
+`drawPrecipitation` paints rain on — so **snow is not rain** and nobody walks under an umbrella
+through it. That is not a stylistic preference: the scene's own rule above is that falling snow is
+weather with its own language, and an umbrella in it would be borrowing the rain's.
+
+**Adults only.** The children walk through it. A street where everybody without exception does the
+same thing reads as a uniform rather than as weather, and children being unequipped is the reading
+the phase-2 photographs were approved on. Of the adults, roughly **two in three** carry, drawn from
+each walker's own address so it is fixed for a figure across a whole shower.
+
+**Nothing appears in a hand that is already on screen.** This is the one that costs something. v4.22
+established the rule for the cars — membership changes only while nothing of the thing is visible —
+and `CarSelection.offScreen`'s own note says why it was **not** extended to people: *"a pedestrian
+materialising mid-pavement is forgiven; a car materialising in the middle of the road is not."* That
+is right about a pedestrian *appearing*, which happens at the frame edge anyway. It is not right
+about an **object appearing in the hand of a figure already walking**, which is a different event
+and reads as a glitch rather than as someone opening an umbrella.
+
+So v4.28 takes the rule over for this one property. The scene tiles every two screen widths, so each
+walker has about one screen width of its loop with no copy visible, and that is the only moment its
+umbrella may open or close. **What it costs is the delay**: a walker already on screen when the rain
+starts finishes its crossing bare-headed — up to about 75 seconds on the reference device. That is
+the right way round. Weather arriving over a minute is a scene; objects blinking into hands is not.
+
+**The handle is drawn in code, not authored.** A rectangle from the hand to a point above the head,
+which is the parasol pole's own recipe, with only the canopy as artwork. Two things follow: the
+canopy is tintable, so one drawing serves every colour on the street at no cost in sprites; and the
+**pose is reusable** — the same bent arm can carry a bag or a case later, with a different rectangle
+and a different sprite hanging off the same hand, and no new person artwork at all. The pose is
+`walker_rilievo` with **one limb redrawn**, and the generator proves it on every run by
+re-rendering the shipped walk frames through the same path and comparing them byte for byte.
+
+The far arm keeps swinging. The near one is still, on all three walk frames — a version that
+followed the swing was drawn and measured at less than a pixel of movement on screen, so it cost
+three different frames for nothing anybody can see.
+
+
+### The sea moves in bad weather, and the water is not recoloured to say so **[DECIDED — v4.28]**
+
+v4.26 made the lake a **mirror** — concept S1 "Specchio", chosen over two wave concepts on the
+grounds that *"waves in a band this shallow read as stripes, and the scene already carries its
+motion in the sky"*. v4.28 does not reopen that. The mirror stays exactly as it is: the water is not
+recoloured, the sky's reflection and the boats' wakes stay visible, and the band's top edge stays
+flat.
+
+What moves is **on** the water, not the water itself: concept WA3 "Tubo", a breaker whose lip curls
+forward with the spray thrown ahead of it, in three slots drifting the way the boats sail. Two
+tintable masks per wave — a **body**, the face under the lip, and the **foam**. In rain and in a
+thunderstorm only: **a clear sky draws none, and the frame is then identical to what v4.27 drew.**
+
+**Why a shape with a body, and not foam alone.** The first round drew whitecaps as foam-only marks,
+20–44 px, and they failed at 1× on the whole frame: a thin light line on moving water is not a wave,
+it is noise. What makes a wave read is that it has a **near side** — something the light does not
+reach, with the bright edge above it. The second thing that makes it read is that it says which way
+it is going: the steep face is to +x, the long back to −x, and the lip that overhangs is what a
+viewer uses to tell the direction in the second they look at it.
+
+**The colour is derived, and this is the third time.** See "Rain is a hairline on a surface that
+moves, so its colour cannot be fixed" above, and the waterline before it. A wave lies on a mirror of
+the sky, so any pair of fixed colours is wrong at some hour of some theme — the same argument, one
+category further on. The papers are placed by luma against the water under them:
+
+```
+gate  = halfway between a measured floor and a measured signal      (the v4.22 rule)
+floor = how much the mirror's own gradient already varies over one wave's height, at its worst
+signal = the gaps of the frame the maintainer read as a wave
+```
+
+over the eight-hundred-odd five-minute steps × three weathers × every theme that shows a lake —
+**2 592 situations**. Floor **9.80**, signal **40** (body) and **60** (foam), so the gates are
+**24.9** and **34.9** of Rec. 601 luma.
+
+**And the direction is chosen, not fixed**, which is the part a single number cannot carry. Carrying
+the body always toward black — the obvious rule, and the one the first proposal used — puts it under
+40 of luma in **901 of the 2 592**, every one of them at night: a dark body on dark water stops
+being a wave and becomes a rock. So the body goes to the **cheaper side** — toward black above 127.5
+of luma, toward white below — exactly as the rain's remedy does, and the foam is always the lighter
+paper by at least its own gate so the two never trade places.
+
+**A gate is a floor, not a target.** That distinction is the one thing v4.28 added to the method,
+and it came from the photographs: at the gate, the daytime sea read and the night sea came out
+"discreet" — visible, but weaker than a moving sea should be. The renderer therefore aims at the
+**signal** at night and at the **gate** by day, crossfading on `dayBlend` the way the car and people
+counts already do, so the sea firms up over the length of dusk. Nothing new was invented: both ends
+were already measured, and what changed is which end is aimed at when.
+
+**Where the white runs out.** On one theme the rule inverts. Tundra's water is ice (`#BFE3EE`), and
+around dawn the surface passes the point where foam above it does not exist, so the papers swap: the
+foam goes dark and the body darker still, which is the only arrangement that keeps both gaps and
+their order. It is a property of ice-coloured water, not of the rule, and the test fails if it
+spreads to a second theme.
+
+**A wave is an object on the water, so it is sorted like one.** See §10: it enters the same
+far-to-near pass as the boats and the dolphins rather than being painted under all of them.
 
 
 ### Falling snow is weather; a white roof is a costume

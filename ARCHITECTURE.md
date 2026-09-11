@@ -116,7 +116,9 @@ PaperScrape/
 | `SceneSpace.kt` | **The one place the world's size is stated.** The horizon, the ground plane's projection, the road's lanes and edges, and every category's real height in metres against the local units its art occupies. Every base scale is derived here, so the ratios between objects cannot be edited one at a time. |
 | `SceneTime.kt` | Scene time as a `@JvmInline value class` over `Double`, with every read bounded at the point of use. Replaces a `Float` accumulator that stopped advancing after ~12 days of visible uptime. |
 | `SolarDay.kt` | Today's sunrise, sunset and whether they came from a real position, as one immutable value (**P2-6**, v3.6). Published through a single `@Volatile` reference on the engine so the render thread cannot read a sunrise from one location beside a sunset from another — which three separate fields, `@Volatile` or not, allow. |
-| `LakeLanes.kt` | Which lane each lake decoration occupies and how deep it sits, so boats cannot share a line and a leaping dolphin sorts by where its body is rather than by the lane it left. |
+| `LakeLanes.kt` | Which lane each lake decoration occupies and how deep it sits, so boats cannot share a line and a leaping dolphin sorts by where its body is rather than by the lane it left. Since v4.28 the waves sort in the same pass, keyed by their waterline said in the boat's convention. |
+| `WaveTint.kt` | Where a wave's body and foam sit in luma, given the water under them. Pure arithmetic, so `WaveContrastTest` measures the same numbers the renderer draws: the cheaper carry for the direction, the foam always the lighter paper, and the gate that is a floor rather than a target. |
+| `PedestrianCarry.kt` | Which walkers have an umbrella up and when that may change -- `CarSelection.offScreen`'s "only out of sight" rule taken over for people, plus the share, the rain predicate and the canopy palette. |
 | `CandidateNoise.kt` | The stable per-candidate pseudo-random values the stateless candidate model is built on: same slot, same value, every frame, with density thinning and colour-variant assignment deliberately drawn from uncorrelated streams. |
 | `CloudCoverage.kt` | How many clouds a cover fraction means, shared by the theme's own setting and Live Weather's. |
 | `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern -- and since v4.22 the day/night crossfade model the car count borrows (`CarSelection.densityAt`): one "a crossfade, not a threshold" rule, two users. |
@@ -880,6 +882,55 @@ are drawn: `lakeWrapped` is in `(-screenWidth, 0]`, so the copy at `-1` never
 does, which is a third of the water the pre-v4.26 code painted off-screen every
 frame.
 
+### One pass over the water, and the three reference points it has to reconcile
+
+Everything that sits on the lake is placed into one set of slots and then drawn
+**far to near**, ordered by `LakeLanes.orderByDepth` on a single key. That pass
+was introduced in v3.0 for the boats, extended in v3.1 when a leaping dolphin
+had to recede as it rose, and extended again in **v4.28** when the waves joined
+it. Before that the waves were painted before the boats and the dolphins, so
+*every* wave sat behind *every* boat however the two were placed — a breaker
+crossing the near edge cut off behind a hull that was plainly further away,
+which is the sail-and-dolphin defect of v3.1 in a new pair.
+
+The slot arrays are fields on `PaperRenderer`, sized `LANE_COUNT + WAVE_POOL`,
+because this is a draw path and a per-frame list would be a per-frame
+allocation. `lakeItemIsWave` and `lakeItemScale` are the two the waves added:
+boats and dolphins are drawn at their category's fixed scale, a wave carries its
+own.
+
+**The part that needs care is the key.** The three categories do not measure
+depth from the same place:
+
+| kind | its depth key is | where its waterline actually is |
+|---|---|---|
+| sailboat | its placement point | **25 boat units below** the key — `drawSailboat` hangs the hull 8 units down and 17 tall |
+| dolphin | its lane | about **8 px below** the lane |
+| wave | its base | the base itself |
+
+So a wave keyed by its bare base is compared against a boat's *placement point*
+rather than against the boat's hull, and the first frames drawn that way showed
+a wave cutting the sail of a boat whose hull was obviously nearer. The wave's
+key is therefore its base **lifted by `SAILBOAT_HULL_WATERLINE_UNITS`**, so wave
+and hull meet waterline to waterline. All three properties `LakeLanesTest` fixes
+survive by construction: boats are untouched, the lift is never negative so
+nothing is ever pulled *forward* of where it sits, and one key still orders
+everything.
+
+Wave against dolphin is still off by the difference between the two
+conventions — about 16 px on the reference device. `BACKLOG_v4_28.md` item 84
+carries it, together with the shape of the real fix: one "visible waterline"
+function per kind, sorted on instead of the lane. It is not done there because
+changing the dolphin's key changes the shipped dolphin-and-boat ordering that
+five committed goldens portray.
+
+**The waves themselves.** Three slots, present only when it is raining or there
+is a thunderstorm — a clear sky gathers none, so the pass is bit-identical to
+v4.27's. A slot's membership changes only while it is off screen, which is
+`CarSelection.offScreen`'s rule applied to something that also crosses the frame
+in plain sight. Each wave is two blits, body then foam, both tinted per frame by
+`WaveTint` from the water under them; no primitives and no allocation are added.
+
 ---
 
 ## 4. Scene management
@@ -1402,7 +1453,7 @@ recorded figure.
 
 **Coverage as shipped: every sprite carries a registry entry, and every *drawn* sprite carries an
 SVG source; the ones that declare `source.kind = "none"` are the per-skin-tone recolours, which name
-their generator instead.** Measured at v4.21: 266 entries, 134 with an SVG, 132 recolours —
+their generator instead.** Measured at v4.28: 305 entries, 143 with an SVG, 162 recolours —
 `paperscrape-assets validate` prints the three numbers, which is where to read them rather than
 here. Every sprite being
 *described* by the registry is new in v76 and is the single most consequential thing

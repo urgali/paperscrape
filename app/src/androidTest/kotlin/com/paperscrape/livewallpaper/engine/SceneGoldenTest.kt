@@ -354,6 +354,90 @@ class SceneGoldenTest {
     )
 
     /**
+     * **A sea that moves, sorted against the boats on it.**
+     *
+     * v4.28 added the first thing the lake draws that is neither a boat nor a dolphin, and the
+     * lesson of `rain-worst-sky` is that a feature with no committed frame is a feature the golden
+     * net cannot see change. This is that frame, taken at the moment of the fix rather than after
+     * it: Beach under a thunderstorm with the boats and the dolphins at full density, so the frame
+     * portrays **both** halves of the item — that a wave is drawn at all in bad weather, and that
+     * it sorts into the same far-to-near pass as everything else on the water.
+     *
+     * **Why the warm-up.** A wave slot's membership may change only while it is off screen — the
+     * car rule — so a scene rendered cold has no waves in it by construction, whatever the weather
+     * says. The scene is run for 80 seconds of its own clock before the frame is taken, which is
+     * more than the 38-55 s a slot takes to cross, so every slot has had its chance to turn on and
+     * to drift back into view. Both warm-up numbers are pure inputs, so the frame is reproducible.
+     *
+     * The focus rectangle is the water and nothing else: the sky above it carries the storm veil
+     * and the lightning, which are v4.26's business and have their own frames.
+     */
+    @Test
+    fun waveStorm() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "wave-storm",
+            dayPhase = GoldenScene.day(),
+            themeId = "beach",
+            warmUpFrames = 320,
+            warmUpDeltaSeconds = 0.25f,
+            weather = LiveWeatherSnapshot(
+                precipitationType = PrecipitationType.RAIN,
+                precipitationIntensity = 1f,
+                cloudCoverFraction = 1f,
+                isThunderstorm = true,
+                fetchedAtMillis = 0L,
+            ),
+            customise = {
+                it.copy(
+                    lake = it.lake.copy(
+                        visible = true,
+                        sailboatsVisible = true,
+                        sailboatsDensity = 1f,
+                        dolphinsVisible = true,
+                        dolphinsDensity = 1f,
+                    ),
+                )
+            },
+            focus = listOf(
+                GoldenFocus(0, 435, 360, 545, "the water: waves, and what is in front of what"),
+            ),
+        ),
+    )
+
+    /**
+     * **An umbrella in a hand, at the size it ships.**
+     *
+     * The other half of the same lesson. An umbrella is a sprite swap plus two drawn shapes on a
+     * 37 px figure, which is exactly the scale at which `BACKLOG_v4_25.md` item 65 measured the
+     * golden net going green over a scene in which every person had been redrawn.
+     *
+     * **Why the warm-up, and it is the whole reason this frame needs one.** Who carries is state,
+     * not a predicate: `PedestrianCarry.nextCarrying` may move only while no copy of the walker is
+     * on screen, so at scene time zero **nobody carries anything**, however hard it is raining. A
+     * walker crosses its tile in about 38 s (`SceneSpace.PEDESTRIAN_SPEED_NEAR = 0.026`) and is out
+     * of sight for roughly half of it, so 80 seconds of scene clock is comfortably more than one
+     * crossing and the street has had time to pick umbrellas up. A frame that showed none would be
+     * pinning the rule failing, which is why the focus rectangle is on the pavement rather than on
+     * the whole frame.
+     */
+    @Test
+    fun umbrellaRain() = SceneGolden.assertMatches(
+        GoldenScene(
+            name = "umbrella-rain",
+            dayPhase = GoldenScene.day(),
+            warmUpFrames = 320,
+            warmUpDeltaSeconds = 0.25f,
+            weather = weather(cloud = 0.9f, type = PrecipitationType.RAIN, intensity = 0.6f, storm = false),
+            customise = {
+                it.copy(people = it.people.copy(visible = true, density = 1f))
+            },
+            focus = listOf(
+                GoldenFocus(0, 560, 360, 720, "the pavement: who is carrying, and what it looks like"),
+            ),
+        ),
+    )
+
+    /**
      * **The sky the rain used to vanish into.**
      *
      * v4.26 shipped a derived waterline for a case no committed golden portrayed — every lake

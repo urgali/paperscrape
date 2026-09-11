@@ -533,6 +533,51 @@ class PaperRenderer(
         /** The light's path on the water: how many slivers are cut under the sun or the moon. */
         const val LAKE_GLITTER_POOL_SIZE = 9
 
+        // ---- The waves (v4.28) ----------------------------------------------------------------
+        //
+        // Three slots, one breaker each, drifting +x across the near lanes in rain and in a
+        // thunderstorm and nowhere else -- a clear sky draws none, and the frame is then identical
+        // to v4.27's. A slot's membership changes only while it is off screen, which is the car
+        // rule of v4.22 ([CarSelection.offScreen]) applied to something that also crosses the
+        // frame in plain sight.
+        const val WAVE_POOL = 3
+
+        /**
+         * How far the two papers of a wave stand off the water in Rec. 601 luma, **derived and not
+         * chosen** -- `WaveContrastTest` sweeps the eight themes that show a lake x 288 five-minute
+         * steps x three weathers = 2 592 situations and fails if these drift from what it derives.
+         *
+         * The pair below is the **floor**: the v4.22 rule puts a gate halfway between a measured
+         * floor (9.80, the luma the mirror's own gradient already varies by over one wave's height,
+         * at its worst) and a measured signal (40 for the body and 60 for the foam, the gaps of the
+         * phase-2 frame the maintainer read as a wave). Halfway is the least that can be told apart
+         * from the gradient underneath.
+         *
+         * What the renderer *aims* at is [WaveTint.gapAt], which carries the night end up to the
+         * signal; see that function for why, and `DESIGN_NOTES` 16 for the photograph that asked.
+         */
+        const val WAVE_BODY_LUMA_GAP = 24.9f
+        const val WAVE_FOAM_LUMA_GAP = 34.9f
+
+        /** The night target: the signal itself, the far end of the same derivation. */
+        const val WAVE_BODY_LUMA_GAP_NIGHT = 40f
+        const val WAVE_FOAM_LUMA_GAP_NIGHT = 60f
+
+        /** The wave's canvas, in scene units, and the length it stands for on the water. */
+        const val WAVE_UNITS_WIDE = 120f
+        const val WAVE_UNITS_TALL = 44f
+        const val WAVE_METRES_LONG = 8f
+
+        /**
+         * How far under a sailboat's own depth key its visible waterline sits, in boat units.
+         *
+         * A sailboat is keyed by its placement point and `drawSailboat` hangs the hull 8 units
+         * below that, 17 units tall, so the hull meets the water 25 units under the key. A wave is
+         * keyed by its base, which *is* its waterline, and the two can only be compared once they
+         * are said in the same convention -- see [gatherWaves].
+         */
+        const val SAILBOAT_HULL_WATERLINE_UNITS = 25f
+
         /** The reflected glow's radius, in band heights. It is also its depth -- see
          * [drawLakeMirrorGlow] for why the two have to be the same number. */
         const val LAKE_MIRROR_GLOW_RADIUS_BANDS = 0.8f
@@ -1114,7 +1159,131 @@ class PaperRenderer(
         cachedStarsDensity = sceneCustomization.stars.density
     }
 
+    // ---- The weather this frame is actually in, evaluated once at the top of the frame ---------
+    //
+    // Three draw paths now need the same two answers -- the rain's own drawing, the umbrella in a
+    // pedestrian's hand and the waves on the lake -- and each of them reading the customization
+    // and the live override for itself is how they would come to disagree. "Raining" is exactly
+    // the predicate `drawPrecipitation` paints rain on, which is the point: **snow is not rain**,
+    // so nobody carries an umbrella in the snow and no wave crosses a frozen lake.
+    private var rainingNow = false
+    private var rainIntensityNow = 0f
+    /** The storm gate the lightning already uses, so the two cannot disagree about a thunderstorm. */
+    private var stormActiveNow = false
+
+    private fun updateWeatherPredicates() {
+        val live = liveWeatherOverride
+        val precip = sceneCustomization.precipitation
+        if (live != null) {
+            rainingNow = live.precipitationType == PrecipitationType.RAIN && live.precipitationIntensity > 0f
+            rainIntensityNow = if (rainingNow) live.precipitationIntensity else 0f
+        } else {
+            rainingNow = precip.visible && precip.intensity > 0f && precip.type == PrecipitationType.RAIN
+            rainIntensityNow = if (rainingNow) precip.intensity else 0f
+        }
+        stormActiveNow = LiveWeatherSceneRules.stormActive(
+            liveIsThunderstorm = live?.isThunderstorm,
+            themePrecipitationVisible = precip.visible,
+            themePrecipitationIsRain = precip.type == PrecipitationType.RAIN,
+            themeThunderstorm = precip.thunderstorm,
+        )
+    }
+
+    // ---- The waves (v4.28) --------------------------------------------------------------------
+    /** Which wave slots are on the water. A slot only changes while it is off screen. */
+    private val waveActive = BooleanArray(WAVE_POOL)
+    /** This frame's two derived tints, computed once in [gatherWaves] and used by [drawWaveItem]. */
+    private var waveBodyTint = 0
+    private var waveFoamTint = 0
+
+    /**
+     * Places this frame's waves into the lake's own item slots, so they are painted in the same
+     * far-to-near pass as the boats and the dolphins.
+     *
+     * ### Why they are not simply drawn before the boats
+     *
+     * That is what the phase-2 proposal did, and it made **every** wave sit behind **every** boat
+     * however the two were placed: a breaker crossing the near edge of the water cut off behind a
+     * hull that was plainly further away. It is the sail-and-dolphin defect of v3.1 in a new pair,
+     * and [LakeLanes] already holds its answer -- one pass, one key, sorted by base.
+     *
+     * ### The key, and why it is not the wave's own base
+     *
+     * The three categories do not share a reference point. A sailboat's key is its *placement*
+     * point and `drawSailboat` hangs the hull [SAILBOAT_HULL_WATERLINE_UNITS] below it, so the boat
+     * meets the water 25 boat units under its own key. A dolphin's key is its lane. A wave's base
+     * *is* its waterline. Keyed by its bare base the wave was compared against a boat's placement
+     * point rather than against the boat's hull, and the first burst of phase-3 frames showed
+     * exactly that: a wave cutting the sail of a boat whose hull was plainly nearer. The wave's key
+     * is therefore its base **lifted by the boat's own hull offset**, so wave and hull are compared
+     * waterline to waterline.
+     *
+     * That keeps all three properties `LakeLanesTest` fixes: boats are untouched, nothing is ever
+     * pulled *forward* (the lift is never negative, so a wave only ever moves back), and one key
+     * still orders everything. Against a dolphin the comparison is off by the difference between
+     * the boat's convention and the dolphin's -- about 16 px on the reference device, item 82 of
+     * `BACKLOG_v4_28.md`; the sail is the large thing a wave can be seen to cut, which is why it
+     * is the boat's convention that was adopted here.
+     */
+    private fun gatherWaves(from: Int, top: Float, bandHeight: Float, dayBlend: Float, elapsedSeconds: SceneTime): Int {
+        var count = from
+        // A thunderstorm is a full sea; plain rain scales the pool by how hard it is raining.
+        val waveDensity = if (stormActiveNow) 1f else rainIntensityNow
+        val effectOffset = CandidateThreshold.offsetFor(EffectId.LAKE_SPARKLES)
+        val fallbackIndex = CandidateThreshold.fallbackIndexFor(waveDensity, WAVE_POOL, effectOffset)
+        val waveSeed = seedFor(EffectId.LAKE_SPARKLES) xor 0x7A7
+        val hillNeverCoveredAbsY = (yOffsets[0] + heightFractions[0] * 0.02f) * screenHeight
+        val waveLaneMax = if (bandHeight > 1f) ((hillNeverCoveredAbsY - top) / bandHeight).coerceIn(0.06f, 0.9f) else 0.5f
+
+        // The two papers, derived from the water they will lie on: the same mirror colour
+        // `drawLakeBand` paints, carried to the lumas [WaveTint] places.
+        val waveSurface = ColorUtils.blendARGB(lakePaint.color, skyHorizonColorNow, LAKE_MIRROR_SKY_SHARE)
+        val waveSurfaceLuma = rec601Luma(waveSurface)
+        val bodyGap = WaveTint.gapAt(dayBlend, WAVE_BODY_LUMA_GAP, WAVE_BODY_LUMA_GAP_NIGHT)
+        val foamGap = WaveTint.gapAt(dayBlend, WAVE_FOAM_LUMA_GAP, WAVE_FOAM_LUMA_GAP_NIGHT)
+        waveBodyTint = WaveTint.carryTo(waveSurface, waveSurfaceLuma, WaveTint.bodyLuma(waveSurfaceLuma, bodyGap, foamGap))
+        waveFoamTint = WaveTint.carryTo(waveSurface, waveSurfaceLuma, WaveTint.foamLuma(waveSurfaceLuma, bodyGap, foamGap))
+
+        val waveBase = WAVE_METRES_LONG * SceneSpace.LAKE_PIXELS_PER_METRE / WAVE_UNITS_WIDE *
+            SceneSpace.sceneScale(screenHeight.toFloat())
+        val waveHullLift = SAILBOAT_HULL_WATERLINE_UNITS * SceneSpace.SAILBOAT_BASE_SCALE *
+            SceneSpace.sceneScale(screenHeight.toFloat())
+        for (i in 0 until WAVE_POOL) {
+            val waveWanted = waveDensity > 0f && CandidateThreshold.isPresent(i, waveDensity, effectOffset, fallbackIndex)
+            val waveLane = waveLaneMax * (0.42f + 0.5f * (i + CandidateNoise.value(waveSeed, i, CandidateNoise.CH_Y)) / WAVE_POOL)
+            val waveScale = waveBase * (0.85f + 0.3f * waveLane / waveLaneMax)
+            val waveHalfWidth = WAVE_UNITS_WIDE * waveScale / 2f
+            val waveSpeed = CandidateNoise.range(waveSeed, i, CandidateNoise.CH_SPEED, 0.018f, 0.026f)
+            val wavePhase = CandidateNoise.value(waveSeed, i, CandidateNoise.CH_PHASE)
+            val waveX = elapsedSeconds.cycle(waveSpeed, wavePhase) * (screenWidth + 2f * waveHalfWidth + 20f) - waveHalfWidth - 10f
+            val waveOffScreen = waveX + waveHalfWidth < 0f || waveX - waveHalfWidth > screenWidth
+            // Membership changes only out of sight -- the car rule, applied to the sea.
+            if (waveActive[i] != waveWanted && waveOffScreen) waveActive[i] = waveWanted
+            if (!waveActive[i] || waveOffScreen) continue
+            val waveY = top + bandHeight * waveLane + elapsedSeconds.sinAt(0.6f, wavePhase * 6.28f) * 1.5f
+            lakeItemX[count] = waveX
+            lakeItemY[count] = waveY
+            lakeItemScale[count] = waveScale
+            lakeItemPhase[count] = 0f
+            lakeItemIsDolphin[count] = false
+            lakeItemIsWave[count] = true
+            lakeItemDepth[count] = LakeLanes.depthOf(laneY = waveY, heightAboveLane = waveHullLift)
+            count++
+        }
+        return count
+    }
+
+    private fun drawWaveItem(canvas: SceneCanvas, x: Float, y: Float, spriteScale: Float) {
+        canvas.save()
+        canvas.translate(x, y)
+        canvas.scale(spriteScale, spriteScale)
+        sprites.drawTinted(canvas, R.drawable.wave_tube_body, -WAVE_UNITS_WIDE / 2f, -WAVE_UNITS_TALL, SpriteScale.SCENE_UNITS, waveBodyTint)
+        sprites.drawTinted(canvas, R.drawable.wave_tube_crest, -WAVE_UNITS_WIDE / 2f, -WAVE_UNITS_TALL, SpriteScale.SCENE_UNITS, waveFoamTint)
+        canvas.restore()
+    }
+
     fun draw(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime, deltaSeconds: Float) {
+        updateWeatherPredicates()
         // One direction only, per explicit request -- full screen-width drift every ~25s at
         // scrollSpeed=1.0;
         // scrollSpeed=0 freezes it. Safe to let this grow unbounded now that hills and objects
@@ -1222,6 +1391,7 @@ class PaperRenderer(
         // dusk crossfade of the car count, the hour drives the business hours, and neither may be
         // re-derived from a clock of its own -- fixedHour must move them exactly as it moves the sun.
         objectRenderer.update(deltaSeconds, dayPhase.dayBlend)
+        objectRenderer.rainingNow = rainingNow   // v4.28: who has an umbrella up
         objectRenderer.draw(canvas, objectGroundGeometry, dayPhase.dayBlend, elapsedSeconds, screenWidth.toFloat(), screenHeight.toFloat(), dayPhase.hour24)
 
         val fireworksEnabled = theme.hasFireworks && dayPhase.dayBlend < 0.35f
@@ -2554,10 +2724,14 @@ class PaperRenderer(
                 seedSalt = EffectId.DOLPHINS, isDolphin = true,
             )
         }
+        // The waves join the same pass, keyed by their waterline said in the boat's convention.
+        if (rainingNow || stormActiveNow) lakeItems = gatherWaves(lakeItems, top, bandHeight, dayPhase.dayBlend, elapsedSeconds)
         LakeLanes.orderByDepth(lakeItemDepth, lakeItems, lakeDrawOrder)
         for (n in 0 until lakeItems) {
             val slot = lakeDrawOrder[n]
-            if (lakeItemIsDolphin[slot]) {
+            if (lakeItemIsWave[slot]) {
+                drawWaveItem(canvas, lakeItemX[slot], lakeItemY[slot], lakeItemScale[slot])
+            } else if (lakeItemIsDolphin[slot]) {
                 drawDolphin(canvas, lakeItemX[slot], lakeItemY[slot], lakeItemPhase[slot], elapsedSeconds)
             } else {
                 drawSailboat(canvas, lakeItemX[slot], lakeItemY[slot])
@@ -2568,8 +2742,8 @@ class PaperRenderer(
     // Slots for one frame's worth of lake surface, sized for every candidate of both categories.
     // Fields rather than locals because this is a draw path: a per-frame list here would be a
     // per-frame allocation, which is exactly what the CPU audit exists to keep out.
-    private val lakeItemX = FloatArray(LakeLanes.LANE_COUNT)
-    private val lakeItemY = FloatArray(LakeLanes.LANE_COUNT)
+    private val lakeItemX = FloatArray(LakeLanes.LANE_COUNT + WAVE_POOL)
+    private val lakeItemY = FloatArray(LakeLanes.LANE_COUNT + WAVE_POOL)
 
     /**
      * What each item is sorted on, which is **not** always [lakeItemY].
@@ -2579,10 +2753,14 @@ class PaperRenderer(
      * front of the other. For a dolphin *in the air* it is the lane minus how far it has risen,
      * because the animal's body is no longer at its lane -- see [gatherLakeDecorations].
      */
-    private val lakeItemDepth = FloatArray(LakeLanes.LANE_COUNT)
-    private val lakeItemPhase = FloatArray(LakeLanes.LANE_COUNT)
-    private val lakeItemIsDolphin = BooleanArray(LakeLanes.LANE_COUNT)
-    private val lakeDrawOrder = IntArray(LakeLanes.LANE_COUNT)
+    private val lakeItemDepth = FloatArray(LakeLanes.LANE_COUNT + WAVE_POOL)
+    private val lakeItemPhase = FloatArray(LakeLanes.LANE_COUNT + WAVE_POOL)
+    private val lakeItemIsDolphin = BooleanArray(LakeLanes.LANE_COUNT + WAVE_POOL)
+    /** A wave rather than a boat or a dolphin: the pass draws all three, sorted together. */
+    private val lakeItemIsWave = BooleanArray(LakeLanes.LANE_COUNT + WAVE_POOL)
+    /** Only a wave carries one: boats and dolphins are drawn at their category's fixed scale. */
+    private val lakeItemScale = FloatArray(LakeLanes.LANE_COUNT + WAVE_POOL)
+    private val lakeDrawOrder = IntArray(LakeLanes.LANE_COUNT + WAVE_POOL)
 
     /**
      * One screen-width-wide copy of the water, offset horizontally by [xOffset] -- see [drawLake],
@@ -2891,6 +3069,7 @@ class PaperRenderer(
             lakeItemY[count] = y
             lakeItemPhase[count] = phase
             lakeItemIsDolphin[count] = isDolphin
+            lakeItemIsWave[count] = false
             // **A leaping dolphin is sorted by where its body is, not by where its lane is.**
             //
             // The lane is the right depth for everything that stays on the water, and v3.0's

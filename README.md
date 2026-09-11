@@ -139,8 +139,8 @@ by `tools/generate_skin_variants.py` and declared as such. A Python pipeline ren
 checks them against that registry — which records every sprite's size, content box, anchor rule,
 scale convention and tint class — and against the Kotlin call sites that blit them.
 (Counts are deliberately not written here: `ls app/src/main/res/drawable-nodpi/*.png | wc -l` is the
-answer, and a number kept by hand in a document goes stale. Measured at v4.26: 266 PNGs, 140 of them
-with an SVG source, 126 declared gaps.)
+answer, and a number kept by hand in a document goes stale. Measured at v4.28: 305 PNGs, 143 of them
+with an SVG source, 162 declared gaps.)
 
 ---
 

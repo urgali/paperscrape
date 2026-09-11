@@ -69,6 +69,11 @@ class SpriteTintClassTest {
         // The Halloween moon. Tintable like every other phase: it is the same disc under the
         // same theme colour, with the skull cut out of it rather than painted on.
         "moon_jack_o_lantern",
+        // v4.28. The umbrella's canopy is tinted per pedestrian from `PedestrianCarry.PALETTE`, so
+        // one drawing serves every colour on the street; the wave's two masks are tinted per frame
+        // from the water under them, which is the whole of `WaveTint` -- a wave with a colour of its
+        // own would be wrong at some hour of every theme.
+        "umbrella_canopy", "wave_tube_body", "wave_tube_crest",
     )
 
     /**

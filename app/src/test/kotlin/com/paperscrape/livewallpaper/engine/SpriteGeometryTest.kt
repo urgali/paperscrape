@@ -113,8 +113,64 @@ class SpriteGeometryTest {
      * above the 3 px legibility floor v4.19 derived for the pillar light, in both lanes, but not
      * by much. Recorded here because "it fits" and "it shows" are different questions and the
      * paragraphs above only answer the first.
+     *
+     * **v4.28 raises it to 32 MiB, and this is that argument.** It buys the three things the
+     * maintainer chose for this release, and only one of them is large: the carrying pose that puts
+     * an umbrella in an adult's hand (36 PNGs, 2 families x 2 seasons x 3 frames x 3 tones, at
+     * 117x252x4 = **4 245 696 B**), the umbrella's canopy (144x72x4 = **41 472 B**) and the wave
+     * WA3 "Tubo" (two 360x132 masks = **380 160 B**). The bird is free: B1 "Rondine" replaces
+     * `bird_body` on the same 51x21 canvas.
+     *
+     * *First, the space was looked for rather than asked for -- and there is none left to find.*
+     * The v4.20 paragraph above recovered 361 224 B of sprites nothing blitted, and the interesting
+     * part of that pass was that a table existed purely to keep them referenced. That cannot happen
+     * again: `SpriteReachabilityTest` now fails any shipped PNG no source file names, in **both**
+     * directions, so the hunt v4.20 did by hand is a standing check and the set carries no dead
+     * weight to reclaim. The shipped set measures **28 619 568 B** and every byte of it is
+     * reachable.
+     *
+     * *Then, the arithmetic, because a smaller version was looked for too.* The margin under 29 MiB
+     * is 30 408 704 - 28 619 568 = **1 789 136 B**, and the three items together need **4 667 328**.
+     * Cutting the pose down does not rescue it: one season only is 2 544 480 with the wave and the
+     * canopy counted, **over by 755 344**; one tone only is 1 836 864, **over by 47 728** -- it
+     * misses by less than half a sprite. The only coverage that fits under the old ceiling is one
+     * season *and* one tone at once (1 129 248), which is a summer-only umbrella on a single skin
+     * tone in a street of walkers drawn in three -- a regression of exactly the axis v4.1 raised
+     * this ceiling to buy in the first place, and a winter shower with everybody bare-headed. The
+     * item is whole or it is refused; there is no useful middle.
+     *
+     * *Then, and only then, the ceiling.* The set lands at **33 286 896 B = 31.745 MiB**, and 32 MiB
+     * is the next figure just above it, leaving **267 536 B** -- the same "just above the measured
+     * figure" every paragraph here has used, for the same reason: the pass after this one has to
+     * come here and argue too.
+     *
+     * *What it costs, measured rather than reasoned about.* The authorisation for this raise was
+     * conditional, in the same words v4.20's was: the A/B memory measurement of the release build
+     * running as the live wallpaper, against v4.27 rebuilt from its own ZIP at the same theme and
+     * the same elapsed time, must not move beyond the noise, **and the umbrella is refused outright
+     * if it does**. The v4.28 pass report carries that number. The worst case this budget measures
+     * is unchanged in kind: sprites decode on demand, no frame decodes two tones of one character,
+     * and the carrying pose is drawn *instead of* the walking one rather than on top of it -- a
+     * pedestrian with an umbrella costs one more decoded frame than the same pedestrian without,
+     * not one more figure.
+     *
+     * *What the A/B does and does not exercise, said here because the condition is easy to
+     * over-read.* `SpriteCache` decodes on demand and has **no standing size cap** -- it evicts only
+     * on a system trim callback -- so the resident set is whatever the scenes visited have drawn,
+     * and the figure this budget pins is a ceiling no single frame reaches. The A/B therefore
+     * answers "did the shipped build's real memory move", which is the question v4.20's
+     * authorisation asked; it does not exercise the new sprites, because the scene it measures is
+     * not raining. The worst case those sprites can add is bounded by the arithmetic above --
+     * 4 667 328 B, and only in a scene that is raining over a lake with adults on the pavement.
+     *
+     * *The cheaper answer, still on the table.* Everything the v4.1 paragraph says about recolouring
+     * at load time still applies, and `BACKLOG_v4_28.md` item 80 now records a second and larger
+     * one: `SpriteCache` decodes at the resolution the artwork was drawn at, so this 117x252 pose
+     * is decoded at four times the area it is ever blitted at. That item would take the whole set
+     * back under the ceiling this paragraph raises, and it is the reason this is the last raise
+     * that should be argued on coverage alone.
      */
-    private val decodedByteBudget = 29L * 1024L * 1024L
+    private val decodedByteBudget = 32L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {

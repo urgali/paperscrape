@@ -1,0 +1,58 @@
+{
+ "schemaVersion": 2,
+ "note": "v4.28 phase-1 umbrella concepts; NOT shipped.",
+ "sprites": [
+  {
+   "name": "umbrella_concept1",
+   "category": "umbrella",
+   "width": 144,
+   "height": 72,
+   "contentBox": [
+    2,
+    0,
+    142,
+    72
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "umbrella_concept1.svg"
+   },
+   "notes": "U1 Alta: a round dome of six panels. 48x24 units, SCENE_UNITS, tintable mask."
+  },
+  {
+   "name": "umbrella_concept3",
+   "category": "umbrella",
+   "width": 162,
+   "height": 54,
+   "contentBox": [
+    4,
+    0,
+    160,
+    54
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "umbrella_concept3.svg"
+   },
+   "notes": "U3 Piatta: a shallow wide canopy of seven panels. 54x18 units, SCENE_UNITS, tintable mask."
+  }
+ ]
+}

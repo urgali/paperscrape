@@ -1,0 +1,110 @@
+{
+ "schemaVersion": 2,
+ "note": "v4.28 phase-1 wave concepts; NOT shipped.",
+ "sprites": [
+  {
+   "name": "wave_concept1_frame0",
+   "category": "wave",
+   "width": 252,
+   "height": 72,
+   "contentBox": [
+    8,
+    2,
+    243,
+    71
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_concept1_frame0.svg"
+   },
+   "notes": "W1 Cavallone, frame 0. 84x24 units, SCENE_UNITS, tintable mask."
+  },
+  {
+   "name": "wave_concept1_frame1",
+   "category": "wave",
+   "width": 252,
+   "height": 72,
+   "contentBox": [
+    9,
+    3,
+    247,
+    72
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_concept1_frame1.svg"
+   },
+   "notes": "W1 Cavallone, frame 1. 84x24 units, SCENE_UNITS, tintable mask."
+  },
+  {
+   "name": "wave_concept2",
+   "category": "wave",
+   "width": 288,
+   "height": 54,
+   "contentBox": [
+    12,
+    11,
+    277,
+    54
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_concept2.svg"
+   },
+   "notes": "W2 Cresta doppia. 96x18 units, SCENE_UNITS, tintable mask."
+  },
+  {
+   "name": "wave_concept3",
+   "category": "wave",
+   "width": 108,
+   "height": 36,
+   "contentBox": [
+    6,
+    6,
+    100,
+    36
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "wave_concept3.svg"
+   },
+   "notes": "W3 Increspature. 36x12 units, SCENE_UNITS, tintable mask."
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "schemaVersion": 2,
+ "note": "v4.28 phase-1 bird concepts; NOT shipped.",
+ "sprites": [
+  {
+   "name": "bird_concept1",
+   "category": "bird",
+   "width": 51,
+   "height": 21,
+   "contentBox": [
+    2,
+    1,
+    50,
+    20
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "bird_concept1.svg"
+   },
+   "notes": "B1 Rondine: forked tail, sickle wings swept back. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
+  },
+  {
+   "name": "bird_concept2",
+   "category": "bird",
+   "width": 51,
+   "height": 21,
+   "contentBox": [
+    2,
+    1,
+    51,
+    19
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "bird_concept2.svg"
+   },
+   "notes": "B2 Gabbiano lungo: long shallow-V wings tilted back, longer neck and beak. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
+  },
+  {
+   "name": "bird_concept3",
+   "category": "bird",
+   "width": 51,
+   "height": 21,
+   "contentBox": [
+    4,
+    1,
+    51,
+    21
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "TINTABLE",
+   "usage": "concept",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "bird_concept3.svg"
+   },
+   "notes": "B3 Colomba corretta: the shipped body with the wings rotated back and a longer beak. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
+  }
+ ]
+}

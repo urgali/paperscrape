@@ -12,31 +12,60 @@ always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v4.27 prepared — not published and not approved.**
+**v4.28 prepared — not published and not approved.**
 
-`versionCode = 58`, `versionName = "4.27"`. **No tag, no push, no GitHub Release** — that half is
+`versionCode = 59`, `versionName = "4.28"`. **No tag, no push, no GitHub Release** — that half is
 the maintainer's and has not been done for this version.
 
-**Baseline v4.26, and it is published.** Read from the public GitHub API on 2026-09-10: `v4.26` is
-published, non-draft, non-prerelease, tagged at 2026-09-09 22:21:32 UTC, with its APK attached — as
-are `v4.16` through `v4.25`. **Re-read the API rather than this line** — nothing in a working tree
-learns that a release went out:
+**Baseline v4.27, and it is published.** Read from the public GitHub API on 2026-09-11: `v4.27` is
+published, non-draft, non-prerelease, published at 2026-09-10 16:54:58 UTC, with its APK and its
+`.sha256` attached — as are `v4.16` through `v4.26`. **Re-read the API rather than this line** —
+nothing in a working tree learns that a release went out, and this file had denied v4.27 for a day
+after it shipped, which is the third time the same failure has been recorded
+(`BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md` item 55):
 
 ```bash
 curl -s https://api.github.com/repos/urgali/paperscrape/releases | grep -o '"tag_name": *"[^"]*"' | head
 ```
 
-**Five backlogs are open.** `BACKLOG_v4_23.md` carries the artwork and renderer items — 18, 25, 30
-carried forward, and item 25 (the palm) is still the most visible piece of the old drawing language
-left. `BACKLOG_v4_24.md` carries what the documentation review found and did not fix, items 49-55.
-`BACKLOG_v4_25.md` carries 56-65, of which **56, 58 and 63 stay open**. `BACKLOG_v4_26.md` carries
-66-71, of which **67 stays open** (the `_UNITS` frame rule reads Kotlin and not the generators);
-**66 and 71 were both decided by the maintainer in v4.27** — the `perf` build type is committed with
-its check, and the PowerVR re-capture is ratified. `BACKLOG_v4_27.md` carries 72-78, of which **78
-stays open**: a condition rather than work, recording that the cross-driver GL gap is no longer
-measured anywhere and that only a second GPU vendor can bring it back.
+**Three backlogs are open, and three were archived.** `BACKLOG_v4_26.md` carries 66-71, of which
+**67 stays open** (the `_UNITS` frame rule reads Kotlin and not the generators). `BACKLOG_v4_27.md`
+carries 72-78, of which **78 stays open**: a condition rather than work, recording that the
+cross-driver GL gap is no longer measured anywhere. `BACKLOG_v4_28.md` carries 79-85, of which
+**80, 81, 82 and 83 stay open**, and it also **carries forward by name** every item still open in
+`BACKLOG_v4_23.md`, `BACKLOG_v4_24.md` and `BACKLOG_v4_25.md` — items 18, 25, 30, 40, 50-55, 56, 58
+and 63. Those three files moved to [`docs/archive/`](docs/archive/) in this release, under the
+convention the v4.24 documentation pass established; carrying their open items forward by number is
+what makes the move safe, and the numbering stays continuous, so item 25 means the same thing
+wherever it is cited.
 
-**Verified at Level 3 here.** The numbers are in the v4.27 report.
+**Verified at Level 3 here.** The numbers are in the v4.28 report.
+
+```
+v4.28 [x] a bird that reads, an umbrella in the rain, and a sea that moves
+ |- bird B1 "Rondine" replaces the shipped drawing on the same 51x21 canvas, the same origin and
+ |  the same flap axis. Nothing is mirrored: v4.27 measured that the facing was never wrong. What
+ |  was wrong is legibility at the 42 px the bird reaches -- raised wings read as a fanned tail, so
+ |  the eye turned the animal round -- and the fix is to move the largest shape behind the head
+ |- the umbrella: pose P1 "Alzato" with canopy U1 "Alta", adults only, rain only, never snow. The
+ |  handle is a rectangle drawn in code from the hand to the crown, so the same pose carries any
+ |  object later without new artwork. Who carries changes only while no copy of the walker is on
+ |  screen -- v4.22's car rule, which `CarSelection.offScreen` says in as many words was never
+ |  extended to people
+ |- the wave: WA3 "Tubo", two tintable masks, three slots, rain and thunderstorm only. A clear sky
+ |  draws none and the frame is identical to v4.27's
+ |- the wave's colour derived per frame, not chosen: gates at 24.9 (body) and 34.9 (foam) of
+ |  Rec. 601 luma placed by the v4.22 rule between a measured floor and a measured signal over
+ |  2 592 situations, with the direction chosen on the cheaper side. One direction does not hold:
+ |  always-toward-black puts the body under 40 of luma in 901 of those 2 592
+ |- and the gate is a floor, not a target: at night the renderer aims at the signal instead, which
+ |  is the other end of the same derivation rather than a new number
+ |- the waves join `LakeLanes.orderByDepth` instead of being drawn before the boats, keyed by their
+ |  waterline said in the boat's own convention. A nearer wave now passes in front of a farther hull
+ |- the decoded-sprite ceiling raised to 32 MiB for the carrying pose, on the maintainer's
+ |  conditional authorisation, with the A/B memory measurement that condition required
+ \- this file had v4.27 as unpublished and v4.26 as the baseline; both were false
+```
 
 ```
 v4.27 [x] the rain that could not be seen, and a bird that was not backwards

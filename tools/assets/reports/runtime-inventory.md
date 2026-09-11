@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 266 |
-| Unique contents | 266 |
-| Bytes on disk | 1328.4 KB |
-| Decoded `ARGB_8888` | 28.62 MB |
-| Of which transparent padding | 4.38 MB (15 %) |
+| Files | 305 |
+| Unique contents | 305 |
+| Bytes on disk | 1590.0 KB |
+| Decoded `ARGB_8888` | 33.29 MB |
+| Of which transparent padding | 5.26 MB (16 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 24 |
 
@@ -67,7 +67,7 @@ from the shipped PNGs; nothing is copied from documentation.
 | `bar_roof_snow` | 300x18 | RGBA | 0,0,300,18 | 0 % | 16 | yes |
 | `bar_sign` | 246x30 | RGBA | 0,0,246,30 | 0 % | 48 | yes |
 | `bar_wall` | 270x276 | RGBA | 0,0,270,276 | 0 % | 5 | yes |
-| `bird_body` | 51x21 | RGBA | 2,0,51,21 | 4 % | 0 | yes |
+| `bird_body` | 51x21 | RGBA | 2,1,50,20 | 15 % | 8 | yes |
 | `bunny_body` | 102x183 | RGBA | 0,0,102,183 | 0 % | 29 | yes |
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
 | `bunny_tail` | 30x30 | RGBA | 0,0,30,30 | 0 % | 8 | yes |
@@ -199,6 +199,15 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_girl_winter_walk2_skin0` | 117x252 | RGBA | 7,47,111,252 | 28 % | 368 | yes |
 | `person_girl_winter_walk2_skin1` | 117x252 | RGBA | 7,47,111,252 | 28 % | 366 | yes |
 | `person_girl_winter_walk2_skin2` | 117x252 | RGBA | 7,47,111,252 | 28 % | 368 | yes |
+| `person_man_summer_carry0_skin0` | 117x252 | RGBA | 16,5,108,252 | 23 % | 228 | yes |
+| `person_man_summer_carry0_skin1` | 117x252 | RGBA | 16,5,108,252 | 23 % | 225 | yes |
+| `person_man_summer_carry0_skin2` | 117x252 | RGBA | 16,5,108,252 | 23 % | 227 | yes |
+| `person_man_summer_carry1_skin0` | 117x252 | RGBA | 17,4,109,252 | 23 % | 189 | yes |
+| `person_man_summer_carry1_skin1` | 117x252 | RGBA | 17,4,109,252 | 23 % | 188 | yes |
+| `person_man_summer_carry1_skin2` | 117x252 | RGBA | 17,4,109,252 | 23 % | 187 | yes |
+| `person_man_summer_carry2_skin0` | 117x252 | RGBA | 2,5,109,252 | 10 % | 205 | yes |
+| `person_man_summer_carry2_skin1` | 117x252 | RGBA | 2,5,109,252 | 10 % | 204 | yes |
+| `person_man_summer_carry2_skin2` | 117x252 | RGBA | 2,5,109,252 | 10 % | 204 | yes |
 | `person_man_summer_head_car_alt_skin0` | 114x126 | RGBA | 5,0,111,126 | 7 % | 107 | yes |
 | `person_man_summer_head_car_alt_skin1` | 114x126 | RGBA | 5,0,111,126 | 7 % | 105 | yes |
 | `person_man_summer_head_car_alt_skin2` | 114x126 | RGBA | 5,0,111,126 | 7 % | 109 | yes |
@@ -221,6 +230,15 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_man_summer_walk2_skin0` | 117x252 | RGBA | 2,5,116,252 | 4 % | 204 | yes |
 | `person_man_summer_walk2_skin1` | 117x252 | RGBA | 2,5,116,252 | 4 % | 204 | yes |
 | `person_man_summer_walk2_skin2` | 117x252 | RGBA | 2,5,116,252 | 4 % | 203 | yes |
+| `person_man_winter_carry0_skin0` | 117x252 | RGBA | 15,2,109,252 | 20 % | 374 | yes |
+| `person_man_winter_carry0_skin1` | 117x252 | RGBA | 15,2,109,252 | 20 % | 373 | yes |
+| `person_man_winter_carry0_skin2` | 117x252 | RGBA | 15,2,109,252 | 20 % | 373 | yes |
+| `person_man_winter_carry1_skin0` | 117x252 | RGBA | 17,2,109,252 | 22 % | 323 | yes |
+| `person_man_winter_carry1_skin1` | 117x252 | RGBA | 17,2,109,252 | 22 % | 320 | yes |
+| `person_man_winter_carry1_skin2` | 117x252 | RGBA | 17,2,109,252 | 22 % | 322 | yes |
+| `person_man_winter_carry2_skin0` | 117x252 | RGBA | 1,0,109,252 | 8 % | 313 | yes |
+| `person_man_winter_carry2_skin1` | 117x252 | RGBA | 1,0,109,252 | 8 % | 312 | yes |
+| `person_man_winter_carry2_skin2` | 117x252 | RGBA | 1,0,109,252 | 8 % | 312 | yes |
 | `person_man_winter_head_car_alt_skin0` | 114x126 | RGBA | 6,0,112,126 | 7 % | 147 | yes |
 | `person_man_winter_head_car_alt_skin1` | 114x126 | RGBA | 6,0,112,126 | 7 % | 147 | yes |
 | `person_man_winter_head_car_alt_skin2` | 114x126 | RGBA | 6,0,112,126 | 7 % | 147 | yes |
@@ -243,6 +261,15 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_man_winter_walk2_skin0` | 117x252 | RGBA | 1,0,116,252 | 2 % | 308 | yes |
 | `person_man_winter_walk2_skin1` | 117x252 | RGBA | 1,0,116,252 | 2 % | 307 | yes |
 | `person_man_winter_walk2_skin2` | 117x252 | RGBA | 1,0,116,252 | 2 % | 308 | yes |
+| `person_woman_summer_carry0_skin0` | 117x252 | RGBA | 10,6,108,252 | 18 % | 349 | yes |
+| `person_woman_summer_carry0_skin1` | 117x252 | RGBA | 10,6,108,252 | 18 % | 353 | yes |
+| `person_woman_summer_carry0_skin2` | 117x252 | RGBA | 10,6,108,252 | 18 % | 353 | yes |
+| `person_woman_summer_carry1_skin0` | 117x252 | RGBA | 10,6,109,252 | 17 % | 327 | yes |
+| `person_woman_summer_carry1_skin1` | 117x252 | RGBA | 10,6,109,252 | 17 % | 333 | yes |
+| `person_woman_summer_carry1_skin2` | 117x252 | RGBA | 10,6,109,252 | 17 % | 333 | yes |
+| `person_woman_summer_carry2_skin0` | 117x252 | RGBA | 2,6,109,252 | 11 % | 326 | yes |
+| `person_woman_summer_carry2_skin1` | 117x252 | RGBA | 2,6,109,252 | 11 % | 328 | yes |
+| `person_woman_summer_carry2_skin2` | 117x252 | RGBA | 2,6,109,252 | 11 % | 327 | yes |
 | `person_woman_summer_head_car_alt_skin0` | 114x126 | RGBA | 0,0,112,126 | 2 % | 201 | yes |
 | `person_woman_summer_head_car_alt_skin1` | 114x126 | RGBA | 0,0,112,126 | 2 % | 204 | yes |
 | `person_woman_summer_head_car_alt_skin2` | 114x126 | RGBA | 0,0,112,126 | 2 % | 202 | yes |
@@ -265,6 +292,15 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_woman_summer_walk2_skin0` | 117x252 | RGBA | 2,6,116,252 | 5 % | 342 | yes |
 | `person_woman_summer_walk2_skin1` | 117x252 | RGBA | 2,6,116,252 | 5 % | 343 | yes |
 | `person_woman_summer_walk2_skin2` | 117x252 | RGBA | 2,6,116,252 | 5 % | 343 | yes |
+| `person_woman_winter_carry0_skin0` | 117x252 | RGBA | 16,0,109,252 | 21 % | 424 | yes |
+| `person_woman_winter_carry0_skin1` | 117x252 | RGBA | 16,0,109,252 | 21 % | 427 | yes |
+| `person_woman_winter_carry0_skin2` | 117x252 | RGBA | 16,0,109,252 | 21 % | 427 | yes |
+| `person_woman_winter_carry1_skin0` | 117x252 | RGBA | 16,2,108,252 | 22 % | 334 | yes |
+| `person_woman_winter_carry1_skin1` | 117x252 | RGBA | 16,2,108,252 | 22 % | 337 | yes |
+| `person_woman_winter_carry1_skin2` | 117x252 | RGBA | 16,2,108,252 | 22 % | 336 | yes |
+| `person_woman_winter_carry2_skin0` | 117x252 | RGBA | 1,2,108,252 | 9 % | 354 | yes |
+| `person_woman_winter_carry2_skin1` | 117x252 | RGBA | 1,2,108,252 | 9 % | 355 | yes |
+| `person_woman_winter_carry2_skin2` | 117x252 | RGBA | 1,2,108,252 | 9 % | 354 | yes |
 | `person_woman_winter_head_car_alt_skin0` | 114x126 | RGBA | 6,0,112,126 | 7 % | 169 | yes |
 | `person_woman_winter_head_car_alt_skin1` | 114x126 | RGBA | 6,0,112,126 | 7 % | 170 | yes |
 | `person_woman_winter_head_car_alt_skin2` | 114x126 | RGBA | 6,0,112,126 | 7 % | 170 | yes |
@@ -325,5 +361,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `tree_fir` | 240x366 | RGBA | 0,0,240,366 | 0 % | 16 | yes |
 | `tree_fir_snow` | 168x234 | RGBA | 0,0,168,234 | 0 % | 17 | yes |
 | `tree_trunk` | 96x186 | RGBA | 0,0,96,186 | 0 % | 33 | yes |
+| `umbrella_canopy` | 144x72 | RGBA | 2,0,142,72 | 3 % | 21 | yes |
 | `water_splash0` | 162x54 | RGBA | 0,0,162,54 | 0 % | 20 | yes |
 | `water_splash1` | 162x54 | RGBA | 0,0,162,54 | 0 % | 16 | yes |
+| `wave_tube_body` | 360x132 | RGBA | 11,8,299,130 | 26 % | 1 | yes |
+| `wave_tube_crest` | 360x132 | RGBA | 150,0,358,104 | 54 % | 2 | yes |

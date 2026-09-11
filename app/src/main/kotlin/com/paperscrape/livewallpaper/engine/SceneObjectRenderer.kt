@@ -1765,6 +1765,46 @@ class SceneObjectRenderer(
     )
 
     /**
+     * The **carrying** pose, same shape as [personWalkSkinDrawables]: `[kind][season][skin][frame]`.
+     *
+     * Two rows, not four: only the two adult families are drawn carrying, so a child has no row
+     * here at all rather than a row that duplicates its walking frames. Indexing it is therefore
+     * guarded by the age check in the draw loop, and `PedestrianCarryTest` asserts that a child can
+     * never reach it -- which is a better guarantee than a fallback row, because a fallback row
+     * would quietly draw the right thing if the rule ever broke.
+     *
+     * Frame 3 is frame 1 again, exactly as the walk table has it: the cycle is 0,1,2,1.
+     */
+    private val personCarrySkinDrawables = arrayOf(
+        // man
+        arrayOf(
+            arrayOf(
+                intArrayOf(R.drawable.person_man_summer_carry0_skin0, R.drawable.person_man_summer_carry1_skin0, R.drawable.person_man_summer_carry2_skin0, R.drawable.person_man_summer_carry1_skin0),
+                intArrayOf(R.drawable.person_man_summer_carry0_skin1, R.drawable.person_man_summer_carry1_skin1, R.drawable.person_man_summer_carry2_skin1, R.drawable.person_man_summer_carry1_skin1),
+                intArrayOf(R.drawable.person_man_summer_carry0_skin2, R.drawable.person_man_summer_carry1_skin2, R.drawable.person_man_summer_carry2_skin2, R.drawable.person_man_summer_carry1_skin2),
+            ),
+            arrayOf(
+                intArrayOf(R.drawable.person_man_winter_carry0_skin0, R.drawable.person_man_winter_carry1_skin0, R.drawable.person_man_winter_carry2_skin0, R.drawable.person_man_winter_carry1_skin0),
+                intArrayOf(R.drawable.person_man_winter_carry0_skin1, R.drawable.person_man_winter_carry1_skin1, R.drawable.person_man_winter_carry2_skin1, R.drawable.person_man_winter_carry1_skin1),
+                intArrayOf(R.drawable.person_man_winter_carry0_skin2, R.drawable.person_man_winter_carry1_skin2, R.drawable.person_man_winter_carry2_skin2, R.drawable.person_man_winter_carry1_skin2),
+            ),
+        ),
+        // woman
+        arrayOf(
+            arrayOf(
+                intArrayOf(R.drawable.person_woman_summer_carry0_skin0, R.drawable.person_woman_summer_carry1_skin0, R.drawable.person_woman_summer_carry2_skin0, R.drawable.person_woman_summer_carry1_skin0),
+                intArrayOf(R.drawable.person_woman_summer_carry0_skin1, R.drawable.person_woman_summer_carry1_skin1, R.drawable.person_woman_summer_carry2_skin1, R.drawable.person_woman_summer_carry1_skin1),
+                intArrayOf(R.drawable.person_woman_summer_carry0_skin2, R.drawable.person_woman_summer_carry1_skin2, R.drawable.person_woman_summer_carry2_skin2, R.drawable.person_woman_summer_carry1_skin2),
+            ),
+            arrayOf(
+                intArrayOf(R.drawable.person_woman_winter_carry0_skin0, R.drawable.person_woman_winter_carry1_skin0, R.drawable.person_woman_winter_carry2_skin0, R.drawable.person_woman_winter_carry1_skin0),
+                intArrayOf(R.drawable.person_woman_winter_carry0_skin1, R.drawable.person_woman_winter_carry1_skin1, R.drawable.person_woman_winter_carry2_skin1, R.drawable.person_woman_winter_carry1_skin1),
+                intArrayOf(R.drawable.person_woman_winter_carry0_skin2, R.drawable.person_woman_winter_carry1_skin2, R.drawable.person_woman_winter_carry2_skin2, R.drawable.person_woman_winter_carry1_skin2),
+            ),
+        ),
+    )
+
+    /**
      * Where a person is standing, which is what decides whether they dressed for the weather.
      *
      * The person lookup tables all carry a season axis, and until v4.15 every call site chose its
@@ -2021,14 +2061,25 @@ class SceneObjectRenderer(
             // whatever else is on the street.
             val walkStagger = person.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + person.memberIndex
             val frame = elapsedSeconds.frameIndex(3.2f, walkStagger.toFloat(), 4)
-            val resId = personWalkSkinDrawables[person.kindIndex][seasonIdx][person.skinIndex][frame]
+            // **v4.28: the umbrella.** Which sprite this walker uses is decided from the state it
+            // is *already* in, never from the weather predicate directly, so nothing can change
+            // inside a frame; the state itself moves at the bottom of the loop and only when no
+            // copy of the figure was drawn. See [PedestrianCarry].
+            val carrying = umbrellaCarrying[walkStagger] && person.age == PersonAge.ADULT
+            val resId = if (carrying) {
+                personCarrySkinDrawables[person.kindIndex][seasonIdx][person.skinIndex][frame]
+            } else {
+                personWalkSkinDrawables[person.kindIndex][seasonIdx][person.skinIndex][frame]
+            }
             val halfWidth = PERSON_HALF_WIDTH_UNITS * s
 
             val firstTile = firstVisibleTileOffset(x, halfWidth, geom.tileWidth)
             val tileLimit = tileOffsetLimit(x, halfWidth, geom.tileWidth, screenWidth)
+            var onScreen = false
             for (tileIndex in firstTile until tileLimit) {
                 val copyX = x + tileIndex * geom.tileWidth
                 if (!isHorizontallyVisible(copyX, halfWidth, screenWidth)) continue
+                onScreen = true
                 canvas.save()
                 canvas.translate(copyX, y)
                 canvas.scale(dir * s, s)
@@ -2036,9 +2087,65 @@ class SceneObjectRenderer(
                 // sprite is 43x84 local units with its content reaching the bottom edge, so the
                 // feet land on the ground line at -84 and the figure is centred at -21.5.
                 drawSprite(canvas, resId, PERSON_ANCHOR_X_UNITS, PERSON_ANCHOR_Y_UNITS)
+                if (carrying) drawUmbrella(canvas, walkStagger)
                 canvas.restore()
             }
+            umbrellaCarrying[walkStagger] = PedestrianCarry.nextCarrying(
+                current = carrying,
+                wanted = PedestrianCarry.wantsUmbrella(
+                    raining = rainingNow,
+                    isAdult = person.age == PersonAge.ADULT,
+                    noise = CandidateNoise.value(themeId.hashCode(), walkStagger, PedestrianCarry.CH_UMBRELLA),
+                ),
+                onScreen = onScreen,
+            )
         }
+    }
+
+    // ---- The umbrella in the hand (v4.28) ------------------------------------------------------
+    /** Set once per frame by [PaperRenderer]: exactly the predicate `drawPrecipitation` rains on. */
+    var rainingNow = false
+
+    /**
+     * Which walkers have one up, addressed the way the population addresses everything else.
+     *
+     * A field rather than a per-frame set because this *is* the state the off-screen rule protects:
+     * it has to survive between frames for "only change out of sight" to mean anything.
+     */
+    private val umbrellaCarrying =
+        BooleanArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE)
+
+    private val umbrellaHandlePaint = Paint().apply { color = 0xFF5B4A3E.toInt(); style = Paint.Style.FILL }
+
+    /**
+     * The hand's centre on the 39x84 sprite canvas, from
+     * `tools/assets/concepts/people/carry/hands.json`.
+     *
+     * One point, not one per frame: pose P1 holds the forearm still while the far arm swings, so
+     * the hand is in the same place on all three walk frames -- the generator asserts that on every
+     * run. Both adult families share it, because both are drawn on the same canvas from the same
+     * shoulder.
+     */
+    private val carryHandX = 31.5f
+    private val carryHandY = 24.5f
+
+    /**
+     * Drawn inside the walker's own transform -- feet at the origin, up is negative y, +x the
+     * direction of travel -- so it mirrors with the figure and needs no variant per direction.
+     *
+     * The handle is a rectangle from the hand to a point just under the canvas top, above the head;
+     * only the canopy is artwork. That is the parasol pole's recipe, and it is why the same pose
+     * can carry a bag or a case later without a single new sprite.
+     */
+    private fun drawUmbrella(canvas: SceneCanvas, addr: Int) {
+        val hx = carryHandX + PERSON_ANCHOR_X_UNITS
+        val hy = carryHandY + PERSON_ANCHOR_Y_UNITS
+        val colour = PedestrianCarry.canopyColour(
+            CandidateNoise.value(themeId.hashCode(), addr, PedestrianCarry.CH_UMBRELLA_COLOUR),
+        )
+        val crownY = PERSON_ANCHOR_Y_UNITS + 1f
+        canvas.drawRect(hx - 1.2f, crownY, hx + 1.2f, hy, umbrellaHandlePaint)
+        drawTintedSprite(canvas, R.drawable.umbrella_canopy, hx - 24f, crownY - 22f, colour)
     }
 
     /**

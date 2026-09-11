@@ -124,6 +124,7 @@ class UnitFrameTest {
         "FLOWER_" to setOf("flower"),
         "PILE_" to setOf("pile"),
         "LAKE_" to setOf("lake"),
+        "WAVE_" to setOf("wave"),
         // The preview scene's own canvas: three bare dimensions declared inside ThemePreviewScene.
         "WIDTH_" to setOf("preview"),
         "HEIGHT_" to setOf("preview"),
@@ -467,8 +468,11 @@ class UnitFrameTest {
             ?.second
     }
 
+    // `_UNITS_WIDE` joined the three in v4.28: `WAVE_UNITS_WIDE` is a length in the wave's own
+    // frame and the scan could not see it, which is the blind spot item 61 exists to close.
     private fun isUnitName(name: String): Boolean =
-        name.endsWith("_UNITS") || name.endsWith("_UNITS_TALL") || name.endsWith("_UNITS_LONG")
+        name.endsWith("_UNITS") || name.endsWith("_UNITS_TALL") ||
+            name.endsWith("_UNITS_LONG") || name.endsWith("_UNITS_WIDE")
 
     private fun declaredUnitNames(body: String): List<String> =
         Regex("""\bva[lr]\s+([A-Za-z_][A-Za-z0-9_]*)""").findAll(blankCommentsAndStrings(body))

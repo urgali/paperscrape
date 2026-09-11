@@ -43,11 +43,14 @@ class SpriteCanvasConventionTest {
 
     /** Sprites whose transparent margin is deliberate because an anchor is measured against it. */
     private val marginIsLoadBearing = setOf(
-        // `bird_body` was here until v4.26 redrew it as concept A "Colomba" on a 51x21 canvas its
-        // content fills. The registration it needed is unchanged and is still exact -- the flap
-        // axis is canvas row 15 and BIRD_SPRITE_ORIGIN_Y_PX is -15 -- but it is now carried by the
-        // canvas the drawing fills rather than by a margin around it, which is the same recovery
-        // the person families made in v4.25.
+        // **v4.28 puts `bird_body` back here, and the reason is the opposite of v4.26's.** v4.26
+        // removed it because concept A "Colomba" filled its 51x21 canvas, so the flap axis -- canvas
+        // row 15, which `BIRD_SPRITE_ORIGIN_Y_PX -15` blits against -- was carried by the drawing
+        // itself. B1 "Rondine" is a swallow: a forked tail and swept-back wings do not reach the
+        // canvas corners, and trimming the canvas onto them would move row 15 and with it the axis
+        // the wing-beat mirrors about. The margin is the registration, exactly as it is for the
+        // moons, so it is declared rather than trimmed away.
+        "bird_body",
         "firework",
         "moon_crescent",
         "moon_full",
@@ -67,6 +70,12 @@ class SpriteCanvasConventionTest {
         "star_sparkle",
         "sun_body",
         "sun_glow",
+        // v4.28. The wave's two masks share one 360x132 canvas and blit at one origin, so the body
+        // is authored in the foam's coordinates: its margin is the water the lip curls over, and
+        // trimming it would slide the face out from under the foam. The same registration crop as
+        // `pumpkin_face`. Its twin `wave_tube_crest` does reach the canvas, and must: the spray is
+        // thrown to the very front of the shape.
+        "wave_tube_body",
         // `tree_fir_snow` was here until v4.21 trimmed it to its content and gave it its own blit
         // origin. See this class's own doc for why that is a recovery rather than a lost anchor.
     )
@@ -105,12 +114,15 @@ class SpriteCanvasConventionTest {
         // convention, which is why it is closed as one rather than fixed sprite by sprite.
         val all = sprites()
         val touching = all.count { touchesAnEdge(ImageIO.read(it)) }
-        assertEquals("266 sprites are expected", 266, all.size)
+        assertEquals("305 sprites are expected", 305, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
-        // v4.26 redrew the bird on a canvas its content fills.
-        assertEquals("256 of them reach a canvas edge", 256, touching)
+        // v4.26 redrew the bird on a canvas its content fills. 293 in v4.28: the 36 carrying
+        // frames and the umbrella's canopy reach their edges as the families they belong to do, the
+        // wave's foam reaches three of its own, and the bird goes back to a registration margin
+        // while the wave's body takes one -- both declared above.
+        assertEquals("293 of them reach a canvas edge", 293, touching)
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

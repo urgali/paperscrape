@@ -234,7 +234,10 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # v4.25: +6. The six retired `head_car` bases were the only people in the set with no
         # source at all -- their heirs were recolours of a drawing that had been deleted. The
         # v4.25 family is drawn from SVG for every one of them, so the heir now carries it.
-        self.assertEqual(140, len(self.results))
+        # v4.28: +3. The umbrella's canopy and the wave's two masks are drawn from SVG; the
+        # bird's new artwork replaced bird_body.svg rather than adding a source, and the 36
+        # carrying frames are recolours of a base that is generated and not shipped.
+        self.assertEqual(143, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

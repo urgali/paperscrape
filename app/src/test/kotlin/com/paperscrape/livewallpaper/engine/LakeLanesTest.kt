@@ -210,6 +210,86 @@ class LakeLanesTest {
         assertEquals(listOf(0, 2, 4, 6), boatsInPaintOrder)
     }
 
+    // -- The wave's key, said in the boat's convention (v4.28) ----------------------------------
+    //
+    // The three categories on the water do not measure depth from the same place, and a wave is the
+    // one that made that matter. A sailboat's key is its *placement point*; `drawSailboat` blits
+    // `sailboat_hull` at +8 units and the sprite is 17 units tall, so the hull meets the water
+    // **25 units below the key** -- which is what `PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS`
+    // is. A wave's base *is* its waterline. Comparing the two raw is comparing a waterline against
+    // a placement point, and the phase-3 burst showed exactly what that looks like: a wave cutting
+    // the sail of a boat whose hull was plainly nearer.
+    //
+    // **These assertions exist because a golden did not catch it.** `wave-storm` portrays a wave
+    // and a hull overlapping correctly, and the mutation that removes the lift survives it -- the
+    // frame happens not to contain a pair the key changes. That is a finding, recorded in
+    // `BACKLOG_v4_28.md` item 84, and this is the check that does bite.
+
+    /** The boat's hull offset in the same abstract pixels the rest of this class works in. */
+    private val hullDrop = 24f
+
+    @Test
+    fun `the hull offset is the artwork's own, not a number somebody liked`() {
+        assertEquals(
+            "sailboat_hull is blitted at +8 units and is 17 units tall, so its waterline is 25 " +
+                "units under the placement point. If the artwork or the blit moves, this is the " +
+                "first thing that has to move with it",
+            25f, PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS,
+        )
+    }
+
+    @Test
+    fun `a wave whose waterline is behind a hull is painted behind it`() {
+        // The wave sits *below the boat's key* but *above the boat's hull* -- the band the two
+        // conventions disagree over, and the only band where the lift changes anything.
+        val boatKey = laneY(2)
+        val waveBase = boatKey + hullDrop * 0.5f
+        assertTrue("the case must be inside the band, or it tests nothing", waveBase > boatKey && waveBase < boatKey + hullDrop)
+
+        val boat = LakeLanes.depthOf(boatKey, heightAboveLane = 0f)
+        val wave = LakeLanes.depthOf(waveBase, heightAboveLane = hullDrop)
+        assertEquals(
+            "the boat's hull is nearer than the wave's waterline, so the boat is painted last",
+            listOf(1, 0), paintOrder(boat, wave),
+        )
+
+        // And the mutation, stated rather than described: keyed by its bare base the wave comes out
+        // in front of a hull that is nearer than it, which is the defect this exists for.
+        val unlifted = LakeLanes.depthOf(waveBase, heightAboveLane = 0f)
+        assertEquals(
+            "keying a wave by its bare base must get this pair wrong -- if it no longer does, the " +
+                "conventions have converged and the lift can go",
+            listOf(0, 1), paintOrder(boat, unlifted),
+        )
+    }
+
+    @Test
+    fun `a wave nearer than the hull is still painted in front of it`() {
+        val boatKey = laneY(2)
+        val boat = LakeLanes.depthOf(boatKey, heightAboveLane = 0f)
+        val wave = LakeLanes.depthOf(boatKey + hullDrop * 2f, heightAboveLane = hullDrop)
+        assertEquals(
+            "the lift may not push a genuinely nearer wave behind the boat",
+            listOf(0, 1), paintOrder(boat, wave),
+        )
+    }
+
+    @Test
+    fun `the lift only ever moves a wave backwards, so boats keep the order v3_0 gave them`() {
+        for (base in listOf(laneY(0), laneY(3), laneY(7))) {
+            assertTrue(
+                "a wave must never be pulled forward of where its own base puts it",
+                LakeLanes.depthOf(base, heightAboveLane = hullDrop) <= base,
+            )
+        }
+        // And with waves in the pass, the boats among them are still in lane order.
+        val boats = (0 until LakeLanes.LANE_COUNT step 2).map { LakeLanes.depthOf(laneY(it), 0f) }
+        val waves = listOf(laneY(1), laneY(5)).map { LakeLanes.depthOf(it, hullDrop) }
+        val all = (boats + waves).toFloatArray()
+        val painted = paintOrder(*all).map { all[it] }
+        assertEquals("the whole pass must still be ascending", painted.sorted(), painted)
+    }
+
     @Test
     fun `a sail is tall enough that lane ordering alone could not have fixed this`() {
         // Not a behaviour assertion -- a statement of the arithmetic the fix exists for, so that a
