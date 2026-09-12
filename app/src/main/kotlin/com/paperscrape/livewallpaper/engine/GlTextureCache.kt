@@ -192,6 +192,20 @@ internal class GlTextureCache {
      * Scans the alpha channel once per upload -- an upload happens once per sprite per level for the
      * life of the process, not per frame. A bitmap with no opaque texel at all is returned whole:
      * there is nothing to centre a crop on, and the atlas is perfectly able to hold it.
+     *
+     * **This crops to zero margin on every side, and that is only safe because of what happens
+     * next.** A sprite's outermost transparent texel is what the bilinear sampler reads at the
+     * drawing's edge; remove it and the sampler clamps and reads the ink twice, so the edge comes
+     * out heavier without anything having moved. [GlTextureAtlas.add] puts a one-texel transparent
+     * border back around every entry before upload -- see its "Bleeding" note -- so the guard texel
+     * this takes away is restored before any sampler sees it.
+     *
+     * **The exception is [uploadStandalone]**, which has no atlas and no border and is bound
+     * `GL_CLAMP_TO_EDGE` with `GL_LINEAR`. Nothing has reached it since v4.29's packer -- the
+     * twelve-theme census counts zero standalone entries at full density -- and the day something
+     * does, its edge is the clamped one. `ARCHITECTURE.md` §3 "The transparent margin is part of
+     * the drawing" has the general rule, the measurement behind it, and where each of the four
+     * draw paths stands; `BACKLOG_v4_31.md` item 106 is where it was measured.
      */
     private fun cropToContent(reduced: Bitmap): Bitmap {
         val w = reduced.width

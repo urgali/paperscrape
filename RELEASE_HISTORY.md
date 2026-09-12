@@ -24,6 +24,138 @@ release date will be standing.
 
 ---
 
+## v4.31 — the story that was wrong, the gate that was loose, and four red releases
+
+**Prepared, not published.** `versionCode = 62`, `versionName = "4.31"`. Prepared 2026-09-12. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.30**, which
+*is* published — read from the GitHub API at 15:05:13 UTC on 2026-09-12, not from a document.
+
+### What changed, in one paragraph
+
+A defect round. **No artwork decision and no new behaviour**: the only pixels that moved are the
+ones a compensated crop moved by zero. What moved is the instruments — the whole-frame golden gate
+went to the floor it was always measured at, `AI_PROJECT_RULES.md` 12.14 gained a line for a test
+suite nothing was running, two asset-tooling defects were found by being the first change that ever
+needed the command, and five load-bearing comments were corrected against measurements rather than
+against each other.
+
+### The finding: item 98's cause could not have happened
+
+`BACKLOG_v4_30.md` item 98 attributed six drifting Canvas goldens to a wing-flap sine sampled
+across a zero crossing at ~1800 radians. Swept over every built-in theme × every `sceneSeconds` a
+committed golden uses × all six birds, the closest any flap comes to a crossing is
+**|sin| = 0.0038**; the scene actually accused is at **0.2615**. A `Double` holds 1800 radians to
+4 × 10⁻¹³. The margin is ten to twelve orders of magnitude, and the sign cannot differ between runs.
+
+The real cause was attributed by **mutation**, not by argument. v4.29 rebuilt from its own delivery
+ZIP renders `lake-dolphin-leap` 384 px from its committed file, `lake-boats` 62, `traffic-day` 14 —
+all in the **sky**, at bird 5's exact position. The same build with **v4.26's `bird_body.png`**
+swapped back in renders all three at **0**, and takes eleven goldens that were at 0 up to 951–1633.
+A census of `drawable-nodpi/` between v4.26 and v4.29 finds **exactly one sprite changed**, and it
+is that one, in v4.28. Six goldens were simply never re-authored with the redrawn bird.
+
+### So the defect is the gate, and it is derived rather than tuned
+
+`SceneGolden.MAX_DIFFERING_FRACTION` was `0.002` — **576 pixels** of a 360×800 frame — and its own
+KDoc claimed it was "small enough that a sprite moving by one pixel fails". A sprite *replaced*
+spent 67 % of it and passed.
+
+The per-pixel tolerance is the constant that absorbs anti-aliasing (`CHANNEL_TOLERANCE = 8`, and
+that is the argument its doc makes); the fraction was a second allowance on top, never derived.
+Derived now, between the measured floor and the weakest regression that must fail:
+
+| | |
+|---|---:|
+| a matching Canvas golden, on this device | **0 px** — 24 of 30 (v4.30), 15 of 19 (v4.31), and `theWarmedUpFrameIsDeterministic` asserts a literal `0.0` |
+| weakest regression that must fail | **14 px** (`traffic-day`'s stale bird) |
+| the gate as it stood | 576 px, **41×** the weakest |
+
+Every value in `[0, 14)` is defensible and all but one arbitrary, so the gate is the floor: **0.0**.
+A tightening; nothing that used to fail now passes. `MAX_FOCUS_DIFFERING_FRACTION`, the derived
+per-focus gates, and the three Adreno-authored GL references are untouched — re-authoring those
+would spend the cross-driver check of item 56.
+
+### The two asset tests, red since v4.26 and not v4.29
+
+Read out of every delivery ZIP from v4.23 to v4.30: `dolphin_body`, `sailboat_hull` and
+`sailboat_sail` carried **no** leading padding through v4.25 and carried `(4,6)`, `(8,0)` and
+`(27,0)` from **v4.26** onward — the release that redrew the lake inside unchanged canvases. Four
+releases, not one, and every one of them shipped green because nothing in the checklist ran the
+suite that knew.
+
+| sprite | canvas | origin | decoded |
+|---|---|---|---:|
+| `dolphin_body` | 345×174 → 342×168 | (−57.3,−29) → (−56.3,−27) | −10 296 B |
+| `sailboat_hull` | 252×51 → 246×51 | (−42,8) → (−40,8) | −1 224 B |
+| `sailboat_sail` | 210×180 → 180×180 | (−35,−50) → (−26,−50) | −21 600 B |
+
+**33 120 B**, which is 0.09 % of the set and **zero on the GL backend** — `GlTextureCache` has
+uploaded only the content box since v4.29, so the padding never cost a texel. The crop is worth
+doing because the invariant is, not because of the bytes. `KNOWN_PENDING_CROP_COUNT` is **still 2**
+and was never touched; reality came back to it. Every sprite had **two** call sites, not the one
+the tool claimed.
+
+Proved identical rather than eyeballed: with the gate at zero, every golden drawing a boat or a
+dolphin is now a bit-exact assertion that no drawn pixel moved, and they pass.
+
+### `normalize --apply` had never once completed
+
+Two defects, found by being the first change in the project's history that needed the command:
+
+- it located a registry entry with `text.index("\n    }")` — a four-space indent — and
+  `sprites.json` is written with **one**. The function's own docstring already carried the symptom:
+  an inner branch annotated *"unexercised because no `--apply` run had ever completed"*;
+- it wrote every PNG and SVG **before** the step that fails, so the abort left six files rewritten
+  and the registry describing canvases none of them had. Measured, in this session.
+
+Now brace-matched, and compute-then-write. Plus `--only`, because the pending set mixes drift with
+decisions and `--apply` could not express "crop the three that drifted, not the two that are a
+shared blit origin".
+
+### And four comments corrected against measurements
+
+- the rain's **floor** was still `0.20 × child` while v4.30 re-anchored the ceiling, so it relaxed
+  from 0.27125 m to 0.22750 m — **16.1 %** — as a side effect of redrawing a child. Restated as
+  `0.155 × 1.75`, the same number;
+- `dolphin_body` is not "filled edge to edge" and has not been since v4.26, so the derivation of
+  `DOLPHIN_ORIGIN_X_UNITS` gives the wrong centre and the animal sits **(+0.87, +1.0) units** off
+  its leap point. The registry note carried the same false claim independently. Both corrected;
+  *moving* the dolphin stays open as an artwork question;
+- `SceneSpace.PERSON_METRES_TALL` said the child's height lives in **four** places, in the release
+  whose own item 102 found the **fifth**;
+- `switchToCanvasFallback` said it is reached "only when EGL could not be initialised at all" while
+  item 103 said it is reached after `MAX_CONTEXT_REBUILDS` failures. Both are half true and the
+  policy has two paths; both are written down now.
+
+`SpriteMeasurementClaimTest` gained the guard that would have caught the dolphin: a comment block
+claiming a sprite fills its canvas is checked against the PNG's **alpha channel**, with quoted
+claims treated as history rather than as assertions.
+
+### And the crop was not free, which is the most general thing here
+
+Cropped tight to the grid, the three lake sprites changed **6 pixels in each of three lake
+goldens** — up to 70 levels on one contour pixel — with the ink at identical coordinates in the
+sprite's own space. **A sprite's transparent margin is the neighbour the bilinear sampler reads at
+the drawing's edge**; remove it and the sampler clamps and reads the ink twice. The rule — *a
+trimmed side keeps one transparent pixel* — takes that to 0 / 1 / 1, and lives in `ARCHITECTURE.md`
+§3 with a row for each of the four draw paths. The GL atlas has had the same invariant since it was
+written (`GlTextureAtlas.add`'s one-texel border), which is why v4.30's crop-after-reduction is not
+exposed to it.
+
+### Two things found by accident, and one of them was mine
+
+**`adb install -r` silently refuses a downgrade.** A single pixel in `people-window` was attributed
+to v4.30 by rebuilding it — except the v4.30 APK never installed over the already-bumped
+`versionCode`, so the comparison was v4.31 against itself. Re-run properly, v4.30's own build renders
+all 28 of those goldens at exactly 0. The pixel was this release's first crop and the guard cell
+removed it. `CLAUDE.md` carries the check.
+
+**`wave-storm` is a warmed-up thunderstorm**, which `GoldenScene.warmUpFrames`'s own KDoc says a
+scene must not be. One frame per strike carries a veil, the interval averages 32 frames, so that
+golden has been a **1-in-32 coin flip since v4.28** — under the old gate too, since a flash is
+285 858 pixels. Predicted mean lift 21.8, observed 21.9. Left open: every way out moves either the
+scene or the sky.
+
 ## v4.30 — the people drawn instead of shipped, and the children made children
 
 **Prepared, not published.** `versionCode = 61`, `versionName = "4.30"`. Prepared 2026-09-12. No

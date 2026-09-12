@@ -1470,7 +1470,7 @@ is compensated by `trim / unit`. `SpriteBlitter` places the bitmap's own pixel
 (0,0) at the origin, so the crop and the compensation are one change: either
 without the other moves the sprite.
 
-Two properties of the rule are the reason it is a rule and not a per-sprite
+Three properties of the rule are the reason it is a rule and not a per-sprite
 judgement:
 
 - **Outward rounding keeps the compensation an integer.** The blitter multiplies
@@ -1484,6 +1484,45 @@ judgement:
   per-member crop would need per-member origins that do not exist, and the walk
   cycle would jitter. Sprites that merely share an origin *value* are not a group:
   two call sites with their own literals each take their own crop.
+- **A trimmed side keeps at least one transparent pixel, because the margin is what
+  the filter reads** (v4.31). This is the general rule and it is worth stating on its
+  own; see below.
+
+#### The transparent margin is part of the drawing (v4.31)
+
+**"Crop to the ink" is not neutral for a scaled, filtered blit, and this is the
+general statement of it.** A sprite's outermost transparent pixel is not waste: at
+the destination pixel that straddles the drawing's edge, the bilinear sampler reads
+the ink texel *and the transparent one beside it* and blends them. Take that pixel
+away and the sampler has nothing on that side, so it **clamps to the edge** and reads
+the ink twice. Nothing has moved — the ink is at the same coordinates in the sprite's
+own space and the origin compensation keeps it there on screen — but the rasterised
+edge is heavier than it was.
+
+Measured on the BV6600 in v4.31, cropping `dolphin_body`, `sailboat_hull` and
+`sailboat_sail` tight to the grid: **6 pixels changed in each of three lake goldens**,
+up to 70 levels on a single contour pixel, in frames where the other 288 000 were
+identical. `BACKLOG_v4_31.md` item 106.
+
+So the rule, wherever a sprite's border is removed: **the crop leaves a guard pixel on
+every side it trims.** A side whose ink already reaches the canvas edge is left alone —
+no margin exists there to preserve, the sampler has been clamping since the sprite was
+authored, and the crop is not what did it.
+
+**Where each draw path stands against it:**
+
+| path | who removes the margin | covered? |
+|---|---|---|
+| `tools/assets` `normalize --apply` | crops the shipped PNG | **yes, since v4.31** — `normalised_box` steps one grid cell out on any trimmed side |
+| `GlTextureCache.cropToContent` → the atlas | crops the *reduced* bitmap to zero margin before upload | **yes, and it always was** — `GlTextureAtlas.add` uploads every entry inside a one-texel transparent border, which its own "Bleeding" note exists for: *"a bilinear sample that strays past an edge finds transparency rather than the neighbouring sprite"*. The guard pixel `cropToContent` removes is put back before any sampler sees it |
+| `GlTextureCache.uploadStandalone` | same crop, no atlas | **no** — `GL_CLAMP_TO_EDGE` with `GL_LINEAR` is exactly the clamp described above. Currently unreached: since v4.29's skyline packer the twelve-theme census finds **zero** standalone entries at full density. The path exists and the day a sprite spills into it, its edge is the heavier one |
+| `CanvasSceneTarget` | blits the PNG as it ships | **the PNG is the only guard it has**, which is why the asset-side rule is where this had to be fixed |
+
+The atlas's border and the asset tool's guard pixel are the same invariant one layer
+apart, and the atlas had it first. That is the reason this is written here rather than
+only in `normalize.py`: two of the four rows above solve it independently, one is
+covered by accident of not being reached, and a reader changing any of them needs to
+know which.
 
 `normalize` runs in check form as part of `paperscrape-assets all`. **The invariant
 it enforces no longer describes the shipped set**: the V2 library places drawings

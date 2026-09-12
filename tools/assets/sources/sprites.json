@@ -1562,14 +1562,9 @@
   {
    "name": "dolphin_body",
    "category": "lake",
-   "width": 345,
-   "height": 174,
-   "contentBox": [
-    4,
-    6,
-    345,
-    174
-   ],
+   "width": 342,
+   "height": 171,
+   "contentBox": [1, 3, 342, 171],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
@@ -1583,7 +1578,7 @@
     "kind": "svg",
     "file": "dolphin_body.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": five papers -- body, belly, dorsal, pectoral and flukes -- each over an under-paper offset 5.5 units. **The two body tones are derived, not chosen**: LakeContrastTest measures every water the eleven dolphin-drawing themes paint and holds the animal above a gate derived by the v4.22 method. The v4.25 back (#4A6A84) sat at CIELab dE 5.2 from the water in its worst case and vanished at night and in a storm; it is now #A19A9C at dE 26.1. Faces +x, the only way lake decorations drift. Content placed so DOLPHIN_ORIGIN_X/Y_UNITS (-57.3, -29) still land the animal on its leap point."
+   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": five papers -- body, belly, dorsal, pectoral and flukes -- each over an under-paper offset 5.5 units. **The two body tones are derived, not chosen**: LakeContrastTest measures every water the eleven dolphin-drawing themes paint and holds the animal above a gate derived by the v4.22 method. The v4.25 back (#4A6A84) sat at CIELab dE 5.2 from the water in its worst case and vanished at night and in a storm; it is now #A19A9C at dE 26.1. Faces +x, the only way lake decorations drift. v4.31 cropped the 4x6 px of leading padding the redraw left inside the canvas -- 345x174 to 342x168 -- and compensated DOLPHIN_ORIGIN_X/Y_UNITS by the (1, 2) units removed, to (-56.3, -27); no drawn pixel moved. This note used to claim the v4.26 content was placed so the old (-57.3, -29) still landed the animal on its leap point. Measured in v4.31: it does not, and did not. The content centre is (57.167, 28.0) units and the origin puts it (+0.87, +1.0) units off the leap point. Moving the animal onto it is an artwork decision, open as item 105."
   },
   {
    "name": "easteregg_pattern",
@@ -8868,14 +8863,9 @@
   {
    "name": "sailboat_hull",
    "category": "lake",
-   "width": 252,
+   "width": 246,
    "height": 51,
-   "contentBox": [
-    8,
-    0,
-    252,
-    51
-   ],
+   "contentBox": [2, 0, 246, 51],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
@@ -8889,19 +8879,14 @@
     "kind": "svg",
     "file": "sailboat_hull.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": the hull and its deck stripe each over an offset under-paper. Bow at +x -- the sheer rises from 4.6 units at the stern to the prow at row 0 inside the unchanged 84x17-unit canvas, so the blit origin (-42, 8) is unchanged."
+   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": the hull and its deck stripe each over an offset under-paper. Bow at +x -- the sheer rises from 4.6 units at the stern to the prow at row 0. v4.31 cropped the 8 px of leading padding -- 252x51 to 246x51, an 82x17-unit canvas -- and compensated the blit origin by the 2 units removed, to (-40, 8); no drawn pixel moved. The **y** origin is untouched, which is what SAILBOAT_HULL_WATERLINE_UNITS derives its 25 from."
   },
   {
    "name": "sailboat_sail",
    "category": "lake",
-   "width": 210,
+   "width": 183,
    "height": 180,
-   "contentBox": [
-    27,
-    0,
-    206,
-    180
-   ],
+   "contentBox": [3, 0, 182, 180],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
@@ -8915,7 +8900,7 @@
     "kind": "svg",
     "file": "sailboat_sail.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": mast, mainsail, band, boom and jib, each over an offset under-paper. Mast at x=43 of 70 units, forward of amidships; jib forward (+x), mainsail aft. Foot at row 57 so the boom sits on the deck. Origin (-35, -50) unchanged."
+   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": mast, mainsail, band, boom and jib, each over an offset under-paper. Jib forward (+x), mainsail aft. Foot at row 57 so the boom sits on the deck. v4.31 cropped the 27 px of leading and 4 px of trailing padding -- 210x180 to 180x180, a 60x60-unit canvas -- and compensated the blit origin by the 9 units removed, to (-26, -50); no drawn pixel moved. The mast was at x=43 of 70 units and is at x=34 of 60."
   },
   {
    "name": "santa_sleigh_scene",

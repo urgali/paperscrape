@@ -711,6 +711,7 @@ Release identifier:
 Verification level:            1 / 2 / 3
 Reason for the level:
 Tests run:
+Asset tooling tests run:       yes / no / n-a, and the count
 Lint run:
 APK build run:                 yes / no
 Static / bytecode checks:
@@ -720,6 +721,21 @@ Clean build from extracted ZIP: yes / no
 Maintainer-side verification required:
 Release identifier verified unique: yes / no
 ```
+
+**The asset tooling's own suite is part of this report, and `n-a` is an answer that
+has to be earned.** It is `python -m unittest discover -s tests` from `tools/assets`,
+in the venv, and it is `n-a` only for a release that touches neither
+`app/src/main/res/`, nor `tools/assets/`, nor `tools/*.py`. Anything else states the
+count.
+
+This line exists because two of those tests were **red for four releases and nobody
+saw it**: `dolphin_body`, `sailboat_hull` and `sailboat_sail` acquired leading padding
+when the lake was redrawn in v4.26, `KNOWN_PENDING_CROP_COUNT` went on saying 2 while
+the truth was 5, and every release from v4.26 to v4.30 shipped green because nothing
+in this template ran the suite that knew. `BACKLOG_v4_30.md` item 101 called that the
+more useful half of the item and left the process question to the maintainer;
+`BACKLOG_v4_31.md` item 106 closes it here. **A suite that nothing in the checklist
+runs will go red and stay red.**
 
 When `assembleDebug` was not run, state verbatim:
 
@@ -771,7 +787,10 @@ state, a rebuildable artefact, or a secret:
 5. check `.git/`, `build/`, `.gradle/` and `local.properties` are absent;
 6. scan for secrets;
 7. build **from the extracted copy**;
-8. run the tests **from the extracted copy**.
+8. run the tests **from the extracted copy**;
+9. run the asset tooling's suite **from the extracted copy** whenever 12.14 says it
+   is not `n-a`. It has its own dependencies and its own fixtures, and a release that
+   changed a sprite has changed exactly what it measures.
 
 12.19. **Report the ZIP's own results**, separately from the working tree's:
 archive name, file count, extraction result, build-from-ZIP result,

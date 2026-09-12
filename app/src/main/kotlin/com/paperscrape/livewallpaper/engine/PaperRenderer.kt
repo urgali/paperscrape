@@ -962,16 +962,40 @@ class PaperRenderer(
         const val DOLPHIN_LEAP_TILT_DEGREES = 26f
 
         /**
-         * Where `dolphin_body`'s pixel (0,0) goes so the animal's own content is centred on the
-         * point its leap arc is computed for.
+         * Where `dolphin_body`'s pixel (0,0) goes, close to centring the animal's own content on
+         * the point its leap arc is computed for.
          *
-         * The sprite is 345x174 px -- 115x58 local units -- filled edge to edge, so its content
-         * centre sits at (57.5, 29). (REN-07: this said 360x225 with an inset content box, which
-         * was the canvas before it was cropped; the origins below were already right for the
-         * shipped file and did not move.)
+         * The sprite is 342x168 px -- 114x56 local units -- with its ink at `1,0..342,168`, so
+         * the drawing's centre is at **(57.167, 28.0)** units and the pair below lands it
+         * **(+0.87, +1.0) units from the leap point** rather than on it: 0.8 % of the animal's
+         * width and 1.8 % of its height.
+         *
+         * This said "filled edge to edge, so its content centre sits at (57.5, 29)". Both halves
+         * were true of the v4.25 drawing and neither is true of the one that ships: the v4.26
+         * redraw kept the 345x174 canvas and moved the ink `4,6` inside it. The registry's own
+         * note for this sprite carried the same error independently, claiming the content was
+         * "placed so DOLPHIN_ORIGIN_X/Y_UNITS (-57.3, -29) still land the animal on its leap
+         * point" -- one sentence surviving its own refutation in two places at once. Measured in
+         * v4.31 and corrected in both; `SpriteMeasurementClaimTest` now reads the alpha channel,
+         * so the phrase cannot rot again.
+         *
+         * **The pair moved from (-57.3, -29) in v4.31 and the dolphin did not.** That is the
+         * origin compensation for cropping the padding off the canvas -- `+(1, 2)` units removed
+         * and `+(1, 2)` units added back -- so the displacement above is exactly what it was
+         * before the crop, to the pixel. `BACKLOG_v4_31.md` item 106 has that proof.
+         *
+         * **The displacement itself is deliberately not "fixed".** Landing the content centre on
+         * the leap point means -57.167 / -28, which moves the drawn dolphin: an artwork change,
+         * so a photograph and the maintainer's judgement, and item 105 carries it with the
+         * number. The -0.2 unit nudge the x had off the exact centre before any of this is part
+         * of that question and is not a rounding error.
+         *
+         * (REN-07: this said 360x225 with an inset content box, which was the canvas before it
+         * was cropped; the origins below were already right for the shipped file and did not
+         * move.)
          */
-        const val DOLPHIN_ORIGIN_X_UNITS = -57.3f
-        const val DOLPHIN_ORIGIN_Y_UNITS = -29f
+        const val DOLPHIN_ORIGIN_X_UNITS = -56.3f
+        const val DOLPHIN_ORIGIN_Y_UNITS = -28f
 
         /**
          * Where the bird bitmap is blitted, in raw pixels.
@@ -3253,8 +3277,14 @@ class PaperRenderer(
             canvas.save()
             canvas.translate(x, y)
             canvas.scale(boatScale, boatScale)
-            sprites.draw(canvas, R.drawable.sailboat_sail, -35f, -50f, SpriteScale.SCENE_UNITS)
-            sprites.draw(canvas, R.drawable.sailboat_hull, -42f, 8f, SpriteScale.SCENE_UNITS)
+            // v4.31: both origins carry the compensation for the leading padding cropped off
+            // these two sprites -- sail +9 units of x, hull +2. The crop removed only
+            // transparent columns and the origin moved by exactly what it removed, so no drawn
+            // pixel changed coordinate; `BACKLOG_v4_31.md` item 106 has the proof. The hull's
+            // **y** is untouched at 8, which is what `SAILBOAT_HULL_WATERLINE_UNITS` derives
+            // its 25 from.
+            sprites.draw(canvas, R.drawable.sailboat_sail, -27f, -50f, SpriteScale.SCENE_UNITS)
+            sprites.draw(canvas, R.drawable.sailboat_hull, -40f, 8f, SpriteScale.SCENE_UNITS)
             canvas.restore()
     }
 

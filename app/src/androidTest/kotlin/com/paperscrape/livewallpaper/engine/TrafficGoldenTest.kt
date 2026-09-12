@@ -97,16 +97,25 @@ class TrafficGoldenTest {
      * A golden is only worth its bytes if a plausible defect changes enough pixels to trip it. Each
      * case below perturbs the scene the way a real regression would and measures the difference
      * against the committed frame, as a fraction of the whole frame — against
-     * [SceneGolden.MAX_DIFFERING_FRACTION], the budget the golden actually uses.
+     * [LOOSE_BUDGET_BEFORE_V4_31], the budget this golden carried until v4.31.
      *
      * These are perturbations of the *scene*, not of the renderer: a mutated renderer cannot be
      * expressed from a test. What they show is the sensitivity the frame has to the traffic in it,
      * which is the property in question.
+     *
+     * **The bar is the budget this golden used to have, not the one it has now.** v4.31 took
+     * [SceneGolden.MAX_DIFFERING_FRACTION] to zero, and measuring a regression against zero
+     * demonstrates only that it moves one pixel, which is not a demonstration. So the comparison
+     * below stays at the **0.002** the gate carried until then -- 576 pixels of a 360x800 frame --
+     * and therefore keeps saying what it always said: each of these defects would be caught even
+     * by the loose gate. Tightening the gate can only make that more true, never less, which is
+     * why pinning the old number here is a floor under the claim rather than a stale copy of a
+     * constant. `BACKLOG_v4_31.md` item 104 is why the gate moved.
      */
     @Test
     fun theGoldenWouldNoticeIfTheTrafficChanged() {
         val reference = SceneGolden.render(SharedGoldenScenes.trafficDay())
-        val budget = SceneGolden.MAX_DIFFERING_FRACTION
+        val budget = LOOSE_BUDGET_BEFORE_V4_31
 
         data class Case(val label: String, val scene: GoldenScene)
         val cases = listOf(
@@ -180,5 +189,13 @@ class TrafficGoldenTest {
 
     private companion object {
         const val TAG = "TRAFFIC"
+
+        /**
+         * The whole-frame budget until v4.31: 0.002 of a 360x800 frame, i.e. 576 pixels.
+         *
+         * Kept as the bar for the regression demonstration above, deliberately **not** read from
+         * [SceneGolden.MAX_DIFFERING_FRACTION] any more. See that test's doc.
+         */
+        const val LOOSE_BUDGET_BEFORE_V4_31 = 0.002
     }
 }

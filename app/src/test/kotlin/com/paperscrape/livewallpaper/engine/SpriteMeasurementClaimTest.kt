@@ -28,7 +28,10 @@ class SpriteMeasurementClaimTest {
             // moved to (-25, -15) in the same change: the origin *is* the axis the flap mirrors
             // about, so a canvas that changes height without it moves the bird.
             "bird_body" to (51 to 21),
-            "dolphin_body" to (345 to 174),
+            // v4.31: 345x174 until the leading padding the v4.26 redraw left inside the canvas
+            // was cropped, with DOLPHIN_ORIGIN_X/Y_UNITS compensated by the (1, 2) units it
+            // removed. No drawn pixel moved.
+            "dolphin_body" to (342 to 171),
             // v4.21 redrew the crown: 303x198 px = 101x66 u, the "Quercia larga" cushion.
             "tree_canopy" to (303 to 198),
             // v4.25: 159x171 until the window family was redrawn on a canvas trimmed to what it
@@ -102,6 +105,128 @@ class SpriteMeasurementClaimTest {
             }
         }
         assertTrue("the pattern matched nothing, so this test proves nothing", checked > 0)
+    }
+
+    /**
+     * A comment that says a sprite's drawing reaches its canvas edge is checked against the alpha.
+     *
+     * **The residue item 90 left, in a shape it did not anticipate.** That item recorded one hole
+     * -- a pixel claim that omits its unit -- and closed the rest. The claim that got through is
+     * neither: `DOLPHIN_ORIGIN_X_UNITS` said *"The sprite is 345x174 px -- 115x58 local units --
+     * **filled edge to edge**, so its content centre sits at (57.5, 29)"*. The canvas half is true
+     * and the existing guard above checks it and passes. The load-bearing half is the phrase
+     * "filled edge to edge", which is what makes the centre `(57.5, 29)` follow, and it stopped
+     * being true in v4.26 when the dolphin was redrawn inside the same canvas with `4,6` px of
+     * margin. The real centre is `(58.167, 30.0)` units, so the derivation the constant is
+     * justified by gives the wrong answer by `(0.87, 1.0)` units.
+     *
+     * A canvas size is not the same claim as a content box, and a guard that only reads canvas
+     * sizes will keep passing a sentence about the ink. So this reads the **alpha channel**, not
+     * the registry: the registry is a declaration and the PNG is the artwork, and item 90's rule
+     * -- re-measure, do not re-type -- applies to a checker as much as to a comment.
+     *
+     * Scoped by comment block rather than by character distance, because the two halves of the
+     * dolphin's sentence are four lines apart and a windowed regex either misses that or drags in
+     * the next constant's prose. A block that makes the claim must name exactly one sprite that
+     * ships, which is what lets the assertion say which artwork it is about.
+     */
+    @Test
+    fun `a sprite said to fill its canvas does fill it`() {
+        val claim = Regex("""filled edge to edge|content filling it|fills its canvas""")
+        val backticked = Regex("""`([a-z0-9_]+)(?:\.png)?`""")
+        var checked = 0
+        for (file in kotlinSources()) {
+            for (block in commentBlocks(file.readText())) {
+                // **A quoted claim is history, not a claim.** `AI_PROJECT_RULES.md` §3 says to
+                // annotate a wrong number rather than delete it, so the corrected dolphin comment
+                // has to be able to say *This said "filled edge to edge"* without this test
+                // reading that as the assertion being made again. Double quotes are how this
+                // codebase already marks a superseded sentence, so they are what is stripped.
+                if (!claim.containsMatchIn(withoutQuotations(block))) continue
+                val named = backticked.findAll(block)
+                    .map { it.groupValues[1] }
+                    .filter { File(drawableDir(), "$it.png").isFile }
+                    .distinct()
+                    .toList()
+                assertEquals(
+                    "${file.name}: a block claiming a sprite fills its canvas must name exactly " +
+                        "one shipped sprite, and this one names $named",
+                    1,
+                    named.size,
+                )
+                val image = ImageIO.read(File(drawableDir(), "${named[0]}.png"))
+                assertEquals(
+                    "${file.name} says ${named[0]} fills its canvas, and its ink box is " +
+                        "${inkBox(image).toList()} of ${image.width}x${image.height}",
+                    listOf(0, 0, image.width, image.height),
+                    inkBox(image).toList(),
+                )
+                checked++
+            }
+        }
+        assertTrue("the pattern matched nothing, so this test proves nothing", checked > 0)
+    }
+
+    /** The block with every `"..."` span removed, so a quoted claim is not read as a live one. */
+    private fun withoutQuotations(block: String): String {
+        val out = StringBuilder()
+        var quoted = false
+        for (ch in block) {
+            if (ch == '"') { quoted = !quoted; continue }
+            if (!quoted) out.append(ch)
+        }
+        return out.toString()
+    }
+
+    /** The smallest box containing every pixel with non-zero alpha, as `[left, top, right, bottom]`. */
+    private fun inkBox(image: java.awt.image.BufferedImage): IntArray {
+        var left = image.width
+        var top = image.height
+        var right = 0
+        var bottom = 0
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                if (image.getRGB(x, y) ushr 24 == 0) continue
+                if (x < left) left = x
+                if (y < top) top = y
+                if (x >= right) right = x + 1
+                if (y >= bottom) bottom = y + 1
+            }
+        }
+        return if (right == 0) intArrayOf(0, 0, 0, 0) else intArrayOf(left, top, right, bottom)
+    }
+
+    /**
+     * Every `/** ... */` and `/* ... */` block in a Kotlin source, plus each run of adjacent `//`
+     * lines, as one string each.
+     *
+     * A run of `//` lines counts as one block because that is how the engine writes an argument
+     * inside a function body, and splitting it per line would separate a sprite's name from the
+     * claim made about it two lines down.
+     */
+    private fun commentBlocks(source: String): List<String> {
+        val blocks = mutableListOf<String>()
+        // Scanned by index rather than by regex: `/\*(?:[^*]|\*(?!/))*\*/` overflows the stack on
+        // `PaperRenderer.kt`, which is the file this test most needs to read.
+        var i = source.indexOf("/*")
+        while (i >= 0) {
+            val end = source.indexOf("*/", i + 2)
+            if (end < 0) break
+            blocks += source.substring(i, end + 2)
+            i = source.indexOf("/*", end + 2)
+        }
+        val run = StringBuilder()
+        for (line in source.lineSequence()) {
+            val trimmed = line.trim()
+            if (trimmed.startsWith("//")) {
+                run.append(trimmed).append('\n')
+            } else if (run.isNotEmpty()) {
+                blocks += run.toString()
+                run.clear()
+            }
+        }
+        if (run.isNotEmpty()) blocks += run.toString()
+        return blocks
     }
 
     /**

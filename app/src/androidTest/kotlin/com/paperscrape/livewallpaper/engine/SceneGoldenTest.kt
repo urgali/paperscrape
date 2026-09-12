@@ -197,11 +197,13 @@ class SceneGoldenTest {
                     ),
                 )
             },
-            // The two crossings, measured on their own. Without these the frame passes whatever
-            // happens to the dolphins: each covers about 50 pixels of the sail it crosses, and the
-            // whole-frame budget is 576. Reverting `LakeLanes.depthOf` to plain lane ordering moves
-            // 99 pixels in total -- 0.03% of the frame, invisible to the whole-frame rule, and
-            // three times over the budget of each patch below.
+            // The two crossings, measured on their own. Each covers about 50 pixels of the sail
+            // it crosses, and the whole-frame budget **was 576** when this was written: reverting
+            // `LakeLanes.depthOf` to plain lane ordering moves 99 pixels in total -- 0.03% of the
+            // frame, invisible to that rule, and three times over the budget of each patch below.
+            // v4.31 took the whole-frame budget to zero, so the frame would now catch those 99
+            // pixels too; these stay because they say which 99, and because this golden is the one
+            // whose 576-pixel budget was measured 67% spent (`BACKLOG_v4_31.md` item 104).
             focus = listOf(
                 GoldenFocus(4, 424, 40, 446, "dolphin 0 at its apex, inside sailboat 0's sail"),
                 GoldenFocus(300, 454, 336, 476, "dolphin 2 mid-climb, inside sailboat 2's sail"),
@@ -293,7 +295,8 @@ class SceneGoldenTest {
      * golden pins a sprite, not a settings gate, and no tolerance is moved for it. What it adds
      * over the whole-frame rule is the face -- the eyes, nose and grin are cut *through* the paper,
      * so they are a few hundred pixels of sky showing through, and the frame's own budget of 576
-     * would forgive the face closing up while the disc stayed put.
+     * would have forgiven the face closing up while the disc stayed put. (That budget is zero since
+     * v4.31; the focus stays because it names the part of the picture this golden exists for.)
      */
     @Test
     fun halloweenMoon() = SceneGolden.assertMatches(
@@ -371,6 +374,16 @@ class SceneGoldenTest {
      *
      * The focus rectangle is the water and nothing else: the sky above it carries the storm veil
      * and the lightning, which are v4.26's business and have their own frames.
+     *
+     * **This scene is a warmed-up thunderstorm, and [GoldenScene.warmUpFrames]'s own doc says a
+     * warmed-up scene must not be one.** Eighty seconds of simulated storm with the lightning timer
+     * drawing from an unseeded `Random`: one frame in every strike interval carries a veil, the
+     * interval averages 32 frames, so **this golden fails about 1 run in 32 — with the whole frame,
+     * 285 858 pixels** — and has since v4.28. Caught in v4.31 and measured to a tenth of a level
+     * (predicted mean lift 21.8, observed 21.9); `BACKLOG_v4_31.md` item 112 has the arithmetic and
+     * the three ways out, none of which belongs in a defect round. **If this golden fails and the
+     * diff is the entire frame with a bolt in the sky, that is the flake and not a regression** —
+     * re-run it before believing it.
      */
     @Test
     fun waveStorm() = SceneGolden.assertMatches(
@@ -451,8 +464,9 @@ class SceneGoldenTest {
      *
      * The focus is the open sky between the cloud band and the hills — the stretch the maintainer
      * reported the drops as missing from, and the only part of the frame where this can be seen at
-     * all. The whole-frame tolerance cannot see it: at 360x800 the rain covers a few hundred
-     * pixels against the 576 the frame is allowed to differ by.
+     * all. The whole-frame tolerance could not see it: at 360x800 the rain covers a few hundred
+     * pixels against the 576 the frame was allowed to differ by until v4.31, when that became
+     * zero.
      */
     @Test
     fun rainWorstSky() = SceneGolden.assertMatches(
@@ -469,7 +483,8 @@ class SceneGoldenTest {
                 // and the weakest regression that must fail, the correction removed entirely, is
                 // **0.2816%**. The limit is the midpoint. Without it the whole-frame check would
                 // be the only thing standing, and it caught that regression by 582 pixels against
-                // a budget of 576.
+                // a budget of 576 -- six pixels of margin, which is what the v4.31 measurement of
+                // that budget was about.
                 GoldenFocus(0, 250, 360, 470, "the band of open sky the rain crosses", maxDifferingFraction = 0.0014),
             ),
         ),

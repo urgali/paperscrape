@@ -22,20 +22,30 @@ import org.junit.Test
  * The lesson both times is the same and it is why this file exists in the shape it does: a test
  * with only a floor lets an effect grow without limit, and a test with only a ceiling lets it
  * vanish. **Every property below is bounded on both sides**, and every bound is a relation to
- * something in the world -- a child, a head, the skyline -- rather than a share of the frame.
+ * something in the world -- an adult, a head, the skyline -- rather than a share of the frame.
+ *
+ * **And every one of those things must be a thing that does not move.** Both rain bounds were
+ * written against *the child*, which is a drawing and was redrawn in v4.30; the ceiling was
+ * re-anchored to the adult then and the floor was not, so the floor relaxed 16.1 % with nobody
+ * deciding it should. v4.31 re-anchored the floor the same way. See both tests.
  *
  * `PrecipitationPixelTest` measures the rendered result; this pins the arithmetic behind it.
  */
 class PrecipitationScaleTest {
 
     /**
-     * The smallest human figure in the scene, and the yardstick a falling particle answers to.
+     * The smallest human figure in the scene.
      *
      * Derived rather than declared: `SceneSpace.PERSON_METRES_TALL`'s own doc records how tall the
-     * children are drawn against the 80 local units the adults fill.
+     * children are drawn against the 80 local units the adults fill. **v4.30 moved it from 62
+     * units to 52.**
      *
-     * **v4.30 moved it from 62 units to 52**, and the ceiling below moved with it rather than the
-     * rain. See that ceiling for why.
+     * **No gate in this file is expressed against it any more, and that is deliberate.** It was
+     * the yardstick for both the rain ceiling and the rain floor; v4.30 moved the ceiling onto the
+     * adult so a redraw of the children could not move a tolerance, and v4.31 moved the floor for
+     * the same reason after measuring that it *had* moved -- 16.1 % looser, unasked for. What is
+     * left here is a **reported** figure: it appears in a failure message so a reader is told how
+     * much rain a child is standing in, and nothing passes or fails because of it.
      */
     private val childMetres = SceneSpace.PERSON_METRES_TALL * 52f / SceneSpace.PERSON_SPRITE_UNITS_TALL
 
@@ -80,10 +90,18 @@ class PrecipitationScaleTest {
     // -- rain ----------------------------------------------------------------------------------
 
     /**
-     * **The ceiling v4.4 did not have.** A raindrop is at most 40 % of the shortest person in the
-     * scene. The v4.5 sweep put 0.58 m at 0.43 of a child, reading as rain, and the next candidate
-     * up at 0.64 of a child, reading as a falling stick; v4.4 shipped 1.73 m, which is 1.28 of a
-     * whole child.
+     * **The ceiling v4.4 did not have.** A raindrop is at most `0.341` of an adult -- 0.597 m --
+     * which is the bound below expressed against the figure the scene's metre is *defined* by.
+     *
+     * It was written as "40 % of the shortest person in the scene" until v4.31, and that sentence
+     * had stopped being true one release earlier: v4.30 re-anchored the arithmetic to the adult
+     * and left the prose naming the child. At today's 1.1375 m child the shipped 0.58 m drop is
+     * **0.51 of a child**, not 0.40 of one. The v4.5 sweep that chose 0.58 m put it at 0.43 of the
+     * child of the day, reading as rain, with the next candidate up at 0.64 of one and reading as
+     * a falling stick; v4.4 shipped 1.73 m, which was 1.28 of a whole child.
+     *
+     * Whether 0.51 of a child is too much rain is a question for a photograph and is the open half
+     * of `BACKLOG_v4_30.md` item 99. Nothing here answers it.
      */
     @Test
     fun `a raindrop is never more than a fraction of a child`() {
@@ -109,12 +127,27 @@ class PrecipitationScaleTest {
         )
     }
 
-    /** And the floor, so it cannot be shrunk back out of existence. */
+    /**
+     * And the floor, so it cannot be shrunk back out of existence.
+     *
+     * **v4.31: this is the half of the v4.30 re-anchoring that was not done, and it had already
+     * cost a gate.** The ceiling above was moved off the child and onto the adult precisely so a
+     * redraw of the children could not move a tolerance; this floor was left hanging off
+     * [childMetres] three lines below it, and so it moved. `0.20 x 1.35625` was **0.27125 m**
+     * before v4.30 redrew the children and `0.20 x 1.1375` is **0.2275 m** after -- the floor
+     * relaxed by **16.1 %** as a side effect of a decision about how tall to draw a child, which
+     * is the exact failure the paragraph above argues against.
+     *
+     * Restated the same way and at exactly the value it has always had: `0.155 x 1.75 = 0.27125`.
+     * No tolerance moves in either direction and [PaperRenderer.RAIN_LENGTH_MIN_METRES] is
+     * untouched; what changes is which figure the sentence names.
+     */
     @Test
     fun `a raindrop is never small enough to disappear`() {
         assertTrue(
-            "the shortest raindrop is ${PaperRenderer.RAIN_LENGTH_MIN_METRES} m",
-            PaperRenderer.RAIN_LENGTH_MIN_METRES >= 0.20f * childMetres,
+            "the shortest raindrop is ${PaperRenderer.RAIN_LENGTH_MIN_METRES} m against a " +
+                "${SceneSpace.PERSON_METRES_TALL} m adult",
+            PaperRenderer.RAIN_LENGTH_MIN_METRES >= 0.155f * SceneSpace.PERSON_METRES_TALL,
         )
         assertTrue(
             "the raindrop stroke is ${PaperRenderer.RAIN_STROKE_WIDTH_METRES} m",

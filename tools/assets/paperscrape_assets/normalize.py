@@ -285,15 +285,64 @@ def normalised_box(boxes: list[Box], size: tuple[int, int], unit: int) -> Box:
     pixel instead took `bird_body` to 88x21, which is off the grid on both axes.
     Rounding outward can only leave padding behind, never remove artwork, and a trim
     that is a multiple of the grid is still a whole number of pixels.
+
+    ### The guard column, and why cropping to the ink is not free
+
+    **v4.31.** This function used to round to the grid and stop, which on a sprite whose
+    ink begins exactly on a grid line left the drawing touching the new canvas edge. That
+    looks like the tightest correct crop and it is not correct, because **the transparent
+    margin is not empty space -- it is the neighbour the bilinear filter reads.**
+
+    Every `SCENE_UNITS` sprite is blitted through a scaling matrix with filtering on. At
+    the destination pixel that straddles the drawing's edge, the sampler reads the ink
+    column and the transparent column beside it and blends them. Crop that column away
+    and there is nothing beside the ink any more, so the sampler **clamps to the edge**
+    and reads the ink column twice. The edge comes out heavier. Nothing has moved -- the
+    ink is at the same coordinates in the sprite's own space, and the origin compensation
+    keeps it there on screen -- but the rasterised edge is not the one it was.
+
+    Measured, on the BV6600: cropping `dolphin_body`, `sailboat_hull` and `sailboat_sail`
+    to the grid changed **6 pixels in each of three lake goldens**, up to 70 levels on a
+    single contour pixel, in scenes where every other pixel of 288 000 was identical. The
+    two sprites that lost their whole margin on a side are the ones that did it.
+
+    So the rule is: **a side that is trimmed keeps at least one transparent pixel.** It
+    costs one grid cell of canvas per trimmed side and it makes the crop provably free
+    rather than cheap-and-nearly-free, which is the difference between a normalisation
+    and a change to the artwork.
+
+    A side whose ink already touches the canvas edge is untouched: no margin exists there
+    to preserve, the sampler has been clamping since the sprite was authored, and the crop
+    is not what did it.
     """
     if not boxes:
         raise ValueError("a normalised box needs at least one content box")
     width, height = size
     grid = SPRITE_PIXELS_PER_UNIT
-    left = min(b[0] for b in boxes) // grid * grid
-    top = min(b[1] for b in boxes) // grid * grid
-    right = -(-max(b[2] for b in boxes) // grid) * grid
-    bottom = -(-max(b[3] for b in boxes) // grid) * grid
+    ink_left = min(b[0] for b in boxes)
+    ink_top = min(b[1] for b in boxes)
+    ink_right = max(b[2] for b in boxes)
+    ink_bottom = max(b[3] for b in boxes)
+
+    left = ink_left // grid * grid
+    top = ink_top // grid * grid
+    right = -(-ink_right // grid) * grid
+    bottom = -(-ink_bottom // grid) * grid
+
+    # **A sprite's transparent margin is not waste; it is what the filter reads.**
+    #
+    # See `keeps_a_guard_column`'s own reasoning below. On a side the crop actually
+    # trims, the result must leave at least one transparent pixel between the ink and
+    # the new canvas edge. A side whose ink already reached the edge is left alone --
+    # there was no margin to preserve and the crop is not the thing that removed it.
+    if left == ink_left and ink_left > 0:
+        left -= grid
+    if top == ink_top and ink_top > 0:
+        top -= grid
+    if right == ink_right and ink_right < width:
+        right += grid
+    if bottom == ink_bottom and ink_bottom < height:
+        bottom += grid
     return (max(0, left), max(0, top), min(width, right), min(height, bottom))
 
 

@@ -12,30 +12,75 @@ always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v4.30 prepared — not published and not approved.**
+**v4.31 prepared — not published and not approved.**
 
-`versionCode = 61`, `versionName = "4.30"`. **No tag, no push, no GitHub Release** — that half is
+`versionCode = 62`, `versionName = "4.31"`. **No tag, no push, no GitHub Release** — that half is
 the maintainer's and has not been done for this version.
 
-**Baseline v4.29, and it is published.** Read from the public GitHub API on 2026-09-12: `v4.29` is
-the newest published tag, as are `v4.16` through `v4.28`. **Re-read the API rather than this line**
-— nothing in a working tree learns that a release went out, and this line has been wrong in **both**
-directions four times (`BACKLOG_v4_29.md` item 86, `BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md`
-item 55):
+**Baseline v4.30, and it is published.** Read from the public GitHub API on 2026-09-12 at
+15:05:13 UTC: `v4.30` is the newest published tag, as are `v4.16` through `v4.29`. **Re-read the API
+rather than this line, and record the instant you read it** — nothing in a working tree learns that
+a release went out, and this line has been wrong in **both** directions four times
+(`BACKLOG_v4_29.md` item 86, `BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md` item 55):
 
 ```bash
 curl -s https://api.github.com/repos/urgali/paperscrape/releases | grep -o '"tag_name": *"[^"]*"' | head
 ```
 
-**Two backlogs stand in the root and nine are in [`docs/archive/`](docs/archive/).** `BACKLOG_v4_29.md` carries 86–93, of which **92
-stays open** — 93 is closed and superseded by this release — and it continues to carry forward by
-name items **67** and **78** from the two backlogs v4.29 archived. `BACKLOG_v4_30.md` carries 94–100
-and **carries forward by name** everything still open in `BACKLOG_v4_28.md`, which moved to
-[`docs/archive/`](docs/archive/) in this release: items 18, 25, 30, 40, 50–55, **56**, **63** and
-**83**. Carrying the open items forward by number is what makes the move safe, and the numbering
-stays continuous, so item 25 means the same thing wherever it is cited.
+**Two backlogs stand in the root and ten are in [`docs/archive/`](docs/archive/).**
+`BACKLOG_v4_30.md` carries 94–103, of which **94, 99, 100, 103** stay open or documented, and it
+continues to carry forward by name items 18, 25, 30, 40, 50–55, **56**, **63** and **83**.
+`BACKLOG_v4_31.md` carries 104–110 and **carries forward by name** everything still open in
+`BACKLOG_v4_29.md`, which moved to [`docs/archive/`](docs/archive/) in this release: items **67**,
+**78**, **90** and **92**. Carrying the open items forward by number is what makes the move safe,
+and the numbering stays continuous, so item 25 means the same thing wherever it is cited.
 
-**Verified at Level 3 here.** The numbers are in the v4.30 report.
+**Verified at Level 3 here.** The numbers are in the v4.31 report.
+
+```
+v4.31 [x] a round of defects: the story that was wrong, the gate that was loose, and four red years
+ |- `BACKLOG_v4_30.md` item 98 blamed six drifting goldens on a wing-flap sine caught across a zero
+ |  crossing. Swept over every theme x every golden clock x every bird, the closest approach
+ |  anywhere is |sin| = 0.0038 against a double's 4e-13 at 1800 radians -- ten orders of magnitude.
+ |  It cannot happen and it did not
+ |- the real cause, attributed by MUTATION and not by argument: `bird_body.png` was redrawn in
+ |  v4.28 and six goldens were never re-authored with it. v4.29 rebuilt with v4.26's bird takes
+ |  `lake-dolphin-leap` 384 -> 0, `lake-boats` 62 -> 0, `traffic-day` 14 -> 0, and takes eleven
+ |  goldens that were at 0 up to 951-1633. Exactly one sprite changed between the two releases
+ |- so the defect is the gate. 0.002 of a 360x800 frame is 576 pixels and its own KDoc claimed a
+ |  sprite moved by one pixel would fail it; a sprite REPLACED spent 67 % of it and passed. The
+ |  per-pixel tolerance is what absorbs anti-aliasing, and this was a second allowance on top of it
+ |- derived to the measured floor: a matching Canvas golden differs by exactly zero on this device
+ |  (24 of 30, then 15 of 19, and `theWarmedUpFrameIsDeterministic` has asserted a literal 0.0 for
+ |  releases), and the weakest regression that must fail is 14 pixels. The gate sat 41x above it.
+ |  Zero is the only non-arbitrary point in [0, 14). A tightening, never a raise
+ |- the two asset tests that were red since v4.26 -- four releases, not one: `dolphin_body`,
+ |  `sailboat_hull` and `sailboat_sail` got leading padding when the lake was redrawn inside
+ |  unchanged canvases. Cropped, all six origins compensated, proved identical by the new zero gate
+ |- and `KNOWN_PENDING_CROP_COUNT` was NOT raised. It is still 2; reality came back to it
+ |- `normalize --apply` had never once completed -- it looked for a four-space indent in a file
+ |  written with one -- and it failed AFTER rewriting six files. Both fixed, plus a message that
+ |  claimed "single call site" for three sprites that each have two
+ |- the rain's FLOOR was still hung off the child v4.30 redrew, so it relaxed 16.1 % with nobody
+ |  deciding. Re-anchored to the adult at the value it has always had. v4.30 did the ceiling and
+ |  this is the half it left
+ |- the dolphin has not been on its leap point since v4.26, by (+0.87, +1.0) units, and two separate
+ |  comments said it was. Corrected; MOVING it is an artwork question and stays open
+ |- one fallback, two entry paths, and two documents each naming one. Item 103's +13.6 % lands on
+ |  more devices than that item said, not fewer
+ |- and the crop was NOT free the first time: cropping to the ink changed 6 px in each of three lake
+ |  goldens, because a sprite's transparent margin is the neighbour the bilinear filter reads and
+ |  removing it makes the sampler clamp. A guard cell on every trimmed side takes that to 0 / 1 / 1.
+ |  The general rule is in ARCHITECTURE.md §3 with a row for each of the four draw paths -- the GL
+ |  atlas already had it, and that is why v4.30's crop-after-reduction is not exposed
+ |- one measurement went out wrong before it went out right: `adb install -r` silently refuses a
+ |  downgrade, so "rendered the previous release" rendered THIS one, and a pixel was attributed to
+ |  v4.30 that this release had caused. Corrected by uninstalling first and reading `versionCode`
+ |  back; the check is in CLAUDE.md now
+ \- and `wave-storm` is a warmed-up thunderstorm, which `GoldenScene`'s own doc says a scene must not
+    be. One frame in 32 carries a lightning veil, so that golden has been a 1-in-32 coin flip since
+    v4.28 -- under the OLD gate too. Characterised to a tenth of a level; left open, item 112
+```
 
 ```
 v4.30 [x] the people drawn instead of shipped, and the children made children
@@ -60,7 +105,9 @@ v4.30 [x] the people drawn instead of shipped, and the children made children
  |  The off-screen guarantee comes from v4.28's umbrella gate -- the cull that actually ran
  |- children redrawn at 0.65 of an adult, the maintainer's choice from three photographed
  |  proportions. Not a scaled adult: the head keeps its size and the legs and torso lose the height,
- |  which is the proportion that changes with age. The number lives in four places and all four moved
+ |  which is the proportion that changes with age. This line said the number lives in four places
+ |  and all four moved; item 102 of that same release found the FIFTH, and v4.31 item 109 corrected
+ |  the comment that still said four
  |- `GlTextureCache` crops the transparent border AFTER the reduction, which is what makes a mask
  |  nearly free. Cropping the PNG would pay both ceilings and is not available: the reduction
  |  truncates, so a crop reduces on a different grid and the layers drift apart across the sprite

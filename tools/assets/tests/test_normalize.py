@@ -64,9 +64,24 @@ def measurement(name: str, size: tuple[int, int], box: tuple[int, int, int, int]
 class NormalisedBoxTest(unittest.TestCase):
     """The rounding, which is what keeps the compensation an integer."""
 
-    def test_a_box_already_on_the_grid_is_left_alone(self):
+    def test_a_box_already_on_the_grid_still_gains_a_guard_cell(self):
+        """**This test used to assert the opposite, and the opposite was the defect.**
+
+        It read *"a box already on the grid is left alone"* and expected
+        `(6, 6, 96, 120)` back unchanged -- the tightest crop the grid allows. That is
+        exactly the case `normalised_box`'s guard-column rule exists for: every one of
+        those four edges sits on the ink, so the crop would take away the transparent
+        pixel the bilinear filter reads at the drawing's edge, and the rasterised edge
+        would change without anything having moved. Measured at 6 pixels per frame in
+        three lake goldens; see that function's docstring and `BACKLOG_v4_31.md`
+        item 106.
+
+        Kept as the same case with the correct expectation rather than deleted, because
+        it is the clearest statement of what the rule does: one grid cell out on all
+        four sides, and the crop is still a crop -- 120x126 becomes 96x120.
+        """
         self.assertEqual(
-            (6, 6, 96, 120),
+            (3, 3, 99, 123),
             normalize.normalised_box([(6, 6, 96, 120)], (120, 126), UNIT),
         )
 
@@ -196,6 +211,60 @@ class GroupTest(unittest.TestCase):
                 dict.fromkeys(measurements, "SCENE_UNITS"),
                 set(measurements),
             )
+
+
+class GuardColumnTest(unittest.TestCase):
+    """A trimmed side keeps a transparent pixel, because the filter reads it.
+
+    `normalised_box`'s own docstring carries the reasoning and the measurement. These
+    are the four cases it turns on, plus the one it must leave alone.
+    """
+
+    def box_for(self, size, ink):
+        return normalize.normalised_box([ink], size, UNIT)
+
+    def test_ink_starting_on_a_grid_line_keeps_a_column(self):
+        # Without the rule this is (27, 0, 207, 180) and the mast's left edge lands on
+        # the canvas edge. `sailboat_sail`, exactly.
+        self.assertEqual((24, 0, 207, 180), self.box_for((210, 180), (27, 0, 206, 180)))
+
+    def test_ink_starting_on_a_grid_line_keeps_a_row(self):
+        # `dolphin_body`: the top margin is 6, a whole number of grid cells.
+        self.assertEqual((3, 3, 345, 174), self.box_for((345, 174), (4, 6, 345, 174)))
+
+    def test_a_side_that_already_has_a_margin_is_not_widened(self):
+        # 8 is not a multiple of 3, so rounding down already leaves two columns.
+        self.assertEqual((6, 0, 252, 51), self.box_for((252, 51), (8, 0, 252, 51)))
+
+    def test_ink_that_reaches_the_canvas_edge_is_left_alone(self):
+        """The crop is not what removed that margin, and there is none to preserve.
+
+        Every one of these sides has been clamping since the sprite was authored.
+        Widening the canvas to invent a margin would be a change to the artwork's
+        rendered edge in the opposite direction, which is the thing the rule exists to
+        avoid.
+        """
+        self.assertEqual((3, 0, 345, 174), self.box_for((345, 174), (4, 0, 345, 174)))
+
+    def test_a_trailing_edge_on_the_grid_keeps_a_column_too(self):
+        self.assertEqual((0, 0, 93, 120), self.box_for((120, 120), (0, 0, 90, 120)))
+
+    def test_the_rule_never_removes_artwork(self):
+        """Whatever it does, the box still contains every ink pixel."""
+        for size, ink in (
+            ((345, 174), (4, 6, 345, 174)),
+            ((210, 180), (27, 0, 206, 180)),
+            ((252, 51), (8, 0, 252, 51)),
+            ((120, 120), (0, 0, 90, 120)),
+            ((120, 120), (12, 12, 90, 90)),
+        ):
+            box = self.box_for(size, ink)
+            self.assertLessEqual(box[0], ink[0], f"{size} {ink}: left edge cuts ink")
+            self.assertLessEqual(box[1], ink[1], f"{size} {ink}: top edge cuts ink")
+            self.assertGreaterEqual(box[2], ink[2], f"{size} {ink}: right edge cuts ink")
+            self.assertGreaterEqual(box[3], ink[3], f"{size} {ink}: bottom edge cuts ink")
+            self.assertEqual(0, (box[2] - box[0]) % UNIT, "width left the grid")
+            self.assertEqual(0, (box[3] - box[1]) % UNIT, "height left the grid")
 
 
 class ScopeTest(unittest.TestCase):

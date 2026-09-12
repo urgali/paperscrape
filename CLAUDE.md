@@ -135,10 +135,15 @@ The drawing itself is `tools/assets/concepts/people/build_people_concepts.py` (s
 `tools/assets/sources/svg/`, then run the two above. `build_carry_sprites.py` checks on every run
 that it still reproduces the shipped man byte for byte; if that stops passing, stop.
 
-**The asset tooling's own suite has two failures that are not yours.** `test_normalize`'s two
-padding checks were already red in v4.29 — measured by extracting that ZIP and running its suite
-there. `BACKLOG_v4_30.md` item 101. Everything else in `python -m unittest discover -s tests` is
-green and a new failure there is a real one.
+**The asset tooling's own suite is 109 tests and all 109 pass** (v4.31). It was 107 of 109 from
+v4.26 to v4.30: `test_normalize`'s two padding checks went red when the lake was redrawn and
+nothing in the release checklist ran them, so they stayed red for four releases. `BACKLOG_v4_31.md`
+item 106 closed them — the three lake sprites are cropped with their origins compensated — and
+`AI_PROJECT_RULES.md` 12.14 now has a line for this suite so it cannot go unrun again. **A failure
+here is a real one; there is no longer an inherited pair to look past.**
+
+Run it whenever you touch `app/src/main/res/`, `tools/assets/` or `tools/*.py`, and put the count
+in the 12.14 report.
 
 Device work:
 
@@ -161,6 +166,20 @@ thing to avoid is calling something green that was never executed, not the minut
 numbers — colour contrast across themes, hours and weathers — is a JVM unit test that runs in
 seconds for every combination. The device is for two things: confirming that the chosen remedy reads
 in the worst case the host found, and taking the captures.
+
+**`adb install -r` silently refuses a downgrade, so "I rendered the previous release" is a claim
+about which APK is installed — check it.** A release round bumps `versionCode` *before* the
+attribution pass that wants the old APK, so the install of the older build fails and, if its output
+was redirected, fails invisibly; every frame then comes from the build you were trying to compare
+against. This cost v4.31 a false attribution that reached the maintainer (`BACKLOG_v4_31.md` item
+111). **Uninstall first, then read the installed version back:**
+
+```bash
+adb uninstall com.paperscrape.livewallpaper.debug
+adb uninstall com.paperscrape.livewallpaper.debug.test
+adb install <old>/app-debug.apk && adb install <old>/app-debug-androidTest.apk
+adb shell dumpsys package com.paperscrape.livewallpaper.debug | grep versionCode   # put this beside the number
+```
 
 **To find out *what* a golden change is, render the previous release too.** `SceneGolden` takes
 `-e dumpFrames true`, which writes every rendered frame to the golden output directory whether it
@@ -243,8 +262,15 @@ missed `SkyWaterGoldenTest`, whose `waterline-worst-theme` then failed in the fu
 tree, which also finds the GL suite:
 
 ```bash
-grep -rln 'SceneGolden\.assertMatches\|GlGolden\.assertGlBackendUnchanged' app/src/androidTest --include='*.kt'
+grep -rln 'SceneGolden\.assertMatches\|GlGolden\.assertGlBackendUnchanged' app/src/androidTest --include='*.kt' \
+  | xargs grep -l 'class .*Test'
 ```
+
+**Two things that command gets wrong on its own, both met in v4.31.** It matches **doc comments**,
+so it lists `GoldenScene.kt`, which is not a test class — hence the `class .*Test` filter above. And
+it lists only classes that *assert* a golden: `TrafficGoldenTest` renders scenes and compares them
+itself, and it reads `SceneGolden`'s constants, so **a change to the golden machinery has to include
+it even though it owns no PNG**. Filter on what you are changing, not only on what the name suggests.
 
 Listing the directory once produced "30 Canvas goldens" for a suite that had 24, and
 that number then propagated. `GoldenUniquenessTest` keeps two names from sharing one

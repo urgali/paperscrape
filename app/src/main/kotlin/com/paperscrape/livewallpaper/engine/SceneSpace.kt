@@ -665,9 +665,17 @@ object SceneSpace {
      * had the adult's own 31 % of leg, which is what made them read as small adults rather than as
      * children. The maintainer chose 0.65 from photographs of three candidates at 1x on the
      * device: at 0.70 the figure was still a short adult, and at 0.60 it was a dot at night in a
-     * crowded scene. The number lives in four places and this is the one the other three quote --
-     * `VehiclePedestrianScaleTest.CHILD_SPRITE_UNITS_TALL`, `PrecipitationScaleTest.childMetres`
-     * and `build_people_concepts.CHILD_OF_ADULT` -- so moving it means moving all four.
+     * crowded scene.
+     *
+     * **The number lives in five places, not four**, and this is the one the other four quote:
+     * `VehiclePedestrianScaleTest.CHILD_SPRITE_UNITS_TALL`, `PrecipitationScaleTest.childMetres`,
+     * `build_people_concepts.CHILD_OF_ADULT` -- all three on this same 80-unit metre -- and
+     * `VehicleScalePixelTest.CHILD_UNITS`, which is **not** on it. That last one is the ink a
+     * child occupies in the *sprite's own* units, ground shadow included, so it is 54 where these
+     * are 52 and a search for the number does not find it. v4.30's brief named four, all four were
+     * moved together, the JVM suite went green, and only the instrumented suite found the fifth --
+     * `BACKLOG_v4_30.md` item 102. This comment said "four" until v4.31, in the release that
+     * discovered the fifth.
      *
      * **v4.3: the constant said `1.9f` while this comment three lines above it said 1.75 m.** The
      * comment was right and the number was not, and the 8.6% it added to every pedestrian was the

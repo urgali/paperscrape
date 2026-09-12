@@ -208,12 +208,16 @@ def _format_anchor(value: float) -> str:
     return str(int(value)) if float(value).is_integer() else repr(float(value))
 
 
-def _rewrite_registry_geometry(
+def _rewritten_registry_geometry(
     path: Path,
     updates: dict[str, tuple[int, int, tuple[int, int, int, int]]],
     specs: list[registry.SpriteSpec],
-) -> None:
-    """Patch the geometry fields in place, leaving the file's shape alone.
+) -> str:
+    """The registry's text with the geometry fields patched, leaving its shape alone.
+
+    **Returns the new text rather than writing it**, so `_crop_targets` can fail here
+    before it has written a single PNG -- which is what v4.31 needed it to do. See
+    that function.
 
     A load-and-dump round trip would reformat all 118 entries and bury a
     four-field change in a whole-file diff, so each entry is edited as text
@@ -239,7 +243,7 @@ def _rewrite_registry_geometry(
     for name, (width, height, box) in updates.items():
         marker = f'"name": "{name}"'
         start = text.index(marker)
-        end = text.index("\n    }", start)
+        end = _entry_end(text, start)
         entry = text[start:end]
         for field, value in (("width", str(width)), ("height", str(height))):
             entry = re.sub(rf'("{field}": )\d+', rf"\g<1>{value}", entry, count=1)
@@ -270,10 +274,44 @@ def _rewrite_registry_geometry(
                 count=1,
             )
         text = text[:start] + entry + text[end:]
-    path.write_text(text, encoding="utf-8")
+    return text
 
 
-def _resize_svg_canvas(path: Path, box: tuple[int, int, int, int]) -> None:
+def _entry_end(text: str, start: int) -> int:
+    """Index of the closing brace of the sprite object containing ``start``.
+
+    **This used to be ``text.index("\\n    }", start)``, and that could not work.**
+    `sprites.json` is written with a one-space indent, so a sprite object closes on
+    ``"\\n  }"`` and the four-space form appears nowhere in the file -- every
+    ``normalize --apply`` run died here with `ValueError: substring not found`,
+    *after* every PNG and SVG had already been rewritten. The function's own
+    docstring said the anchor branch was "unexercised because no ``--apply`` run had
+    ever completed"; this is why none ever did.
+
+    Found by matching braces backwards to the object's ``{`` and forwards to its
+    ``}`` instead of by guessing an indent, so the registry may be reformatted
+    without breaking the applier again. Strings are skipped, because a `notes` field
+    is free text and this registry's notes contain both braces and escaped quotes.
+    """
+    depth = 0
+    i = start
+    while i < len(text):
+        ch = text[i]
+        if ch == '"':
+            i += 1
+            while i < len(text) and text[i] != '"':
+                i += 2 if text[i] == "\\" else 1
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            if depth == 0:
+                return i
+            depth -= 1
+        i += 1
+    raise ValueError(f"no closing brace for the sprite entry at {start}")
+
+
+def _resized_svg_canvas(path: Path, box: tuple[int, int, int, int]) -> str:
     """Move a source document's canvas onto ``box`` without moving its drawing.
 
     The drawing itself is never touched. What changes is the `viewBox`, whose
@@ -321,21 +359,37 @@ def _resize_svg_canvas(path: Path, box: tuple[int, int, int, int]) -> None:
         + " ".join(str(int(v)) for v in new_view)
         + '"'
     )
-    text = text[: match.start()] + replacement + text[match.end() :]
-    path.write_text(text, encoding="utf-8")
+    return text[: match.start()] + replacement + text[match.end() :]
 
 
 def _crop_targets(
     targets: list[normalize.Normalisation], specs: list[registry.SpriteSpec]
 ) -> int:
-    """Crop each target's PNGs to its box and keep the source and registry with them."""
+    """Crop each target's PNGs to its box and keep the source and registry with them.
+
+    **Nothing is written until every part of the change has been computed**, and that
+    ordering is the point rather than tidiness. The first version cropped and saved
+    each PNG, rewrote each SVG, and only then rewrote the registry -- so
+    `_rewrite_registry_geometry` raising left the shipped PNGs cropped, the sources
+    cropped and the registry describing the canvases none of them had any more, with
+    no way back inside the working tree. v4.31 hit exactly that: the registry patcher
+    was looking for an indent the file does not use (see `_entry_end`), and the abort
+    came after six files had already been rewritten.
+
+    So this now runs in two passes. The first decodes, crops in memory, checks that no
+    opaque pixel is discarded, renders the new SVG and registry **text**, and can
+    raise as often as it likes. The second writes, and by then the only way to fail is
+    the filesystem itself.
+    """
     updates: dict[str, tuple[int, int, tuple[int, int, int, int]]] = {}
+    png_writes: list[tuple[Path, Image.Image]] = []
+    svg_writes: list[tuple[Path, str]] = []
     for item in targets:
         for name in item.members:
             path = RUNTIME_DIR / f"{name}.png"
             with Image.open(path) as image:
                 pixels = np.array(image.convert("RGBA"))
-                cropped = image.crop(item.box)
+                cropped = image.crop(item.box).convert("RGBA")
             # A crop that removes an opaque pixel is a redraw, not a normalisation.
             # Checked here rather than trusted from the plan, because this is the
             # step that cannot be undone from the repository.
@@ -350,14 +404,21 @@ def _crop_targets(
                     f"{name}: the crop would discard a pixel with alpha "
                     f"{int(discarded.max())}, which is artwork rather than padding"
                 )
-            cropped.save(path, format="PNG", optimize=True)
-            with Image.open(path) as written:
-                box = written.convert("RGBA").getchannel("A").getbbox()
-                updates[name] = (written.width, written.height, tuple(box))
+            png_writes.append((path, cropped))
+            # Measured off the cropped image in memory, which is the same measurement
+            # the old code took by re-reading the file it had just written.
+            box = cropped.getchannel("A").getbbox() or (0, 0, cropped.width, cropped.height)
+            updates[name] = (cropped.width, cropped.height, tuple(box))
             source = SVG_DIR / f"{name}.svg"
             if source.is_file():
-                _resize_svg_canvas(source, item.box)
-    _rewrite_registry_geometry(REGISTRY_PATH, updates, specs)
+                svg_writes.append((source, _resized_svg_canvas(source, item.box)))
+    registry_text = _rewritten_registry_geometry(REGISTRY_PATH, updates, specs)
+
+    for path, image in png_writes:
+        image.save(path, format="PNG", optimize=True)
+    for path, text in svg_writes:
+        path.write_text(text, encoding="utf-8")
+    REGISTRY_PATH.write_text(registry_text, encoding="utf-8")
     return len(updates)
 
 
@@ -370,6 +431,19 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     outstanding = normalize.pending(plans)
     anchor_rules = {s.name: s.anchor_rule for s in specs}
     trailing = normalize.trailing_plan(outstanding, anchor_rules)
+
+    only = getattr(args, "only", None)
+    if only:
+        known = {item.key for item in outstanding}
+        unknown = sorted(set(only) - known)
+        if unknown:
+            print(
+                "--only names target(s) that are not pending: " + ", ".join(unknown),
+                file=sys.stderr,
+            )
+            return 1
+        outstanding = [item for item in outstanding if item.key in set(only)]
+        trailing = normalize.trailing_plan(outstanding, anchor_rules)
 
     if getattr(args, "apply_trailing", False):
         cropped = _crop_targets(trailing, specs)
@@ -414,7 +488,13 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     print("origin compensations to apply at the call sites:")
     for item in outstanding:
         dx, dy = item.compensation
-        where = item.origin_site or "single call site"
+        # **Not "single call site".** That is what this printed when `origin_site` was unset,
+        # and it is a claim the tool has not earned: in v4.31 all three lake sprites came back
+        # as "single call site" and every one of them had two -- the renderer's own blit and
+        # `ThemePreviewScene`'s gallery card. Compensating only the first would have left the
+        # preview's boats shifted by the crop, which is the exact failure this line exists to
+        # prevent. Say what is known instead.
+        where = item.origin_site or "call sites NOT resolved -- grep for every blit of this sprite"
         print(f"  {item.key:26} +({dx:g},{dy:g}) units   {where}")
     return 0
 
@@ -549,6 +629,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--apply-trailing",
         action="store_true",
         help="crop only the padding on the right and bottom, which needs no origin compensation",
+    )
+    normalise.add_argument(
+        "--only",
+        metavar="NAME",
+        action="append",
+        default=None,
+        help=(
+            "restrict --apply/--apply-trailing to these targets; repeatable. The pending set "
+            "mixes drift with decisions -- the two tree sprites' leading margin IS a shared blit "
+            "origin and must not be cropped -- so an all-or-nothing --apply cannot express "
+            "'crop the three that drifted'. v4.31 needed exactly that and the command could not "
+            "say it, which is why the crop it performed is reproducible now."
+        ),
     )
     normalise.set_defaults(func=cmd_normalize)
 

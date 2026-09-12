@@ -305,9 +305,9 @@ object ThemePreviewScenes {
             }
             if (c.lake.dolphinsVisible) {
                 backdrop += PreviewItem(108f, lakeBand.top + 24f, 0.32f,
-                    listOf(PreviewSprite(R.drawable.dolphin_body, -57.3f, -29f)))
+                    listOf(PreviewSprite(R.drawable.dolphin_body, -56.3f, -28f)))
                 backdrop += PreviewItem(212f, lakeBand.top + 19f, 0.24f,
-                    listOf(PreviewSprite(R.drawable.dolphin_body, -57.3f, -29f)))
+                    listOf(PreviewSprite(R.drawable.dolphin_body, -56.3f, -28f)))
             }
         }
 
@@ -681,8 +681,13 @@ object ThemePreviewScenes {
     }
 
     private fun sailboat() = listOf(
-        PreviewSprite(R.drawable.sailboat_sail, -35f, -50f),
-        PreviewSprite(R.drawable.sailboat_hull, -42f, 8f),
+        // v4.31: the same compensation the wallpaper's own blit carries -- see
+        // `PaperRenderer.drawLakeSailboats`. The preview is a second call site for every one of
+        // these three sprites, and `normalize --apply` reported "single call site" for all
+        // three because it could not resolve them; compensating only the renderer would have
+        // left the gallery card's boats shifted.
+        PreviewSprite(R.drawable.sailboat_sail, -27f, -50f),
+        PreviewSprite(R.drawable.sailboat_hull, -40f, 8f),
     )
 
     private fun person(kind: String, winter: Boolean, frame: Int): List<PreviewSprite> {

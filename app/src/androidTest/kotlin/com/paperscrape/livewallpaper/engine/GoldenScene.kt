@@ -5,11 +5,18 @@ import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
 /**
  * A rectangle of a golden frame that the golden is specifically *about*, in the frame's own pixels.
  *
- * The whole-frame tolerance is a fraction of the whole frame, and that makes it blind to a small
- * sprite: a dolphin at this frame size covers about 160 px, while [SceneGolden.MAX_DIFFERING_FRACTION]
- * of a 360x800 frame is 576. A scene whose whole point is where one small sprite is painted
- * therefore has to be measured over the patch it is painted in, or it passes whatever happens
- * there. Naming that patch is [GoldenScene.focus].
+ * The whole-frame tolerance used to be a fraction of the whole frame, and that made it blind to a
+ * small sprite: a dolphin at this frame size covers about 160 px, while
+ * [SceneGolden.MAX_DIFFERING_FRACTION] of a 360x800 frame was **576**. A scene whose whole point is
+ * where one small sprite is painted therefore had to be measured over the patch it is painted in,
+ * or it passed whatever happened there. Naming that patch is [GoldenScene.focus].
+ *
+ * **v4.31 took that whole-frame budget to zero**, after measuring what 576 had actually forgiven --
+ * a redrawn bird, for two releases. So a focus rectangle is no longer what *catches* a moved
+ * sprite; the whole-frame rule now does. It is still what says **what the golden is about**, and
+ * the derived per-focus gates of v4.22 are still the demonstrations that each one would catch its
+ * own regression. Neither is removed: a golden that cannot name its subject is a golden nobody can
+ * re-author.
  */
 class GoldenFocus(
     val left: Int,

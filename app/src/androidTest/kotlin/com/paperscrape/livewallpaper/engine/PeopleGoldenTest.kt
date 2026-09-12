@@ -34,9 +34,13 @@ import org.junit.Test
  * [PAVEMENT] is the strip the walking figures occupy, derived from the two ground lines
  * [SceneSpace.PAVEMENT_FAR_Y_FRACTION] and [SceneSpace.PAVEMENT_NEAR_Y_FRACTION] at
  * [SceneGolden.HEIGHT], opened upward far enough to contain a standing figure's full height. A
- * whole-frame tolerance is blind to a person: [SceneGolden.MAX_DIFFERING_FRACTION] of a 360x800
- * frame is 576 pixels, and a pedestrian at this frame size covers rather fewer. Measured against
+ * whole-frame tolerance was blind to a person: [SceneGolden.MAX_DIFFERING_FRACTION] of a 360x800
+ * frame was 576 pixels, and a pedestrian at this frame size covers rather fewer. Measured against
  * this band instead, a figure that moves, vanishes or swaps places with another one fails.
+ *
+ * **The whole-frame budget is zero since v4.31**, so it is no longer blind to anything; this band
+ * stays because it is what names the people in a frame that also contains a sky, a road and a
+ * lake.
  *
  * ### Regenerating
  *

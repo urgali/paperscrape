@@ -68,16 +68,59 @@ object SceneGolden {
     const val HEIGHT = 800
 
     /**
-     * How far two frames may differ and still be the same picture.
+     * How far two frames may differ and still be the same picture. **Zero pixels, since v4.31.**
      *
-     * Not zero, and the reason is anti-aliasing: the same scene rendered on two Android versions,
-     * or on hardware with a different Skia build, differs by a greyscale level or two along glyph
-     * and sprite edges. A per-pixel channel tolerance of [CHANNEL_TOLERANCE] absorbs that; the
-     * fraction of pixels allowed to exceed even that is [MAX_DIFFERING_FRACTION], which is small
-     * enough that a sprite moving by one pixel fails.
+     * Anti-aliasing is absorbed **per pixel**, by [CHANNEL_TOLERANCE]: the same scene rendered on
+     * two Android versions, or on hardware with a different Skia build, differs by a greyscale
+     * level or two along glyph and sprite edges, and a channel tolerance of 8 covers that. This
+     * constant is a *second* allowance stacked on top of it -- how many pixels may exceed even
+     * that -- and it was never derived from anything.
+     *
+     * ### Why it was 0.002, and what that permitted
+     *
+     * This KDoc used to end *"small enough that a sprite moving by one pixel fails"*. **Measured
+     * in v4.31, that is false, and the cost of it being false was two releases of silent drift.**
+     * 0.002 of a 360x800 frame is **576 pixels**. `bird_body.png` was not moved by a pixel in
+     * v4.28 -- it was redrawn -- and the six Canvas goldens that were not re-authored with it went
+     * on passing:
+     *
+     * | golden | pixels the stale bird cost | share of the 576 |
+     * |---|---:|---:|
+     * | `lake-dolphin-leap` | 384 | 67 % |
+     * | `lake-boats` | 62 | 11 % |
+     * | `traffic-day` | 14 | 2 % |
+     *
+     * Attributed by mutation rather than by argument: v4.29 built from its own delivery ZIP with
+     * **v4.26's `bird_body.png` swapped back in** renders all three at exactly **0** against their
+     * committed files. A census of `drawable-nodpi/` between the two releases finds **one** sprite
+     * changed, and it is that one. `BACKLOG_v4_31.md` item 104 has the whole measurement, including
+     * that `BACKLOG_v4_30.md` item 98's stated cause -- a wing-flap sine caught across a zero
+     * crossing -- is arithmetically impossible: the closest any bird in any theme at any golden
+     * clock comes to that crossing is `|sin| = 0.0038`, twelve orders of magnitude above the
+     * double-precision noise in an argument of ~1800 radians.
+     *
+     * ### Why zero, and why zero is not a tuning
+     *
+     * Derived the way v4.22 derives a focus gate -- between the measured noise floor and the
+     * weakest regression that must fail:
+     *
+     *  - **the floor is 0.** A Canvas golden that matches differs by exactly zero pixels on the
+     *    reference device. 24 of 30 in v4.30's attribution pass and 15 of 19 in v4.31's
+     *    re-measurement, two independent sessions; every non-zero one had a cause;
+     *  - **the weakest regression that must fail is 14 pixels**, the stale bird in `traffic-day`.
+     *
+     * The old gate sat **41x above** the weakest thing it has to catch. Anywhere in `[0, 14)` is
+     * defensible and every value but one is arbitrary, so the gate is the floor itself. It is a
+     * tightening and never a raise, and `AI_PROJECT_RULES.md`'s rule about tolerances is about the
+     * other direction.
+     *
+     * A golden that differs at all is now stale until somebody says why, which is what a golden is
+     * for. [MAX_FOCUS_DIFFERING_FRACTION] and the per-focus derived gates are **untouched**: they
+     * measure a small patch where a diagonal really is mostly anti-aliased edge. So are the three
+     * GL references, which answer to [GlGolden]'s own gates and to `GlDriverGapGuardTest`.
      */
     const val CHANNEL_TOLERANCE = 8
-    const val MAX_DIFFERING_FRACTION = 0.002
+    const val MAX_DIFFERING_FRACTION = 0.0
 
     /**
      * The same rule applied to a [GoldenFocus], with a looser fraction and a far smaller area.

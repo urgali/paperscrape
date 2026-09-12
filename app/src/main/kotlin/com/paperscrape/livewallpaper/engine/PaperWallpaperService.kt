@@ -769,8 +769,28 @@ class PaperWallpaperService : WallpaperService() {
         /**
          * Gives up on GL for the rest of this engine's life and restarts the `Canvas` loop.
          *
-         * Reached only when EGL could not be initialised at all. The scene state is untouched by
-         * this: the same renderer keeps drawing, through the other backend.
+         * **Two paths reach it, not one**, and both come through `GlRenderThread.reportUnavailable`
+         * when [GlLifecyclePolicy.shouldRebuildContext] says no:
+         *
+         *  - `hadWorkingContext == false` -- EGL never initialised, so the **first** failed frame
+         *    lands here. This is the "this device cannot do GL" case;
+         *  - `hadWorkingContext == true` and the context has already been rebuilt
+         *    [GlLifecyclePolicy.MAX_CONTEXT_REBUILDS] times -- a GPU that worked and stopped.
+         *
+         * This said *"Reached only when EGL could not be initialised at all"*, which was true
+         * before `MAX_CONTEXT_REBUILDS` existed and describes exactly the behaviour that constant
+         * was added to replace: `GlLifecyclePolicy`'s own doc says the old latch-on-any-failure
+         * rule "is right for 'this device cannot do EGL' and wrong for everything else". The
+         * second path is tested -- `GlLifecyclePolicyTest` pins `(true, 3) -> false` -- so the
+         * code was right and only this sentence was wrong. `BACKLOG_v4_31.md` item 107.
+         *
+         * It matters because this is the surface `BACKLOG_v4_30.md` item 103's +13.6 % lands on,
+         * and that item described the blast radius with the *other* half of the truth -- "the
+         * fallback the wallpaper takes after MAX_CONTEXT_REBUILDS EGL failures", which misses the
+         * device that never had GL at all. Both halves are here now.
+         *
+         * The scene state is untouched by this: the same renderer keeps drawing, through the
+         * other backend.
          */
         private fun switchToCanvasFallback() {
             if (canvasFallback) return
