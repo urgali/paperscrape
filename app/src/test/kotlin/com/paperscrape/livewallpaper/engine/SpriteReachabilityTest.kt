@@ -98,6 +98,19 @@ class SpriteReachabilityTest {
         val text = sources.associateWith { it.readText() }
         val whole = text.values.joinToString("\n")
 
+        // **Counted with the comments stripped out, and that is `BACKLOG_v4_25.md` item 58.**
+        //
+        // The rule is "a name that occurs once occurs only in its own declaration". It counted
+        // occurrences in the raw text, so **a mention inside a KDoc block satisfied it** --
+        // `personWindowHeadDrawables` appeared twice, once as itself and once inside the doc comment
+        // of the table that replaced it, and eight window busts no draw path could reach passed as
+        // named by the code for three releases. `personWalkDrawables` had the same shelter.
+        //
+        // v4.30 deleted both tables, which removed the two mentions and would have made the rule
+        // fire on its own; the rule is tightened here anyway, because deleting the tables removes
+        // the instance and not the hole. Code is what counts now: a table cited in prose is still
+        // documented and is no longer alive.
+        val code = whole.stripComments()
         val declaration = Regex(
             """\bval\s+([A-Za-z][A-Za-z0-9_]*)\s*(?::[^=\n]+)?=\s*(?:array|intArray)Of\(""",
         )
@@ -107,7 +120,7 @@ class SpriteReachabilityTest {
                 val name = match.groupValues[1]
                 val initialiser = body.substring(match.range.first, minOf(body.length, match.range.last + 4000))
                 if (!initialiser.contains("R.drawable.")) continue
-                val uses = Regex("""\b${Regex.escape(name)}\b""").findAll(whole).count()
+                val uses = Regex("""\b${Regex.escape(name)}\b""").findAll(code).count()
                 if (uses <= 1) dead += "${file.name}: $name"
             }
         }
@@ -148,4 +161,15 @@ class SpriteReachabilityTest {
         }
         error("repository root not found from ${File(".").absolutePath}")
     }
+
+    /**
+     * The same text with block and line comments removed.
+     *
+     * Deliberately crude -- it does not know about strings that contain `//` -- because the only
+     * thing it feeds is a count of identifier occurrences, and a sprite table's name appearing
+     * inside a string literal would be at least as suspicious as one appearing only in prose.
+     */
+    private fun String.stripComments(): String =
+        replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), " ")
+            .replace(Regex("""//[^\n]*"""), " ")
 }

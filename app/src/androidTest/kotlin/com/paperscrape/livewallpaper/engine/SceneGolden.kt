@@ -153,6 +153,7 @@ object SceneGolden {
      */
     fun assertMatches(scene: GoldenScene, extraFocus: List<GoldenFocus> = emptyList()) {
         val actual = render(scene)
+        dumpIfAsked(scene.name, actual)
         if (updating()) {
             write(actual, File(outputDir(), "${scene.name}.png"))
             return
@@ -313,6 +314,13 @@ object SceneGolden {
             }
         }
         return diff
+    }
+
+    /** V430_DUMP: with `-e dumpFrames true`, every rendered frame is written out for attribution. */
+    private fun dumpIfAsked(name: String, bitmap: Bitmap) {
+        val args = androidx.test.platform.app.InstrumentationRegistry.getArguments()
+        if (args.getString("dumpFrames") != "true") return
+        write(bitmap, File(outputDir(), "$name-frame.png"))
     }
 
     private fun readGolden(name: String): Bitmap? = try {

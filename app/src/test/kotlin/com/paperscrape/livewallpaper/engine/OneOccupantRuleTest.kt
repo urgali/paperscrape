@@ -167,12 +167,15 @@ class OneOccupantRuleTest {
             !source.contains("val driverSeed"),
         )
 
-        // And the table the indices address really is [kind][season][skin] with the two adult
-        // families first, so "the driver is an adult" means the first two rows.
-        val table = rendererSource().readText()
-            .substringAfter("private val personCarHeadSkinDrawables = arrayOf(")
+        // And the table the indices address really is [kind][season] with the two adult families
+        // first, so "the driver is an adult" means the first two rows. The skin axis left the table
+        // in v4.30 -- a seated figure is dealt a tone from `PeopleColours.SKIN` and the drawing is
+        // fixed art plus masks -- but the family axis is the one this sentence is about, and it is
+        // still an axis of the table.
+        val table = layerTableSource().readText()
+            .substringAfter("val CAR = arrayOf(")
             .substringBefore("\n    )")
-        val families = Regex("""person_(man|woman|boy|girl)_summer_head_car_skin0""")
+        val families = Regex("""person_(man|woman|boy|girl)_summer_head_car_fx""")
             .findAll(table).map { it.groupValues[1] }.toList()
         assertEquals(
             "the first two rows of the occupant table must be the two adults",
@@ -200,8 +203,14 @@ class OneOccupantRuleTest {
             .substringAfter("private fun drawCar(")
             .substringBefore("\n    private fun ")
 
-        fun rendererSource(): File {
-            val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt"
+        /** `PeopleLayerTable.kt`, which is where the seated family lives since v4.30. */
+        fun layerTableSource(): File =
+            sourceFile("src/main/kotlin/com/paperscrape/livewallpaper/engine/PeopleLayerTable.kt")
+
+        fun rendererSource(): File =
+            sourceFile("src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt")
+
+        fun sourceFile(suffix: String): File {
             var dir: File? = File(".").absoluteFile
             while (dir != null) {
                 for (prefix in listOf("", "app/")) {

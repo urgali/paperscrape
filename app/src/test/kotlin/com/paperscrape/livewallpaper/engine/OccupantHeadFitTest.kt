@@ -52,15 +52,14 @@ class OccupantHeadFitTest {
     fun `the pedestrian head constant is what the walking artwork measures`() {
         // Crown of the hair to the jaw, off person_man_summer_walk0: the topmost hair row and the
         // bottom of the face's skin blob. `person_man_summer_walk0` is 117x252 px at 3 px per unit.
-        val image = ImageIO.read(File(drawableDir, "person_man_summer_walk0.png"))
-        val hairTop = rowsMatching(image) { r, g, b -> near(r, g, b, 0x2B, 0x2A, 0x33) }.first()
+        val hairTop = regionRows("person_man_summer_walk0", "mh").first()
         // **The jaw is where the skin narrows, not where it stops.** Until v4.25 the neck was not
         // drawn in skin, so the face's first contiguous run of skin rows ended at the chin and the
         // simpler rule was right. B "Rilievo" draws the neck in skin and joins it to the face, so
         // that run now runs on to the collar and measures a head half again too tall -- silently,
         // on the constant every head in the scene derives from. Width separates them: the head is
         // twenty-odd units across and the neck is a strip a third of that.
-        val faceBottom = jawRow(image, intArrayOf(0xDC, 0xA9, 0x7C))
+        val faceBottom = jawRow("person_man_summer_walk0")
         val headUnits = (faceBottom - hairTop + 1) / 3f
         assertEquals(
             "PERSON_HEAD_SPRITE_UNITS vs the artwork ($hairTop..$faceBottom px)",
@@ -104,19 +103,15 @@ class OccupantHeadFitTest {
     @Test
     fun `a summer occupant's face measures a pedestrian's face in scene metres`() {
         // The pedestrian's face, off the walking artwork, in metres.
-        val walk = ImageIO.read(File(drawableDir, "person_man_summer_walk0.png"))
-        val walkFaceRows = rowsMatching(walk) { r, g, b -> near(r, g, b, 0xDC, 0xA9, 0x7C) }
-        val walkFaceBottom = jawRow(walk, intArrayOf(0xDC, 0xA9, 0x7C))
+        val walkFaceRows = regionRows("person_man_summer_walk0", "ms")
+        val walkFaceBottom = jawRow("person_man_summer_walk0")
         val pedestrianFaceMetres = (walkFaceBottom - walkFaceRows.first() + 1) / 3f *
             SceneSpace.PERSON_METRES_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL
 
         // Every summer frontal face, in metres, through both vehicle scales. Winter is exempt
         // deliberately -- see the class comment: beanie over the forehead, scarf over the chin.
-        for ((name, skin) in listOf(
-            "person_man_summer_head_car_skin1" to intArrayOf(0xDC, 0xA9, 0x7C),
-            "person_woman_summer_head_car_skin0" to intArrayOf(0xF0, 0xC9, 0xA6),
-        )) {
-            val face = faceHeightUnits(name, skin)
+        for (name in listOf("person_man_summer_head_car", "person_woman_summer_head_car")) {
+            val face = faceHeightUnits(name)
             for ((vehicle, scale, metresPerUnit) in listOf(
                 Triple("sedan", SceneObjectRenderer.CAR_OCCUPANT_SCALE, SceneSpace.CAR_METRES_TALL / SceneSpace.CAR_SPRITE_UNITS_TALL),
                 Triple(
@@ -163,9 +158,9 @@ class OccupantHeadFitTest {
      */
     @Test
     fun `a winter occupant's head with its headwear measures a winter pedestrian's`() {
-        for ((who, skin) in listOf("man" to SKIN_OF["man"]!!, "woman" to SKIN_OF["woman"]!!)) {
-            val walkBlock = headBlockMetres("person_${who}_winter_walk0", skin, PEDESTRIAN_METRES_PER_UNIT)
-            val carBlock = headBlockMetres(carHeadFile(who, "winter"), skin, occupantMetresPerUnit())
+        for (who in listOf("man", "woman")) {
+            val walkBlock = headBlockMetres("person_${who}_winter_walk0", PEDESTRIAN_METRES_PER_UNIT)
+            val carBlock = headBlockMetres("person_${who}_winter_head_car", occupantMetresPerUnit())
             val ratio = carBlock / walkBlock
             assertTrue(
                 "$who in winter: the occupant's head with headwear is ${"%.4f".format(carBlock)} m " +
@@ -176,8 +171,8 @@ class OccupantHeadFitTest {
             // Recorded, not waived: the same two figures' *visible* skin, which differs because
             // the two drawings cover different amounts of face. It runs 0.88 (man) to 1.58
             // (woman); a band that admits both is a band that says "this is not a size".
-            val walkFace = faceHeightUnits("person_${who}_winter_walk0", skin) * PEDESTRIAN_METRES_PER_UNIT
-            val carFace = faceHeightUnits(carHeadFile(who, "winter"), skin) * occupantMetresPerUnit()
+            val walkFace = faceHeightUnits("person_${who}_winter_walk0") * PEDESTRIAN_METRES_PER_UNIT
+            val carFace = faceHeightUnits("person_${who}_winter_head_car") * occupantMetresPerUnit()
             val faceRatio = carFace / walkFace
             assertTrue(
                 "$who in winter: visible-skin ratio ${"%.3f".format(faceRatio)} -- if this ever " +
@@ -235,14 +230,12 @@ class OccupantHeadFitTest {
         // scarf or hood over the chin, so neither landmark is the bare head's (the winter
         // members' total height is pinned by the air-band test above instead).
         for (name in HEAD_CAR_FAMILY.filter { "summer" in it }) {
-            val image = ImageIO.read(File(drawableDir, "$name.png"))
-            val skin = SKIN_OF.entries.first { name.startsWith("person_${it.key}_") }.value
             val crown = contentTopUnits(name)
             // The chin ends the face's contiguous run of skin rows: stray anti-aliased blends
             // further down (a belt edge meeting a warm dress reads as skin within the colour
             // tolerance) are not the chin, exactly as the walker's face measurement stops at
             // the first gap before the hands.
-            val chin = jawRow(image, skin) / 3f
+            val chin = jawRow(name) / 3f
             val head = chin - crown
             // The 0.9 is the reason a child reads as a child: a child's bust is drawn shorter
             // than an adult's inside the same canvas, which is also why a child leaves more air
@@ -288,19 +281,15 @@ class OccupantHeadFitTest {
         val measured = mutableListOf<String>()
         val squashed = mutableListOf<String>()
         for (who in listOf("man", "woman", "boy", "girl")) {
-            val skin = SKIN_OF.getValue(who)
             val names = listOf(
                 "person_${who}_summer_walk0",
                 "person_${who}_summer_head_window",
-                HEAD_CAR_FAMILY.first { it.startsWith("person_${who}_summer_head_car") },
+                "person_${who}_summer_head_car",
             )
             for (name in names) {
-                val image = ImageIO.read(File(drawableDir, "$name.png"))
-                // Every file read here carries the character's *own* tone: the walk and window
-                // bases are the drawing itself, and the seated one is the heir the base became
-                // (see BASE_SKIN_OF), which is why one colour serves all three.
+                val image = silhouette(name)
                 val crown = (contentTopUnits(name) * 3f).toInt()
-                val jaw = jawRow(image, skin)
+                val jaw = jawRow(name)
                 var widest = 0
                 for (y in crown..jaw) {
                     var left = -1
@@ -328,38 +317,37 @@ class OccupantHeadFitTest {
     // ------------------------------------------------------------------ 5. coverage parity
 
     @Test
-    fun `every family, season and skin the pedestrians have exists as a vehicle head`() {
-        // The rc4 criterion verbatim: the walkers define the cast, the vehicle heads must cover
-        // it. Skin variants are the generated _skin0.._skin2 the walkers rotate through; the
-        // base sprite is each character's own tone and ships alongside, for both sets alike.
+    fun `every family and season the pedestrians have exists as a vehicle head`() {
+        // The rc4 criterion verbatim: the walkers define the cast, the vehicle heads must cover it.
+        //
+        // **The skin axis left this test in v4.30 and did not weaken it.** Coverage used to mean
+        // "for every family x season x tone the walkers ship, the seated file exists", and the tone
+        // third of that is now a number rather than a file -- a seated figure is dealt a tone from
+        // the same `PeopleColours.SKIN` the street is, so the cast cannot fall out of step by a
+        // missing PNG. What can still fall out of step is a family or a season, and that is what is
+        // asserted, on the shapes the engine's own table names rather than on a list retyped here.
         for (who in listOf("man", "woman", "boy", "girl")) {
             for (season in listOf("summer", "winter")) {
                 val walkBase = "person_${who}_${season}_walk0"
                 assertTrue("$walkBase.png missing", File(drawableDir, "$walkBase.png").isFile)
                 val carBase = "person_${who}_${season}_head_car"
-                // v4.19 deleted the four adult base drawings and v4.20 the two boy ones --
-                // duplicates of one of their own skin copies that no draw path could reach -- so
-                // coverage is asserted on the tone files, which are what the renderer actually
-                // blits. See `carHeadFile`.
                 assertTrue(
-                    "${carHeadFile(who, season)}.png missing: the pedestrians offer " +
-                        "$who/$season and the vehicles do not",
-                    File(drawableDir, "${carHeadFile(who, season)}.png").isFile,
+                    "${carBase}_fx.png missing: the pedestrians offer $who/$season and the " +
+                        "vehicles do not",
+                    File(drawableDir, "${carBase}_fx.png").isFile,
                 )
-                for (skin in 0..2) {
-                    if (File(drawableDir, "${walkBase}_skin$skin.png").isFile) {
-                        assertTrue(
-                            "${carBase}_skin$skin.png missing: pedestrians carry this tone and " +
-                                "the vehicles do not",
-                            File(drawableDir, "${carBase}_skin$skin.png").isFile,
-                        )
-                    }
-                }
+                assertTrue(
+                    "$carBase carries no skin region, so nothing could tint its face",
+                    File(drawableDir, "${carBase}_ms.png").isFile,
+                )
             }
         }
+        assertEquals(
+            "and the engine's table must name one seated shape per family per season",
+            8,
+            PeopleLayerTable.CAR.sumOf { it.size },
+        )
     }
-
-    // ------------------------------------------------------------------ plumbing
 
     /** Metres per unit for a walking figure and for a seated bust, from the size table. */
     private fun occupantMetresPerUnit(): Float =
@@ -373,13 +361,12 @@ class OccupantHeadFitTest {
      * ends the face's first contiguous run of skin rows, the same rule the walker's own face
      * measurement uses so a hand further down cannot be mistaken for a jaw.
      */
-    private fun headBlockMetres(name: String, skin: IntArray, metresPerUnit: Float): Float {
-        val image = ImageIO.read(File(drawableDir, "$name.png"))
+    private fun headBlockMetres(name: String, metresPerUnit: Float): Float {
         val crown = contentTopUnits(name)
         // The same jaw rule the pedestrian constant uses: where the skin narrows into the neck.
         // The v4.25 people draw the neck in skin, so "the end of the first run of skin rows" now
         // lands below the collar on every one of them.
-        val chin = jawRow(image, skin)
+        val chin = jawRow(name)
         return ((chin + 1) / 3f - crown) * metresPerUnit
     }
 
@@ -387,18 +374,18 @@ class OccupantHeadFitTest {
      * The last row of the head proper: the skin's first contiguous run, cut where it narrows into
      * the neck. Half the widest skin row is the threshold -- a head is twenty-odd units across and
      * a neck about seven, so nothing sits near the line.
+     *
+     * v4.30 reads the skin **mask** rather than hunting a skin colour within ten levels. The rule is
+     * the same one and the answer is exact instead of nearly right: a belt edge meeting a warm dress
+     * used to read as skin and is now simply not in the region.
      */
-    private fun jawRow(image: BufferedImage, skin: IntArray): Int {
+    private fun jawRow(name: String): Int {
+        val image = mask(name, "ms")
         val widths = IntArray(image.height)
         for (y in 0 until image.height) {
             var n = 0
             for (x in 0 until image.width) {
-                val argb = image.getRGB(x, y)
-                if (argb ushr 24 > 128 &&
-                    near((argb shr 16) and 0xFF, (argb shr 8) and 0xFF, argb and 0xFF, skin[0], skin[1], skin[2])
-                ) {
-                    n++
-                }
+                if (image.getRGB(x, y) ushr 24 >= FULL_WEIGHT) n++
             }
             widths[y] = n
         }
@@ -414,14 +401,11 @@ class OccupantHeadFitTest {
         return run.last { widths[it] >= widest / 2 }
     }
 
-    private fun faceHeightUnits(name: String, skin: IntArray): Float {
-        val image = ImageIO.read(File(drawableDir, "$name.png"))
-        val rows = rowsMatching(image) { r, g, b -> near(r, g, b, skin[0], skin[1], skin[2]) }
-        return (jawRow(image, skin) - rows.first() + 1) / 3f
-    }
+    private fun faceHeightUnits(name: String): Float =
+        (jawRow(name) - regionRows(name, "ms").first() + 1) / 3f
 
     private fun contentHeightUnits(name: String): Float {
-        val image = ImageIO.read(File(drawableDir, "$name.png"))
+        val image = silhouette(name)
         var top = -1
         var bottom = -1
         for (y in 0 until image.height) {
@@ -436,7 +420,7 @@ class OccupantHeadFitTest {
     }
 
     private fun contentTopUnits(name: String): Float {
-        val image = ImageIO.read(File(drawableDir, "$name.png"))
+        val image = silhouette(name)
         for (y in 0 until image.height) {
             for (x in 0 until image.width) {
                 if (image.getRGB(x, y) ushr 24 != 0) return y / 3f
@@ -461,6 +445,49 @@ class OccupantHeadFitTest {
         return rows
     }
 
+    /**
+     * The file that carries [name]'s silhouette.
+     *
+     * Since v4.30 a shape ships as fixed art plus region masks and only some of them still ship the
+     * drawing itself -- the seated busts' bases were retired in v4.19 and v4.20. The fixed layer has
+     * the shape's own alpha channel, pixel for pixel, so anything measured off the silhouette is the
+     * same measurement either way.
+     */
+    private fun silhouette(name: String): BufferedImage {
+        val drawing = File(drawableDir, "$name.png")
+        return ImageIO.read(if (drawing.isFile) drawing else File(drawableDir, "${name}_fx.png"))
+    }
+
+    /**
+     * A region's weight mask for [name] -- `ms` skin, `mh` head.
+     *
+     * **This is what replaced matching a skin colour with a tolerance of ten levels.** The generator
+     * knows which polygon it drew; the mask is that answer, so "which pixels are this person's face"
+     * stopped being a guess the moment the artwork started carrying it.
+     */
+    private fun mask(name: String, region: String): BufferedImage =
+        ImageIO.read(File(drawableDir, "${name}_$region.png"))
+
+    /**
+     * Rows of [name] that carry [region] at **full** weight.
+     *
+     * [FULL_WEIGHT] and not "any weight at all", and the threshold is the landmark rather than a
+     * tolerance. A mask carries `1` for the paint and `1 - t` for each of its shadows -- 0.66 for
+     * the Rilievo under-paper, 0.86 and 0.84 for the two darker limbs -- plus whatever fraction the
+     * anti-aliasing leaves at the edge. The measurements in this class were written against a
+     * colour match within ten levels, which admitted the paint and excluded every shadow of it, so
+     * the landmark they read is the **unshaded** core of a region. Reading it at full weight is that
+     * same landmark, exactly rather than nearly.
+     */
+    private fun regionRows(name: String, region: String): List<Int> {
+        val image = mask(name, region)
+        val rows = (0 until image.height).filter { y ->
+            (0 until image.width).any { x -> image.getRGB(x, y) ushr 24 >= FULL_WEIGHT }
+        }
+        require(rows.isNotEmpty()) { "$name has no $region region" }
+        return rows
+    }
+
     private fun near(r: Int, g: Int, b: Int, tr: Int, tg: Int, tb: Int) =
         kotlin.math.abs(r - tr) <= 10 && kotlin.math.abs(g - tg) <= 10 && kotlin.math.abs(b - tb) <= 10
 
@@ -477,51 +504,43 @@ class OccupantHeadFitTest {
     }
 
     private companion object {
+        /**
+         * The seated family, by shape.
+         *
+         * These were `_skinN` file names until v4.30, because the base drawings had been retired in
+         * v4.19 and v4.20 and one tone copy had to stand in for each. There are no tone copies now:
+         * a shape is fixed art plus masks, and [silhouette] resolves the name to whichever of the
+         * two carries its outline.
+         */
         val HEAD_CAR_FAMILY = listOf(
-            "person_man_summer_head_car_skin1", "person_man_winter_head_car_skin1",
-            "person_woman_summer_head_car_skin0", "person_woman_winter_head_car_skin0",
-            "person_boy_summer_head_car_skin2", "person_boy_winter_head_car_skin2",
+            "person_man_summer_head_car", "person_man_winter_head_car",
+            "person_woman_summer_head_car", "person_woman_winter_head_car",
+            "person_boy_summer_head_car", "person_boy_winter_head_car",
             "person_girl_summer_head_car", "person_girl_winter_head_car",
         )
+
+        /**
+         * Where "this pixel is the region's own paint" starts, on a weight of 0..255.
+         *
+         * Above the 0.66 the deepest shadow in this artwork carries and below the 1.0 the paint
+         * does, so it separates the two with a wide margin and admits the anti-aliasing of neither.
+         */
+        const val FULL_WEIGHT = 230
 
         /** Metres per unit of a walking figure's own canvas, from the size table. */
         const val PEDESTRIAN_METRES_PER_UNIT =
             SceneSpace.PERSON_METRES_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL
 
-        val SKIN_OF = mapOf(
-            "man" to intArrayOf(0xDC, 0xA9, 0x7C),
-            "woman" to intArrayOf(0xF0, 0xC9, 0xA6),
-            "boy" to intArrayOf(0xA9, 0x71, 0x4B),
-            "girl" to intArrayOf(0xEF, 0xB9, 0x94),
-        )
-
         /**
-         * Which `_skinN` file carries each family's own tone -- the one the deleted base drawing
-         * used to be.
+         * **There were a skin palette, a `BASE_SKIN_OF` map and a `carHeadFile` here, and v4.30
+         * removed all three.**
          *
-         * v4.19 removed the four adult `person_*_head_car` bases and v4.20 the two boy ones: each
-         * was byte-identical in pixels to one of its own skin copies and no draw path could reach
-         * it, so together they were 446 688 B of the decoded-sprite budget spent on duplicates
-         * (item 7 of `BACKLOG_v4_19.md`, closed in `BACKLOG_v4_20.md`). The measurements here move
-         * to the surviving copy rather than to an arbitrary tone, which is why the map is not
-         * simply skin0 everywhere: the man's base was skin1, the woman's skin0 and the boy's
-         * skin2. Verified pixel-by-pixel against the deleted files before they were removed --
-         * v4.20 re-measured its two at zero differing pixels, and re-derived the other tones from
-         * the heir to check they come back byte-identical.
+         * They existed because the measurements had to find a family's own skin colour in a PNG,
+         * and because the seated bases had been retired in v4.19 and v4.20 so one tone copy had to
+         * stand in for each of them. Neither problem exists now: the skin region ships as its own
+         * weight mask, so "which pixels are this face" is read rather than matched within ten
+         * levels, and [silhouette] resolves a shape to whichever file carries its outline.
          */
-        val BASE_SKIN_OF = mapOf("man" to 1, "woman" to 0, "boy" to 2)
-
-        /**
-         * The shipped file a family's own tone lives in.
-         *
-         * Only the **girl's** base drawings still ship, and for a reason worth keeping: hers is
-         * not a duplicate of any of her tones. Her own painted skin is a fourth colour, so
-         * regenerating her other tones from `_skin0` instead moves 165-406 anti-aliased pixels
-         * against zero for every base that was retired. Her measurements therefore stay on the
-         * base; every other family's move to the copy its base was byte-identical to.
-         */
-        fun carHeadFile(who: String, season: String): String =
-            BASE_SKIN_OF[who]?.let { "person_${who}_${season}_head_car_skin$it" }
-                ?: "person_${who}_${season}_head_car"
+        private const val REMOVED_IN_V4_30 = true
     }
 }

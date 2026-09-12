@@ -24,6 +24,7 @@ and keeps the item numbers, so item 27 means the same thing wherever it is cited
 | [`BACKLOG_v4_25.md`](BACKLOG_v4_25.md) | v4.28 | What v4.25 decided and left open. Items 56–65; 61, 64 and 65 were closed in v4.26, so 56, 58 and 63 were open when it moved. |
 | [`BACKLOG_v4_26.md`](BACKLOG_v4_26.md) | v4.29 | What v4.26 decided and left open. Items 66–71; 66 was decided in v4.27 (item 77) and 71 was ratified by v4.27's item 78, so **67** alone was open when it moved. |
 | [`BACKLOG_v4_27.md`](BACKLOG_v4_27.md) | v4.29 | What v4.27 decided and left open. Items 72–78; **78** alone was open when it moved, and it is a condition rather than work. |
+| [`BACKLOG_v4_28.md`](BACKLOG_v4_28.md) | v4.30 | What v4.28 decided and left open. Items 79–85, of which **83** alone was still open when it moved — and it also carried, by name, everything left open in the three backlogs v4.28 itself archived: items 18, 25, 30, 40, 50–55, **56** and **63**. `BACKLOG_v4_30.md` carries all of those forward again, which is what made the move safe. |
 
 **`BACKLOG_v4_19.md` does not exist and is not a broken reference.** It was deleted
 deliberately when `BACKLOG_v4_20.md` replaced it, and `BACKLOG_v4_20.md` says so in its

@@ -105,7 +105,7 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
         scale: SpriteScale,
         alpha: Int = 255,
     ) {
-        blit(canvas, resId, originX, originY, scale, UNTINTED, alpha)
+        blit(canvas, resId, originX, originY, scale, UNTINTED, alpha, additive = false)
     }
 
     /**
@@ -123,7 +123,26 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
         tintColor: Int,
         alpha: Int = 255,
     ) {
-        blit(canvas, resId, originX, originY, scale, tintColor, alpha)
+        blit(canvas, resId, originX, originY, scale, tintColor, alpha, additive = false)
+    }
+
+    /**
+     * As [drawTinted], but the contribution is **summed** into the frame.
+     *
+     * This is how one region's colour is applied to a figure drawn in layers: the fixed layer
+     * carries the coverage and each mask carries only how much of its colour to add. See
+     * [SceneCanvas.drawSprite] for why it has to be a sum and not an overlay.
+     */
+    fun drawTintedAdded(
+        canvas: SceneCanvas,
+        resId: Int,
+        originX: Float,
+        originY: Float,
+        scale: SpriteScale,
+        tintColor: Int,
+        alpha: Int = 255,
+    ) {
+        blit(canvas, resId, originX, originY, scale, tintColor, alpha, additive = true)
     }
 
     /**
@@ -143,6 +162,7 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
         scale: SpriteScale,
         tintColor: Int,
         alpha: Int,
+        additive: Boolean,
     ) {
         when (scale) {
             SpriteScale.SCENE_UNITS -> {
@@ -155,11 +175,13 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
                     originY * SPRITE_PIXELS_PER_UNIT,
                     tintColor,
                     alpha,
+                    additive,
                 )
                 canvas.restore()
             }
 
-            SpriteScale.CANVAS_PIXELS -> canvas.drawSprite(resId, this, originX, originY, tintColor, alpha)
+            SpriteScale.CANVAS_PIXELS ->
+                canvas.drawSprite(resId, this, originX, originY, tintColor, alpha, additive)
         }
     }
 

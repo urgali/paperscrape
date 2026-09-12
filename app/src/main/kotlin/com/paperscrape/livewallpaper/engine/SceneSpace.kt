@@ -656,9 +656,18 @@ object SceneSpace {
      * An adult pedestrian: 1.75 m across the 80 local units of content the walk sprites carry
      * inside their 84-unit canvas.
      *
-     * The children are drawn shorter *within the same canvas* -- 62 units against the adults' 80
-     * -- so one scale gives them their own 0.77 of adult height with no second entry here. At
-     * 1.75 m that puts a child at 1.36 m; at the 1.9 m this constant used to carry, 1.47 m.
+     * The children are drawn shorter *within the same canvas* -- **52 units against the adults'
+     * 80** -- so one scale gives them their own 0.65 of adult height with no second entry here. At
+     * 1.75 m that puts a child at 1.14 m.
+     *
+     * **v4.30 moved that from 62 units, and it is a drawing decision rather than a projection
+     * one.** The children were 0.779 of an adult, which is a ten-year-old's proportion, and they
+     * had the adult's own 31 % of leg, which is what made them read as small adults rather than as
+     * children. The maintainer chose 0.65 from photographs of three candidates at 1x on the
+     * device: at 0.70 the figure was still a short adult, and at 0.60 it was a dot at night in a
+     * crowded scene. The number lives in four places and this is the one the other three quote --
+     * `VehiclePedestrianScaleTest.CHILD_SPRITE_UNITS_TALL`, `PrecipitationScaleTest.childMetres`
+     * and `build_people_concepts.CHILD_OF_ADULT` -- so moving it means moving all four.
      *
      * **v4.3: the constant said `1.9f` while this comment three lines above it said 1.75 m.** The
      * comment was right and the number was not, and the 8.6% it added to every pedestrian was the

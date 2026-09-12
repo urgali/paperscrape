@@ -2,6 +2,7 @@ package com.paperscrape.livewallpaper.engine
 
 import com.paperscrape.livewallpaper.R
 import java.io.File
+import javax.imageio.ImageIO
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -581,6 +582,56 @@ class SpriteDrawScaleTest {
     private fun uploaded(w: Int, h: Int, level: Int): Long =
         SpriteDetailLevel.reduced(w, level).toLong() * SpriteDetailLevel.reduced(h, level) * 4L
 
+    /**
+     * What [name] costs on the GPU at [level], **after the crop `GlTextureCache` takes**.
+     *
+     * v4.30 uploads only the texels that carry ink -- the transparent border round a sprite is cut
+     * off after the reduction and before the atlas sees it. Modelling that is not optional here:
+     * the region masks a person is drawn from cover a few tenths of their canvas each, and a model
+     * that charged them for the whole of it would be counting texels the device never allocates.
+     *
+     * The model is the **authored** alpha box divided down to the level, with one texel of slack on
+     * every side for the spread of the filter. It is deliberately an over-estimate and never an
+     * under-estimate: simulated against a real chain of halvings over the whole shipped set it is
+     * 84 608 B high on 12.3 MiB, which is 0.7 %. A budget that erred the other way would be a
+     * budget that let a set through and then blew on the device.
+     */
+    private fun uploadedCropped(name: String, level: Int): Long {
+        val (w, h) = pngSize(name)
+        val box = contentBox(name) ?: return uploaded(w, h, level)
+        val rw = SpriteDetailLevel.reduced(w, level)
+        val rh = SpriteDetailLevel.reduced(h, level)
+        val left = ((box[0] shr level) - 1).coerceAtLeast(0)
+        val top = ((box[1] shr level) - 1).coerceAtLeast(0)
+        val right = ((box[2] shr level) + 1).coerceAtMost(rw - 1)
+        val bottom = ((box[3] shr level) + 1).coerceAtMost(rh - 1)
+        if (right < left || bottom < top) return uploaded(w, h, level)
+        return (right - left + 1).toLong() * (bottom - top + 1) * 4L
+    }
+
+    /** `[left, top, right, bottom]` of [name]'s non-transparent pixels, or `null` if it has none. */
+    private fun contentBox(name: String): IntArray? = contentBoxes.getOrPut(name) {
+        val image = ImageIO.read(File(drawableDir, "$name.png"))
+        var left = image.width
+        var top = image.height
+        var right = -1
+        var bottom = -1
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                if (image.getRGB(x, y) ushr 24 == 0) continue
+                if (x < left) left = x
+                if (x > right) right = x
+                if (y < top) top = y
+                bottom = y
+            }
+        }
+        if (right < 0) return@getOrPut null
+        intArrayOf(left, top, right, bottom)
+    }
+
+    /** One decode per sprite per run: this is read by the budget and by the sweep below. */
+    private val contentBoxes = mutableMapOf<String, IntArray?>()
+
     private fun pngSize(name: String): Pair<Int, Int> {
         val file = File(drawableDir, "$name.png")
         val header = file.inputStream().use { input ->
@@ -642,8 +693,9 @@ class SpriteDrawScaleTest {
      *   succeeds, so on the GPU path the authored-size bitmap is a **transient** and not a
      *   resident.
      *
-     * Measured here at the reference viewport, the shipped set is **31.74 MiB decoded and 17.09 MiB
-     * uploaded**. Author the whole set two thirds the size and the decoded figure falls to 14.11
+     * Measured here at the reference viewport, the shipped set is **35.20 MiB decoded and 13.92 MiB
+     * uploaded** (31.74 and 17.09 before v4.30 drew the people in layers and started cropping the
+     * uploads). Author the whole set two thirds the size and the decoded figure falls to 14.11
      * MiB while the uploaded figure falls only to 13.06 -- and for the *selective* reduction the
      * headroom actually permits, the uploaded figure **rises**, because the level quantisation tips
      * the wrong way for exactly those sprites. A ceiling that cannot tell those two apart cannot be
@@ -663,9 +715,28 @@ class SpriteDrawScaleTest {
      *
      * ## The number
      *
-     * **17 921 692 B measured, 18 MiB here**, which is the next figure above it and leaves 952 676
-     * B -- the same "just above the measured figure" convention every raise of the decoded ceiling
-     * has used, and for the same reason: the pass after this one has to come here and argue too.
+     * **14 594 984 B measured, 15 MiB here**, which is the next figure above it and leaves
+     * 1 133 656 B -- the same "just above the measured figure" convention every move of the decoded
+     * ceiling has used, and for the same reason: the pass after this one has to come here and argue
+     * too.
+     *
+     * ### v4.30 moved it **down**, from 18 MiB, and that is worth reading carefully
+     *
+     * The set fell 3 326 708 B, 18.6 %, from two changes that pull the same way:
+     *
+     *  - **the 168 skin-tone PNGs are gone.** A person is drawn as fixed art plus one weight mask
+     *    per colourable region and the colour arrives at the blit, so three tones are one drawing;
+     *  - **`GlTextureCache` crops the transparent border after the reduction.** That is what makes
+     *    the masks nearly free -- each covers a few tenths of its canvas -- and it applies to every
+     *    sprite in the set, not only to people: the non-person half alone gives back 989 208 B.
+     *
+     * The investigation this came from framed the prize as **margin under a fixed 18 MiB**. Moving
+     * the ceiling down instead is deliberate, and it is what this ceiling's own convention asks
+     * for: a ceiling left 4.3 MiB above the set is a ceiling that lets the next 4.3 MiB of artwork
+     * in without anybody arguing for it, which is the thing the convention exists to stop. The
+     * durable prize was never the slack anyway -- it is that **a colour axis no longer multiplies
+     * the set**. Hair, shirt and trousers arrived in v4.30 at the cost of the masks; as shipped
+     * variants the same three axes would have been twenty-seven copies of every person.
      *
      * ## What the basis is, and what it is not
      *
@@ -676,24 +747,33 @@ class SpriteDrawScaleTest {
      * shipped artwork alone, which is what lets it be a test at all; the device figure is in
      * `release-verification/V4_29_REPORT.md` and cannot be.
      */
-    private val uploadedTexelBudget = 18L * 1024L * 1024L
+    private val uploadedTexelBudget = 15L * 1024L * 1024L
 
     @Test
     fun `the shipped sprite set stays inside the texture memory it uploads`() {
         val previewScales = previewMaxItemScale()
         var total = 0L
+        var people = 0L
+        var uncropped = 0L
         for (name in spriteNames()) {
             val (w, h) = pngSize(name)
             val scene = pathFor(name).headroom(reference)
             val preview = previewScales[name]?.let { previewPath(it).headroom(reference) }
                 ?: Float.MAX_VALUE
-            total += uploaded(w, h, SpriteDetailLevel.levelFor(1f / minOf(scene, preview)))
+            val level = SpriteDetailLevel.levelFor(1f / minOf(scene, preview))
+            val cost = uploadedCropped(name, level)
+            total += cost
+            uncropped += uploaded(w, h, level)
+            if (name.startsWith("person_")) people += cost
         }
+        // The split is in the message rather than in a comment, because all three numbers are
+        // things a release has to report and a number in a comment is a number that goes stale.
         assertTrue(
-            "the sprite set uploads $total B of texels at ${reference.label}, past the " +
-                "$uploadedTexelBudget budget. This is GL texture memory and it is not the same " +
-                "number as SpriteGeometryTest.decodedByteBudget -- read this constant's comment " +
-                "before moving either.",
+            "the sprite set uploads $total B of texels at ${reference.label} " +
+                "($people B of it people, $uncropped B if the transparent border were not cropped " +
+                "after the reduction), past the $uploadedTexelBudget budget. This is GL texture " +
+                "memory and it is not the same number as SpriteGeometryTest.decodedByteBudget -- " +
+                "read this constant's comment before moving either.",
             total <= uploadedTexelBudget,
         )
     }

@@ -94,8 +94,27 @@ class SpriteCanvasConventionTest {
             // drawn on it covers -- the same crop for every member, so the registration is
             // untouched -- and the family now reaches its own edges like everything else. The
             // exemption would have gone on hiding a margin nobody needed.
-            val loadBearing = name in marginIsLoadBearing
+            // **v4.30's region masks are exempt as a class, and it is the one exemption in this
+            // file that is about a *kind* of sprite rather than a named one.**
+            //
+            // A mask carries the weight of one region of a figure -- the hair, the trousers -- so
+            // its ink is a few tenths of the canvas by construction and the rest is transparent.
+            // That margin is not padding anybody could trim: it is the registration. A mask is
+            // blitted at its shape's own origin so that it lands exactly on the fixed art, and a
+            // crop of the PNG would have to be paid for by the engine sliding it back, on a grid
+            // that does not divide -- `SpriteDetailLevel.reduced` truncates, so a 96-wide crop of a
+            // 117-wide canvas reduces to texels of a different size and the two layers drift apart
+            // across the sprite (measured: dE 5.6 at the device's own level).
+            //
+            // The transparency is not shipped to the GPU either. `GlTextureCache` crops it away
+            // **after** the reduction, where the texels are the canvas's own texels and there is no
+            // grid to match -- which is why `SpriteDrawScaleTest`'s budget fell while
+            // `SpriteGeometryTest`'s rose. Naming them one by one would be 167 lines that say the
+            // same sentence.
+            val isRegionMask = name.matches(MASK_NAME)
+            val loadBearing = name in marginIsLoadBearing || isRegionMask
             if (!touches && !loadBearing) unexpected += name
+            if (touches && isRegionMask) continue
             if (touches && loadBearing) missing += name
         }
         assertTrue(
@@ -114,7 +133,11 @@ class SpriteCanvasConventionTest {
         // convention, which is why it is closed as one rather than fixed sprite by sprite.
         val all = sprites()
         val touching = all.count { touchesAnEdge(ImageIO.read(it)) }
-        assertEquals("305 sprites are expected", 305, all.size)
+        // 305 until v4.30 replaced 168 skin-tone copies and four unreachable winter window busts
+        // with 195 layer files: a shape now ships as fixed art plus one weight mask per colourable
+        // region, twenty of which turned out to be bytes another shape had already written and are
+        // shared rather than written twice.
+        assertEquals("332 sprites are expected", 332, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -122,7 +145,16 @@ class SpriteCanvasConventionTest {
         // frames and the umbrella's canopy reach their edges as the families they belong to do, the
         // wave's foam reaches three of its own, and the bird goes back to a registration margin
         // while the wave's body takes one -- both declared above.
-        assertEquals("293 of them reach a canvas edge", 293, touching)
+        // 293 in v4.28. v4.30's fixed layers reach their shapes' edges exactly as the drawings
+        // they were cut from do -- but 168 tone copies that did left the set, so the count falls
+        // even though the convention did not move. Its 167 masks do not reach an edge and cannot;
+        // see the exemption above.
+        assertEquals("193 of them reach a canvas edge", 193, touching)
+    }
+
+    private companion object {
+        /** A v4.30 region mask: `<shape>_m` plus the region's letter. */
+        val MASK_NAME = Regex("""person_.*_m[shtb]""")
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

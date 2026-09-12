@@ -113,8 +113,12 @@ internal object WindowOccupants {
      * Mixes the building's own position with the window's index so that two buildings of the same
      * type at different places on the street are populated differently -- which is what v4.0's
      * constant `winX` could not express.
+     *
+     * Visible to the renderer since v4.30, which deals the occupant's four colours from it. It is
+     * the same address the occupant itself is dealt from, which is the point: one figure, one
+     * address, every attribute keyed off it.
      */
-    private fun address(buildingSeed: Int, windowIndex: Int): Int =
+    fun address(buildingSeed: Int, windowIndex: Int): Int =
         buildingSeed * BUILDING_ADDRESS_STRIDE + windowIndex * WINDOW_ADDRESS_STRIDE + ADDRESS_BIAS
 
     // The three parts of [address], named so that [isOccupied] can hand the same arithmetic to

@@ -117,6 +117,7 @@ class VehicleDrawOrderTest {
             top: Float,
             tintColor: Int,
             alpha: Int,
+            additive: Boolean,
         ) {
             order.add(resId)
         }
@@ -134,20 +135,16 @@ class VehicleDrawOrderTest {
          * occupants" -- and the failure mode is silent in the wrong direction: the test reports
          * *no occupant drawn* and blames the renderer. It did exactly that on the police car, whose
          * candidate slot happens to deal the second outfit.
+         *
+         * **v4.30 stopped listing anything and reads the engine's own table.** A seated occupant is
+         * now a shape drawn in layers -- fixed art plus one weight mask per colourable region -- and
+         * the tone and the outfit are colours rather than files, so the list this used to keep in
+         * step went from 36 names to none. `PeopleLayerTable.CAR` is what the renderer indexes, so
+         * it is what an occupant can be; anything else drawn where an occupant should be still fails
+         * here, and a family added to the family cannot fall out of step with this file again.
          */
-        val OCCUPANT_HEADS = setOf(
-            R.drawable.person_man_summer_head_car_skin0, R.drawable.person_man_summer_head_car_skin1, R.drawable.person_man_summer_head_car_skin2,
-            R.drawable.person_man_winter_head_car_skin0, R.drawable.person_man_winter_head_car_skin1, R.drawable.person_man_winter_head_car_skin2,
-            R.drawable.person_woman_summer_head_car_skin0, R.drawable.person_woman_summer_head_car_skin1, R.drawable.person_woman_summer_head_car_skin2,
-            R.drawable.person_woman_winter_head_car_skin0, R.drawable.person_woman_winter_head_car_skin1, R.drawable.person_woman_winter_head_car_skin2,
-            R.drawable.person_man_summer_head_car_alt_skin0, R.drawable.person_man_summer_head_car_alt_skin1, R.drawable.person_man_summer_head_car_alt_skin2,
-            R.drawable.person_man_winter_head_car_alt_skin0, R.drawable.person_man_winter_head_car_alt_skin1, R.drawable.person_man_winter_head_car_alt_skin2,
-            R.drawable.person_woman_summer_head_car_alt_skin0, R.drawable.person_woman_summer_head_car_alt_skin1, R.drawable.person_woman_summer_head_car_alt_skin2,
-            R.drawable.person_woman_winter_head_car_alt_skin0, R.drawable.person_woman_winter_head_car_alt_skin1, R.drawable.person_woman_winter_head_car_alt_skin2,
-            R.drawable.person_boy_summer_head_car_skin0, R.drawable.person_boy_summer_head_car_skin1, R.drawable.person_boy_summer_head_car_skin2,
-            R.drawable.person_boy_winter_head_car_skin0, R.drawable.person_boy_winter_head_car_skin1, R.drawable.person_boy_winter_head_car_skin2,
-            R.drawable.person_girl_summer_head_car_skin0, R.drawable.person_girl_summer_head_car_skin1, R.drawable.person_girl_summer_head_car_skin2,
-            R.drawable.person_girl_winter_head_car_skin0, R.drawable.person_girl_winter_head_car_skin1, R.drawable.person_girl_winter_head_car_skin2,
-        )
+        val OCCUPANT_HEADS: Set<Int> = PeopleLayerTable.CAR
+            .flatMap { season -> season.flatMap { shape -> shape.filter { it != 0 } } }
+            .toSet()
     }
 }

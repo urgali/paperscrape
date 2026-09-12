@@ -11,6 +11,20 @@ import org.junit.Test
  * The claims are made against distributions over many seeds rather than against a single lucky
  * one. A generator can technically reach every tone while still being heavily biased, and a
  * single-seed test would pass against exactly the kind of hard-coded table v4.1 exists to remove.
+ *
+ * ### What this file is about since v4.30, and what it is no longer about
+ *
+ * `Pedestrian.skinIndex` is the **base** of a walker's tone and no longer the whole of it: the
+ * renderer rotates it by the walker's crossing (`PeopleColours.toneIndex`), so the street re-deals
+ * itself as it goes. Everything below is still true and still worth holding — a stratified deal
+ * that reaches every tone without bias is exactly what makes a rotation of it worth having, because
+ * a rotation is a bijection and cannot improve a deal that was already poor.
+ *
+ * **But read `skin does not depend on the clock` with its subject in mind.** It says the *deal* is
+ * not a function of the wall clock, which is a statement about reproducibility and is still true.
+ * It is not a statement about what the wallpaper draws: since v4.30 the tone a figure wears *does*
+ * move with the clock, deliberately, and `PeopleColoursTest` is where that lives. A test asserting
+ * the opposite of the product while staying green is the trap this paragraph exists to remove.
  */
 class SkinToneTest {
 
@@ -50,7 +64,9 @@ class SkinToneTest {
     }
 
     @Test
-    fun `skin does not depend on the clock`() {
+    fun `the dealt base does not depend on the clock`() {
+        // The deal is reproducible; what the figure *wears* is the deal rotated by its crossing,
+        // and that does move with the clock. See this class's own doc.
         val before = build(4242).map { it.skinIndex }
         Thread.sleep(5)
         assertEquals(before, build(4242).map { it.skinIndex })

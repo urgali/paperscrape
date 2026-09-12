@@ -53,6 +53,12 @@ internal class GlTextureAtlas(
     /** True once the backing texture exists. Allocated on first use, not at context creation. */
     val isAllocated: Boolean get() = textureHandle != 0
 
+    /** How many of the atlas's rows the shelves have reached into, for diagnostics only. */
+    val rowsUsed: Int get() = packer.occupiedHeight
+
+    /** How many entries are packed, for diagnostics only. */
+    val packedCount: Int get() = packer.placedCount
+
     /**
      * Whether [width] x [height] is a candidate for the atlas at all.
      *

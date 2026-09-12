@@ -274,6 +274,7 @@ class BuildingRoofSnowTest {
             top: Float,
             tintColor: Int,
             alpha: Int,
+            additive: Boolean,
         ) {
             // SCENE_UNITS art arrives through SpriteBlitter with its 1/3 grid scale already on
             // the canvas, so the rect is built in raw sprite pixels and mapped -- the same

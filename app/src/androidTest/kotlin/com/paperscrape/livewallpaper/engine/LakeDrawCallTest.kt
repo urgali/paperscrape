@@ -94,8 +94,16 @@ class LakeDrawCallTest {
             calls++; delegate.drawRadialGlow(cx, cy, radius, color, centerAlpha)
         }
 
-        override fun drawSprite(resId: Int, source: SpriteSource, left: Float, top: Float, tintColor: Int, alpha: Int) {
-            calls++; delegate.drawSprite(resId, source, left, top, tintColor, alpha)
+        override fun drawSprite(
+            resId: Int,
+            source: SpriteSource,
+            left: Float,
+            top: Float,
+            tintColor: Int,
+            alpha: Int,
+            additive: Boolean,
+        ) {
+            calls++; delegate.drawSprite(resId, source, left, top, tintColor, alpha, additive)
         }
     }
 

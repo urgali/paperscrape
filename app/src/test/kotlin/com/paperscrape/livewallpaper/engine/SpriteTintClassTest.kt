@@ -138,7 +138,22 @@ class SpriteTintClassTest {
      * The property is the same one [fixedArtSprites] carries, and a person sprite that lost its
      * colours would fail it exactly as loudly.
      */
-    private fun isPersonSprite(name: String) = name.startsWith("person_")
+    private fun isPersonSprite(name: String) = name.startsWith("person_") && !isRegionMask(name)
+
+    /**
+     * A v4.30 region weight mask -- the half of a person that **is** tinted.
+     *
+     * A person ships as fixed art plus one mask per colourable region, and the masks go through
+     * `SpriteBlitter.drawTintedAdded`: white with the region's weight in the alpha, multiplied by
+     * whatever that region is wearing and summed into the frame. So they belong on the *tinted*
+     * side of this file's division and must be neutral -- which is exactly what
+     * the two mask rules below now check of them, and why they are kept out of the "carries a
+     * colour of its own" rule that governs finished art.
+     *
+     * Matched by name rather than listed for the reason [isPersonSprite] gives and more so: there
+     * are 167 of them, generated.
+     */
+    private fun isRegionMask(name: String) = name.matches(Regex("""person_.*_m[shtb]"""))
 
     /**
      * Sprites no call site reaches, so there is no blit to agree or disagree with.
@@ -163,7 +178,7 @@ class SpriteTintClassTest {
      */
     @Test
     fun `every tinted sprite is authored as a colourless mask`() {
-        for (name in tintedSprites) {
+        for (name in tintedSprites + spriteNames().filter(::isRegionMask)) {
             val offending = firstColouredPixel(name)
             assertEquals(
                 "$name carries a colour of its own at $offending, but its call site multiplies " +
@@ -182,7 +197,7 @@ class SpriteTintClassTest {
      */
     @Test
     fun `every tinted sprite is light enough for MULTIPLY to carry the colour`() {
-        for (name in tintedSprites) {
+        for (name in tintedSprites + spriteNames().filter(::isRegionMask)) {
             val mean = meanOpaqueLevel(name)
             assertTrue("$name averages $mean, too dark to be a tint mask", mean >= 220f)
         }
@@ -218,7 +233,9 @@ class SpriteTintClassTest {
         val classified = (tintedSprites + fixedArtSprites + orphans).toSet()
         val shipped = spriteNames().toSet()
 
-        val unclassified = shipped.filterNot { it in classified || isPersonSprite(it) }.sorted()
+        val unclassified = shipped
+            .filterNot { it in classified || isPersonSprite(it) || isRegionMask(it) }
+            .sorted()
         assertEquals(
             "these sprites ship but no list here says whether their call site tints them: " +
                 "$unclassified",

@@ -7,6 +7,11 @@ releases. That sequence ended at v76.12, which was published as **v1.0 Stable** 
 
 For what shipped and why, read `RELEASE_HISTORY.md`; for what is next, `ROADMAP.md`.
 
+**Deliberately not extended past v76.12.** This file is the pre-release log and stops where the
+release sequence begins; `RELEASE_HISTORY.md` is where v1.0 onward is recorded, and v4.30 adds its
+entry there. `AI_PROJECT_RULES.md` §3 is why the old entries are not tidied to match: they are
+history, including the parts that refer to a product this project no longer depends on.
+
 ## v73 — Material aesthetic pass: houses, vehicles, buildings, seasonal objects, and two new
 features (walking people, Santa's sleigh)
 

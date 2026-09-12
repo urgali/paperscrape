@@ -31,11 +31,19 @@ internal data class Pedestrian(
     val age: PersonAge,
     val sex: PersonSex,
     /**
-     * Index into the shipped skin palettes.
+     * Index into the shipped skin palette -- the **base** of the tone, not the whole of it.
      *
-     * Chosen on its own [CandidateNoise] channel, independently of [age], [sex] and [direction].
-     * See [PedestrianPopulation.SKIN_TONE_COUNT] for what the shipped artwork can currently
-     * express.
+     * Dealt as a stratified rank rather than as an independent roll, and that is a property worth
+     * keeping: the four members of a stratum carry all three tones between them, so every street
+     * carries a spread however few people are on it. An independent roll reaches every tone too
+     * and is heavily biased in the small, which is what produced a boy-less `beach` before the
+     * ranks came in.
+     *
+     * **Since v4.30 this is rotated by the walker's crossing** (`PeopleColours.tone`), so the deal
+     * moves instead of being held for the life of the theme. A rotation is a bijection: figures on
+     * one crossing keep exactly the spread this dealt them, and no tone is ever favoured. What it
+     * cannot preserve is the spread *between* figures once they are on different crossings -- and
+     * that is the point of re-dealing rather than a cost of it.
      */
     val skinIndex: Int,
     /** `+1` walking right, `-1` walking left. Read from its own channel; determines nothing else. */

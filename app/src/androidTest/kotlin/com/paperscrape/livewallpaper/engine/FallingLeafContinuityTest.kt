@@ -304,6 +304,7 @@ class FallingLeafContinuityTest {
             top: Float,
             tintColor: Int,
             alpha: Int,
+            additive: Boolean,
         ) {
             // The crown blits, mapped through the transform they are drawn with. SCENE_UNITS
             // art goes through SpriteBlitter, which has already pushed its own 1/3 grid scale

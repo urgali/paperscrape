@@ -98,7 +98,8 @@ class CanvasGradientAllocationTest {
             top: Float,
             tintColor: Int,
             alpha: Int,
-        ) = delegate.drawSprite(resId, source, left, top, tintColor, alpha)
+            additive: Boolean,
+        ) = delegate.drawSprite(resId, source, left, top, tintColor, alpha, additive)
 
         override fun drawVerticalGradientShape(
             shape: SceneShape,

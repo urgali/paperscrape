@@ -383,11 +383,15 @@ class PaperRenderer(
          * Reported from a real phone as rain and snow being far too large.
          *
          * Declared in metres the numbers answer for themselves, and the ceiling that keeps them
-         * honest is the scene's own smallest human figure: a child is 1.356 m, and a drop is held
-         * to **at most 40 % of one**. At 0.58 m the longest streak is 0.43 of a child and reads as
-         * rain; the sweep's next candidate up, 0.87 m, is 0.64 of a child and reads as a falling
-         * stick. `PrecipitationScaleTest` asserts the ceiling as well as the floor, which is the
-         * half v4.4 did not have.
+         * honest is a human figure: a drop is held to **at most 0.34 of an adult**, who is 1.75 m.
+         * At 0.58 m the longest streak reads as rain; the sweep's next candidate up, 0.87 m, is
+         * half an adult and reads as a falling stick. `PrecipitationScaleTest` asserts the ceiling
+         * as well as the floor, which is the half v4.4 did not have.
+         *
+         * **The figure named here was the child until v4.30**, when the children were redrawn at
+         * 0.65 of an adult instead of 0.779 and the same drop went from 0.43 of a child to 0.51 of
+         * one. The ceiling is the same length in metres either way; what moved is the drawing it
+         * was being read against. See `PrecipitationScaleTest` and `BACKLOG_v4_30.md`.
          *
          * ### The sizes themselves
          *

@@ -24,6 +24,146 @@ release date will be standing.
 
 ---
 
+## v4.30 — the people drawn instead of shipped, and the children made children
+
+**Prepared, not published.** `versionCode = 61`, `versionName = "4.30"`. Prepared 2026-09-12. No
+tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.29**, which
+*is* published (read from the GitHub API, not from a document).
+
+### What changed, in one paragraph
+
+A person used to be shipped once per skin tone. It is now **fixed art plus one weight mask per
+colourable region** — skin, head, shirt, trousers — with the colour resolved at the blit. That
+deleted the 168 tone copies — twelve of them the unreachable winter window recolours, whose four
+shapes were retired rather than converted — and added 195 layer files,
+and turned three new colour axes from "twenty-seven copies of every person" into "nothing". On top
+of it the street re-deals a walker's colours every time it crosses, and the children were redrawn at
+0.65 of an adult instead of 0.779.
+
+### The decomposition, and the one thing about it that is not a matter of taste
+
+`fixed + Σ (mask × colour)`, with the sum done **by the blend and not by the shader**, so both
+backends express it and the 30 Canvas goldens keep seeing the people. The mask is **summed**:
+
+- two source-over layers split the pixel's coverage between them, and `a + b(1-a)` is not linear;
+- `SpriteDetailLevel` halves each layer separately before upload;
+- so they stop recomposing, and what is left is a halo at every edge — measured at up to **63 levels
+  of coverage out of 255**, dE 16, on a full device frame.
+
+A sum is linear, so halving and compositing commute and the edge is exact by construction. The
+additive contribution travels in the **sign of the vertex alpha** rather than in a blend state,
+which is what keeps the batch intact; `glBlendFunc(GL_ONE, GL_ONE)` would have ended it at every
+layer. Measured on the BV6600 with four regions: **1 `glDrawArrays` per frame** on three crowded
+themes (3 723 / 5 295 / 6 972 vertices), and **0 standalone textures, 516 of 2 048 atlas rows**
+across a twelve-theme sweep.
+
+### A region is a piece, not a colour
+
+The generator drew the figure, so it knows which polygon is hair; the piece name was already written
+into every `cut` call as its wobble seed, and `build_people_concepts.region_of` maps it to a region.
+Deciding by colour instead does not work and the number says why: the man's hair, his shoes, his
+eyes and his ground shadow are all `#2B2A33`, and **868 of the 3 167 pixels of that colour on
+`person_man_summer_walk0` are not hair**.
+
+The masks are rendered through the *same* drawing code with each piece painted its own weight in
+grey (`emit_region_svg`), so the geometry, the z-order and the under-papers are the same objects and
+the alpha that comes back is the figure's own. `PeopleLayerAssetTest` checks that the layers add up
+to the drawing, with the colours **recovered from the files** rather than supplied — worst error 1
+level of one channel.
+
+### The colours, and when they may move
+
+`PeopleColours` deals skin, head and a coordinated shirt-and-trousers **outfit** from *(theme,
+person, crossing)*. The head palette follows the drawing: hair colours for a bare head, cap colours
+for a covered one, and nobody's cap is taken off to make room for hair. Outfits are dealt as pairs,
+because two independent lists put a yellow shirt over cream trousers as readily as over charcoal.
+
+Deterministic — so `people-skin`, the only automatic check the tone system has, still means
+something — and driven by the **clock**, not by `elapsedSeconds`, which restarts with the process.
+
+**And not by the crossing counter alone.** The plan said that instant is off screen by construction;
+measured, it is on screen **52.8 %** of the time, because a pedestrian is tiled and the wrap hands
+the figure from one copy to the next without moving it. The crossing in force is held per walker and
+moves only when that walker's own cull reports nothing drawn — v4.28's umbrella machine, reused.
+
+### The children
+
+0.65 of an adult, chosen by the maintainer from three photographed proportions (70 % still read as a
+short adult at 1×; 60 % was a dot at night in a crowded scene). **Not a scaled adult**: the head
+keeps the size it had and the height comes off the legs first and then the torso, with the stride
+and the arm swing shortened to match. The number lived in four places and all four moved —
+`SceneSpace.PERSON_METRES_TALL`, `VehiclePedestrianScaleTest`, `PrecipitationScaleTest` and the
+generator. The busts in cars and at windows are untouched and still measure 0.9 of an adult head.
+
+### The engine
+
+`GlTextureCache` crops a sprite's transparent border **after** the reduction. Cropping the PNG would
+have paid both ceilings and is not available: `SpriteDetailLevel.reduced` truncates, so a 96-wide
+crop of a 117-wide canvas reduces to texels of a different size and the layers drift apart across
+the sprite (dE 5.6 at the device's own level, 14.4 one level up). Cropping after has no step to
+match, and the bilinear tap at the crop edge reads the transparent texel the atlas already pads
+with.
+
+### The two ceilings, moved in opposite directions
+
+| | v4.29 | v4.30 | limit |
+|---|---:|---:|---|
+| texels uploaded | 17 921 692 B | **14 594 984 B** | 18 MiB → **15 MiB** |
+| bytes decoded | 33 286 896 B | **36 912 672 B** | 32 MiB → **36 MiB** |
+
+A mask is a full canvas in the PNG and a few tenths of one in texels, so the GPU is charged for the
+ink and the decoded ceiling for the file. The argument for both is in their own KDocs.
+
+### Closed
+
+- **item 57**, the twelve winter window recolours no draw path could reach — retired, and the
+  `Exposure` enum that made the constant answer look like a choice retired with them;
+- **item 58**, a table nobody reads staying alive because a doc comment mentions it — comments are
+  stripped before counting now, shown to bite, and the fourteen bases it was sheltering are declared
+  orphan with their reasons;
+- **item 93**, the only sprite reduction the headroom permitted — superseded: the people set shrank
+  further by a different route.
+
+### Known and recorded rather than fixed
+
+The layer investigation's own §1 and §6 contradict its §A.2 and are wrong (`BACKLOG_v4_30.md` item
+94); six Canvas goldens were already carrying up to 67 % of their budget in device drift before this
+release began (item 98); the rain's ceiling had to be re-anchored because the figure it named was
+redrawn, and whether 0.51 of a child is too much rain is a question for a photograph (item 99).
+
+---
+
+## v4.29 — the atlas packer, and a ceiling that measures the right thing
+
+**Prepared 2026-09-11; published.** `versionCode = 60`, `versionName = "4.29"`. Baseline v4.28.
+
+**This entry was written in v4.30, because v4.29 did not add one.** It is reconstructed from that
+release's own delivery report (`consegna_v4_29/V4_29_REPORT.md`) and its backlog, not from memory;
+where this summary is thin, those are the sources. The omission is itself worth knowing about: this
+file is the one to read when picking the project up after a gap, and a release can go out without
+appearing in it.
+
+- **The atlas packer.** `ShelfPacker` kept one row open, so it abandoned the tail of every row it
+  closed and the slack above every entry shorter than its neighbour. Walking the twelve themes at
+  their own defaults, the atlas saturated at the fifth theme and spilled **25** sprites into
+  standalone textures; at full density, **34**. Replaced by a skyline packer: **zero spilled** on
+  both censuses. The method is the interesting half — the device is the only place the insertion
+  order exists, so it was recorded there and three candidate packers were replayed against it on the
+  host in seconds.
+- **Item 81 closed the other way round.** The atlas is not oversized: 2048 is the floor. 27 % was
+  content *area* while the rows were at 55 % on the same scene, and one number had been read as the
+  other.
+- **Item 80 closed and rejected by measurement.** A global grid of 2 would magnify a third of the
+  set: minimum headroom 0.448, and 50 of 305 sprites below the 1.5 such a grid needs merely to stay
+  at 1:1.
+- **Two ceilings with two honest names.** The decoded-sprite budget was being argued about as though
+  it measured GPU memory, which it never did; `SpriteDrawScaleTest.uploadedTexelBudget` was added
+  beside it at 18 MiB against 17 921 692 B measured.
+- **No artwork moved and no golden changed** — byte-identical to v4.28, which was the claim the
+  release was built to make cheaply.
+
+---
+
 ## v4.28 — a bird that reads, an umbrella in the rain, and a sea that moves
 
 **Prepared, not published.** `versionCode = 59`, `versionName = "4.28"`. Prepared 2026-09-11. No

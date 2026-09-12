@@ -190,7 +190,7 @@ class SpriteGeometryTest {
      *   authored-size pixels are a transient, not a resident.
      *
      * So **this is the CPU-side limit and there is now a GPU-side one beside it**:
-     * `SpriteDrawScaleTest.uploadedTexelBudget`, 18 MiB against 17 921 692 B measured. Its comment
+     * `SpriteDrawScaleTest.uploadedTexelBudget`, which v4.30 moved down to 15 MiB. Its comment
      * carries the argument for splitting them and the table of which limit protects what. Move
      * neither without reading it.
      *
@@ -201,8 +201,55 @@ class SpriteGeometryTest {
      * The wallpaper itself joins them once EGL has failed `GlLifecyclePolicy.MAX_CONTEXT_REBUILDS`
      * times. Beside that this bounds the APK and the per-sprite transient decode peak. Those are
      * real and this is the only thing measuring them.
+     *
+     * ---
+     *
+     * ## v4.30: 36 MiB, and it went **up** while the GPU limit went down
+     *
+     * The set is **36 912 672 B = 35.20 MiB**, and 36 MiB is the next figure just above it, leaving
+     * **836 064 B** -- the convention every paragraph above has used, for the reason every one of
+     * them gives.
+     *
+     * *What moved.* A person is no longer shipped once per skin tone. It is shipped as fixed art
+     * plus one weight mask per colourable region -- skin, head, shirt, trousers -- and the colour
+     * arrives at the blit (`PeopleLayerTable`, `PeopleColours`). That deleted **168** PNGs -- twelve
+     * of them the winter window recolours whose four shapes were retired rather than converted --
+     * and added **195**: 48 shapes' worth of fixed art and masks, twenty of which turned out to be
+     * bytes another shape had already written and are shared. Net **+3 625 776 B**.
+     *
+     * *Why a masked set costs more here and less on the GPU, which is the whole shape of this
+     * release.* A mask is a full canvas in the PNG and a few tenths of one in texels: `GlTextureCache`
+     * crops the transparent border **after** the reduction, so the GPU is charged for the ink and
+     * this limit is charged for the file. Cropping the PNG instead would have paid both, and it is
+     * not available: `SpriteDetailLevel.reduced` truncates, so a crop of a 117-wide canvas reduces
+     * on a different grid from the canvas and the two layers drift apart across the sprite --
+     * measured at dE 5.6 at the device's own level. So the two limits moved in opposite directions
+     * on purpose: **14 594 984 B of texels against 17 921 692 before**, and these bytes up.
+     *
+     * *Why that is the right trade and not a regression dressed up.* This limit protects the
+     * `Canvas` path, the APK and the decode peak; the GPU limit protects what the device actually
+     * spends on every frame of the live wallpaper, and v4.29 established that it is the one that
+     * binds. And the thing bought is not slack -- it is that **a colour axis no longer multiplies
+     * the set**. v4.30 adds three of them. Shipped the old way, hair, shirt and trousers would have
+     * been 27 copies of every person: 3 402 000 B of texels and roughly 66 MiB here, which is not a
+     * ceiling to raise but a road that ends. The masks cost 3.6 MiB once, and the fourth axis after
+     * them costs the same again rather than another multiple.
+     *
+     * *What was looked for first, as every paragraph here has had to.* The four winter window busts
+     * (`BACKLOG_v4_25.md` item 57) were retired rather than converted, which is 1 206 576 B of this
+     * number that would otherwise have been spent on shapes no draw path can select. The 34
+     * un-suffixed bases stay: `ThemePreviewScene` draws three families' walkers, and
+     * `SpriteVariantTest` and `SpriteMeasurementClaimTest` measure them.
+     *
+     * *And one of the three things this limit says it bounds turns out not to include all of them.*
+     * Sixteen of those bases are declared `usage: "orphan"` because no source file names them, and
+     * **resource shrinking removes exactly those sixteen from the release APK** -- measured by
+     * dumping the release build's own resource table, 320 drawable names against 332 shipped PNGs.
+     * So they cost this budget and the `Canvas` path's decode peak, and they cost the APK nothing.
+     * Stated because the paragraph above claims all three, and one third of that claim is not true
+     * of an orphan.
      */
-    private val decodedByteBudget = 32L * 1024L * 1024L
+    private val decodedByteBudget = 36L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {

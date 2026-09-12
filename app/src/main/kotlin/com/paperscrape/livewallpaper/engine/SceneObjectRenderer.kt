@@ -223,7 +223,28 @@ class SceneObjectRenderer(
      */
     private var businessOpenness = 1f
 
+    /** This frame's scene clock, in seconds of the day. See [PeopleColours.clockSeconds]. */
+    private var clockSeconds = PeopleColours.clockSeconds(12f)
+
     companion object {
+
+        /**
+         * The season index of the summer column.
+         *
+         * Named rather than written as `0` at the window bust, whose artwork has one season since
+         * v4.30: a bare zero there reads as "the first season" and really means "the only one".
+         */
+        const val SUMMER_SEASON = 0
+
+        /**
+         * How far apart two seats of one car are addressed.
+         *
+         * Bigger than the number of seats so that the driver of one car and the passenger of the
+         * next cannot land on the same address. [CandidateNoise] avalanches, so near addresses are
+         * as unrelated as far ones -- but two figures on the *same* address would be two figures
+         * wearing every colour the same, which is the thing [SeatedOccupants] deals to avoid.
+         */
+        const val SEAT_ADDRESS_STRIDE = 8
         /**
          * Which drawing a static object resolves to, and therefore which entry of the size table
          * governs it.
@@ -1268,6 +1289,78 @@ class SceneObjectRenderer(
     }
 
     /**
+     * A person: the fixed art, then each region's mask multiplied by the colour it is wearing.
+     *
+     * [slots] is a row of [PeopleLayerTable] -- `[fixed, skin, head, top, bottom]`, `0` where the
+     * shape has no such region -- and [colours] is the matching row of colours, read only where the
+     * slot is non-zero.
+     *
+     * **The masks are added, not laid over**, and that is the whole reason this can be done at all:
+     * two source-over layers split the pixel's coverage and `a + b(1-a)` is not linear, so once
+     * [SpriteDetailLevel] halves each one separately they stop recomposing and a halo appears at
+     * every edge -- measured at up to 63 levels of coverage out of 255. See
+     * [SceneCanvas.drawSprite].
+     *
+     * The cost is **six vertices per mask, in the same batch**. [GlSceneTarget] ends a batch only
+     * when the texture changes, every sprite has been in one atlas since v4.29, and the additive
+     * contribution travels in the sign of the vertex alpha rather than in a blend state -- so a
+     * figure in five layers is still one `glDrawArrays` and not five.
+     */
+    private fun drawPersonLayers(
+        canvas: SceneCanvas,
+        slots: IntArray,
+        x: Float,
+        y: Float,
+        colours: IntArray,
+    ) {
+        drawSprite(canvas, slots[PeopleLayerTable.FIXED], x, y)
+        for (region in PeopleLayerTable.SKIN until PeopleLayerTable.SLOTS) {
+            val resId = slots[region]
+            if (resId == 0) continue
+            sprites.drawTintedAdded(canvas, resId, x, y, SpriteScale.SCENE_UNITS, colours[region])
+        }
+    }
+
+    /**
+     * Scratch for one figure's colours, reused between figures.
+     *
+     * Indexed by [PeopleLayerTable]'s own slot numbers so that the array lines up with the slots
+     * rather than having to be mapped onto them; slot 0 is the fixed art and is never read. A field
+     * because this is the per-figure path and `AI_PROJECT_RULES.md` 5.1 wants it allocation-free.
+     *
+     * **One figure at a time**: [coloursFor] overwrites it, so its result has to be drawn before the
+     * next figure asks. Every caller does, and each one is a single expression away from its blit.
+     */
+    private val personColours = IntArray(PeopleLayerTable.SLOTS)
+
+    /**
+     * Fills [personColours] for one figure and hands it back.
+     *
+     * [skinIndex] arrives already chosen rather than being dealt here, because the three systems
+     * that draw people each already have a tone for their figure and those choices are tested:
+     * the street deals one per crossing, [WindowOccupants] deals one per pane, and
+     * [SeatedOccupants] deals two per car -- the last of which is a *deal* and not a hash for a
+     * reason v4.20 paid for (`driverSeed % 2` made every driver a woman). Re-deriving it here
+     * would quietly replace all three.
+     */
+    private fun coloursFor(
+        address: Int,
+        crossing: Int,
+        kind: Int,
+        season: Int,
+        outfit: Int,
+        skinIndex: Int,
+    ): IntArray {
+        personColours[PeopleLayerTable.SKIN] = PeopleColours.skin(skinIndex)
+        personColours[PeopleLayerTable.HEAD] = PeopleColours.head(
+            themeId.hashCode(), address, crossing, PeopleLayerTable.HEAD_WORN[kind][season],
+        )
+        personColours[PeopleLayerTable.TOP] = PeopleColours.top(outfit)
+        personColours[PeopleLayerTable.BOTTOM] = PeopleColours.bottom(outfit)
+        return personColours
+    }
+
+    /**
      * An object's horizontal anchor in the tile the shared [GroundGeometry] currently places it
      * in. `shiftXWrapped`/`tileWidth` are computed per-frame in `PaperRenderer.drawHillLayers`
      * from the same values the hills themselves scroll by, so objects can never desync from the
@@ -1541,6 +1634,11 @@ class SceneObjectRenderer(
      * irrelevant, because the openness is constantly 1.
      */
     fun draw(canvas: SceneCanvas, geom: GroundGeometry, dayBlend: Float, elapsedSeconds: SceneTime, screenWidth: Float, screenHeight: Float, hour24: Float = 12f) {
+        // v4.30: the people's colours are dealt per crossing off this same clock, for the reason
+        // [PeopleColours] gives -- `elapsedSeconds` restarts with the process and would deal the
+        // same opening hand every time. Kept for the frame rather than threaded through five call
+        // sites, exactly as [businessOpenness] is.
+        clockSeconds = PeopleColours.clockSeconds(hour24)
         businessOpenness = BusinessHours.opennessAt(
             customization.businessHoursEnabled,
             customization.businessOpenHour,
@@ -1628,335 +1726,57 @@ class SceneObjectRenderer(
 
     private val personKinds = arrayOf("man", "woman", "boy", "girl")
 
-    // Aesthetic-pass batch 5 fix: these were `when ("${kind}_${season}_$frame")` string-concat
-    // lookups, building a new String object on every single call -- with 4 walking candidates
-    // plus up to ~1/3 of houses' window occupants plus every car's driver head evaluating this
-    // every single frame, that's a lot of avoidable per-frame garbage for something that's just
-    // picking one of a fixed, known-at-compile-time set of drawable IDs. Flat arrays indexed by
-    // int (kind/season/frame) instead -- no allocation, no string comparison.
-    //
-    // **Frame 3 names `walk1` deliberately, and that is not a typo.** This is a four-frame cycle
-    // of two poses: frames 0 and 2 are the contacts, one per leading leg, and frames 1 and 3 are
-    // the passing pose between them. At the passing pose the legs are together, so a flat
-    // silhouette draws the same picture whichever leg is in front -- and the two frames shipped
-    // as byte-identical PNGs for exactly that reason. Phase 3.4 removed the eight redundant
-    // `..._walk3.png` files and pointed the slot at the drawing they duplicated. The animation is
-    // unchanged frame for frame; what changed is that the cycle no longer decodes and uploads the
-    // passing pose twice per kind and season.
-    //
-    // If a future art pass gives the two passing frames different artwork -- mirrored arm swing,
-    // say -- restore `..._walk3.png` and this slot together. `SpriteVariantTest` declares the
-    // sharing, so re-adding one without the other fails there.
-    private val personWalkDrawables = arrayOf(
-        // man
-        arrayOf(
-            intArrayOf(R.drawable.person_man_summer_walk0, R.drawable.person_man_summer_walk1, R.drawable.person_man_summer_walk2, R.drawable.person_man_summer_walk1),
-            intArrayOf(R.drawable.person_man_winter_walk0, R.drawable.person_man_winter_walk1, R.drawable.person_man_winter_walk2, R.drawable.person_man_winter_walk1),
-        ),
-        // woman
-        arrayOf(
-            intArrayOf(R.drawable.person_woman_summer_walk0, R.drawable.person_woman_summer_walk1, R.drawable.person_woman_summer_walk2, R.drawable.person_woman_summer_walk1),
-            intArrayOf(R.drawable.person_woman_winter_walk0, R.drawable.person_woman_winter_walk1, R.drawable.person_woman_winter_walk2, R.drawable.person_woman_winter_walk1),
-        ),
-        // boy
-        arrayOf(
-            intArrayOf(R.drawable.person_boy_summer_walk0, R.drawable.person_boy_summer_walk1, R.drawable.person_boy_summer_walk2, R.drawable.person_boy_summer_walk1),
-            intArrayOf(R.drawable.person_boy_winter_walk0, R.drawable.person_boy_winter_walk1, R.drawable.person_boy_winter_walk2, R.drawable.person_boy_winter_walk1),
-        ),
-        // girl
-        arrayOf(
-            intArrayOf(R.drawable.person_girl_summer_walk0, R.drawable.person_girl_summer_walk1, R.drawable.person_girl_summer_walk2, R.drawable.person_girl_summer_walk1),
-            intArrayOf(R.drawable.person_girl_winter_walk0, R.drawable.person_girl_winter_walk1, R.drawable.person_girl_winter_walk2, R.drawable.person_girl_winter_walk1),
-        ),
-    )
-
     /**
-     * Window occupants and car drivers, per kind, summer then winter.
+     * **There were two more tables here -- `personWalkDrawables` and `personWindowHeadDrawables` --
+     * and deleting them is `BACKLOG_v4_25.md` item 58 closed.**
      *
-     * **The two columns currently hold byte-identical artwork**, and that is a recorded gap
-     * (`ROADMAP.md` decision D2, resolved in Phase 3.5), not something to collapse. The seasonal
-     * distinction is real and visible on the walking sprites -- the winter set has a beanie
-     * instead of hair, long sleeves, a snowflake motif, and trousers where the summer girl has a
-     * skirt -- but it was never drawn for the heads, so a window occupant looks the same in
-     * January as in July. Giving them real winter artwork is asset redesign against sources that
-     * do not exist, so the gap is declared rather than invented.
+     * Neither was read by any draw path. `personWalkDrawables` had not been read since the tone
+     * tables took over, and `personWindowHeadDrawables` had not been read since v4.2; both survived
+     * `SpriteReachabilityTest`'s "a table nobody reads" rule for the reason item 58 names, which is
+     * that the rule counts occurrences of the name and **a mention inside a KDoc block counts**.
+     * Each was mentioned exactly once, in the doc comment of the table that replaced it.
      *
-     * The table stays two columns wide precisely so that drawing those six sprites is the whole
-     * fix: no code here changes. `SpriteVariantTest` fails the moment they stop being identical,
-     * which is the signal to move the declaration in `sources/sprites.json` from `IDENTICAL_GAP`
-     * to `DISTINCT`.
-     */
-    private val personWindowHeadDrawables = arrayOf(
-        intArrayOf(R.drawable.person_man_summer_head_window, R.drawable.person_man_winter_head_window),
-        intArrayOf(R.drawable.person_woman_summer_head_window, R.drawable.person_woman_winter_head_window),
-        intArrayOf(R.drawable.person_boy_summer_head_window, R.drawable.person_boy_winter_head_window),
-        intArrayOf(R.drawable.person_girl_summer_head_window, R.drawable.person_girl_winter_head_window),
-    )
-
-    /**
-     * The walking sprites again, with a skin-tone axis: `[kind][season][skin][frame]`.
-     *
-     * Parallel to [personWalkDrawables] rather than a replacement for it, and deliberately so.
-     * That table is still what `ThemePreviewScene` draws, and leaving it alone is what makes
-     * "the settings preview is unchanged" a fact about the code rather than a claim.
-     *
-     * The frames are the same four slots with the same third-slot sharing; only the paint
-     * differs. `tools/generate_skin_variants.py` produced every entry from the sprite in
-     * [personWalkDrawables] by moving one flat colour and nothing else, and verifies that every
-     * other colour keeps its exact pixel mask -- so clothes, hair, eyes, outlines, silhouette and
-     * animation are identical across the skin axis by construction.
-     *
-     * A tone is chosen once per person and then indexes this table like any other sprite lookup.
-     * There is no per-pixel work anywhere in the draw path.
-     */
-    private val personWalkSkinDrawables = arrayOf(
-        // man
-        arrayOf(
-            arrayOf(
-                intArrayOf(R.drawable.person_man_summer_walk0_skin0, R.drawable.person_man_summer_walk1_skin0, R.drawable.person_man_summer_walk2_skin0, R.drawable.person_man_summer_walk1_skin0),
-                intArrayOf(R.drawable.person_man_summer_walk0_skin1, R.drawable.person_man_summer_walk1_skin1, R.drawable.person_man_summer_walk2_skin1, R.drawable.person_man_summer_walk1_skin1),
-                intArrayOf(R.drawable.person_man_summer_walk0_skin2, R.drawable.person_man_summer_walk1_skin2, R.drawable.person_man_summer_walk2_skin2, R.drawable.person_man_summer_walk1_skin2),
-            ),
-            arrayOf(
-                intArrayOf(R.drawable.person_man_winter_walk0_skin0, R.drawable.person_man_winter_walk1_skin0, R.drawable.person_man_winter_walk2_skin0, R.drawable.person_man_winter_walk1_skin0),
-                intArrayOf(R.drawable.person_man_winter_walk0_skin1, R.drawable.person_man_winter_walk1_skin1, R.drawable.person_man_winter_walk2_skin1, R.drawable.person_man_winter_walk1_skin1),
-                intArrayOf(R.drawable.person_man_winter_walk0_skin2, R.drawable.person_man_winter_walk1_skin2, R.drawable.person_man_winter_walk2_skin2, R.drawable.person_man_winter_walk1_skin2),
-            ),
-        ),
-        // woman
-        arrayOf(
-            arrayOf(
-                intArrayOf(R.drawable.person_woman_summer_walk0_skin0, R.drawable.person_woman_summer_walk1_skin0, R.drawable.person_woman_summer_walk2_skin0, R.drawable.person_woman_summer_walk1_skin0),
-                intArrayOf(R.drawable.person_woman_summer_walk0_skin1, R.drawable.person_woman_summer_walk1_skin1, R.drawable.person_woman_summer_walk2_skin1, R.drawable.person_woman_summer_walk1_skin1),
-                intArrayOf(R.drawable.person_woman_summer_walk0_skin2, R.drawable.person_woman_summer_walk1_skin2, R.drawable.person_woman_summer_walk2_skin2, R.drawable.person_woman_summer_walk1_skin2),
-            ),
-            arrayOf(
-                intArrayOf(R.drawable.person_woman_winter_walk0_skin0, R.drawable.person_woman_winter_walk1_skin0, R.drawable.person_woman_winter_walk2_skin0, R.drawable.person_woman_winter_walk1_skin0),
-                intArrayOf(R.drawable.person_woman_winter_walk0_skin1, R.drawable.person_woman_winter_walk1_skin1, R.drawable.person_woman_winter_walk2_skin1, R.drawable.person_woman_winter_walk1_skin1),
-                intArrayOf(R.drawable.person_woman_winter_walk0_skin2, R.drawable.person_woman_winter_walk1_skin2, R.drawable.person_woman_winter_walk2_skin2, R.drawable.person_woman_winter_walk1_skin2),
-            ),
-        ),
-        // boy
-        arrayOf(
-            arrayOf(
-                intArrayOf(R.drawable.person_boy_summer_walk0_skin0, R.drawable.person_boy_summer_walk1_skin0, R.drawable.person_boy_summer_walk2_skin0, R.drawable.person_boy_summer_walk1_skin0),
-                intArrayOf(R.drawable.person_boy_summer_walk0_skin1, R.drawable.person_boy_summer_walk1_skin1, R.drawable.person_boy_summer_walk2_skin1, R.drawable.person_boy_summer_walk1_skin1),
-                intArrayOf(R.drawable.person_boy_summer_walk0_skin2, R.drawable.person_boy_summer_walk1_skin2, R.drawable.person_boy_summer_walk2_skin2, R.drawable.person_boy_summer_walk1_skin2),
-            ),
-            arrayOf(
-                intArrayOf(R.drawable.person_boy_winter_walk0_skin0, R.drawable.person_boy_winter_walk1_skin0, R.drawable.person_boy_winter_walk2_skin0, R.drawable.person_boy_winter_walk1_skin0),
-                intArrayOf(R.drawable.person_boy_winter_walk0_skin1, R.drawable.person_boy_winter_walk1_skin1, R.drawable.person_boy_winter_walk2_skin1, R.drawable.person_boy_winter_walk1_skin1),
-                intArrayOf(R.drawable.person_boy_winter_walk0_skin2, R.drawable.person_boy_winter_walk1_skin2, R.drawable.person_boy_winter_walk2_skin2, R.drawable.person_boy_winter_walk1_skin2),
-            ),
-        ),
-        // girl
-        arrayOf(
-            arrayOf(
-                intArrayOf(R.drawable.person_girl_summer_walk0_skin0, R.drawable.person_girl_summer_walk1_skin0, R.drawable.person_girl_summer_walk2_skin0, R.drawable.person_girl_summer_walk1_skin0),
-                intArrayOf(R.drawable.person_girl_summer_walk0_skin1, R.drawable.person_girl_summer_walk1_skin1, R.drawable.person_girl_summer_walk2_skin1, R.drawable.person_girl_summer_walk1_skin1),
-                intArrayOf(R.drawable.person_girl_summer_walk0_skin2, R.drawable.person_girl_summer_walk1_skin2, R.drawable.person_girl_summer_walk2_skin2, R.drawable.person_girl_summer_walk1_skin2),
-            ),
-            arrayOf(
-                intArrayOf(R.drawable.person_girl_winter_walk0_skin0, R.drawable.person_girl_winter_walk1_skin0, R.drawable.person_girl_winter_walk2_skin0, R.drawable.person_girl_winter_walk1_skin0),
-                intArrayOf(R.drawable.person_girl_winter_walk0_skin1, R.drawable.person_girl_winter_walk1_skin1, R.drawable.person_girl_winter_walk2_skin1, R.drawable.person_girl_winter_walk1_skin1),
-                intArrayOf(R.drawable.person_girl_winter_walk0_skin2, R.drawable.person_girl_winter_walk1_skin2, R.drawable.person_girl_winter_walk2_skin2, R.drawable.person_girl_winter_walk1_skin2),
-            ),
-        ),
-    )
-
-    /**
-     * The **carrying** pose, same shape as [personWalkSkinDrawables]: `[kind][season][skin][frame]`.
-     *
-     * Two rows, not four: only the two adult families are drawn carrying, so a child has no row
-     * here at all rather than a row that duplicates its walking frames. Indexing it is therefore
-     * guarded by the age check in the draw loop, and `PedestrianCarryTest` asserts that a child can
-     * never reach it -- which is a better guarantee than a fallback row, because a fallback row
-     * would quietly draw the right thing if the rule ever broke.
-     *
-     * Frame 3 is frame 1 again, exactly as the walk table has it: the cycle is 0,1,2,1.
-     */
-    private val personCarrySkinDrawables = arrayOf(
-        // man
-        arrayOf(
-            arrayOf(
-                intArrayOf(R.drawable.person_man_summer_carry0_skin0, R.drawable.person_man_summer_carry1_skin0, R.drawable.person_man_summer_carry2_skin0, R.drawable.person_man_summer_carry1_skin0),
-                intArrayOf(R.drawable.person_man_summer_carry0_skin1, R.drawable.person_man_summer_carry1_skin1, R.drawable.person_man_summer_carry2_skin1, R.drawable.person_man_summer_carry1_skin1),
-                intArrayOf(R.drawable.person_man_summer_carry0_skin2, R.drawable.person_man_summer_carry1_skin2, R.drawable.person_man_summer_carry2_skin2, R.drawable.person_man_summer_carry1_skin2),
-            ),
-            arrayOf(
-                intArrayOf(R.drawable.person_man_winter_carry0_skin0, R.drawable.person_man_winter_carry1_skin0, R.drawable.person_man_winter_carry2_skin0, R.drawable.person_man_winter_carry1_skin0),
-                intArrayOf(R.drawable.person_man_winter_carry0_skin1, R.drawable.person_man_winter_carry1_skin1, R.drawable.person_man_winter_carry2_skin1, R.drawable.person_man_winter_carry1_skin1),
-                intArrayOf(R.drawable.person_man_winter_carry0_skin2, R.drawable.person_man_winter_carry1_skin2, R.drawable.person_man_winter_carry2_skin2, R.drawable.person_man_winter_carry1_skin2),
-            ),
-        ),
-        // woman
-        arrayOf(
-            arrayOf(
-                intArrayOf(R.drawable.person_woman_summer_carry0_skin0, R.drawable.person_woman_summer_carry1_skin0, R.drawable.person_woman_summer_carry2_skin0, R.drawable.person_woman_summer_carry1_skin0),
-                intArrayOf(R.drawable.person_woman_summer_carry0_skin1, R.drawable.person_woman_summer_carry1_skin1, R.drawable.person_woman_summer_carry2_skin1, R.drawable.person_woman_summer_carry1_skin1),
-                intArrayOf(R.drawable.person_woman_summer_carry0_skin2, R.drawable.person_woman_summer_carry1_skin2, R.drawable.person_woman_summer_carry2_skin2, R.drawable.person_woman_summer_carry1_skin2),
-            ),
-            arrayOf(
-                intArrayOf(R.drawable.person_woman_winter_carry0_skin0, R.drawable.person_woman_winter_carry1_skin0, R.drawable.person_woman_winter_carry2_skin0, R.drawable.person_woman_winter_carry1_skin0),
-                intArrayOf(R.drawable.person_woman_winter_carry0_skin1, R.drawable.person_woman_winter_carry1_skin1, R.drawable.person_woman_winter_carry2_skin1, R.drawable.person_woman_winter_carry1_skin1),
-                intArrayOf(R.drawable.person_woman_winter_carry0_skin2, R.drawable.person_woman_winter_carry1_skin2, R.drawable.person_woman_winter_carry2_skin2, R.drawable.person_woman_winter_carry1_skin2),
-            ),
-        ),
-    )
-
-    /**
-     * Where a person is standing, which is what decides whether they dressed for the weather.
-     *
-     * The person lookup tables all carry a season axis, and until v4.15 every call site chose its
-     * column the same way: `if (winterColorsEnabled) 1 else 0`. That is right for anyone the
-     * weather can reach and wrong for anyone it cannot. A figure leaning out of their own kitchen
-     * window was putting on a woolly hat because it had started snowing **outside their house**.
-     *
-     * Stated as where the person is rather than as which sprite to use, so the next figure added to
-     * the scene answers the question by saying where it stands. [seasonIndexFor] is the only place
-     * that turns the answer into a column, which is what keeps this from becoming a third
-     * `if (winterColorsEnabled)` somewhere else.
-     */
-    private enum class Exposure {
-        /** Pedestrians, and people in cars: the car is a coat, not a house. */
-        OUTDOORS,
-
-        /** Behind a pane, in a room with its own weather. Always the summer artwork. */
-        INDOORS,
-    }
-
-    /** The season column [exposure] reads. The scene's winter clothing stops at the window. */
-    private fun seasonIndexFor(exposure: Exposure): Int =
-        if (exposure == Exposure.OUTDOORS && customization.winterColorsEnabled) 1 else 0
-
-    /**
-     * Window occupants, with the same skin axis: `[kind][season][skin]`.
-     *
-     * Separate from [personWindowHeadDrawables], the base artwork the recolours derive from.
-     * (An rc2-era version of this comment said car passengers still read that table; the
-     * vehicles have carried their own family since -- profiles in rc2, the frontal
-     * [personCarHeadSkinDrawables] since rc4.)
-     */
-    private val personWindowHeadSkinDrawables = arrayOf(
-        arrayOf(
-            intArrayOf(R.drawable.person_man_summer_head_window_skin0, R.drawable.person_man_summer_head_window_skin1, R.drawable.person_man_summer_head_window_skin2),
-            intArrayOf(R.drawable.person_man_winter_head_window_skin0, R.drawable.person_man_winter_head_window_skin1, R.drawable.person_man_winter_head_window_skin2),
-        ),
-        arrayOf(
-            intArrayOf(R.drawable.person_woman_summer_head_window_skin0, R.drawable.person_woman_summer_head_window_skin1, R.drawable.person_woman_summer_head_window_skin2),
-            intArrayOf(R.drawable.person_woman_winter_head_window_skin0, R.drawable.person_woman_winter_head_window_skin1, R.drawable.person_woman_winter_head_window_skin2),
-        ),
-        arrayOf(
-            intArrayOf(R.drawable.person_boy_summer_head_window_skin0, R.drawable.person_boy_summer_head_window_skin1, R.drawable.person_boy_summer_head_window_skin2),
-            intArrayOf(R.drawable.person_boy_winter_head_window_skin0, R.drawable.person_boy_winter_head_window_skin1, R.drawable.person_boy_winter_head_window_skin2),
-        ),
-        arrayOf(
-            intArrayOf(R.drawable.person_girl_summer_head_window_skin0, R.drawable.person_girl_summer_head_window_skin1, R.drawable.person_girl_summer_head_window_skin2),
-            intArrayOf(R.drawable.person_girl_winter_head_window_skin0, R.drawable.person_girl_winter_head_window_skin1, R.drawable.person_girl_winter_head_window_skin2),
-        ),
-    )
-
-    /**
-     * The vehicle occupants: frontal busts in the pedestrians' own face language, with the
-     * seatbelt that says "person in a car" -- `[kind][season][skin]`, the same three axes the
-     * walkers carry.
-     *
-     * rc4, the maintainer's direction call: one scene, one human style. rc2's profile family
-     * (side view, nose and jaw) was the only face in the frame drawn in a second language, and
-     * it is retired; the frontal `head_car` artwork is the rc1 face -- which was always the
-     * pedestrian's face -- re-authored only in its torso depth (see [HEAD_CAR_HEAD_UNITS]) and
-     * extended to the full family x season x skin coverage the pedestrians have, children
-     * included. Both seats index only the first two rows (adults are seated, by construction);
-     * the child rows exist so the coverage is the pedestrians' and stand ready for the day a
-     * pane can light one -- the saloon's cannot, at 11-15% against the 15% criterion, and the
-     * measurement is at [CAR_PASSENGER_X_UNITS]. The window
-     * table above still serves the buildings, whose artwork carries the smile this family and
-     * the walkers deliberately do not.
-     */
-    /**
-     * **There was a table here, and deleting it is the point.**
-     *
-     * It listed the eight `person_*_head_car` base busts and was never read by anything -- its
-     * only effect was to keep the files *referenced* so lint would not report them unused, which
-     * is exactly how eight sprites that no draw path can reach stayed in the shipped set without
-     * anything noticing. v4.19 deleted the four adult bases (297 792 B) once it had verified each
-     * was pixel-identical to one of its own tone copies, and left the four child ones because the
-     * pass brief put children's artwork behind a hard "never".
-     *
-     * v4.20 finished it, and the two halves came out differently because they *are* different:
-     *
-     * - the **boys'** bases are byte-for-byte their own `_skin2`, so retiring them loses nothing
-     *   and their other two tones regenerate from `_skin2` with zero differing pixels;
-     * - the **girls'** bases are not any of their tones. They carry the girl's own painted skin,
-     *   a fourth colour no shipped file carries, and regenerating her tones from `_skin0` instead
-     *   moves 165-406 anti-aliased pixels. They still ship, still reach no draw path, and are
-     *   declared `usage: orphan` in `tools/assets/sources/sprites.json` with that measurement as
-     *   the reason -- which is what `SpriteReachabilityTest` requires of an unreachable sprite,
-     *   instead of a dead table that hides it from lint.
+     * v4.30 deleted the tone tables, which took those two mentions with them, and the rule fired at
+     * once on both. The consequence is followed through rather than patched around: the walkers'
+     * bases are still drawn -- `ThemePreviewScene` names them itself, for the gallery -- and the
+     * eight window bases are now named by nothing, so they are declared `usage: orphan` in
+     * `tools/assets/sources/sprites.json` with the measurement that keeps them, which is what that
+     * test asks of an unreachable sprite instead of a table that hides it from lint.
      */
 
-    private val personCarHeadSkinDrawables = arrayOf(
-        arrayOf(
-            intArrayOf(R.drawable.person_man_summer_head_car_skin0, R.drawable.person_man_summer_head_car_skin1, R.drawable.person_man_summer_head_car_skin2),
-            intArrayOf(R.drawable.person_man_winter_head_car_skin0, R.drawable.person_man_winter_head_car_skin1, R.drawable.person_man_winter_head_car_skin2),
-        ),
-        arrayOf(
-            intArrayOf(R.drawable.person_woman_summer_head_car_skin0, R.drawable.person_woman_summer_head_car_skin1, R.drawable.person_woman_summer_head_car_skin2),
-            intArrayOf(R.drawable.person_woman_winter_head_car_skin0, R.drawable.person_woman_winter_head_car_skin1, R.drawable.person_woman_winter_head_car_skin2),
-        ),
-        arrayOf(
-            intArrayOf(R.drawable.person_boy_summer_head_car_skin0, R.drawable.person_boy_summer_head_car_skin1, R.drawable.person_boy_summer_head_car_skin2),
-            intArrayOf(R.drawable.person_boy_winter_head_car_skin0, R.drawable.person_boy_winter_head_car_skin1, R.drawable.person_boy_winter_head_car_skin2),
-        ),
-        arrayOf(
-            intArrayOf(R.drawable.person_girl_summer_head_car_skin0, R.drawable.person_girl_summer_head_car_skin1, R.drawable.person_girl_summer_head_car_skin2),
-            intArrayOf(R.drawable.person_girl_winter_head_car_skin0, R.drawable.person_girl_winter_head_car_skin1, R.drawable.person_girl_winter_head_car_skin2),
-        ),
-    )
+    /**
+     * The season column the outdoor artwork reads: winter clothing where the theme asks for it.
+     *
+     * **There used to be an `Exposure` enum here with an `INDOORS` case, and its removal is the
+     * closure of `BACKLOG_v4_25.md` item 57.** Indoors the answer was `0` whatever the theme did --
+     * *the hat belongs to the street, not to the room behind the pane* -- so the winter column of
+     * the window table listed twelve recolours no draw path could select, and the enum was what
+     * made that look like a choice. The window busts now have one season and no column to choose
+     * between, so the question is not asked of them at all; the street and the cars, which really
+     * do have two seasons, ask it here.
+     */
+    private fun outdoorSeasonIndex(): Int = if (customization.winterColorsEnabled) 1 else 0
 
     /**
-     * The **second outfit**, for the two adult families only -- `[kind][season][skin]`, indexed the
-     * same way as the table above for the two rows it covers.
+     * **There were five tables here, one per pose, each with a skin-tone axis, and they are gone.**
      *
-     * Item 5 of `BACKLOG_v4_19.md`. Until v4.20 clothing *was* family: every seated woman wore one
-     * top and every seated man another, so the one thing a viewer can read at this size -- a block
-     * of colour above the sill -- said which family the occupant was, in every car, always. The
-     * pairing rule then guaranteed the two occupants of a car were two different colours, which
-     * made the street's people look like two people.
+     * They listed 168 PNGs: every walking, carrying, seated and window figure redrawn once per
+     * skin tone, plus a second seated outfit redrawn the same way again. A person is now drawn as
+     * fixed art plus one weight mask per colourable region and the colour arrives at the blit, so
+     * the axis that used to be artwork is a number -- and the three axes v4.30 adds beside it
+     * (hair, shirt, trousers) cost nothing, where shipping them as variants would have multiplied
+     * the whole people set by twenty-seven.
      *
-     * The variants are recolours, generated by `tools/generate_skin_variants.py` in the same
-     * verified single-colour move that generates the tones: the garment is one flat colour on all
-     * four busts, the replacement is **the other adult family's garment paint for that season**, so
-     * nothing here is a colour the set did not already put on clothing, and the move is confined to
-     * the shoulder band so the hat, the scarf and the seatbelt cannot be caught by it.
+     * What replaces them is [PeopleLayerTable], generated from the artwork by the same script that
+     * writes it, and [PeopleColours], which says what each region is wearing.
      *
-     * There is no child row. A child rides in one outfit, and the axis would have cost another six
-     * sprites to vary a garment that is already varied by four families being on the road.
+     * The **second seated outfit** went with them and is worth its own sentence, because it was
+     * twelve of the 168: `person_*_head_car_alt_*` was the seated bust with the other adult
+     * family's garment paint swapped in, which under this scheme is not a different drawing at all
+     * -- it is the top region wearing a different colour. [SeatedOccupants.outfit] survives and
+     * still deals five and five, still gives both seats the same index; it now chooses an entry of
+     * [PeopleColours.OUTFITS] instead of a second set of files.
      */
-    private val personCarHeadAltSkinDrawables = arrayOf(
-        arrayOf(
-            intArrayOf(R.drawable.person_man_summer_head_car_alt_skin0, R.drawable.person_man_summer_head_car_alt_skin1, R.drawable.person_man_summer_head_car_alt_skin2),
-            intArrayOf(R.drawable.person_man_winter_head_car_alt_skin0, R.drawable.person_man_winter_head_car_alt_skin1, R.drawable.person_man_winter_head_car_alt_skin2),
-        ),
-        arrayOf(
-            intArrayOf(R.drawable.person_woman_summer_head_car_alt_skin0, R.drawable.person_woman_summer_head_car_alt_skin1, R.drawable.person_woman_summer_head_car_alt_skin2),
-            intArrayOf(R.drawable.person_woman_winter_head_car_alt_skin0, R.drawable.person_woman_winter_head_car_alt_skin1, R.drawable.person_woman_winter_head_car_alt_skin2),
-        ),
-    )
-
-    /**
-     * One seated bust: family, season, tone and outfit.
-     *
-     * The outfit axis covers the two adult families and nothing else, so a child asks for outfit 1
-     * and gets its only outfit rather than an index out of range.
-     */
-    private fun carHeadDrawable(kind: Int, season: Int, skin: Int, outfit: Int): Int =
-        if (outfit == 1 && kind < personCarHeadAltSkinDrawables.size) {
-            personCarHeadAltSkinDrawables[kind][season][skin]
-        } else {
-            personCarHeadSkinDrawables[kind][season][skin]
-        }
-
     /**
      * Ambient pedestrians walking along the sidewalk in front of the road, independent of the
      * car/house placement system -- same self-contained "own drift timer, own candidate pool"
@@ -1995,7 +1815,7 @@ class SceneObjectRenderer(
         if (geom.tileWidth <= 0f) return
         val config = customization.people
         if (!config.visible) return
-        val seasonIdx = seasonIndexFor(Exposure.OUTDOORS)
+        val seasonIdx = outdoorSeasonIndex()
         val sceneScale = SceneSpace.sceneScale(screenHeight)
         // Density thins the same candidate pool the same way every other category's does, through
         // the shared threshold rather than by rounding a count -- so lowering it removes a
@@ -2066,11 +1886,34 @@ class SceneObjectRenderer(
             // inside a frame; the state itself moves at the bottom of the loop and only when no
             // copy of the figure was drawn. See [PedestrianCarry].
             val carrying = umbrellaCarrying[walkStagger] && person.age == PersonAge.ADULT
-            val resId = if (carrying) {
-                personCarrySkinDrawables[person.kindIndex][seasonIdx][person.skinIndex][frame]
+            val slots = if (carrying) {
+                PeopleLayerTable.CARRY[person.kindIndex][seasonIdx][frame]
             } else {
-                personWalkSkinDrawables[person.kindIndex][seasonIdx][person.skinIndex][frame]
+                PeopleLayerTable.WALK[person.kindIndex][seasonIdx][frame]
             }
+            // **v4.30: the colours are the ones this walker was dealt for the crossing it is on**,
+            // and the crossing it is on is held between frames exactly the way the umbrella is.
+            // The first sight of a figure deals immediately -- otherwise a wallpaper that has just
+            // started would draw everybody in crossing zero's colours until each of them happened
+            // to leave the screen once.
+            val wantedCrossing =
+                PeopleColours.crossingOf(clockSeconds, speed, person.phase, person.startFraction, dir)
+            if (personCrossing[walkStagger] == PeopleColours.UNDEALT) {
+                personCrossing[walkStagger] = wantedCrossing
+            }
+            val crossing = personCrossing[walkStagger]
+            val colours = coloursFor(
+                walkStagger, crossing, person.kindIndex, seasonIdx,
+                PeopleColours.outfit(themeId.hashCode(), walkStagger, crossing),
+                // The tone the population dealt, **rotated** by the crossing. This is the defect
+                // the maintainer reported -- `PedestrianPopulation.build` is a pure function of
+                // theme and density, so the tone it hands out never moved -- and rotating rather
+                // than re-rolling is what keeps the stratified deal underneath it. See
+                // [PeopleColours.toneIndex].
+                PeopleColours.toneIndex(
+                    person.skinIndex, themeId.hashCode(), walkStagger, crossing,
+                ),
+            )
             val halfWidth = PERSON_HALF_WIDTH_UNITS * s
 
             val firstTile = firstVisibleTileOffset(x, halfWidth, geom.tileWidth)
@@ -2086,8 +1929,8 @@ class SceneObjectRenderer(
                 // Anchored on the sprite's own content box rather than on its canvas. Every walk
                 // sprite is 43x84 local units with its content reaching the bottom edge, so the
                 // feet land on the ground line at -84 and the figure is centred at -21.5.
-                drawSprite(canvas, resId, PERSON_ANCHOR_X_UNITS, PERSON_ANCHOR_Y_UNITS)
-                if (carrying) drawUmbrella(canvas, walkStagger)
+                drawPersonLayers(canvas, slots, PERSON_ANCHOR_X_UNITS, PERSON_ANCHOR_Y_UNITS, colours)
+                if (carrying) drawUmbrella(canvas, walkStagger, crossing)
                 canvas.restore()
             }
             umbrellaCarrying[walkStagger] = PedestrianCarry.nextCarrying(
@@ -2099,6 +1942,13 @@ class SceneObjectRenderer(
                 ),
                 onScreen = onScreen,
             )
+            // The colours move under the same gate and for the same reason, and `onScreen` comes
+            // from the cull that just ran rather than from a second copy of the geometry -- so the
+            // instant this permits a change is an instant at which no copy of this figure was
+            // drawn. The crossing counter alone does not give that: a wrap of `tileFraction` hands
+            // the figure from one tile copy to the next without moving it, and whether that is
+            // visible depends on the scroll. `PedestrianTileWrapTest` measures how often it is.
+            if (!onScreen) personCrossing[walkStagger] = wantedCrossing
         }
     }
 
@@ -2114,6 +1964,18 @@ class SceneObjectRenderer(
      */
     private val umbrellaCarrying =
         BooleanArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE)
+
+    /**
+     * Which crossing each walker's colours were dealt for (v4.30).
+     *
+     * The same shape as [umbrellaCarrying] and for the same reason: this is the state the
+     * off-screen rule protects, so it has to survive between frames. [PeopleColours.UNDEALT] means
+     * the figure has not been drawn yet and takes the current crossing on sight.
+     */
+    private val personCrossing =
+        IntArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE) {
+            PeopleColours.UNDEALT
+        }
 
     private val umbrellaHandlePaint = Paint().apply { color = 0xFF5B4A3E.toInt(); style = Paint.Style.FILL }
 
@@ -2137,11 +1999,18 @@ class SceneObjectRenderer(
      * only the canopy is artwork. That is the parasol pole's recipe, and it is why the same pose
      * can carry a bag or a case later without a single new sprite.
      */
-    private fun drawUmbrella(canvas: SceneCanvas, addr: Int) {
+    private fun drawUmbrella(canvas: SceneCanvas, addr: Int, crossing: Int) {
         val hx = carryHandX + PERSON_ANCHOR_X_UNITS
         val hy = carryHandY + PERSON_ANCHOR_Y_UNITS
+        // v4.30: dealt per crossing like the four colours of the person holding it. It was the one
+        // thing on the street that never re-shuffled once the four regions started to, and it
+        // costs nothing to include -- the crossing is already in hand.
         val colour = PedestrianCarry.canopyColour(
-            CandidateNoise.value(themeId.hashCode(), addr, PedestrianCarry.CH_UMBRELLA_COLOUR),
+            CandidateNoise.value(
+                PeopleColours.crossingSeed(themeId.hashCode(), crossing),
+                addr,
+                PedestrianCarry.CH_UMBRELLA_COLOUR,
+            ),
         )
         val crownY = PERSON_ANCHOR_Y_UNITS + 1f
         canvas.drawRect(hx - 1.2f, crownY, hx + 1.2f, hy, umbrellaHandlePaint)
@@ -2632,10 +2501,20 @@ class SceneObjectRenderer(
         // Houses never consult the hours -- see [BusinessHours].
         val openness = if (kind == WindowBuildingKind.HOUSE) 1f else businessOpenness
         if (!WindowOccupants.isOccupied(seed, buildingSeed, windowIndex, windowCount, kind, openness)) return
-        // Indoors: see [Exposure]. The hat belongs to the street, not to the room behind the pane.
-        val seasonIdx = seasonIndexFor(Exposure.INDOORS)
+        // Indoors there is no season to read any more, and its absence is `BACKLOG_v4_25.md` item
+        // 57 closed: `seasonIndexFor(INDOORS)` was always 0 -- the hat belongs to the street, not to
+        // the room behind the pane -- so the winter column of this table named twelve recolours
+        // nothing could ever select. [PeopleLayerTable.WINDOW] has one column.
         val occupant = WindowOccupants.occupantAt(seed, buildingSeed, windowIndex)
-        val resId = personWindowHeadSkinDrawables[occupant.kindIndex][seasonIdx][occupant.skinIndex]
+        val slots = PeopleLayerTable.WINDOW[occupant.kindIndex]
+        // **A figure at a window does not cross anything**, so its colours are dealt from its own
+        // address and stay put. That is what it did before v4.30 too; what changed is that the
+        // deal is now over the same palettes the street uses instead of over three shipped PNGs.
+        val address = WindowOccupants.address(buildingSeed, windowIndex)
+        val colours = coloursFor(
+            address, 0, occupant.kindIndex, SUMMER_SEASON,
+            PeopleColours.outfit(seed, address, 0), occupant.skinIndex,
+        )
         // Placed from the sprite's declared anchor, not by centring its canvas -- the same
         // correction v76.1 made to the car driver, applied here for the same reason. The window
         // heads are 49x57 local units anchored CONTENT_BOTTOM_CENTRE, so centring the canvas put
@@ -2659,7 +2538,7 @@ class SceneObjectRenderer(
         // has always been; the canvas is 49 units.
         val s = (winW * 0.85f) / WINDOW_OCCUPANT_DIVISOR_UNITS
         canvas.scale(s, s)
-        drawSprite(canvas, resId, -WINDOW_HEAD_ANCHOR_X_UNITS, -WINDOW_HEAD_ANCHOR_Y_UNITS)
+        drawPersonLayers(canvas, slots, -WINDOW_HEAD_ANCHOR_X_UNITS, -WINDOW_HEAD_ANCHOR_Y_UNITS, colours)
         canvas.restore()
     }
 
@@ -3520,13 +3399,51 @@ class SceneObjectRenderer(
      * free: the blit origin is the anchor, so a negative x scale reflects the drawing about the
      * anchor and the eye axis stays exactly where the seat put it.
      */
-    private fun drawSeatedOccupant(canvas: SceneCanvas, x: Float, y: Float, scale: Float, occupantRes: Int) {
+    private fun drawSeatedOccupant(
+        canvas: SceneCanvas,
+        x: Float,
+        y: Float,
+        scale: Float,
+        slots: IntArray,
+        colours: IntArray,
+    ) {
         canvas.save()
         canvas.translate(x, y)
         canvas.scale(-scale, scale)
-        drawSprite(canvas, occupantRes, -HEAD_CAR_ANCHOR_X_UNITS, -HEAD_CAR_ANCHOR_Y_UNITS)
+        drawPersonLayers(canvas, slots, -HEAD_CAR_ANCHOR_X_UNITS, -HEAD_CAR_ANCHOR_Y_UNITS, colours)
         canvas.restore()
     }
+
+    /**
+     * The four colours one seat wears.
+     *
+     * **A seated figure crosses nothing**, so there is no crossing number to deal from: its
+     * colours are a pure function of the car's own candidate identity and the seat, which is
+     * exactly the stability [SeatedOccupants] exists to give -- who is in a car does not change
+     * while the car is on the road, and neither should what they are wearing.
+     *
+     * The **outfit** is the exception and comes in from [SeatedOccupants.outfit], unchanged: it is
+     * still dealt five and five across the candidate pool and both seats still take the same index,
+     * because the two seats being the same index is what puts two *different* family colours in
+     * one car. What changed is only what the index selects -- an entry of [PeopleColours.OUTFITS]
+     * rather than a second set of twelve PNGs.
+     */
+    private fun carColours(
+        spec: CarObject,
+        kind: Int,
+        season: Int,
+        seat: Int,
+        outfit: Int,
+        skinIndex: Int,
+    ): IntArray = coloursFor(
+        SceneObjectCatalog.candidateIndexOf(spec) * SEAT_ADDRESS_STRIDE + seat,
+        0,
+        kind,
+        season,
+        outfit,
+        skinIndex,
+    )
+
 
     /**
      * Sprite-blit conversion (aesthetic-pass batch 3): body/window are now bitmap blits instead
@@ -3725,14 +3642,14 @@ class SceneObjectRenderer(
         // unchanged: this is still a pure function of the candidate's own immutable lane and queue
         // slot, resolved here rather than anywhere per-frame.
         val driverKindIdx = SeatedOccupants.driverKind(c.spec)
-        val driverSkinIdx = SeatedOccupants.driverSkin(c.spec)
         val outfitIdx = SeatedOccupants.outfit(c.spec)
-        val seasonIdx = seasonIndexFor(Exposure.OUTDOORS)
+        val seasonIdx = outdoorSeasonIndex()
         val occupantScale = if (isFireTruck) FIRE_TRUCK_OCCUPANT_SCALE else CAR_OCCUPANT_SCALE
         if (isFireTruck) {
             drawSeatedOccupant(
                 canvas, FIRE_TRUCK_HEAD_X_UNITS, FIRE_TRUCK_HEAD_Y_UNITS, occupantScale,
-                carHeadDrawable(driverKindIdx, seasonIdx, driverSkinIdx, outfitIdx),
+                PeopleLayerTable.CAR[driverKindIdx][seasonIdx],
+                carColours(c.spec, driverKindIdx, seasonIdx, 0, outfitIdx, SeatedOccupants.driverSkin(c.spec)),
             )
         } else {
             if (c.spec.type.seatsTwo) {
@@ -3749,9 +3666,10 @@ class SceneObjectRenderer(
                 drawSeatedOccupant(
                     canvas, CAR_PASSENGER_X_UNITS + shell.seatOffsetXUnits, CAR_PASSENGER_Y_UNITS,
                     occupantScale,
-                    carHeadDrawable(
-                        SeatedOccupants.passengerKind(c.spec), seasonIdx,
-                        SeatedOccupants.passengerSkin(c.spec), outfitIdx,
+                    PeopleLayerTable.CAR[SeatedOccupants.passengerKind(c.spec)][seasonIdx],
+                    carColours(
+                        c.spec, SeatedOccupants.passengerKind(c.spec), seasonIdx, 1, outfitIdx,
+                        SeatedOccupants.passengerSkin(c.spec),
                     ),
                 )
             }
@@ -3760,7 +3678,8 @@ class SceneObjectRenderer(
             // [CarShell.seatOffsetXUnits] for why a shift is needed at all and how it is derived.
             drawSeatedOccupant(
                 canvas, CAR_HEAD_X_UNITS + shell.seatOffsetXUnits, CAR_HEAD_Y_UNITS, occupantScale,
-                carHeadDrawable(driverKindIdx, seasonIdx, driverSkinIdx, outfitIdx),
+                PeopleLayerTable.CAR[driverKindIdx][seasonIdx],
+                carColours(c.spec, driverKindIdx, seasonIdx, 0, outfitIdx, SeatedOccupants.driverSkin(c.spec)),
             )
         }
 

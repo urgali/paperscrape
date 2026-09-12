@@ -12,37 +12,66 @@ always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v4.29 prepared — not published and not approved.**
+**v4.30 prepared — not published and not approved.**
 
-`versionCode = 60`, `versionName = "4.29"`. **No tag, no push, no GitHub Release** — that half is
+`versionCode = 61`, `versionName = "4.30"`. **No tag, no push, no GitHub Release** — that half is
 the maintainer's and has not been done for this version.
 
-**Baseline v4.28, and it is published.** Read from the public GitHub API on 2026-09-11: `v4.28` is
-published, non-draft, non-prerelease, published at **2026-09-11 17:47:11 UTC**, with its APK and
-its `.sha256` attached — as are `v4.16` through `v4.27`. **Re-read the API rather than this line**
-— nothing in a working tree learns that a release went out, and this line has now been wrong in
-**both** directions: it denied v4.27 for a day after it shipped, and v4.29's own phase A recorded
-v4.28 as unpublished at 16:36 UTC when it went out at 17:47 the same day. That is the fourth time
-the same failure has been recorded (`BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md` item 55,
-`BACKLOG_v4_29.md` item 86):
+**Baseline v4.29, and it is published.** Read from the public GitHub API on 2026-09-12: `v4.29` is
+the newest published tag, as are `v4.16` through `v4.28`. **Re-read the API rather than this line**
+— nothing in a working tree learns that a release went out, and this line has been wrong in **both**
+directions four times (`BACKLOG_v4_29.md` item 86, `BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md`
+item 55):
 
 ```bash
 curl -s https://api.github.com/repos/urgali/paperscrape/releases | grep -o '"tag_name": *"[^"]*"' | head
 ```
 
-**Two backlogs are open, and five were archived.** `BACKLOG_v4_28.md` carries 79-85, of which
-**83 stays open** — 80, 81 and 82 were closed by measurement in v4.29 and 85 was annotated there
-— and it continues to **carry forward by name** every item still open in `BACKLOG_v4_23.md`,
-`BACKLOG_v4_24.md` and `BACKLOG_v4_25.md`: items 18, 25, 30, 40, 50-55, 56, 58 and 63.
-`BACKLOG_v4_29.md` carries 86-93 and **carries forward by name** the two items left open by the
-backlogs archived in this release: **67** from `BACKLOG_v4_26.md` (the `_UNITS` frame rule reads
-Kotlin and not the generators) and **78** from `BACKLOG_v4_27.md` (a condition rather than work,
-recording that the cross-driver GL gap is no longer measured anywhere). Those two files moved to
-[`docs/archive/`](docs/archive/) in this release, under the convention the v4.24 documentation
-pass established; carrying their open items forward by number is what makes the move safe, and the
-numbering stays continuous, so item 25 means the same thing wherever it is cited.
+**Two backlogs stand in the root and nine are in [`docs/archive/`](docs/archive/).** `BACKLOG_v4_29.md` carries 86–93, of which **92
+stays open** — 93 is closed and superseded by this release — and it continues to carry forward by
+name items **67** and **78** from the two backlogs v4.29 archived. `BACKLOG_v4_30.md` carries 94–100
+and **carries forward by name** everything still open in `BACKLOG_v4_28.md`, which moved to
+[`docs/archive/`](docs/archive/) in this release: items 18, 25, 30, 40, 50–55, **56**, **63** and
+**83**. Carrying the open items forward by number is what makes the move safe, and the numbering
+stays continuous, so item 25 means the same thing wherever it is cited.
 
-**Verified at Level 3 here.** The numbers are in the v4.29 report.
+**Verified at Level 3 here.** The numbers are in the v4.30 report.
+
+```
+v4.30 [x] the people drawn instead of shipped, and the children made children
+ |- a person is no longer one PNG per skin tone. It is fixed art plus one weight mask per colourable
+ |  region -- skin, head, shirt, trousers -- and the colour arrives at the blit. 168 tone copies out,
+ |  195 layer files in, and the four colour axes stopped multiplying the set: shipped the old way,
+ |  hair and shirt and trousers would have been 27 copies of every person
+ |- the mask is SUMMED and not laid over, and that is the difference between right and wrong rather
+ |  than a matter of taste: two source-over layers split the pixel's coverage, `a + b(1-a)` is not
+ |  linear, and once the engine halves each one separately the edge grows a halo measured at 63
+ |  levels of coverage out of 255. Carried in the sign of the vertex alpha so the batch survives it
+ |- four regions cost ZERO draw calls, counted on the device and not reasoned about: one
+ |  `glDrawArrays` on three crowded themes, 270 atlas entries and no standalone texture across the
+ |  twelve themes. The plan had predicted twenty-four extra draws a frame
+ |- a region belongs to a piece and not to a colour. The generator drew the figure and knows which
+ |  polygon is hair; asking "which pixels are hair-coloured" hands back 868 pixels of shoe and eye
+ |  on the man alone, because his hair, his shoes, his eyes and his shadow are all #2B2A33
+ |- the colours are re-dealt every time a walker crosses -- skin, head, shirt, trousers and the
+ |  umbrella -- off the CLOCK and not off uptime, which restarts with the process. Deterministic, so
+ |  `people-skin` still means something; real randomness is refused for exactly that reason
+ |- and NOT on the crossing counter alone: that instant is on screen 52.8 % of the time, measured.
+ |  The off-screen guarantee comes from v4.28's umbrella gate -- the cull that actually ran
+ |- children redrawn at 0.65 of an adult, the maintainer's choice from three photographed
+ |  proportions. Not a scaled adult: the head keeps its size and the legs and torso lose the height,
+ |  which is the proportion that changes with age. The number lives in four places and all four moved
+ |- `GlTextureCache` crops the transparent border AFTER the reduction, which is what makes a mask
+ |  nearly free. Cropping the PNG would pay both ceilings and is not available: the reduction
+ |  truncates, so a crop reduces on a different grid and the layers drift apart across the sprite
+ |- the two ceilings moved in opposite directions on purpose: texels 17 921 692 -> 14 594 984 B and
+ |  the limit down to 15 MiB, decoded 33 286 896 -> 36 912 672 B and the limit up to 36 MiB
+ |- item 57 closed by retiring the twelve unreachable winter window recolours, and item 58 with it:
+ |  a table nobody reads was alive because a doc comment mentioned it, and comments are now stripped
+ \- thirty Canvas goldens re-authored, every changed pixel attributed against v4.29's own render on
+    the same device first -- which also measured that six of them were already carrying up to 67 %
+    of their budget in device drift before this release began
+```
 
 ```
 v4.29 [x] the atlas packer, and a ceiling that measures the right thing

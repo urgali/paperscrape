@@ -12,7 +12,7 @@ where the two appear to differ, that file governs.
 
 ## 1. What to read before working
 
-**Every session, in this order.** Measured 2026-09-10 at **14 463 words**; recount rather than
+**Every session, in this order.** Measured 2026-09-12 at **16 431 words**; recount rather than
 trust that with `wc -w CLAUDE.md ROADMAP.md AI_PROJECT_RULES.md README.md`.
 
 1. **`ROADMAP.md`** — the authoritative operational plan: current state, what is known
@@ -118,6 +118,28 @@ A `probe` fingerprint mismatch invalidates every fidelity figure under `reports/
 re-measure rather than trust them. Gradle never invokes this tooling, and `render` refuses
 to write into `res/drawable-nodpi/`.
 
+**Regenerating the people is two scripts, in this order** (v4.30). The first writes the artwork
+*and* `engine/PeopleLayerTable.kt`; the second rewrites the person half of the registry from what
+the first produced. Running one without the other leaves the engine's table and the artwork saying
+different things, which is the duplication both scripts exist to remove:
+
+```bash
+/home/bober/.venvs/paperscrape-assets/bin/python tools/generate_people_layers.py
+/home/bober/.venvs/paperscrape-assets/bin/python tools/update_people_registry.py
+```
+
+The drawing itself is `tools/assets/concepts/people/build_people_concepts.py` (style
+`rilievo_occhi`), which is also where a region is declared — by **piece**, through the wobble seed
+`cut` already writes. Change the drawing there, re-run that script, copy the changed
+`rilievo_occhi/svg/*.png` over the shipped bases and the matching `.svg` over
+`tools/assets/sources/svg/`, then run the two above. `build_carry_sprites.py` checks on every run
+that it still reproduces the shipped man byte for byte; if that stops passing, stop.
+
+**The asset tooling's own suite has two failures that are not yours.** `test_normalize`'s two
+padding checks were already red in v4.29 — measured by extracting that ZIP and running its suite
+there. `BACKLOG_v4_30.md` item 101. Everything else in `python -m unittest discover -s tests` is
+green and a new failure there is a real one.
+
 Device work:
 
 ```bash
@@ -139,6 +161,14 @@ thing to avoid is calling something green that was never executed, not the minut
 numbers — colour contrast across themes, hours and weathers — is a JVM unit test that runs in
 seconds for every combination. The device is for two things: confirming that the chosen remedy reads
 in the worst case the host found, and taking the captures.
+
+**To find out *what* a golden change is, render the previous release too.** `SceneGolden` takes
+`-e dumpFrames true`, which writes every rendered frame to the golden output directory whether it
+passes or fails. Extract the base ZIP into a scratch tree, install it, dump; install yours, dump;
+diff the two sets. That is what attributes a change to this release rather than to the device — and
+in v4.30 it is also what found six goldens already carrying up to 67 % of their budget in drift
+before the release started (`BACKLOG_v4_30.md` item 98). Comparing a failing frame against its
+*committed* file cannot tell those two apart.
 
 **Capture goldens with `am instrument`, not Gradle with a class filter** — Gradle
 uninstalls the package at the end and takes the written frames with it. `SceneGolden`

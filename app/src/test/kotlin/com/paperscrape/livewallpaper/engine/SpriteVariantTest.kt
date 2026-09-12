@@ -49,10 +49,15 @@ class SpriteVariantTest {
         "person_woman_summer_head_window" to "person_woman_winter_head_window",
         "person_boy_summer_head_window" to "person_boy_winter_head_window",
         "person_girl_summer_head_window" to "person_girl_winter_head_window",
-        "person_man_summer_head_car_skin1" to "person_man_winter_head_car_skin1",
-        "person_boy_summer_head_car_skin1" to "person_boy_winter_head_car_skin1",
-        "person_girl_summer_head_car_skin1" to "person_girl_winter_head_car_skin1",
-        "person_woman_summer_head_car_skin0" to "person_woman_winter_head_car_skin0",
+        // The seated pairs named a tone copy until v4.30, because the bases had been retired in
+        // v4.19 and v4.20 and one copy had to stand in for each. There are no tone copies now: the
+        // pair is checked on the fixed layer, which carries the drawing's own outline and everything
+        // in it that does not follow one of the four colours -- the hat, the scarf, the hood, the
+        // collar. That is precisely what "different artwork" means for a season.
+        "person_man_summer_head_car_fx" to "person_man_winter_head_car_fx",
+        "person_boy_summer_head_car_fx" to "person_boy_winter_head_car_fx",
+        "person_girl_summer_head_car_fx" to "person_girl_winter_head_car_fx",
+        "person_woman_summer_head_car_fx" to "person_woman_winter_head_car_fx",
     )
 
     /**

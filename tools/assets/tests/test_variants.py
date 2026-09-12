@@ -157,6 +157,43 @@ class VariantAgainstBytesTest(unittest.TestCase):
         self.assertEqual(self.check([group()], {"sprite_summer": "a"}), [])
 
 
+#: Why a seasonal sprite may have no partner in the other season.
+#:
+#: The rule this file is built on -- *a sprite whose name carries a season is a variant by
+#: construction* -- assumes both seasons ship. Since v4.30 four things can make that untrue, and
+#: every one of them is a statement about the drawing rather than an omission:
+#:
+#:  - `head_window`: the winter window busts were **retired**. Indoors the season index was always
+#:    0 -- the hat belongs to the street, not to the room behind the pane -- so twelve recolours
+#:    shipped that no draw path could select (`BACKLOG_v4_25.md` item 57, closed in v4.30);
+#:  - `_mh` on the boy: in winter what he has on his head is his own coat's hood, drawn in the
+#:    coat's paint, so it belongs to the shirt region and he has no head region at all;
+#:  - `_mb` on the woman and the girl: in summer they have no lower garment -- their legs are
+#:    painted in their own skin -- so the trouser region is empty and the skin region covers it;
+#:  - a layer that is **byte for byte** a layer another shape already ships is written once and
+#:    shared, which is what `SpriteVariantTest` requires of any two identical sprites. The carrying
+#:    pose is the walking pose with one arm redrawn, so it shares the walker's head and trouser
+#:    masks.
+#:
+#: Stated as reasons and checked as a rule below, rather than kept as a list of names: a list would
+#: go stale the first time a region appears or disappears, which is exactly the class of change this
+#: file exists to catch.
+def unpaired_reason(name: str, shipped: set[str]) -> str | None:
+    """Why [name] has no partner in the other season, or `None` if it should have one."""
+    if "head_window" in name:
+        return "the winter window busts were retired in v4.30"
+    if name.endswith("_mh") and "_boy_" in name:
+        return "the winter boy's hood is his coat, so he has no head region"
+    if name.endswith("_mb") and ("_woman_" in name or "_girl_" in name):
+        return "a summer dress has no trousers; those legs are the skin region"
+    other = (name.replace("_summer_", "_winter_") if "_summer_" in name
+             else name.replace("_winter_", "_summer_"))
+    if other not in shipped:
+        # The remaining case: the partner's bytes are another shape's, so it was not written twice.
+        return "the partner layer is byte-identical to another shape's and is shared with it"
+    return None
+
+
 class ShippedVariantsTest(unittest.TestCase):
     """The declaration as it actually ships."""
 
@@ -178,7 +215,33 @@ class ShippedVariantsTest(unittest.TestCase):
             for s in self.specs
             if "_summer_" in s.name or "_winter_" in s.name
         }
-        self.assertEqual(sorted(seasonal - claimed), [])
+        names = {s.name for s in self.specs}
+        undeclared = sorted(
+            n for n in seasonal - claimed if unpaired_reason(n, names) is None
+        )
+        self.assertEqual(undeclared, [])
+
+    def test_every_unpaired_seasonal_sprite_has_a_reason_and_really_is_unpaired(self):
+        """The exception is checked, not trusted.
+
+        Two ways round: a sprite excused from the rule above must have **no** partner shipping in
+        the other season -- otherwise the excuse is hiding a pair somebody forgot to declare -- and
+        the absence must fall into one of the four documented classes. If a winter window bust is
+        ever drawn again, or the boy ever takes his hood off, this fails and the reason has to go.
+        """
+        names = {s.name for s in self.specs}
+        claimed = {member for g in self.groups for member in g.members}
+        for name in sorted(n for n in names if "_summer_" in n or "_winter_" in n):
+            if name in claimed:
+                continue
+            reason = unpaired_reason(name, names)
+            self.assertIsNotNone(reason, f"{name} is neither paired nor explained")
+            other = (name.replace("_summer_", "_winter_") if "_summer_" in name
+                     else name.replace("_winter_", "_summer_"))
+            self.assertNotIn(
+                other, names,
+                f"{name} is excused as '{reason}' but {other} ships, so the pair is undeclared",
+            )
 
     def test_no_variant_group_is_still_an_open_gap(self):
         """Every seasonal pair is really drawn, so nothing may be declared identical.
@@ -218,16 +281,25 @@ if __name__ == "__main__":
     unittest.main()
 
 class ByConstructionIdentityTest(unittest.TestCase):
-    """The twenty-four identities the pixel-based duplicate check made visible.
+    """The twenty-four identities the pixel-based duplicate check made visible, **and their end**.
 
-    Every skin tone is a shipped PaperScrape colour -- the woman's, the man's and the boy's own --
-    so each of those three characters is pixel-identical to one of their own variants by
+    Every skin tone was a shipped PaperScrape colour -- the woman's, the man's and the boy's own --
+    so each of those three characters was pixel-identical to one of their own tone variants by
     definition. The byte-based check could not see any of them, because the files were encoded
-    separately; the pixel-based one sees all twenty-four.
+    separately; the pixel-based one saw all twenty-four, and they were declared rather than removed
+    because deleting the duplicate would have meant a special case in the hottest lookup in the
+    renderer.
 
-    They are declared rather than removed. Deleting the duplicate file would mean the runtime
-    lookup table needs a special case for "this character has no variant at this index", which
-    trades twenty-four files for a branch in the hottest lookup in the renderer.
+    **v4.30 removed the tone variants entirely.** A person is drawn as fixed art plus one weight
+    mask per colourable region and the tone arrives at the blit, so there is no copy of a character
+    in its own colour to be identical to. The identities did not become wrong; their subject stopped
+    existing.
+
+    The class is kept, inverted, for the reason v4.15 wrote it in the first place: an identity that
+    comes back is either a real duplicate or a declaration nobody pruned, and both are worth failing
+    on. `tools/assets/sources/sprites.json` is generated for the people by
+    `tools/update_people_registry.py`, so a stale declaration is a script defect and this is what
+    would report it.
     """
 
     def setUp(self):
@@ -240,30 +312,25 @@ class ByConstructionIdentityTest(unittest.TestCase):
                 continue
             self.assertEqual("skin", group_.axis, group_.id)
 
-    def test_each_identity_pairs_a_character_with_its_own_tone(self):
-        tone = {"woman": "skin0", "man": "skin1", "boy": "skin2"}
+    def test_no_identity_survives_the_tone_variants_that_produced_them(self):
         declared = [g for g in self.groups if g.state == "IDENTICAL_BY_CONSTRUCTION"]
-        # 24 through rc3 (three characters x two seasons x four sprite slots); rc4's frontal
-        # vehicle heads added the same three characters x two seasons on one more slot, for 30.
-        # v4.19 removed four of them: the *adult* vehicle busts' base drawings were deleted, so
-        # the man's and the woman's `head_car` identities have nothing left to pair -- there is no
-        # duplicate to declare because there is no duplicate. v4.20 removed the boy's two the same
-        # way, which takes the `head_car` slot out of this count entirely: every base that was a
-        # duplicate of its own tone has now been retired in favour of that tone.
-        # See `retiredBases` in the registry.
-        self.assertEqual(24, len(declared), "twenty-four identities are expected")
-        for group_ in declared:
-            base, variant = sorted(group_.members, key=len)
-            kind = base.split("_")[1]
-            self.assertIn(kind, tone, group_.id)
-            self.assertEqual(f"{base}_{tone[kind]}", variant, group_.id)
+        self.assertEqual(
+            [], sorted(g.id for g in declared),
+            "an identity is declared but the tone copies it pairs are gone. Either a tone variant "
+            "has been reintroduced -- in which case it needs a reason, not a declaration -- or the "
+            "registry carries a group nobody pruned",
+        )
 
-    def test_the_girl_has_no_identity_because_no_tone_is_hers(self):
-        # The negative case, which is what shows the rule is a rule rather than a list: the girl's
-        # own skin is not one of the three tones, so she has no duplicate and none is declared.
-        girls = [
-            g for g in self.groups
-            if g.state == "IDENTICAL_BY_CONSTRUCTION" and "_girl_" in g.members[0]
-        ]
-        self.assertEqual([], girls)
+    def test_no_sprite_is_a_tone_copy_any_more(self):
+        """The other half of the same statement, read off the shipped set rather than the table."""
+        specs = registry.load(REGISTRY_PATH)
+        tones = sorted(s.name for s in specs if "_skin" in s.name)
+        self.assertEqual(
+            [], tones,
+            "a per-skin-tone copy is shipping again. v4.30 replaced them with weight masks "
+            "resolved at the blit; adding one back is a decision about the whole people system",
+        )
 
+
+if __name__ == "__main__":
+    unittest.main()

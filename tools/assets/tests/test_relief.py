@@ -60,18 +60,23 @@ WALK_CYCLES = [
 #:
 #: v4.19 retired the four adult vehicle bases and v4.20 the two boy ones -- in each case a base
 #: that was pixel-identical to one of its own tone copies and that no draw path could reach -- so
-#: those six are measured on the heir the registry's `retiredBases` names, which is the same
-#: drawing under the surviving name. The girl's bases are not duplicates of any of her tones and
-#: still ship, so hers are measured directly.
+#: those six were measured on the heir the registry's `retiredBases` names, which was the same
+#: drawing under the surviving name.
+#:
+#: **v4.30 removed the tone copies entirely**, so there are no heirs left to stand in. A seated bust
+#: is now a fixed layer plus its region masks, and the fixed layer is what carries the relief: the
+#: under-paper is a shade of a piece's own paint, and a shade is `(1-t)·paint + t·DARK` whose
+#: `t·DARK` half does not follow the colour and is therefore fixed art by construction. So the
+#: relief is measured where it lives, on `_fx`, for every one of the eight -- which is also why this
+#: list stopped needing a per-family exception for the girl.
 OCCUPANTS = [
     f"person_{who}_{season}_head_window"
     for who in ("man", "woman", "boy", "girl")
     for season in ("summer", "winter")
 ] + [
-    "person_man_summer_head_car_skin1", "person_man_winter_head_car_skin1",
-    "person_woman_summer_head_car_skin0", "person_woman_winter_head_car_skin0",
-    "person_boy_summer_head_car_skin2", "person_boy_winter_head_car_skin2",
-    "person_girl_summer_head_car", "person_girl_winter_head_car",
+    f"person_{who}_{season}_head_car_fx"
+    for who in ("man", "woman", "boy", "girl")
+    for season in ("summer", "winter")
 ]
 
 

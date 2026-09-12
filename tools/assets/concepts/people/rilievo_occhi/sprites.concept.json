@@ -528,9 +528,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    17,
-    61,
-    108,
+    26,
+    90,
+    106,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -538,7 +538,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    62.5,
+    66.0,
     252
    ],
    "season": "summer",
@@ -554,8 +554,8 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    23,
-    61,
+    27,
+    90,
     107,
     252
    ],
@@ -564,7 +564,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    65.0,
+    67.0,
     252
    ],
    "season": "summer",
@@ -580,9 +580,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    9,
-    61,
-    110,
+    18,
+    90,
+    107,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -590,7 +590,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    59.5,
+    62.5,
     252
    ],
    "season": "summer",
@@ -659,8 +659,8 @@
    "height": 252,
    "contentBox": [
     9,
-    56,
-    108,
+    85,
+    99,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -668,7 +668,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    58.5,
+    54.0,
     252
    ],
    "season": "winter",
@@ -685,7 +685,7 @@
    "height": 252,
    "contentBox": [
     9,
-    56,
+    85,
     95,
     252
    ],
@@ -711,8 +711,8 @@
    "height": 252,
    "contentBox": [
     8,
-    56,
-    110,
+    84,
+    101,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -720,7 +720,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    59.0,
+    54.5,
     252
    ],
    "season": "winter",
@@ -789,8 +789,8 @@
    "height": 252,
    "contentBox": [
     13,
-    59,
-    108,
+    91,
+    107,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -798,7 +798,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    60.5,
+    60.0,
     252
    ],
    "season": "summer",
@@ -815,7 +815,7 @@
    "height": 252,
    "contentBox": [
     13,
-    60,
+    91,
     108,
     252
    ],
@@ -840,9 +840,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    7,
-    60,
-    110,
+    13,
+    92,
+    109,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -850,7 +850,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    58.5,
+    61.0,
     252
    ],
    "season": "summer",
@@ -918,9 +918,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    16,
-    47,
-    108,
+    24,
+    78,
+    99,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -928,7 +928,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    62.0,
+    61.5,
     252
    ],
    "season": "winter",
@@ -945,7 +945,7 @@
    "height": 252,
    "contentBox": [
     24,
-    46,
+    78,
     95,
     252
    ],
@@ -970,9 +970,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    7,
-    47,
-    111,
+    16,
+    78,
+    102,
     252
    ],
    "scale": "SCENE_UNITS",

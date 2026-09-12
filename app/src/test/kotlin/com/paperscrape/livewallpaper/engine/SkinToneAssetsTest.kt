@@ -4,111 +4,48 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
-import javax.imageio.ImageIO
 
 /**
- * Two guarantees about skin tone that only the shipped files can answer.
+ * Skin tone is an automatic property of a generated person and never a preference, enforced against
+ * the sources rather than asserted in a report.
  *
- * **That nobody can choose a tone.** The requirement is a hard UX one: skin is an automatic
- * property of a generated person, never a preference. A unit test over the generator cannot see a
- * settings screen, so this reads the actual sources and fails if a preference key, a settings row
- * or a customisation field for skin ever appears.
+ * ### What used to be here, and where it went
  *
- * **That the variants really are the same artwork.** The tone axis is only legitimate if a variant
- * differs from its source in skin and nothing else. Rather than trusting the generator script,
- * this re-derives the claim from the PNGs: same dimensions, identical alpha, and every non-skin
- * colour holding exactly the pixel mask it holds in the source.
+ * This class also checked that the 168 shipped tone variants differed from their source in skin and
+ * in nothing else. **v4.30 stopped shipping them**: a person is drawn as fixed art plus one weight
+ * mask per colourable region and the tone arrives at the blit, so there is no variant to compare
+ * against a source. The guarantee that replaced it is stronger and lives in `PeopleLayerAssetTest`
+ * -- that the layers add up to the drawing itself, with the colours recovered from the files rather
+ * than supplied to the check.
+ *
+ * What stays here is the half that was never about the artwork: **nobody can choose a tone.** That
+ * is a hard UX requirement, a unit test over the generator cannot see a settings screen, and the
+ * requirement did not change when the artwork did -- if anything it needs saying more loudly now
+ * that the tone is a number in `PeopleColours` rather than a choice between three files.
  */
 class SkinToneAssetsTest {
 
-    private val kinds = listOf("man", "woman", "boy", "girl")
-    private val seasons = listOf("summer", "winter")
-    private val variants = listOf("walk0", "walk1", "walk2", "head_window")
-
-    /** Each character's shipped skin colour, the one the variants move. */
-    private val skinBase = mapOf(
-        "man" to intArrayOf(220, 169, 124),
-        "woman" to intArrayOf(240, 201, 166),
-        "boy" to intArrayOf(169, 113, 75),
-        "girl" to intArrayOf(239, 185, 148),
-    )
-
-    // ------------------------------------------------------------- artwork
-
-    @Test
-    fun `every character has artwork for every skin tone, in both seasons`() {
-        for (kind in kinds) {
-            for (season in seasons) {
-                for (variant in variants) {
-                    for (tone in 0 until PedestrianPopulation.SKIN_TONE_COUNT) {
-                        val file = File(drawableDir, "person_${kind}_${season}_${variant}_skin$tone.png")
-                        assertTrue("missing ${file.name}", file.isFile)
-                    }
-                }
-            }
-        }
-    }
-
     /**
-     * A variant may differ from its source in skin and in nothing else.
+     * The three tones must be visibly distinct, or the axis is decorative.
      *
-     * Checked as: identical dimensions, identical alpha channel, and — for every colour in the
-     * source that is not that character's skin — an identical pixel mask. Clothes, hair, eyes,
-     * outlines, silhouette and pose are all covered by that last clause, because each of them is
-     * some colour that is not skin.
+     * Read off `PeopleColours.SKIN`, which is where they live since v4.30, rather than off three
+     * PNGs. The threshold is a channel distance rather than a count of differing pixels: the tones
+     * are flat paint now, so "how far apart are they" is a question about three numbers.
      */
     @Test
-    fun `variants change the skin and nothing else`() {
-        for (kind in kinds) {
-            val base = skinBase.getValue(kind)
-            for (season in seasons) {
-                for (variant in variants) {
-                    val source = ImageIO.read(File(drawableDir, "person_${kind}_${season}_$variant.png"))
-                    val sourcePixels = pixels(source)
-                    val palette = sourcePixels.toList().distinct()
-                        .filter { (it ushr 24 and 0xFF) > 200 }
-                        .filterNot { rgbEquals(it, base) }
-                        .groupingBy { it }.eachCount()
-                        .filter { it.value >= 80 }
-                        .keys
-                    for (tone in 0 until PedestrianPopulation.SKIN_TONE_COUNT) {
-                        val name = "person_${kind}_${season}_${variant}_skin$tone.png"
-                        val other = ImageIO.read(File(drawableDir, name))
-                        assertEquals("$name width", source.width, other.width)
-                        assertEquals("$name height", source.height, other.height)
-                        val otherPixels = pixels(other)
-                        for (i in sourcePixels.indices) {
-                            assertEquals(
-                                "$name alpha at $i",
-                                sourcePixels[i] ushr 24,
-                                otherPixels[i] ushr 24,
-                            )
-                        }
-                        for (colour in palette) {
-                            val before = sourcePixels.indices.filter { sourcePixels[it] == colour }
-                            val after = sourcePixels.indices.filter { otherPixels[it] == colour }
-                            assertEquals(
-                                "$name moved a non-skin colour ${colour.toString(16)}",
-                                before, after,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /** The tones must be visibly distinct, or the axis is decorative. */
-    @Test
     fun `the tones are visibly different from one another`() {
-        val source = File(drawableDir, "person_man_summer_walk0.png")
-        val images = (0 until PedestrianPopulation.SKIN_TONE_COUNT).map {
-            ImageIO.read(File(source.parentFile, "person_man_summer_walk0_skin$it.png"))
-        }
-        for (a in images.indices) {
-            for (b in a + 1 until images.size) {
-                val differing = pixels(images[a]).zip(pixels(images[b])).count { it.first != it.second }
-                assertTrue("tones $a and $b are nearly identical", differing > 500)
+        val tones = PeopleColours.SKIN
+        assertEquals("the tone count the population deals over", PedestrianPopulation.SKIN_TONE_COUNT, tones.size)
+        for (a in tones.indices) {
+            for (b in a + 1 until tones.size) {
+                val distance = (0 until 3).sumOf { c ->
+                    val shift = 16 - c * 8
+                    kotlin.math.abs(((tones[a] ushr shift) and 0xFF) - ((tones[b] ushr shift) and 0xFF))
+                }
+                assertTrue(
+                    "tones $a and $b are ${distance} channel levels apart in total",
+                    distance >= 60,
+                )
             }
         }
     }
@@ -157,16 +94,6 @@ class SkinToneAssetsTest {
         )
     }
 
-    private fun pixels(image: java.awt.image.BufferedImage): IntArray =
-        IntArray(image.width * image.height).also {
-            image.getRGB(0, 0, image.width, image.height, it, 0, image.width)
-        }
-
-    private fun rgbEquals(argb: Int, rgb: IntArray): Boolean =
-        (argb ushr 16 and 0xFF) == rgb[0] &&
-            (argb ushr 8 and 0xFF) == rgb[1] &&
-            (argb and 0xFF) == rgb[2]
-
     private companion object {
 
         /** Gradle's working directory is a default, not a guarantee, so walk up to find the tree. */
@@ -182,6 +109,5 @@ class SkinToneAssetsTest {
             throw AssertionError("could not locate src/main from ${File(".").absolutePath}")
         }
 
-        val drawableDir: File by lazy { File(mainSources, "res/drawable-nodpi") }
     }
 }

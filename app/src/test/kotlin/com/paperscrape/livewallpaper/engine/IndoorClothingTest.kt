@@ -6,25 +6,34 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Winter clothing stops at the window, and the rule that says so has one home.
+ * Winter clothing stops at the window, and since v4.30 it stops because the artwork stops.
  *
  * A person leaning out of their own window is indoors. They are in a room, and the room is not
- * having weather. Until this test they put on a hat whenever the scene turned wintry, because every
- * call site that reads a person sprite picked its season column with the same
+ * having weather. Until v4.2 they put on a hat whenever the scene turned wintry, because every call
+ * site that read a person sprite picked its season column with the same
  * `if (customization.winterColorsEnabled) 1 else 0` — a rule about the *scene* applied to a figure
  * the scene's weather cannot reach.
  *
+ * ### What v4.30 changed, and why the test changed with it
+ *
+ * The fix was an `Exposure` enum with an `INDOORS` case that resolved to the summer column. It
+ * worked, and it hid something: indoors the answer was **always** 0, so the winter column of the
+ * window table named twelve recolours no draw path could ever select, and the enum made that look
+ * like a choice being made rather than a column that could not be reached. That is
+ * `BACKLOG_v4_25.md` item 57, open since v4.25 and reported as a defect twice by two readers.
+ *
+ * v4.30 retired the four winter window shapes and the column with them: `PeopleLayerTable.WINDOW`
+ * has one season, so the question is no longer asked of a window bust at all. What is left to
+ * assert is therefore the *absence* -- that nothing reintroduces a season choice at a window -- plus
+ * the half that is still a real choice: the street and the cars.
+ *
  * ### Why this reads the source
  *
- * The thing being asserted is a **coupling between call sites**: three places choose a season
- * column, they must all go through one function, and each must pass the exposure that matches where
- * its figure stands. A coupling between call sites is what the source states and what a unit test
- * on any one of them cannot see — the same reasoning `SkyscraperWindowTest` and
- * `InternetInventoryTest` are built on, and the same reasoning `tools/assets`' `validate` uses for
- * blit call sites.
- *
- * The alternative — an `if` at the window call site — is what this is written to prevent. It would
- * pass a behavioural test and leave the next person-drawing call site to guess again.
+ * The thing being asserted is a **coupling between call sites**: the places that choose a season
+ * column must all go through one function, and a window must not be one of them. A coupling between
+ * call sites is what the source states and what a unit test on any one of them cannot see — the
+ * same reasoning `SkyscraperWindowTest` and `InternetInventoryTest` are built on, and the same
+ * reasoning `tools/assets`' `validate` uses for blit call sites.
  */
 class IndoorClothingTest {
 
@@ -35,17 +44,30 @@ class IndoorClothingTest {
         val handRolled = Regex("""if \(customization\.winterColorsEnabled\) 1 else 0""")
             .findAll(source).count()
         assertEquals(
-            "a call site is choosing its own season column instead of going through seasonIndexFor",
-            0,
+            "a call site is choosing its own season column instead of going through " +
+                "outdoorSeasonIndex",
+            1,
             handRolled,
+        )
+        assertTrue(
+            "and the one place it appears must be outdoorSeasonIndex itself",
+            Regex(
+                """fun outdoorSeasonIndex\(\): Int = if \(customization\.winterColorsEnabled\) 1 else 0""",
+            ).containsMatchIn(source),
         )
     }
 
     @Test
-    fun `the window occupant is indoors`() {
+    fun `the window occupant has no season to choose`() {
+        val body = bodyOf("drawWindowOccupant")
         assertTrue(
-            "drawWindowOccupant must read the indoor column:\n${bodyOf("drawWindowOccupant")}",
-            bodyOf("drawWindowOccupant").contains("seasonIndexFor(Exposure.INDOORS)"),
+            "drawWindowOccupant must not choose a season column -- the window artwork has one " +
+                "season since v4.30 (BACKLOG_v4_25.md item 57):\n$body",
+            !body.contains("outdoorSeasonIndex") && !body.contains("winterColorsEnabled"),
+        )
+        assertTrue(
+            "and the table it reads must have no season axis either",
+            Regex("""PeopleLayerTable\.WINDOW\[[^\]]+\](?!\[)""").containsMatchIn(body),
         )
     }
 
@@ -57,22 +79,22 @@ class IndoorClothingTest {
             val body = bodyOf(function)
             assertTrue(
                 "$function must read the outdoor column:\n$body",
-                body.contains("seasonIndexFor(Exposure.OUTDOORS)"),
+                body.contains("outdoorSeasonIndex()"),
             )
         }
     }
 
     @Test
-    fun `there is exactly one place that turns exposure into a column`() {
+    fun `there is exactly one place that turns the season into a column`() {
         assertEquals(
-            "seasonIndexFor must be declared once and only once",
+            "outdoorSeasonIndex must be declared once and only once",
             1,
-            Regex("""private fun seasonIndexFor\(""").findAll(source).count(),
+            Regex("""private fun outdoorSeasonIndex\(""").findAll(source).count(),
         )
-        assertTrue(
-            "and INDOORS must be the summer column",
-            Regex("""Exposure\.OUTDOORS && customization\.winterColorsEnabled\) 1 else 0""")
-                .containsMatchIn(source),
+        assertEquals(
+            "and the Exposure enum must be gone: indoors is no longer a column that exists",
+            0,
+            Regex("""Exposure\.(INDOORS|OUTDOORS)""").findAll(source).count(),
         )
     }
 

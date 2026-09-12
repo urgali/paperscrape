@@ -94,15 +94,22 @@ so every one of the 125 *drawn* sprites names an SVG:
 { "kind": "svg", "file": "house_shared_window.svg" }
 ```
 
-The remaining 96 entries are the person skin-tone recolours, and they are not a
-gap in that sense: `tools/generate_skin_variants.py` produces each of them from a
-drawn sprite by moving one flat colour, and verifies that every other colour keeps
-its exact pixel mask. They carry `source.kind = "none"` because `render`
-regenerates a sprite from an SVG and these have none of their own — authoring one
-per tone would mean hand-maintaining three copies of every person frame, which is
-the duplication the generator exists to remove. Their `source.reason` names the
-generator and the base sprite, so "how do I get this file back" has an answer for
-every entry in the registry, which is what the field is for.
+The remaining entries are the people's layer files, and they are not a gap in that
+sense either: `tools/generate_people_layers.py` writes a fixed layer and up to four
+region weight masks for each shape, from the same drawing code that draws the
+shipped figure. They carry `source.kind = "generated"` and name that script,
+because `render` regenerates a sprite from an SVG and these have none of their own
+— a mask is a *view* of a drawing, not a drawing, and authoring one per region per
+shape would be exactly the duplication the generator exists to remove. Their
+`source.notes` say which region each one carries, so "how do I get this file back"
+has an answer for every entry in the registry, which is what the field is for.
+
+Until v4.30 this paragraph described **96 per-skin-tone recolours** under
+`source.kind = "none"`, produced by `tools/generate_skin_variants.py`. Those files
+are gone: a person's colour is now resolved at the blit instead of being shipped
+once per value. The script itself is kept — it is what the layer generator's own
+shade arithmetic was derived from and verified against — but nothing in `res/`
+comes from it any more.
 
 They were shipped without registry entries, and for a while nothing said so
 usefully: `validate` reported ninety-six unregistered sprites, `normalize` raised

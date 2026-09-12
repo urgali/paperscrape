@@ -83,12 +83,12 @@
   {
    "name": "person_man_summer_head_window",
    "category": "person",
-   "width": 141,
+   "width": 147,
    "height": 171,
    "contentBox": [
-    3,
+    6,
     0,
-    139,
+    142,
     171
    ],
    "scale": "SCENE_UNITS",
@@ -96,7 +96,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    71.0,
+    74.0,
     171
    ],
    "season": "summer",
@@ -109,12 +109,12 @@
   {
    "name": "person_man_summer_head_car",
    "category": "person",
-   "width": 111,
+   "width": 114,
    "height": 126,
    "contentBox": [
-    2,
+    5,
     0,
-    108,
+    111,
     126
    ],
    "scale": "SCENE_UNITS",
@@ -122,7 +122,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    55.0,
+    58.0,
     126
    ],
    "season": "summer",
@@ -213,12 +213,12 @@
   {
    "name": "person_man_winter_head_window",
    "category": "person",
-   "width": 141,
+   "width": 147,
    "height": 171,
    "contentBox": [
+    4,
     1,
-    1,
-    139,
+    142,
     171
    ],
    "scale": "SCENE_UNITS",
@@ -226,7 +226,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    70.0,
+    73.0,
     171
    ],
    "season": "winter",
@@ -239,12 +239,12 @@
   {
    "name": "person_man_winter_head_car",
    "category": "person",
-   "width": 111,
+   "width": 114,
    "height": 126,
    "contentBox": [
-    3,
+    6,
     0,
-    109,
+    112,
     126
    ],
    "scale": "SCENE_UNITS",
@@ -252,7 +252,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    56.0,
+    59.0,
     126
    ],
    "season": "winter",
@@ -343,12 +343,12 @@
   {
    "name": "person_woman_summer_head_window",
    "category": "person",
-   "width": 141,
+   "width": 147,
    "height": 171,
    "contentBox": [
+    2,
     1,
-    1,
-    139,
+    142,
     171
    ],
    "scale": "SCENE_UNITS",
@@ -356,7 +356,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    70.0,
+    72.0,
     171
    ],
    "season": "summer",
@@ -369,12 +369,12 @@
   {
    "name": "person_woman_summer_head_car",
    "category": "person",
-   "width": 111,
+   "width": 114,
    "height": 126,
    "contentBox": [
-    3,
+    4,
     0,
-    109,
+    112,
     126
    ],
    "scale": "SCENE_UNITS",
@@ -382,7 +382,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    56.0,
+    58.0,
     126
    ],
    "season": "summer",
@@ -473,12 +473,12 @@
   {
    "name": "person_woman_winter_head_window",
    "category": "person",
-   "width": 141,
+   "width": 147,
    "height": 171,
    "contentBox": [
-    2,
+    5,
     0,
-    138,
+    141,
     171
    ],
    "scale": "SCENE_UNITS",
@@ -486,7 +486,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    70.0,
+    73.0,
     171
    ],
    "season": "winter",
@@ -499,12 +499,12 @@
   {
    "name": "person_woman_winter_head_car",
    "category": "person",
-   "width": 111,
+   "width": 114,
    "height": 126,
    "contentBox": [
-    3,
+    6,
     0,
-    109,
+    112,
     126
    ],
    "scale": "SCENE_UNITS",
@@ -512,7 +512,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    56.0,
+    59.0,
     126
    ],
    "season": "winter",
@@ -528,9 +528,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    17,
-    61,
-    108,
+    26,
+    90,
+    106,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -538,7 +538,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    62.5,
+    66.0,
     252
    ],
    "season": "summer",
@@ -554,8 +554,8 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    23,
-    61,
+    27,
+    90,
     107,
     252
    ],
@@ -564,7 +564,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    65.0,
+    67.0,
     252
    ],
    "season": "summer",
@@ -580,9 +580,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    9,
-    61,
-    110,
+    18,
+    90,
+    107,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -590,7 +590,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    59.5,
+    62.5,
     252
    ],
    "season": "summer",
@@ -603,12 +603,12 @@
   {
    "name": "person_boy_summer_head_window",
    "category": "person",
-   "width": 141,
+   "width": 147,
    "height": 171,
    "contentBox": [
-    1,
+    4,
     3,
-    138,
+    142,
     171
    ],
    "scale": "SCENE_UNITS",
@@ -616,7 +616,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    69.5,
+    73.0,
     171
    ],
    "season": "summer",
@@ -629,12 +629,12 @@
   {
    "name": "person_boy_summer_head_car",
    "category": "person",
-   "width": 111,
+   "width": 114,
    "height": 126,
    "contentBox": [
-    4,
+    7,
     11,
-    109,
+    112,
     126
    ],
    "scale": "SCENE_UNITS",
@@ -642,7 +642,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    56.5,
+    59.5,
     126
    ],
    "season": "summer",
@@ -659,8 +659,8 @@
    "height": 252,
    "contentBox": [
     9,
-    56,
-    108,
+    85,
+    99,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -668,7 +668,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    58.5,
+    54.0,
     252
    ],
    "season": "winter",
@@ -685,7 +685,7 @@
    "height": 252,
    "contentBox": [
     9,
-    56,
+    85,
     95,
     252
    ],
@@ -711,8 +711,8 @@
    "height": 252,
    "contentBox": [
     8,
-    56,
-    110,
+    84,
+    101,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -720,7 +720,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    59.0,
+    54.5,
     252
    ],
    "season": "winter",
@@ -733,12 +733,12 @@
   {
    "name": "person_boy_winter_head_window",
    "category": "person",
-   "width": 141,
+   "width": 147,
    "height": 171,
    "contentBox": [
-    3,
+    2,
     7,
-    138,
+    141,
     171
    ],
    "scale": "SCENE_UNITS",
@@ -746,7 +746,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    70.5,
+    71.5,
     171
    ],
    "season": "winter",
@@ -759,12 +759,12 @@
   {
    "name": "person_boy_winter_head_car",
    "category": "person",
-   "width": 111,
+   "width": 114,
    "height": 126,
    "contentBox": [
     2,
     10,
-    108,
+    111,
     126
    ],
    "scale": "SCENE_UNITS",
@@ -772,7 +772,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    55.0,
+    56.5,
     126
    ],
    "season": "winter",
@@ -789,8 +789,8 @@
    "height": 252,
    "contentBox": [
     13,
-    59,
-    108,
+    91,
+    107,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -798,7 +798,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    60.5,
+    60.0,
     252
    ],
    "season": "summer",
@@ -815,7 +815,7 @@
    "height": 252,
    "contentBox": [
     13,
-    60,
+    91,
     108,
     252
    ],
@@ -840,9 +840,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    7,
-    60,
-    110,
+    13,
+    92,
+    109,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -850,7 +850,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    58.5,
+    61.0,
     252
    ],
    "season": "summer",
@@ -863,12 +863,12 @@
   {
    "name": "person_girl_summer_head_window",
    "category": "person",
-   "width": 141,
+   "width": 147,
    "height": 171,
    "contentBox": [
-    2,
+    4,
     1,
-    138,
+    147,
     171
    ],
    "scale": "SCENE_UNITS",
@@ -876,7 +876,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    70.0,
+    75.5,
     171
    ],
    "season": "summer",
@@ -889,12 +889,12 @@
   {
    "name": "person_girl_summer_head_car",
    "category": "person",
-   "width": 111,
+   "width": 114,
    "height": 126,
    "contentBox": [
-    2,
+    5,
     11,
-    108,
+    113,
     126
    ],
    "scale": "SCENE_UNITS",
@@ -902,7 +902,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    55.0,
+    59.0,
     126
    ],
    "season": "summer",
@@ -918,9 +918,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    16,
-    47,
-    108,
+    24,
+    78,
+    99,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -928,7 +928,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    62.0,
+    61.5,
     252
    ],
    "season": "winter",
@@ -945,7 +945,7 @@
    "height": 252,
    "contentBox": [
     24,
-    46,
+    78,
     95,
     252
    ],
@@ -970,9 +970,9 @@
    "width": 117,
    "height": 252,
    "contentBox": [
-    7,
-    47,
-    111,
+    16,
+    78,
+    102,
     252
    ],
    "scale": "SCENE_UNITS",
@@ -993,12 +993,12 @@
   {
    "name": "person_girl_winter_head_window",
    "category": "person",
-   "width": 141,
+   "width": 147,
    "height": 171,
    "contentBox": [
-    3,
+    6,
     0,
-    138,
+    141,
     171
    ],
    "scale": "SCENE_UNITS",
@@ -1006,7 +1006,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    70.5,
+    73.5,
     171
    ],
    "season": "winter",
@@ -1019,12 +1019,12 @@
   {
    "name": "person_girl_winter_head_car",
    "category": "person",
-   "width": 111,
+   "width": 114,
    "height": 126,
    "contentBox": [
-    3,
+    6,
     11,
-    109,
+    112,
     126
    ],
    "scale": "SCENE_UNITS",
@@ -1032,7 +1032,7 @@
    "usage": "concept",
    "anchorRule": "CONTENT_BOTTOM_CENTRE",
    "anchor": [
-    56.0,
+    59.0,
     126
    ],
    "season": "winter",

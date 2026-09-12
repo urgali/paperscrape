@@ -176,6 +176,73 @@ object GlGolden {
      * Throws rather than returning null when EGL cannot be brought up: a silently skipped GL test
      * is worse than none, because the suite goes green while covering nothing.
      */
+    /** What one frame cost the batcher: see [GlSceneTarget.drawCalls]. */
+    data class DrawCount(val drawCalls: Int, val vertices: Long, val sprites: Int)
+
+    /**
+     * Renders [scene] and reports what the final frame cost the batcher.
+     *
+     * The warm-up frames are drawn and discarded exactly as [render] draws them, and the count is
+     * taken from the **last** frame alone: the first frame of a scene uploads its sprites, and an
+     * upload is not something a steady frame pays for.
+     */
+    fun countDrawCalls(scene: GoldenScene): DrawCount = withContext { gl ->
+        val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
+        scene.configure(renderer)
+        var clock = SceneTime(scene.sceneSeconds)
+        repeat(scene.warmUpFrames) {
+            clock += scene.warmUpDeltaSeconds
+            gl.beginFrame()
+            renderer.draw(gl, scene.dayPhase, clock, scene.warmUpDeltaSeconds)
+            gl.endFrame()
+        }
+        gl.beginFrame()
+        renderer.draw(gl, scene.dayPhase, clock, 0f)
+        gl.endFrame()
+        GLES20.glFinish()
+        DrawCount(gl.drawCalls, gl.drawnVertices, gl.spriteBlits)
+    }
+
+    /** What one context ended up holding after a sweep. */
+    data class Occupancy(val entries: Int, val standalone: Int, val rowsUsed: Int)
+
+    /**
+     * Draws one crowded frame of every theme in [themeIds] **in a single context**, and reports what
+     * the texture cache ended up holding.
+     *
+     * One context on purpose: the atlas is a per-process allocation and the question is what a
+     * wallpaper left running accumulates, not what one scene needs.
+     */
+    fun sweepThemes(themeIds: List<String>): Occupancy = withContext { gl ->
+        for (themeId in themeIds) {
+            val scene = GoldenScene(
+                name = "sweep-$themeId",
+                dayPhase = GoldenScene.day(),
+                themeId = themeId,
+                customise = { base ->
+                    base.copy(
+                        people = base.people.copy(visible = true, density = 1f),
+                        peopleNightDensity = 1f,
+                    )
+                },
+            )
+            val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
+            scene.configure(renderer)
+            var clock = SceneTime(scene.sceneSeconds)
+            repeat(scene.warmUpFrames) {
+                clock += scene.warmUpDeltaSeconds
+                gl.beginFrame()
+                renderer.draw(gl, scene.dayPhase, clock, scene.warmUpDeltaSeconds)
+                gl.endFrame()
+            }
+            gl.beginFrame()
+            renderer.draw(gl, scene.dayPhase, clock, 0f)
+            gl.endFrame()
+        }
+        GLES20.glFinish()
+        Occupancy(gl.uploadedEntries, gl.standaloneTextures, gl.atlasRowsUsed)
+    }
+
     fun render(scene: GoldenScene): Result {
         val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         check(display != EGL14.EGL_NO_DISPLAY) { "no EGL display" }
@@ -238,6 +305,51 @@ object GlGolden {
         } finally {
             // Release in the reverse order of creation, and only while the context is still
             // current -- `release()` makes GL calls.
+            if (target != null && surface != EGL14.EGL_NO_SURFACE) target.release()
+            EGL14.eglMakeCurrent(
+                display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT,
+            )
+            if (surface != EGL14.EGL_NO_SURFACE) EGL14.eglDestroySurface(display, surface)
+            if (context != EGL14.EGL_NO_CONTEXT) EGL14.eglDestroyContext(display, context)
+            EGL14.eglTerminate(display)
+        }
+    }
+
+    /**
+     * Builds the same pbuffer context [render] builds, runs [body] on it, and tears it down.
+     *
+     * Factored out for [countDrawCalls] rather than duplicated: a second copy of the EGL setup is a
+     * second place for the config to drift from `GlRenderThread.chooseConfig`, which is the one
+     * thing about this harness that must not drift.
+     */
+    private fun <T> withContext(body: (GlSceneTarget) -> T): T {
+        val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
+        check(display != EGL14.EGL_NO_DISPLAY) { "no EGL display" }
+        val version = IntArray(2)
+        check(EGL14.eglInitialize(display, version, 0, version, 1)) { "eglInitialize failed" }
+        val config = chooseConfig(display, multisample = true) ?: chooseConfig(display, multisample = false)
+        checkNotNull(config) { "no pbuffer-capable RGBA8888 EGL config" }
+        var context: EGLContext = EGL14.EGL_NO_CONTEXT
+        var surface: EGLSurface = EGL14.EGL_NO_SURFACE
+        var target: GlSceneTarget? = null
+        try {
+            context = EGL14.eglCreateContext(
+                display, config, EGL14.EGL_NO_CONTEXT,
+                intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE), 0,
+            )
+            check(context != EGL14.EGL_NO_CONTEXT) { "eglCreateContext failed: ${EGL14.eglGetError()}" }
+            surface = EGL14.eglCreatePbufferSurface(
+                display, config,
+                intArrayOf(EGL14.EGL_WIDTH, WIDTH, EGL14.EGL_HEIGHT, HEIGHT, EGL14.EGL_NONE), 0,
+            )
+            check(surface != EGL14.EGL_NO_SURFACE) { "eglCreatePbufferSurface failed" }
+            check(EGL14.eglMakeCurrent(display, surface, surface, context)) { "eglMakeCurrent failed" }
+            val gl = GlSceneTarget()
+            target = gl
+            check(gl.onContextCreated()) { "GlSceneTarget could not build its program" }
+            gl.onSurfaceSizeChanged(WIDTH, HEIGHT)
+            return body(gl)
+        } finally {
             if (target != null && surface != EGL14.EGL_NO_SURFACE) target.release()
             EGL14.eglMakeCurrent(
                 display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT,

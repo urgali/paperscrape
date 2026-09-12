@@ -57,9 +57,153 @@ WINTER = {
     "boy": dict(top="#3F8A4A", bottom="#3A3F4A", belt=CREAM, shoe="#5A3E2B", hat="#3F8A4A"),
     "girl": dict(top="#F2A03C", bottom="#3A3F4A", belt="#BF4130", shoe="#5A3E2B", hat="#E4623E"),
 }
+# ------------------------------------------------------------- the four colourable regions (v4.30)
+#: The regions whose colour v4.30 resolves at draw time instead of shipping a copy per value.
+#:
+#: One mask per region per shape, and the engine recomposes ``fixed + sum(mask * colour)``. Four of
+#: them is a decision, not a limit that fell out of the format: see `V4_30_REPORT.md`.
+REGION_SKIN, REGION_HEAD, REGION_TOP, REGION_BOTTOM = "skin", "head", "top", "bottom"
+REGIONS = (REGION_SKIN, REGION_HEAD, REGION_TOP, REGION_BOTTOM)
+
+#: Piece name (the tail of the `cut` seed) -> region, longest match first.
+#:
+#: Everything absent from this table is fixed art, and the absences are as deliberate as the
+#: entries: the shoes, the belt, the scarf, the hat band, the pompom, the bows, the eyes, the
+#: seatbelt and the ground shadow keep the paint the drawing gives them.
+#:
+#: `L1`/`L2` are the legs, and they are the one entry that moves: a summer woman and a summer girl
+#: have ``bottom=None`` and their legs are painted in their own skin, so on those shapes the legs
+#: *are* the skin region and the trouser region is empty. That is correct and not a hole -- see
+#: [region_bases].
+_PIECE_REGION = {
+    "H": REGION_SKIN, "N": REGION_SKIN, "Hd0": REGION_SKIN, "Hd1": REGION_SKIN,
+    "hair": REGION_HEAD, "cap": REGION_HEAD, "brim": REGION_HEAD, "hat": REGION_HEAD,
+    "lobe0": REGION_HEAD, "lobe1": REGION_HEAD, "lobe2": REGION_HEAD, "lobe3": REGION_HEAD,
+    "bun0": REGION_HEAD, "bun1": REGION_HEAD,
+    "B": REGION_TOP, "sh": REGION_TOP, "hood": REGION_TOP,
+    "A0": REGION_TOP, "A1": REGION_TOP, "A1b": REGION_TOP,
+    "L1": REGION_BOTTOM, "L2": REGION_BOTTOM,
+}
+
+#: Pieces that end in the name of a region piece but are not one. Checked before [_PIECE_REGION]
+#: because `"hatband".endswith("band")` is not the only trap here: `"hatband"` also ends in
+#: `"hat"`, and a longest-suffix match that did not know about it would paint her hat band with
+#: her hat.
+_PIECE_FIXED = ("hatband", "band", "hairw0", "hairw1", "hairw", "hoodin", "bow0", "bow1", "pom",
+                "belt", "scarf", "F0", "F1", "eye0", "eye1", "eyehint0", "eyehint1")
+
+
+def region_of(piece: str) -> str | None:
+    """Which region a piece belongs to, or `None` for fixed art.
+
+    Matched on the **longest** suffix so that a piece cannot be captured by the name of a shorter
+    one it happens to end with.
+    """
+    for name in sorted(_PIECE_FIXED, key=len, reverse=True):
+        if piece.endswith(name):
+            return None
+    for name in sorted(_PIECE_REGION, key=len, reverse=True):
+        if piece.endswith(name):
+            return _PIECE_REGION[name]
+    return None
+
+
+def part_region(piece: str, bases: dict) -> str | None:
+    """[region_of], with the one substitution the palette forces.
+
+    `leg_col = gar["bottom"] or skin`: a summer woman and a summer girl have no separate lower
+    garment, so their legs are painted in their own skin and belong to the **skin** region. Doing
+    it here rather than in [_PIECE_REGION] keeps the piece table a statement about the drawing and
+    this a statement about the palette.
+    """
+    region = region_of(piece)
+    if region == REGION_BOTTOM and bases.get(REGION_BOTTOM) is None:
+        return REGION_SKIN
+    return region
+
+
+def region_bases(kind: str, season: str) -> dict:
+    """The paint each region carries on this shape, or `None` where the region is empty.
+
+    **The head region is "what is on the head", and headwear wins.** A figure wearing a cap, a hat
+    or a hood has that recoloured; only a bare-headed one has its hair recoloured. This is one rule
+    with no per-family exception, and it is what makes every winter figure colourable on the head
+    at all -- three of the four wear a hat there and show no hair to speak of. The consequence to
+    know: the winter woman's lobe of hair behind her hat stays the brown it is drawn in, and the
+    winter boy has **no** head region, because what he has on his head is his own coat's hood --
+    `gar["top"]`, drawn by `behind_head` -- and colouring it apart from the coat it is sewn to
+    would cut a seam the drawing does not have. His hood changes colour with his coat instead.
+    """
+    gar = (SUMMER if season == "summer" else WINTER)[kind]
+    if season == "summer":
+        head = gar.get("cap") or HAIR[kind]
+    else:
+        head = gar.get("hat")        # None for the boy: his hood is his coat
+    return {
+        REGION_SKIN: SKIN[kind],
+        REGION_HEAD: head,
+        REGION_TOP: gar["top"],
+        REGION_BOTTOM: gar["bottom"],
+    }
+
+
+def _rgb(hex_colour: str) -> tuple:
+    return tuple(int(hex_colour[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def shade_weight(fill: str, base: str) -> float:
+    """The weight `1 - t` of a piece painted [fill] in the region whose paint is [base].
+
+    Every shadow in this artwork is `mix(paint, DARK, t)` -- [shade] and the Rilievo under-paper
+    both -- so a piece's own fill says how far towards `DARK` it was moved, and `1 - t` is exactly
+    the share of the pixel that follows the region's colour when the colour changes. Recovered from
+    the two colours rather than recorded at the call site, because the call sites already say it
+    and a second declaration is a second thing to keep in step.
+
+    Raises when [fill] is not on the segment: that means the piece is tagged into a region it is
+    not drawn in, which is the mistake this whole mechanism exists to make impossible to miss.
+    """
+    b, f, d = _rgb(base), _rgb(fill), _rgb(DARK)
+    axis = [d[i] - b[i] for i in range(3)]
+    denom = sum(v * v for v in axis)
+    if denom == 0:
+        # The region's own paint *is* DARK -- the man's hair. Every shade of it collapses onto it,
+        # so the drawing shows no relief at all today; the weight is taken from the piece's role
+        # instead, which is what gives his hair the same relief as everyone else's once it is
+        # painted something other than near-black.
+        if f != b:
+            raise SystemExit(f"{fill} is not {base} and {base} has no shade axis")
+        return 1.0
+    t = sum((f[i] - b[i]) * axis[i] for i in range(3)) / denom
+    residual = max(abs(f[i] - (b[i] + t * axis[i])) for i in range(3))
+    if residual > 0.51 or not (-0.01 <= t <= 0.70):
+        raise SystemExit(f"piece painted {fill} is not a shade of {base} (t={t:.3f}, residual={residual:.2f})")
+    return 1.0 - max(t, 0.0)
+
+
 KINDS = ("man", "woman", "boy", "girl")
 ADULT = {"man": True, "woman": True, "boy": False, "girl": False}
-CHILD_TOP = 84 - 62  # child content is 62 units tall, adult 80 (SceneSpace / VehiclePedestrianScaleTest)
+#: What a child measures against an adult, chosen by the maintainer from the v4.30 phase-1
+#: photographs (`consegna_v4_30_fase1/NOTA_DI_CONSEGNA.md`).
+#:
+#: 70 % still read as a short adult at 1x and 60 % was a dot at night in Big City; 65 % is the
+#: first proportion at which the child reads as a child *beside* the adult and still has a figure.
+#: It replaces the 77.9 % the set shipped until v4.29, which was the proportion of a ten-year-old
+#: and, more to the point, had the adult's own 31 % of leg.
+CHILD_OF_ADULT = 0.65
+
+#: Where a child's content starts in the 84-unit canvas, on the metre that calls the adult 80.
+#:
+#: 84 - 62 until v4.30, when the children were redrawn at [CHILD_OF_ADULT] of an adult. Derived
+#: from that one number rather than restated, because this is the fourth place it lives -- the
+#: other three are `SceneSpace.PERSON_METRES_TALL`, `VehiclePedestrianScaleTest` and
+#: `PrecipitationScaleTest` -- and three of four is how a silent inconsistency starts.
+#:
+#: **Only the two unshipped concepts read it now.** The shipped child ([walker_rilievo_child])
+#: derives its crown from the adult's measured box instead, which is the metre the maintainer
+#: judges the proportion on; this stays so Stampino and Bambola keep drawing a child of the same
+#: height as the one that ships.
+CHILD_TOP = 84 - round(CHILD_OF_ADULT * 80)
 ADULT_TOP = 84 - 80
 
 
@@ -72,9 +216,26 @@ def wobble(seed: str, index: int, amplitude: float) -> tuple[float, float]:
     return dx, dy
 
 
-def cut(points, seed: str, amplitude: float = 0.35):
-    return [(x + wobble(seed, i, amplitude)[0], y + wobble(seed, i, amplitude)[1])
-            for i, (x, y) in enumerate(points)]
+class CutPoints(list):
+    """A cut polygon that remembers **which piece of the figure it is**.
+
+    v4.30 resolves four colours at draw time, and the masks that carry them have to say which
+    pixels belong to the hair, the shirt and the trousers. That question is answered *by piece*
+    and not by colour: the man's hair, his shoes, his eyes and his ground shadow are all painted
+    ``#2B2A33`` (`DARK`), so a decomposition that asks "which pixels are hair-coloured" hands back
+    868 pixels of shoe and eye on `person_man_summer_walk0` alone. The generator already knows --
+    it drew them -- and the piece name is already written into every `cut` call as the wobble seed,
+    so the answer is carried from there rather than reconstructed downstream.
+    """
+
+    seed: str = ""
+
+
+def cut(points, seed: str, amplitude: float = 0.35) -> CutPoints:
+    out = CutPoints((x + wobble(seed, i, amplitude)[0], y + wobble(seed, i, amplitude)[1])
+                    for i, (x, y) in enumerate(points))
+    out.seed = seed
+    return out
 
 
 def oval(cx, cy, rx, ry, n=12, start=0.0):
@@ -130,6 +291,11 @@ class Part:
     opacity: float | None = None   # only the ground shadow uses it
     relief: bool = True            # Rilievo draws an under-paper beneath it
     outline: bool = True           # Bambola includes it in the outer outline
+    #: The wobble seed of the `cut` that produced [points], which ends in the piece's own name
+    #: ("L1", "hair", "hatband", ...). Filled in by [Sprite.add]; empty for the few pieces drawn
+    #: from a bare `oval` with no cut, all of which are fixed art. See [CutPoints] and
+    #: [region_of].
+    piece: str = ""
 
 
 @dataclass
@@ -143,33 +309,53 @@ class Sprite:
     head: tuple | None = None
 
     def add(self, points, fill, **kw):
-        self.parts.append(Part(list(points), fill, **kw))
+        self.parts.append(Part(list(points), fill, piece=getattr(points, "seed", ""), **kw))
 
 
 # ------------------------------------------------------------------------------ styles
-def emit_svg(sprite: Sprite, style: str) -> str:
+RELIEF_SHADE = 0.34
+"""How far the Rilievo under-paper is moved towards `DARK`. Written once here because the region
+weights ([emit_region_svg]) have to move by exactly the same amount the drawing does."""
+
+
+def emit_svg(sprite: Sprite, style: str, paint=None, note: str = "") -> str:
+    """The sprite as SVG.
+
+    [paint] is what makes the region masks possible without a second copy of the drawing: it maps
+    a [Part] to the fill to use for it, defaulting to the part's own. The **geometry, the z-order,
+    the under-papers and the outline are the same objects either way**, so a mask rendered through
+    it has the figure's own coverage in its alpha channel, pixel for pixel -- which is the property
+    the recomposition rests on.
+    """
     w, h = sprite.width_units * UNIT, sprite.height_units * UNIT
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
            f'viewBox="0 0 {sprite.width_units} {sprite.height_units}">',
            f"<!-- v4.25 people concept '{style}': {sprite.name}. Generated by "
            "tools/assets/concepts/people/build_people_concepts.py; the wobble is written into the "
-           "points, never computed at runtime. -->"]
+           "points, never computed at runtime." + (" " + note if note else "") + " -->"]
 
     def poly(points, fill, extra=""):
         pts = " ".join(f"{x:.2f},{y:.2f}" for x, y in points)
         return f'<polygon points="{pts}" fill="{fill}"{extra}/>'
 
+    def fill_of(part) -> str:
+        return part.fill if paint is None else paint(part)
+
+    def under_fill(part) -> str:
+        return shade(part.fill, RELIEF_SHADE) if paint is None else paint(part, RELIEF_SHADE)
+
+    outline_paint = OUTLINE if paint is None else "#000000"
     if style == "bambola":
         # The outer outline: the whole figure once more underneath itself, filled and stroked
         # in the outline colour, so overlapping strokes merge into one band round the union.
-        out.append(f'<g fill="{OUTLINE}" stroke="{OUTLINE}" stroke-width="1.5" stroke-linejoin="round">')
+        out.append(f'<g fill="{outline_paint}" stroke="{outline_paint}" stroke-width="1.5" stroke-linejoin="round">')
         for p in sprite.parts:
             if p.opacity is None and p.outline:
-                out.append(poly(p.points, OUTLINE))
+                out.append(poly(p.points, outline_paint))
         out.append("</g>")
     for p in sprite.parts:
         if p.opacity is not None:
-            out.append(poly(p.points, p.fill, f' opacity="{p.opacity}"'))
+            out.append(poly(p.points, fill_of(p), f' opacity="{p.opacity}"'))
             continue
         if drawing_style(style) == "rilievo" and p.relief:
             # The paper underneath: the same cut, offset down and to the right, in a darker
@@ -182,10 +368,32 @@ def emit_svg(sprite: Sprite, style: str) -> str:
             # piece: gathering them would be a z-order change, not an annotation.
             under = [(x + RELIEF_OFFSET[0], y + RELIEF_OFFSET[1]) for x, y in p.points]
             out.append("<!-- paperscrape-relief -->")
-            out.append(poly(under, shade(p.fill, 0.34)))
-        out.append(poly(p.points, p.fill))
+            out.append(poly(under, under_fill(p)))
+        out.append(poly(p.points, fill_of(p)))
     out.append("</svg>")
     return "\n".join(out)
+
+
+def emit_region_svg(sprite: Sprite, style: str, region: str, bases: dict) -> str:
+    """The same drawing with every ink replaced by **how much of it follows [region]'s colour**.
+
+    White is "all of it", black is "none of it", and a piece moved `t` of the way towards `DARK`
+    is `1 - t` grey -- so the render's own anti-aliasing does the blending between neighbouring
+    pieces that a per-pixel decomposition would otherwise have to guess at. Premultiplied by the
+    alpha the same render carries, that grey **is** the weight the engine multiplies the region's
+    colour by.
+    """
+    base = bases[region]
+
+    def paint(part, extra_shade: float = 0.0) -> str:
+        if part_region(part.piece, bases) != region:
+            return "#000000"
+        v = shade_weight(part.fill, base) * (1.0 - extra_shade)
+        level = max(0, min(255, round(v * 255)))
+        return "#%02X%02X%02X" % (level, level, level)
+
+    return emit_svg(sprite, style, paint=paint,
+                    note=f"v4.30 region weight mask: '{region}', base {base}.")
 
 
 def add_eye_hint(s: Sprite) -> None:
@@ -301,9 +509,126 @@ def walker_stampino(kind: str, season: str, frame: int) -> Sprite:
     return s
 
 
+
+#: The adult's own box, in units, on the metre the maintainer measures with.
+#:
+#: The non-transparent box of the shipped `person_man_summer_walk0` and `person_woman_summer_walk0`
+#: is 247 and 246 px tall on the 252-px canvas: 82.17 units on average. **It includes the ground
+#: shadow under the feet and the hair above the skull**, because that is what a box is, and taking
+#: the crown-to-sole height instead measured 75.5 % for a figure built to 70 %.
+ADULT_BOX_UNITS = 246.5 / 3.0
+
+#: How far a child's summer headwear stands above the head oval, so the content top lands on the
+#: target: the boy's cap lobes rise 1.5 units above the oval, the girl's hair 2.5.
+#:
+#: Winter headwear -- the hood, the hat and its pompom -- rises further and is **not** compensated,
+#: exactly as the shipped set does not compensate the adults' (the shipped boy measures 196 px in
+#: winter against 191 in summer, the girl 205 against 193). The skeleton is the summer one and the
+#: hat sits on top of it.
+CHILD_SUMMER_RISE = {"boy": 1.5, "girl": 2.5}
+
+#: The child's geometry at [CHILD_OF_ADULT], in the pre-trim 41x85 frame.
+#:
+#: Adult, for comparison: head_ry 11.5 rx 10.5, neck 2, torso 25.5, legs 27, arm 22 x 5.5,
+#: leg_w 6.5, stride 6.5, swing 5, sw 11.5, hw 10 / 14.5, foot 5.0 -- 3.5 heads tall. The shipped
+#: child had head_ry 9.5 rx 9.0, neck 2, torso 17.5, legs 21, arm 16 x 4.5, stride 6.5, swing 5.
+#:
+#: Three things are deliberate and none of them is a scale factor:
+#:
+#:  - **the head does not shrink.** A five-year-old's head is 85-90 % of an adult's and the body
+#:    far less, so the head keeps the size the shipped child had and the height comes off the legs
+#:    and the torso. That also leaves the walker's head where the seated and window busts declare
+#:    it (`OccupantHeadFitTest`), which is why those two families are untouched by this change;
+#:  - **the legs go before the torso**, which is the proportion that actually changes with age;
+#:  - **the stride and the arm swing shorten with the legs**, or the child strides like an adult.
+CHILD_GEOMETRY = dict(
+    head_ry=9.5, head_rx=9.0, neck=1.5, torso=14.5, arm_len=12.5, arm_w=4.4,
+    leg_w=5.5, stride=4.5, swing=3.2, sw=8.5, hw_boy=8.0, hw_girl=10.0, foot=4.0,
+    shadow=9.5, coat=4.5, dress=2.5, scarf=9.0,
+)
+
+#: Where the adult's feet land in the pre-trim frame ([walker_rilievo]).
+CHILD_GROUND = 81.0
+
+
+def walker_rilievo_child(kind: str, season: str, frame: int) -> Sprite:
+    """The Rilievo child, built from the feet up at [CHILD_OF_ADULT] of the adult.
+
+    A separate function rather than a branch inside [walker_rilievo] because almost nothing is
+    shared any more: the skeleton is derived from the target box downwards -- crown, head, neck,
+    torso -- and the legs are whatever is left to the ground, so the box lands on the proportion
+    by construction instead of being tuned towards it.
+    """
+    p = CHILD_GEOMETRY
+    s = Sprite(f"person_{kind}_{season}_walk{frame}", 41, 85)
+    seed = s.name
+    gar = (SUMMER if season == "summer" else WINTER)[kind]
+    skin, hair = SKIN[kind], HAIR[kind]
+    cx = 20.0
+    head_ry, head_rx = p["head_ry"], p["head_rx"]
+    # pre-trim frame is 85 units tall and the trim takes one unit off the top
+    content_top = 85.0 - CHILD_OF_ADULT * ADULT_BOX_UNITS
+    crown = content_top + CHILD_SUMMER_RISE[kind]
+    head_cy = crown + head_ry
+    chin = head_cy + head_ry
+    shoulder = chin + p["neck"]
+    hip = shoulder + p["torso"]
+    stride = (p["stride"], 0.0, -p["stride"])[frame]
+    swing = (-p["swing"], 0.0, p["swing"])[frame]
+    bob = 1.0 if frame == 1 else 0.0
+    ground_shadow(s, cx=cx, rx=p["shadow"])
+
+    leg_w = p["leg_w"]
+    leg_col = gar["bottom"] or skin
+    s.add(cut(quad(cx - 3, hip - 2, leg_w, cx - 3 - stride, CHILD_GROUND - bob, leg_w - 0.5), seed + "L1"), shade(leg_col, 0.14))
+    s.add(cut(quad(cx + 3, hip - 2, leg_w, cx + 3 + stride, CHILD_GROUND - bob, leg_w - 0.5), seed + "L2"), leg_col)
+    for i, fx in enumerate((cx - 3 - stride, cx + 3 + stride)):
+        s.add(cut(oval(fx + 1, CHILD_GROUND + 0.5 - bob, p["foot"], 2.4, 10), seed + f"F{i}", 0.25), gar["shoe"] if i else shade(gar["shoe"], 0.14))
+    hem = hip + (p["coat"] if season == "winter" else (p["dress"] if kind == "girl" else 0))
+    sw = p["sw"]
+    hw = p["hw_girl"] if (season == "summer" and kind == "girl") else p["hw_boy"]
+    body = [(cx - sw + 2, shoulder), (cx + sw - 2, shoulder), (cx + sw, shoulder + 3), (cx + hw, hem - 2), (cx + hw - 2, hem), (cx - hw + 2, hem), (cx - hw, hem - 2), (cx - sw, shoulder + 3)]
+    s.add(cut(body, seed + "B"), gar["top"])
+    arm_len, arm_w = p["arm_len"], p["arm_w"]
+    sleeve = gar["top"]
+    for i, (ax, sw_dir, col) in enumerate(((cx - sw + 1.5, -swing, shade(sleeve, 0.16)), (cx + sw - 1.5, swing, sleeve))):
+        s.add(cut(quad(ax, shoulder + 2, arm_w, ax + sw_dir, shoulder + 2 + arm_len, arm_w - 0.5), seed + f"A{i}"), col)
+        s.add(cut(oval(ax + sw_dir, shoulder + 3 + arm_len, 3.0, 3.0, 10), seed + f"Hd{i}", 0.25), skin if i else shade(skin, 0.14))
+    if season == "winter":
+        sc = p["scarf"]
+        s.add(cut([(cx - sc * 0.85, chin - 1.5), (cx + sc * 0.85, chin - 1.5), (cx + sc * 0.9, chin + 4), (cx + 3, chin + 9), (cx - 2, chin + 9), (cx - 2, chin + 4.5), (cx - sc * 0.85, chin + 4)], seed + "scarf"), gar["belt"])
+    s.add(cut([(cx - 3, chin - 3), (cx + 3.5, chin - 3), (cx + 3.5, shoulder + 2), (cx - 3, shoulder + 2)], seed + "N"), skin, relief=False)
+    hx, hy = cx + 0.5, head_cy
+    if season == "winter" and kind == "boy":
+        s.add(cut(oval(hx - 3, hy + 0.5, head_rx + 4.5, head_ry + 4.5, 14), seed + "hood", 0.3), gar["top"])
+        s.add(cut(oval(hx - 1.5, hy + 0.5, head_rx + 1.5, head_ry + 1.5, 14), seed + "hoodin", 0.25), CREAM, relief=False)
+    s.add(cut(oval(cx + 0.5, head_cy, head_rx, head_ry, 14), seed + "H", 0.3), skin)
+    s.head = (hx, hy, head_rx, head_ry)
+    if season == "summer":
+        lobes = {
+            "boy": [(hx - 3, hy - head_ry + 3, 7, 4.5), (hx + 3.5, hy - head_ry + 2.5, 6, 4.5)],
+            "girl": [(hx - 3, hy - head_ry + 2.5, 7.5, 5), (hx + 3.5, hy - head_ry + 2, 6, 4.5), (hx - head_rx - 2, hy + 3, 4, 6), (hx + head_rx + 2, hy + 3, 4, 6)],
+        }[kind]
+        for i, (lx, ly, rx, ry) in enumerate(lobes):
+            s.add(cut(oval(lx, ly, rx, ry, 10), seed + f"lobe{i}", 0.3), hair if kind != "boy" else gar["cap"])
+        if kind == "boy":
+            s.add(cut([(hx + 2, hy - head_ry + 3), (hx + head_rx + 5.5, hy - head_ry + 3.5), (hx + head_rx + 5.5, hy - head_ry + 6.5), (hx + 2, hy - head_ry + 6.5)], seed + "brim"), gar["cap"])
+        if kind == "girl":
+            for i, bx in enumerate((hx - head_rx - 2, hx + head_rx + 2)):
+                s.add(cut(oval(bx, hy - 2.5, 2.4, 2.2, 8), seed + f"bow{i}", 0.2), gar["bow"], relief=False)
+    else:
+        if kind == "girl":
+            s.add(cut(oval(hx, hy - head_ry + 1.5, head_rx + 1.5, 5.5, 12), seed + "hat", 0.3), gar["hat"])
+            s.add(cut([(hx - head_rx - 2, hy - head_ry + 1.5), (hx + head_rx + 2, hy - head_ry + 1.5), (hx + head_rx + 2, hy - head_ry + 5), (hx - head_rx - 2, hy - head_ry + 5)], seed + "hatband"), CREAM)
+            s.add(cut(oval(hx, hy - head_ry - 4, 3.2, 3.0, 10), seed + "pom", 0.25), CREAM)
+    return s
+
+
 def walker_rilievo(kind: str, season: str, frame: int) -> Sprite:
     """Three-quarter figure facing +x, built as stacked papers: legs, body, two swinging arms
     with hands, neck, head, a cushion of hair lobes. Every piece carries an under-paper."""
+    if not ADULT[kind]:
+        return walker_rilievo_child(kind, season, frame)
     s = Sprite(f"person_{kind}_{season}_walk{frame}", 41, 85)
     seed = s.name
     adult = ADULT[kind]

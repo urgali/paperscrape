@@ -277,7 +277,21 @@ class VehicleScalePixelTest {
 
     private companion object {
         // The ink a child walker occupies, ground shadow included, in its own units. v4.25: 62 on
-        // the artwork this replaces; the redrawn boy measures 63.67 and the girl 64.33, so 64.
-        const val CHILD_UNITS = 64f
+        // the artwork that replaced; the boy then measured 63.67 and the girl 64.33, so 64.
+        //
+        // **v4.30 redrew the children at 0.65 of an adult and this is where that landed a fifth
+        // time.** The release brief named four places the child's height lives -- the KDoc of
+        // `SceneSpace.PERSON_METRES_TALL`, `VehiclePedestrianScaleTest.CHILD_SPRITE_UNITS_TALL`,
+        // `PrecipitationScaleTest.childMetres` and the generator's own constant -- and all four
+        // were moved together. This one was not on that list, and nothing on the host could find
+        // it: it is measured in the *sprite's own* units rather than on the 80-unit metre the
+        // other four use, so it does not read like the same number, and only the instrumented
+        // suite renders a figure and measures it. `DESIGN_NOTES.md` has the heading for exactly
+        // this -- *a redraw invalidates every number measured off the old drawing, including the
+        // ones in tests* -- and `BACKLOG_v4_25.md` item 63 is the same failure again.
+        //
+        // Re-measured on the regenerated artwork: the boy's alpha box is 162 px and the girl's
+        // 161 on the shared 117x252 canvas at 3 px per unit, so 54.00 and 53.67 units.
+        const val CHILD_UNITS = 54f
     }
 }

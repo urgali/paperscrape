@@ -69,6 +69,14 @@ internal class GlTextureCache {
 
     /** `[u0, v0, u1, v1]` per entry, flattened. */
     private var uvs = FloatArray(INITIAL_CAPACITY * 4)
+
+    /**
+     * `[left, top, right, bottom]` per entry, as fractions of the **authored** box: where the
+     * uploaded texels sit inside the sprite's own canvas.
+     *
+     * `0, 0, 1, 1` for a sprite whose ink reaches every edge, which is most of them.
+     */
+    private var content = FloatArray(INITIAL_CAPACITY * 4)
     private var count = 0
 
     private val scratch = IntArray(1)
@@ -76,6 +84,22 @@ internal class GlTextureCache {
 
     /** How many sprite-and-level entries are currently uploaded. Exposed for diagnostics. */
     val size: Int get() = count
+
+    /**
+     * How many entries needed a texture of their own because the atlas would not take them.
+     *
+     * **Zero is the property v4.29 bought and v4.30 must not spend.** A standalone texture is its
+     * own GL allocation and it ends the batch every time the draw order crosses it, which is the
+     * cost that made a person in five layers look expensive in the first place. Counted rather than
+     * assumed: `GlAtlasOccupancyTest` reads it off a real theme sweep on the device.
+     */
+    var standaloneCount = 0
+        private set
+
+    /** Rows the atlas has reached into, and entries packed into it. Diagnostics only. */
+    val atlasRowsUsed: Int get() = atlas.rowsUsed
+
+    val atlasPackedCount: Int get() = atlas.packedCount
 
     /**
      * Index of the entry for [resId] at [level], or `-1` if that pairing has not been uploaded yet.
@@ -98,7 +122,24 @@ internal class GlTextureCache {
      * whole scene down, and tries again next frame.
      */
     fun register(resId: Int, level: Int, bitmap: Bitmap): Int {
-        val reduced = reduce(bitmap, level)
+        val full = reduce(bitmap, level)
+        // **Cropped after the reduction, never before it.**
+        //
+        // Uploading the empty texels around a sprite's ink is the single largest avoidable item in
+        // the texture budget once a figure is drawn in layers: a mask for one region covers a few
+        // tenths of its canvas and the rest is transparent. Cropping the *PNG* instead would be
+        // cheaper still -- it would cut the decoded bytes too -- but it is not exact:
+        // `SpriteDetailLevel.reduced` truncates, so a 117-wide canvas reduced twice is 29 texels of
+        // 4.0345 authored pixels each while a 96-wide crop of it is 24 texels of 4.0000, and the two
+        // layers drift apart across the sprite. Measured: dE 5.6 at the device's level and 14.4 one
+        // level up.
+        //
+        // Cropping *after* the reduction has no such step to match, because the crop's texels **are**
+        // the canvas's texels -- the same halvings produced them. The only thing the crop changes is
+        // what the bilinear tap reads just outside the ink, and there it reads the transparent texel
+        // [GlTextureAtlas.PADDING] puts between two entries, which is what it would have read from
+        // the sprite's own transparent border anyway.
+        val reduced = cropToContent(full)
         try {
             val handle: Int
             if (atlas.add(reduced, scratchRect)) {
@@ -106,6 +147,7 @@ internal class GlTextureCache {
             } else {
                 handle = uploadStandalone(reduced)
                 if (handle == 0) return -1
+                standaloneCount++
                 scratchRect[0] = 0f
                 scratchRect[1] = 0f
                 scratchRect[2] = 1f
@@ -123,12 +165,69 @@ internal class GlTextureCache {
             uvs[i * 4 + 1] = scratchRect[1]
             uvs[i * 4 + 2] = scratchRect[2]
             uvs[i * 4 + 3] = scratchRect[3]
+            // The crop is measured on the reduced bitmap and reported as a fraction of the authored
+            // box, because that is the frame the quad is built in and the two differ by the very
+            // truncation this avoids depending on.
+            val fw = full.width.toFloat()
+            val fh = full.height.toFloat()
+            content[i * 4] = cropX / fw
+            content[i * 4 + 1] = cropY / fh
+            content[i * 4 + 2] = (cropX + reduced.width) / fw
+            content[i * 4 + 3] = (cropY + reduced.height) / fh
             count++
             return i
         } finally {
-            if (reduced !== bitmap) reduced.recycle()
+            if (reduced !== full) reduced.recycle()
+            if (full !== bitmap) full.recycle()
         }
     }
+
+    /** Where [cropToContent] took its last crop from, in the reduced bitmap's own texels. */
+    private var cropX = 0
+    private var cropY = 0
+
+    /**
+     * [reduced] with its fully transparent border removed, or [reduced] itself when it has none.
+     *
+     * Scans the alpha channel once per upload -- an upload happens once per sprite per level for the
+     * life of the process, not per frame. A bitmap with no opaque texel at all is returned whole:
+     * there is nothing to centre a crop on, and the atlas is perfectly able to hold it.
+     */
+    private fun cropToContent(reduced: Bitmap): Bitmap {
+        val w = reduced.width
+        val h = reduced.height
+        if (w * h > pixelScratch.size) pixelScratch = IntArray(w * h)
+        reduced.getPixels(pixelScratch, 0, w, 0, 0, w, h)
+        var left = w
+        var top = h
+        var right = -1
+        var bottom = -1
+        for (y in 0 until h) {
+            val row = y * w
+            for (x in 0 until w) {
+                if (pixelScratch[row + x] ushr 24 == 0) continue
+                if (x < left) left = x
+                if (x > right) right = x
+                if (y < top) top = y
+                bottom = y
+            }
+        }
+        if (right < 0) {
+            cropX = 0
+            cropY = 0
+            return reduced
+        }
+        if (left == 0 && top == 0 && right == w - 1 && bottom == h - 1) {
+            cropX = 0
+            cropY = 0
+            return reduced
+        }
+        cropX = left
+        cropY = top
+        return Bitmap.createBitmap(reduced, left, top, right - left + 1, bottom - top + 1)
+    }
+
+    private var pixelScratch = IntArray(0)
 
     /**
      * [bitmap] halved [level] times, or [bitmap] itself at level 0.
@@ -170,6 +269,15 @@ internal class GlTextureCache {
     fun u1At(index: Int): Float = uvs[index * 4 + 2]
 
     fun v1At(index: Int): Float = uvs[index * 4 + 3]
+
+    /** Where this entry's uploaded texels start inside the authored box, as a fraction of it. */
+    fun contentLeftAt(index: Int): Float = content[index * 4]
+
+    fun contentTopAt(index: Int): Float = content[index * 4 + 1]
+
+    fun contentRightAt(index: Int): Float = content[index * 4 + 2]
+
+    fun contentBottomAt(index: Int): Float = content[index * 4 + 3]
 
     /**
      * Packs a 1x1 opaque white pixel under [key] and returns its entry index, or `-1` on failure.
@@ -240,6 +348,7 @@ internal class GlTextureCache {
         widths = widths.copyOf(capacity)
         heights = heights.copyOf(capacity)
         uvs = uvs.copyOf(capacity * 4)
+        content = content.copyOf(capacity * 4)
     }
 
     private companion object {

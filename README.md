@@ -134,13 +134,19 @@ on a progress bar. (v2.13–v2.16 could hang on `Downloading`; that was **D13**,
 
 **Assets.** Every shipped PNG in `app/src/main/res/drawable-nodpi/` carries a registry entry in
 `tools/assets/sources/sprites.json`, and most are generated from an SVG source under
-`tools/assets/sources/svg/`; the rest are the per-skin-tone recolours, produced from a drawn sprite
-by `tools/generate_skin_variants.py` and declared as such. A Python pipeline renders, measures and
-checks them against that registry — which records every sprite's size, content box, anchor rule,
-scale convention and tint class — and against the Kotlin call sites that blit them.
+`tools/assets/sources/svg/`; the rest name the generator that wrote them instead. A Python pipeline
+renders, measures and checks them against that registry — which records every sprite's size, content
+box, anchor rule, scale convention and tint class — and against the Kotlin call sites that blit
+them.
 (Counts are deliberately not written here: `ls app/src/main/res/drawable-nodpi/*.png | wc -l` is the
 answer, and a number kept by hand in a document goes stale. Measured at v4.28: 305 PNGs, 143 of them
 with an SVG source, 162 declared gaps.)
+
+**People are a special case, since v4.30.** A person is not shipped once per colour. Each shape is a
+**fixed layer** plus up to four **weight masks** — skin, head, shirt, trousers — and the renderer
+composes `fixed + Σ (mask × colour)` at the blit, adding each mask rather than laying it over. Both
+are written by `tools/generate_people_layers.py`, which also generates the engine's lookup table, so
+a shape that gains or loses a region cannot be remembered in one place and forgotten in the other.
 
 ---
 

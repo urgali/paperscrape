@@ -165,6 +165,7 @@ class SpriteTintAtBlitTest {
             top: Float,
             tintColor: Int,
             alpha: Int,
+            additive: Boolean,
         ) {
             tints.getOrPut(resId) { LinkedHashSet() }.add(tintColor)
         }

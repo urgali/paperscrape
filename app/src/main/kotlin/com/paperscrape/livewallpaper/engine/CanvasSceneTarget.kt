@@ -3,6 +3,8 @@ package com.paperscrape.livewallpaper.engine
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 
 /**
@@ -150,18 +152,29 @@ class CanvasSceneTarget : SceneCanvas {
         top: Float,
         tintColor: Int,
         alpha: Int,
+        additive: Boolean,
     ) {
         if (alpha <= 0) return
         // White is the MULTIPLY identity, so an untinted sprite skips the filter entirely rather
         // than paying for a no-op one.
         spritePaint.colorFilter = if (tintColor == WHITE) null else TintFilterCache.get(tintColor)
         spritePaint.alpha = alpha
+        // `PorterDuff.Mode.ADD` sums the alpha as well as the colour. Summing alpha would be wrong
+        // over a transparent destination -- but **this scene has none**: the sky is painted opaque
+        // under everything, so the destination alpha is already 1 and the sum saturates where it
+        // stands. That is the same thing the GL backend does, where a contribution with zero alpha
+        // under `GL_ONE, GL_ONE_MINUS_SRC_ALPHA` is simply added.
+        if (additive) spritePaint.xfermode = ADD   // BISECT
         // Every frame, unavoidably: a Canvas blit needs the pixels themselves. This backend never
         // reports the sprite as uploaded, because it holds no durable copy to justify releasing it.
         require().drawBitmap(source.bitmapFor(resId), left, top, spritePaint)
+        if (additive) spritePaint.xfermode = null
     }
 
     private companion object {
         const val WHITE = 0xFFFFFFFF.toInt()
+
+        /** Allocated once, not per blit: this is the per-sprite path. */
+        val ADD = PorterDuffXfermode(PorterDuff.Mode.ADD)
     }
 }

@@ -95,10 +95,10 @@ class VehiclePedestrianScaleTest {
     @Test
     fun `a child is drawn as a child and not as a small adult`() {
         val ratio = CHILD_SPRITE_UNITS_TALL / SceneSpace.PERSON_SPRITE_UNITS_TALL
-        assertEquals("child/adult height ratio", 0.775f, ratio, 0.001f)
+        assertEquals("child/adult height ratio", 0.65f, ratio, 0.001f)
         assertEquals(
             "a child's implied real height",
-            1.356f,
+            1.138f,
             SceneSpace.PERSON_METRES_TALL * ratio,
             0.01f,
         )
@@ -567,8 +567,15 @@ class VehiclePedestrianScaleTest {
     }
 
     private companion object {
-        /** The walk sprites' child content height, against the adults' 80. */
-        const val CHILD_SPRITE_UNITS_TALL = 62f
+        /**
+         * The walk sprites' child content height, against the adults' 80.
+         *
+         * 62 until v4.30, when the children were redrawn at 0.65 of an adult instead of 0.779.
+         * Measured on the regenerated artwork: the summer boy's and girl's alpha boxes are 162 and
+         * 161 px against the man's and woman's 247 and 246, which is 0.655 of the adults' box and
+         * 52.4 of their declared 80 units. See `SceneSpace.PERSON_METRES_TALL`.
+         */
+        const val CHILD_SPRITE_UNITS_TALL = 52f
 
         /**
          * The walk sprites' own numbers, measured off the artwork rather than assumed.

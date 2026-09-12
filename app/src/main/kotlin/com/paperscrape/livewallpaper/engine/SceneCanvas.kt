@@ -123,6 +123,21 @@ interface SceneCanvas {
         top: Float,
         tintColor: Int,
         alpha: Int,
+        /**
+         * Whether the contribution is **summed** into the frame instead of laid over it (v4.30).
+         *
+         * A person is drawn as fixed art plus one weight mask per colourable region, and the masks
+         * have to sum. Two source-over layers split the pixel's coverage between them, and
+         * `a + b(1-a)` is not linear -- so once [SpriteDetailLevel] halves each layer separately
+         * they no longer recompose, and what is left is a halo at the figure's edge, measured at up
+         * to 63 levels of coverage out of 255. A sum is linear: halving and compositing commute,
+         * and the edge is exact by construction.
+         *
+         * The scene's own background is opaque -- the sky is painted under everything -- so
+         * "summed" and "laid over with zero alpha" are the same operation here, and both backends
+         * can express it without a second blend state. See the two implementations for how.
+         */
+        additive: Boolean,
     )
 }
 

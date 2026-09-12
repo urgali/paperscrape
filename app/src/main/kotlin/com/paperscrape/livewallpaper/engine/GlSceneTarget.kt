@@ -59,6 +59,18 @@ internal class GlSceneTarget : SceneCanvas {
     private val program = GlSpriteProgram()
     private val textures = GlTextureCache()
 
+    /**
+     * What the texture cache is holding, for the measurements a release has to report.
+     *
+     * Read-only and never consulted by the draw path. See [GlTextureCache.standaloneCount] for why
+     * the second of these three numbers is the one that matters.
+     */
+    val uploadedEntries: Int get() = textures.size
+
+    val standaloneTextures: Int get() = textures.standaloneCount
+
+    val atlasRowsUsed: Int get() = textures.atlasRowsUsed
+
     private val vertexData = FloatArray(MAX_VERTICES * GlSpriteProgram.FLOATS_PER_VERTEX)
     private val vertexBuffer: FloatBuffer = ByteBuffer
         .allocateDirect(vertexData.size * GlSpriteProgram.BYTES_PER_FLOAT)
@@ -184,6 +196,9 @@ internal class GlSceneTarget : SceneCanvas {
     fun beginFrame() {
         vertexCount = 0
         writeIndex = 0
+        drawCalls = 0
+        drawnVertices = 0L
+        spriteBlits = 0
         boundTexture = 0
         transform.reset()
         GLES20.glClearColor(0f, 0f, 0f, 1f)
@@ -196,8 +211,35 @@ internal class GlSceneTarget : SceneCanvas {
         flush()
     }
 
+    /**
+     * How many `glDrawArrays` this target has issued since [beginFrame], and how many vertices went
+     * with them.
+     *
+     * **A counter rather than an argument, because the argument has been wrong here before.** The
+     * batch ends only when the texture changes, every sprite has lived in one atlas since v4.29, and
+     * v4.30 draws a person in up to five layers -- so the arithmetic says a crowded frame is still
+     * one draw call. The plan v4.30 was written from had predicted "three draws per pedestrian,
+     * twenty-four more per frame" from the same kind of arithmetic and was wrong by the whole of it.
+     * `GlDrawCallTest` reads these two numbers off a real crowded frame on the device instead.
+     *
+     * Two increments in a function that already builds a vertex buffer and issues a draw: the cost
+     * is not measurable beside what it counts, and it is the only thing that makes the claim
+     * checkable rather than restated.
+     */
+    var drawCalls = 0
+        private set
+
+    var drawnVertices = 0L
+        private set
+
+    /** How many sprite blits went into those draws, so a layer's six vertices can be seen. */
+    var spriteBlits = 0
+        private set
+
     private fun flush() {
         if (vertexCount == 0) return
+        drawCalls++
+        drawnVertices += vertexCount
         vertexBuffer.clear()
         vertexBuffer.put(vertexData, 0, writeIndex)
         vertexBuffer.position(0)
@@ -580,6 +622,7 @@ internal class GlSceneTarget : SceneCanvas {
         top: Float,
         tintColor: Int,
         alpha: Int,
+        additive: Boolean,
     ) {
         // A fully transparent blit contributes nothing under this blend function, and the scene
         // produces plenty of them: every fading raindrop, leaf and twinkling star passes through
@@ -606,10 +649,20 @@ internal class GlSceneTarget : SceneCanvas {
             source.onSpriteUploaded(resId)
         }
 
+        spriteBlits++
         useTexture(textures.handleAt(index))
         ensureRoom(6)
-        val right = left + textures.widthAt(index)
-        val bottom = top + textures.heightAt(index)
+        // **The quad is the sprite's content box, not its canvas.** [GlTextureCache] uploads only
+        // the texels that carry ink, so the rectangle they cover is a sub-rectangle of the authored
+        // one and the quad has to name it -- otherwise a cropped sprite is stretched back over its
+        // whole canvas. The fractions are of the authored box, so a sprite whose ink reaches every
+        // edge produces exactly the quad it always did.
+        val width = textures.widthAt(index)
+        val height = textures.heightAt(index)
+        val quadLeft = left + width * textures.contentLeftAt(index)
+        val quadTop = top + height * textures.contentTopAt(index)
+        val right = left + width * textures.contentRightAt(index)
+        val bottom = top + height * textures.contentBottomAt(index)
         val u0 = textures.u0At(index)
         val v0 = textures.v0At(index)
         val u1 = textures.u1At(index)
@@ -626,13 +679,18 @@ internal class GlSceneTarget : SceneCanvas {
         // day/night blend and is fully opaque, which `TintOpacityTest` asserts. Ignoring the
         // byte is therefore free and keeps the vertex colour meaning one thing, and the assertion
         // is what keeps that true rather than the claim above it.
-        val al = alpha * INV_255
-        vertex(left, top, u0, v0, r, g, bl, al)
-        vertex(right, top, u1, v0, r, g, bl, al)
+        //
+        // v4.30: the **sign** of the vertex alpha tells the fragment to leave with zero alpha, and
+        // under `GL_ONE, GL_ONE_MINUS_SRC_ALPHA` a zero-alpha contribution is summed rather than
+        // laid over. Read this together with the fragment shader in [GlSpriteProgram], which says
+        // the other half of it; the two are one mechanism written in two places.
+        val al = if (additive) -(alpha * INV_255) else alpha * INV_255
+        vertex(quadLeft, quadTop, u0, v0, r, g, bl, al)
+        vertex(right, quadTop, u1, v0, r, g, bl, al)
         vertex(right, bottom, u1, v1, r, g, bl, al)
-        vertex(left, top, u0, v0, r, g, bl, al)
+        vertex(quadLeft, quadTop, u0, v0, r, g, bl, al)
         vertex(right, bottom, u1, v1, r, g, bl, al)
-        vertex(left, bottom, u0, v1, r, g, bl, al)
+        vertex(quadLeft, bottom, u0, v1, r, g, bl, al)
     }
 
     // --- Shared tessellation -----------------------------------------------------------------

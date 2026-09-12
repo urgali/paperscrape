@@ -420,10 +420,15 @@ class ShippedSourcesTest(unittest.TestCase):
         # reached either.
         for site in self.unattributed:
             self.assertTrue(
-                # rc5 renamed `driverRes`: `drawSeatedOccupant` is one blit serving both of a
-                # car's seats, and which bust it draws is chosen at the two call sites in
-                # `drawCar` out of the `personCarHeadSkinDrawables` table.
-                site.expression == "occupantRes"
+                # v4.30 retired `occupantRes`. `drawSeatedOccupant` is still one blit serving both
+                # of a car's seats, but a seated bust is no longer one drawable: it is a row of
+                # `PeopleLayerTable.CAR` -- fixed art plus a mask per colourable region -- and the
+                # blit that reaches here names `slots[PeopleLayerTable.FIXED]`, chosen at the two
+                # call sites in `drawCar`. Same shape as every other lookup on this list: the
+                # sprite is named by a table rather than by a literal, so a call-site scanner
+                # cannot resolve it and is not meant to.
+                site.expression == "slots[PeopleLayerTable.FIXED]"
+                or site.expression == "drawable"
                 or site.expression == "phaseSprite"
                 or site.expression == "resId"
                 # `scatterPiles` is one loop drawing either drift sprite, chosen by its

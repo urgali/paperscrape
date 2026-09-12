@@ -464,24 +464,40 @@ class VehicleOccupantScaleTest {
      * 23 units since rc2, measured off the glass's own colour so it is the *drawn* height.
      */
     /**
-     * Every colour this class scans for is a colour the shipped people are actually painted in.
+     * Every colour this class scans for is one the scene can really put on an occupant.
      *
-     * The palette above is a copy of the artwork, and a copy goes stale silently: when B
-     * "Rilievo" repainted the family, two of the seven entries stopped matching anything, and
-     * nothing failed -- the scans that use them simply stopped seeing a woman's hair and a boy's
-     * cap. A colour that has left the artwork can only be found by looking for it, so this looks.
+     * **The check had to change shape in v4.30, and the reason is the point of it.** It used to
+     * scan the shipped people for each colour on the list, because the list was a hand-written copy
+     * of the artwork's palette and a copy goes stale silently -- twice, in this file's history. The
+     * artwork no longer carries those colours at all: a person ships as fixed art plus weight
+     * masks, and the head and the garments arrive at the blit from `PeopleColours`. Scanning the
+     * PNGs for a shirt colour would now find nothing and would be measuring the change rather than
+     * guarding against it.
+     *
+     * So the list is derived from `PeopleColours` and what is left to check is the two things a
+     * derived list can still get wrong: that no two palettes deal the same colour, which would make
+     * a scan unable to say what it had found, and that the **one** entry still written by hand --
+     * the seatbelt, which is painted into the fixed art rather than dealt -- is really painted.
      */
     @Test
-    fun everyColourThisClassScansForIsOneThePeopleArePaintedIn() {
-        val sprites = listOf(
-            R.drawable.person_man_summer_walk0, R.drawable.person_woman_summer_walk0,
-            R.drawable.person_boy_summer_walk0, R.drawable.person_girl_summer_walk0,
-            R.drawable.person_man_summer_head_car_skin0, R.drawable.person_woman_summer_head_car_skin0,
-            R.drawable.person_boy_summer_head_car_skin0, R.drawable.person_girl_summer_head_car_skin0,
+    fun everyColourThisClassScansForIsOneThePeopleCanBeDrawnIn() {
+        val duplicated = OCCUPANT_EXTRA_COLOURS
+            .groupBy { "#%02X%02X%02X".format(it[0], it[1], it[2]) }
+            .filterValues { it.size > 1 }
+            .keys.sorted()
+        assertEquals(
+            "the scan list holds the same colour twice, so it compares the same thing twice: " +
+                "$duplicated",
+            emptyList<String>(), duplicated,
         )
-        val counts = IntArray(OCCUPANT_EXTRA_COLOURS.size)
+
+        // The seatbelt: painted rather than dealt, so it is the one thing on a seated bust that a
+        // derived list could miss. It happens to be a colour the outfits deal too, so it is in the
+        // list either way -- but only counting it where it is drawn proves that.
+        val belt = channelsOf(SEATBELT_COLOUR)
         val options = android.graphics.BitmapFactory.Options().apply { inScaled = false }
-        for (resId in sprites) {
+        var found = 0
+        for (resId in PeopleLayerTable.CAR.flatMap { it.map { shape -> shape[PeopleLayerTable.FIXED] } }) {
             val bitmap = android.graphics.BitmapFactory.decodeResource(
                 InstrumentationRegistry.getInstrumentation().targetContext.resources, resId, options,
             ) ?: error("$resId could not be decoded")
@@ -489,30 +505,23 @@ class VehicleOccupantScaleTest {
                 for (x in 0 until bitmap.width) {
                     val pixel = bitmap.getPixel(x, y)
                     if ((pixel ushr 24) < 200) continue
-                    val r = (pixel shr 16) and 0xFF
-                    val g = (pixel shr 8) and 0xFF
-                    val b = pixel and 0xFF
-                    for (i in OCCUPANT_EXTRA_COLOURS.indices) {
-                        val want = OCCUPANT_EXTRA_COLOURS[i]
-                        if (abs(r - want[0]) <= 4 && abs(g - want[1]) <= 4 && abs(b - want[2]) <= 4) {
-                            counts[i]++
-                        }
+                    if (abs(((pixel shr 16) and 0xFF) - belt[0]) <= 4 &&
+                        abs(((pixel shr 8) and 0xFF) - belt[1]) <= 4 &&
+                        abs((pixel and 0xFF) - belt[2]) <= 4
+                    ) {
+                        found++
                     }
                 }
             }
             bitmap.recycle()
         }
-        // A hundred pixels: an occupant colour covers thousands where it is used at all, and a
-        // stray anti-aliased handful is not a colour the artwork paints in.
-        val vanished = OCCUPANT_EXTRA_COLOURS.indices
-            .filter { counts[it] < 100 }
-            .map { "#%02X%02X%02X (%d px)".format(
-                OCCUPANT_EXTRA_COLOURS[it][0], OCCUPANT_EXTRA_COLOURS[it][1],
-                OCCUPANT_EXTRA_COLOURS[it][2], counts[it],
-            ) }
-        assertEquals(
-            "these colours are scanned for but the shipped people no longer paint them: $vanished",
-            emptyList<String>(), vanished,
+        assertTrue(
+            "the seatbelt colour is scanned for but the seated busts no longer paint it ($found px)",
+            found >= 100,
+        )
+        assertTrue(
+            "and it must be in the list the scan uses, however it got there",
+            OCCUPANT_EXTRA_COLOURS.any { it.contentEquals(belt) },
         )
     }
 
@@ -1401,37 +1410,57 @@ class VehicleOccupantScaleTest {
          * itself so nothing here has to hold a copy of it.
          */
 
-        /** The shipped skin palette, from `tools/generate_skin_variants.py`. */
-        val SKIN_TONES = listOf(
-            intArrayOf(240, 201, 166), // woman F0C9A6
-            intArrayOf(220, 169, 124), // man DCA97C
-            intArrayOf(169, 113, 75),  // boy A9714B
-            intArrayOf(239, 185, 148), // girl EFB994
-        )
+        /**
+         * The skin an occupant can be drawn in.
+         *
+         * **Read out of `PeopleColours` since v4.30 rather than copied off the artwork.** It used
+         * to be four colours because each family was painted in its own and the tone copies moved
+         * that one colour; the tone is now a number the engine multiplies a weight mask by, so the
+         * set of skins a frame can contain is exactly the set `PeopleColours` deals from. A copy of
+         * a palette is the thing this class has already been caught holding -- see
+         * [OCCUPANT_EXTRA_COLOURS] -- and this is the version of it that cannot go stale.
+         */
+        val SKIN_TONES = PeopleColours.SKIN.map { channelsOf(it) }
 
         /**
-         * The occupants' non-skin colours: hair, headwear and summer shirts, for the scan that
-         * checks nothing of an occupant is painted outside its own pane.
+         * The occupants' non-skin colours, for the scan that checks nothing of an occupant is
+         * painted outside its own pane.
          *
-         * **Re-measured on the shipped PNGs in v4.25, and two of the seven were wrong.** The list
-         * is a copy of the artwork's palette, and B "Rilievo" repainted the family under it: the
-         * woman's hair had been recorded as `F7CE64`, which is now her hairband and the girl's
-         * shirt, and the boy's shirt as `6BA84F`. Neither colour is a *missing* pixel to that
-         * scan -- it is a pixel the scan cannot see, which is the direction that makes a gate
-         * quietly weaker rather than noisily wrong. Counted over the shipped summer people:
-         * `8C5A38` covers 52 592 pixels and `3F8A4A` 61 029, and both were invisible here.
+         * **This was a hand-written copy of the artwork's palette, and it had been wrong twice.**
+         * v4.25 re-measured it on the shipped PNGs and found two of its seven entries matched
+         * nothing at all: the woman's hair had been recorded as `F7CE64`, which is really her
+         * hairband, and the boy's shirt as `6BA84F`. Neither was a *missing* pixel to the scan --
+         * it was a pixel the scan could not see, which makes a gate quietly weaker rather than
+         * noisily wrong. Between them they covered 113 621 pixels of the shipped summer people.
+         *
+         * v4.30 removed the copy. The head and the garments are dealt from `PeopleColours`, so the
+         * colours a frame can contain are that object's own palettes -- and the one colour that is
+         * still painted rather than dealt, the seatbelt, is named here because it is the only one.
          */
-        val OCCUPANT_EXTRA_COLOURS = listOf(
-            intArrayOf(0x2B, 0x2A, 0x33), // the man's hair
-            intArrayOf(0x8C, 0x5A, 0x38), // the woman's hair
-            intArrayOf(0xF7, 0xCE, 0x64), // her hairband, and the girl's shirt
-            intArrayOf(0xC9, 0x8F, 0x5A), // the girl's hair
-            intArrayOf(0x3F, 0x8A, 0x4A), // the boy's cap
-            intArrayOf(0x4E, 0x9F, 0xB5), // the man's shirt
-            intArrayOf(0xE4, 0x62, 0x3E), // the woman's shirt
-            intArrayOf(0x5F, 0xA8, 0x5A), // the boy's shirt
-            intArrayOf(0xEF, 0xDF, 0xC4), // the seatbelt (rc4 frontal busts)
-        )
+        //
+        // **Deduplicated, because the palettes legitimately share colours.** A cap and a shirt can
+        // both be the parasol's red, and a pair of trousers and the seatbelt can both be the
+        // shipped charcoal; those are one colour the scene can put on an occupant, and listing it
+        // twice would only make the scan do the same comparison twice. What the scan asks is "is
+        // this pixel an occupant colour", never "which region is it".
+        //
+        // **And there is no hand-written entry left.** The seventh entry of the old list was
+        // `#EFDFC4` and was labelled "the seatbelt (rc4 frontal busts)"; the seatbelt is drawn
+        // `#3A3F4A` and always has been -- `#EFDFC4` is the man's summer trousers. That is the
+        // *third* wrong entry this list has been caught with: v4.25 re-measured it and found two
+        // (the woman's hair and the boy's shirt), and this one survived that pass because a wrong
+        // colour is invisible to a scan rather than noisy. The list is derived now, and the one
+        // colour that is painted rather than dealt turns out to be one the outfits already deal.
+        val OCCUPANT_EXTRA_COLOURS =
+            (PeopleColours.HAIR + PeopleColours.CAP + PeopleColours.OUTFITS)
+                .distinct().map { channelsOf(it) }
+
+        /** The seatbelt, painted into every seated bust's fixed art by the generator. */
+        const val SEATBELT_COLOUR = 0xFF3A3F4A.toInt()
+
+        /** `[r, g, b]` of a packed colour, which is the shape every scan in this class wants. */
+        fun channelsOf(argb: Int): IntArray =
+            intArrayOf((argb shr 16) and 0xFF, (argb shr 8) and 0xFF, argb and 0xFF)
 
         /** `car_window`'s glass, which nothing else in the scene is painted in. */
         val GLASS = intArrayOf(185, 216, 228)

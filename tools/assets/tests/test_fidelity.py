@@ -237,7 +237,13 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # v4.28: +3. The umbrella's canopy and the wave's two masks are drawn from SVG; the
         # bird's new artwork replaced bird_body.svg rather than adding a source, and the 36
         # carrying frames are recolours of a base that is generated and not shipped.
-        self.assertEqual(143, len(self.results))
+        # v4.30: -6, and every one of them is a seated bust. Those six shapes had no base of their
+        # own -- v4.19 and v4.20 retired them as duplicates -- so the SVG was carried by the tone
+        # copy the registry named as the heir. v4.30 removed the tone copies: a person is fixed art
+        # plus region masks now, and neither is a drawing with an SVG of its own. The eight window
+        # busts and the twenty-four walk frames still ship their bases and still carry theirs, which
+        # is why the loss is six and not the whole family.
+        self.assertEqual(137, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

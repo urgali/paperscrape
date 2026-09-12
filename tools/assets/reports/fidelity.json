@@ -1,131 +1,200 @@
 {
   "gaps": {
-    "person_boy_summer_head_car_skin0": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_boy_summer_head_car_skin1": "Generated from person_boy_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_boy_summer_head_window_skin0": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_head_window_skin1": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_head_window_skin2": "Generated from person_boy_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk0_skin0": "Generated from person_boy_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk0_skin1": "Generated from person_boy_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk0_skin2": "Generated from person_boy_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk1_skin0": "Generated from person_boy_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk1_skin1": "Generated from person_boy_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk1_skin2": "Generated from person_boy_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk2_skin0": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk2_skin1": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_summer_walk2_skin2": "Generated from person_boy_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_head_car_skin0": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_boy_winter_head_car_skin1": "Generated from person_boy_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_boy_winter_head_window_skin0": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_head_window_skin1": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_head_window_skin2": "Generated from person_boy_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk0_skin0": "Generated from person_boy_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk0_skin1": "Generated from person_boy_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk0_skin2": "Generated from person_boy_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk1_skin0": "Generated from person_boy_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk1_skin1": "Generated from person_boy_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk1_skin2": "Generated from person_boy_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk2_skin0": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk2_skin1": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_boy_winter_walk2_skin2": "Generated from person_boy_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_head_car_skin0": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_girl_summer_head_car_skin1": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_girl_summer_head_car_skin2": "Generated from person_girl_summer_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_girl_summer_head_window_skin0": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_head_window_skin1": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_head_window_skin2": "Generated from person_girl_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk0_skin0": "Generated from person_girl_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk0_skin1": "Generated from person_girl_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk0_skin2": "Generated from person_girl_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk1_skin0": "Generated from person_girl_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk1_skin1": "Generated from person_girl_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk1_skin2": "Generated from person_girl_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk2_skin0": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk2_skin1": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_summer_walk2_skin2": "Generated from person_girl_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_head_car_skin0": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_girl_winter_head_car_skin1": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_girl_winter_head_car_skin2": "Generated from person_girl_winter_head_car by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction.",
-    "person_girl_winter_head_window_skin0": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_head_window_skin1": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_head_window_skin2": "Generated from person_girl_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk0_skin0": "Generated from person_girl_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk0_skin1": "Generated from person_girl_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk0_skin2": "Generated from person_girl_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk1_skin0": "Generated from person_girl_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk1_skin1": "Generated from person_girl_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk1_skin2": "Generated from person_girl_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk2_skin0": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk2_skin1": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_girl_winter_walk2_skin2": "Generated from person_girl_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_head_car_alt_skin0": "The second outfit, generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (78, 159, 181) -> (228, 98, 62), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_man_summer_head_car_alt_skin1": "The second outfit, generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (78, 159, 181) -> (228, 98, 62), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_man_summer_head_car_alt_skin2": "The second outfit, generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (78, 159, 181) -> (228, 98, 62), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_man_summer_head_car_skin0": "Generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_man_summer_head_car`, which was the same pixels as person_man_summer_head_car_skin1.",
-    "person_man_summer_head_car_skin2": "Generated from person_man_summer_head_car_skin1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_man_summer_head_car`, which was the same pixels as person_man_summer_head_car_skin1.",
-    "person_man_summer_head_window_skin0": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_head_window_skin1": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_head_window_skin2": "Generated from person_man_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk0_skin0": "Generated from person_man_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk0_skin1": "Generated from person_man_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk0_skin2": "Generated from person_man_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk1_skin0": "Generated from person_man_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk1_skin1": "Generated from person_man_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk1_skin2": "Generated from person_man_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk2_skin0": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk2_skin1": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_summer_walk2_skin2": "Generated from person_man_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_head_car_alt_skin0": "The second outfit, generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (71, 105, 143) -> (191, 65, 48), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_man_winter_head_car_alt_skin1": "The second outfit, generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (71, 105, 143) -> (191, 65, 48), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_man_winter_head_car_alt_skin2": "The second outfit, generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (71, 105, 143) -> (191, 65, 48), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_man_winter_head_car_skin0": "Generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_man_winter_head_car`, which was the same pixels as person_man_winter_head_car_skin1.",
-    "person_man_winter_head_car_skin2": "Generated from person_man_winter_head_car_skin1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_man_winter_head_car`, which was the same pixels as person_man_winter_head_car_skin1.",
-    "person_man_winter_head_window_skin0": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_head_window_skin1": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_head_window_skin2": "Generated from person_man_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk0_skin0": "Generated from person_man_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk0_skin1": "Generated from person_man_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk0_skin2": "Generated from person_man_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk1_skin0": "Generated from person_man_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk1_skin1": "Generated from person_man_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk1_skin2": "Generated from person_man_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk2_skin0": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk2_skin1": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_man_winter_walk2_skin2": "Generated from person_man_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_head_car_alt_skin0": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_woman_summer_head_car_alt_skin1": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_woman_summer_head_car_alt_skin2": "The second outfit, generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (228, 98, 62) -> (78, 159, 181), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_woman_summer_head_car_skin1": "Generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_woman_summer_head_car`, which was the same pixels as person_woman_summer_head_car_skin0.",
-    "person_woman_summer_head_car_skin2": "Generated from person_woman_summer_head_car_skin0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_woman_summer_head_car`, which was the same pixels as person_woman_summer_head_car_skin0.",
-    "person_woman_summer_head_window_skin0": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_head_window_skin1": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_head_window_skin2": "Generated from person_woman_summer_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk0_skin0": "Generated from person_woman_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk0_skin1": "Generated from person_woman_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk0_skin2": "Generated from person_woman_summer_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk1_skin0": "Generated from person_woman_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk1_skin1": "Generated from person_woman_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk1_skin2": "Generated from person_woman_summer_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk2_skin0": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk2_skin1": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_summer_walk2_skin2": "Generated from person_woman_summer_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_head_car_alt_skin0": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_woman_winter_head_car_alt_skin1": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_woman_winter_head_car_alt_skin2": "The second outfit, generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py in two verified single-colour moves: the garment (191, 65, 48) -> (71, 105, 143), confined to the shoulder band and the two pixels around it so the hat and the scarf cannot be caught by it, and then the skin tone. Every other colour keeps its exact pixel mask, so hair, face, headwear, seatbelt, outline and silhouette are the first outfit's by construction. The replacement is the other adult family's garment paint for the same season: nothing here is a colour this set did not already put on clothing. Item 5 of BACKLOG_v4_19.md.",
-    "person_woman_winter_head_car_skin1": "Generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_woman_winter_head_car`, which was the same pixels as person_woman_winter_head_car_skin0.",
-    "person_woman_winter_head_car_skin2": "Generated from person_woman_winter_head_car_skin0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. v4.19 re-pointed this from the retired `person_woman_winter_head_car`, which was the same pixels as person_woman_winter_head_car_skin0.",
-    "person_woman_winter_head_window_skin0": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_head_window_skin1": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_head_window_skin2": "Generated from person_woman_winter_head_window by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk0_skin0": "Generated from person_woman_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk0_skin1": "Generated from person_woman_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk0_skin2": "Generated from person_woman_winter_walk0 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk1_skin0": "Generated from person_woman_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk1_skin1": "Generated from person_woman_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk1_skin2": "Generated from person_woman_winter_walk1 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk2_skin0": "Generated from person_woman_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk2_skin1": "Generated from person_woman_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`.",
-    "person_woman_winter_walk2_skin2": "Generated from person_woman_winter_walk2 by tools/generate_skin_variants.py, which moves one flat skin colour and verifies that every other colour keeps its exact pixel mask, so clothes, hair, eyes, outlines and silhouette are identical to the base by construction. `render` regenerates a sprite from an SVG and this variant has no SVG of its own: authoring one would mean hand-maintaining a third copy of every person frame per tone, which is the duplication the generator exists to remove. Re-run that script to regenerate it, not `render`."
+    "person_boy_summer_head_car_fx": "Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_head_car_mh": "Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_head_car_ms": "Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_head_car_mt": "Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_head_window_fx": "Written by tools/generate_people_layers.py from person_boy_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_head_window_mh": "Written by tools/generate_people_layers.py from person_boy_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_head_window_ms": "Written by tools/generate_people_layers.py from person_boy_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_head_window_mt": "Written by tools/generate_people_layers.py from person_boy_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk0_fx": "Written by tools/generate_people_layers.py from person_boy_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk0_mb": "Written by tools/generate_people_layers.py from person_boy_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk0_mh": "Written by tools/generate_people_layers.py from person_boy_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk0_ms": "Written by tools/generate_people_layers.py from person_boy_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk0_mt": "Written by tools/generate_people_layers.py from person_boy_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk1_fx": "Written by tools/generate_people_layers.py from person_boy_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk1_mb": "Written by tools/generate_people_layers.py from person_boy_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk1_mh": "Written by tools/generate_people_layers.py from person_boy_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk1_ms": "Written by tools/generate_people_layers.py from person_boy_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk1_mt": "Written by tools/generate_people_layers.py from person_boy_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk2_fx": "Written by tools/generate_people_layers.py from person_boy_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk2_mb": "Written by tools/generate_people_layers.py from person_boy_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk2_mh": "Written by tools/generate_people_layers.py from person_boy_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk2_ms": "Written by tools/generate_people_layers.py from person_boy_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_summer_walk2_mt": "Written by tools/generate_people_layers.py from person_boy_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_head_car_fx": "Written by tools/generate_people_layers.py from person_boy_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_head_car_ms": "Written by tools/generate_people_layers.py from person_boy_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_head_car_mt": "Written by tools/generate_people_layers.py from person_boy_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk0_fx": "Written by tools/generate_people_layers.py from person_boy_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk0_mb": "Written by tools/generate_people_layers.py from person_boy_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk0_ms": "Written by tools/generate_people_layers.py from person_boy_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk0_mt": "Written by tools/generate_people_layers.py from person_boy_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk1_fx": "Written by tools/generate_people_layers.py from person_boy_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk1_mb": "Written by tools/generate_people_layers.py from person_boy_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk1_ms": "Written by tools/generate_people_layers.py from person_boy_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk1_mt": "Written by tools/generate_people_layers.py from person_boy_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk2_fx": "Written by tools/generate_people_layers.py from person_boy_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk2_mb": "Written by tools/generate_people_layers.py from person_boy_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk2_ms": "Written by tools/generate_people_layers.py from person_boy_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_boy_winter_walk2_mt": "Written by tools/generate_people_layers.py from person_boy_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_head_car_fx": "Written by tools/generate_people_layers.py from person_girl_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_head_car_mh": "Written by tools/generate_people_layers.py from person_girl_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_head_car_ms": "Written by tools/generate_people_layers.py from person_girl_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_head_car_mt": "Written by tools/generate_people_layers.py from person_girl_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_head_window_fx": "Written by tools/generate_people_layers.py from person_girl_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_head_window_mh": "Written by tools/generate_people_layers.py from person_girl_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_head_window_ms": "Written by tools/generate_people_layers.py from person_girl_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_head_window_mt": "Written by tools/generate_people_layers.py from person_girl_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk0_fx": "Written by tools/generate_people_layers.py from person_girl_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk0_mh": "Written by tools/generate_people_layers.py from person_girl_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk0_ms": "Written by tools/generate_people_layers.py from person_girl_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk0_mt": "Written by tools/generate_people_layers.py from person_girl_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk1_fx": "Written by tools/generate_people_layers.py from person_girl_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk1_mh": "Written by tools/generate_people_layers.py from person_girl_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk1_ms": "Written by tools/generate_people_layers.py from person_girl_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk1_mt": "Written by tools/generate_people_layers.py from person_girl_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk2_fx": "Written by tools/generate_people_layers.py from person_girl_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk2_mh": "Written by tools/generate_people_layers.py from person_girl_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk2_ms": "Written by tools/generate_people_layers.py from person_girl_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_summer_walk2_mt": "Written by tools/generate_people_layers.py from person_girl_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_head_car_fx": "Written by tools/generate_people_layers.py from person_girl_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_head_car_mh": "Written by tools/generate_people_layers.py from person_girl_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_head_car_ms": "Written by tools/generate_people_layers.py from person_girl_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_head_car_mt": "Written by tools/generate_people_layers.py from person_girl_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk0_fx": "Written by tools/generate_people_layers.py from person_girl_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk0_mb": "Written by tools/generate_people_layers.py from person_girl_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk0_mh": "Written by tools/generate_people_layers.py from person_girl_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk0_ms": "Written by tools/generate_people_layers.py from person_girl_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk0_mt": "Written by tools/generate_people_layers.py from person_girl_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk1_fx": "Written by tools/generate_people_layers.py from person_girl_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk1_mb": "Written by tools/generate_people_layers.py from person_girl_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk1_mh": "Written by tools/generate_people_layers.py from person_girl_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk1_ms": "Written by tools/generate_people_layers.py from person_girl_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk1_mt": "Written by tools/generate_people_layers.py from person_girl_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk2_fx": "Written by tools/generate_people_layers.py from person_girl_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk2_mb": "Written by tools/generate_people_layers.py from person_girl_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk2_mh": "Written by tools/generate_people_layers.py from person_girl_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk2_ms": "Written by tools/generate_people_layers.py from person_girl_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_girl_winter_walk2_mt": "Written by tools/generate_people_layers.py from person_girl_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry0_fx": "Written by tools/generate_people_layers.py from person_man_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry0_mb": "Written by tools/generate_people_layers.py from person_man_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry0_ms": "Written by tools/generate_people_layers.py from person_man_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry0_mt": "Written by tools/generate_people_layers.py from person_man_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry1_fx": "Written by tools/generate_people_layers.py from person_man_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry1_ms": "Written by tools/generate_people_layers.py from person_man_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry1_mt": "Written by tools/generate_people_layers.py from person_man_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry2_fx": "Written by tools/generate_people_layers.py from person_man_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry2_ms": "Written by tools/generate_people_layers.py from person_man_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_carry2_mt": "Written by tools/generate_people_layers.py from person_man_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_head_car_fx": "Written by tools/generate_people_layers.py from person_man_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_head_car_mh": "Written by tools/generate_people_layers.py from person_man_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_head_car_ms": "Written by tools/generate_people_layers.py from person_man_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_head_car_mt": "Written by tools/generate_people_layers.py from person_man_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_head_window_fx": "Written by tools/generate_people_layers.py from person_man_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_head_window_mh": "Written by tools/generate_people_layers.py from person_man_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_head_window_ms": "Written by tools/generate_people_layers.py from person_man_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_head_window_mt": "Written by tools/generate_people_layers.py from person_man_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk0_fx": "Written by tools/generate_people_layers.py from person_man_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk0_mb": "Written by tools/generate_people_layers.py from person_man_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk0_mh": "Written by tools/generate_people_layers.py from person_man_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk0_ms": "Written by tools/generate_people_layers.py from person_man_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk0_mt": "Written by tools/generate_people_layers.py from person_man_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk1_fx": "Written by tools/generate_people_layers.py from person_man_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk1_mb": "Written by tools/generate_people_layers.py from person_man_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk1_mh": "Written by tools/generate_people_layers.py from person_man_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk1_ms": "Written by tools/generate_people_layers.py from person_man_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk1_mt": "Written by tools/generate_people_layers.py from person_man_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk2_fx": "Written by tools/generate_people_layers.py from person_man_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk2_mb": "Written by tools/generate_people_layers.py from person_man_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk2_mh": "Written by tools/generate_people_layers.py from person_man_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk2_ms": "Written by tools/generate_people_layers.py from person_man_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_summer_walk2_mt": "Written by tools/generate_people_layers.py from person_man_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry0_fx": "Written by tools/generate_people_layers.py from person_man_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry0_ms": "Written by tools/generate_people_layers.py from person_man_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry0_mt": "Written by tools/generate_people_layers.py from person_man_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry1_fx": "Written by tools/generate_people_layers.py from person_man_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry1_ms": "Written by tools/generate_people_layers.py from person_man_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry1_mt": "Written by tools/generate_people_layers.py from person_man_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry2_fx": "Written by tools/generate_people_layers.py from person_man_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry2_ms": "Written by tools/generate_people_layers.py from person_man_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_carry2_mt": "Written by tools/generate_people_layers.py from person_man_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_head_car_fx": "Written by tools/generate_people_layers.py from person_man_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_head_car_mh": "Written by tools/generate_people_layers.py from person_man_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_head_car_ms": "Written by tools/generate_people_layers.py from person_man_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_head_car_mt": "Written by tools/generate_people_layers.py from person_man_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk0_fx": "Written by tools/generate_people_layers.py from person_man_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk0_mb": "Written by tools/generate_people_layers.py from person_man_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk0_mh": "Written by tools/generate_people_layers.py from person_man_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk0_ms": "Written by tools/generate_people_layers.py from person_man_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk0_mt": "Written by tools/generate_people_layers.py from person_man_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk1_fx": "Written by tools/generate_people_layers.py from person_man_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk1_mb": "Written by tools/generate_people_layers.py from person_man_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk1_mh": "Written by tools/generate_people_layers.py from person_man_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk1_ms": "Written by tools/generate_people_layers.py from person_man_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk1_mt": "Written by tools/generate_people_layers.py from person_man_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk2_fx": "Written by tools/generate_people_layers.py from person_man_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk2_mb": "Written by tools/generate_people_layers.py from person_man_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk2_mh": "Written by tools/generate_people_layers.py from person_man_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk2_ms": "Written by tools/generate_people_layers.py from person_man_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_man_winter_walk2_mt": "Written by tools/generate_people_layers.py from person_man_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry0_fx": "Written by tools/generate_people_layers.py from person_woman_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry0_ms": "Written by tools/generate_people_layers.py from person_woman_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry0_mt": "Written by tools/generate_people_layers.py from person_woman_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry1_fx": "Written by tools/generate_people_layers.py from person_woman_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry1_ms": "Written by tools/generate_people_layers.py from person_woman_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry1_mt": "Written by tools/generate_people_layers.py from person_woman_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry2_fx": "Written by tools/generate_people_layers.py from person_woman_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry2_ms": "Written by tools/generate_people_layers.py from person_woman_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_carry2_mt": "Written by tools/generate_people_layers.py from person_woman_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_head_car_fx": "Written by tools/generate_people_layers.py from person_woman_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_head_car_mh": "Written by tools/generate_people_layers.py from person_woman_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_head_car_ms": "Written by tools/generate_people_layers.py from person_woman_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_head_car_mt": "Written by tools/generate_people_layers.py from person_woman_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_head_window_fx": "Written by tools/generate_people_layers.py from person_woman_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_head_window_mh": "Written by tools/generate_people_layers.py from person_woman_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_head_window_ms": "Written by tools/generate_people_layers.py from person_woman_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_head_window_mt": "Written by tools/generate_people_layers.py from person_woman_summer_head_window's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk0_fx": "Written by tools/generate_people_layers.py from person_woman_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk0_mh": "Written by tools/generate_people_layers.py from person_woman_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk0_ms": "Written by tools/generate_people_layers.py from person_woman_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk0_mt": "Written by tools/generate_people_layers.py from person_woman_summer_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk1_fx": "Written by tools/generate_people_layers.py from person_woman_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk1_mh": "Written by tools/generate_people_layers.py from person_woman_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk1_ms": "Written by tools/generate_people_layers.py from person_woman_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk1_mt": "Written by tools/generate_people_layers.py from person_woman_summer_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk2_fx": "Written by tools/generate_people_layers.py from person_woman_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk2_mh": "Written by tools/generate_people_layers.py from person_woman_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk2_ms": "Written by tools/generate_people_layers.py from person_woman_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_summer_walk2_mt": "Written by tools/generate_people_layers.py from person_woman_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry0_fx": "Written by tools/generate_people_layers.py from person_woman_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry0_ms": "Written by tools/generate_people_layers.py from person_woman_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry0_mt": "Written by tools/generate_people_layers.py from person_woman_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry1_fx": "Written by tools/generate_people_layers.py from person_woman_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry1_ms": "Written by tools/generate_people_layers.py from person_woman_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry1_mt": "Written by tools/generate_people_layers.py from person_woman_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry2_fx": "Written by tools/generate_people_layers.py from person_woman_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry2_ms": "Written by tools/generate_people_layers.py from person_woman_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_carry2_mt": "Written by tools/generate_people_layers.py from person_woman_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_head_car_fx": "Written by tools/generate_people_layers.py from person_woman_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_head_car_mh": "Written by tools/generate_people_layers.py from person_woman_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_head_car_ms": "Written by tools/generate_people_layers.py from person_woman_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_head_car_mt": "Written by tools/generate_people_layers.py from person_woman_winter_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk0_fx": "Written by tools/generate_people_layers.py from person_woman_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk0_mb": "Written by tools/generate_people_layers.py from person_woman_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk0_mh": "Written by tools/generate_people_layers.py from person_woman_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk0_ms": "Written by tools/generate_people_layers.py from person_woman_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk0_mt": "Written by tools/generate_people_layers.py from person_woman_winter_walk0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk1_fx": "Written by tools/generate_people_layers.py from person_woman_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk1_mb": "Written by tools/generate_people_layers.py from person_woman_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk1_mh": "Written by tools/generate_people_layers.py from person_woman_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk1_ms": "Written by tools/generate_people_layers.py from person_woman_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk1_mt": "Written by tools/generate_people_layers.py from person_woman_winter_walk1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk2_fx": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk2_mb": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk2_mh": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk2_ms": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "person_woman_winter_walk2_mt": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
   },
   "results": [
     {
@@ -385,11 +454,11 @@
       "boundary_confined": true,
       "candidate_bbox": [
         2,
-        0,
-        51,
-        21
+        1,
+        50,
+        20
       ],
-      "candidate_padding_fraction": 0.039215686274509776,
+      "candidate_padding_fraction": 0.14845938375350143,
       "candidate_size": [
         51,
         21
@@ -402,11 +471,11 @@
       "name": "bird_body",
       "reference_bbox": [
         2,
-        0,
-        51,
-        21
+        1,
+        50,
+        20
       ],
-      "reference_padding_fraction": 0.039215686274509776,
+      "reference_padding_fraction": 0.14845938375350143,
       "reference_size": [
         51,
         21
@@ -2598,47 +2667,6 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        7,
-        11,
-        112,
-        126
-      ],
-      "candidate_padding_fraction": 0.1593567251461988,
-      "candidate_size": [
-        114,
-        126
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_boy_summer_head_car_skin2",
-      "reference_bbox": [
-        7,
-        11,
-        112,
-        126
-      ],
-      "reference_padding_fraction": 0.1593567251461988,
-      "reference_size": [
-        114,
-        126
-      ],
-      "size_match": true,
-      "total_pixels": 14364,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
         4,
         3,
         142,
@@ -2680,12 +2708,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        17,
-        61,
-        108,
+        26,
+        90,
+        106,
         252
       ],
-      "candidate_padding_fraction": 0.4104938271604939,
+      "candidate_padding_fraction": 0.5604395604395604,
       "candidate_size": [
         117,
         252
@@ -2697,12 +2725,12 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_summer_walk0",
       "reference_bbox": [
-        17,
-        61,
-        108,
+        26,
+        90,
+        106,
         252
       ],
-      "reference_padding_fraction": 0.4104938271604939,
+      "reference_padding_fraction": 0.5604395604395604,
       "reference_size": [
         117,
         252
@@ -2721,12 +2749,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        23,
-        61,
+        27,
+        90,
         107,
         252
       ],
-      "candidate_padding_fraction": 0.45584045584045585,
+      "candidate_padding_fraction": 0.5604395604395604,
       "candidate_size": [
         117,
         252
@@ -2738,12 +2766,12 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_summer_walk1",
       "reference_bbox": [
-        23,
-        61,
+        27,
+        90,
         107,
         252
       ],
-      "reference_padding_fraction": 0.45584045584045585,
+      "reference_padding_fraction": 0.5604395604395604,
       "reference_size": [
         117,
         252
@@ -2762,12 +2790,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        9,
-        61,
-        110,
+        18,
+        90,
+        107,
         252
       ],
-      "candidate_padding_fraction": 0.3457129290462624,
+      "candidate_padding_fraction": 0.510989010989011,
       "candidate_size": [
         117,
         252
@@ -2779,59 +2807,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_boy_summer_walk2",
       "reference_bbox": [
-        9,
-        61,
-        110,
+        18,
+        90,
+        107,
         252
       ],
-      "reference_padding_fraction": 0.3457129290462624,
+      "reference_padding_fraction": 0.510989010989011,
       "reference_size": [
         117,
         252
       ],
       "size_match": true,
       "total_pixels": 29484,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        2,
-        10,
-        111,
-        126
-      ],
-      "candidate_padding_fraction": 0.11974380395433026,
-      "candidate_size": [
-        114,
-        126
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_boy_winter_head_car_skin2",
-      "reference_bbox": [
-        2,
-        10,
-        111,
-        126
-      ],
-      "reference_padding_fraction": 0.11974380395433026,
-      "reference_size": [
-        114,
-        126
-      ],
-      "size_match": true,
-      "total_pixels": 14364,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -2886,11 +2873,11 @@
       "boundary_confined": true,
       "candidate_bbox": [
         9,
-        56,
-        108,
+        85,
+        99,
         252
       ],
-      "candidate_padding_fraction": 0.3418803418803419,
+      "candidate_padding_fraction": 0.49023199023199027,
       "candidate_size": [
         117,
         252
@@ -2903,11 +2890,11 @@
       "name": "person_boy_winter_walk0",
       "reference_bbox": [
         9,
-        56,
-        108,
+        85,
+        99,
         252
       ],
-      "reference_padding_fraction": 0.3418803418803419,
+      "reference_padding_fraction": 0.49023199023199027,
       "reference_size": [
         117,
         252
@@ -2927,11 +2914,11 @@
       "boundary_confined": true,
       "candidate_bbox": [
         9,
-        56,
+        85,
         95,
         252
       ],
-      "candidate_padding_fraction": 0.4283000949667616,
+      "candidate_padding_fraction": 0.5128883462216796,
       "candidate_size": [
         117,
         252
@@ -2944,11 +2931,11 @@
       "name": "person_boy_winter_walk1",
       "reference_bbox": [
         9,
-        56,
+        85,
         95,
         252
       ],
-      "reference_padding_fraction": 0.4283000949667616,
+      "reference_padding_fraction": 0.5128883462216796,
       "reference_size": [
         117,
         252
@@ -2968,11 +2955,11 @@
       "boundary_confined": true,
       "candidate_bbox": [
         8,
-        56,
-        110,
+        84,
+        101,
         252
       ],
-      "candidate_padding_fraction": 0.32193732193732194,
+      "candidate_padding_fraction": 0.4700854700854701,
       "candidate_size": [
         117,
         252
@@ -2985,11 +2972,11 @@
       "name": "person_boy_winter_walk2",
       "reference_bbox": [
         8,
-        56,
-        110,
+        84,
+        101,
         252
       ],
-      "reference_padding_fraction": 0.32193732193732194,
+      "reference_padding_fraction": 0.4700854700854701,
       "reference_size": [
         117,
         252
@@ -3091,11 +3078,11 @@
       "boundary_confined": true,
       "candidate_bbox": [
         13,
-        59,
-        108,
+        91,
+        107,
         252
       ],
-      "candidate_padding_fraction": 0.3781372948039615,
+      "candidate_padding_fraction": 0.4867046533713201,
       "candidate_size": [
         117,
         252
@@ -3108,11 +3095,11 @@
       "name": "person_girl_summer_walk0",
       "reference_bbox": [
         13,
-        59,
-        108,
+        91,
+        107,
         252
       ],
-      "reference_padding_fraction": 0.3781372948039615,
+      "reference_padding_fraction": 0.4867046533713201,
       "reference_size": [
         117,
         252
@@ -3132,11 +3119,11 @@
       "boundary_confined": true,
       "candidate_bbox": [
         13,
-        60,
+        91,
         108,
         252
       ],
-      "candidate_padding_fraction": 0.3813593813593814,
+      "candidate_padding_fraction": 0.4812440645773979,
       "candidate_size": [
         117,
         252
@@ -3149,11 +3136,11 @@
       "name": "person_girl_summer_walk1",
       "reference_bbox": [
         13,
-        60,
+        91,
         108,
         252
       ],
-      "reference_padding_fraction": 0.3813593813593814,
+      "reference_padding_fraction": 0.4812440645773979,
       "reference_size": [
         117,
         252
@@ -3172,12 +3159,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        7,
-        60,
-        110,
+        13,
+        92,
+        109,
         252
       ],
-      "candidate_padding_fraction": 0.32926332926332924,
+      "candidate_padding_fraction": 0.4790394790394791,
       "candidate_size": [
         117,
         252
@@ -3189,12 +3176,12 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_summer_walk2",
       "reference_bbox": [
-        7,
-        60,
-        110,
+        13,
+        92,
+        109,
         252
       ],
-      "reference_padding_fraction": 0.32926332926332924,
+      "reference_padding_fraction": 0.4790394790394791,
       "reference_size": [
         117,
         252
@@ -3295,12 +3282,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        16,
-        47,
-        108,
+        24,
+        78,
+        99,
         252
       ],
-      "candidate_padding_fraction": 0.3603310269976937,
+      "candidate_padding_fraction": 0.5573870573870574,
       "candidate_size": [
         117,
         252
@@ -3312,12 +3299,12 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_winter_walk0",
       "reference_bbox": [
-        16,
-        47,
-        108,
+        24,
+        78,
+        99,
         252
       ],
-      "reference_padding_fraction": 0.3603310269976937,
+      "reference_padding_fraction": 0.5573870573870574,
       "reference_size": [
         117,
         252
@@ -3337,11 +3324,11 @@
       "boundary_confined": true,
       "candidate_bbox": [
         24,
-        46,
+        78,
         95,
         252
       ],
-      "candidate_padding_fraction": 0.5039343372676706,
+      "candidate_padding_fraction": 0.580993080993081,
       "candidate_size": [
         117,
         252
@@ -3354,11 +3341,11 @@
       "name": "person_girl_winter_walk1",
       "reference_bbox": [
         24,
-        46,
+        78,
         95,
         252
       ],
-      "reference_padding_fraction": 0.5039343372676706,
+      "reference_padding_fraction": 0.580993080993081,
       "reference_size": [
         117,
         252
@@ -3377,12 +3364,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        7,
-        47,
-        111,
+        16,
+        78,
+        102,
         252
       ],
-      "candidate_padding_fraction": 0.27689594356261027,
+      "candidate_padding_fraction": 0.49247049247049246,
       "candidate_size": [
         117,
         252
@@ -3394,59 +3381,18 @@
       "mean_alpha_diff": 0.0,
       "name": "person_girl_winter_walk2",
       "reference_bbox": [
-        7,
-        47,
-        111,
+        16,
+        78,
+        102,
         252
       ],
-      "reference_padding_fraction": 0.27689594356261027,
+      "reference_padding_fraction": 0.49247049247049246,
       "reference_size": [
         117,
         252
       ],
       "size_match": true,
       "total_pixels": 29484,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        5,
-        0,
-        111,
-        126
-      ],
-      "candidate_padding_fraction": 0.07017543859649122,
-      "candidate_size": [
-        114,
-        126
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_man_summer_head_car_skin1",
-      "reference_bbox": [
-        5,
-        0,
-        111,
-        126
-      ],
-      "reference_padding_fraction": 0.07017543859649122,
-      "reference_size": [
-        114,
-        126
-      ],
-      "size_match": true,
-      "total_pixels": 14364,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3623,47 +3569,6 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        6,
-        0,
-        112,
-        126
-      ],
-      "candidate_padding_fraction": 0.07017543859649122,
-      "candidate_size": [
-        114,
-        126
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_man_winter_head_car_skin1",
-      "reference_bbox": [
-        6,
-        0,
-        112,
-        126
-      ],
-      "reference_padding_fraction": 0.07017543859649122,
-      "reference_size": [
-        114,
-        126
-      ],
-      "size_match": true,
-      "total_pixels": 14364,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
         4,
         1,
         142,
@@ -3828,47 +3733,6 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        112,
-        126
-      ],
-      "candidate_padding_fraction": 0.01754385964912286,
-      "candidate_size": [
-        114,
-        126
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_woman_summer_head_car_skin0",
-      "reference_bbox": [
-        0,
-        0,
-        112,
-        126
-      ],
-      "reference_padding_fraction": 0.01754385964912286,
-      "reference_size": [
-        114,
-        126
-      ],
-      "size_match": true,
-      "total_pixels": 14364,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
         2,
         1,
         142,
@@ -4021,47 +3885,6 @@
       ],
       "size_match": true,
       "total_pixels": 29484,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        6,
-        0,
-        112,
-        126
-      ],
-      "candidate_padding_fraction": 0.07017543859649122,
-      "candidate_size": [
-        114,
-        126
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "person_woman_winter_head_car_skin0",
-      "reference_bbox": [
-        6,
-        0,
-        112,
-        126
-      ],
-      "reference_padding_fraction": 0.07017543859649122,
-      "reference_size": [
-        114,
-        126
-      ],
-      "size_match": true,
-      "total_pixels": 14364,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -5796,6 +5619,47 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        2,
+        0,
+        142,
+        72
+      ],
+      "candidate_padding_fraction": 0.02777777777777779,
+      "candidate_size": [
+        144,
+        72
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "umbrella_canopy",
+      "reference_bbox": [
+        2,
+        0,
+        142,
+        72
+      ],
+      "reference_padding_fraction": 0.02777777777777779,
+      "reference_size": [
+        144,
+        72
+      ],
+      "size_match": true,
+      "total_pixels": 10368,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
         0,
         0,
         162,
@@ -5866,6 +5730,88 @@
       ],
       "size_match": true,
       "total_pixels": 8748,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        11,
+        8,
+        299,
+        130
+      ],
+      "candidate_padding_fraction": 0.2606060606060606,
+      "candidate_size": [
+        360,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "wave_tube_body",
+      "reference_bbox": [
+        11,
+        8,
+        299,
+        130
+      ],
+      "reference_padding_fraction": 0.2606060606060606,
+      "reference_size": [
+        360,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 47520,
+      "verdict": "PIXEL_IDENTICAL"
+    },
+    {
+      "alpha_iou": 1.0,
+      "bbox_delta": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "boundary_confined": true,
+      "candidate_bbox": [
+        150,
+        0,
+        358,
+        104
+      ],
+      "candidate_padding_fraction": 0.5447811447811448,
+      "candidate_size": [
+        360,
+        132
+      ],
+      "differing_pixels": 0,
+      "interior_alpha_mismatch": 0,
+      "max_alpha_diff": 0,
+      "max_rgb_diff_where_opaque": 0,
+      "mean_alpha_diff": 0.0,
+      "name": "wave_tube_crest",
+      "reference_bbox": [
+        150,
+        0,
+        358,
+        104
+      ],
+      "reference_padding_fraction": 0.5447811447811448,
+      "reference_size": [
+        360,
+        132
+      ],
+      "size_match": true,
+      "total_pixels": 47520,
       "verdict": "PIXEL_IDENTICAL"
     }
   ]
