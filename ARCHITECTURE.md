@@ -2,8 +2,9 @@
 
 Technical description of PaperScrape as it exists today. This document
 describes the **current** implementation, including its known weaknesses.
-Planned work belongs in `ROADMAP.md`; visual and design decisions belong in
-`DESIGN_NOTES.md`.
+Planned work and visual design decisions are deliberately **not** in here, and they are
+not published: they live in the project's internal working notes. This file is limited to the
+implementation as it stands.
 
 **Last fully verified against v3.8** (`versionCode = 29`), by reading the source and running
 `test` + `lintDebug` + `assembleDebug` + `assembleRelease` and the instrumented suite on an
@@ -19,7 +20,8 @@ it either.** Two things changed here:
 
 - **`targetSdk` is now 37**, equal to `compileSdk`. The paragraph below that described them as
   deliberately one apart is history now — the app opts into Android 17's behaviour changes, none of
-  which required a code change. `RELEASE_HISTORY.md` carries the change-by-change assessment.
+  which required a code change — each was assessed individually against this app's own code before
+the target was raised, rather than the target being moved and the app watched for breakage.
 - **`LocalityLabelCache`** joins the location package: the policy deciding when a device fix is
   worth reverse-geocoding, and the row that shows the result now shows the place name *and* the
   coordinates rather than one in place of the other. The renderer, the weather pipeline and the
@@ -411,9 +413,9 @@ the atlas's rows to hold 42 % of its area**, saturated on the fifth theme and sp
 sprites into standalone textures — a batch break per frame each, which is what the
 atlas exists to prevent. The skyline is online, needs no sorting and no deferred
 upload, and is quadratic in skyline segments in a call that already allocates a
-bitmap and uploads it. `release-verification/V4_29_REPORT.md` carries the before and
-after; `AtlasPackerTest` replays a recorded insertion sequence so it cannot regress
-quietly.
+bitmap and uploads it. Paired over the same 24-scene walk at full density, `GL mtrack` fell from
+**45 449 KiB to 42 629 KiB** and the spill to standalone textures went to zero in every theme.
+`AtlasPackerTest` replays a recorded insertion sequence so it cannot regress quietly.
 
 Each entry carries a one-pixel transparent border so a bilinear sample near an edge
 finds transparency rather than the neighbouring sprite. The border is uploaded, not
@@ -515,8 +517,9 @@ its creator's `comm` and the driver never renames it — in a process where the 
 UI initialises EGL first, the same thread appears as `RenderThread`. It costs about
 4.5% of a core while the wallpaper draws and **does not exist** while it is hidden. It
 is not a leak, there is nothing to close, and a CPU figure for the render path should
-be taken for the process rather than by thread name. `BACKLOG_v4_25.md` item 60 has the
-measurement.
+be taken for the process rather than by thread name. Measured in v4.25 on the BV6600 in 20 s
+windows: ours **52.40%** of a core, the driver's **4.45%**, and with the wallpaper hidden the
+driver thread is absent and ours reads **0.55%**.
 
 **Scene state is owned by the render thread.** A GL context belongs to one thread,
 so drawing had to leave the main looper — which means preferences, theme changes,
@@ -890,8 +893,9 @@ height it should read as and the local-unit height its own drawing occupies
 (`SceneSpace.SceneVariant`, plus the vehicle and person constants beside it).
 That derivation is necessary because the sprites are authored at incompatible
 internal scales -- roughly 13 units per metre for a shop front against 46 for a
-person -- which no single global multiplier can correct. The full table is in
-`DESIGN_NOTES.md` §5.
+person -- which no single global multiplier can correct. Which convention a given sprite is
+authored in is declared per sprite in `tools/assets/sources/sprites.json` and re-derived by
+`validate`, so the table is the manifest rather than a document.
 
 `SceneObjectRenderer.variantFor` resolves which drawing a static object is
 (small or large house; tower, restaurant or bar) once, and both the size and the
@@ -986,9 +990,8 @@ nothing is ever pulled *forward* of where it sits, and one key still orders
 everything.
 
 Wave against dolphin is still off by the difference between the two
-conventions — about 16 px on the reference device. `BACKLOG_v4_28.md` item 84
-carries it, together with the shape of the real fix: one "visible waterline"
-function per kind, sorted on instead of the lane. It is not done there because
+conventions — about 16 px on the reference device. It is an open backlog item, and the shape of
+the real fix is known: one "visible waterline" function per kind, sorted on instead of the lane. It is not done there because
 changing the dolphin's key changes the shipped dolphin-and-boat ordering that
 five committed goldens portray.
 
@@ -1459,7 +1462,8 @@ The generators that produced these PNGs (`gen_sprites.py`,
 lost**, so for most sprites the PNG is still its own source. The root cause is
 worth stating precisely, because it is not "the files went missing": the practice
 of the time deliberately kept the generators out of the repository and shipped
-only their output. `AI_PROJECT_RULES.md` §6.1 now forbids exactly that.
+only their output. The project's asset rules now forbid exactly that: whatever renders a shipped
+sprite is committed beside it, or the sprite has no source and says so.
 
 `tools/assets/` is the replacement. It is **offline developer tooling: Gradle
 never invokes it and the app does not depend on it.** The pipeline is
@@ -1522,7 +1526,7 @@ edge is heavier than it was.
 Measured on the BV6600 in v4.31, cropping `dolphin_body`, `sailboat_hull` and
 `sailboat_sail` tight to the grid: **6 pixels changed in each of three lake goldens**,
 up to 70 levels on a single contour pixel, in frames where the other 288 000 were
-identical. `BACKLOG_v4_31.md` item 106.
+identical.
 
 So the rule, wherever a sprite's border is removed: **the crop leaves a guard pixel on
 every side it trims.** A side whose ink already reaches the canvas edge is left alone —
@@ -1618,8 +1622,8 @@ What the earlier phases fixed, and what the library changed underneath them:
 
 ### The manifest, and what checks it
 
-Schema 4 declares, for every sprite, the metadata `AI_PROJECT_RULES.md` §6.2
-requires: a `contentBox`, an `anchorRule` with the `anchor` it derives, the scale
+Schema 4 declares, for every sprite, the metadata the asset rules require: a
+`contentBox`, an `anchorRule` with the `anchor` it derives, the scale
 convention, the tint class and the season. `contentBox` is re-derived by `validate`
 rather than trusted, so it cannot drift away from the PNG it describes.
 
@@ -1664,8 +1668,7 @@ rather than a part of one. `house_large_window` is blitted at four different
 origins; the `person_*` sprites at hand-tuned constants outside the anchoring
 system entirely.
 
-See `DESIGN_NOTES.md` §4 for the authoring conventions and
-`tools/assets/README.md` for the commands.
+See `tools/assets/README.md` for the authoring conventions and the commands.
 
 ---
 
@@ -1784,9 +1787,8 @@ their AAR metadata) and it changes nothing about how the app runs. **The platfor
 behaviour gates read `targetSdk`**, which is why it was held at 36 through the
 Phase 2 dependency upgrade -- so that the upgrade could not move the app's
 behaviour -- and why raising it was its own release with its own assessment and
-device pass rather than a line changed in passing. That assessment is in
-`RELEASE_HISTORY.md` under v4.0: every Android 17 behaviour change against this
-app's real code, and no fix required. `lint` is the check that the flag actually
+device pass rather than a line changed in passing. That assessment went through every Android 17
+behaviour change against this app's real code and required no fix. `lint` is the check that the flag actually
 took: `OldTargetApi` exists precisely because the target lags the compile SDK, and
 it is gone.
 
@@ -1842,9 +1844,9 @@ removed in v3.6: it ran on hosted runners repeatedly and never once produced a s
 app's code — every failure was environmental, and each was a different environment (a missing SDK
 package, a device not yet able to install, and finally a shell syntax error inside the action's own
 wrapper). On its last run its diagnostics step hung until the job timed out, so it could not even
-upload the evidence. `AI_PROJECT_RULES.md` 10.12 states what any future auxiliary job must satisfy
-before it gates anything, and 10.13 records why bounding a diagnostic's exit status is not the same
-as bounding its time. **The instrumented tests themselves were not removed** — see *Testing* above.
+upload the evidence. The rule written out of it is that an auxiliary job may not gate anything
+until it has passed on its own for a stated run of releases, and that bounding a diagnostic's exit
+status is not the same as bounding its time — a step that cannot fail can still hang. **The instrumented tests themselves were not removed** — see *Testing* above.
 
 Neither workflow needed a change for the Phase 2 upgrade. JDK 17 still builds
 AGP 9.3.1 / Gradle 9.7.1 (checked locally on a Temurin 17 that matches the
@@ -1900,8 +1902,8 @@ expected` and three of the same against `File`, which are `org.json`'s platform 
 through Kotlin's nullability; four deprecations of `TRIM_MEMORY_RUNNING_LOW` and
 `TRIM_MEMORY_RUNNING_CRITICAL`; and one `Condition is always 'true'`. They are recorded rather
 than silenced — an earlier version of this table claimed **0**, which had stopped being true
-without anybody noticing, because nothing reads the warnings when the exit code is zero
-(`AI_PROJECT_RULES.md` 12.4). Closing them is `BACKLOG_v4_24.md` item 2.
+without anybody noticing, because nothing reads the warnings when the exit code is zero. Closing
+them is an open backlog item, not a claim already met.
 
 ### Testing
 
@@ -1969,13 +1971,13 @@ spans three days either side.
 
 | Suite | Covers |
 |---|---|
-| `SceneGoldenTest` | Committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel. `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable. `GoldenFocus` re-checks named patches on their own much smaller area, because 0.2% of a 360x800 frame is 576 pixels and a dolphin covers 160. **Do not quote a count here** — `CLAUDE.md` §5 has the command, and the figure that means anything is the number of `assertMatches` calls, not the number of files in the directory. |
+| `SceneGoldenTest` | Committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel. `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable. `GoldenFocus` re-checks named patches on their own much smaller area, because 0.2% of a 360x800 frame is 576 pixels and a dolphin covers 160. **Do not quote a count here** — the figure that means anything is the number of `assertMatches` calls, not the number of files in the directory. `grep -rh 'SceneGolden\.assertMatches' app/src/androidTest --include='*.kt' | grep -vc '^\s*\*'` counts them, and **its answer is one too high**: `LightningPinTest` hands `assertMatches` a scene it must *reject*, which is how the guard is shown to run rather than merely to exist. Subtract it. An assertion is also not a file — two scenes are each asserted more than once with different focus rectangles, so the assertion count and the PNG count are different numbers and neither is "the number of goldens" on its own. |
 | `GlSceneGoldenTest` | Three of the same scenes rendered through the shipped `GlSceneTarget` on an offscreen EGL pbuffer, configured exactly as `GlRenderThread` configures it, MSAA included. Three gates: against its own committed `gl-*.png`, against the Canvas golden (the claim that the two backends still draw the same picture), and — since v3.7 — **against a named region**. |
 | `PrefsCorruptionRecoveryTest` | That a damaged preferences file costs that store its contents and nothing else, including across a process restart. |
 | `CanvasGradientAllocationTest` | **P2-5.** Records the full argument tuple of every gradient the real renderer asks for over 60 animated frames, and checks the cache builds one `Shader` per *distinct* gradient rather than one per request. |
 | `TrafficGoldenTest` | **v3.8.** That the two traffic goldens actually contain traffic, measured off the finished frame by `VehiclePresence` rather than inferred, that both lanes are occupied, that the frame is bit-identical across two renders, and that three plausible traffic regressions each move more of the frame than the golden's own budget. |
 | `TreeArtworkAlignmentTest` | **v3.8.** That the winter tree's snow cap lands entirely on the crown — 0 of 17 182 opaque pixels off it — which disproves v3.7's report of a 3-unit misalignment. An assertion about the *artwork*, which nothing else checks. |
-| `SkyWaterGoldenTest` | **v4.26**, and it is `BACKLOG_v4_25.md` item 65 closed. Three derived gates — the cloud band, the bird band and the water band — attached as `extraFocus` to golden scenes that already exist, so it adds assertions and no committed PNG. Two of the three are the item's own complaint made concrete: every bird disappearing moves **1.52%** of its rectangle and every dolphin disappearing **0.21%**, both *under* the shared 2% focus limit, so before this the whole family could vanish and the suite would have passed. Each signal is re-measured on every run. |
+| `SkyWaterGoldenTest` | **v4.26**, and it closes a backlog item raised in v4.25. Three derived gates — the cloud band, the bird band and the water band — attached as `extraFocus` to golden scenes that already exist, so it adds assertions and no committed PNG. Two of the three are the item's own complaint made concrete: every bird disappearing moves **1.52%** of its rectangle and every dolphin disappearing **0.21%**, both *under* the shared 2% focus limit, so before this the whole family could vanish and the suite would have passed. Each signal is re-measured on every run. |
 | `LakeDrawCallTest` | **v4.26.** Counts every primitive the real renderer asks for, through the real `SceneCanvas`, with the water on and with it off. The difference is the water's own per-frame cost, measured rather than estimated. |
 
 **`GoldenScene.warmUpFrames` is the v3.8 addition.** A car's `progress` starts negative and only
@@ -1998,7 +2000,6 @@ that needs to warm a storm up says so with `GoldenScene.pinLightning`, which cle
 `PaperRenderer.lightningStrikesEnabled` **for that render alone**. The wallpaper's own lightning is
 untouched: nothing in `src/main` writes that flag, and v5.0 Fase 0 measured the strike cadence and
 flash intensity on v4.31's production build and on this one to say so rather than assume it.
-`BACKLOG_v4_31.md` item 112 has the arithmetic and the measurements.
 
 **The region gate is the v3.7 addition, and it exists because the whole-frame gates provably could
 not see one class of regression.** Driver-to-driver disagreement is *spread* — it is anti-aliased
@@ -2014,8 +2015,8 @@ The limit is 0.50%. See `GlGolden.Tolerance` for the full table.
 Building requires a full JDK (17 recommended, matching CI), the Android SDK
 with platform 37 (Android 17) and build-tools 36, and network access to Google
 Maven and Maven Central. Platform 37 is what `compileSdk` links against;
-build-tools stays at 36.0.0, which is what AGP 9.3.1 selects by default. See `CLAUDE.md` for the
-reproducible setup procedure used in ephemeral environments.
+build-tools stays at 36.0.0, which is what AGP 9.3.1 selects by default. `README.md`'s *Build*
+section has the minimal setup.
 
 **An Android 17 emulator is also required to release**, because the instrumented layer above is not
 run by CI and a release is not verified without it. Two GL drivers are worth having available:
@@ -2027,8 +2028,8 @@ that comparison is the only way to tell a driver difference from a regression.
 
 ## 9. Known architectural weaknesses
 
-Recorded here so they are not rediscovered from scratch. Prioritisation and
-sequencing live in `ROADMAP.md`.
+Recorded here so they are not rediscovered from scratch. Which of them gets worked on, and in
+what order, is decided outside this document.
 
 1. **Partial source pipeline for assets.** `tools/assets/` (Phase 3.1) gives 24
    of the sprites an SVG source and a deterministic rasterisation path; the other

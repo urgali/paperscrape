@@ -5,11 +5,6 @@ AI SLOP WARNING! I'm not a developer just a humble Networker. I don't know how t
 An Android live wallpaper: a layered 2D paper-cutout world with an animated
 environment, themes, seasonal elements and parallax.
 
-**Current state: v4.27 prepared, not yet published.** The most recent published release is
-**v4.26**. `ROADMAP.md` carries the current status; `RELEASE_HISTORY.md` carries what each
-release actually contained. The published list is on the repository's Releases page — it is not
-kept by hand here.
-
 ---
 
 ## What it does
@@ -79,7 +74,8 @@ Two things in the scene are not sprites at all but **hairlines struck over a sur
 recomputes** — the water's cut edge and the falling rain — and neither can carry a colour of its
 own. Both derive one per frame, far enough from what is behind them to be seen and no further, to a
 separation measured across the twelve themes rather than chosen: the shoreline in v4.26 and the
-rain in v4.27. `DESIGN_NOTES.md` §17 carries the rule and the numbers.
+rain in v4.27. Neither is tuned per theme — one derivation covers all of them, and the worst theme
+is the one that sets it.
 
 ---
 
@@ -168,11 +164,14 @@ tools/assets/                      SVG sources, sprite registry, Python pipeline
 release-notes/                     user-facing notes, one file per release
 ```
 
-Documentation: `ARCHITECTURE.md` (how the code works), `DESIGN_NOTES.md` (visual and
-UX decisions), `ROADMAP.md` (what is next), `RELEASE_HISTORY.md` (what shipped),
-`AI_PROJECT_RULES.md` (rules that always apply), `CHANGELOG.md` (full technical log).
-Closed backlogs and per-release reports are in `docs/archive/`, indexed by
-`docs/archive/README.md`.
+Documentation: `ARCHITECTURE.md` is how the code works — the two rendering backends, the
+scene graph, the asset pipeline and the test layers. `CHANGELOG.md` is the technical log of the
+pre-release development, kept as history and not extended. What each release contains is on the
+Releases page, and `release-notes/` holds the same text one file per tag.
+
+The project's own working documents — the design reasoning, the plans, the backlogs and the
+per-release verification reports — are not published. They are working notes between the author
+and the assistants doing the work, not documentation, and they are written for that audience.
 
 ---
 
@@ -220,7 +219,7 @@ counter and simply increments by one each release — it is deliberately not tie
 tag, because the two answer different questions.
 
 The full tag-to-version mapping is not kept here by hand — `git tag --list 'v*' | sort -V`
-and `RELEASE_HISTORY.md` are the answer, and a table maintained in a README goes stale.
+and the Releases page are the answer, and a table maintained in a README goes stale.
 
 Every release is published as latest. There is no pre-release tag form yet; one will be added
 when it is needed. The `versionCode` counter only has to increase, not to be contiguous — 3 is
@@ -230,9 +229,10 @@ unused because no v1.2 was ever released.
 
 ## Development
 
-- `AI_PROJECT_RULES.md` is the standing brief — read it before changing anything. It
-  covers performance rules for the draw path, asset and anchor rules, verification
-  levels and the release process.
+- Read `ARCHITECTURE.md` before changing anything: §3 is the authority on the two rendering
+  backends, and nothing about the draw path should be inferred without it. The draw path
+  allocates nothing per frame — no object is created inside `draw`, and that is a rule, not a
+  preference.
 - Sizes and ground positions come from `SceneSpace`. If something draws at the wrong
   size, the fix is its entry in the size table, never a correction at the call site.
 - Sprites are described by `tools/assets/sources/sprites.json`. Changing artwork means

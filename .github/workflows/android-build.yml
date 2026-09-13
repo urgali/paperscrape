@@ -232,8 +232,8 @@ jobs:
           fi
 
       - name: Compose release notes
-        # Prefers a short, plain-language write-up at release-notes/<tag>.md (see
-        # CONTRIBUTING.md's "Ship a new version" row) -- this is what actually shows up on the
+        # Prefers a short, plain-language write-up at release-notes/<tag>.md, one file per tag
+        # -- this is what actually shows up on the
         # GitHub release page AND inside the app's own update dialog (UpdateChecker reads this
         # same release body), so it needs to read like "what's new for you", not a commit log.
         # Falls back to a generic message if that file wasn't added for this version, and always

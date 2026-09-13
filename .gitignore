@@ -37,8 +37,27 @@ local.properties
 tools/assets/staging/
 tools/assets/**/__pycache__/
 
-# Local AI assistant instructions — intentionally NOT versioned.
-# CLAUDE.md holds machine-specific environment setup and session working notes.
-# It must never be committed, never be included in a release artifact, and never
-# be referenced from a tracked file. See AI_PROJECT_RULES.md section 10.3.
+# Internal working documents — they belong to the delivery ZIP, not to this repository.
+# Machine setup and session notes, the standing brief, the design reasoning, the
+# release-by-release internal history, the plan of unapproved work, the open backlogs and
+# the internal delivery reports. They are the working record between the maintainer and
+# whoever is doing the work, and nothing in them is written for a reader of this repository.
+#
+# READ THIS BEFORE ADDING A NAME HERE. A line in this file only stops a path that is *not
+# already tracked*. Every path below was committed long before it was listed, so the listing
+# did nothing on its own: `CLAUDE.md` sat on line 44 under a comment claiming it was never
+# committed while it was public on `main` at 26 806 bytes, through eight releases. What
+# removed them from the repository was one `git rm -r --cached`, once. If one of them ever
+# comes back into `git ls-files`, these lines will not stop `git add -A` from carrying it
+# along — the check that catches that reads the index, not this file, and it is in
+# `CLAUDE.md` section 10.
+#
+# See AI_PROJECT_RULES.md section 10.3.
 CLAUDE.md
+AI_PROJECT_RULES.md
+DESIGN_NOTES.md
+RELEASE_HISTORY.md
+ROADMAP.md
+BACKLOG_*.md
+docs/
+release-verification/
