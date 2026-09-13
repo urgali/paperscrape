@@ -69,6 +69,29 @@ class AppVersionTest {
     }
 
     /**
+     * The major bump out of a two-digit minor: **v4.31 -> v5.0**, the renumber v5.0 made for the
+     * neighbourhood redraw.
+     *
+     * This is the shape no earlier case covered. `2.0 > 1.9` already pins "major beats minor", but
+     * both sides there are single digits and the *sum* of the fields still happens to order them
+     * correctly. Here it does not: 5 + 0 is five and 4 + 31 is thirty-five, so a parser that added
+     * its fields, or weighted the minor at all, would call 5.0 **older** than 4.31 and every
+     * installed user would be told there was nothing to update to.
+     *
+     * `versionCode` is deliberately not in this test. It stayed at 63 across the rename, which is
+     * correct and is none of this parser's business -- see `AppVersion`'s own KDoc.
+     */
+    @Test
+    fun `five dot zero is newer than four dot thirty-one`() {
+        assertTrue(v("5.0") > v("4.31"))
+        assertTrue(v("4.31") < v("5.0"))
+        assertEquals(v("5.0"), AppVersion.parse("v5.0"))
+        assertEquals("5.0", v("v5.0").toString())
+        assertEquals(5, v("5.0").major)
+        assertEquals(0, v("5.0").minor)
+    }
+
+    /**
      * The first release whose minor number is two digits. `AppVersion` compares parsed integers
      * rather than strings, so 2.10 is correctly newer than 2.9 -- a string comparison would have
      * read "2.10" as older than "2.9" and silently stopped offering updates.

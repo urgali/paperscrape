@@ -8,7 +8,23 @@ import com.paperscrape.livewallpaper.R
  * draw functions, so a preview house is assembled out of exactly the parts, at exactly the
  * positions, the wallpaper assembles one from.
  */
-data class PreviewSprite(val resId: Int, val ox: Float, val oy: Float, val tint: Int? = null, val alpha: Int = 255)
+/**
+ * One blit of a preview object.
+ *
+ * [added] is the people's and the neighbourhood's blend: the mask's contribution is **summed**
+ * into the frame over a fixed layer rather than drawn over it, which is what makes a weight mask
+ * interpolate. A preview that drew those masks with a plain tint would show the wall colour
+ * covering the ink it is supposed to be added to -- the same mistake, in the gallery, that
+ * `SpriteBlitter.drawTintedAdded` exists to prevent in the scene.
+ */
+data class PreviewSprite(
+    val resId: Int,
+    val ox: Float,
+    val oy: Float,
+    val tint: Int? = null,
+    val alpha: Int = 255,
+    val added: Boolean = false,
+)
 
 /** An object standing at [x] on the ground line [y], drawn at [scale]. */
 data class PreviewItem(val x: Float, val y: Float, val scale: Float, val parts: List<PreviewSprite>)
@@ -229,27 +245,41 @@ object ThemePreviewScenes {
         // only built-in theme that reaches it (height 0.9); any custom theme that raises its lake
         // that far gets the same treatment for the same reason.
         val shoreline = c.lake.visible && c.lake.height >= 0.8f
+        // The identities are `PreviewIdentity`'s, not invented here: each one is a position a
+        // building of that family really occupies, and it decides both the silhouette the slot
+        // composer deals and which of the category's two colours the building wears. Picking them
+        // rather than a colour is the whole difference from the flat-facade version -- see
+        // [neighbourhood].
         if (c.buildings.visible) {
             if (shoreline) {
-                items += PreviewItem(252f, ROW_GROUND, 0.38f, bar(blendRgb(c.buildings.colorDay2, 0xFFFFFFFF.toInt(), 0.55f), winter))
+                items += buildingItem(252f, ROW_GROUND, 0.38f, SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
+                    PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, night, winter)
             } else if (cityLike) {
-                items += PreviewItem(40f, ROW_BUILDINGS, 0.44f, skyscraper(c.buildings.colorDay1, 170f, winter, lit = true))
-                items += PreviewItem(108f, ROW_BUILDINGS, 0.42f, skyscraper(c.buildings.colorDay2, 200f, winter, lit = true))
-                items += PreviewItem(176f, ROW_BUILDINGS, 0.44f, skyscraper(blendRgb(c.buildings.colorDay1, 0xFFFFFFFF.toInt(), 0.15f), 150f, winter, lit = true))
-                items += PreviewItem(250f, ROW_BUILDINGS, 0.42f, skyscraper(c.buildings.colorDay2, 185f, winter, lit = true))
-                items += PreviewItem(96f, ROW_HOUSES, 0.44f, restaurant(blendRgb(c.buildings.colorDay2, 0xFFFFFFFF.toInt(), 0.30f), winter))
-                items += PreviewItem(232f, ROW_HOUSES, 0.44f, bar(c.buildings.colorDay1, winter))
+                for ((index, x) in listOf(40f, 108f, 176f, 250f).withIndex()) {
+                    items += buildingItem(x, ROW_BUILDINGS, if (index % 2 == 0) 0.44f else 0.42f,
+                        SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
+                        PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, night, winter)
+                }
+                items += buildingItem(96f, ROW_HOUSES, 0.44f, SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
+                    PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, night, winter)
+                items += buildingItem(232f, ROW_HOUSES, 0.44f, SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
+                    PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, night, winter)
             } else {
-                items += PreviewItem(58f, ROW_BUILDINGS, 0.40f, skyscraper(c.buildings.colorDay1, 140f, winter, lit = true))
-                items += PreviewItem(152f, ROW_BUILDINGS, 0.42f, restaurant(blendRgb(c.buildings.colorDay2, 0xFFFFFFFF.toInt(), 0.25f), winter))
-                items += PreviewItem(236f, ROW_BUILDINGS, 0.42f, bar(blendRgb(c.buildings.colorDay2, 0xFF000000.toInt(), 0.15f), winter))
+                items += buildingItem(58f, ROW_BUILDINGS, 0.40f, SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
+                    PreviewIdentity.TOWER_X[0], PreviewIdentity.TOWER_DEPTH[0], c, night, winter)
+                items += buildingItem(152f, ROW_BUILDINGS, 0.42f, SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
+                    PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, night, winter)
+                items += buildingItem(236f, ROW_BUILDINGS, 0.42f, SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
+                    PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, night, winter)
             }
         }
 
         // --- houses ---------------------------------------------------------------------------
         if (c.houses.visible && !cityLike && !shoreline) {
-            items += PreviewItem(96f, ROW_HOUSES, 0.46f, largeHouse(c.houses.colorDay1, winter, lit = true))
-            items += PreviewItem(250f, ROW_HOUSES, 0.46f, smallHouse(c.houses.colorDay2, winter, lit = true))
+            items += buildingItem(96f, ROW_HOUSES, 0.46f, SceneSpace.SceneVariant.HOUSE_LARGE, SceneObjectType.HOUSE,
+                PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, night, winter)
+            items += buildingItem(250f, ROW_HOUSES, 0.46f, SceneSpace.SceneVariant.HOUSE_SMALL, SceneObjectType.HOUSE,
+                PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, night, winter)
         }
 
         // --- trees ----------------------------------------------------------------------------
@@ -435,127 +465,129 @@ object ThemePreviewScenes {
     private const val HORROR_SKY_LOW_NIGHT = 0xFFB03A06.toInt()
     private const val HORROR_SKY_LOW_DAY = 0xFFF07A10.toInt()
 
+    /**
+     * Where the card's buildings stand, as far as the deal is concerned.
+     *
+     * A building's silhouette and its colour both come from `(tileFractionX, depthFraction)` --
+     * the slot composer's choices and `variantIndexFor`'s -- so a preview that wants to show a
+     * turret rather than a gable asks for a position, not for a turret. These are positions
+     * buildings of their family really occupy in a built-in layout (the restaurant's and the
+     * bar's are the ones `SceneObjectCatalog` emits per tile, the houses' the middle of the front
+     * band), so every card shows a street that exists.
+     *
+     * They were chosen by dealing them: `spire, dome, spire, dome` across the four towers and one
+     * of each category colour on each row, which is what a skyline is for. Change one and the
+     * card changes -- `ThemePreviewSceneTest` pins what each currently deals, so the change is
+     * visible rather than silent.
+     */
+    internal object PreviewIdentity {
+        val TOWER_X = floatArrayOf(0.0521f, 0.1319f, 0.44f, 0.2118f)
+        val TOWER_DEPTH = floatArrayOf(0.2667f, 0.4618f, 0.66f, 0.7111f)
+        const val RESTAURANT_X = 0.1319f
+        const val RESTAURANT_DEPTH = 0.4618f
+        const val BAR_X = 0.2118f
+        const val BAR_DEPTH = 0.7111f
+        const val HOUSE_LARGE_X = 0.2986f
+        const val HOUSE_LARGE_DEPTH = 0.785f
+        const val HOUSE_SMALL_X = 0.3786f
+        const val HOUSE_SMALL_DEPTH = 0.785f
+    }
+
     // --- object part lists, offsets as in SceneObjectRenderer ---------------------------------
 
-    private fun smallHouse(wall: Int, snow: Boolean, lit: Boolean): List<PreviewSprite> {
-        val roof = blendRgb(wall, 0xFF1A1410.toInt(), 0.45f)
-        val trim = blendRgb(wall, 0xFF000000.toInt(), 0.35f)
-        val parts = mutableListOf(
-            PreviewSprite(R.drawable.house_small_wall, -48f, -70f, wall),
-            PreviewSprite(R.drawable.house_small_roof, -53f, -110f, roof),
-        )
-        if (snow) parts += PreviewSprite(R.drawable.house_small_roof_snow, -34f, -114f)
-        parts += PreviewSprite(R.drawable.house_small_trim, -53f, -71f, trim)
-        parts += PreviewSprite(R.drawable.house_small_chimney, 8f, -115f, trim)
-        parts += PreviewSprite(R.drawable.house_shared_window, -37f, -45f)
-        parts += PreviewSprite(R.drawable.house_shared_window, 15f, -45f)
-        if (lit) {
-            parts += PreviewSprite(R.drawable.house_window_lit, -37f, -46f)
-            parts += PreviewSprite(R.drawable.house_window_lit, 15f, -46f)
-        }
-        parts += PreviewSprite(R.drawable.house_shared_planter, -39f, -29f)
-        parts += PreviewSprite(R.drawable.house_small_door, -10f, -38f, blendRgb(wall, 0xFF000000.toInt(), 0.55f))
-        return parts
-    }
-
-    private fun largeHouse(wall: Int, snow: Boolean, lit: Boolean): List<PreviewSprite> {
-        val roof = blendRgb(wall, 0xFF1A1410.toInt(), 0.45f)
-        val trim = blendRgb(wall, 0xFF000000.toInt(), 0.35f)
-        val parts = mutableListOf(
-            PreviewSprite(R.drawable.house_large_wall, -70f, -95f, wall),
-            PreviewSprite(R.drawable.house_large_roof, -75f, -145f, roof),
-        )
-        if (snow) parts += PreviewSprite(R.drawable.house_large_roof_snow, -50f, -149f)
-        parts += PreviewSprite(R.drawable.house_large_trim, -75f, -97f, trim)
-        parts += PreviewSprite(R.drawable.house_large_chimney, 20f, -150f, trim)
-        for (wx in listOf(-46f, 24f)) {
-            for (wy in listOf(-84f, -44f)) {
-                parts += PreviewSprite(R.drawable.house_shared_window, wx, wy)
-                if (lit) parts += PreviewSprite(R.drawable.house_window_lit, wx, wy - 1f)
+    /**
+     * A building of the neighbourhood, dealt from the same table the wallpaper deals from.
+     *
+     * ### Why this one is not "offsets as in SceneObjectRenderer"
+     *
+     * Every other builder below is a hand copy of a call site in `SceneObjectRenderer`, and
+     * `PreviewRendererAgreementTest` exists because hand copies drift -- it was written when the
+     * winter tree's snow cap had been sitting three units right and two down of the wallpaper's
+     * for two releases. A stack of pieces chosen per instance is far more than a snow cap's worth
+     * of arithmetic to copy, so it is not copied: [NeighbourhoodComposer] deals it and this reads
+     * out the result.
+     *
+     * The two callers then differ in exactly one thing, which is what they *are*: the wallpaper
+     * deals from the building's own position in the scene, the preview from a position it picks
+     * for a picture. Give both the same position and they produce the same silhouette in the same
+     * colour -- there is no second copy that could disagree, and the agreement test says so
+     * directly rather than comparing two lists of literals.
+     *
+     * ### Two things the preview leaves out, and why
+     *
+     * `OCCUPANTS` and `LAMP` are call-outs to behaviours that animate (`WindowOccupants` picks a
+     * bust from the scene's own people, a porch light glows on the night ramp). The preview is a
+     * still 320x240 card with no people layer and no clock; it has never drawn either, and
+     * drawing them here would mean giving the card both. Snow is drawn, because `winterColorsEnabled`
+     * is a palette the user edits and a preview that cannot show it is not much of a preview.
+     */
+    private fun neighbourhood(
+        variant: SceneSpace.SceneVariant,
+        type: SceneObjectType,
+        tileX: Float,
+        depth: Float,
+        c: SceneCustomization,
+        night: Boolean,
+        snow: Boolean,
+    ): List<PreviewSprite> {
+        val family = NeighbourhoodTable.FAMILIES[variant] ?: return emptyList()
+        // The real object, so the real `colorFor`: which of the category's two colours this
+        // building wears is `variantIndexFor`'s answer about this very position, not a choice the
+        // preview makes. The preview used to invent its own blends here -- a tower 15 % towards
+        // white, a restaurant 30 % -- which showed the user a colour no building of theirs would
+        // ever be.
+        val spec = StaticSceneObject(type, depthFraction = depth, tileFractionX = tileX)
+        val dayBlend = if (night) 0f else 1f
+        val wall = c.colorFor(spec, dayBlend)
+        val glass = SceneObjectRenderer.windowGlassColor(if (night) 1f else 0f)
+        val deal = NeighbourhoodComposer.Deal()
+        NeighbourhoodComposer.deal(family, tileX, depth, deal)
+        val parts = mutableListOf<PreviewSprite>()
+        for (index in 0 until deal.size) {
+            val placed = deal[index]
+            for (part in placed.piece.parts) {
+                val y = placed.baseY + part.y
+                when (part.role) {
+                    PartRole.FIXED -> parts += PreviewSprite(part.res, part.x, y)
+                    PartRole.WALL_MASK -> parts += PreviewSprite(part.res, part.x, y, wall, added = true)
+                    PartRole.GLASS_MASK -> parts += PreviewSprite(part.res, part.x, y, glass, added = true)
+                    PartRole.SNOW -> if (snow) parts += PreviewSprite(part.res, part.x, y)
+                    PartRole.LAMP, PartRole.OCCUPANTS -> Unit
+                }
             }
         }
-        parts += PreviewSprite(R.drawable.house_shared_planter, -48f, -22f)
-        parts += PreviewSprite(R.drawable.house_large_door, -11f, -45f, blendRgb(wall, 0xFF000000.toInt(), 0.55f))
         return parts
     }
 
-    private fun skyscraper(wall: Int, height: Float, snow: Boolean, lit: Boolean): List<PreviewSprite> {
-        // Read from [SkyscraperSpriteLayout] rather than copied, which is the v3.8 Filone 4 fix.
-        // Two of these were wrong: the lit facade sat 6 units right and 6 down of the wall it is
-        // meant to lie exactly on top of, and the roof snow carried the *sum* of the renderer's
-        // four-term offset instead of the terms. See that object for both.
-        val parts = mutableListOf(
-            PreviewSprite(
-                R.drawable.skyscraper_canopy,
-                SkyscraperSpriteLayout.CANOPY_X, SkyscraperSpriteLayout.CANOPY_Y,
-            ),
-            PreviewSprite(R.drawable.skyscraper_wall, SkyscraperSpriteLayout.WALL_X, -height, wall),
-        )
-        if (lit) {
-            parts += PreviewSprite(
-                R.drawable.skyscraper_wall_lit,
-                SkyscraperSpriteLayout.WALL_LIT_X, -height + SkyscraperSpriteLayout.WALL_LIT_DY,
-            )
-        }
-        parts += PreviewSprite(
-            R.drawable.skyscraper_entrance,
-            SkyscraperSpriteLayout.ENTRANCE_X, SkyscraperSpriteLayout.ENTRANCE_Y,
-        )
-        parts += PreviewSprite(
-            R.drawable.skyscraper_setback,
-            SkyscraperSpriteLayout.SETBACK_X, -height + SkyscraperSpriteLayout.SETBACK_DY, wall,
-        )
-        if (snow) {
-            parts += PreviewSprite(
-                R.drawable.skyscraper_roof_snow,
-                SkyscraperSpriteLayout.ROOF_SNOW_X, -height + SkyscraperSpriteLayout.ROOF_SNOW_DY,
-            )
-        }
-        return parts
+    /**
+     * The scale a dealt building is drawn at in the card.
+     *
+     * The pieces are authored in the family's own units and the wallpaper scales them by
+     * `variant.spriteUnitsTall / family.unitsTall` before it blits; the card has no nested scale,
+     * so the same factor is folded into the item's own. [fit] is what it always was -- how much
+     * of the 320x240 card this object may take -- and it is unchanged from the flat-facade
+     * version, because the old artwork's local height *was* `spriteUnitsTall`.
+     */
+    private fun neighbourhoodScale(variant: SceneSpace.SceneVariant, fit: Float): Float {
+        val family = NeighbourhoodTable.FAMILIES[variant] ?: return fit
+        return fit * variant.spriteUnitsTall / family.unitsTall
     }
 
-    private fun restaurant(wall: Int, snow: Boolean): List<PreviewSprite> {
-        val parts = mutableListOf(PreviewSprite(R.drawable.restaurant_wall, -50f, -96f, wall))
-        // The v4.18 cornice and its v4.19 drift, read from the renderer's constants rather than
-        // copied: the preview drew the drift at its pre-cornice origin `(-48,-102)` -- cut for the
-        // uncrowned wall -- for two releases after the wallpaper had moved on, and never drew the
-        // cornice at all. Same drift, same fix as the tree's snow cap (v3.7) and the tower's (v3.8).
-        parts += PreviewSprite(
-            R.drawable.restaurant_cornice,
-            SceneObjectRenderer.RESTAURANT_CORNICE_X, SceneObjectRenderer.RESTAURANT_CORNICE_Y, wall,
-        )
-        if (snow) {
-            parts += PreviewSprite(
-                R.drawable.restaurant_roof_snow,
-                SceneObjectRenderer.RESTAURANT_ROOF_SNOW_X, SceneObjectRenderer.RESTAURANT_ROOF_SNOW_Y,
-            )
-        }
-        parts += PreviewSprite(R.drawable.restaurant_awning, -34f, -46f)
-        parts += PreviewSprite(R.drawable.restaurant_window, -35f, -45f, blendRgb(wall, 0xFFFFFFFF.toInt(), 0.35f))
-        parts += PreviewSprite(R.drawable.restaurant_door, 8f, -28f, blendRgb(wall, 0xFF000000.toInt(), 0.35f))
-        parts += PreviewSprite(R.drawable.restaurant_sign, -17f, -96f)
-        return parts
-    }
-
-    private fun bar(wall: Int, snow: Boolean): List<PreviewSprite> {
-        val parts = mutableListOf(PreviewSprite(R.drawable.bar_wall, -45f, -92f, wall))
-        // Cornice and drift shared with the renderer -- see restaurant() above for the drift this closes.
-        parts += PreviewSprite(
-            R.drawable.bar_cornice,
-            SceneObjectRenderer.BAR_CORNICE_X, SceneObjectRenderer.BAR_CORNICE_Y, wall,
-        )
-        if (snow) {
-            parts += PreviewSprite(
-                R.drawable.bar_roof_snow,
-                SceneObjectRenderer.BAR_ROOF_SNOW_X, SceneObjectRenderer.BAR_ROOF_SNOW_Y,
-            )
-        }
-        parts += PreviewSprite(R.drawable.bar_door, -10f, -28f, blendRgb(wall, 0xFF000000.toInt(), 0.35f))
-        parts += PreviewSprite(R.drawable.house_shared_window, -34f, -82f)
-        parts += PreviewSprite(R.drawable.house_shared_window, 14f, -82f)
-        parts += PreviewSprite(R.drawable.bar_sign, -12f, -84f)
-        return parts
-    }
+    private fun buildingItem(
+        x: Float,
+        y: Float,
+        fit: Float,
+        variant: SceneSpace.SceneVariant,
+        type: SceneObjectType,
+        tileX: Float,
+        depth: Float,
+        c: SceneCustomization,
+        night: Boolean,
+        snow: Boolean,
+    ): PreviewItem = PreviewItem(
+        x, y, neighbourhoodScale(variant, fit),
+        neighbourhood(variant, type, tileX, depth, c, night, snow),
+    )
 
     /**
      * Read from [TreeSpriteLayout] rather than copied, which is the v3.7 Filone C fix.
@@ -707,12 +739,11 @@ object ThemePreviewScenes {
     private val WINTER_GIRL = intArrayOf(R.drawable.person_girl_winter_walk0, R.drawable.person_girl_winter_walk1, R.drawable.person_girl_winter_walk2)
 
     /** The renderer's own `ColorUtils.blendARGB`, reimplemented so this file needs no Android. */
-    private fun blendRgb(from: Int, to: Int, ratio: Float): Int {
-        val inverse = 1f - ratio
-        val a = ((from ushr 24 and 0xFF) * inverse + (to ushr 24 and 0xFF) * ratio).toInt()
-        val r = ((from ushr 16 and 0xFF) * inverse + (to ushr 16 and 0xFF) * ratio).toInt()
-        val g = ((from ushr 8 and 0xFF) * inverse + (to ushr 8 and 0xFF) * ratio).toInt()
-        val b = ((from and 0xFF) * inverse + (to and 0xFF) * ratio).toInt()
-        return (a shl 24) or (r shl 16) or (g shl 8) or b
-    }
+    /**
+     * The preview's own name for the scene's blend, kept because a hundred call sites read better
+     * with it. The arithmetic moved to [SceneColour] in v5.0: this file used to *define* it, which
+     * made it a second answer to "what is a colour between two colours" living beside the
+     * renderer's.
+     */
+    private fun blendRgb(from: Int, to: Int, ratio: Float): Int = SceneColour.blendArgb(from, to, ratio)
 }

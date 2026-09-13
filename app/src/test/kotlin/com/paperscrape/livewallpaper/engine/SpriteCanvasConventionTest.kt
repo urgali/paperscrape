@@ -111,7 +111,7 @@ class SpriteCanvasConventionTest {
             // grid to match -- which is why `SpriteDrawScaleTest`'s budget fell while
             // `SpriteGeometryTest`'s rose. Naming them one by one would be 167 lines that say the
             // same sentence.
-            val isRegionMask = name.matches(MASK_NAME)
+            val isRegionMask = name.matches(MASK_NAME) || name.matches(NEIGHBOURHOOD_LAYER)
             val loadBearing = name in marginIsLoadBearing || isRegionMask
             if (!touches && !loadBearing) unexpected += name
             if (touches && isRegionMask) continue
@@ -137,7 +137,9 @@ class SpriteCanvasConventionTest {
         // with 195 layer files: a shape now ships as fixed art plus one weight mask per colourable
         // region, twenty of which turned out to be bytes another shape had already written and are
         // shared rather than written twice.
-        assertEquals("332 sprites are expected", 332, all.size)
+        // 370 in v5.0: the 34 flat-facade building sprites left and the 72 pieces of the redrawn
+        // neighbourhood arrived. See `SpriteGeometryTest.decodedByteBudget`, v5.0.
+        assertEquals("370 sprites are expected", 370, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -149,12 +151,33 @@ class SpriteCanvasConventionTest {
         // they were cut from do -- but 168 tone copies that did left the set, so the count falls
         // even though the convention did not move. Its 167 masks do not reach an edge and cannot;
         // see the exemption above.
-        assertEquals("193 of them reach a canvas edge", 193, touching)
+        // 193 until v5.0. The 34 flat facades reached their edges, as a facade drawn to its own
+        // outline does; the 72 pieces that replace them are layers, and 48 of them reach an edge
+        // while the rest carry the registration margin the exemption above describes.
+        assertEquals("207 of them reach a canvas edge", 207, touching)
     }
 
     private companion object {
         /** A v4.30 region mask: `<shape>_m` plus the region's letter. */
         val MASK_NAME = Regex("""person_.*_m[shtb]""")
+
+        /**
+         * A v5.0 neighbourhood layer: a building piece's fixed art or one of its two masks.
+         *
+         * **The same exemption as the people's, for the same reason, and it covers the fixed layer
+         * too.** A piece is drawn once and decomposed into `_fx` plus `_mw` and `_mg`, all three
+         * blitted at the piece's own origin so they land on each other exactly. Their margins are
+         * that registration: a mask's ink is the few tenths of the canvas its region covers, and
+         * the fixed layer's is whatever the tinted weights took out of the drawing. Cropping any
+         * of them would have to be paid for by sliding it back on a grid that does not divide --
+         * `SpriteDetailLevel.reduced` truncates -- and the three layers would drift apart across
+         * the piece.
+         *
+         * The transparency is not shipped to the GPU: `GlTextureCache` crops it away **after** the
+         * reduction, where the texels are the canvas's own. A `_snow_fx` is one of these as well;
+         * it is a drift cut to a roof it must land on, which is the same registration.
+         */
+        val NEIGHBOURHOOD_LAYER = Regex("""(house|tower|restaurant|bar)_.*_(fx|mw|mg)""")
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

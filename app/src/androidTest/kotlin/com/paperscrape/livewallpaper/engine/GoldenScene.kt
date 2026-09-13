@@ -67,10 +67,17 @@ class GoldenScene(
      * delta by exactly [warmUpDeltaSeconds], both of which are pure inputs, so the same scene and
      * the same count always produce the same pixels. The one thing in the renderer that draws from
      * an unseeded `Random` is the lightning timer, and `updateLightning` only touches it while a
-     * storm is active — so a warmed-up scene must not be a storm, which
-     * [SceneGolden.assertMatches] has no way to check and [SharedGoldenScenes] therefore does not
-     * do. Everything else that moves is seeded (`Random(42)` for the star field) or is a pure
-     * function of the clock.
+     * storm is active — so a warmed-up scene must not be a storm **unless it pins the lightning**,
+     * which is [pinLightning]. Everything else that moves is seeded (`Random(42)` for the star
+     * field) or is a pure function of the clock.
+     *
+     * **This sentence used to end at "must not be a storm", and said in the same breath that
+     * [SceneGolden.assertMatches] had no way to check it.** Both halves were wrong by v4.31:
+     * `wave-storm` had been a warmed-up storm since v4.28 and failed about one run in
+     * thirty-two, and the check was writable all along — a scene carries its own
+     * [warmUpFrames], weather and customisation, which is everything
+     * `LiveWeatherSceneRules.stormActive` needs. It is [requireDeterministicLightning] now, and it
+     * runs on every golden assertion in both harnesses. See `BACKLOG_v4_31.md` item 112.
      */
     val warmUpFrames: Int = 0,
     /** One frame at the render loop's own 30 fps cadence, which is what the wallpaper runs at. */
@@ -86,7 +93,90 @@ class GoldenScene(
      * the whole-frame comparison every golden gets. Empty for a golden about the whole picture.
      */
     val focus: List<GoldenFocus> = emptyList(),
+    /**
+     * Takes the strike timer out of this scene's render, and **may only be true for a scene that
+     * needs it** — one that warms up through a thunderstorm.
+     *
+     * A storm is the one weather a golden cannot simply warm up: the strike interval is rolled from
+     * an unseeded `Random`, exactly one frame per strike draws the veil, and the interval averages
+     * 32 frames, so a warmed-up storm shows a bolt in about 3 % of its renders and the frame that
+     * does is 285 858 pixels away from the one that does not. That is not a tolerance problem —
+     * it failed the 576-pixel budget of v4.28 just as it fails the zero of v4.31 — it is a scene
+     * whose picture is not a function of its inputs.
+     *
+     * **What it changes and what it does not.** [PaperRenderer.lightningStrikesEnabled] gates the
+     * firing only, and only for the renderer this harness built: the wallpaper's lightning is
+     * untouched, still random and still off the clock, which is the condition the maintainer put on
+     * fixing this at all. The scene on the other side of the switch is the storm with everything
+     * `StormAtmosphere` drives — the darkened sky, the darkened cloud band, the attenuated sun, the
+     * rain — and the bolt that was never in the committed frame anyway.
+     *
+     * **It is not a tolerance and it cannot hide a regression.** The frame it produces is the frame
+     * the golden already pins, compared at the same zero; what it removes is the 3 % of renders that
+     * were comparing a different picture. If a strike ever becomes part of what a golden is about,
+     * the scene it belongs in is a *cold* one, where the timer cannot fire at all.
+     */
+    val pinLightning: Boolean = false,
 ) {
+
+    /**
+     * Whether this scene runs the renderer through a live storm, which is the only state in which
+     * the strike timer advances and therefore the only way an unseeded roll can reach a frame.
+     *
+     * Read the way [PaperRenderer] reads it, through `LiveWeatherSceneRules.stormActive` and off
+     * the customisation [configure] would hand it, so the two cannot come to different answers
+     * about the same scene.
+     */
+    val warmsUpThroughAStorm: Boolean
+        get() {
+            if (warmUpFrames <= 0) return false
+            val precipitation = customise(defaultCustomizationFor(themeId)).precipitation
+            return LiveWeatherSceneRules.stormActive(
+                liveIsThunderstorm = weather?.isThunderstorm,
+                themePrecipitationVisible = precipitation.visible,
+                themePrecipitationIsRain = precipitation.type == PrecipitationType.RAIN,
+                themeThunderstorm = precipitation.thunderstorm,
+            )
+        }
+
+    /**
+     * The guard [warmUpFrames]'s doc said could not be written: **a scene may not be warmed up
+     * through a storm unless it has pinned the lightning.**
+     *
+     * Called from both golden harnesses rather than from [configure], because what it protects is a
+     * *comparison* against a committed file: a capture test that warms a storm up and writes the
+     * frame out is drawing a picture nobody is going to diff, and has nothing to flake against.
+     *
+     * It is deliberately a rule with no exemption in it. `wave-storm` is not excused from the check
+     * — it satisfies it, by pinning — so the next warmed-up storm somebody writes is caught at the
+     * first run instead of on whichever run in thirty-two happens to flash.
+     *
+     * **It runs in both directions.** [pinLightning] on a scene that is not a warmed-up storm is
+     * rejected too, because the switch has exactly one job and a pin spread over scenes that do not
+     * need it is how it would stop meaning anything: every scene pinned is a guard that never fires
+     * again, and a golden that quietly cannot show a flash even if one day it should. The KDoc on
+     * [pinLightning] says "may only be true for a scene that needs it", and this is what makes that
+     * sentence a rule rather than a hope.
+     */
+    fun requireDeterministicLightning() {
+        if (pinLightning && !warmsUpThroughAStorm) {
+            throw AssertionError(
+                "Golden scene '$name' pins the lightning and does not need to: it is not warmed up " +
+                    "through a thunderstorm, so the strike timer cannot fire in it either way. The " +
+                    "pin has one job (see GoldenScene.pinLightning) and spreading it is how it would " +
+                    "stop having one -- remove it.",
+            )
+        }
+        if (!warmsUpThroughAStorm || pinLightning) return
+        throw AssertionError(
+            "Golden scene '$name' is warmed up for $warmUpFrames frames with a thunderstorm " +
+                "active, and has not pinned the lightning. The strike timer is the one thing in " +
+                "PaperRenderer that rolls from an unseeded Random, so this frame is a coin flip: " +
+                "about one render in 32 carries the veil, and that render differs from the " +
+                "committed golden by the whole frame. Either take the storm out of the warm-up, " +
+                "or set pinLightning = true. See BACKLOG_v4_31.md item 112.",
+        )
+    }
 
     fun configure(renderer: PaperRenderer) {
         renderer.theme = ThemeCatalog.byId(themeId)
@@ -98,6 +188,8 @@ class GoldenScene(
         renderer.swipeScrollEnabled = false
         renderer.scrollSpeed = 0f
         renderer.parallaxStrength = 1f
+        // Only ever false here, and only for a scene that asked: see [pinLightning].
+        renderer.lightningStrikesEnabled = !pinLightning
     }
 
     companion object {

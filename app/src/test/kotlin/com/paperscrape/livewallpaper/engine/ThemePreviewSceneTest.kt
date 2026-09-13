@@ -23,6 +23,23 @@ class ThemePreviewSceneTest {
     private fun ThemePreviewScene.allSprites(): List<Int> =
         (backdrop + items + cars + ground).flatMap { item -> item.parts.map { it.resId } }
 
+    /**
+     * Whether the scene shows any of the winter drifts [variant]'s pieces can carry.
+     *
+     * A building's roof is dealt per instance since v5.0 -- a small house wears a gable's drift
+     * or a mansard's, a large one one of four -- so naming a single drawable here would be
+     * asserting which deal the preview's declared identity happens to produce, which is a fact
+     * about `PreviewIdentity` and not about winter. The family's own set is the question worth
+     * asking: *is this house wearing snow at all*.
+     */
+    private fun ThemePreviewScene.containsAnyDriftOf(variant: SceneSpace.SceneVariant): Boolean {
+        val drifts = NeighbourhoodTable.FAMILIES.getValue(variant).slots
+            .flatMap { it.options }
+            .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW }.map { it.res } }
+            .toSet()
+        return allSprites().any { it in drifts }
+    }
+
     private fun ThemePreviewScene.contains(resId: Int) = allSprites().contains(resId)
 
     @Test
@@ -38,7 +55,7 @@ class ThemePreviewSceneTest {
     @Test
     fun `winter shows snow on the roofs, snow-capped trees and a snowman`() {
         val scene = sceneFor("winter")
-        assertTrue(scene.contains(R.drawable.house_large_roof_snow))
+        assertTrue("a house should wear its drift", scene.containsAnyDriftOf(SceneSpace.SceneVariant.HOUSE_LARGE))
         assertTrue(scene.contains(R.drawable.tree_canopy_snowcap))
         assertTrue(scene.contains(R.drawable.snowman_body))
     }
@@ -56,7 +73,7 @@ class ThemePreviewSceneTest {
         assertTrue(scene.contains(R.drawable.tree_fir))
         assertTrue(scene.contains(R.drawable.star_sparkle))
         assertTrue(scene.contains(R.drawable.gift_box))
-        assertTrue(scene.contains(R.drawable.house_large_roof_snow))
+        assertTrue("a house should wear its drift", scene.containsAnyDriftOf(SceneSpace.SceneVariant.HOUSE_LARGE))
     }
 
     @Test
@@ -146,10 +163,10 @@ class ThemePreviewSceneTest {
     @Test
     fun `city is built rather than settled`() {
         val scene = sceneFor("city")
-        val towers = scene.items.count { item -> item.parts.any { it.resId == R.drawable.skyscraper_wall } }
+        val towers = scene.items.count { item -> item.parts.any { it.resId == R.drawable.tower_tier1_fx } }
         assertTrue("expected a skyline, got $towers towers", towers >= 4)
         assertTrue(scene.peaks.isEmpty())
-        assertFalse(scene.contains(R.drawable.house_large_wall))
+        assertFalse("a city is towers and shops, not houses", scene.contains(R.drawable.house_large_ground_fx))
     }
 
     @Test

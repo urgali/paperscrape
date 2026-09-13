@@ -375,15 +375,16 @@ class SceneGoldenTest {
      * The focus rectangle is the water and nothing else: the sky above it carries the storm veil
      * and the lightning, which are v4.26's business and have their own frames.
      *
-     * **This scene is a warmed-up thunderstorm, and [GoldenScene.warmUpFrames]'s own doc says a
-     * warmed-up scene must not be one.** Eighty seconds of simulated storm with the lightning timer
-     * drawing from an unseeded `Random`: one frame in every strike interval carries a veil, the
-     * interval averages 32 frames, so **this golden fails about 1 run in 32 — with the whole frame,
-     * 285 858 pixels** — and has since v4.28. Caught in v4.31 and measured to a tenth of a level
-     * (predicted mean lift 21.8, observed 21.9); `BACKLOG_v4_31.md` item 112 has the arithmetic and
-     * the three ways out, none of which belongs in a defect round. **If this golden fails and the
-     * diff is the entire frame with a bolt in the sky, that is the flake and not a regression** —
-     * re-run it before believing it.
+     * **This scene is a warmed-up thunderstorm, which is why it pins the lightning** (v5.0).
+     * Eighty seconds of simulated storm used to mean eighty seconds of an unseeded `Random`
+     * choosing when the sky flashes: one frame per strike carries the veil, the interval averages
+     * 32 frames, so this golden failed about **1 run in 32, by the whole frame — 285 858 pixels**,
+     * from v4.28 until it was closed. [GoldenScene.pinLightning] takes the strike timer out of
+     * *this render* and out of nothing else; the wallpaper's lightning is exactly what it was, and
+     * the frame is the one already committed, which never had a bolt in it. The rule is a check
+     * now — [GoldenScene.requireDeterministicLightning] — so the next scene that warms a storm up
+     * fails on its first run rather than on its thirty-second. `BACKLOG_v4_31.md` item 112 has the
+     * arithmetic, and v5.0 Fase 0's report has the 100 consecutive green runs.
      */
     @Test
     fun waveStorm() = SceneGolden.assertMatches(
@@ -414,6 +415,7 @@ class SceneGoldenTest {
             focus = listOf(
                 GoldenFocus(0, 435, 360, 545, "the water: waves, and what is in front of what"),
             ),
+            pinLightning = true,
         ),
     )
 

@@ -754,7 +754,10 @@ private fun variantIndexFor(spec: CarObject): Int =
 private fun blend(config: ObjectVariantConfig, variant: Int, dayBlend: Float): Int {
     val day = if (variant == 0) config.colorDay1 else config.colorDay2
     val night = if (variant == 0) config.colorNight1 else config.colorNight2
-    return androidx.core.graphics.ColorUtils.blendARGB(night, day, dayBlend.coerceIn(0f, 1f))
+    // [SceneColour.blendArgb] rather than `ColorUtils.blendARGB`: the same arithmetic, without a
+    // call into `android.graphics.Color`, so which colour a building wears is a question the JVM
+    // suite can answer. See that object.
+    return SceneColour.blendArgb(night, day, dayBlend.coerceIn(0f, 1f))
 }
 
 fun SceneCustomization.colorFor(spec: StaticSceneObject, dayBlend: Float): Int {

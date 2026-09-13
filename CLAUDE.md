@@ -135,7 +135,7 @@ The drawing itself is `tools/assets/concepts/people/build_people_concepts.py` (s
 `tools/assets/sources/svg/`, then run the two above. `build_carry_sprites.py` checks on every run
 that it still reproduces the shipped man byte for byte; if that stops passing, stop.
 
-**The asset tooling's own suite is 109 tests and all 109 pass** (v4.31). It was 107 of 109 from
+**The asset tooling's own suite is 121 tests and all 121 pass** (v5.0; it was 109 at v4.31). It was 107 of 109 from
 v4.26 to v4.30: `test_normalize`'s two padding checks went red when the lake was redrawn and
 nothing in the release checklist ran them, so they stayed red for four releases. `BACKLOG_v4_31.md`
 item 106 closed them — the three lake sprites are cropped with their origins compensated — and
@@ -155,7 +155,8 @@ adb shell run-as com.paperscrape.livewallpaper.debug cat files/...    # debug bu
 ```
 
 **Filter the intermediate rounds; run the whole suite once, at the end.** The full instrumented
-suite is ~40 minutes on this device and a golden pass needs four or five rounds through it —
+suite is **62 minutes** on this device (measured 2026-09-13: `Time: 3 742,404` s, 171 tests; it was
+~40 before the neighbourhood redraw) and a golden pass needs four or five rounds through it —
 attribution, regeneration, re-verification, one per mutation. Every one of those is `am instrument`
 with `-e class` on the classes actually touched: two tests is under a minute, the five Canvas golden
 classes about seven. The whole suite still runs once before delivery and its number is what goes in
@@ -256,7 +257,24 @@ print(t,'tests,',f,'failures,',e,'errors')"
 
 **Do not count goldens by listing the directory.** It holds the Canvas PNGs *and* the three
 `gl-*.png`. The Canvas figure is the number of Canvas **assertions**, one `assertMatches` each,
-no parameterised tests. **Do not keep the list of classes here either** — this paragraph named
+no parameterised tests.
+
+**Since v5.0 one of those calls is not a golden, and the command cannot tell.** `LightningPinTest`
+hands `assertMatches` a scene it must *reject* — that is how the guard of item 112 is shown to run
+inside the harness rather than only to exist — so the grep returns **one more than the number of
+Canvas golden assertions**. It is deliberately the only such call in that file, and it says so at
+its own declaration. Subtract it: **34 hits, 33 Canvas assertions** at v5.0.
+
+**And an assertion is not a file — three of them share a golden.** The 33 assertions run against
+**30 committed Canvas PNGs**: `day.png` is asserted three times (`SceneGoldenTest.day`,
+`PeopleGoldenTest`'s pavement-focus case, `SkyWaterGoldenTest.day-sky`) and `lake-busy.png` twice
+(`SceneGoldenTest.lakeBusy`, `SkyWaterGoldenTest.lake-busy-water`), because a focus region is a
+second claim about the same frame and not a second frame. So the three numbers that directory and
+those greps can give you are **33 Canvas assertions, 30 Canvas PNGs, 3 GL references — 33 PNGs on
+disk**, and the two 33s are not the same 33. Say which one you mean whenever you write it down;
+"33 Canvas goldens" has already been read as "33 Canvas files" once.
+
+**Do not keep the list of classes here either** — this paragraph named
 three and there are four, and v4.28 filtered an intermediate golden run on the stale list and
 missed `SkyWaterGoldenTest`, whose `waterline-worst-theme` then failed in the full suite. Ask the
 tree, which also finds the GL suite:
@@ -360,11 +378,17 @@ attribution *is* available — `simpleperf record --app <pkg> -t <tid>` works on
   against an older APK fails with `No golden committed for '<name>'`, which reads like the
   copy never happened — it cost a whole 43-minute suite once. Run `installDebugAndroidTest`
   and check the PNG went in.
-- **The GL goldens are tied to one reference driver; the Canvas ones are portable.** Never
-  raise a tolerance to make a different driver pass — that trades a real check for a green
-  tick. A byte comparison is the wrong metric for the GL frames: freshly captured ones
-  differ from the committed Adreno-authored files by 0.49–0.94% purely from the
-  characterised driver gap. `GlDriverGapGuardTest` is the check that means something.
+- **The GL references are tied to one reference driver; the Canvas goldens are portable.**
+  Never raise a tolerance to make a different driver pass — that trades a real check for a
+  green tick. **The reference driver has been this device's since v4.26** (BV6600, PowerVR
+  Rogue GE8320; all three re-authored 2026-09-13 for the neighbourhood), so
+  `GlDriverGapGuardTest` reads **0.00%** and will until a second GPU vendor exists — a
+  non-zero reading here means the scene moved, not the driver. It was 0.49–0.94% while the
+  committed files were Adreno-authored, and that gap is why a byte comparison is the wrong
+  metric for a GL frame; keep the metric, the reason outlives the number. The four
+  historical figures and their devices are in `GlGolden.EdgeDisplacement`, which is now the
+  only place they survive. **Do not repeat the "Adreno-authored since v4.21" line** — it was
+  stale from v4.26 and stood in two KDocs and a backlog entry for six releases.
 - **`org.json` is a framework class**, so unit tests need the real implementation on the
   test classpath. Without it every `JSONObject` call throws "not mocked". Do not "fix" that
   with `isReturnDefaultValues`, which turns real assertions into assertions about stubs.
@@ -376,7 +400,12 @@ attribution *is* available — `simpleperf record --app <pkg> -t <tid>` works on
   16 slider call sites left `it` instead of the commit parameter in three of them.
 - **This device never calls `onOffsetsChanged`** (verified with a probe; the wallpaper
   picker is the positive control). Horizontal motion is `scrollProgress`'s own accumulator.
-  The whole instrumented suite takes roughly 40 minutes here.
+  The whole instrumented suite takes **about an hour** here — 62 minutes measured 2026-09-13,
+  not the ~40 this line used to say. The redraw is why: a tower is 33 blits where the shipped
+  facade was 6, and the tests that count frames pay it multiplied. `CarNightCrossfadeTest` alone
+  is ~14 minutes (two methods x 1 280 frames, each a full scene render plus a bitmap measure).
+  **It looks hung and is not** — check `adb shell top` for the process's CPU time before
+  concluding anything; it sits at ~125%.
 - **`elapsedSeconds` freezes at ~12 days** of visible uptime — first suspect for "the
   wallpaper stopped moving". **v66–v72 shipped unverified**, with no build tools available
   then; treat that range as less proven.

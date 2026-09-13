@@ -27,7 +27,7 @@ in the archived file; read it there.
 | item | from | what | still |
 |---|---|---|---|
 | 18, 25, 30, 40, 50–55 | v4.23 / v4.24 | carried by `BACKLOG_v4_28.md` from the three backlogs it archived | **OPEN** as recorded there |
-| 56 | `BACKLOG_v4_25.md` | The three GL reference frames portray people who no longer exist | **OPEN**, and more so: v4.30 redrew the children and recoloured everybody, and the three Adreno-authored references are deliberately still not re-authored — re-authoring them on this device is what would cost the cross-driver check `GlDriverGapGuardTest` exists for |
+| 56 | `BACKLOG_v4_25.md` | The three GL reference frames portray people who no longer exist | **CLOSED in v5.0** as a decision — see `BACKLOG_v5_0.md`. What this line said when v4.30 wrote it: "and more so: v4.30 redrew the children and recoloured everybody, and the three Adreno-authored references are deliberately still not re-authored — re-authoring them on this device is what would cost the cross-driver check `GlDriverGapGuardTest` exists for". **Two words of that were wrong.** The references had not been Adreno-authored since v4.26 (item 71, ratified v4.27), so re-authoring them cost nothing: the cross-driver check had already stopped measuring anything three releases earlier |
 | 63 | `BACKLOG_v4_25.md` | A redraw left six stale sizes in the comments, and the guard that exists for exactly that missed all six | **OPEN**; item 94 is the same failure again |
 | 83 | `BACKLOG_v4_28.md` | The wave stands over more of the lake band than its derivation assumed | **OPEN**, untouched here |
 

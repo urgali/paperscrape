@@ -144,16 +144,42 @@ class SpriteDrawScaleTest {
 
         // -- static scene objects, all through SceneObjectRenderer.effectiveScaleFor ------------
 
-        put(
-            staticPath("small house", SceneSpace.SceneVariant.HOUSE_SMALL),
-            "house_small_chimney", "house_small_door", "house_small_roof", "house_small_roof_snow",
-            "house_small_trim", "house_small_wall", "house_shared_planter", "house_shared_window",
-            "house_window_lit",
+        // -- the neighbourhood (v5.0) -------------------------------------------------------
+        //
+        // A building's pieces are blitted inside the composer's own `canvas.scale(k, k)`, with
+        // `k = variant.spriteUnitsTall / family.unitsTall` -- the factor that draws a piece
+        // authored in the family's units at the height the variant declares. That is exactly what
+        // `inner` is for, and it is read from the table rather than typed, so a family whose
+        // reference height is edited cannot leave a stale number here.
+        fun neighbourhood(label: String, variant: SceneSpace.SceneVariant, vararg sprites: String) {
+            val family = NeighbourhoodTable.FAMILIES.getValue(variant)
+            put(
+                staticPath(label, variant, inner = variant.spriteUnitsTall / family.unitsTall),
+                *sprites,
+            )
+        }
+
+        neighbourhood(
+            "small house", SceneSpace.SceneVariant.HOUSE_SMALL,
+            "house_small_ground_fx", "house_small_ground_mg", "house_small_ground_mw",
+            "house_small_roof_gable_fx", "house_small_roof_gable_mw",
+            "house_small_roof_gable_snow_fx", "house_small_roof_mansard_fx",
+            "house_small_roof_mansard_mg", "house_small_roof_mansard_mw",
+            "house_small_roof_mansard_snow_fx", "house_small_storey_fx",
+            "house_small_storey_mg", "house_small_storey_mw",
         )
-        put(
-            staticPath("large house", SceneSpace.SceneVariant.HOUSE_LARGE),
-            "house_large_chimney", "house_large_door", "house_large_roof", "house_large_roof_snow",
-            "house_large_trim", "house_large_wall",
+        neighbourhood(
+            "large house", SceneSpace.SceneVariant.HOUSE_LARGE,
+            "house_large_ground_fx", "house_large_ground_mg", "house_large_ground_mw",
+            "house_large_roof_gable_fx", "house_large_roof_gable_mg",
+            "house_large_roof_gable_mw", "house_large_roof_gable_snow_fx",
+            "house_large_roof_mansard_fx", "house_large_roof_mansard_mg",
+            "house_large_roof_mansard_mw", "house_large_roof_mansard_snow_fx",
+            "house_large_roof_turret_gable_fx", "house_large_roof_turret_gable_mw",
+            "house_large_roof_turret_gable_snow_fx", "house_large_roof_turret_tower_fx",
+            "house_large_roof_turret_tower_mg", "house_large_roof_turret_tower_mw",
+            "house_large_roof_turret_tower_snow_fx", "house_large_storey_fx",
+            "house_large_storey_mg", "house_large_storey_mw",
         )
         put(
             staticPath("tree", SceneSpace.SceneVariant.TREE),
@@ -164,19 +190,27 @@ class SpriteDrawScaleTest {
             staticPath("palm", SceneSpace.SceneVariant.PALM_TREE),
             "palmtree_trunk", "palmtree_fronds", "palmtree_fronds_dead", "palmtree_fronds_frost",
         )
-        put(
-            staticPath("skyscraper", SceneSpace.SceneVariant.TOWER),
-            "skyscraper_wall", "skyscraper_wall_lit", "skyscraper_setback", "skyscraper_entrance",
-            "skyscraper_canopy", "skyscraper_roof_snow",
+        neighbourhood(
+            "tower", SceneSpace.SceneVariant.TOWER,
+            "tower_bay_fx", "tower_bay_mg", "tower_crown_dome_fx", "tower_crown_dome_mw",
+            "tower_crown_dome_snow_fx", "tower_crown_spire_fx", "tower_crown_spire_mw",
+            "tower_crown_spire_snow_fx", "tower_row_tier1_fx", "tower_row_tier1_mg",
+            "tower_row_tier2_fx", "tower_row_tier2_mg", "tower_row_tier3_fx",
+            "tower_row_tier3_mg", "tower_snow_left1_fx", "tower_snow_left2_fx",
+            "tower_snow_right1_fx", "tower_snow_right2_fx", "tower_snow_top_fx",
+            "tower_tier1_fx", "tower_tier1_mg", "tower_tier1_mw", "tower_tier2_fx",
+            "tower_tier2_mw", "tower_tier3_fx", "tower_tier3_mw",
         )
-        put(
-            staticPath("restaurant", SceneSpace.SceneVariant.RESTAURANT),
-            "restaurant_wall", "restaurant_window", "restaurant_door", "restaurant_awning",
-            "restaurant_cornice", "restaurant_sign", "restaurant_roof_snow",
+        neighbourhood(
+            "restaurant", SceneSpace.SceneVariant.RESTAURANT,
+            "restaurant_pavilion_fx", "restaurant_pavilion_mg", "restaurant_pavilion_mw",
+            "restaurant_pavilion_snow_fx",
         )
-        put(
-            staticPath("bar", SceneSpace.SceneVariant.BAR),
-            "bar_wall", "bar_door", "bar_cornice", "bar_sign", "bar_lantern", "bar_roof_snow",
+        neighbourhood(
+            "bar", SceneSpace.SceneVariant.BAR,
+            "bar_chamfer_fx", "bar_chamfer_mg", "bar_chamfer_mw", "bar_chamfer_snow_fx",
+            "bar_signboard_fx", "bar_signboard_mg", "bar_signboard_mw",
+            "bar_signboard_snow_fx",
         )
         put(
             staticPath("snowman", SceneSpace.SceneVariant.SNOWMAN),
@@ -746,8 +780,34 @@ class SpriteDrawScaleTest {
      * 9.4 MiB, against the 17.09 MiB here. It is an upper bound, computable on the host from the
      * shipped artwork alone, which is what lets it be a test at all; the device figure is in
      * `release-verification/V4_29_REPORT.md` and cannot be.
+     *
+     * ### v5.0 moved it back **up**, from 15 MiB to 16 MiB
+     *
+     * The set uploads **15 769 428 B** of level-0 texels, and 16 MiB is the next figure above it,
+     * leaving **1 007 788 B** (v4.30 left 1 133 656 B). It rose by 1 174 444 B: the five building
+     * families redrawn as per-instance stacks and cut-out figures (see
+     * `SpriteGeometryTest.decodedByteBudget`, v5.0) upload **4 545 392 B** where the shipped 34
+     * uploaded 3 370 948 B. Level 0 is the whole story of that ratio: buildings are drawn at
+     * 0.87-1.41 px per unit on the reference device, so `SpriteDetailLevel` never reduces them and
+     * every authored texel is an uploaded texel -- the crop after reduction gives back only
+     * 58 468 B across the 72 files, because a wall piece is ink to its edges.
+     *
+     * *Why up and not, as v4.30, down.* v4.30 moved this line down because a colour axis had
+     * stopped multiplying the set. Nothing multiplies here either -- one wall mask and one glass
+     * mask per piece, and not one colour variant -- but silhouettes are not an axis that masks can
+     * absorb: a roof shape is pixels or it is nothing. The cheap ways out were costed before this
+     * moved (a bar figure, the turret roof, a mansard, a crown) and each of them is a silhouette
+     * fewer; the maintainer kept them all.
+     *
+     * *What this is and is not, restated for the number that actually binds.* Still the upper
+     * bound over the whole set, not a scene. The atlas is one 2048x2048 page -- 16 MiB of RGBA,
+     * already allocated -- so whether the extra 1.15 MiB of texels stays inside that page's free
+     * rows or opens a second one is a **packing** question this number cannot answer: the cost is a
+     * step, zero or +16 MiB, not a slope. v4.29 measured the shelf packer saturating at the fifth
+     * theme at default densities, which is why the device census was re-run with the mix before
+     * this shipped; its result is in the v5.0 report.
      */
-    private val uploadedTexelBudget = 15L * 1024L * 1024L
+    private val uploadedTexelBudget = 16L * 1024L * 1024L
 
     @Test
     fun `the shipped sprite set stays inside the texture memory it uploads`() {

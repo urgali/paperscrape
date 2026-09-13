@@ -12,30 +12,114 @@ always apply live in `AI_PROJECT_RULES.md`.
 
 ## Current status
 
-**v4.31 prepared — not published and not approved.**
+**v5.0 prepared — not published and not approved.**
 
-`versionCode = 62`, `versionName = "4.31"`. **No tag, no push, no GitHub Release** — that half is
-the maintainer's and has not been done for this version.
+`versionCode = 63`, `versionName = "5.0"`. **No tag, no push, no GitHub Release.** The bump is
+made **once**, in Fase 0, and every later phase of this release inherits it rather than bumping
+again — bumping twice is how a round walks into `adb install -r`'s silent downgrade refusal
+(`BACKLOG_v4_31.md` item 111). `release-notes/v5.0.md` is written and CI reads it as the release
+body; it falls back to a generic one if a version is ever published without it.
 
-**Baseline v4.30, and it is published.** Read from the public GitHub API on 2026-09-12 at
-15:05:13 UTC: `v4.30` is the newest published tag, as are `v4.16` through `v4.29`. **Re-read the API
-rather than this line, and record the instant you read it** — nothing in a working tree learns that
-a release went out, and this line has been wrong in **both** directions four times
-(`BACKLOG_v4_29.md` item 86, `BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md` item 55):
+**Why the major number, and why `versionCode` did not move.** This release was prepared under the
+name **4.32** and renamed before it went anywhere: the neighbourhood is not a tweak to the old
+drawing, it is a different visual language, and that is what a major number is for. Nothing was
+published as 4.32 and no tag was ever cut, so no user ever saw it and the sequence a user sees runs
+**v4.31 → v5.0** with nothing missing. `versionName` is the release's name and `versionCode` is
+Android's monotonic install counter — different questions — so the 63 that Fase 0 set stands.
+`v5.0` was confirmed free on the public GitHub API on **2026-09-13 at 14:11:53 UTC** (404), with
+`v4.31` still the newest published tag.
+
+**What v5.0 is:** the neighbourhood redrawn from scratch, in production, plus the dolphin.
+The five building families — small house, large house, tower, restaurant, bar — are no longer one
+flat facade each: they are dealt per instance from `NeighbourhoodTable`, so two neighbours carry
+two silhouettes. **34 shipped PNGs left and 72 arrived**, both ceilings moved (decoded 36 → 37 MiB,
+uploaded 15 → 16 MiB) with the paragraphs those comments require, and the wallpaper and the gallery
+preview now compose a building from **one** table through **one** composer rather than from two
+hand copies. `release-notes/v5.0.md` is written; this is the phase that finishes the version.
+
+**Fase 0 came first, and had to.** `BACKLOG_v4_31.md` item 112 and its guard: the golden that
+warmed a thunderstorm up and failed one run in thirty-two is deterministic, the rule that says a
+scene may not do that is a check in both harnesses rather than a sentence in a KDoc, and the
+lightning the wallpaper draws is measured to be unchanged. Nothing is re-authored while one of the
+rulers rolls a die — and this release re-authors goldens.
+
+**The bump was made once, in Fase 0, and this phase did not touch it.**
+
+**Baseline v4.31, and it is published.** Re-read from the public GitHub API on **2026-09-13 at
+14:11:53 UTC** for the rename: `v4.31` is still the newest published tag (`published_at`
+2026-09-12T17:48:37Z), as are `v4.16` through `v4.30`, and **both `v4.32` and `v5.0` return 404** —
+4.32 was never cut and 5.0 is free. **This line said "v4.31 prepared, not published" until Fase 0
+read the API and found otherwise, which is the fifth time.** Re-read the API rather than this line,
+and record the instant you read it — nothing
+in a working tree learns that a release went out, and this line has been wrong in **both**
+directions (`BACKLOG_v4_29.md` item 86, `BACKLOG_v4_28.md` item 79, `BACKLOG_v4_24.md` item 55):
 
 ```bash
 curl -s https://api.github.com/repos/urgali/paperscrape/releases | grep -o '"tag_name": *"[^"]*"' | head
 ```
 
-**Two backlogs stand in the root and ten are in [`docs/archive/`](docs/archive/).**
+**Three backlogs stand in the root — `BACKLOG_v4_30.md`, `BACKLOG_v4_31.md` and this release's
+`BACKLOG_v5_0.md` — and ten are in [`docs/archive/`](docs/archive/).**
 `BACKLOG_v4_30.md` carries 94–103, of which **94, 99, 100, 103** stay open or documented, and it
-continues to carry forward by name items 18, 25, 30, 40, 50–55, **56**, **63** and **83**.
+continues to carry forward by name items 18, 25, 30, 40, 50–55, **63** and **83**. **Item 56 is no
+longer among them**: `BACKLOG_v5_0.md` closes it, as a decision.
 `BACKLOG_v4_31.md` carries 104–110 and **carries forward by name** everything still open in
-`BACKLOG_v4_29.md`, which moved to [`docs/archive/`](docs/archive/) in this release: items **67**,
+`BACKLOG_v4_29.md`, which moved to [`docs/archive/`](docs/archive/) in v4.31: items **67**,
 **78**, **90** and **92**. Carrying the open items forward by number is what makes the move safe,
 and the numbering stays continuous, so item 25 means the same thing wherever it is cited.
 
-**Verified at Level 3 here.** The numbers are in the v4.31 report.
+**Verified at Level 3 here.** The numbers are in `V5_0_REPORT.md`; Fase 0's and v4.31's are in
+their own.
+
+**The three GL references were re-authored, and the suite is green.** The maintainer answered item
+56: the references portrayed a neighbourhood that no longer exists (19-22 % of outline against a
+3 % limit, which is the scene and not the driver), and leaving three red tests pinned to a phone
+nobody owns any more is worth less than references that portray what the app draws. Re-authored on
+the BV6600 on 2026-09-13, with the attribution written into `GlGolden.EdgeDisplacement` and
+`GlDriverGapGuardTest`. **What it costs is the cross-driver reading**: that guard now measures
+0.00 % and will until a second driver exists, and the four historical figures survive only in those
+two KDocs. Item 56 closes in `BACKLOG_v5_0.md` as a decision, not as a defect that went away.
+
+**One thing is the maintainer's and is not decided here.** The two shops draw a little over half the
+height they declare (`BACKLOG_v5_0.md` item 113) -- a property of the figures that were chosen,
+visible in the fase 5 photographs, not fixable by scaling.
+
+```
+v5.0 [x] the neighbourhood redrawn, and the dolphin
+ |- five families dealt per instance from one generated table: 34 shipped PNGs out, 72 in,
+ |  byte-identical to the ones photographed in fase 5. Both ceilings moved with their paragraphs
+ |- the three measurements came first, and two changed the plan: 33 blits cost +1.93 ms of a 33 ms
+ |  budget on the GPU so NO simplification was taken (and fase 5's "two-row stamp at zero bytes"
+ |  turned out to cost ~207 KB); the atlas does not overflow, so the allocated cost is 0 and not
+ |  +16 MiB; the Canvas A/B measures a contaminated baseline and says so
+ |- the wallpaper and the gallery preview compose from ONE table through ONE composer, so the hand
+ |  copy PreviewRendererAgreementTest was written about no longer exists. SkyscraperSpriteLayout
+ |  is deleted; SceneColour made the colour rule evaluable on the host, which is what allowed it
+ |- 30 Canvas goldens re-authored with the attribution done FIRST (18 756 px in the buildings band;
+ |  6 px, a 5x5 box, is the dolphin), double regeneration 30/30 byte-identical, tolerance untouched
+ |- the 3 GL references re-authored on the BV6600 (PowerVR Rogue GE8320) after the maintainer
+ |  answered item 56, the 30 Canvas goldens byte-identical across the rename, no tolerance moved
+ \- JVM 1402/1402 (also rebuilt from scratch out of the delivery ZIP), asset tools 121/121, lint
+    green, clean build from the extract without the build cache
+```
+
+```
+v5.0 Fase 0 [x] the golden that rolled a die
+ |- `wave-storm` warmed a thunderstorm up for 320 frames, and the strike timer is the one thing in
+ |  the renderer that rolls from an unseeded Random. One frame per strike draws the veil and the
+ |  interval averages 32 frames, so that golden failed ~1 run in 32 by the whole frame, from v4.28
+ |- fixed where the FRAME gets its randomness, not where the sky does: a scene may pin the strike
+ |  timer for its own render, and only the golden harness ever writes the switch. The maintainer's
+ |  condition was that the shipped lightning stays random and stays off the clock, and it does
+ |- proved by measurement and not by "the default is the same object": v4.31's own production code
+ |  and this one, 500 s of storm each, 61 vs 60 strikes, mean interval 32.53 vs 33.36 frames, mean
+ |  flash lift 22.76 vs 22.74 of 255. The columns differ by the roll, which is what a roll is
+ |- and the guard the KDoc called impossible is in both harnesses, with no exemption for the scene
+ |  that caused it: any warmed-up storm that has not pinned is rejected before it renders. Shown
+ |  biting on `wave-storm` itself by removing the pin -- 0.238 s, no frame drawn
+ \- 100 consecutive runs of `waveStorm` on the BV6600 against versionCode 63 read back with dumpsys.
+    0 goldens re-authored, the three GL references untouched
+```
 
 ```
 v4.31 [x] a round of defects: the story that was wrong, the gate that was loose, and four red years

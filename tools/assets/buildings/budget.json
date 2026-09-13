@@ -1,0 +1,448 @@
+{
+ "shipped_perimeter": {
+  "files": 46,
+  "decoded": 3480876,
+  "uploaded_level0": 3435092
+ },
+ "concepts": {
+  "mix": {
+   "files": 72,
+   "decoded": 4603860,
+   "uploaded_level0": 4545392,
+   "per_file": {
+    "k1_ground_house_a_fx": {
+     "w": 186,
+     "h": 96,
+     "decoded": 71424,
+     "uploaded": 70680
+    },
+    "k1_ground_house_a_mg": {
+     "w": 45,
+     "h": 42,
+     "decoded": 7560,
+     "uploaded": 7216
+    },
+    "k1_ground_house_a_mw": {
+     "w": 186,
+     "h": 96,
+     "decoded": 71424,
+     "uploaded": 70680
+    },
+    "k1_ground_house_b_fx": {
+     "w": 261,
+     "h": 96,
+     "decoded": 100224,
+     "uploaded": 97760
+    },
+    "k1_ground_house_b_mg": {
+     "w": 120,
+     "h": 45,
+     "decoded": 21600,
+     "uploaded": 20640
+    },
+    "k1_ground_house_b_mw": {
+     "w": 261,
+     "h": 93,
+     "decoded": 97092,
+     "uploaded": 95680
+    },
+    "k1_roof_gable_a_fx": {
+     "w": 213,
+     "h": 102,
+     "decoded": 86904,
+     "uploaded": 85648
+    },
+    "k1_roof_gable_a_mw": {
+     "w": 213,
+     "h": 102,
+     "decoded": 86904,
+     "uploaded": 85648
+    },
+    "k1_roof_gable_a_snow_fx": {
+     "w": 147,
+     "h": 93,
+     "decoded": 54684,
+     "uploaded": 53728
+    },
+    "k1_roof_gable_b_fx": {
+     "w": 279,
+     "h": 111,
+     "decoded": 123876,
+     "uploaded": 123876
+    },
+    "k1_roof_gable_b_mg": {
+     "w": 18,
+     "h": 21,
+     "decoded": 1512,
+     "uploaded": 1440
+    },
+    "k1_roof_gable_b_mw": {
+     "w": 279,
+     "h": 111,
+     "decoded": 123876,
+     "uploaded": 123876
+    },
+    "k1_roof_gable_b_snow_fx": {
+     "w": 198,
+     "h": 102,
+     "decoded": 80784,
+     "uploaded": 78800
+    },
+    "k1_roof_mansard_a_fx": {
+     "w": 207,
+     "h": 105,
+     "decoded": 86940,
+     "uploaded": 85280
+    },
+    "k1_roof_mansard_a_mg": {
+     "w": 18,
+     "h": 18,
+     "decoded": 1296,
+     "uploaded": 1296
+    },
+    "k1_roof_mansard_a_mw": {
+     "w": 207,
+     "h": 105,
+     "decoded": 86940,
+     "uploaded": 85280
+    },
+    "k1_roof_mansard_a_snow_fx": {
+     "w": 132,
+     "h": 36,
+     "decoded": 19008,
+     "uploaded": 18200
+    },
+    "k1_roof_mansard_b_fx": {
+     "w": 282,
+     "h": 120,
+     "decoded": 135360,
+     "uploaded": 133756
+    },
+    "k1_roof_mansard_b_mg": {
+     "w": 120,
+     "h": 18,
+     "decoded": 8640,
+     "uploaded": 8640
+    },
+    "k1_roof_mansard_b_mw": {
+     "w": 282,
+     "h": 120,
+     "decoded": 135360,
+     "uploaded": 133756
+    },
+    "k1_roof_mansard_b_snow_fx": {
+     "w": 204,
+     "h": 36,
+     "decoded": 29376,
+     "uploaded": 28280
+    },
+    "k1_roof_turret_b_gable_fx": {
+     "w": 231,
+     "h": 96,
+     "decoded": 88704,
+     "uploaded": 87780
+    },
+    "k1_roof_turret_b_gable_mw": {
+     "w": 231,
+     "h": 96,
+     "decoded": 88704,
+     "uploaded": 87780
+    },
+    "k1_roof_turret_b_gable_snow_fx": {
+     "w": 138,
+     "h": 84,
+     "decoded": 46368,
+     "uploaded": 45816
+    },
+    "k1_roof_turret_b_tower_fx": {
+     "w": 87,
+     "h": 174,
+     "decoded": 60552,
+     "uploaded": 60204
+    },
+    "k1_roof_turret_b_tower_mg": {
+     "w": 18,
+     "h": 63,
+     "decoded": 4536,
+     "uploaded": 4392
+    },
+    "k1_roof_turret_b_tower_mw": {
+     "w": 87,
+     "h": 174,
+     "decoded": 60552,
+     "uploaded": 60204
+    },
+    "k1_roof_turret_b_tower_snow_fx": {
+     "w": 51,
+     "h": 60,
+     "decoded": 12240,
+     "uploaded": 12000
+    },
+    "k1_storey_house_a_fx": {
+     "w": 186,
+     "h": 75,
+     "decoded": 55800,
+     "uploaded": 55800
+    },
+    "k1_storey_house_a_mg": {
+     "w": 132,
+     "h": 36,
+     "decoded": 19008,
+     "uploaded": 18720
+    },
+    "k1_storey_house_a_mw": {
+     "w": 186,
+     "h": 75,
+     "decoded": 55800,
+     "uploaded": 55800
+    },
+    "k1_storey_house_b_fx": {
+     "w": 258,
+     "h": 72,
+     "decoded": 74304,
+     "uploaded": 74016
+    },
+    "k1_storey_house_b_mg": {
+     "w": 210,
+     "h": 36,
+     "decoded": 30240,
+     "uploaded": 29952
+    },
+    "k1_storey_house_b_mw": {
+     "w": 258,
+     "h": 72,
+     "decoded": 74304,
+     "uploaded": 74016
+    },
+    "k2_b_insegna_fx": {
+     "w": 207,
+     "h": 228,
+     "decoded": 188784,
+     "uploaded": 187048
+    },
+    "k2_b_insegna_mg": {
+     "w": 141,
+     "h": 102,
+     "decoded": 57528,
+     "uploaded": 56000
+    },
+    "k2_b_insegna_mw": {
+     "w": 207,
+     "h": 156,
+     "decoded": 129168,
+     "uploaded": 128544
+    },
+    "k2_b_insegna_snow_fx": {
+     "w": 183,
+     "h": 99,
+     "decoded": 72468,
+     "uploaded": 70616
+    },
+    "k2_b_smusso_fx": {
+     "w": 222,
+     "h": 168,
+     "decoded": 149184,
+     "uploaded": 147628
+    },
+    "k2_b_smusso_mg": {
+     "w": 147,
+     "h": 102,
+     "decoded": 59976,
+     "uploaded": 58000
+    },
+    "k2_b_smusso_mw": {
+     "w": 222,
+     "h": 168,
+     "decoded": 149184,
+     "uploaded": 147628
+    },
+    "k2_b_smusso_snow_fx": {
+     "w": 216,
+     "h": 54,
+     "decoded": 46656,
+     "uploaded": 45580
+    },
+    "k2_crown_dome_fx": {
+     "w": 99,
+     "h": 93,
+     "decoded": 36828,
+     "uploaded": 36456
+    },
+    "k2_crown_dome_mw": {
+     "w": 99,
+     "h": 69,
+     "decoded": 27324,
+     "uploaded": 27048
+    },
+    "k2_crown_dome_snow_fx": {
+     "w": 54,
+     "h": 36,
+     "decoded": 7776,
+     "uploaded": 7560
+    },
+    "k2_crown_spire_fx": {
+     "w": 69,
+     "h": 78,
+     "decoded": 21528,
+     "uploaded": 21528
+    },
+    "k2_crown_spire_mw": {
+     "w": 69,
+     "h": 33,
+     "decoded": 9108,
+     "uploaded": 9108
+    },
+    "k2_crown_spire_snow_fx": {
+     "w": 60,
+     "h": 30,
+     "decoded": 7200,
+     "uploaded": 6844
+    },
+    "k2_r_padiglione_fx": {
+     "w": 315,
+     "h": 180,
+     "decoded": 226800,
+     "uploaded": 224824
+    },
+    "k2_r_padiglione_mg": {
+     "w": 174,
+     "h": 51,
+     "decoded": 35496,
+     "uploaded": 33712
+    },
+    "k2_r_padiglione_mw": {
+     "w": 315,
+     "h": 138,
+     "decoded": 173880,
+     "uploaded": 172072
+    },
+    "k2_r_padiglione_snow_fx": {
+     "w": 312,
+     "h": 72,
+     "decoded": 89856,
+     "uploaded": 86800
+    },
+    "k2_t_bay_fx": {
+     "w": 42,
+     "h": 36,
+     "decoded": 6048,
+     "uploaded": 5600
+    },
+    "k2_t_bay_mg": {
+     "w": 42,
+     "h": 36,
+     "decoded": 6048,
+     "uploaded": 5600
+    },
+    "k2_t_gradini_1_fx": {
+     "w": 210,
+     "h": 342,
+     "decoded": 287280,
+     "uploaded": 286440
+    },
+    "k2_t_gradini_1_mg": {
+     "w": 168,
+     "h": 69,
+     "decoded": 46368,
+     "uploaded": 44488
+    },
+    "k2_t_gradini_1_mw": {
+     "w": 210,
+     "h": 342,
+     "decoded": 287280,
+     "uploaded": 286440
+    },
+    "k2_t_gradini_2_fx": {
+     "w": 168,
+     "h": 132,
+     "decoded": 88704,
+     "uploaded": 88032
+    },
+    "k2_t_gradini_2_mw": {
+     "w": 168,
+     "h": 132,
+     "decoded": 88704,
+     "uploaded": 88032
+    },
+    "k2_t_gradini_3_fx": {
+     "w": 120,
+     "h": 96,
+     "decoded": 46080,
+     "uploaded": 45600
+    },
+    "k2_t_gradini_3_mw": {
+     "w": 120,
+     "h": 96,
+     "decoded": 46080,
+     "uploaded": 45600
+    },
+    "k2_t_gradini_snow_l1_fx": {
+     "w": 27,
+     "h": 27,
+     "decoded": 2916,
+     "uploaded": 2704
+    },
+    "k2_t_gradini_snow_l2_fx": {
+     "w": 27,
+     "h": 27,
+     "decoded": 2916,
+     "uploaded": 2808
+    },
+    "k2_t_gradini_snow_r1_fx": {
+     "w": 27,
+     "h": 27,
+     "decoded": 2916,
+     "uploaded": 2600
+    },
+    "k2_t_gradini_snow_r2_fx": {
+     "w": 30,
+     "h": 27,
+     "decoded": 3240,
+     "uploaded": 3016
+    },
+    "k2_t_gradini_snow_top_fx": {
+     "w": 114,
+     "h": 33,
+     "decoded": 15048,
+     "uploaded": 14012
+    },
+    "k2_t_row3_fx": {
+     "w": 90,
+     "h": 27,
+     "decoded": 9720,
+     "uploaded": 9152
+    },
+    "k2_t_row3_mg": {
+     "w": 90,
+     "h": 27,
+     "decoded": 9720,
+     "uploaded": 9152
+    },
+    "k2_t_row4_fx": {
+     "w": 129,
+     "h": 27,
+     "decoded": 13932,
+     "uploaded": 13312
+    },
+    "k2_t_row4_mg": {
+     "w": 129,
+     "h": 27,
+     "decoded": 13932,
+     "uploaded": 13312
+    },
+    "k2_t_row5_fx": {
+     "w": 168,
+     "h": 27,
+     "decoded": 18144,
+     "uploaded": 17928
+    },
+    "k2_t_row5_mg": {
+     "w": 168,
+     "h": 27,
+     "decoded": 18144,
+     "uploaded": 17928
+    }
+   }
+  }
+ }
+}

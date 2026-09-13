@@ -48,7 +48,7 @@ from the backlogs it archived, plus its own 94 and 100.
 | 109 | `SceneSpace.PERSON_METRES_TALL` says the child's height lives in four places, written in the release that found the fifth | **RESOLVED** |
 | 110 | Item 103 and `switchToCanvasFallback` describe the same surface with opposite halves of the truth | **RESOLVED** — both paths written down; item 103 itself needs no code change |
 | 111 | A measurement against "the previous release" was taken against **this** release, because `adb install -r` silently refuses a downgrade | **DOCUMENTED** — it produced a false attribution that reached the maintainer before the correction did |
-| 112 | `wave-storm` is a **warmed-up storm**, which `GoldenScene`'s own KDoc says a scene must not be. It fails about **1 run in 32**, and has since v4.28 | **OPEN** — characterised to the pixel and to the probability; closing it moves either the scene or the lightning |
+| 112 | `wave-storm` is a **warmed-up storm**, which `GoldenScene`'s own KDoc says a scene must not be. It fails about **1 run in 32**, and has since v4.28 | **RESOLVED in v5.0 Fase 0** — the golden pins the strike timer, the guard the KDoc called impossible is in both harnesses, and the shipped lightning is unchanged and measured to be |
 | 99 | (from `BACKLOG_v4_30.md`) whether 0.51 of a child is too much rain | **OPEN, for the maintainer** — the photographs it asked for are in `immagini/` |
 | 103 | (from `BACKLOG_v4_30.md`) the `Canvas` backend's +13.6 % | **OPEN, unchanged** — re-scoped by item 110, not re-measured; see below for why |
 | 93 | (from `BACKLOG_v4_29.md`) the people family's grid-2 packing | **REJECTED**, per the release brief; not reopened |
@@ -666,3 +666,40 @@ carries `warmUpFrames`, `weather.isThunderstorm` and the customisation the storm
 It is not added here because it would fail immediately on `wave-storm`, and adding a guard together
 with an exemption for the one thing it catches is the move this project keeps refusing. **The guard
 belongs in the same change as the fix.**
+
+
+### Closed in v5.0 Fase 0, and by which of the three ways out
+
+**The first one, in its stronger form.** Not "clear `lightningFlashAlpha` before the measured
+frame" but "**do not let the strike timer fire at all** while this golden is being rendered":
+`PaperRenderer.lightningStrikesEnabled` gates the firing branch of `updateLightning`, the scene
+declares `GoldenScene.pinLightning`, and `configure` is the only thing that ever writes it. Clearing
+the alpha would have left the warm-up drawing veils into frames that are painted over — harmless,
+but it would have made the *render* depend on the unseeded `Random` while arranging for the *frame*
+not to. Not firing means no draw in this harness ever reads that `Random` at all, which is a
+property that can be stated rather than argued about.
+
+The other two stay refused for the reasons written above, and the third one is refused by the
+maintainer explicitly: **the shipped lightning stays random and stays off the clock.**
+
+**The guard is in the same change**, as this entry required, and with no exemption in it:
+`GoldenScene.requireDeterministicLightning` rejects *any* warmed-up storm that has not pinned, runs
+from `SceneGolden.assertMatches` and from `GlGolden.assertGlBackendUnchanged`, and reads the storm
+the way the renderer does — through `LiveWeatherSceneRules.stormActive`, so the theme's own
+thunderstorm toggle is caught as well as the live forecast's. `wave-storm` is not excused from it;
+it satisfies it.
+
+### What was measured, and what each number is
+
+| claim | evidence |
+|---|---|
+| the coin is gone | `SceneGoldenTest#waveStorm` run **100 times consecutively** on the BV6600 against `versionCode` 63, read back with `dumpsys` before and after: **100 green, 0 failures**. Under the old behaviour the chance of that is 0.96^100 ≈ **4 %** |
+| the guard bites on the real scene | `pinLightning = true` removed from `waveStorm` and the test APK rebuilt: it fails in **0.238 s**, before any frame is drawn, naming the scene and what to do. Restored and rebuilt afterwards |
+| the guard bites on both kinds of storm | `LightningPinTest` — a live-forecast storm and a theme-toggle storm are both rejected; a **cold** storm (`thunderstorm`, which both the Canvas and the GL suites pin) and a warmed-up scene in plain rain are both accepted |
+| the switch is a switch | `LightningPinTest` renders 80 frames of storm each way: unpinned **2 flashes**, peak lift **21.17** of 255; pinned **0 flashes**, peak **0.18** (the scene's own motion). Two pinned renders of the same scene differ by **0 pixels** |
+| the shipped lightning did not change | `LightningCadenceTest` at `-e lightningFrames 2000` — 500 s of storm in the production configuration — run on a build of **v4.31's own production code** (`versionCode` 62, verified installed) and on this one (63): strikes **61 vs 60**, mean interval **32.53 vs 33.36** frames against a predicted 32, observed range **[18, 48] vs [17, 48]** against the `4 + U(0, 8)` s bound of [16, 48], mean lift **22.76 vs 22.74** of 255. The difference between the columns is the roll, which is the point |
+| nothing was re-authored | **0 goldens regenerated.** `wave-storm` matches its committed PNG — the one captured before any of this existed — at 0 differing pixels, which is also the proof that pinning removes the veil and nothing else. The three GL references were not touched |
+
+**The frame this golden pins is the frame it always pinned**, so `MAX_DIFFERING_FRACTION = 0.0` is
+what demonstrates the change is inert: a single moved pixel anywhere in the 28 Canvas goldens would
+have failed the suite.

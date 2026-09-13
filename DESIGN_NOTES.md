@@ -570,6 +570,26 @@ world an eighth smaller than the one that ships.
 | Fir | 9.8 m | 122 |
 | Tower | 15.6 m | 182 |
 
+**And since v5.0, five of those rows are a *reference* height rather than a drawn one.** The five
+building families are dealt per instance from `NeighbourhoodTable`, so a small house with an extra
+storey is taller than one without — that variation is the point of the redraw. What each family
+actually draws, over every deal it has:
+
+| family | declares | draws | as metres |
+|---|---|---|---|
+| Small house | 110 u | 96.2 – 135.4 u | 5.04 – 7.09 m |
+| Large house | 145 u | 136.9 – 207.0 u | 7.17 – 10.85 m |
+| Tower | 182 u | 197.3 – 202.3 u | 16.91 – 17.34 m |
+| **Restaurant** | **96 u** | **56.0 u** | **4.78 m** |
+| **Bar** | **92 u** | **54.1 – 74.5 u** | **4.53 – 6.24 m** |
+
+The three that vary, vary around their declaration. **The two shops do not**: the figures chosen for
+them are single-storey buildings where the facades they replace were two, so they draw a little over
+half what the table says. Every family still draws at the one metre — 0.08542 m per unit — so a door
+is a door in all of them; it is the buildings that are shorter, not the scale that is wrong.
+`BuildingHeightDeclarationTest` measures all of this, and `BACKLOG_v5_0.md` item 113 carries the
+question of what to do about the shops.
+
 **Re-read it rather than trusting it**, because this is a copy of a table that
 lives in the code:
 

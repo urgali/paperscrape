@@ -248,8 +248,50 @@ class SpriteGeometryTest {
      * So they cost this budget and the `Canvas` path's decode peak, and they cost the APK nothing.
      * Stated because the paragraph above claims all three, and one third of that claim is not true
      * of an orphan.
+     * ---
+     *
+     * ## v5.0: 37 MiB, for the neighbourhood redrawn from scratch
+     *
+     * The set is **38 089 440 B = 36.32 MiB**, and 37 MiB is the next figure just above it, leaving
+     * **707 872 B** -- the convention every paragraph above has used, for the reason every one of
+     * them gives (v4.30 left 836 064 B).
+     *
+     * *What moved.* The five building families (small house, large house, tower, restaurant, bar)
+     * are no longer one flat facade each, drawn as wall + roof + trim + door with the same window
+     * sticker. The two houses are a STACK of pieces -- ground floor, storeys, roof -- chosen per
+     * instance from the building's own stable hash, so two neighbours carry two silhouettes (4
+     * deals for the small house, 6 for the large one), and the tower, the restaurant and the bar
+     * are one cut-out figure each (the tower with two crowns, the bar with two figures). That
+     * replaced **34 PNGs, 3 400 236 B** with **72 PNGs, 4 603 860 B**: net **+1 203 624 B**, every
+     * byte of it silhouettes. There is no colour variant in the set -- one wall mask and one glass
+     * mask per piece, colour at the blit, as the people have been since v4.30 -- and every tinted
+     * surface is the user's own category colour scaled towards ink or white, so the eight editable
+     * colours of HOUSES / BUILDINGS are still the whole palette.
+     *
+     * *What was looked for first, as every paragraph here has had to.* The mix over the old 36 MiB
+     * was 340 704 B, and the cheap ways out were measured one by one before this line moved:
+     * dropping either bar figure (-405 000 / -447 948), the turret roof of the large house
+     * (-361 656), a mansard (-308 736 / -194 184), a tower crown (-71 928 / -37 836), or the common
+     * metre -- which the houses already use, so it gives nothing. Each of them removes a
+     * silhouette, and silhouettes are the reason the redraw exists: the maintainer's reference is a
+     * street where no two buildings share an outline. The maintainer chose to keep all of them and
+     * move this line instead.
+     *
+     * *What it costs, measured, on the three things this limit bounds.* The APK grows by
+     * **84 943 B** (the 34 shipped PNGs compress to 33 403 B, the 72 new ones to 118 346 B). The
+     * `Canvas` path -- settings and gallery previews on every device, the wallpaper once EGL has
+     * failed three times -- holds the authored bitmap of every sprite it has drawn until memory
+     * pressure (`SpriteCache`), so its worst case grows by the full **1 203 624 B**; the per-sprite
+     * transient decode peak does **not** grow, because the largest new PNG (the tower's first tier,
+     * 210x342 px, 287 280 B) is smaller than the largest shipped building PNG (`skyscraper_wall`,
+     * 270x450, 486 000 B).
+     *
+     * *And the one number this does not settle.* A tower is now many more sprite blits per frame
+     * than the six the shipped facade cost; that is not a byte and this limit cannot see it. It was
+     * measured on the `perf` build before this shipped -- see `NeighbourhoodTable` and the v5.0
+     * report for the frame cost, which is the number that decides whether a blit count matters.
      */
-    private val decodedByteBudget = 36L * 1024L * 1024L
+    private val decodedByteBudget = 37L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {

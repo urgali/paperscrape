@@ -425,6 +425,9 @@ object GlGolden {
      * and it is the one that keeps meaning something when the pixels legitimately move.
      */
     fun assertGlBackendUnchanged(scene: GoldenScene) {
+        // The same rule the Canvas harness runs, for the same reason: this comparison is against a
+        // committed file too, and a scene that warmed a storm up would flake here as well.
+        scene.requireDeterministicLightning()
         val result = render(scene)
         if (updating()) {
             write(result.bitmap, File(outputDir(), "gl-${scene.name}.png"))
@@ -724,6 +727,55 @@ object GlGolden {
      *    an observation, and it cannot be observed here. The first run on a machine with an
      *    emulator must confirm all three still pass there; until it does, that is a declared
      *    limitation and is recorded as such in `BACKLOG_v4_21.md`.
+     *
+     * ### The paragraph above stopped being true in v4.26, and was not corrected until v5.0
+     *
+     * **The references have not been Adreno frames since v4.26.** `BACKLOG_v4_26.md` item 71
+     * re-captured all three on this device's **PowerVR Rogue GE8320** — the sky and water redraw
+     * moved the Canvas frames by 17.1 / 23.9 / 13.0%, and against the Adreno references the GL
+     * suite read **6.31 / 9.51 / 3.192%** against limits of 3.00 / 3.00 / 0.500%, which no driver
+     * could have matched. The maintainer ratified it in v4.27, and v4.28 re-authored `gl-day` once
+     * more on the same device for the bird. The v4.21 paragraph above is kept because it is the
+     * record of why the reference environment moves at all; it is not the current state.
+     *
+     * ### v5.0: re-authored on the BV6600, and item 56 closes
+     *
+     * v5.0 redrew every building from a blank sheet, and the three references failed at
+     * **21.21 / 19.49 / 21.64%** of their outline against the 3% gate — six to seven times the
+     * worst driver difference ever recorded here. They portrayed a neighbourhood that does not
+     * exist: flat facades where the scene now deals cut-out paper. Same cause as v4.26, second
+     * time: the scene moved, not the driver. No tolerance was touched to absorb it.
+     *
+     * Re-authored on the BV6600 on **2026-09-13**, one frame per scene through the shipped
+     * `GlSceneTarget`, then re-verified with the flag off so the Canvas cross-check and the region
+     * gates judged them as committed files.
+     *
+     * **What this costs, stated exactly rather than overstated.** *Nothing that was not already
+     * spent.* The cross-driver observation was given up in v4.26 and ratified in v4.27
+     * (`BACKLOG_v4_27.md` item 78, which stays open because only a second GPU vendor closes it).
+     * What v5.0 actually gives up is the *last reason to keep item 56 open* — and that reason had
+     * been void for three releases, because the thing it protected was already gone.
+     *
+     * **What is genuinely at risk is these numbers**, which now survive only here and in
+     * [GlDriverGapGuardTest]:
+     *
+     * | measured | on | when |
+     * |---|---|---|
+     * | 1.18 / 1.07 / 0.92% | OnePlus 6T, Adreno 630, against emulator-captured references | when this metric was derived; carried in v4.18's release notes (prepared 2026-09-01) |
+     * | 1.2–1.4% | OnePlus 6T, Adreno 630 | v4.19's re-measurement (prepared 2026-09-03) |
+     * | ~0 device / 0.92–1.18% emulator, *derived* | OnePlus 6T authoring, emulator side never observed | v4.21 (prepared 2026-09-03) |
+     * | **0.00 / 0.00 / 0.00%** | BV6600, PowerVR Rogue GE8320, Android 10 | v5.0 (2026-09-13) |
+     *
+     * The last row is not a rounding. The committed file and the freshly rendered frame are
+     * produced by the same driver on the same machine, so [MAX_DISPLACED_FRACTION] guards against a
+     * difference that has no source. **[GlDriverGapGuardTest] reads ~0 and will keep reading ~0
+     * until a second driver exists**, and there is no second driver to move it to: the maintainer's
+     * personal phone is what an update is proved on, not a test device.
+     *
+     * The gap itself is not gone — two conformant rasterisers still disagree at an edge, and the
+     * numbers above are what that disagreement measured. What is gone is the *observation* of it,
+     * and it has been gone since v4.26. Recorded as item 56 in `BACKLOG_v5_0.md`, closed there as a
+     * decision and not as a fix.
      */
     internal object EdgeDisplacement {
 
@@ -734,16 +786,24 @@ object GlGolden {
          * The band the **characterised driver gap** must stay inside -- item 1 of
          * `BACKLOG_v4_19.md`, closed in v4.20 as a guard rather than as a fix.
          *
-         * The goldens are authored on the emulator's reference driver and the phone's Adreno 630
-         * places edges differently, so on the device every one of them arrives with a displacement
-         * that is not a regression and never will be. That gap is measured, it is under the gate,
-         * and closing it properly would mean per-driver golden sets -- double the maintenance and
-         * an ambiguous answer to "which is *the* golden". So it stays, and what changes is that it
-         * is now watched instead of rediscovered.
+         * The goldens were authored on the emulator's reference driver and the phone's Adreno 630
+         * placed edges differently, so on the device every one of them arrived with a displacement
+         * that was not a regression and never would be. That gap was measured, it was under the
+         * gate, and closing it properly would have meant per-driver golden sets -- double the
+         * maintenance and an ambiguous answer to "which is *the* golden". So it stayed, and what
+         * changed is that it was watched instead of rediscovered.
          *
-         * **Where 2% comes from.** The gap measured 1.18 / 1.07 / 0.92% when the metric was
-         * derived and 1.2-1.4% when v4.19 re-measured it, against a [MAX_DISPLACED_FRACTION] of
-         * 3%. Two percent sits about 40% above the worst figure ever recorded -- far enough that
+         * **Since v4.26 there is nothing on the other side of it.** The references are authored on
+         * the only driver available -- the BV6600's PowerVR Rogue GE8320 -- so this constant bounds
+         * a measurement that reads **0.00%** and will keep reading it until a second driver exists.
+         * It is kept, unchanged, because the day one does exist it is the number that says whether
+         * the new driver is inside the band the old one was; see [EdgeDisplacement]'s v5.0 section
+         * for the four historical figures and where each was taken.
+         *
+         * **Where 2% comes from.** The gap measured 1.18 / 1.07 / 0.92% on a OnePlus 6T (Adreno
+         * 630) when the metric was derived and 1.2-1.4% when v4.19 re-measured it there, against a
+         * [MAX_DISPLACED_FRACTION] of 3%. Two percent sits about 40% above the worst figure ever
+         * recorded -- far enough that
          * ordinary variation between driver revisions does not reach it -- and a third below the
          * gate, so it fires while the gate still has headroom and someone can look at *why* the
          * gap grew before a golden run starts failing outright. It is a smoke alarm, not a limit:

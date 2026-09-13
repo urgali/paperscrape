@@ -197,6 +197,31 @@ class PaperRenderer(
     private var lightningTimer = 4f + Random.nextFloat() * 6f
     private var lightningFlashAlpha = 0f
 
+    /**
+     * Whether the strike timer is allowed to fire. **True in the wallpaper, always.**
+     *
+     * The one switch in this class that exists for a test, and it is here because of what the
+     * lightning is: the only thing the renderer draws that is not a function of [SceneTime]. Every
+     * other animated thing is replayable from the clock, so a golden can warm a scene up for eighty
+     * seconds and get the same frame every time. A storm cannot: `updateLightning` rolls the next
+     * interval from the unseeded global `Random`, so a warmed-up storm carries a flash on about one
+     * frame in thirty-two and the golden that warms one up has been a coin flip since v4.28
+     * (`BACKLOG_v4_31.md` item 112, measured to a tenth of a grey level).
+     *
+     * Setting this false is how the golden harness takes the coin out of **its own** frame. It is
+     * not a feature, it is not reachable from the settings, and nothing in `src/main` writes it:
+     * the wallpaper keeps the lightning it always had, rolled the way it always was. The
+     * alternative — deriving the strike time from the scene clock — would have made the goldens
+     * deterministic by changing the sky every user looks at, and that is the version the maintainer
+     * turned down.
+     *
+     * Only the *firing* is gated. A flash already in flight still fades on its own, because a
+     * switch that also froze the fade would be a second behaviour rather than an absence of one.
+     *
+     * The harness side of it is `GoldenScene.pinLightning`, which is where the rule that decides
+     * when a golden may ask for this lives.
+     */
+    var lightningStrikesEnabled: Boolean = true
 
     /**
      * Where the current strike's bolt hangs, as a fraction of screen width, and how tall it is
@@ -962,40 +987,35 @@ class PaperRenderer(
         const val DOLPHIN_LEAP_TILT_DEGREES = 26f
 
         /**
-         * Where `dolphin_body`'s pixel (0,0) goes, close to centring the animal's own content on
-         * the point its leap arc is computed for.
+         * Where `dolphin_body`'s pixel (0,0) goes: the animal's own content centred on the point
+         * its leap arc is computed for.
          *
-         * The sprite is 342x168 px -- 114x56 local units -- with its ink at `1,0..342,168`, so
-         * the drawing's centre is at **(57.167, 28.0)** units and the pair below lands it
-         * **(+0.87, +1.0) units from the leap point** rather than on it: 0.8 % of the animal's
-         * width and 1.8 % of its height.
+         * **v5.0 moved it there.** The sprite is 342x171 px -- 114x57 local units -- with its ink
+         * at `1,3..342,171`, so the drawing's centre is at **(57.167, 29.0)** units, and the pair
+         * below is the negative of that. Measured off the alpha channel, and `DolphinLeapOriginTest`
+         * re-measures it rather than trusting this sentence.
          *
-         * This said "filled edge to edge, so its content centre sits at (57.5, 29)". Both halves
-         * were true of the v4.25 drawing and neither is true of the one that ships: the v4.26
-         * redraw kept the 345x174 canvas and moved the ink `4,6` inside it. The registry's own
-         * note for this sprite carried the same error independently, claiming the content was
-         * "placed so DOLPHIN_ORIGIN_X/Y_UNITS (-57.3, -29) still land the animal on its leap
-         * point" -- one sentence surviving its own refutation in two places at once. Measured in
-         * v4.31 and corrected in both; `SpriteMeasurementClaimTest` now reads the alpha channel,
-         * so the phrase cannot rot again.
+         * *What it was, and the two corrections it took to get here.* The pair was
+         * `(-56.3, -28)`, which left the animal **(+0.87, +1.0) units from the leap point** --
+         * 0.8 % of its width and 1.8 % of its height. The comment that stood here justified the
+         * pair with *"filled edge to edge, so its content centre sits at (57.5, 29)"*: true of the
+         * v4.25 drawing and of neither since, because the v4.26 redraw moved the ink inside the
+         * canvas. v4.31 measured the displacement, corrected the prose in both this file and the
+         * registry -- and left the move itself as a question about the picture, because moving a
+         * drawn animal is a change a photograph and the maintainer decide, not a comment pass.
          *
-         * **The pair moved from (-57.3, -29) in v4.31 and the dolphin did not.** That is the
-         * origin compensation for cropping the padding off the canvas -- `+(1, 2)` units removed
-         * and `+(1, 2)` units added back -- so the displacement above is exactly what it was
-         * before the crop, to the pixel. `BACKLOG_v4_31.md` item 106 has that proof.
+         * *The second correction is to v4.31's own arithmetic.* Its replacement sentence said the
+         * canvas was `342x168` with ink at `1,0..342,168` and a centre at `(57.167, 28.0)` -- from
+         * which the y displacement is zero, not the `+1.0` the same paragraph reported. The PNG is
+         * 342x171 with ink from row 3, and `sources/sprites.json` had it right all along
+         * (`contentBox [1,3,342,171]`). The conclusion survived; the derivation under it did not.
          *
-         * **The displacement itself is deliberately not "fixed".** Landing the content centre on
-         * the leap point means -57.167 / -28, which moves the drawn dolphin: an artwork change,
-         * so a photograph and the maintainer's judgement, and item 105 carries it with the
-         * number. The -0.2 unit nudge the x had off the exact centre before any of this is part
-         * of that question and is not a rounding error.
-         *
-         * (REN-07: this said 360x225 with an inset content box, which was the canvas before it
-         * was cropped; the origins below were already right for the shipped file and did not
-         * move.)
+         * *What moving it costs.* Every golden scene with a dolphin in it. That is why it was held
+         * until a release which re-authored the goldens anyway -- v5.0 redraws the neighbourhood,
+         * so the bill was already being paid.
          */
-        const val DOLPHIN_ORIGIN_X_UNITS = -56.3f
-        const val DOLPHIN_ORIGIN_Y_UNITS = -28f
+        const val DOLPHIN_ORIGIN_X_UNITS = -57.166668f
+        const val DOLPHIN_ORIGIN_Y_UNITS = -29f
 
         /**
          * Where the bird bitmap is blitted, in raw pixels.
@@ -2423,9 +2443,11 @@ class PaperRenderer(
 
     /** Advances the thunderstorm's lightning timer/fade. Only ticks (and can fire) while [enabled]
      * -- when precipitation is off, not raining, or the storm toggle is off, the flash simply
-     * fades out and stops, it never fires while disabled. */
+     * fades out and stops, it never fires while disabled. [lightningStrikesEnabled] is the same
+     * "can fire" gate seen from the other side: the weather says whether there is a storm, that
+     * says whether anything is allowed to roll a strike out of it. */
     private fun updateLightning(deltaSeconds: Float, enabled: Boolean) {
-        if (enabled) {
+        if (enabled && lightningStrikesEnabled) {
             lightningTimer -= deltaSeconds
             if (lightningTimer <= 0f) {
                 lightningFlashAlpha = 1f

@@ -158,172 +158,196 @@ class PreviewRendererAgreementTest {
         println("Filone C: $checked tree sprite placements checked across ${ThemeCatalog.ALL.size} themes")
     }
 
-    // -- the skyscraper (v3.8 Filone 4) --------------------------------------------------------
+    // -- the neighbourhood (v5.0) -------------------------------------------------------------
 
     /**
-     * **The divergence this closes.** The lit night facade must sit exactly on the wall, which is
-     * what `drawSkyscraperBuilding` says it does: *"laid over it at the same origin"*.
+     * The three tests this replaces, and why one replaces them.
      *
-     * The preview had it at `(-39, -height + 6)` — six units right and six down. Both offsets are
-     * asserted against the wall's own, not against a literal, so the claim being made is the one
-     * the renderer's comment makes rather than a number that happens to be true today.
+     * v3.8 and v4.19 found three copies drifting -- the tower's lit facade six units off its own
+     * wall, its roof snow carrying a folded sum instead of its terms, and both shops' winter
+     * drifts left at their pre-cornice origins for two releases -- and closed each by hoisting the
+     * offending offsets into constants both sides read. That was the right size of fix for a flat
+     * facade: a handful of literals, shared.
+     *
+     * v5.0 removed the thing those fixes were guarding. A building is no longer a list of
+     * literals in two places; it is a stack dealt from one table by one composer, and the preview
+     * calls that composer. So the property is no longer "these particular numbers match" but the
+     * stronger one underneath it: **for the same identity the two sides produce the same parts at
+     * the same coordinates**, every part, every family, every deal -- which is what this asserts.
+     * There is no copy left to drift, and if somebody writes one, this fails.
      */
-    @Test
-    fun `the lit facade lies exactly on the wall`() {
-        assertEquals(SkyscraperSpriteLayout.WALL_X, SkyscraperSpriteLayout.WALL_LIT_X, 0f)
-        assertEquals(0f, SkyscraperSpriteLayout.WALL_LIT_DY, 0f)
-        // And the wall itself is centred on the tower, which is what makes that meaningful.
-        assertEquals(-SkyscraperSpriteLayout.WIDTH / 2f, SkyscraperSpriteLayout.WALL_X, 0f)
-
-        val lit = previewParts("city").filter { it.resId == R.drawable.skyscraper_wall_lit }
-        assertTrue("the city preview should light its towers", lit.isNotEmpty())
-        for (part in lit) {
-            assertEquals("lit facade x", SkyscraperSpriteLayout.WALL_LIT_X, part.ox, 0f)
-            // The pre-v3.8 value, named so a revert is unambiguous rather than a silent slide.
-            assertTrue("the drifted x is back", part.ox != -39f)
+    private fun expectedParts(
+        variant: SceneSpace.SceneVariant,
+        tileX: Float,
+        depth: Float,
+        winter: Boolean,
+    ): List<Triple<Int, Float, Float>> {
+        val family = NeighbourhoodTable.FAMILIES.getValue(variant)
+        val deal = NeighbourhoodComposer.Deal()
+        NeighbourhoodComposer.deal(family, tileX, depth, deal)
+        val out = mutableListOf<Triple<Int, Float, Float>>()
+        for (i in 0 until deal.size) {
+            val placed = deal[i]
+            for (part in placed.piece.parts) {
+                val keep = when (part.role) {
+                    PartRole.FIXED, PartRole.WALL_MASK, PartRole.GLASS_MASK -> true
+                    PartRole.SNOW -> winter
+                    PartRole.LAMP, PartRole.OCCUPANTS -> false
+                }
+                if (keep) out += Triple(part.res, part.x, placed.baseY + part.y)
+            }
         }
+        return out
+    }
+
+    /** The identity each preview slot declares, paired with the family it draws. */
+    private val previewSlots: List<Triple<SceneSpace.SceneVariant, Float, Float>> = buildList {
+        for (i in 0 until 4) {
+            add(Triple(
+                SceneSpace.SceneVariant.TOWER,
+                ThemePreviewScenes.PreviewIdentity.TOWER_X[i],
+                ThemePreviewScenes.PreviewIdentity.TOWER_DEPTH[i],
+            ))
+        }
+        add(Triple(SceneSpace.SceneVariant.RESTAURANT,
+            ThemePreviewScenes.PreviewIdentity.RESTAURANT_X, ThemePreviewScenes.PreviewIdentity.RESTAURANT_DEPTH))
+        add(Triple(SceneSpace.SceneVariant.BAR,
+            ThemePreviewScenes.PreviewIdentity.BAR_X, ThemePreviewScenes.PreviewIdentity.BAR_DEPTH))
+        add(Triple(SceneSpace.SceneVariant.HOUSE_LARGE,
+            ThemePreviewScenes.PreviewIdentity.HOUSE_LARGE_X, ThemePreviewScenes.PreviewIdentity.HOUSE_LARGE_DEPTH))
+        add(Triple(SceneSpace.SceneVariant.HOUSE_SMALL,
+            ThemePreviewScenes.PreviewIdentity.HOUSE_SMALL_X, ThemePreviewScenes.PreviewIdentity.HOUSE_SMALL_DEPTH))
+    }
+
+    /** Every sprite any family of the neighbourhood can place. */
+    private val buildingSprites: Set<Int> = NeighbourhoodTable.FAMILIES.values
+        .flatMap { it.slots }.flatMap { it.options }
+        .flatMap { piece -> piece.parts.filter { it.res != 0 }.map { it.res } }
+        .toSet()
+
+    @Test
+    fun `every building the gallery draws is the deal the wallpaper would deal`() {
+        var checked = 0
+        for (theme in ThemeCatalog.ALL) {
+            val customization = defaultCustomizationFor(theme.id)
+            val scene = ThemePreviewScenes.forTheme(ThemeCatalog.byId(theme.id), customization)
+            val winter = customization.winterColorsEnabled
+            for (item in scene.items) {
+                val parts = item.parts.filter { it.resId in buildingSprites }
+                if (parts.isEmpty()) continue
+                val actual = parts.map { Triple(it.resId, it.ox, it.oy) }
+                val match = previewSlots.any { (variant, tileX, depth) ->
+                    expectedParts(variant, tileX, depth, winter) == actual
+                }
+                assertTrue(
+                    "theme ${theme.id}: a preview building's parts are not any deal the composer " +
+                        "would produce for a declared identity -- ${actual.size} parts starting " +
+                        "${actual.firstOrNull()}",
+                    match,
+                )
+                checked++
+            }
+        }
+        assertTrue("expected to have checked some buildings, checked $checked", checked > 0)
+        println("v5.0: $checked preview buildings checked against the composer's own deal")
     }
 
     /**
-     * The roof snow's offset must stay the **sum of its terms**, not the sum itself.
+     * A preview building wears one of its category's two colours, and the one the wallpaper would
+     * give it.
      *
-     * `-31` is what the preview carried and what this asserts is no longer written down anywhere:
-     * the value is right, but a copy of the value stops tracking the setback the moment anyone
-     * moves it, which is how the tree drifted.
+     * The preview used to invent its own: a tower 15 % towards white, a restaurant 30 %, a bar
+     * 15 % towards black -- so a gallery card showed the user a colour no building of theirs
+     * could ever be, and the eight editable colours were not what the card was showing. The wall
+     * masks now carry `colorFor` exactly, which is also what makes the card react to an edit.
      */
     @Test
-    fun `the roof snow is derived from the setback rather than restated`() {
-        assertEquals(
-            SkyscraperSpriteLayout.SETBACK_DY + 6f - 8f + 3f,
-            SkyscraperSpriteLayout.ROOF_SNOW_DY,
-            0f,
-        )
-        // The value is unchanged -- this release moved no snow on the wallpaper.
-        assertEquals(-31f, SkyscraperSpriteLayout.ROOF_SNOW_DY, 0f)
+    fun `a preview building wears one of its category's two colours`() {
+        var checked = 0
+        for (theme in ThemeCatalog.ALL) {
+            val c = defaultCustomizationFor(theme.id)
+            val scene = ThemePreviewScenes.forTheme(ThemeCatalog.byId(theme.id), c)
+            val night = c.horrorSkyEnabled || ThemeCatalog.byId(theme.id).hasFireworks
+            val dayBlend = if (night) 0f else 1f
+            val allowed = listOf(
+                SceneObjectType.HOUSE to c.houses,
+                SceneObjectType.SKYSCRAPER to c.buildings,
+            ).flatMap { (_, config) ->
+                listOf(
+                    SceneColour.blendArgb(config.colorNight1, config.colorDay1, dayBlend),
+                    SceneColour.blendArgb(config.colorNight2, config.colorDay2, dayBlend),
+                )
+            }.toSet()
+            for (item in scene.items) {
+                for (part in item.parts) {
+                    if (part.resId !in buildingSprites || !part.added) continue
+                    val tint = part.tint ?: continue
+                    // The glass masks carry the window ramp, not the wall; they are the two
+                    // constants every window in the scene reads.
+                    if (tint == SceneObjectRenderer.windowGlassColor(if (night) 1f else 0f)) continue
+                    assertTrue(
+                        "theme ${theme.id}: a wall mask is tinted ${Integer.toHexString(tint)}, " +
+                            "which is neither of its category's two colours",
+                        tint in allowed,
+                    )
+                    checked++
+                }
+            }
+        }
+        assertTrue("expected to have checked some wall masks, checked $checked", checked > 0)
     }
 
     /**
-     * Every theme that draws a tower draws it from the shared constants, so a new theme cannot
-     * reintroduce a hand-copied offset.
+     * A weight mask is **summed**, in the gallery as in the scene.
+     *
+     * The masks are weights over a fixed layer -- the people's system since v4.30 -- and drawing
+     * one with a plain tint paints the wall colour over the ink it is meant to be added to. The
+     * preview had no notion of an added blit until v5.0; this is what says it still has one.
      */
     @Test
-    fun `no theme draws a skyscraper part at an offset of its own`() {
-        val absolute: Map<Int, Pair<Float, Float>> = mapOf(
-            R.drawable.skyscraper_canopy to
-                (SkyscraperSpriteLayout.CANOPY_X to SkyscraperSpriteLayout.CANOPY_Y),
-            R.drawable.skyscraper_entrance to
-                (SkyscraperSpriteLayout.ENTRANCE_X to SkyscraperSpriteLayout.ENTRANCE_Y),
-        )
-        // The vertical offsets of these follow the tower's own height, which the preview varies on
-        // purpose -- a gallery card needs a skyline, not a row of identical blocks. Only x is
-        // shared, and asserting y would be the artificial constraint this work was told to avoid.
-        val horizontalOnly: Map<Int, Float> = mapOf(
-            R.drawable.skyscraper_wall to SkyscraperSpriteLayout.WALL_X,
-            R.drawable.skyscraper_wall_lit to SkyscraperSpriteLayout.WALL_LIT_X,
-            R.drawable.skyscraper_setback to SkyscraperSpriteLayout.SETBACK_X,
-            R.drawable.skyscraper_roof_snow to SkyscraperSpriteLayout.ROOF_SNOW_X,
-        )
+    fun `every mask the gallery draws is an added blit and every fixed layer is not`() {
+        val masks = NeighbourhoodTable.FAMILIES.values.flatMap { it.slots }.flatMap { it.options }
+            .flatMap { piece ->
+                piece.parts.filter { it.role == PartRole.WALL_MASK || it.role == PartRole.GLASS_MASK }
+            }.map { it.res }.toSet()
         var checked = 0
         for (theme in ThemeCatalog.ALL) {
             for (part in previewParts(theme.id)) {
-                absolute[part.resId]?.let {
-                    assertEquals("theme ${theme.id} x", it.first, part.ox, 0f)
-                    assertEquals("theme ${theme.id} y", it.second, part.oy, 0f)
-                    checked++
+                if (part.resId !in buildingSprites) continue
+                if (part.resId in masks) {
+                    assertTrue("a mask must be an added blit", part.added)
+                    assertTrue("a mask must carry a tint", part.tint != null)
+                } else {
+                    assertTrue("fixed art must not be an added blit", !part.added)
+                    assertTrue("fixed art must not be tinted", part.tint == null)
                 }
-                horizontalOnly[part.resId]?.let {
-                    assertEquals("theme ${theme.id} x", it, part.ox, 0f)
-                    checked++
-                }
+                checked++
             }
         }
-        assertTrue("expected to have checked some tower parts, checked $checked", checked > 0)
-        println("Filone 4: $checked skyscraper sprite placements checked across ${ThemeCatalog.ALL.size} themes")
-    }
-
-    // -- the two shops (v4.21 snow audit) ------------------------------------------------------
-
-    /**
-     * **The third drift, closed the same way.** v4.18 crowned both shops with cornices and v4.19
-     * rebuilt their winter drifts to lie on those crowns; the preview kept drawing the drifts at
-     * their pre-cornice origins — `(-48,-102)` and `(-43,-98)` — and never drew a cornice at all.
-     * So for two releases the gallery showed the uncrowned silhouette with snow hovering where the
-     * old parapet used to be, which is exactly the tree's v3.7 failure and the tower's v3.8 one.
-     *
-     * Both cornices and both drifts now read the renderer's constants, and this asserts it for
-     * every theme that draws a shop, drift origins included, so a fourth copy cannot reappear.
-     */
-    @Test
-    fun `the shop cornices and their drifts sit where the wallpaper puts them`() {
-        val expected: Map<Int, Pair<Float, Float>> = mapOf(
-            R.drawable.restaurant_cornice to
-                (SceneObjectRenderer.RESTAURANT_CORNICE_X to SceneObjectRenderer.RESTAURANT_CORNICE_Y),
-            R.drawable.bar_cornice to
-                (SceneObjectRenderer.BAR_CORNICE_X to SceneObjectRenderer.BAR_CORNICE_Y),
-            R.drawable.restaurant_roof_snow to
-                (SceneObjectRenderer.RESTAURANT_ROOF_SNOW_X to SceneObjectRenderer.RESTAURANT_ROOF_SNOW_Y),
-            R.drawable.bar_roof_snow to
-                (SceneObjectRenderer.BAR_ROOF_SNOW_X to SceneObjectRenderer.BAR_ROOF_SNOW_Y),
-        )
-        var checked = 0
-        var cornices = 0
-        for (theme in ThemeCatalog.ALL) {
-            val parts = previewParts(theme.id)
-            for (part in parts) {
-                expected[part.resId]?.let {
-                    assertEquals("theme ${theme.id} x of ${part.resId}", it.first, part.ox, 0f)
-                    assertEquals("theme ${theme.id} y of ${part.resId}", it.second, part.oy, 0f)
-                    checked++
-                }
-            }
-            // A shop without its crown is the pre-v4.18 silhouette; a wall must not appear alone.
-            for ((wall, cornice) in listOf(
-                R.drawable.restaurant_wall to R.drawable.restaurant_cornice,
-                R.drawable.bar_wall to R.drawable.bar_cornice,
-            )) {
-                val walls = parts.count { it.resId == wall }
-                val crowns = parts.count { it.resId == cornice }
-                assertEquals("theme ${theme.id}: every shop wall carries its cornice", walls, crowns)
-                cornices += crowns
-            }
-            // And the drift only ever lies on a crowned shop: no snow without the wall under it.
-            assertTrue(
-                "theme ${theme.id}: a shop drift needs its shop",
-                parts.none { it.resId == R.drawable.restaurant_roof_snow } ||
-                    parts.any { it.resId == R.drawable.restaurant_wall },
-            )
-        }
-        assertTrue("expected to have checked some shop parts, checked $checked", checked > 0)
-        assertTrue("expected at least one crowned shop across the gallery", cornices > 0)
-        // The pre-cornice origins, named so a revert is unambiguous rather than a silent slide.
-        assertTrue(-48f != SceneObjectRenderer.RESTAURANT_ROOF_SNOW_X)
-        assertTrue(-43f != SceneObjectRenderer.BAR_ROOF_SNOW_X)
+        assertTrue("expected to have checked some parts, checked $checked", checked > 0)
     }
 
     /**
-     * **The boundary of this work, asserted.** Only the three groups with demonstrated drift risk
-     * are shared; the other sprites agree today as plain literals and are deliberately left alone.
+     * **The boundary of this work, asserted.** The tree is still shared through constants; the
+     * neighbourhood is shared through the table and the composer. Everything else in the preview
+     * agrees today as plain literals and is deliberately left alone.
      *
      * Stated as a test so that "extend it to everything" is a decision somebody has to take
      * knowingly rather than a drift in the other direction.
      */
     @Test
-    fun `only the three groups with demonstrated risk are shared`() {
-        val shared = setOf(
+    fun `only the groups with demonstrated risk are shared`() {
+        val sharedByConstant = setOf(
             R.drawable.tree_trunk, R.drawable.tree_canopy,
             R.drawable.tree_canopy_snowcap, R.drawable.tree_dead_branches,
-            R.drawable.skyscraper_canopy, R.drawable.skyscraper_wall,
-            R.drawable.skyscraper_wall_lit, R.drawable.skyscraper_entrance,
-            R.drawable.skyscraper_setback, R.drawable.skyscraper_roof_snow,
-            R.drawable.restaurant_cornice, R.drawable.restaurant_roof_snow,
-            R.drawable.bar_cornice, R.drawable.bar_roof_snow,
         )
+        assertEquals("the tree's four", 4, sharedByConstant.size)
         assertEquals(
-            "the shared set should be the tree's four, the tower's six and the shops' four",
-            14, shared.size,
+            "the five families of the neighbourhood, shared through the table",
+            5, NeighbourhoodTable.FAMILIES.size,
         )
-        // A sprite the preview uses that is not in the shared set is fine -- that is the point.
         val used = ThemeCatalog.ALL.flatMap { previewParts(it.id) }.map { it.resId }.toSet()
-        assertTrue("the shared sprites should all actually be drawn", shared.count { it in used } >= 8)
+        assertTrue("the tree's shared sprites should all actually be drawn", sharedByConstant.count { it in used } >= 2)
+        assertTrue("the neighbourhood's sprites should actually be drawn", buildingSprites.count { it in used } >= 8)
     }
 }

@@ -525,186 +525,95 @@ class VehicleAndShopFrontTest {
     // ---------------------------------------------------------------- shop fronts
 
     /**
-     * Both shops are capped, above the wall, and the two caps are different drawings.
+     * ### What the five tests that stood here were protecting, and where each went
      *
-     * A house in this library is a rectangle with a pitched roof and a tower is a rectangle with a
-     * setback and a mast; a shop was a rectangle, so "commercial" and "unfinished" had the same
-     * silhouette. Two different caps are also the point: one raised block and one stepped false
-     * front, so the two businesses are told apart by outline and not only by their signs.
+     * They were written against the flat shopfronts of v4.18: a wall, a cornice, an awning, a sign
+     * and a window, at literal offsets, read out of `drawRestaurantBuilding` and
+     * `drawBarBuilding`. v5.0 replaced both with cut-out figures dealt from
+     * [NeighbourhoodTable], so there are no offsets to read and no function to read them from.
+     * Each concern is accounted for rather than dropped:
+     *
+     * - *"each shop is capped above its wall, and the two caps differ"* -- **kept, below**, and
+     *   widened: the question was never the cornice, it was whether a shop is told apart from an
+     *   unfinished rectangle by its outline, and that is now asked of the silhouettes themselves.
+     * - *"the restaurant frontage stacks fascia, canopy, glass and door"* -- **gone with the
+     *   drawing.** The pavilion is one cut-out card with its coping, dome sign, awning and steps
+     *   drawn into it; there is no stacking order left to get wrong, because there are no longer
+     *   four sprites to order.
+     * - *"the pub front packs lantern, panes and door inside the painted field"* -- **moved** to
+     *   `tools/assets/tests/test_neighbourhood.py`. That is the containment rule, and it is now
+     *   enforced where the card is drawn: the generator refuses to render a card that leaves its
+     *   host face, for every piece of every family rather than for the bar alone.
+     * - *"both shop fronts have a lit upper storey and glazed street level"* -- **half kept**
+     *   (below: both shops are glazed and their glass follows opening hours) and **half gone**:
+     *   the shops no longer have an upper storey. That is the redraw, not an oversight; see
+     *   `BuildingHeightDeclarationTest`, which measures how much shorter they are.
+     * - *"the shop window's frame survives being tinted"* -- **structurally impossible to fail
+     *   now**, which is why there is no successor. The frame was ink in the same sprite as the
+     *   glass, so a tint multiplied both and could wash the frame out; the frame is now in the
+     *   piece's fixed layer and the glass is a separate mask summed over it. The two cannot be
+     *   multiplied by one colour any more.
      */
     @Test
-    fun `each shop is capped above its wall, and the two caps differ`() {
-        assertTrue(
-            "the restaurant must blit its cornice",
-            drawSource("drawRestaurantBuilding").contains("R.drawable.restaurant_cornice"),
-        )
-        assertTrue(
-            "and the bar its own",
-            drawSource("drawBarBuilding").contains("R.drawable.bar_cornice"),
-        )
-        val restaurantCap = spriteUnits("restaurant_cornice")
-        val barCap = spriteUnits("bar_cornice")
-        assertEquals(
-            "the restaurant's cap must sit on the wall's top edge",
-            -96f,
-            SceneObjectRenderer.RESTAURANT_CORNICE_Y + restaurantCap.second,
-            0.001f,
-        )
-        assertEquals(
-            "and the bar's on its own",
-            -92f,
-            SceneObjectRenderer.BAR_CORNICE_Y + barCap.second,
-            0.001f,
-        )
-        assertTrue("the restaurant's cap oversails its 100-unit wall", restaurantCap.first > 100f)
-        assertTrue("the bar's oversails its 90", barCap.first > 90f)
-        val a = ImageIO.read(File(drawableDir(), "restaurant_cornice.png"))
-        val b = ImageIO.read(File(drawableDir(), "bar_cornice.png"))
-        assertTrue("the two caps must not be the same drawing", a.width != b.width || a.height != b.height)
-    }
-
-
-
-    /**
-     * The trattoria frontage stacks the way a shopfront does: fascia, canopy, glass, door.
-     *
-     * The canopy spans the whole frontage and hangs its scallop lobes one unit over the top of
-     * the glass -- a canopy over a window -- and it is still drawn after the glass, the order
-     * v4.18 established. The fascia board sits above the canopy, clear of the upper-storey
-     * windows, and the two planters flank a door that is now drawn as fixed art rather than as a
-     * darker patch of the wall it stands in.
-     */
-    @Test
-    fun `the restaurant frontage stacks fascia, canopy, glass and door`() {
-        val awningTop = SceneObjectRenderer.RESTAURANT_AWNING_Y
-        val awningBottom = awningTop + spriteUnits("restaurant_awning").second
-        val glassTop = -45f
-        assertTrue("the canopy must start above the glass", awningTop < glassTop)
-        assertTrue(
-            "and its lobes may lap at most two units over the pane, was ${awningBottom - glassTop}",
-            awningBottom > glassTop && awningBottom <= glassTop + 2f,
-        )
-        val awningLeft = SceneObjectRenderer.RESTAURANT_AWNING_X
-        val awningRight = awningLeft + spriteUnits("restaurant_awning").first
-        assertTrue("the canopy must span the glass", awningLeft <= -35f && awningRight >= -5f)
-        assertTrue("and the door", awningRight >= 26f)
-
-        val fasciaTop = SceneObjectRenderer.RESTAURANT_SIGN_Y
-        val fasciaBottom = fasciaTop + spriteUnits("restaurant_sign").second
-        assertTrue(
-            "the fascia must sit between the upper windows and the canopy",
-            fasciaTop >= -66.5f && fasciaBottom <= awningTop + 0.001f,
-        )
-        val body = drawSource("drawRestaurantBuilding")
-        val glassAt = body.indexOf("R.drawable.restaurant_window")
-        val awningAt = body.indexOf("R.drawable.restaurant_awning")
-        assertTrue("both must still be drawn", glassAt >= 0 && awningAt >= 0)
-        assertTrue("and the canopy must be drawn over the glass, not under it", awningAt > glassAt)
-        assertTrue(
-            "the entrance must be fixed art now, not a darker patch of wall",
-            body.contains("drawSprite(canvas, R.drawable.restaurant_door") &&
-                !body.contains("drawTintedSprite(canvas, R.drawable.restaurant_door"),
-        )
-        // The planters flank the door: one wholly left of it, one lapping at most two units under
-        // the frame of a door that is drawn after it.
-        val planterWidth = spriteUnits("house_shared_planter").first
-        assertTrue(
-            "left planter clear of the door",
-            SceneObjectRenderer.RESTAURANT_PLANTER_LEFT_X + planterWidth <= 8f,
-        )
-        val rightLap = 8f + 18f - SceneObjectRenderer.RESTAURANT_PLANTER_RIGHT_X
-        assertTrue("right planter tucked at most two units under the door frame",
-            SceneObjectRenderer.RESTAURANT_PLANTER_RIGHT_X + planterWidth <= 50f && rightLap <= 26f)
-        assertTrue(
-            "and the door is drawn after the planters so its frame covers the lap",
-            body.indexOf("R.drawable.restaurant_door") > body.indexOf("R.drawable.house_shared_planter"),
-        )
-    }
-
-    /** A storey with no openings in it is a wall. Both shops now have one that is not. */
-    @Test
-    fun `both shop fronts have a lit upper storey and glazed street level`() {
-        val restaurant = drawSource("drawRestaurantBuilding")
-        assertTrue(
-            "the restaurant's upper storey must carry the same windows a house's does",
-            restaurant.contains("R.drawable.house_shared_window") &&
-                restaurant.contains("R.drawable.house_window_lit"),
-        )
-        val bar = drawSource("drawBarBuilding")
-        assertTrue(
-            "the bar's street frontage must be glazed rather than a slab with a door in it",
-            bar.contains("R.drawable.restaurant_window"),
-        )
-        assertTrue(
-            "and it must be lit from behind after dark like every other window in the scene -- " +
-                "through the business-hours night since v4.22, which is the sky's own night " +
-                "whenever the toggle is off",
-            bar.contains("windowGlassColor(barGlassNight)") &&
-                bar.contains("val barGlassNight = barNight * businessOpenness"),
-        )
+    fun `the two shops are told apart from each other and from a plain rectangle`() {
+        val figures = listOf("restaurant_pavilion_fx", "bar_signboard_fx", "bar_chamfer_fx")
+        val shapes = figures.associateWith { ImageIO.read(File(drawableDir(), "$it.png")) }
+        for ((name, image) in shapes) {
+            // A shop that fills its own bounding box is the rectangle this test exists to refuse.
+            var opaque = 0
+            for (y in 0 until image.height) {
+                for (x in 0 until image.width) {
+                    if ((image.getRGB(x, y) ushr 24) >= 128) opaque++
+                }
+            }
+            val fill = opaque.toFloat() / (image.width * image.height)
+            assertTrue(
+                "$name fills ${(fill * 100).toInt()}% of its canvas, so its outline is a rectangle",
+                fill < 0.92f,
+            )
+        }
+        // And no two of the three are the same drawing.
+        for (a in figures.indices) {
+            for (b in a + 1 until figures.size) {
+                val x = shapes.getValue(figures[a])
+                val y = shapes.getValue(figures[b])
+                assertTrue(
+                    "${figures[a]} and ${figures[b]} must not be the same drawing",
+                    x.width != y.width || x.height != y.height,
+                )
+            }
+        }
     }
 
     /**
-     * The pub front packs its row exactly, and everything on it has somewhere to be.
+     * Both shops are glazed at street level, and somebody can be behind the glass.
      *
-     * Lantern, pane, door, pane, left to right inside the painted field, nothing overlapping its
-     * neighbour and nothing overhanging the field. The fascia laps a little onto the field's top
-     * edge the way a real fascia board is fixed over the joinery, and its badge stays clear of
-     * the upstairs windows the old hanging sign used to cover.
+     * The v4.1 defect was a restaurant with no occupant call site at all; the v4.18 one was a
+     * frontage that read as a slab with a door in it. Both are the same question asked of the
+     * pieces: does this figure have glass, and does it declare a window a bust fits in.
      */
     @Test
-    fun `the pub front packs lantern, panes and door inside the painted field`() {
-        val paneWidth = spriteUnits("restaurant_window").first
-        val lantern = SceneObjectRenderer.BAR_LANTERN_X to
-            SceneObjectRenderer.BAR_LANTERN_X + spriteUnits("bar_lantern").first
-        val pane1 = SceneObjectRenderer.BAR_FRONT_PANE_LEFT_X to
-            SceneObjectRenderer.BAR_FRONT_PANE_LEFT_X + paneWidth
-        val door = SceneObjectRenderer.BAR_DOOR_X to
-            SceneObjectRenderer.BAR_DOOR_X + spriteUnits("bar_door").first
-        val pane2 = SceneObjectRenderer.BAR_FRONT_PANE_RIGHT_X to
-            SceneObjectRenderer.BAR_FRONT_PANE_RIGHT_X + paneWidth
-        val row = listOf(lantern, pane1, door, pane2)
-        for ((left, right) in row) {
-            assertTrue(
-                "everything on the front stays inside the painted field",
-                left >= SceneObjectRenderer.BAR_FRONT_FIELD_LEFT_X - 0.001f &&
-                    right <= SceneObjectRenderer.BAR_FRONT_FIELD_RIGHT_X + 0.001f,
+    fun `both shop figures are glazed and populatable`() {
+        for (variant in listOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR)) {
+            val family = NeighbourhoodTable.FAMILIES.getValue(variant)
+            assertEquals(
+                "a shop follows opening hours, so it must not be classed as a house",
+                WindowBuildingKind.COMMERCIAL, family.kind,
             )
+            for (slot in family.slots) {
+                for (piece in slot.options) {
+                    assertTrue(
+                        "$variant has a figure with no glass mask: a slab with a door in it",
+                        piece.parts.any { it.role == PartRole.GLASS_MASK },
+                    )
+                    assertTrue(
+                        "$variant has a figure nobody can stand in",
+                        piece.windows.isNotEmpty(),
+                    )
+                }
+            }
         }
-        for (i in 0 until row.size - 1) {
-            assertTrue(
-                "${'$'}{row[i]} must not overlap ${'$'}{row[i + 1]}",
-                row[i].second <= row[i + 1].first + 0.001f,
-            )
-        }
-        val fasciaTop = SceneObjectRenderer.BAR_SIGN_Y
-        val fasciaBottom = fasciaTop + spriteUnits("bar_sign").second
-        assertTrue(
-            "the fascia must lap onto the field, not float above it",
-            fasciaBottom > SceneObjectRenderer.BAR_FRONT_FIELD_TOP_Y &&
-                fasciaBottom <= SceneObjectRenderer.BAR_FRONT_FIELD_TOP_Y + 3f,
-        )
-        val upperWindowBottom = -82f + spriteUnits("house_shared_window").second
-        assertTrue(
-            "and its badge must stay clear of the upstairs windows",
-            fasciaTop >= upperWindowBottom - 0.001f,
-        )
-        val body = drawSource("drawBarBuilding")
-        assertTrue(
-            "the field must be renderer paint that darkens with the night, not a fixed sprite",
-            body.contains("ColorUtils.blendARGB(BAR_FRONT_DAY, BAR_FRONT_NIGHT, barNight)"),
-        )
-        assertTrue(
-            "the lantern's glow must be gated off by day like every vehicle lamp",
-            body.contains("if (lanternGlow > 0)"),
-        )
-        assertTrue(
-            "the pub door must be fixed art",
-            body.contains("drawSprite(canvas, R.drawable.bar_door") &&
-                !body.contains("drawTintedSprite(canvas, R.drawable.bar_door"),
-        )
     }
-
     /**
      * The appliance carries three silver equipment lockers along its body.
      *
@@ -737,24 +646,6 @@ class VehicleAndShopFrontTest {
         assertEquals("three lockers along the body, found $runs", 3, runs)
     }
 
-    /**
-     * A tinted window keeps a frame.
-     *
-     * `restaurant_window` is painted with one colour at draw time, so every part of it is that
-     * colour scaled by its own brightness. Frame #ffffff over glass #fdfdfd is a difference of two
-     * parts in 255: it survived the tint as nothing at all, and the pane read as a slab -- in the
-     * restaurant's frontage, and then in both of the bar's. The number is a floor, not a value.
-     */
-    @Test
-    fun `the shop window's frame survives being tinted`() {
-        val image = ImageIO.read(File(drawableDir(), "restaurant_window.png"))
-        val frame = luminanceAt(image, 1, image.height / 2)
-        val glass = luminanceAt(image, image.width / 4, image.height / 3)
-        assertTrue(
-            "the frame must be meaningfully lighter than the glass, was 2/255: ${frame - glass}",
-            frame - glass >= 12,
-        )
-    }
 
     // ---------------------------------------------------------------- helpers
 

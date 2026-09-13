@@ -118,10 +118,18 @@ class VerdictTest(unittest.TestCase):
 class RecoveredGeometryTest(unittest.TestCase):
     """The criterion applied to the real sprites, including the near misses.
 
-    `house_large_trim` is a full-canvas rounded rectangle in the shipped library,
-    so `fit` determines it completely: one free parameter, swept exhaustively.
-    It is pinned in both directions -- the recovered radius reproduces the sprite,
-    the neighbouring grid values do not.
+    `car_lamp_front` is a full-canvas rounded rectangle in the shipped library --
+    one `<rect>` with `rx="1.5"` and nothing else in the document -- so `fit`
+    determines it completely: one free parameter, swept exhaustively. It is pinned
+    in both directions: the recovered radius reproduces the sprite, and the
+    neighbouring grid values do not.
+
+    **It was `house_large_trim` until v5.0**, which retired the five building
+    families' flat facades for the redrawn neighbourhood. The trim was a 450x18
+    rounded rectangle of the same shape, and the substitution is of the same kind:
+    a single full-canvas `<rect>` whose radius the source declares. One assertion
+    did not survive it, and deliberately -- see `test_the_shipped_trims_radius_is
+    _recovered_from_its_pixels`.
 
     These cases named `house_shared_planter` and `road_line` at a 78x18 radius 6
     and a 52x8 radius 3.9 until the V2 redesign. Both sprites were plain rounded
@@ -133,15 +141,24 @@ class RecoveredGeometryTest(unittest.TestCase):
     antialiasing decision.
     """
 
-    #: The trim's radius, in pixels, as its committed source declares it: `rx="3"`
+    #: The lens's radius, in pixels, as its committed source declares it: `rx="1.5"`
     #: in a viewBox authored at `SPRITE_PIXELS_PER_UNIT` pixels per scene unit.
-    TRIM_RADIUS = 3 * inventory.SPRITE_PIXELS_PER_UNIT
+    LENS_RADIUS = 1.5 * inventory.SPRITE_PIXELS_PER_UNIT
+
+    #: The sprite these cases are fitted against: one `<rect>`, full canvas, declared radius.
+    LENS = "car_lamp_front"
 
     def test_the_shipped_trims_radius_is_recovered_from_its_pixels(self):
-        fitted = fit.fit_rounded_rect("house_large_trim", runtime_pixels("house_large_trim"))
-        self.assertEqual((450, 18), (fitted.width, fitted.height))
-        self.assertEqual(float(self.TRIM_RADIUS), fitted.snapped_radius)
-        self.assertLess(abs(fitted.best_radius - self.TRIM_RADIUS), 0.5)
+        fitted = fit.fit_rounded_rect(self.LENS, runtime_pixels(self.LENS))
+        self.assertEqual((18, 12), (fitted.width, fitted.height))
+        self.assertLess(abs(fitted.best_radius - self.LENS_RADIUS), 0.5)
+        # **The `snapped_radius` assertion the trim carried is not restated, and the reason is
+        # worth a line.** Snapping puts the recovered radius on the sprite grid, and the trim's
+        # `rx="3"` was three whole scene units, so its snap was its radius and asserting the two
+        # equal said something. This lens is `rx="1.5"` -- half a unit -- so its 4.5 px snaps to
+        # 6.0, and an assertion that they are equal would be asserting the snap is wrong. What the
+        # test is about is the recovery, which the line above pins to within half a pixel.
+        self.assertEqual(6.0, fitted.snapped_radius)
 
     def test_fitted_radius_reproduces_the_shipped_trim(self):
         """Reproduced from the sprite's own source form, not from a 1:1 rounded rectangle.
@@ -155,18 +172,18 @@ class RecoveredGeometryTest(unittest.TestCase):
         changed.
         """
         result = fidelity.compare(
-            "house_large_trim", runtime_pixels("house_large_trim"), source_pixels("house_large_trim.svg")
+            self.LENS, runtime_pixels(self.LENS), source_pixels(f"{self.LENS}.svg")
         )
         self.assertIn(result.verdict, ("PIXEL_IDENTICAL", "EDGE_EQUIVALENT"))
         self.assertEqual(0, result.interior_alpha_mismatch)
 
     def test_wrong_radius_does_not_reproduce_the_shipped_trim(self):
-        reference = runtime_pixels("house_large_trim")
+        reference = runtime_pixels(self.LENS)
         step = inventory.SPRITE_PIXELS_PER_UNIT
-        for radius in (self.TRIM_RADIUS - step, self.TRIM_RADIUS + step):
+        for radius in (self.LENS_RADIUS - step, self.LENS_RADIUS + step):
             with self.subTest(radius=radius):
                 result = fidelity.compare(
-                    "house_large_trim", reference, render_rounded_rect(450, 18, radius)
+                    self.LENS, reference, render_rounded_rect(18, 12, radius)
                 )
                 self.assertEqual("DIVERGENT", result.verdict)
 
@@ -243,7 +260,12 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # plus region masks now, and neither is a drawing with an SVG of its own. The eight window
         # busts and the twenty-four walk frames still ship their bases and still carry theirs, which
         # is why the loss is six and not the whole family.
-        self.assertEqual(137, len(self.results))
+        # v5.0: -34, the whole of the five building families. The flat facades each had an SVG
+        # and the pieces that replace them cannot: a piece is drawn by
+        # `tools/assets/buildings/build_neighbourhood.py` and decomposed into a fixed layer and its
+        # weight masks, which is the same reason the people's layers have no source since v4.30.
+        # The registry says so in each entry's `source.reason` rather than leaving the field empty.
+        self.assertEqual(103, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

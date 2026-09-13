@@ -455,6 +455,20 @@ class SceneObjectRenderer(
         const val WINDOW_GLASS_DAY = 0xFFB9CBD9.toInt()
         const val WINDOW_GLASS_NIGHT = 0xFFFFE79A.toInt()
 
+        /**
+         * What a window is, as a colour: cool glass by day, warm light at night.
+         *
+         * One pair, because there is one answer. It was already the restaurant's, written inline;
+         * every window in the neighbourhood now reads the same two constants rather than a second
+         * pair that could drift from it.
+         *
+         * In the companion rather than on the instance since v5.0, because the gallery preview
+         * asks the same question and the answer must not be copied there -- see
+         * `ThemePreviewScenes.neighbourhood`.
+         */
+        fun windowGlassColor(nightGlow: Float): Int =
+            SceneColour.blendArgb(WINDOW_GLASS_DAY, WINDOW_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
+
         const val SKYSCRAPER_WINDOWS = 16
 
         /**
@@ -2039,13 +2053,13 @@ class SceneObjectRenderer(
         val previewScale = screenHeight / PREVIEW_REFERENCE_HEIGHT_PX
 
         drawPreviewItem(canvas, screenWidth * 0.22f, screenHeight * 0.88f, SceneSpace.SceneVariant.HOUSE_SMALL, previewScale, 1f) {
-            drawSmallHouse(canvas, houseRuntime, SceneTime.ZERO, dayBlend)
+            drawNeighbourhoodBuilding(canvas, houseRuntime, SceneTime.ZERO, dayBlend, SceneSpace.SceneVariant.HOUSE_SMALL)
         }
         drawPreviewItem(canvas, screenWidth * 0.52f, screenHeight * 0.94f, SceneSpace.SceneVariant.TREE, previewScale, 0.55f) {
             drawTree(canvas, treeRuntime, elapsed = SceneTime.ZERO, dayBlend = dayBlend)
         }
         drawPreviewItem(canvas, screenWidth * 0.80f, screenHeight * 0.96f, SceneSpace.SceneVariant.TOWER, previewScale, 0.34f) {
-            drawSkyscraperBuilding(canvas, buildingRuntime, SceneTime.ZERO, dayBlend)
+            drawNeighbourhoodBuilding(canvas, buildingRuntime, SceneTime.ZERO, dayBlend, SceneSpace.SceneVariant.TOWER)
         }
     }
 
@@ -2165,15 +2179,21 @@ class SceneObjectRenderer(
         // sized as one drawing and painted as another.
         when (variantFor(r.spec)) {
             SceneSpace.SceneVariant.HOUSE_SMALL ->
-                if (r.spec.type == SceneObjectType.HOUSE) drawSmallHouse(canvas, r, elapsed, dayBlend) else Unit
-            SceneSpace.SceneVariant.HOUSE_LARGE -> drawLargeHouse(canvas, r, elapsed, dayBlend)
+                if (r.spec.type == SceneObjectType.HOUSE) {
+                    drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.HOUSE_SMALL)
+                }
+            SceneSpace.SceneVariant.HOUSE_LARGE ->
+                drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.HOUSE_LARGE)
             // Never dispatched: a fir is a state a TREE candidate takes on while the Christmas
             // layer is on, not a placeable type of its own -- see [standsAsFir]. It exists in the
             // variant table only so the fir's height is governed by the same metre as the tree's.
             SceneSpace.SceneVariant.FIR -> Unit
-            SceneSpace.SceneVariant.TOWER -> drawSkyscraperBuilding(canvas, r, elapsed, dayBlend)
-            SceneSpace.SceneVariant.RESTAURANT -> drawRestaurantBuilding(canvas, r, elapsed, dayBlend)
-            SceneSpace.SceneVariant.BAR -> drawBarBuilding(canvas, r, elapsed, dayBlend)
+            SceneSpace.SceneVariant.TOWER ->
+                drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.TOWER)
+            SceneSpace.SceneVariant.RESTAURANT ->
+                drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.RESTAURANT)
+            SceneSpace.SceneVariant.BAR ->
+                drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.BAR)
             SceneSpace.SceneVariant.TREE -> drawTree(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.PALM_TREE -> drawPalmTree(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.PARASOL -> drawParasol(canvas, r, elapsed, dayBlend)
@@ -2269,144 +2289,136 @@ class SceneObjectRenderer(
         fillPaint.alpha = 255
     }
 
-    private fun drawSmallHouse(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        val wallColor = customization.colorFor(r.spec, dayBlend)
-        val roofColor = ColorUtils.blendARGB(wallColor, 0xFF1A1410.toInt(), 0.45f)
-        val trimColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
-        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
+    /**
+     * A building of the neighbourhood: the pieces [NeighbourhoodTable] deals for this instance,
+     * stacked, tinted from the category's own colour, with the behaviours hung on the coordinates
+     * the pieces declare.
+     *
+     * **One function for five families.** Until v5.0 the small house, the large house, the tower,
+     * the restaurant and the bar each had a function of their own, and each was one flat facade:
+     * a wall, a roof, a trim, a door, and a window sticker at literal coordinates. Five functions
+     * meant five places to remember that snow is a layer and not a tint, that a shop's glass
+     * follows `BusinessHours` and a house's never does, and that a bust stands at a window --
+     * and the tower is the one that forgot the last of those often enough to earn its own test.
+     * Here those rules are stated once and the artwork is data.
+     *
+     * **What the deal costs and what it buys.** The stack is dealt from the building's own
+     * position, so two neighbours carry two silhouettes; that is the whole point of the redraw,
+     * and it is also the reason a tower is more blits than it was. Counted from the table and
+     * confirmed by the phone: a tower is **33** blits against the shipped facade's **6** (three
+     * tiers, nine stamped window rows, three bays and a crown), a large house 9 to 14, a small
+     * house 5 to 9, each shop 3. A count is not a cost, so it was **measured as frame cost on the
+     * `perf` build** before this shipped -- see the v5.0 report for the milliseconds, which is
+     * the number that decides whether a blit count matters.
+     *
+     * The order inside a piece is the order the artwork needs and not the order the list happens
+     * to be in: bodies, then the stamps that sit on them, then snow. That is decided in the
+     * generator (`Piece.ordered`), which is why this loop can be flat.
+     */
+    private fun drawNeighbourhoodBuilding(
+        canvas: SceneCanvas,
+        r: StaticRuntime,
+        elapsed: SceneTime,
+        dayBlend: Float,
+        variant: SceneSpace.SceneVariant,
+    ) {
+        val family = NeighbourhoodTable.FAMILIES[variant] ?: return
+        val spec = r.spec
+        // Every tinted surface of this building descends from this one value: one of the two
+        // colours the user can edit for the object's category. The pieces carry the rest as
+        // weights in their own wall mask -- a roof is the wall towards the ink, a cornice is the
+        // wall towards white -- so nothing here invents a colour. See [NeighbourhoodTable].
+        val wallColor = customization.colorFor(spec, dayBlend)
+        val night = (1f - dayBlend).coerceIn(0f, 1f)
+        // A house lights its windows because somebody is in; a business lights them while it is
+        // open. `businessOpenness` is the closing fade, and at 1 -- the default, the toggle off --
+        // this is arithmetically `1f - dayBlend`, the expression it always was. See [BusinessHours].
+        val glassNight = if (family.kind == WindowBuildingKind.HOUSE) night else night * businessOpenness
+        val glassColor = windowGlassColor(glassNight)
+        // The pieces are drawn in the height the family declares; the variant states what that
+        // height is on screen, so an unusual authored size is absorbed here rather than corrected
+        // per asset (AI_PROJECT_RULES 7.3).
+        val scale = variant.spriteUnitsTall / family.unitsTall
+        val deal = neighbourhoodDeal
+        NeighbourhoodComposer.deal(family, spec.tileFractionX, spec.depthFraction, deal)
 
-        // No `canvas.scale` correction here any more. There used to be one, shrinking the whole
-        // house by 0.83 because the V2 wall is drawn at a larger native unit size than the sprite
-        // the old `baseScale` was tuned against -- the per-asset patch `AI_PROJECT_RULES.md` 7.3
-        // forbids, and the reason a house could not be compared with a bar. The house's size now
-        // comes from [SceneSpace.SceneVariant.HOUSE_SMALL], which states its real height against
-        // the 110 local units this function actually draws, so an unusual native size is absorbed
-        // where it is declared rather than corrected where it is painted.
-        drawGroundShadow(canvas, 40f)
-        // wall: local bbox (-35,-70)-(35,0)
-        drawTintedSprite(canvas, R.drawable.house_small_wall, -48f, -70f, wallColor)
-        // roof: local bbox (-40,-110)-(40,-70)
-        drawTintedSprite(canvas, R.drawable.house_small_roof, -53f, -110f, roofColor)
-        // Snow settles on the roof in the winter and Christmas themes -- a layer *on* the roof,
-        // cut to that roof's own outline, never the roof tinted white. Tinting it would repaint
-        // the building rather than cover it, and `winterColorsEnabled` is already a palette
-        // override, so the two would be indistinguishable. That shortcut was rejected when this
-        // was defect D-8.
-        //
-        // Blitted between the roof and the chimney, so the chimney stands out of the drift rather
-        // than under it. The origin is the roof's own, less the four units of crest the cap adds
-        // above the ridge -- derived from the roof, so the two move together if either is redrawn.
-        if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.house_small_roof_snow, -34f, -114f)
-        }
-        drawTintedSprite(canvas, R.drawable.house_small_trim, -53f, -71f, trimColor)
-        // chimney: local bbox (8,-115)-(20,-85) -- base sits on the roof slope (off-center,
-        // right side) with enough of it above the ridge line to read as poking through, was
-        // floating past the roof's edge entirely at the old centered position.
-        drawTintedSprite(canvas, R.drawable.house_small_chimney, 8f, -115f, trimColor)
-        drawChimneySmoke(canvas, r, x = 14f, topY = -115f)
-        // window (left side) + flower planter beneath it.
-        //
-        // `house_shared_*` rather than a `house_small_*` pair: the small and large houses were
-        // authored from the same window and planter drawing, and shipped as four PNGs holding two
-        // pictures. Both variants now name the one drawable, so it is decoded once, occupies one
-        // atlas entry, and cannot drift apart in one variant only. The two houses still differ
-        // where they actually differ -- wall, roof, trim, chimney, door -- and the size difference
-        // comes from the `canvas.scale` above, not from the artwork.
-        // Window and door mirrored about the wall's own centre: a 22-unit window at -28 and a
-        // 20-unit door at 8 put their centres at -17 and +18 on a wall running -35..35.
-        // **Wider, after a device pass.** The facade was 70 local units across and the windows
-        // reached to within two of each edge, so at the size a Pixel 9 draws it the pair read as
-        // about to fall off the front. The wall is 86 now and the roof and eaves 96, keeping the
-        // same five-unit overhang; the height is untouched, because the height is what
-        // [SceneSpace.SceneVariant.HOUSE_SMALL] governs and it was already right. Six units of
-        // facade either side of a window instead of two.
-        //
-        // **A window on each side of a centred door.** With one window and a door pushed to the
-        // right, the elevation was asymmetric and short, and read as a cabin rather than a house.
-        // The door now sits on the wall's own centre and the windows are mirrored about it, which
-        // is what a small house actually looks like from the road.
-        //
-        // The second window is the same drawable at the same size, mirrored in position and not in
-        // artwork: `house_shared_window` is one drawing used by both house variants, so a second
-        // one cannot drift from the first. A 22-unit window centred at -22 and at +22, and a
-        // 20-unit door centred on 0, all sit clear of each other on a wall running -35..35.
-        drawSprite(canvas, R.drawable.house_shared_window, -37f, -45f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, -37f, -46f, litWindowAlpha(nightGlow))
-        drawWindowOccupant(canvas, r, -37f, -46f, 22f, 22f, WindowBuildingKind.HOUSE, 0, SMALL_HOUSE_WINDOWS)
-        drawSprite(canvas, R.drawable.house_shared_window, 15f, -45f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, 15f, -46f, litWindowAlpha(nightGlow))
-        // v4.1: the second window was drawn but never populated -- one of the two panes on this
-        // elevation could not hold anybody at all.
-        drawWindowOccupant(canvas, r, 15f, -46f, 22f, 22f, WindowBuildingKind.HOUSE, 1, SMALL_HOUSE_WINDOWS)
-        if (customization.christmasDecorationsEnabled) {
-            drawWindowLights(canvas, r, elapsed, -37f, -24f, 22f)
-            drawWindowLights(canvas, r, elapsed, 15f, -24f, 22f)
-        }
-        drawSprite(canvas, R.drawable.house_shared_planter, -39f, -29f)
-        drawFlowerDots(canvas, -33f, -29f)
-        // door, centred between the two windows, with the porch light beside it
-        drawTintedSprite(canvas, R.drawable.house_small_door, -10f, -38f, ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.55f))
-        drawPorchLight(canvas, x = 16f, y = -20f, nightGlow = nightGlow)
-    }
-
-    private fun drawLargeHouse(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        val wallColor = customization.colorFor(r.spec, dayBlend)
-        val roofColor = ColorUtils.blendARGB(wallColor, 0xFF1A1410.toInt(), 0.45f)
-        val trimColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
-        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f)
-
-        // No `canvas.scale` correction here either -- see [drawSmallHouse]. The large house's
-        // 145 local units are declared by [SceneSpace.SceneVariant.HOUSE_LARGE], so the two
-        // houses are now sized against the same metre rather than against each other.
-        drawGroundShadow(canvas, 70f)
-        // wall: local bbox (-70,-95)-(70,0)
-        drawTintedSprite(canvas, R.drawable.house_large_wall, -70f, -95f, wallColor)
-        // roof: local bbox (-75,-145)-(75,-95)
-        drawTintedSprite(canvas, R.drawable.house_large_roof, -75f, -145f, roofColor)
-        // See [drawSmallHouse] for why this is a layer and not a tint.
-        if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.house_large_roof_snow, -50f, -149f)
-        }
-        // The V2 trim is 18px tall where the shipped one was 12, widened to the asset library's
-        // 6-authoring-unit minimum for an internal border. The origin drops by one unit so the
-        // border stays centred on the wall/roof seam instead of growing downward into the wall.
-        drawTintedSprite(canvas, R.drawable.house_large_trim, -75f, -97f, trimColor)
-        // chimney: local bbox (20,-150)-(33,-115) -- base sits on the roof slope off-center.
-        drawTintedSprite(canvas, R.drawable.house_large_chimney, 20f, -150f, trimColor)
-        drawChimneySmoke(canvas, r, x = 26f, topY = -150f)
-        // Four windows across two floors, door centered between them on the ground floor.
-        // Four windows in two columns, **symmetric about the door**. They sat at -55 and 15,
-        // which is 15 units of wall to the left of the pair and 33 to the right on a wall that
-        // runs -70..70: the whole facade read as pushed to one side. A 22-unit window at -46 and
-        // 24 leaves 24 either side and centres the pair on the door, which is already at 0.
-        val litAlpha = litWindowAlpha(nightGlow)
-        drawSprite(canvas, R.drawable.house_shared_window, -46f, -84f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, -46f, -85f, litAlpha)
-        drawSprite(canvas, R.drawable.house_shared_window, 24f, -84f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -85f, litAlpha)
-        // v4.1: all four panes are candidates now. Only the upper-left one ever was.
-        drawWindowOccupant(canvas, r, -46f, -85f, 22f, 22f, WindowBuildingKind.HOUSE, 0, LARGE_HOUSE_WINDOWS)
-        drawWindowOccupant(canvas, r, 24f, -85f, 22f, 22f, WindowBuildingKind.HOUSE, 1, LARGE_HOUSE_WINDOWS)
-        drawSprite(canvas, R.drawable.house_shared_window, -46f, -44f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, -46f, -45f, litAlpha)
-        drawSprite(canvas, R.drawable.house_shared_window, 24f, -44f)
-        drawSpriteFaded(canvas, R.drawable.house_window_lit, 24f, -45f, litAlpha)
-        drawWindowOccupant(canvas, r, -46f, -45f, 22f, 22f, WindowBuildingKind.HOUSE, 2, LARGE_HOUSE_WINDOWS)
-        drawWindowOccupant(canvas, r, 24f, -45f, 22f, 22f, WindowBuildingKind.HOUSE, 3, LARGE_HOUSE_WINDOWS)
-        if (customization.christmasDecorationsEnabled) {
-            val sills = floatArrayOf(-46f, -63f, 24f, -63f, -46f, -23f, 24f, -23f)
-            for (i in 0 until 4) {
-                if (litWindowChosen(r, i, 4, 3)) {
-                    drawWindowLights(canvas, r, elapsed, sills[i * 2], sills[i * 2 + 1], 22f)
+        drawGroundShadow(canvas, family.shadowHalf * scale)
+        canvas.save()
+        canvas.scale(scale, scale)
+        val winter = customization.winterColorsEnabled
+        // **Indexed, not iterated, all the way down.** A `for (x in list)` over a `List` allocates
+        // an iterator, and this loop runs for every part of every piece of every building on every
+        // frame -- 33 parts on a tower alone. That is garbage a 30 Hz loop does not have to make,
+        // and the `Canvas` path, which is the one already closest to its budget, is where it would
+        // be felt first. The same goes for the `withIndex()` the occupant branch used to use.
+        for (index in 0 until deal.size) {
+            val placed = deal[index]
+            val piece = placed.piece
+            val footY = placed.baseY
+            val parts = piece.parts
+            for (partIndex in parts.indices) {
+                val part = parts[partIndex]
+                when (part.role) {
+                    PartRole.WALL_MASK ->
+                        sprites.drawTintedAdded(canvas, part.res, part.x, footY + part.y, SpriteScale.SCENE_UNITS, wallColor)
+                    PartRole.GLASS_MASK ->
+                        sprites.drawTintedAdded(canvas, part.res, part.x, footY + part.y, SpriteScale.SCENE_UNITS, glassColor)
+                    PartRole.FIXED -> drawSprite(canvas, part.res, part.x, footY + part.y)
+                    // A layer *on* the roof, cut to that roof's own outline, never the roof tinted
+                    // white: tinting would repaint the building rather than cover it, and
+                    // `winterColorsEnabled` is already a palette override, so the two would be
+                    // indistinguishable. That shortcut was rejected when this was defect D-8.
+                    PartRole.SNOW -> if (winter) drawSprite(canvas, part.res, part.x, footY + part.y)
+                    PartRole.LAMP -> drawPorchLight(canvas, x = part.x, y = footY + part.y, nightGlow = night)
+                    PartRole.OCCUPANTS -> {
+                        val windows = piece.windows
+                        for (windowIndex in windows.indices) {
+                            val window = windows[windowIndex]
+                            drawWindowOccupant(
+                                canvas, r, window.x, footY + window.y, window.w, window.h,
+                                family.kind, placed.firstWindow + windowIndex, deal.windowCount,
+                            )
+                        }
+                    }
                 }
             }
         }
-        drawSprite(canvas, R.drawable.house_shared_planter, -48f, -22f)
-        drawFlowerDots(canvas, -42f, -22f)
-        drawTintedSprite(canvas, R.drawable.house_large_door, -11f, -45f, ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.55f))
-        drawPorchLight(canvas, x = 40f, y = -22f, nightGlow = nightGlow)
+        // Christmas strings hang from the sills the pieces declare, spread over the whole
+        // building rather than over one piece, so a tall house does not light its ground floor
+        // and nothing else. The cap is the one [litWindowChosen] has always applied.
+        if (customization.christmasDecorationsEnabled) {
+            var sills = 0
+            for (index in 0 until deal.size) sills += deal[index].piece.lights.size
+            var sill = 0
+            for (index in 0 until deal.size) {
+                val placed = deal[index]
+                val lights = placed.piece.lights
+                for (lightIndex in lights.indices) {
+                    val light = lights[lightIndex]
+                    if (sills <= 4 || litWindowChosen(r, sill, sills, (sills * 3) / 4)) {
+                        drawWindowLights(canvas, r, elapsed, light.x, placed.baseY + light.y, light.w)
+                    }
+                    sill++
+                }
+            }
+        }
+        for (index in 0 until deal.size) {
+            val placed = deal[index]
+            val piece = placed.piece
+            if (family.kind == WindowBuildingKind.HOUSE && piece.smokeY != 0f) {
+                drawChimneySmoke(canvas, r, x = piece.smokeX, topY = placed.baseY + piece.smokeY)
+            }
+            if (family.kind == WindowBuildingKind.SKYSCRAPER && piece.beaconY != 0f) {
+                fillPaint.color = 0xFFE85D4A.toInt()
+                canvas.drawCircle(piece.beaconX, placed.baseY + piece.beaconY, 2.2f, fillPaint)
+            }
+        }
+        canvas.restore()
     }
+
+    /** Reused across buildings and frames: see [NeighbourhoodComposer.Deal] for why it is owned
+     *  here rather than returned fresh. */
+    private val neighbourhoodDeal = NeighbourhoodComposer.Deal()
 
     /**
      * How strongly a house's lit-window overlay shows, from the same `nightGlow` the porch light
@@ -2428,8 +2440,6 @@ class SceneObjectRenderer(
      * and a future window has somewhere to look. The night value is the one the lit-window artwork
      * was drawn in, so nothing about the existing night look moves.
      */
-    private fun windowGlassColor(nightGlow: Float): Int =
-        ColorUtils.blendARGB(WINDOW_GLASS_DAY, WINDOW_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
 
     /**
      * How lit a vehicle's lamps are, on the same ramp the windows use.
@@ -2459,19 +2469,10 @@ class SceneObjectRenderer(
         canvas.drawCircle(x, y, 2.6f, fillPaint)
     }
 
-    /** Shared cozy detail: 3 tiny flower dots on top of a planter box. */
-    private fun drawFlowerDots(canvas: SceneCanvas, x: Float, y: Float) {
-        val colors = intArrayOf(0xFFE85D9E.toInt(), 0xFFF2C230.toInt(), 0xFFE85D4A.toInt())
-        for (i in 0 until 3) {
-            fillPaint.color = colors[i]
-            canvas.drawCircle(x + i * 8f, y, 2.5f, fillPaint)
-        }
-    }
-
     /**
      * A stable (never-flickering-per-frame) chance that this house instance has someone visible
      * at their window -- picked once from the house's own stable position hash, same technique
-     * [drawSkyscraperBuilding]'s per-window lit/dark flicker seed uses, just without the
+     * [drawNeighbourhoodBuilding]'s per-window lit/dark flicker seed uses, just without the
      * elapsed-time component since a person shouldn't pop in and out every frame the way a
      * lit-window flicker can. About 1 in 3 houses gets an occupant.
      */
@@ -2964,286 +2965,6 @@ class SceneObjectRenderer(
             canvas.drawWedge(0f, 0f, 34f, 180f + i * sweep, sweep.toFloat(), fillPaint)
         }
         canvas.restore()
-    }
-
-    /**
-     * A stepped setback tier and a rooftop canopy give the silhouette something to read as other
-     * than a plain rectangle. The wall and the setback stay tintable so the building follows the
-     * category's colour; the canopy is fixed art, the same way the police lightbar and the taxi
-     * chequer are fixed accents on a tintable car body.
-     *
-     * **The window grid is no longer drawn here.** It was a nested loop of `drawRect` calls with
-     * a per-window pseudo-random lit/dark roll, kept as vector precisely so each building could
-     * light differently. The V2 asset set supplies both states as artwork -- the daytime grid is
-     * part of `skyscraper_wall`, the night one is `skyscraper_wall_lit` -- so the loop is gone
-     * and with it the per-building variation. See the overlay's own comment below.
-     */
-    private fun drawSkyscraperBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        val height = SkyscraperSpriteLayout.HEIGHT
-        val width = SkyscraperSpriteLayout.WIDTH
-        val wallColor = customization.colorFor(r.spec, dayBlend)
-        val trimColor = ColorUtils.blendARGB(wallColor, 0xFF000000.toInt(), 0.35f)
-
-        // A tower is a business, so outside its hours the glass holds its unlit daytime colour
-        // whatever the sky is doing: the same [windowGlassColor] ramp, driven by a night that the
-        // closing fade scales away. At openness 1 -- the default, the toggle off -- this is
-        // arithmetically `1f - dayBlend`, the expression it always was. See [BusinessHours].
-        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f) * businessOpenness
-
-        drawGroundShadow(canvas, width * 0.6f)
-        drawSprite(
-            canvas, R.drawable.skyscraper_canopy,
-            SkyscraperSpriteLayout.CANOPY_X, SkyscraperSpriteLayout.CANOPY_Y,
-        )
-        drawTintedSprite(
-            canvas, R.drawable.skyscraper_wall,
-            SkyscraperSpriteLayout.WALL_X, -height, wallColor,
-        )
-        // **The window grid, tinted, exactly the way the restaurant's window is.** `skyscraper_wall`
-        // paints a grid of its own, but it takes the wall's tint with it, so the tower's daytime
-        // windows were whatever colour the user had picked for its bricks -- which is not what a
-        // window looks like anywhere else in this scene. Houses show cool glass by day and warm
-        // light at night; so does the restaurant; the tower did not.
-        //
-        // `skyscraper_wall_lit` is now a white mask rather than warm artwork (the convention every
-        // tintable window asset in this set follows -- see `restaurant_window`), so one blit
-        // carries both halves of the day: [windowGlassColor] crossfades cool to warm on the same
-        // `nightGlow` the restaurant uses. The alpha ramp this call used to have is gone with it,
-        // and so is the tower's private answer to "when does a window light up".
-        //
-        // It stays one blit per building per wrap-tile: the nested `drawRect` loop this style used
-        // before the V2 asset set is not coming back, and the colour is computed once per call
-        // from a value the frame already has.
-        drawTintedSprite(
-            canvas, R.drawable.skyscraper_wall_lit,
-            SkyscraperSpriteLayout.WALL_LIT_X, -height + SkyscraperSpriteLayout.WALL_LIT_DY,
-            windowGlassColor(nightGlow),
-        )
-        // **The entrance, on the ground the building and the people stand on.** Blitted after the
-        // wall so it sits in the hall band the facade draws, and with its own bottom edge on y=0:
-        // the canopy straddles the ground line and is a plinth, not a floor to stand a door on.
-        drawSprite(
-            canvas, R.drawable.skyscraper_entrance,
-            SkyscraperSpriteLayout.ENTRANCE_X, SkyscraperSpriteLayout.ENTRANCE_Y,
-        )
-        // The tower's windows are painted into its wall, so there is no per-window call site to
-        // hang a string from. The grid is stated by the artwork: four rows of four 14-unit windows
-        // at a 27 pitch from the top, stopping clear of the 32-unit hall. Twelve of the sixteen
-        // are lit, chosen by hash rather than by position, which is the same draw-call ceiling the
-        // three-lowest-floors version had.
-        if (customization.christmasDecorationsEnabled) {
-            for (row in 0 until 4) {
-                for (column in 0 until 4) {
-                    val index = row * 4 + column
-                    if (!litWindowChosen(r, index, 16, 12)) continue
-                    drawWindowLights(
-                        canvas, r, elapsed,
-                        -width / 2f + 5f + column * 20f,
-                        -height + 5f + row * 27f + 14f,
-                        14f,
-                    )
-                }
-            }
-        }
-        // **v4.1: people at tower windows.** The grid is the one the comment above states, and it
-        // is read here rather than redefined: four rows of four 14-unit windows at a 27 pitch from
-        // the top, at a 20 pitch across from `-width/2 + 5`. Nothing about the window changes --
-        // the panes are painted into `skyscraper_wall` and are not redrawn here. This only stands
-        // a bust on a sill, at a low per-window rate so a tower does not become a wall of faces.
-        for (row in 0 until 4) {
-            for (column in 0 until 4) {
-                val index = row * 4 + column
-                drawWindowOccupant(
-                    canvas, r,
-                    -width / 2f + 5f + column * 20f,
-                    -height + 5f + row * 27f,
-                    14f, 14f,
-                    WindowBuildingKind.SKYSCRAPER, index, SKYSCRAPER_WINDOWS,
-                )
-            }
-        }
-        drawTintedSprite(
-            canvas, R.drawable.skyscraper_setback,
-            SkyscraperSpriteLayout.SETBACK_X, -height + SkyscraperSpriteLayout.SETBACK_DY, wallColor,
-        )
-        // The setback's roof is the only horizontal surface of a tower a viewer sees, so it is
-        // where the snow goes. Its own block starts 6 units down its canvas, and the cap carries 8
-        // units above the roofline it is cut for, hence the offset. Drawn before the mast, so the
-        // mast rises out of the drift. See [drawSmallHouse] for why this is a layer and not a tint.
-        if (customization.winterColorsEnabled) {
-            drawSprite(
-                canvas, R.drawable.skyscraper_roof_snow,
-                SkyscraperSpriteLayout.ROOF_SNOW_X, -height + SkyscraperSpriteLayout.ROOF_SNOW_DY,
-            )
-        }
-        strokePaint.color = trimColor
-        strokePaint.strokeWidth = 2f
-        canvas.drawLine(0f, -height - 32f, 0f, -height - 46f, strokePaint)
-        strokePaint.strokeWidth = 2.5f
-        fillPaint.color = 0xFFE85D4A.toInt()
-        canvas.drawCircle(0f, -height - 46f, 2.5f, fillPaint)
-    }
-
-    /**
-     * Sprite-blit conversion (aesthetic-pass batch 2, refreshed in batch 4): wall/awning/door/
-     * window are bitmap blits. Aesthetic-pass batch 4 additionally hangs a fork-and-knife sign
-     * (a universally-readable "restaurant" symbol, replacing the awning as the primary
-     * identifier since a striped awning alone reads as ambiguous as any other shop) -- a fixed
-     * accent sprite, not tinted, same reasoning as the awning's own fixed red/white stripes.
-     */
-    private fun drawRestaurantBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        val wallColor = customization.colorFor(r.spec, dayBlend)
-
-        drawGroundShadow(canvas, 50f * 0.58f)
-
-        // wall: local bbox (-50,-60)-(50,0)
-        drawTintedSprite(canvas, R.drawable.restaurant_wall, -50f, -96f, wallColor)
-        drawTintedSprite(
-            canvas, R.drawable.restaurant_cornice,
-            RESTAURANT_CORNICE_X, RESTAURANT_CORNICE_Y, wallColor,
-        )
-        // A flat roof, so the cap is a drift standing proud of the parapet rather than following a
-        // pitch. Its canvas puts the wall's own top edge 8 units down. See [drawSmallHouse].
-        if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.restaurant_roof_snow, RESTAURANT_ROOF_SNOW_X, RESTAURANT_ROOF_SNOW_Y)
-        }
-        // The restaurant is a business: its night, like the tower's, is scaled by the closing
-        // fade, so outside hours every window of the building -- upper storey and frontage both
-        // -- stays in its unlit daytime state. At openness 1 this is `1f - dayBlend` exactly.
-        val nightGlow = (1f - dayBlend).coerceIn(0f, 1f) * businessOpenness
-        // **The storey over the shop was a blank slab.** `restaurant_wall` carries no openings
-        // above its string course -- the bar's carries three, a large house four -- so in a row
-        // with two houses the restaurant was the one building with a dead first floor, and at
-        // night it was a black rectangle between two lit ones. These are the same drawable the
-        // bar's upper storey and every house use, for the reason already written there: a shop's
-        // first floor must not be able to drift from a house's. They take no occupant, which is
-        // deliberate -- the frontage panes below are the restaurant's two occupant slots and
-        // adding more would change who stands where.
-        for (wx in restaurantUpperWindowX) {
-            drawSprite(canvas, R.drawable.house_shared_window, wx, RESTAURANT_UPPER_WINDOW_Y)
-            drawSpriteFaded(
-                canvas, R.drawable.house_window_lit, wx, RESTAURANT_UPPER_WINDOW_Y - 1f,
-                litWindowAlpha(nightGlow),
-            )
-        }
-        // window, lit warm at night
-        drawTintedSprite(canvas, R.drawable.restaurant_window, -35f, -45f, windowGlassColor(nightGlow))
-        // **v4.2: the restaurant's frontage can hold somebody.** This call site is the whole of
-        // the reported "no people in commercial buildings": a restaurant is one of the two
-        // non-residential street-level buildings the scene draws, it is the *more* common of the
-        // two -- two to four per theme against roughly one bar, and `beach`, `new_year` and
-        // `spring` have no bar at all -- and v4.1 gave it no occupant call at all. Its window was
-        // therefore unpopulatable on every theme, which no count of "3/3 populatable panes" on the
-        // bar could reveal.
-        //
-        // The frontage is one 30x22-unit sprite carrying two glass panes, so it takes two
-        // occupants -- see [RESTAURANT_PANE_A_CENTRE_X] for the measurement and for why the
-        // occupant box is not the pane's own width. Two slots also matter for *how often* anybody
-        // is there: occupancy is a count dealt across a building's panes, and a one-pane building
-        // degenerates back to the single coin flip v4.2 exists to remove. The window drawing above
-        // is untouched -- this only stands busts behind glass that was already being painted.
-        drawWindowOccupant(
-            canvas, r,
-            RESTAURANT_PANE_A_CENTRE_X - OCCUPANT_BOX_UNITS / 2f, RESTAURANT_WINDOW_Y,
-            OCCUPANT_BOX_UNITS, OCCUPANT_BOX_UNITS,
-            WindowBuildingKind.COMMERCIAL, 0, RESTAURANT_WINDOWS,
-        )
-        drawWindowOccupant(
-            canvas, r,
-            RESTAURANT_PANE_B_CENTRE_X - OCCUPANT_BOX_UNITS / 2f, RESTAURANT_WINDOW_Y,
-            OCCUPANT_BOX_UNITS, OCCUPANT_BOX_UNITS,
-            WindowBuildingKind.COMMERCIAL, 1, RESTAURANT_WINDOWS,
-        )
-        // The full-width canopy, still drawn after the glass it shades and above it -- see the
-        // v4.18 note for why that order is load-bearing. It spans the whole frontage now.
-        drawSprite(canvas, R.drawable.restaurant_awning, RESTAURANT_AWNING_X, RESTAURANT_AWNING_Y)
-        if (customization.christmasDecorationsEnabled) {
-            drawWindowLights(canvas, r, elapsed, -35f, -22f, 30f)
-        }
-        // **The frontage, rebuilt as a trattoria's.** The old composition was a 34x35 billboard
-        // hung across the upper storey, a token awning, and a door two shades darker than an
-        // already dark wall: the ground floor -- the storey a shop is about -- was the emptiest,
-        // lowest-contrast part of the building. Now the identity lives where a restaurant carries
-        // it: the fascia board over the shopfront (with the fork-and-knife badge in its middle),
-        // planters on the pavement, and a framed wood-and-glass entrance. The planters are the
-        // houses' own planter sprite, and the right one is drawn before the door so the door's
-        // frame covers their two-unit overlap.
-        drawSprite(canvas, R.drawable.house_shared_planter, RESTAURANT_PLANTER_LEFT_X, RESTAURANT_PLANTER_Y)
-        drawSprite(canvas, R.drawable.house_shared_planter, RESTAURANT_PLANTER_RIGHT_X, RESTAURANT_PLANTER_Y)
-        drawSprite(canvas, R.drawable.restaurant_door, 8f, -28f)
-        drawSprite(canvas, R.drawable.restaurant_sign, RESTAURANT_SIGN_X, RESTAURANT_SIGN_Y)
-    }
-
-    /**
-     * Sprite-blit conversion (aesthetic-pass batch 2, refreshed in batch 4): wall and door are
-     * bitmap blits. The hanging sign now shows a beer-mug icon (a fixed accent sprite) instead
-     * of a plain glowing circle, so "bar" reads immediately instead of depending on the reader
-     * already knowing it's a bar. String lights stay vector, unchanged.
-     */
-    private fun drawBarBuilding(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float) {
-        val width = 90f
-        val wallColor = customization.colorFor(r.spec, dayBlend)
-
-        drawGroundShadow(canvas, width * 0.6f)
-
-        // wall: local bbox (-45,-55)-(45,0)
-        drawTintedSprite(canvas, R.drawable.bar_wall, -45f, -92f, wallColor)
-        drawTintedSprite(canvas, R.drawable.bar_cornice, BAR_CORNICE_X, BAR_CORNICE_Y, wallColor)
-        // Same construction as the restaurant's, cut to this wall's narrower 90 units.
-        if (customization.winterColorsEnabled) {
-            drawSprite(canvas, R.drawable.bar_roof_snow, BAR_ROOF_SNOW_X, BAR_ROOF_SNOW_Y)
-        }
-        val barNight = (1f - dayBlend).coerceIn(0f, 1f)
-        // **The painted pub front.** v4.18 glazed the street level and it still read as a slab,
-        // because the slab itself was the problem: the frontage was the same tinted wall as the
-        // storey above it. A pub's ground floor is a painted joinery front in its own colour, so
-        // that is what this is -- a deep green field the width of the frontage, drawn as two
-        // rectangles rather than as a sprite so that it darkens into the night on the same ramp
-        // as everything around it, with the fascia board lapped over its top edge. The panes are
-        // the shopfront glazing both businesses now share, and they still carry nobody: the three
-        // upstairs slots are this building's occupancy and are untouched.
-        fillPaint.color = ColorUtils.blendARGB(BAR_FRONT_DAY, BAR_FRONT_NIGHT, barNight)
-        canvas.drawRect(BAR_FRONT_FIELD_LEFT_X, BAR_FRONT_FIELD_TOP_Y, BAR_FRONT_FIELD_RIGHT_X, 0f, fillPaint)
-        fillPaint.color = ColorUtils.blendARGB(BAR_FRONT_EDGE_DAY, BAR_FRONT_EDGE_NIGHT, barNight)
-        canvas.drawRect(
-            BAR_FRONT_FIELD_LEFT_X, BAR_FRONT_FIELD_TOP_Y,
-            BAR_FRONT_FIELD_RIGHT_X, BAR_FRONT_FIELD_TOP_Y + BAR_FRONT_EDGE_HEIGHT, fillPaint,
-        )
-        // The glass follows the business hours; the joinery above keeps following the sky --
-        // painted wood darkens with the light, not with the licence. See [BusinessHours].
-        val barGlassNight = barNight * businessOpenness
-        for (wx in barFrontPaneX) {
-            drawTintedSprite(canvas, R.drawable.restaurant_window, wx, BAR_FRONT_PANE_Y, windowGlassColor(barGlassNight))
-        }
-        drawSprite(canvas, R.drawable.bar_door, BAR_DOOR_X, -28f)
-        // The upper storey's windows, the same drawable the houses use so a shop's first floor
-        // cannot drift from a house's.
-        val barLit = litWindowAlpha(barGlassNight)
-        for ((wi, wx) in floatArrayOf(-34f, -11f, 12f).withIndex()) {
-            drawSprite(canvas, R.drawable.house_shared_window, wx, -82f)
-            drawSpriteFaded(canvas, R.drawable.house_window_lit, wx, -83f, barLit)
-            // v4.1: commercial frontage can hold somebody. The window drawing above is byte for
-            // byte what it was; this only adds a bust standing at its sill.
-            drawWindowOccupant(canvas, r, wx, -83f, 22f, 22f, WindowBuildingKind.COMMERCIAL, wi, BAR_WINDOWS)
-        }
-        if (customization.christmasDecorationsEnabled) {
-            for ((i, wx) in floatArrayOf(-34f, -11f, 12f).withIndex()) {
-                if (litWindowChosen(r, i, 3, 2)) drawWindowLights(canvas, r, elapsed, wx, -61f, 22f)
-            }
-        }
-
-        // The fascia board, and the carriage lantern on the front's corner. The lantern replaced
-        // the four string-light dots that read as brown rivets by day; at night a soft glow stands
-        // behind its glass on the same ramp the windows use, and by day the glow is not drawn.
-        drawSprite(canvas, R.drawable.bar_sign, BAR_SIGN_X, BAR_SIGN_Y)
-        val lanternGlow = litWindowAlpha(barNight)
-        if (lanternGlow > 0) {
-            fillPaint.color = 0xFFFFD54A.toInt()
-            fillPaint.alpha = lanternGlow / 2
-            canvas.drawCircle(BAR_LANTERN_GLOW_X, BAR_LANTERN_GLOW_Y, BAR_LANTERN_GLOW_RADIUS, fillPaint)
-            fillPaint.alpha = 255
-        }
-        drawSprite(canvas, R.drawable.bar_lantern, BAR_LANTERN_X, BAR_LANTERN_Y)
     }
 
     /** Body and belly are tintable masks; the beak and the feet carry their own orange in the V2

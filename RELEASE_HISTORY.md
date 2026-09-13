@@ -24,11 +24,212 @@ release date will be standing.
 
 ---
 
+## v5.0 — the neighbourhood redrawn, and the dolphin put on its leap point
+
+**Prepared, not published.** `versionCode = 63`, `versionName = "5.0"` — **bumped once, in Fase 0,
+and not touched here.** Prepared 2026-09-13. No tag, no push, no GitHub Release.
+`compileSdk`/`targetSdk` remain 37. Baseline is the Fase 0 ZIP (`48e861fd…`, 1 809 files), and the
+newest published release is **v4.31**, read from the GitHub API.
+
+**This release was prepared as 4.32 and renamed to 5.0 before it went anywhere.** The reason is the
+one the number is for: the five building families are not a revision of the old drawing, they are a
+different visual language, and a user who updates will not recognise the town. Nothing was ever
+tagged or published as 4.32 — re-confirmed on the GitHub API on **2026-09-13 at 14:11:53 UTC**,
+where `v4.32` and `v5.0` both return 404 and `v4.31` is still the newest published tag — so no
+user ever saw a 4.32 and the sequence they see runs **v4.31 → v5.0** with nothing missing.
+`versionCode` stayed at **63**: it is Android's install counter, not the release's name, and
+bumping it a second time in one round is how v4.31 walked into `adb install -r`'s silent downgrade
+refusal. Every phase of this release below is therefore named 5.0, including Fase 0, which was
+prepared under the old name. The project has renumbered once before; the pre-release notes are the
+`v76.x` files.
+
+**The rename round also re-authored the three GL references**, which is the only pixel change in it
+— see the closing note under `v5.0 Fase 0` and item 56 in `BACKLOG_v5_0.md`.
+
+### What changed, in one paragraph
+
+The five building families — small house, large house, tower, restaurant, bar — are no longer one
+flat facade each. They are dealt per instance from a generated table: the two houses stack a ground
+floor, none-to-two storeys and a roof chosen from the building's own stable hash, so two neighbours
+carry two silhouettes; the tower, the restaurant and the bar are one cut-out figure each, the tower
+with two crowns and the bar with two figures. **34 shipped PNGs left and 72 arrived**, and both
+ceilings moved with the paragraphs those comments require. The dolphin, held open since v4.26 and
+measured in v4.31, is on its leap point.
+
+### The artwork, and where it comes from
+
+`tools/assets/buildings/build_neighbourhood.py` draws every piece and writes the four things that
+have to agree — the PNGs, the Kotlin table, the registry entries and the budget — from one run. The
+72 PNGs it produces are **byte-identical** to the ones photographed in fase 5, checked file by file,
+so what ships is what was approved. The concept rounds' own names (`k1_`, `k2_`) do not ship:
+`names.py` maps them to what the pieces are, and `tools/assets/tests/test_neighbourhood.py` fails if
+one reaches `drawable-nodpi`.
+
+### The two ceilings
+
+| | measured | was | now | margin |
+|---|---:|---:|---:|---:|
+| decoded (`SpriteGeometryTest`) | **38 089 440 B** | 36 MiB | **37 MiB** | 707 872 B |
+| uploaded (`SpriteDrawScaleTest`) | **15 769 428 B** | 15 MiB | **16 MiB** | 1 007 788 B |
+
+Both re-measured here on the shipped set rather than carried from the phase report, and both agree
+with it to the byte. The APK grows **84 943 B** (the 34 compress to 33 403, the 72 to 118 346).
+
+### One table, one composer, and a copy that no longer exists
+
+The wallpaper and the gallery preview both draw buildings, and until now each carried the geometry
+by hand — which is what `PreviewRendererAgreementTest` exists because of, after a snow cap sat three
+units off for two releases. A dealt stack is far more than a snow cap's worth of arithmetic to copy,
+so it is not copied: `NeighbourhoodTable` is the source, `NeighbourhoodComposer` the arithmetic, and
+the preview calls it. `SkyscraperSpriteLayout` is deleted; the agreement test now asserts that for
+the same identity the two sides produce the same parts at the same coordinates, which is a stronger
+claim than the literals it replaced.
+
+`SceneColour` is what made that possible. `colorFor` and `windowGlassColor` reached
+`ColorUtils.blendARGB`, which is not mocked on the JVM, so the preview had kept a private copy of
+that arithmetic rather than call them. The blend is now one pure function — instrumented proof that
+it is `blendARGB` to the bit — so the colour rule runs on the host and the preview asks the real
+functions.
+
+### Verification, and the four reds that are one question
+
+JVM **1402/1402**, and **1402/1402 again rebuilt from scratch out of the delivery ZIP** with the
+build cache off — the first attempt came back "BUILD SUCCESSFUL in 7s" off the shared cache, which
+v4.24 already recorded as the way compiler warnings disappear. Asset tools **121/121**, lint green.
+
+**30 Canvas goldens re-authored**, attribution done *before* regenerating: every moved pixel of
+`lake-empty` is inside the buildings' own band of rows and none above it; of `lake-dolphin-leap`'s
+18 789, **six** are above it, in a 5x5 box — the dolphin. Double regeneration on the changed scenes:
+**30/30 byte-identical** across two separate instrumentation runs. `MAX_DIFFERING_FRACTION` stays
+**0.0**.
+
+The full instrumented suite carried **4 reds that were one question**: the three GL references had
+moved by 19-22 % of outline against a 3 % limit, and `GlDriverGapGuardTest` failed alongside them
+because with the Canvas goldens re-authored and the GL references standing still it was no longer
+measuring a driver gap — it was measuring the scene, and reported those same three percentages.
+Item 56 required asking first, and the maintainer answered: re-author them.
+
+**They were re-authored on 2026-09-13** on the BV6600 (PowerVR Rogue GE8320), and the suite is
+**171 of 171 green**. The three references are the only pixels in this release that are not
+byte-identical to the 4.32 ZIP; the 30 Canvas goldens are. **What it cost is nothing that was not
+already spent**: the cross-driver reading this was held open to protect had been given up in v4.26,
+when the sky and water redraw forced the same re-capture on the same device — the "Adreno-authored"
+line that kept item 56 open had been wrong for three releases, copied from a KDoc nobody updated.
+The historical figures are now recorded, with their device and date, in `GlGolden.EdgeDisplacement`
+and `GlDriverGapGuardTest`. Item 56 closes as a decision; item 78 stays open, because only a second
+GPU vendor closes it.
+
+### The three measurements that came before the artwork, and what two of them changed
+
+**The blit count, on the `perf` build.** A tower is 33 sprite blits where the shipped facade was 6.
+Measured, `city` at full density, three 60 s windows after 120 s of warm-up, plus a probe timing the
+scene draw itself: on the GPU the mix costs **+3.72 points of CPU and +1.93 ms of median scene draw**
+against a 33 ms frame budget, with the p95 at 13.79 ms. **No simplification was taken**, and
+re-costing the two that had been prepared found that one of them does not hold as written: the
+"two-row stamp, −9 blits at zero cost in bytes" is not free, because the tower's window rows are not
+evenly spaced, so a double stamp is *added to* the single one rather than replacing it — about −8
+blits for +207 KB.
+
+It also measured something this release did not cause: **the `Canvas` path was already twice over
+its frame budget with the shipped artwork** — 67.26 ms median against 33 — and the mix takes it to
+75.12 (+11.7 %). CPU cannot see the difference there because it is pinned at a whole core in both
+conditions; the frame cost is the only probe that resolves it. That is item 103, still open.
+
+**The atlas census, on the device.** The extra 1.15 MiB of texels is a step, not a slope: it either
+fits in the free rows of the one 2048x2048 page or opens a second one. Twelve themes at full
+density, a fresh process per condition: **zero standalone textures in both**, rows from 1 153/2 048
+(56 %) to **1 431/2 048 (69 %)**. The allocated cost of the redraw in GPU memory is **0 B**, and 617
+rows are left.
+
+**The `Canvas` path's resident memory.** The prediction is +1 203 624 B, the difference of the two
+sets, on the premise that a walk makes every drawn sprite resident. The A/B measured a larger delta
+and the method explains it rather than the artwork: the wallpaper cannot bind until the package has
+been launched once, and launching it opens the settings preview, which **in the measuring build**
+still draws the retired facades — so the mix session holds both sets. In production the preview
+composes from the same table as the scene. What the measurement does confirm is the premise: a
+six-theme walk makes 66 of the 72 pieces resident.
+
+### The dolphin, item 108
+
+Moved to `(-57.166668, -29)`, the negative of its content centre, measured off the alpha channel.
+`DolphinLeapOriginTest` re-measures it rather than trusting a comment — which is the third time a
+sentence about this sprite has been wrong. **v4.31's own correction of it carried three wrong
+numbers** (a `342x168` canvas, ink from row 0, a centre at y 28.0, and an origin the code never
+held); the conclusion it drew was right and the arithmetic under it was not. `sources/sprites.json`
+had the content box right the whole time.
+
+## v5.0 Fase 0 — the golden that rolled a die
+
+**Prepared, not published, and not a whole release.** `versionCode = 63`, `versionName = "5.0"`.
+Prepared 2026-09-12. No tag, no push, no GitHub Release, and **no `release-notes/v5.0.md`**: the
+implementation phase of v5.0 finishes this version and writes them. `compileSdk`/`targetSdk`
+remain 37. Baseline is **v4.31**, which *is* published — read from the GitHub API at 18:35:05 UTC
+on 2026-09-12, `published_at` 17:48:37Z.
+
+**Named 4.32 when it was prepared.** This phase set the `versionCode = 63` that the whole release
+carries, under the name 4.32; the identifier it checked as free that day was `v4.32`, which was
+never cut. The release was renamed before delivery and `v5.0` was confirmed free on the same API on
+2026-09-13 at 14:11:53 UTC.
+
+### What changed, in one paragraph
+
+`BACKLOG_v4_31.md` item 112 and nothing else. `SceneGoldenTest.waveStorm` warms a scene up for 320
+frames with a thunderstorm running, and the lightning timer is the only thing in `PaperRenderer`
+that draws from an unseeded `Random`: one frame per strike carries a full-screen veil, the interval
+averages 32 frames, so that golden had been failing **about one run in 32, by all 285 858 pixels**,
+since v4.28 — under the 576-pixel budget of the time as much as under v4.31's zero. It is now
+deterministic, the rule it broke is a **check in both golden harnesses** instead of a sentence in a
+KDoc that said the check could not be written, and **the lightning the wallpaper draws is
+unchanged**, measured against v4.31's own production build rather than asserted.
+
+### The fix, and the constraint it had to satisfy
+
+The maintainer's condition was that the flash stay random and stay off the scene clock — so the
+third way out of item 112, deriving the strike from `SceneTime`, was refused, and with it any change
+to what a phone renders. What moved is **where the golden's frame gets its randomness**, not where
+the sky gets its:
+
+- `PaperRenderer.lightningStrikesEnabled` gates the firing branch of `updateLightning`. It is
+  `true`, always, in everything that ships; **nothing in `src/main` writes it**;
+- `GoldenScene.pinLightning` is how a scene asks for it, and `configure` is the only writer;
+- `GoldenScene.requireDeterministicLightning` is the guard, run from `SceneGolden.assertMatches`
+  and from `GlGolden.assertGlBackendUnchanged`. It rejects **any** warmed-up storm that has not
+  pinned, and reads the storm through `LiveWeatherSceneRules.stormActive`, so a storm switched on by
+  the theme's own toggle is caught as well as one from the forecast. `wave-storm` is not exempted
+  from it — it complies.
+
+Not "clear the flash before the measured frame", which was the shape item 112 sketched: not firing
+at all means no draw in the harness ever reads that `Random`, rather than the frame being cleaned up
+after one did.
+
+### What was measured
+
+| claim | how |
+|---|---|
+| the coin is gone | `waveStorm` run **100 times consecutively** on the BV6600 against `versionCode` 63, read back with `dumpsys` before and after. Under the old behaviour, 100 passes had a **4 %** chance |
+| the shipped lightning did not change | 500 s of storm in the production configuration on **v4.31's own production code** (`versionCode` 62, verified installed) and on this one: **61 vs 60** strikes, mean interval **32.53 vs 33.36** frames against a predicted 32, both inside the `4 + U(0, 8)` s bound of [16, 48], mean flash lift **22.76 vs 22.74** of 255 |
+| the switch switches | 80 frames of storm each way: unpinned 2 flashes at peak lift 21.17, pinned 0 at 0.18, and two pinned renders of the same scene differing by **0 pixels** |
+| the guard bites | the pin removed from `waveStorm`: rejected in **0.238 s**, before a frame is drawn |
+| nothing was re-authored | **0 goldens regenerated**, the three GL references untouched, and `wave-storm` matches the PNG committed before any of this existed at 0 differing pixels |
+
+### Cost
+
+Seven instrumented tests added (163 → 170) in two new classes, one of which is a measurement with a
+`-e lightningFrames` argument so the suite pays for a gate and not for a measurement. One
+`SceneGolden.assertMatches` call in the suite is now deliberately **not** a golden — it is the scene
+the guard must reject — so the Canvas golden count command returns 34 for 33 goldens; `CLAUDE.md`
+§5 says so at the command.
+
+---
+
 ## v4.31 — the story that was wrong, the gate that was loose, and four red releases
 
-**Prepared, not published.** `versionCode = 62`, `versionName = "4.31"`. Prepared 2026-09-12. No
-tag, no push, no GitHub Release. `compileSdk`/`targetSdk` remain 37. Baseline is **v4.30**, which
-*is* published — read from the GitHub API at 15:05:13 UTC on 2026-09-12, not from a document.
+**Published.** `versionCode = 62`, `versionName = "4.31"`. Prepared 2026-09-12; **published
+2026-09-12 at 17:48:37Z**, read from the GitHub API at 18:35:05 UTC on 2026-09-12 by v5.0 Fase 0.
+This entry said "Prepared, not published" until then, which is the fifth time a tree has been the
+last place to learn that a release went out. `compileSdk`/`targetSdk` remain 37. Baseline is
+**v4.30**, which *is* published — read from the GitHub API at 15:05:13 UTC on 2026-09-12, not from
+a document.
 
 ### What changed, in one paragraph
 

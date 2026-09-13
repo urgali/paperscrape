@@ -441,6 +441,13 @@ class ShippedSourcesTest(unittest.TestCase):
                 # as the lookups above -- the sprite is named in the enum, not at the blit.
                 or site.expression == "shell.bodyRes"
                 or site.expression == "shell.glassRes"
+                # v5.0: a building is a stack of pieces dealt from `NeighbourhoodTable`, and the
+                # composer blits `part.res` -- the sprite named by the table, for whichever piece
+                # this instance was dealt. The same shape as every lookup above: named by a table
+                # rather than at the blit, so a static resolver cannot attribute it and is not
+                # meant to. The table itself is what states where each sprite goes, and
+                # `PreviewRendererAgreementTest` checks the two things that read it agree.
+                or site.expression == "part.res"
                 or site.expression == "drawable"
                 or "R.drawable." in site.expression
                 or "[" in site.expression,

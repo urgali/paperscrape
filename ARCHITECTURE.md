@@ -125,7 +125,9 @@ PaperScrape/
 | `CarSelection.kt` | Which cars a density means (v4.22): an explicit count from 1 to every slot, filled in an order whose every prefix has the largest minimum loop gap, seeded per theme, applied per frame against each runtime's stored rank and only ever off screen. |
 | `BusinessHours.kt` | How open the shops and towers are at a scene hour (v4.22): a toggle that defaults to bitwise-off, `open == close` as always-open, wraparound spans, and a boundary fade that is `SunPositionCalculator.smoothEdge`'s own twilight over the opening span. Runs on `DayPhase.hour24` -- the hour that moved the sun -- never a clock of its own. |
 | `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview (v3.7). The preview builds its objects from the same sprites at the same offsets by hand, and the snow cap's copy had drifted 3 units right and 2 down; both now read from here. |
-| `SkyscraperSpriteLayout.kt` | The same for a tower (v3.8). The only other group that earned it: its roof snow carried the renderer's four-term offset as a folded sum, and its lit night facade sat six units off the wall it is documented to lie exactly on. An audit of all 55 shared drawables found no third case — the rest are plain literals that agree, and hoisting those would guard against nothing. |
+| `NeighbourhoodTable.kt` | **Generated** (`tools/assets/buildings/build_neighbourhood.py`): what each of the five building families is made of, as a list of slots, each holding the alternative pieces one instance may be dealt. A part is `FIXED` art, a `WALL_MASK`/`GLASS_MASK` weight summed at the blit, a `SNOW` layer, or a call-out (`LAMP`, `OCCUPANTS`) to a behaviour at the piece's own declared coordinates. |
+| `NeighbourhoodComposer.kt` | Deals one building out of that table — one alternative and one repeat count per slot, from the object's own stable identity — and stacks the pieces bottom-up. Read by **both** things that draw a building, which is what replaced `SkyscraperSpriteLayout` (v5.0): rather than hoisting the offsets two hand copies disagreed about, there is one composer and no copy. `Deal` is owned and reused by its caller, so a scene does not allocate a list per building per frame. |
+| `SceneColour.kt` | The one blend the colour rules are built from: `ColorUtils.blendARGB`'s arithmetic without the framework call, so `colorFor` and `windowGlassColor` run on the host and the JVM suite can evaluate them. `SceneColourBlendTest` (instrumented) proves the two identical over a sweep. |
 | `SpriteCache.kt` / `SpriteCacheIndex.kt` | The bitmap cache and its bookkeeping. The index is `SpriteCache`'s own `private val` — ids, byte counts and LRU order in `IntArray`s, deliberately free of Android types so the eviction logic is unit-testable, and cleared by the same `clear()` the memory-pressure path calls. |
 | `MemoryPressurePolicy.kt` | What an `onTrimMemory` level means for a wallpaper, as a pure decision. Notably `TRIM_MEMORY_UI_HIDDEN` is *not* treated as pressure, though its numeric value sits above `RUNNING_CRITICAL`: for a wallpaper it only means the settings screen closed. |
 | `TintFilterCache.kt` / `IntLruSlots.kt` | A bounded, exact-LRU cache of `PorterDuffColorFilter`s keyed by colour, so a tinted blit does not allocate a filter per sprite per frame. Global, and therefore `@Synchronized`; released on `RELEASE_ALL`. |
@@ -896,6 +898,15 @@ person -- which no single global multiplier can correct. The full table is in
 dispatch come from that one answer. Buildings choose by depth rather than by a
 position hash, so towers sit on the skyline and shop fronts among the houses.
 
+**Since v5.0 the variant chooses a family, not a picture.** All five dispatch to one
+`drawNeighbourhoodBuilding`, which deals the family's pieces from the building's own position: the
+two houses stack a ground floor, none-to-two storeys and a roof, so two neighbours carry two
+silhouettes, and the tower, restaurant and bar pick one cut-out figure each. A family's
+`unitsTall` is therefore a **reference** height that the deals vary around rather than a drawn
+extent — `BuildingHeightDeclarationTest` measures by how much, and records that the two shops draw
+a little over half what they declare because the figures chosen for them are single-storey
+buildings where the facades they replace were two.
+
 What this replaced: `HILL_SAFE_DEPTH_MIN`/`MAX`, `ROAD_SAFE_DEPTH_MAX` and
 `depthScaleFor` in `PaperRenderer`, `GLOBAL_OBJECT_SCALE` and
 `ROAD_SHOULDER_UNITS` in `SceneObjectRenderer`, and the per-category base scales
@@ -1232,17 +1243,26 @@ settings.themeId
 
 Every window in the scene crossfades between two constants on the frame's own `nightGlow`:
 `SceneObjectRenderer.WINDOW_GLASS_DAY` (`#B9CBD9`, cool glass) and `WINDOW_GLASS_NIGHT`
-(`#FFE79A`, warm light). `windowGlassColor` is the only place that blends them, and the restaurant
-and the skyscraper both call it.
+(`#FFE79A`, warm light). `windowGlassColor` is the only place that blends them.
+
+**Since v5.0 there is one caller.** Every window of every building is a `GLASS_MASK` part, and
+the composer computes the colour once per building and hands it to all of them — so what used to
+be a coupling between five draw functions is a single expression, and the gallery preview reads
+the same function rather than the second crossfade it would otherwise have needed.
 
 Since v4.22 the *commercial* buildings' night is scaled by the business openness before it
 reaches those ramps (`BusinessHours`, off by default and then arithmetically absent): outside
 their hours the shops, the bar and the towers hold their unlit daytime glass whatever the sky
 does, and their window occupants' dealt count thins the same way. The houses' windows never
-consult it — `BusinessHoursWiringTest` pins both call systems and the houses' exemption by
-reading the call sites, the way `SkyscraperWindowTest` already pins the colour coupling.
+consult it — one line, `glassNight`, which `BusinessHoursWiringTest` pins along with the occupant
+path's own exemption, the way `SkyscraperWindowTest` pins the colour coupling.
 
-**A tintable window asset is a white mask.** `restaurant_window` always was one; v4.12 made
+**A tintable window asset is a white mask.** Since v5.0 it is a *weight* mask summed over the
+piece's fixed layer rather than a whole sprite multiplied by a colour — the people's system since
+v4.30 — which is also why the frame around a pane can no longer be washed out by the glass's own
+tint: the two are different layers. The history below is the flat-facade version of the same rule.
+
+`restaurant_window` always was a white mask; v4.12 made
 `skyscraper_wall_lit` one too, regenerating it from its SVG through the normal pipeline. Before
 that it carried warm `#ffe9a8` artwork and could only ever be shown at night, which is why the
 tower's *daytime* windows came from the grid baked into `skyscraper_wall` and therefore took the
@@ -1963,10 +1983,22 @@ advances inside `SceneObjectRenderer.update(deltaSeconds)`, so a golden drawn as
 `deltaSeconds = 0` could never contain one — and for seventeen releases none did. Two scenes now
 warm up 390 frames (thirteen seconds at 30 fps, the count chosen by measuring vehicle coverage from
 0 to 600) before the frame that is compared, which puts four vehicles in the band with none clipped
-by a frame edge. Warm-up is deterministic because the clock and the delta are pure inputs and
-neither scene is a storm — the lightning timer is the only unseeded `Random` in the renderer and
-`updateLightning` leaves it alone unless a storm is active. Every pre-v3.8 scene warms up zero
-frames and regenerates byte-identical.
+by a frame edge. Warm-up is deterministic because the clock and the delta are pure inputs. Every
+pre-v3.8 scene warms up zero frames and regenerates byte-identical.
+
+**The exception is a storm, and it went unnoticed for four releases.** The lightning timer is the
+only unseeded `Random` in the renderer, and `updateLightning` leaves it alone unless a storm is
+active — so the rule was that a warmed-up scene must not be a storm. It was written in
+`GoldenScene`'s own KDoc, which said in the same breath that the harness had no way to check it, and
+`SceneGoldenTest.waveStorm` broke it from v4.28: 320 frames at 0.25 s with a thunderstorm running,
+one frame per strike drawing a full-screen veil, a strike interval averaging 32 frames, and
+therefore **about one run in 32 failing by the entire frame**. Since **v5.0** the rule is
+`GoldenScene.requireDeterministicLightning`, run by both harnesses before they render, and a scene
+that needs to warm a storm up says so with `GoldenScene.pinLightning`, which clears
+`PaperRenderer.lightningStrikesEnabled` **for that render alone**. The wallpaper's own lightning is
+untouched: nothing in `src/main` writes that flag, and v5.0 Fase 0 measured the strike cadence and
+flash intensity on v4.31's production build and on this one to say so rather than assume it.
+`BACKLOG_v4_31.md` item 112 has the arithmetic and the measurements.
 
 **The region gate is the v3.7 addition, and it exists because the whole-frame gates provably could
 not see one class of regression.** Driver-to-driver disagreement is *spread* — it is anti-aliased

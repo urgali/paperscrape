@@ -81,18 +81,41 @@ class OneOccupantRuleTest {
         )
     }
 
-    /** Every pane the renderer hands `drawWindowOccupant` is the square one this rests on. */
+    /**
+     * The share holds for every pane the scene actually declares, whatever size it is.
+     *
+     * **This used to assert that every pane is 22 units square**, read off the five draw
+     * functions' literal call sites, because until v5.0 they were: one pane size for houses, one
+     * for the tower's grid. The pieces of the redrawn neighbourhood declare their own openings and
+     * they differ -- a small house's is 14x13, a tower's bay 12x11 -- so "all panes are the same
+     * size" is no longer true and is no longer what the rule needs.
+     *
+     * What the rule needs is that the head takes the same share of *whatever* pane it is given,
+     * and that falls out of the arithmetic: the occupant is scaled by `winW * 0.85 / DIVISOR` and
+     * the head is `WINDOW_HEAD_HEAD_UNITS` of that, so the share is
+     * `WINDOW_HEAD_HEAD_UNITS * 0.85 / DIVISOR` with `winW` cancelling. Asserted here over every
+     * window in the table, which is the set of panes that exist, rather than over a constant.
+     */
     @Test
-    fun `the house panes really are the size this test assumes`() {
-        val calls = Regex("drawWindowOccupant\\(\\s*canvas,\\s*r,\\s*[-0-9.f]+,\\s*[-0-9.f]+,\\s*([0-9.]+)f,\\s*([0-9.]+)f")
-            .findAll(rendererSource().readText())
-            .map { it.groupValues[1].toFloat() to it.groupValues[2].toFloat() }
-            .toList()
-        assertTrue("no house occupant call sites found", calls.isNotEmpty())
-        for ((w, h) in calls) {
-            assertEquals("a house pane is square", w, h, 0.0001f)
-            assertEquals("a house pane is $HOUSE_PANE_UNITS units", HOUSE_PANE_UNITS, w, 0.0001f)
+    fun `the head takes the same share of every pane the table declares`() {
+        var panes = 0
+        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+            for (slot in family.slots) {
+                for (piece in slot.options) {
+                    for (window in piece.windows) {
+                        val scale = window.w * 0.85f / SceneObjectRenderer.WINDOW_OCCUPANT_DIVISOR_UNITS
+                        assertEquals(
+                            "$variant's ${window.w}x${window.h} pane",
+                            SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE,
+                            SceneObjectRenderer.WINDOW_HEAD_HEAD_UNITS * scale / window.w,
+                            0.0005f,
+                        )
+                        panes++
+                    }
+                }
+            }
         }
+        assertTrue("no panes found in the table, so this proves nothing", panes >= 10)
     }
 
     /**
@@ -184,6 +207,13 @@ class OneOccupantRuleTest {
     }
 
     private companion object {
+        /**
+         * The pane the share above is *stated* against, kept as a worked example.
+         *
+         * It was the size every house pane really was until v5.0; the panes now differ per piece
+         * and the share does not depend on the size, which `the head takes the same share of every
+         * pane the table declares` asserts over the real ones.
+         */
         const val HOUSE_PANE_UNITS = 22f
 
         /** `val s = (winW * 0.85f) / WINDOW_OCCUPANT_DIVISOR_UNITS`, read from the renderer. */

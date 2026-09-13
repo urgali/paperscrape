@@ -51,17 +51,28 @@ class SpriteTintClassTest {
      * fixed art in V2, so nothing multiplies them any more.
      */
     private val tintedSprites = listOf(
-        "house_small_wall", "house_small_roof", "house_small_trim", "house_small_chimney",
-        "house_small_door",
-        "house_large_wall", "house_large_roof", "house_large_trim", "house_large_chimney",
-        "house_large_door",
+        // **The neighbourhood, v5.0.** A building's tinted surfaces are no longer a handful of
+        // whole sprites, each multiplied by a colour of its own: they are two **weight masks** per
+        // piece -- `_mw` for everything that follows the wall, `_mg` for the glass -- summed over
+        // a fixed layer at the blit, which is the people's system since v4.30. The class is the
+        // same one this test has always meant (a light neutral mask a colour is carried by); what
+        // changed is that a roof is now a weight inside `_mw` rather than a sprite with a roof
+        // colour, which is why there is no `house_small_roof` here any more.
+        "house_small_ground_mg", "house_small_ground_mw",
+        "house_small_roof_gable_mw", "house_small_roof_mansard_mg", "house_small_roof_mansard_mw",
+        "house_small_storey_mg", "house_small_storey_mw",
+        "house_large_ground_mg", "house_large_ground_mw",
+        "house_large_roof_gable_mg", "house_large_roof_gable_mw",
+        "house_large_roof_mansard_mg", "house_large_roof_mansard_mw",
+        "house_large_roof_turret_gable_mw",
+        "house_large_roof_turret_tower_mg", "house_large_roof_turret_tower_mw",
+        "house_large_storey_mg", "house_large_storey_mw",
+        "tower_bay_mg", "tower_crown_dome_mw", "tower_crown_spire_mw",
+        "tower_row_tier1_mg", "tower_row_tier2_mg", "tower_row_tier3_mg",
+        "tower_tier1_mg", "tower_tier1_mw", "tower_tier2_mw", "tower_tier3_mw",
+        "restaurant_pavilion_mg", "restaurant_pavilion_mw",
+        "bar_chamfer_mg", "bar_chamfer_mw", "bar_signboard_mg", "bar_signboard_mw",
         "tree_canopy", "snowman_body", "gift_box",
-        // `skyscraper_wall_lit` joined this list in v4.12: it is the tower's window grid, and
-        // since it stopped carrying its own warm colour it is tinted cool by day and warm at
-        // night like every other window in the scene. See `windowGlassColor`.
-        "skyscraper_wall", "skyscraper_setback", "skyscraper_wall_lit",
-        "restaurant_wall", "restaurant_window", "restaurant_cornice",
-        "bar_wall", "bar_cornice",
         "penguin_body", "penguin_belly", "easteregg_shell", "bunny_body",
         "pumpkin_body", "car_body_compact", "car_body_saloon", "car_body_estate",
         "cloud_body", "bird_body",
@@ -90,7 +101,6 @@ class SpriteTintClassTest {
         "leaf_pile",
         "pumpkin_face",
         "snow_pile",
-        "house_shared_window", "house_shared_planter", "house_window_lit",
         "tree_trunk", "tree_canopy_snowcap",
         // Halloween's bare crown. Fixed art in the trunk browns rather than tintable: a dead
         // tree is not a theme colour, and multiplying it by a leaf green is the one thing
@@ -102,22 +112,42 @@ class SpriteTintClassTest {
         // The roof caps, added in v76.12 for defect D-8. Fixed art for the same reason the tree's
         // cap is: snow is white with its own cool shadow, and tinting it would make it the roof's
         // colour, which is the thing a layer of snow is meant not to be.
-        "house_small_roof_snow", "house_large_roof_snow",
-        "restaurant_roof_snow", "bar_roof_snow", "skyscraper_roof_snow",
+        // The neighbourhood's drifts, v5.0: one per roof alternative and five along the tower's
+        // setbacks, for the same reason -- snow is white with its own cool shadow, and tinting it
+        // would make it the roof's colour, which is the thing a layer of snow is meant not to be.
+        "house_small_roof_gable_snow_fx", "house_small_roof_mansard_snow_fx",
+        "house_large_roof_gable_snow_fx", "house_large_roof_mansard_snow_fx",
+        "house_large_roof_turret_gable_snow_fx", "house_large_roof_turret_tower_snow_fx",
+        "tower_snow_left1_fx", "tower_snow_left2_fx", "tower_snow_right1_fx",
+        "tower_snow_right2_fx", "tower_snow_top_fx",
+        "tower_crown_dome_snow_fx", "tower_crown_spire_snow_fx",
+        "restaurant_pavilion_snow_fx", "bar_chamfer_snow_fx", "bar_signboard_snow_fx",
         "palmtree_trunk", "palmtree_fronds", "palmtree_fronds_frost",
         // Halloween's palm crown. Fixed art in the trunk browns for the same reason
         // `tree_dead_branches` is: a dead frond is not a theme colour.
         "palmtree_fronds_dead",
         // The flower clump. Fixed art for the reason its own registry note gives.
         "ground_flowers",
-        // v2.8: the tower's entrance is glass and metal, and a fir is a species. Both fixed.
-        "skyscraper_entrance", "tree_fir", "tree_fir_snow",
+        // **The neighbourhood's fixed layer, v5.0.** One `_fx` per piece: every ink that does not
+        // follow one of the two colours the engine resolves at the blit, plus the dark half of
+        // every ink that does -- a paper shadow is `(1-t)*paint + t*INK` and the `t*INK` term does
+        // not move when the paint does. It also carries what a building has always had that is
+        // nobody's theme colour: awnings, plaques, lanterns, stone steps, the cream frames of the
+        // windows people stand in. The same class `skyscraper_entrance` established for street
+        // frontage in v2.8, now the rule rather than the exception.
+        "house_small_ground_fx", "house_small_roof_gable_fx", "house_small_roof_mansard_fx",
+        "house_small_storey_fx",
+        "house_large_ground_fx", "house_large_roof_gable_fx", "house_large_roof_mansard_fx",
+        "house_large_roof_turret_gable_fx", "house_large_roof_turret_tower_fx",
+        "house_large_storey_fx",
+        "tower_bay_fx", "tower_crown_dome_fx", "tower_crown_spire_fx",
+        "tower_row_tier1_fx", "tower_row_tier2_fx", "tower_row_tier3_fx",
+        "tower_tier1_fx", "tower_tier2_fx", "tower_tier3_fx",
+        "restaurant_pavilion_fx", "bar_chamfer_fx", "bar_signboard_fx",
+        // v2.8: a fir is a species.
+        "tree_fir", "tree_fir_snow",
         "snowman_nose", "snowman_scarf", "gift_ribbon",
-        "skyscraper_canopy", "restaurant_awning", "restaurant_sign", "bar_sign",
-        // The shop entrances went fixed-art in the pub/trattoria redesign: a door two shades
-        // under an already dark wall was the lowest-contrast area of the one storey a shop is
-        // about, and skyscraper_entrance had already established fixed art for street frontage.
-        "restaurant_door", "bar_door", "bar_lantern",
+
         "penguin_beak", "penguin_feet", "easteregg_pattern", "bunny_innerear", "bunny_tail",
         "pumpkin_stem",
         "car_window_compact", "car_window_saloon", "car_window_estate",

@@ -42,17 +42,39 @@ class BuildingRoofSnowTest {
 
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
 
-    /** Every winter roof overlay the scene owns; the winter-off render may blit none of these. */
-    private val ALL_ROOF_SNOW = setOf(
-        R.drawable.house_small_roof_snow,
-        R.drawable.house_large_roof_snow,
-        R.drawable.skyscraper_roof_snow,
-        R.drawable.restaurant_roof_snow,
-        R.drawable.bar_roof_snow,
+    /**
+     * Every winter roof overlay the scene owns; the winter-off render may blit none of these.
+     *
+     * The buildings' half is **read out of [NeighbourhoodTable]** rather than listed, which is
+     * what keeps this test honest now that a building is a stack of pieces: a roof alternative
+     * added tomorrow brings its own drift into this set without anybody remembering to add it,
+     * and a roof alternative that ships *without* a drift fails [everyBuildingWearsSnowInWinterAndNoneWithoutIt]
+     * because its family will have a deal that blits none.
+     */
+    private val BUILDING_SNOW: Set<Int> = NeighbourhoodTable.FAMILIES.values
+        .flatMap { it.slots }
+        .flatMap { it.options }
+        .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW }.map { it.res } }
+        .toSet()
+
+    private val ALL_ROOF_SNOW = BUILDING_SNOW + setOf(
         R.drawable.tree_canopy_snowcap,
         R.drawable.tree_fir_snow,
         R.drawable.palmtree_fronds_frost,
     )
+
+    /** The snow a family may wear, and the piece whose blit anchors its roofline. */
+    private fun buildingRoofed(variant: SceneSpace.SceneVariant): Roofed {
+        val family = NeighbourhoodTable.FAMILIES.getValue(variant)
+        val snow = family.slots.flatMap { it.options }
+            .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW }.map { it.res } }
+            .toSet()
+        // The ground floor (or the tower's body): the first fixed card of the first slot, which
+        // every deal of the family places, so it is always on screen to measure against.
+        val reference = family.slots.first().options.first()
+            .parts.first { it.role == PartRole.FIXED }.res
+        return Roofed(snow, setOf(reference), aboveTop = true)
+    }
 
     /**
      * variant -> (its winter overlay, the sprite whose blit defines the roofline reference,
@@ -60,26 +82,17 @@ class BuildingRoofSnowTest {
      * *is* the roofline -- or merely land on its upper half -- the plants, whose snow lies on
      * tiers and fronds below their own apex).
      */
-    private data class Roofed(val snow: Int, val reference: Int, val aboveTop: Boolean)
+    private data class Roofed(val snow: Set<Int>, val reference: Set<Int>, val aboveTop: Boolean)
 
-    private val SNOW_BY_VARIANT: Map<SceneSpace.SceneVariant, Roofed> = mapOf(
-        SceneSpace.SceneVariant.HOUSE_SMALL to
-            Roofed(R.drawable.house_small_roof_snow, R.drawable.house_small_wall, true),
-        SceneSpace.SceneVariant.HOUSE_LARGE to
-            Roofed(R.drawable.house_large_roof_snow, R.drawable.house_large_wall, true),
-        SceneSpace.SceneVariant.TOWER to
-            Roofed(R.drawable.skyscraper_roof_snow, R.drawable.skyscraper_wall, true),
-        SceneSpace.SceneVariant.RESTAURANT to
-            Roofed(R.drawable.restaurant_roof_snow, R.drawable.restaurant_wall, true),
-        SceneSpace.SceneVariant.BAR to
-            Roofed(R.drawable.bar_roof_snow, R.drawable.bar_wall, true),
-        SceneSpace.SceneVariant.TREE to
-            Roofed(R.drawable.tree_canopy_snowcap, R.drawable.tree_trunk, true),
-        SceneSpace.SceneVariant.FIR to
-            Roofed(R.drawable.tree_fir_snow, R.drawable.tree_fir, false),
-        SceneSpace.SceneVariant.PALM_TREE to
-            Roofed(R.drawable.palmtree_fronds_frost, R.drawable.palmtree_trunk, false),
-    )
+    private val SNOW_BY_VARIANT: Map<SceneSpace.SceneVariant, Roofed> =
+        NeighbourhoodTable.FAMILIES.keys.associateWith { buildingRoofed(it) } + mapOf(
+            SceneSpace.SceneVariant.TREE to
+                Roofed(setOf(R.drawable.tree_canopy_snowcap), setOf(R.drawable.tree_trunk), true),
+            SceneSpace.SceneVariant.FIR to
+                Roofed(setOf(R.drawable.tree_fir_snow), setOf(R.drawable.tree_fir), false),
+            SceneSpace.SceneVariant.PALM_TREE to
+                Roofed(setOf(R.drawable.palmtree_fronds_frost), setOf(R.drawable.palmtree_trunk), false),
+        )
 
     /** Roofless by design, each with the reason a review accepted. */
     private val BARE_BY_DESIGN: Map<SceneSpace.SceneVariant, String> = mapOf(
@@ -116,17 +129,23 @@ class BuildingRoofSnowTest {
             val winter = render(layout, winter = true, christmas = variant == SceneSpace.SceneVariant.FIR)
             val plain = render(layout, winter = false, christmas = variant == SceneSpace.SceneVariant.FIR)
 
-            val caps = winter.filter { it.resId == roofed.snow }
-            assertTrue("$variant should wear ${nameOf(roofed.snow)} in winter", caps.isNotEmpty())
+            val caps = winter.filter { it.resId in roofed.snow }
+            assertTrue(
+                "$variant should wear one of ${roofed.snow.joinToString { nameOf(it) }} in winter",
+                caps.isNotEmpty(),
+            )
 
-            val refs = winter.filter { it.resId == roofed.reference }
-            assertTrue("$variant should blit its reference ${nameOf(roofed.reference)}", refs.isNotEmpty())
+            val refs = winter.filter { it.resId in roofed.reference }
+            assertTrue(
+                "$variant should blit its reference ${roofed.reference.joinToString { nameOf(it) }}",
+                refs.isNotEmpty(),
+            )
             for (cap in caps) {
                 val ref = refs.minByOrNull { kotlin.math.abs(it.rect.centerX() - cap.rect.centerX()) }!!
                 val roofline = if (roofed.aboveTop) ref.rect.top else ref.rect.centerY()
                 assertTrue(
-                    "$variant: ${nameOf(roofed.snow)} top ${cap.rect.top} should clear its " +
-                        "roofline $roofline (reference ${nameOf(roofed.reference)})",
+                    "$variant: ${nameOf(cap.resId)} top ${cap.rect.top} should clear its " +
+                        "roofline $roofline (reference ${nameOf(ref.resId)})",
                     cap.rect.top < roofline,
                 )
                 // Overlap, not containment: a crown is wider than the trunk that anchors it, so

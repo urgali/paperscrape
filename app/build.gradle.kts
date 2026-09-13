@@ -40,8 +40,16 @@ android {
         // Android refuses to install a lower `versionCode` over a higher one, so anything still
         // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
-        versionCode = 62
-        versionName = "4.31"
+        //
+        // **v5.0 is a rename, not a second bump.** This release was prepared as 4.32 and renamed
+        // for the neighbourhood redraw, which is a change of visual language rather than a tweak
+        // to the old drawing. It was never tagged and never published, so no user ever saw a 4.32
+        // and the published sequence runs v4.31 → v5.0 with nothing missing. `versionCode` stays
+        // at the 63 this round's Fase 0 set: it answers "is this newer than what is installed",
+        // not "which release is this", and bumping it twice in one round is exactly how v4.31
+        // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
+        versionCode = 63
+        versionName = "5.0"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets

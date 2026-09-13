@@ -1014,15 +1014,41 @@
  ],
  "sprites": [
   {
-   "name": "bar_cornice",
+   "name": "bar_chamfer_fx",
    "category": "building",
-   "width": 300,
-   "height": 48,
+   "width": 222,
+   "height": 168,
    "contentBox": [
     0,
+    1,
+    220,
+    166
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
     0,
-    300,
-    48
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "bar_chamfer_mg",
+   "category": "building",
+   "width": 147,
+   "height": 102,
+   "contentBox": [
+    2,
+    2,
+    145,
+    100
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
@@ -1034,24 +1060,24 @@
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "bar_cornice.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
   {
-   "name": "bar_door",
+   "name": "bar_chamfer_mw",
    "category": "building",
-   "width": 60,
-   "height": 84,
+   "width": 222,
+   "height": 168,
    "contentBox": [
     0,
-    0,
-    60,
-    84
+    1,
+    220,
+    166
    ],
    "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
+   "tint": "TINTABLE",
    "usage": "referenced",
    "anchorRule": "PART_LOCAL",
    "anchor": [
@@ -1060,47 +1086,21 @@
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "bar_door.svg"
-   },
-   "notes": "Placed as part of the pub frontage row (lantern, pane, door, pane), so its origin is the row layout and not a bottom-centre anchor at the building origin."
-  },
-  {
-   "name": "bar_lantern",
-   "category": "building",
-   "width": 18,
-   "height": 30,
-   "contentBox": [
-    0,
-    0,
-    18,
-    30
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "bar_lantern.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
   {
-   "name": "bar_roof_snow",
-   "category": "structure",
-   "width": 300,
-   "height": 18,
+   "name": "bar_chamfer_snow_fx",
+   "category": "building",
+   "width": 216,
+   "height": 54,
    "contentBox": [
-    0,
-    0,
-    300,
-    18
+    2,
+    2,
+    216,
+    54
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -1112,21 +1112,21 @@
    ],
    "season": "winter",
    "source": {
-    "kind": "svg",
-    "file": "bar_roof_snow.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
-   "notes": "Snow on the bar's flat roof, cut to its narrower 90 units."
+   "notes": ""
   },
   {
-   "name": "bar_sign",
+   "name": "bar_signboard_fx",
    "category": "building",
-   "width": 246,
-   "height": 30,
+   "width": 207,
+   "height": 228,
    "contentBox": [
-    0,
-    0,
-    246,
-    30
+    2,
+    1,
+    206,
+    226
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -1138,34 +1138,86 @@
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "bar_sign.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
   {
-   "name": "bar_wall",
+   "name": "bar_signboard_mg",
    "category": "building",
-   "width": 270,
-   "height": 276,
+   "width": 141,
+   "height": 102,
    "contentBox": [
     0,
-    0,
-    270,
-    276
+    2,
+    139,
+    100
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
    "usage": "referenced",
-   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchorRule": "PART_LOCAL",
    "anchor": [
-    135,
-    276
+    0,
+    0
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "bar_wall.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "bar_signboard_mw",
+   "category": "building",
+   "width": 207,
+   "height": 156,
+   "contentBox": [
+    2,
+    0,
+    206,
+    156
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "bar_signboard_snow_fx",
+   "category": "building",
+   "width": 183,
+   "height": 99,
+   "contentBox": [
+    1,
+    2,
+    181,
+    97
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
@@ -1564,7 +1616,12 @@
    "category": "lake",
    "width": 342,
    "height": 171,
-   "contentBox": [1, 3, 342, 171],
+   "contentBox": [
+    1,
+    3,
+    342,
+    171
+   ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
@@ -1789,14 +1846,768 @@
    "notes": "One clump of ground flowers: three kinds at three sizes on a single canvas, so a scatter of them is one blit per clump rather than one per bloom. Fixed art -- the user gets ON and OFF and no colour, because a meadow that follows a theme's building tint is a meadow of the wrong flowers."
   },
   {
-   "name": "house_large_chimney",
+   "name": "house_large_ground_fx",
    "category": "house",
-   "width": 39,
-   "height": 105,
+   "width": 261,
+   "height": 96,
+   "contentBox": [
+    0,
+    2,
+    259,
+    94
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_ground_mg",
+   "category": "house",
+   "width": 120,
+   "height": 45,
+   "contentBox": [
+    0,
+    2,
+    120,
+    43
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_ground_mw",
+   "category": "house",
+   "width": 261,
+   "height": 93,
+   "contentBox": [
+    0,
+    2,
+    259,
+    93
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_gable_fx",
+   "category": "house",
+   "width": 279,
+   "height": 111,
    "contentBox": [
     0,
     0,
-    39,
+    279,
+    110
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_gable_mg",
+   "category": "house",
+   "width": 18,
+   "height": 21,
+   "contentBox": [
+    0,
+    0,
+    18,
+    19
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_gable_mw",
+   "category": "house",
+   "width": 279,
+   "height": 111,
+   "contentBox": [
+    0,
+    0,
+    279,
+    110
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_gable_snow_fx",
+   "category": "house",
+   "width": 198,
+   "height": 102,
+   "contentBox": [
+    1,
+    2,
+    196,
+    100
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_mansard_fx",
+   "category": "house",
+   "width": 282,
+   "height": 120,
+   "contentBox": [
+    1,
+    2,
+    280,
+    119
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_mansard_mg",
+   "category": "house",
+   "width": 120,
+   "height": 18,
+   "contentBox": [
+    0,
+    0,
+    119,
+    17
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_mansard_mw",
+   "category": "house",
+   "width": 282,
+   "height": 120,
+   "contentBox": [
+    1,
+    2,
+    280,
+    119
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_mansard_snow_fx",
+   "category": "house",
+   "width": 204,
+   "height": 36,
+   "contentBox": [
+    2,
+    2,
+    202,
+    35
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_turret_gable_fx",
+   "category": "house",
+   "width": 231,
+   "height": 96,
+   "contentBox": [
+    1,
+    2,
+    231,
+    95
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_turret_gable_mw",
+   "category": "house",
+   "width": 231,
+   "height": 96,
+   "contentBox": [
+    1,
+    2,
+    231,
+    95
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_turret_gable_snow_fx",
+   "category": "house",
+   "width": 138,
+   "height": 84,
+   "contentBox": [
+    0,
+    2,
+    138,
+    84
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_turret_tower_fx",
+   "category": "house",
+   "width": 87,
+   "height": 174,
+   "contentBox": [
+    1,
+    2,
+    86,
+    173
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_turret_tower_mg",
+   "category": "house",
+   "width": 18,
+   "height": 63,
+   "contentBox": [
+    1,
+    2,
+    17,
+    61
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_turret_tower_mw",
+   "category": "house",
+   "width": 87,
+   "height": 174,
+   "contentBox": [
+    1,
+    2,
+    86,
+    173
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_roof_turret_tower_snow_fx",
+   "category": "house",
+   "width": 51,
+   "height": 60,
+   "contentBox": [
+    2,
+    0,
+    51,
+    60
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_storey_fx",
+   "category": "house",
+   "width": 258,
+   "height": 72,
+   "contentBox": [
+    0,
+    1,
+    256,
+    72
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_storey_mg",
+   "category": "house",
+   "width": 210,
+   "height": 36,
+   "contentBox": [
+    2,
+    0,
+    208,
+    36
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_large_storey_mw",
+   "category": "house",
+   "width": 258,
+   "height": 72,
+   "contentBox": [
+    0,
+    1,
+    256,
+    72
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_ground_fx",
+   "category": "house",
+   "width": 186,
+   "height": 96,
+   "contentBox": [
+    1,
+    1,
+    186,
+    94
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_ground_mg",
+   "category": "house",
+   "width": 45,
+   "height": 42,
+   "contentBox": [
+    2,
+    0,
+    45,
+    40
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_ground_mw",
+   "category": "house",
+   "width": 186,
+   "height": 96,
+   "contentBox": [
+    1,
+    1,
+    186,
+    94
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_roof_gable_fx",
+   "category": "house",
+   "width": 213,
+   "height": 102,
+   "contentBox": [
+    2,
+    1,
+    213,
+    100
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_roof_gable_mw",
+   "category": "house",
+   "width": 213,
+   "height": 102,
+   "contentBox": [
+    2,
+    1,
+    213,
+    100
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_roof_gable_snow_fx",
+   "category": "house",
+   "width": 147,
+   "height": 93,
+   "contentBox": [
+    2,
+    2,
+    147,
+    93
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_roof_mansard_fx",
+   "category": "house",
+   "width": 207,
+   "height": 105,
+   "contentBox": [
+    2,
+    2,
+    205,
+    105
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_roof_mansard_mg",
+   "category": "house",
+   "width": 18,
+   "height": 18,
+   "contentBox": [
+    1,
+    0,
+    17,
+    17
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_roof_mansard_mw",
+   "category": "house",
+   "width": 207,
+   "height": 105,
+   "contentBox": [
+    2,
+    2,
+    205,
     105
    ],
    "scale": "SCENE_UNITS",
@@ -1809,73 +2620,21 @@
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "house_large_chimney.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
   {
-   "name": "house_large_door",
+   "name": "house_small_roof_mansard_snow_fx",
    "category": "house",
-   "width": 66,
-   "height": 135,
+   "width": 132,
+   "height": 36,
    "contentBox": [
-    0,
-    0,
-    66,
-    135
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "CONTENT_BOTTOM_CENTRE",
-   "anchor": [
-    33,
-    135
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_large_door.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_large_roof",
-   "category": "house",
-   "width": 450,
-   "height": 150,
-   "contentBox": [
-    0,
-    0,
-    450,
-    150
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_large_roof.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_large_roof_snow",
-   "category": "structure",
-   "width": 300,
-   "height": 117,
-   "contentBox": [
-    1,
-    0,
-    299,
-    117
+    2,
+    2,
+    130,
+    35
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -1887,281 +2646,21 @@
    ],
    "season": "winter",
    "source": {
-    "kind": "svg",
-    "file": "house_large_roof_snow.svg"
-   },
-   "notes": "Snow on house_large_roof. Same construction as house_small_roof_snow, cut to the larger roof's slopes."
-  },
-  {
-   "name": "house_large_trim",
-   "category": "house",
-   "width": 450,
-   "height": 18,
-   "contentBox": [
-    0,
-    0,
-    450,
-    18
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_large_trim.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
   {
-   "name": "house_large_wall",
+   "name": "house_small_storey_fx",
    "category": "house",
-   "width": 420,
-   "height": 285,
-   "contentBox": [
-    0,
-    0,
-    420,
-    285
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "CONTENT_BOTTOM_CENTRE",
-   "anchor": [
-    210,
-    285
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_large_wall.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_shared_planter",
-   "category": "house",
-   "width": 78,
-   "height": 18,
-   "contentBox": [
-    0,
-    0,
-    78,
-    18
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_shared_planter.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_shared_window",
-   "category": "house",
-   "width": 66,
-   "height": 63,
-   "contentBox": [
-    0,
-    0,
-    66,
-    63
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_shared_window.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_small_chimney",
-   "category": "house",
-   "width": 36,
-   "height": 90,
-   "contentBox": [
-    0,
-    0,
-    36,
-    90
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_small_chimney.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_small_door",
-   "category": "house",
-   "width": 60,
-   "height": 114,
-   "contentBox": [
-    0,
-    0,
-    60,
-    114
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_small_door.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_small_roof",
-   "category": "house",
-   "width": 318,
-   "height": 120,
-   "contentBox": [
-    0,
-    0,
-    318,
-    120
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_small_roof.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_small_roof_snow",
-   "category": "structure",
-   "width": 204,
-   "height": 99,
+   "width": 186,
+   "height": 75,
    "contentBox": [
     1,
     0,
-    203,
-    99
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "winter",
-   "source": {
-    "kind": "svg",
-    "file": "house_small_roof_snow.svg"
-   },
-   "notes": "Snow lying on house_small_roof, cut to that roof's own slopes and cresting four units above its ridge. Sized and anchored from the roof, so the two must be re-derived together."
-  },
-  {
-   "name": "house_small_trim",
-   "category": "house",
-   "width": 318,
-   "height": 12,
-   "contentBox": [
-    0,
-    0,
-    318,
-    12
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_small_trim.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_small_wall",
-   "category": "house",
-   "width": 288,
-   "height": 210,
-   "contentBox": [
-    0,
-    0,
-    288,
-    210
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "CONTENT_BOTTOM_CENTRE",
-   "anchor": [
-    144,
-    210
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "house_small_wall.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "house_window_lit",
-   "category": "house",
-   "width": 66,
-   "height": 66,
-   "contentBox": [
-    0,
-    0,
-    66,
-    66
+    186,
+    74
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -2173,8 +2672,60 @@
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "house_window_lit.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_storey_mg",
+   "category": "house",
+   "width": 132,
+   "height": 36,
+   "contentBox": [
+    2,
+    0,
+    130,
+    36
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "house_small_storey_mw",
+   "category": "house",
+   "width": 186,
+   "height": 75,
+   "contentBox": [
+    1,
+    0,
+    186,
+    74
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
@@ -8679,15 +9230,15 @@
    "notes": ""
   },
   {
-   "name": "restaurant_awning",
+   "name": "restaurant_pavilion_fx",
    "category": "building",
-   "width": 276,
-   "height": 27,
+   "width": 315,
+   "height": 180,
    "contentBox": [
+    2,
     0,
-    0,
-    276,
-    27
+    314,
+    178
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -8699,21 +9250,21 @@
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "restaurant_awning.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
   {
-   "name": "restaurant_cornice",
+   "name": "restaurant_pavilion_mg",
    "category": "building",
-   "width": 330,
-   "height": 36,
+   "width": 174,
+   "height": 51,
    "contentBox": [
-    0,
-    0,
-    330,
-    36
+    2,
+    2,
+    172,
+    49
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
@@ -8725,24 +9276,24 @@
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "restaurant_cornice.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
   {
-   "name": "restaurant_door",
+   "name": "restaurant_pavilion_mw",
    "category": "building",
-   "width": 54,
-   "height": 84,
+   "width": 315,
+   "height": 138,
    "contentBox": [
+    2,
     0,
-    0,
-    54,
-    84
+    314,
+    136
    ],
    "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
+   "tint": "TINTABLE",
    "usage": "referenced",
    "anchorRule": "PART_LOCAL",
    "anchor": [
@@ -8751,21 +9302,21 @@
    ],
    "season": "all",
    "source": {
-    "kind": "svg",
-    "file": "restaurant_door.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
   {
-   "name": "restaurant_roof_snow",
-   "category": "structure",
-   "width": 156,
-   "height": 24,
+   "name": "restaurant_pavilion_snow_fx",
+   "category": "building",
+   "width": 312,
+   "height": 72,
    "contentBox": [
-    0,
-    0,
-    156,
-    24
+    2,
+    2,
+    310,
+    70
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -8777,86 +9328,8 @@
    ],
    "season": "winter",
    "source": {
-    "kind": "svg",
-    "file": "restaurant_roof_snow.svg"
-   },
-   "notes": "Snow standing proud of the restaurant's flat parapet. The wall's top edge is four units down this canvas; the units above it are what make it a layer rather than a painted stripe."
-  },
-  {
-   "name": "restaurant_sign",
-   "category": "building",
-   "width": 276,
-   "height": 39,
-   "contentBox": [
-    0,
-    0,
-    276,
-    39
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "restaurant_sign.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "restaurant_wall",
-   "category": "building",
-   "width": 300,
-   "height": 288,
-   "contentBox": [
-    0,
-    0,
-    300,
-    288
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "CONTENT_BOTTOM_CENTRE",
-   "anchor": [
-    150,
-    288
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "restaurant_wall.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "restaurant_window",
-   "category": "building",
-   "width": 90,
-   "height": 66,
-   "contentBox": [
-    0,
-    0,
-    90,
-    66
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "restaurant_window.svg"
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },
@@ -8865,7 +9338,12 @@
    "category": "lake",
    "width": 246,
    "height": 51,
-   "contentBox": [2, 0, 246, 51],
+   "contentBox": [
+    2,
+    0,
+    246,
+    51
+   ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
@@ -8886,7 +9364,12 @@
    "category": "lake",
    "width": 183,
    "height": 180,
-   "contentBox": [3, 0, 182, 180],
+   "contentBox": [
+    3,
+    0,
+    182,
+    180
+   ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
@@ -8953,162 +9436,6 @@
     "file": "santa_sleigh_trot.svg"
    },
    "notes": "Redrawn in v4.7 from the approved C2 FINAL mockup: the reindeer, the sleigh and the load are new artwork, Santa is the Mockup B figure unchanged. The near side panel is drawn after Santa and after the load and his near arm is drawn once more on top of it, which is what makes him read as sitting inside the tub. The content box shrank because the team's baselines are now aligned -- hooves and runner share a line -- so the group no longer touches the canvas edges. Frame two is santa_sleigh_trot; only the reindeer legs differ, and the two reindeer are in opposite phases within a frame."
-  },
-  {
-   "name": "skyscraper_canopy",
-   "category": "building",
-   "width": 132,
-   "height": 18,
-   "contentBox": [
-    0,
-    0,
-    132,
-    18
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "skyscraper_canopy.svg"
-   },
-   "notes": "rc2: cut from a 110x8 capsule wider than the tower to a 44x6 awning over the 32-unit entrance, rounded only at the top corners, blitted at (-22,-6) so the base sits on the ground line."
-  },
-  {
-   "name": "skyscraper_entrance",
-   "category": "building",
-   "width": 96,
-   "height": 96,
-   "contentBox": [
-    0,
-    0,
-    96,
-    96
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "skyscraper_entrance.svg"
-   },
-   "notes": "The tower's ground-floor entrance. Fixed art -- glass and metal, not a theme colour -- and its own sprite rather than part of the wall so the wall stays tintable."
-  },
-  {
-   "name": "skyscraper_roof_snow",
-   "category": "structure",
-   "width": 168,
-   "height": 27,
-   "contentBox": [
-    0,
-    0,
-    168,
-    27
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "winter",
-   "source": {
-    "kind": "svg",
-    "file": "skyscraper_roof_snow.svg"
-   },
-   "notes": "Snow on the tower's setback roof, the only horizontal surface of it a viewer sees. Deliberately shallower than the houses': a roof this high is swept."
-  },
-  {
-   "name": "skyscraper_setback",
-   "category": "building",
-   "width": 180,
-   "height": 96,
-   "contentBox": [
-    0,
-    0,
-    180,
-    96
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "skyscraper_setback.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "skyscraper_wall",
-   "category": "building",
-   "width": 270,
-   "height": 450,
-   "contentBox": [
-    0,
-    0,
-    270,
-    450
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "CONTENT_BOTTOM_CENTRE",
-   "anchor": [
-    135,
-    450
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "skyscraper_wall.svg"
-   },
-   "notes": ""
-  },
-  {
-   "name": "skyscraper_wall_lit",
-   "category": "building",
-   "width": 237,
-   "height": 300,
-   "contentBox": [
-    15,
-    15,
-    237,
-    300
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "TINTABLE",
-   "usage": "referenced",
-   "anchorRule": "CONTENT_BOTTOM_CENTRE",
-   "anchor": [
-    126,
-    300
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "skyscraper_wall_lit.svg"
-   },
-   "notes": ""
   },
   {
    "name": "snow_pile",
@@ -9341,6 +9668,682 @@
    "source": {
     "kind": "svg",
     "file": "taxi_sign.svg"
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_bay_fx",
+   "category": "building",
+   "width": 42,
+   "height": 36,
+   "contentBox": [
+    2,
+    2,
+    40,
+    36
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_bay_mg",
+   "category": "building",
+   "width": 42,
+   "height": 36,
+   "contentBox": [
+    2,
+    2,
+    40,
+    36
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_crown_dome_fx",
+   "category": "building",
+   "width": 99,
+   "height": 93,
+   "contentBox": [
+    0,
+    1,
+    97,
+    92
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_crown_dome_mw",
+   "category": "building",
+   "width": 99,
+   "height": 69,
+   "contentBox": [
+    0,
+    1,
+    97,
+    68
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_crown_dome_snow_fx",
+   "category": "building",
+   "width": 54,
+   "height": 36,
+   "contentBox": [
+    1,
+    2,
+    53,
+    35
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_crown_spire_fx",
+   "category": "building",
+   "width": 69,
+   "height": 78,
+   "contentBox": [
+    0,
+    0,
+    68,
+    77
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_crown_spire_mw",
+   "category": "building",
+   "width": 69,
+   "height": 33,
+   "contentBox": [
+    0,
+    0,
+    68,
+    32
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_crown_spire_snow_fx",
+   "category": "building",
+   "width": 60,
+   "height": 30,
+   "contentBox": [
+    1,
+    1,
+    58,
+    28
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_row_tier1_fx",
+   "category": "building",
+   "width": 168,
+   "height": 27,
+   "contentBox": [
+    2,
+    1,
+    166,
+    26
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_row_tier1_mg",
+   "category": "building",
+   "width": 168,
+   "height": 27,
+   "contentBox": [
+    2,
+    1,
+    166,
+    26
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_row_tier2_fx",
+   "category": "building",
+   "width": 129,
+   "height": 27,
+   "contentBox": [
+    2,
+    1,
+    129,
+    25
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_row_tier2_mg",
+   "category": "building",
+   "width": 129,
+   "height": 27,
+   "contentBox": [
+    2,
+    1,
+    129,
+    25
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_row_tier3_fx",
+   "category": "building",
+   "width": 90,
+   "height": 27,
+   "contentBox": [
+    2,
+    2,
+    88,
+    26
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_row_tier3_mg",
+   "category": "building",
+   "width": 90,
+   "height": 27,
+   "contentBox": [
+    2,
+    2,
+    88,
+    26
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_snow_left1_fx",
+   "category": "building",
+   "width": 27,
+   "height": 27,
+   "contentBox": [
+    2,
+    2,
+    26,
+    26
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_snow_left2_fx",
+   "category": "building",
+   "width": 27,
+   "height": 27,
+   "contentBox": [
+    2,
+    1,
+    27,
+    26
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_snow_right1_fx",
+   "category": "building",
+   "width": 27,
+   "height": 27,
+   "contentBox": [
+    1,
+    2,
+    25,
+    25
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_snow_right2_fx",
+   "category": "building",
+   "width": 30,
+   "height": 27,
+   "contentBox": [
+    2,
+    1,
+    29,
+    25
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_snow_top_fx",
+   "category": "building",
+   "width": 114,
+   "height": 33,
+   "contentBox": [
+    2,
+    2,
+    113,
+    31
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_tier1_fx",
+   "category": "building",
+   "width": 210,
+   "height": 342,
+   "contentBox": [
+    0,
+    0,
+    210,
+    340
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_tier1_mg",
+   "category": "building",
+   "width": 168,
+   "height": 69,
+   "contentBox": [
+    2,
+    2,
+    166,
+    67
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_tier1_mw",
+   "category": "building",
+   "width": 210,
+   "height": 342,
+   "contentBox": [
+    0,
+    0,
+    210,
+    340
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_tier2_fx",
+   "category": "building",
+   "width": 168,
+   "height": 132,
+   "contentBox": [
+    1,
+    2,
+    168,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_tier2_mw",
+   "category": "building",
+   "width": 168,
+   "height": 132,
+   "contentBox": [
+    1,
+    2,
+    168,
+    132
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_tier3_fx",
+   "category": "building",
+   "width": 120,
+   "height": 96,
+   "contentBox": [
+    0,
+    2,
+    119,
+    95
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "tower_tier3_mw",
+   "category": "building",
+   "width": 120,
+   "height": 96,
+   "contentBox": [
+    0,
+    2,
+    119,
+    95
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": ""
   },

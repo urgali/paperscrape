@@ -45,76 +45,126 @@ class CommercialWindowPeopleTest {
      * dealt across a building's panes, so a call site that passed the wrong pool would deal the
      * wrong number and no assertion about [WindowOccupants] would notice.
      *
-     * Call sites are not counted, because the bar's three and the tower's sixteen come from one
-     * call inside a loop; what is counted is that the constant naming the pool appears in the
-     * function that draws that building.
+     * **v5.0 moved where the answer lives.** There is no longer a draw function per building to
+     * read: one composer draws all five families, and whether a building asks for occupants is a
+     * property of its **pieces** -- a piece that declares windows carries an `OCCUPANTS` part, and
+     * the composer hands it the building's own total. So the source half of this test asks the one
+     * question the source can still lose (does the composer pass the *building's* count, or a
+     * piece's?), and the coverage half is asked of the table, over every deal, which is stronger
+     * than the five function bodies it replaces: a sixth family, or a new piece with a window on
+     * it, is covered the day it is added.
      */
     @Test
-    fun `every populatable building kind calls for its occupants`() {
-        val expected = mapOf(
-            "drawSmallHouse" to "SMALL_HOUSE_WINDOWS",
-            "drawLargeHouse" to "LARGE_HOUSE_WINDOWS",
-            "drawBarBuilding" to "BAR_WINDOWS",
-            "drawRestaurantBuilding" to "RESTAURANT_WINDOWS",
-            "drawSkyscraperBuilding" to "SKYSCRAPER_WINDOWS",
-        )
-        for ((function, constant) in expected) {
-            val body = bodyOf(function)
-            assertTrue(
-                "$function draws windows but never calls drawWindowOccupant",
-                body.contains("drawWindowOccupant("),
-            )
-            assertTrue(
-                "$function does not pass $constant to drawWindowOccupant",
-                body.contains(constant),
-            )
+    fun `every piece that declares windows asks for its occupants`() {
+        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+            for ((slotIndex, slot) in family.slots.withIndex()) {
+                for (piece in slot.options) {
+                    if (piece.windows.isEmpty()) continue
+                    assertTrue(
+                        "$variant slot $slotIndex has a piece with ${piece.windows.size} windows " +
+                            "and no OCCUPANTS part, so nobody can ever stand in them",
+                        piece.parts.any { it.role == PartRole.OCCUPANTS },
+                    )
+                }
+            }
         }
     }
 
-    /** And the pane counts the renderer declares are the ones its windows actually have. */
     @Test
-    fun `the declared pane counts match the artwork`() {
-        assertEquals("a small house draws two windows", 2, SceneObjectRenderer.SMALL_HOUSE_WINDOWS)
-        assertEquals("a large house draws four", 4, SceneObjectRenderer.LARGE_HOUSE_WINDOWS)
-        assertEquals("the bar's upper storey draws three", 3, SceneObjectRenderer.BAR_WINDOWS)
-        assertEquals("the restaurant's frontage is two panes", 2, SceneObjectRenderer.RESTAURANT_WINDOWS)
-        assertEquals("the tower's grid is four by four", 16, SceneObjectRenderer.SKYSCRAPER_WINDOWS)
-        // Read off the drawing code rather than restated: the bar's three x positions and the
-        // tower's 4x4 loop are in the source, so a fourth pane added to either fails here.
-        assertEquals(
-            "the bar's window x positions",
-            SceneObjectRenderer.BAR_WINDOWS,
-            Regex("""-?[0-9]+f""")
-                .findAll(
-                    bodyOf("drawBarBuilding")
-                        .substringAfter("for ((wi, wx) in floatArrayOf(")
-                        .substringBefore(")"),
-                ).count(),
+    fun `every family has somebody to put somewhere`() {
+        // The v4.1 defect in its v5.0 shape: a family all of whose deals have zero windows is a
+        // building nobody is ever in, and the restaurant was exactly that for three releases.
+        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+            val counts = windowCounts(family)
+            assertTrue("$variant can be dealt with no windows at all: $counts", counts.min() > 0)
+        }
+    }
+
+    /**
+     * The composer passes the **building's** window count, not a piece's.
+     *
+     * Occupancy is a count dealt across a building's panes, so handing `drawWindowOccupant` a
+     * piece's own two windows instead of the building's four would deal the wrong number and no
+     * assertion about [WindowOccupants] would notice. The index passed has to be the building-wide
+     * one for the same reason -- two pieces both numbering their windows from zero would put the
+     * same person in both.
+     */
+    @Test
+    fun `the occupant call site is given the building's own numbering`() {
+        val text = rendererSource.readText()
+        val at = text.indexOf("PartRole.OCCUPANTS ->")
+        assertTrue("no OCCUPANTS branch in SceneObjectRenderer.kt", at > 0)
+        val branch = text.substring(at, minOf(at + 700, text.length))
+        assertTrue(
+            "the occupant call must be given the building's total, not a piece's; found:\n$branch",
+            branch.contains("deal.windowCount"),
+        )
+        assertTrue(
+            "and the index must be the building-wide one; found:\n$branch",
+            branch.contains("placed.firstWindow"),
         )
     }
 
-    /** The restaurant's occupants must stand behind its glass, not beside it. */
+    /** The pane counts the artwork actually declares, per family and per deal. */
     @Test
-    fun `the restaurant's occupants are placed on its two glass panes`() {
-        // restaurant_window is blitted at x = -35 and is 30 local units wide; its two panes are
-        // sprite pixels 8..39 and 50..81, i.e. local x -32.3..-22.0 and -18.7..-8.0.
-        val paneA = -32.3f..-22.0f
-        val paneB = -18.7f..-8.0f
-        assertTrue(
-            "pane A centre ${SceneObjectRenderer.RESTAURANT_PANE_A_CENTRE_X} is not on the left pane",
-            SceneObjectRenderer.RESTAURANT_PANE_A_CENTRE_X in paneA,
-        )
-        assertTrue(
-            "pane B centre ${SceneObjectRenderer.RESTAURANT_PANE_B_CENTRE_X} is not on the right pane",
-            SceneObjectRenderer.RESTAURANT_PANE_B_CENTRE_X in paneB,
-        )
-        // The bust stands on the sprite's own lower edge, the way a house's and the bar's do.
+    fun `the declared pane counts match the artwork`() {
         assertEquals(
-            "occupant box bottom",
-            -23f,
-            SceneObjectRenderer.RESTAURANT_WINDOW_Y + SceneObjectRenderer.OCCUPANT_BOX_UNITS,
-            0.001f,
+            "a small house draws one or two windows",
+            listOf(1, 2), windowCounts(family(SceneSpace.SceneVariant.HOUSE_SMALL)),
         )
+        assertEquals(
+            "a large house three or four",
+            listOf(3, 4), windowCounts(family(SceneSpace.SceneVariant.HOUSE_LARGE)),
+        )
+        // **The tower lost thirteen panes and that is the drawing, not a bug.** The shipped facade
+        // painted a 4x4 grid into `skyscraper_wall` and stood a bust at all sixteen; the redrawn
+        // tower has three bay windows a person can actually be seen in, and its other windows are
+        // stamped rows far too small to hold a figure. Written down because "16 -> 3" is the kind
+        // of number that looks like a regression until somebody says it was chosen.
+        assertEquals(
+            "the tower's bays are three",
+            listOf(3), windowCounts(family(SceneSpace.SceneVariant.TOWER)),
+        )
+        assertEquals(
+            "the restaurant's frontage is three panes",
+            listOf(3), windowCounts(family(SceneSpace.SceneVariant.RESTAURANT)),
+        )
+        assertEquals(
+            "both bar figures draw three",
+            listOf(3), windowCounts(family(SceneSpace.SceneVariant.BAR)),
+        )
+    }
+
+    /**
+     * Every window a bust may stand in is a box the piece declares, and the generator refuses to
+     * render a piece whose declared box leaves the wall it is cut into (`tools/assets/tests/
+     * test_neighbourhood.py`). That is where `the restaurant's occupants are placed on its two
+     * glass panes` went: it asserted two hand-written pane centres against a hand-measured
+     * sprite, and both sides of that comparison are now generated from one declaration.
+     *
+     * What is left worth checking here is that a declared box is a box somebody fits in.
+     */
+    @Test
+    fun `every declared window is a real opening above the ground`() {
+        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+            for (slot in family.slots) {
+                for (piece in slot.options) {
+                    for (window in piece.windows) {
+                        assertTrue(
+                            "$variant declares a ${window.w}x${window.h} window, which is not an opening",
+                            window.w > 0f && window.h > 0f,
+                        )
+                        // `y` is the box's top edge in the piece's own frame, where the foot is 0
+                        // and up is negative, so a window whose bottom reaches the ground line is
+                        // one somebody would be standing in the floor of.
+                        assertTrue(
+                            "$variant declares a window at y=${window.y} that reaches the ground",
+                            window.y + window.h < 0f,
+                        )
+                    }
+                }
+            }
+        }
     }
 
     // ------------------------------------------ the shipped themes have people
@@ -166,7 +216,9 @@ class CommercialWindowPeopleTest {
         for (seed in (0 until 400).map { "theme-$it".hashCode() }) {
             for (b in 0 until 40) {
                 val count = WindowOccupants.occupantCount(
-                    seed, b * 100_003, SceneObjectRenderer.BAR_WINDOWS, WindowBuildingKind.COMMERCIAL,
+                    seed, b * 100_003,
+                    windowCounts(family(SceneSpace.SceneVariant.BAR)).single(),
+                    WindowBuildingKind.COMMERCIAL,
                 )
                 assertTrue("an empty bar at seed $seed building $b", count >= 1)
                 assertTrue("an overfull bar at seed $seed building $b", count <= 2)
@@ -195,6 +247,25 @@ class CommercialWindowPeopleTest {
 
     // ----------------------------------------------------------------- helpers
 
+    private fun family(variant: SceneSpace.SceneVariant) = NeighbourhoodTable.FAMILIES.getValue(variant)
+
+    /** Every distinct number of windows a family can be dealt, ascending. */
+    private fun windowCounts(family: BuildingFamily): List<Int> {
+        var counts = listOf(0)
+        for (slot in family.slots) {
+            val next = mutableSetOf<Int>()
+            for (sofar in counts) {
+                for (option in slot.options) {
+                    for (repeats in slot.repeatMin..slot.repeatMax) {
+                        next += sofar + option.windows.size * repeats
+                    }
+                }
+            }
+            counts = next.toList()
+        }
+        return counts.sorted()
+    }
+
     /** Commercial buildings a theme actually renders, and how many occupants they hold. */
     private fun commercialOccupancy(themeId: String): Pair<Int, Int> {
         val theme = ThemeCatalog.byId(themeId)
@@ -204,11 +275,13 @@ class CommercialWindowPeopleTest {
         var occupants = 0
         for (spec in SceneObjectCatalog.layoutFor(themeId, theme.accentColor).staticObjects) {
             if (!customization.keepCandidate(spec)) continue
-            val windows = when (SceneObjectRenderer.variantFor(spec)) {
-                SceneSpace.SceneVariant.BAR -> SceneObjectRenderer.BAR_WINDOWS
-                SceneSpace.SceneVariant.RESTAURANT -> SceneObjectRenderer.RESTAURANT_WINDOWS
-                else -> continue
-            }
+            val variant = SceneObjectRenderer.variantFor(spec)
+            if (variant != SceneSpace.SceneVariant.BAR && variant != SceneSpace.SceneVariant.RESTAURANT) continue
+            // The count this building is actually dealt, from its own position -- not a constant,
+            // because a family's deals can differ in how many windows they have.
+            val deal = NeighbourhoodComposer.Deal()
+            NeighbourhoodComposer.deal(family(variant), spec.tileFractionX, spec.depthFraction, deal)
+            val windows = deal.windowCount
             buildings++
             occupants += WindowOccupants.occupantCount(
                 seed, (spec.tileFractionX * 100_003f).toInt(), windows, WindowBuildingKind.COMMERCIAL,

@@ -170,7 +170,11 @@ private fun drawItem(item: PreviewItem, target: CanvasSceneTarget, blitter: Spri
     target.scale(item.scale, item.scale)
     for (part in item.parts) {
         if (part.tint != null) {
-            blitter.drawTinted(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.tint, part.alpha)
+            if (part.added) {
+                blitter.drawTintedAdded(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.tint, part.alpha)
+            } else {
+                blitter.drawTinted(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.tint, part.alpha)
+            }
         } else {
             blitter.draw(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.alpha)
         }

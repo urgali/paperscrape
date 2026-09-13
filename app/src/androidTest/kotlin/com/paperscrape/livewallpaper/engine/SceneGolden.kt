@@ -22,13 +22,20 @@ import kotlin.math.abs
  * **What makes a frame reproducible.** [PaperRenderer] is deterministic given a fixed size, theme,
  * customisation, day phase and scene time: every candidate system is seeded from the theme id (see
  * `PaperRenderer.seedFor`), and the two `Random` uses are a seeded one and the lightning timer,
- * which only advances with `deltaSeconds`. Every scene here is drawn as a single frame with
- * `deltaSeconds = 0`, so the timer never fires and no frame depends on when it was taken.
+ * which only advances with `deltaSeconds`.
  *
- * The lightning *bolt* is therefore deliberately outside these goldens -- it is a timed event, and
- * pinning it would mean pinning a random number generator rather than a picture. What the storm
- * golden does pin is everything `StormAtmosphere` drives: the darkened sky, the darkened cloud
- * band and the attenuated sun.
+ * **That used to be the whole story, because every scene was one frame at `deltaSeconds = 0`.**
+ * `warmUpFrames` ended it in v3.8 without anybody noticing what it meant for a storm: a warmed-up
+ * scene advances the timer 320 times, and `wave-storm` warmed one up from v4.28 until v5.0, which
+ * is 1 render in 32 comparing a frame with a bolt in it against a committed file that has none.
+ * The rule that a warmed-up scene must not be an unpinned storm is now a check rather than a
+ * sentence — [GoldenScene.requireDeterministicLightning], run below — and the one scene it applies
+ * to satisfies it with [GoldenScene.pinLightning]. `BACKLOG_v4_31.md` item 112.
+ *
+ * The lightning *bolt* is therefore still deliberately outside these goldens -- it is a timed
+ * event, and pinning it would mean pinning a random number generator rather than a picture. What
+ * the storm golden does pin is everything `StormAtmosphere` drives: the darkened sky, the darkened
+ * cloud band and the attenuated sun.
  *
  * **Updating a golden.** Never blindly. Run with `-e updateGoldens true`, which writes the new PNGs
  * to the device's external files dir instead of comparing, then look at what changed and say why in
@@ -195,6 +202,7 @@ object SceneGolden {
      * shared scene object untouched and keeps the extra rectangle in the suite that owns the claim.
      */
     fun assertMatches(scene: GoldenScene, extraFocus: List<GoldenFocus> = emptyList()) {
+        scene.requireDeterministicLightning()
         val actual = render(scene)
         dumpIfAsked(scene.name, actual)
         if (updating()) {
