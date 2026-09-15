@@ -1591,15 +1591,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        120,
-        111
+        8,
+        11,
+        165,
+        130
       ],
-      "candidate_padding_fraction": 0.07499999999999996,
+      "candidate_padding_fraction": 0.22771990740740744,
       "candidate_size": [
-        120,
-        120
+        168,
+        144
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -1608,18 +1608,18 @@
       "mean_alpha_diff": 0.0,
       "name": "palmtree_fronds",
       "reference_bbox": [
-        0,
-        0,
-        120,
-        111
+        8,
+        11,
+        165,
+        130
       ],
-      "reference_padding_fraction": 0.07499999999999996,
+      "reference_padding_fraction": 0.22771990740740744,
       "reference_size": [
-        120,
-        120
+        168,
+        144
       ],
       "size_match": true,
-      "total_pixels": 14400,
+      "total_pixels": 24192,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -1632,15 +1632,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        120,
-        110
+        26,
+        44,
+        150,
+        144
       ],
-      "candidate_padding_fraction": 0.08333333333333337,
+      "candidate_padding_fraction": 0.48743386243386244,
       "candidate_size": [
-        120,
-        120
+        168,
+        144
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -1649,18 +1649,18 @@
       "mean_alpha_diff": 0.0,
       "name": "palmtree_fronds_dead",
       "reference_bbox": [
-        0,
-        0,
-        120,
-        110
+        26,
+        44,
+        150,
+        144
       ],
-      "reference_padding_fraction": 0.08333333333333337,
+      "reference_padding_fraction": 0.48743386243386244,
       "reference_size": [
-        120,
-        120
+        168,
+        144
       ],
       "size_match": true,
-      "total_pixels": 14400,
+      "total_pixels": 24192,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -1673,15 +1673,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        120,
-        102
+        8,
+        10,
+        166,
+        129
       ],
-      "candidate_padding_fraction": 0.15000000000000002,
+      "candidate_padding_fraction": 0.22280092592592593,
       "candidate_size": [
-        120,
-        120
+        168,
+        144
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -1690,18 +1690,18 @@
       "mean_alpha_diff": 0.0,
       "name": "palmtree_fronds_frost",
       "reference_bbox": [
-        0,
-        0,
-        120,
-        102
+        8,
+        10,
+        166,
+        129
       ],
-      "reference_padding_fraction": 0.15000000000000002,
+      "reference_padding_fraction": 0.22280092592592593,
       "reference_size": [
-        120,
-        120
+        168,
+        144
       ],
       "size_match": true,
-      "total_pixels": 14400,
+      "total_pixels": 24192,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -1716,12 +1716,12 @@
       "candidate_bbox": [
         2,
         0,
-        33,
+        61,
         174
       ],
-      "candidate_padding_fraction": 0.06060606060606055,
+      "candidate_padding_fraction": 0.06349206349206349,
       "candidate_size": [
-        33,
+        63,
         174
       ],
       "differing_pixels": 0,
@@ -1733,16 +1733,16 @@
       "reference_bbox": [
         2,
         0,
-        33,
+        61,
         174
       ],
-      "reference_padding_fraction": 0.06060606060606055,
+      "reference_padding_fraction": 0.06349206349206349,
       "reference_size": [
-        33,
+        63,
         174
       ],
       "size_match": true,
-      "total_pixels": 5742,
+      "total_pixels": 10962,
       "verdict": "PIXEL_IDENTICAL"
     },
     {

@@ -22,6 +22,15 @@ import org.junit.Test
  * Deliberately re-derived here rather than calling the catalogue's own private geometry -- and
  * deliberately grid-sampled where the catalogue sweeps exact rectangle unions -- so a bug in the
  * separation pass and a bug in this measurement have to agree to hide a covered shop.
+ *
+ * **v5.2 moved half of that re-derivation and says so here rather than leaving it to be found.**
+ * The three crown rectangles used to be hand-typed literals in this file, a second copy of the
+ * catalogue's. They are now derived from [SpriteOccluderTable], which is measured off the shipped
+ * artwork, by arithmetic written for this file alone -- see `crowns`. The geometry is still
+ * written twice; the *measurement* is written once, because it is a fact about a PNG and not a
+ * choice, and because the copy that existed could not survive a redraw: v5.1 moved the palm's
+ * crown canvas from 40x40 units to 56x48 by hand in two files and nothing would have failed if
+ * only one of them had been edited.
  */
 class ShopFrontVisibilityTest {
 
@@ -159,26 +168,66 @@ class ShopFrontVisibilityTest {
         val g = refH * SceneSpace.groundYFraction(o.depthFraction)
         val x = o.tileFractionX * tile
         return when (v) {
-            // v4.21 "Quercia larga": crown 101x66 u blitted at (-50,-80) under the -38 lift, so
-            // object x -50..51 / y -118..-52; stem 32x62 u at (-16,-62).
-            SceneSpace.SceneVariant.TREE -> listOf(
-                floatArrayOf(x - 51f * s, g - 118f * s, x + 51f * s, g - 52f * s),
-                floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g),
-            )
-            SceneSpace.SceneVariant.PALM_TREE -> listOf(
-                floatArrayOf(x - 21f * s, g - 82f * s, x + 35f * s, g - 34f * s),
-                floatArrayOf(x - 8f * s, g - 58f * s, x + 13f * s, g),
-            )
-            SceneSpace.SceneVariant.PARASOL -> listOf(
-                floatArrayOf(x - 34f * s, g - 84f * s, x + 34f * s, g - 50f * s),
-                floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g),
-            )
+            // v4.21 "Quercia larga": stem 32x62 u at (-16,-62). The crown is no longer a literal
+            // here -- see `crowns` below.
+            SceneSpace.SceneVariant.TREE ->
+                crowns(SpriteOccluderTable.TREE_CROWN, x, g, s) +
+                    floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g)
+            SceneSpace.SceneVariant.PALM_TREE ->
+                crowns(SpriteOccluderTable.PALM_CROWN, x, g, s) +
+                    floatArrayOf(x - 8f * s, g - 58f * s, x + 13f * s, g)
+            SceneSpace.SceneVariant.PARASOL ->
+                crowns(SpriteOccluderTable.PARASOL_FAN, x, g, s) +
+                    floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
             SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
             SceneSpace.SceneVariant.TOWER,
             -> listOf(floatArrayOf(x - halfWidthPx(o), g - v.spriteUnitsTall * s, x + halfWidthPx(o), g))
             else -> emptyList()
         }
+    }
+
+    /**
+     * The crown rectangles, re-derived here, and this is where the independence of this file
+     * moved to in v5.2 rather than where it was lost.
+     *
+     * Until v5.2 the two sides of item 124 were two hand-typed copies of the same literal
+     * rectangles, and the reason this file kept its own was stated above: a wrong number has to
+     * be typed twice to hide a covered shop. That defence only ever caught a typo, and the defect
+     * item 124 is about was not a typo -- it was a *correct* transcription of a canvas that was
+     * two thirds air, typed identically on both sides and wrong on both. It also could not
+     * survive v5.1's palm redraw, which moved the crown's canvas from 40x40 units to 56x48 in two
+     * files by hand.
+     *
+     * So the number is no longer typed on either side. It is measured off the shipped PNG by
+     * `tools/assets/build_occluder_table.py` into [SpriteOccluderTable], and what each side still
+     * writes for itself is the **model** -- the arithmetic below, which is deliberately not the
+     * catalogue's `crownBoxes` imported, and deliberately not shaped like it either: the
+     * catalogue centres a half-extent, this multiplies the edges. A bug in the model still has to
+     * be made twice.
+     *
+     * What that leaves unguarded, said plainly: if the *model itself* is the wrong idea, both
+     * sides are wrong together, and no arrangement of two copies would have caught that. What
+     * guards it instead is that the model's inputs are a measurement rather than a choice, that
+     * `SpriteOccluderTableFreshnessTest` re-measures every one of them straight from the PNG
+     * without the generator, and that the frame was looked at (`V5_2A_REPORT.md` section 6).
+     */
+    private fun crowns(
+        family: List<SpriteOccluderTable.InkBox>,
+        x: Float,
+        g: Float,
+        s: Float,
+    ): List<FloatArray> = family.map { ink ->
+        // The widest row and the tallest column, held about the content's own centre. Written as
+        // a shrink of each edge towards the centre rather than as a half-extent about it.
+        val shrinkX = (ink.contentRight - ink.contentLeft) * (1f - ink.rowMax) / 2f
+        val shrinkY = (ink.contentBottom - ink.contentTop) * (1f - ink.columnMax) / 2f
+        floatArrayOf(
+            x + (ink.contentLeft + shrinkX) * s,
+            g + (ink.contentTop + shrinkY) * s,
+            x + (ink.contentRight - shrinkX) * s,
+            g + (ink.contentBottom - shrinkY) * s,
+        )
     }
 
     private fun verticalMemberBox(o: StaticSceneObject): FloatArray? {

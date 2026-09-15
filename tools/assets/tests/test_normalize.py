@@ -50,6 +50,13 @@ def measurement(name: str, size: tuple[int, int], box: tuple[int, int, int, int]
         content_bbox=box,
         content_width=box[2] - box[0],
         content_height=box[3] - box[1],
+        # The planner reads none of the ink profile, but the measurement carries no optional
+        # fields: a coverage that could default to zero is a coverage that could ship as zero.
+        content_coverage=1.0,
+        content_row_max=1.0,
+        content_column_max=1.0,
+        content_band_coverage=(1.0, 1.0),
+        content_band_centre_x=(0.5, 0.5),
         transparent_padding_bytes=0,
         transparent_padding_fraction=0.0,
         opaque_rgb_count=1,

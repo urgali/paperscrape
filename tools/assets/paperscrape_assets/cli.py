@@ -163,6 +163,11 @@ def cmd_validate(_: argparse.Namespace) -> int:
     site_problems, unresolved = registry.validate_against_callsites(specs, sites_by_sprite)
     problems.extend(site_problems)
 
+    # The committed reports are claims about the shipped PNGs too, and they are the claims most
+    # likely to go stale without anyone noticing: nothing reads them at build time. v5.2 found
+    # both of them describing a palm that had been redrawn a release earlier.
+    problems.extend(report.stale_reports(REPORTS_DIR, runtime))
+
     if problems:
         for problem in problems:
             print(f"FAIL {problem}", file=sys.stderr)

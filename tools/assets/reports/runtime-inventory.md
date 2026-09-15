@@ -7,9 +7,9 @@ from the shipped PNGs; nothing is copied from documentation.
 |---|---|
 | Files | 371 |
 | Unique contents | 371 |
-| Bytes on disk | 1139.3 KB |
-| Decoded `ARGB_8888` | 38.10 MB |
-| Of which transparent padding | 14.73 MB (39 %) |
+| Bytes on disk | 1152.9 KB |
+| Decoded `ARGB_8888` | 38.24 MB |
+| Of which transparent padding | 14.80 MB (39 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -106,10 +106,10 @@ from the shipped PNGs; nothing is copied from documentation.
 | `moon_gibbous` | 240x240 | RGBA | 65,21,220,219 | 47 % | 18 | yes |
 | `moon_half` | 240x240 | RGBA | 118,21,218,219 | 66 % | 18 | yes |
 | `moon_jack_o_lantern` | 240x240 | RGBA | 20,21,218,218 | 32 % | 1 | yes |
-| `palmtree_fronds` | 120x120 | RGBA | 0,0,120,111 | 8 % | 98 | yes |
-| `palmtree_fronds_dead` | 120x120 | RGBA | 0,0,120,110 | 8 % | 17 | yes |
-| `palmtree_fronds_frost` | 120x120 | RGBA | 0,0,120,102 | 15 % | 17 | yes |
-| `palmtree_trunk` | 33x174 | RGBA | 2,0,33,174 | 6 % | 6 | yes |
+| `palmtree_fronds` | 168x144 | RGBA | 8,11,165,130 | 23 % | 224 | yes |
+| `palmtree_fronds_dead` | 168x144 | RGBA | 26,44,150,144 | 49 % | 220 | yes |
+| `palmtree_fronds_frost` | 168x144 | RGBA | 8,10,166,129 | 22 % | 420 | yes |
+| `palmtree_trunk` | 63x174 | RGBA | 2,0,61,174 | 6 % | 170 | yes |
 | `penguin_beak` | 36x18 | RGBA | 0,0,36,18 | 0 % | 1 | yes |
 | `penguin_belly` | 54x102 | RGBA | 0,0,54,102 | 0 % | 1 | yes |
 | `penguin_body` | 84x132 | RGBA | 0,0,84,132 | 0 % | 22 | yes |

@@ -53,6 +53,20 @@ different tool** — re-measure rather than trust them.
 | `compare` | Measures `staging/` against the shipped PNGs into `reports/` |
 | `all` | probe, inventory, validate, normalize, render, compare |
 
+One generator sits beside the module rather than inside it, on the pattern
+`buildings/build_neighbourhood.py` set:
+
+```bash
+python3 build_occluder_table.py    # writes engine/SpriteOccluderTable.kt from the shipped PNGs
+```
+
+It measures the crowns the shop-front pass treats as occluders and writes the Kotlin table both
+the pass and its test read, so neither holds a hand-typed rectangle. It refuses to write if a
+declared drawing is not blitted at the origin it is declared at, if a drawing *is* blitted there
+and is not declared, or if the parasol's rasterised fan disagrees with the exact pi/4 its geometry
+gives. `SpriteOccluderTableFreshnessTest` (a JVM unit test, so CI runs it) re-measures every figure
+it writes.
+
 ```bash
 python3 -m paperscrape_assets all
 python3 -m unittest discover -s tests
@@ -81,14 +95,17 @@ tests/                    tests that the fidelity criterion can fail
 
 ## The registry covers every sprite, and every drawn sprite has a source
 
-`sources/sprites.json` has an entry for all 221 shipped PNGs. The registry was
-built when 22 of 108 sprites could be regenerated and the other 86 were declared
-gaps — entries whose `source.kind` was `"none"` with a stated reason — because
-the original generators were lost and geometry could only be recovered by
-measurement for the sprites that were made of measurable primitives.
+`sources/sprites.json` has an entry for **every** shipped PNG — that is the rule, and
+`tests/test_registry_coverage.py` enforces it. The three counts that go with it (entries, entries
+with an SVG source, declared gaps) are printed by `paperscrape-assets validate`; they are not
+written here, and the three that used to be — 221, 108, 125 in three consecutive sentences — did
+not even agree with each other.
 
-The V2 asset library replaced the artwork wholesale and shipped its own sources,
-so every one of the 125 *drawn* sprites names an SVG:
+The registry was built when most sprites were declared gaps: entries whose `source.kind` was
+`"none"` with a stated reason, because the original generators were lost and geometry could only be
+recovered by measurement for the sprites made of measurable primitives. The V2 asset library
+replaced the artwork wholesale and shipped its own sources, so every *drawn* sprite now names an
+SVG:
 
 ```json
 { "kind": "svg", "file": "house_shared_window.svg" }
@@ -184,11 +201,11 @@ The `scale`/`tint` and origin figures are far lower than they should be, and tha
 is **defect D-4**, not a property of the manifest: the call-site resolver
 recognises a blit wrapper only when its first parameter is typed `Canvas`, and the
 GPU migration changed `SceneObjectRenderer`'s two wrappers to take `SceneCanvas`,
-so that file's ~60 call sites stopped resolving. See `ROADMAP.md`.
+so that file's call sites stopped resolving. See `ROADMAP.md`.
 
 ## Anchors are declared, not inferred
 
-The registry used to record an anchor for 17 of 108 sprites and `UNDETERMINED`
+The registry used to record an anchor for a sixth of the sprites and `UNDETERMINED`
 for the rest, and the reason was structural rather than lazy: the only evidence
 available was the origin a call site blits the sprite at, and that origin is
 `placement - anchor` — one equation, two unknowns. It collapses to the anchor
@@ -299,7 +316,7 @@ be split per sprite first.
 
 The shipped PNGs came from the V2 library's own rasteriser, and the pinned one
 resolves partially covered pixels differently. `ShippedAgainstSourceTest` bounds
-that difference instead of describing it: across all 118 sprites there is no
+that difference instead of describing it: across every sprite it checks there is no
 pixel that is solid in one rendering and empty in the other, so **no sprite's
 shape differs from its source**, and no single pixel's coverage moves by as much
 as half (worst case 121/255, one pixel on `rainbow_arc`'s shallowest stroke

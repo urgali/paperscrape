@@ -7,19 +7,23 @@ releases. That sequence ended at v76.12, which was published as **v1.0 Stable** 
 
 For what shipped and why, read `RELEASE_HISTORY.md`; for what is next, `ROADMAP.md`.
 
-**Deliberately not extended past v76.12.** This file is the pre-release log and stops where the
-release sequence begins; `RELEASE_HISTORY.md` is where v1.0 onward is recorded, and every release
-since adds its entry there rather than here. `AI_PROJECT_RULES.md` §3 is why the old entries are
+**This file stops at v73, and the sequence it belongs to ended at v76.12.** The entries for
+v73.8 through v76.12 were written in `RELEASE_HISTORY.md` instead and were never copied back here,
+so this is the log up to v73 and `RELEASE_HISTORY.md` is the log from v73.8 onward — there is no
+overlap between the two files and no version is told twice. It is deliberately not extended. `AI_PROJECT_RULES.md` §3 is why the old entries are
 not tidied to match: they are history, including the parts that refer to a product this project no
 longer depends on.
 
-**The release sequence has reached v5.0, and that is not a return to this file's scheme.** The
+**The release sequence has moved past 5.0, and that is not a return to this file's scheme.** The
 major number went from 4 to 5 because the neighbourhood was redrawn from a blank sheet — a change
 of visual language — and it is the first time the release line has used a major bump for an
 artistic reason rather than a structural one. Two numbering schemes have now been used in this
-project and neither replaces the other in retrospect: `v73`–`v76.12` above are internal builds,
-`v1.0`–`v5.0` are releases. A bare `v76` is not newer than `v5.0`, and `AppVersion.parse` rejects
-the bare-integer form outright so the updater can never read one as a release.
+project and neither replaces the other in retrospect: `v1`–`v76.12` are internal builds, and
+everything from `v1.0` onward is a release. **Which release is current is not written here**, because
+this file is history and that number decays (14.11): `RELEASE_HISTORY.md`'s first heading names it,
+and `grep versionName app/build.gradle.kts` is the one-liner. A bare `v76` is not newer than any of
+them, and `AppVersion.parse` rejects the bare-integer form outright so the updater can never read
+one as a release.
 
 ## v73 — Material aesthetic pass: houses, vehicles, buildings, seasonal objects, and two new
 features (walking people, Santa's sleigh)

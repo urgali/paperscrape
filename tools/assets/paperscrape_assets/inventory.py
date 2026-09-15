@@ -50,6 +50,19 @@ class SpriteMeasurement:
     content_bbox: tuple[int, int, int, int] | None
     content_width: int
     content_height: int
+    #: Share of the content box that carries ink, and the two row/column extremes of the same
+    #: profile. Measured here because an occlusion box is a claim about how much of a rectangle
+    #: is solid, and until v5.2 that claim was the canvas -- a palm crown declared 100% solid
+    #: over a fan that is 51% ink. `SpriteCoverageTable.kt` is generated from these three
+    #: numbers and read by both the layout pass and the test that re-measures it, so no
+    #: coverage figure is ever typed by hand on either side.
+    content_coverage: float
+    content_row_max: float
+    content_column_max: float
+    #: The same profile at two bands (upper half, lower half of the content box): each band's own
+    #: coverage and the x of its ink centroid, as fractions of the content box.
+    content_band_coverage: tuple[float, float]
+    content_band_centre_x: tuple[float, float]
     transparent_padding_bytes: int
     transparent_padding_fraction: float
     opaque_rgb_count: int
@@ -72,6 +85,59 @@ class SpriteMeasurement:
         return asdict(self)
 
 
+def _content_profile(
+    alpha: np.ndarray,
+    bbox: tuple[int, int, int, int] | None,
+) -> tuple[float, float, float, tuple[float, float], tuple[float, float]]:
+    """The ink profile of the content box: how much of it is solid, and where.
+
+    **A pixel counts as ink at alpha > 0, not at alpha = 255.** An antialiased edge stops part of
+    the light behind it, and an occlusion box is a claim about what is hidden; counting only the
+    fully opaque pixels would give `palmtree_fronds` 0.4750 instead of 0.5104 and declare less
+    solid than the drawing has. Weighting each pixel by its own alpha instead -- the physically
+    exact reading -- gives 0.4932, between the two and within 2% of the figure used: the choice
+    is visible in the third decimal and nowhere else, and the generous one is the safe one for a
+    rule whose failure mode is declaring a shop unhidden when it is hidden.
+
+    Returns the whole-box coverage, the fullest single row and the fullest single column (each as
+    a fraction of the box's width and height), and the same coverage plus the ink's centre of x
+    for the upper and lower halves of the box.
+    """
+    if bbox is None:
+        return 0.0, 0.0, 0.0, (0.0, 0.0), (0.5, 0.5)
+    ink = alpha[bbox[1]:bbox[3], bbox[0]:bbox[2]] > 0
+    height, width = ink.shape
+    if height == 0 or width == 0:
+        return 0.0, 0.0, 0.0, (0.0, 0.0), (0.5, 0.5)
+    coverage = float(ink.sum()) / (height * width)
+    row_max = float(ink.sum(axis=1).max()) / width
+    column_max = float(ink.sum(axis=0).max()) / height
+
+    band_coverage: list[float] = []
+    band_centre_x: list[float] = []
+    for index in range(2):
+        top = (index * height) // 2
+        bottom = ((index + 1) * height) // 2
+        band = ink[top:bottom]
+        rows = bottom - top
+        band_coverage.append(float(band.sum()) / (rows * width) if rows else 0.0)
+        columns = band.sum(axis=0)
+        total = float(columns.sum())
+        if total:
+            centre = float((columns * (np.arange(width) + 0.5)).sum()) / total / width
+        else:
+            centre = 0.5
+        band_centre_x.append(centre)
+
+    return (
+        coverage,
+        row_max,
+        column_max,
+        (band_coverage[0], band_coverage[1]),
+        (band_centre_x[0], band_centre_x[1]),
+    )
+
+
 def measure_image(name: str, image: Image.Image, file_bytes: int, sha256: str) -> SpriteMeasurement:
     rgba = image.convert("RGBA")
     pixels = np.array(rgba)
@@ -85,6 +151,8 @@ def measure_image(name: str, image: Image.Image, file_bytes: int, sha256: str) -
     else:
         content_w = bbox[2] - bbox[0]
         content_h = bbox[3] - bbox[1]
+
+    coverage, row_max, column_max, band_coverage, band_centre_x = _content_profile(alpha, bbox)
 
     decoded = width * height * 4
     padding = decoded - content_w * content_h * 4
@@ -108,6 +176,11 @@ def measure_image(name: str, image: Image.Image, file_bytes: int, sha256: str) -
         content_bbox=tuple(bbox) if bbox else None,
         content_width=content_w,
         content_height=content_h,
+        content_coverage=coverage,
+        content_row_max=row_max,
+        content_column_max=column_max,
+        content_band_coverage=band_coverage,
+        content_band_centre_x=band_centre_x,
         transparent_padding_bytes=padding,
         transparent_padding_fraction=(padding / decoded) if decoded else 0.0,
         opaque_rgb_count=opaque_rgb_count,

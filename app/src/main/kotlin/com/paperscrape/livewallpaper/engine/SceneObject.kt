@@ -718,10 +718,9 @@ object SceneObjectCatalog {
 
     /**
      * What one object puts between the viewer and anything behind it, as (left, top, right,
-     * bottom) boxes at the reference viewport. A building is its body; a tree is its crown (the
-     * canopy blit's own -118..-52, the same content box `recordLeafSource` measures off the same
-     * artwork) AND its trunk (the 32x62-unit blit at TreeSpriteLayout.TRUNK_X/Y); a palm is fan
-     * and trunk; a parasol is canopy and pole (drawParasol's own 34-unit wedge fan on a 5x50 pole).
+     * bottom) boxes at the reference viewport. A building is its body; a tree, a palm and a
+     * parasol are each a crown (see [crownBoxes]) AND a vertical member -- the tree's 32x62-unit
+     * forked stem at TreeSpriteLayout.TRUNK_X/Y, the palm's leaning spindle, the parasol's pole.
      *
      * **v4.21 re-derived the tree's two boxes and they grew in both directions.** The crown went
      * from ±41 to ±51 and its lower edge from -44 to -52; the trunk went from a 10-unit rod to a
@@ -731,6 +730,13 @@ object SceneObjectCatalog {
      * separation pass below has strictly more work to do than it did in v4.20. That the twelve
      * built-in layouts still settle inside the same 40% ceiling is measured, not assumed, and
      * `ShopFrontVisibilityTest` is where it is measured.
+     *
+     * **v5.2 took the three crowns out of this function**, because their numbers were the sprite
+     * *canvases* rather than the drawings on them and one of them was two thirds air. They now
+     * come from [crownBoxes], which reads an ink profile measured off the artwork itself; the
+     * vertical members are untouched and stay here as literals, because a trunk box is a
+     * deliberately strict reading of a shape that narrows above its foot ([verticalMemberBox])
+     * and not a claim about where the ink is.
      */
     private fun occluderBoxes(o: StaticSceneObject): List<FloatArray> {
         val v = SceneObjectRenderer.variantFor(o)
@@ -738,27 +744,104 @@ object SceneObjectCatalog {
         val g = REF_SCREEN_H * SceneSpace.groundYFraction(o.depthFraction)
         val x = o.tileFractionX * REF_SCREEN_W * 2f
         return when (v) {
-            SceneSpace.SceneVariant.TREE -> listOf(
-                floatArrayOf(x - 51f * s, g - 118f * s, x + 51f * s, g - 52f * s),
-                floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g),
-            )
-            // v5.1: the crown blitted at (-21,-82) on a 56x48-unit canvas its content fills, and a
-            // trunk that leans -- its 21-unit canvas sits at -8, and the bark inside it spans
-            // x 0.67..20, so the box is not symmetric about the foot.
-            SceneSpace.SceneVariant.PALM_TREE -> listOf(
-                floatArrayOf(x - 21f * s, g - 82f * s, x + 35f * s, g - 34f * s),
-                floatArrayOf(x - 8f * s, g - 58f * s, x + 13f * s, g),
-            )
-            SceneSpace.SceneVariant.PARASOL -> listOf(
-                floatArrayOf(x - 34f * s, g - 84f * s, x + 34f * s, g - 50f * s),
-                floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g),
-            )
+            SceneSpace.SceneVariant.TREE ->
+                crownBoxes(SpriteOccluderTable.TREE_CROWN, x, g, s) +
+                    floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g)
+            // v5.1: the crown blitted at (-21,-82) on a 56x48-unit canvas, and a trunk that leans
+            // -- its 21-unit canvas sits at -8, and the bark inside it spans x 0.67..20, so the
+            // box is not symmetric about the foot.
+            SceneSpace.SceneVariant.PALM_TREE ->
+                crownBoxes(SpriteOccluderTable.PALM_CROWN, x, g, s) +
+                    floatArrayOf(x - 8f * s, g - 58f * s, x + 13f * s, g)
+            SceneSpace.SceneVariant.PARASOL ->
+                crownBoxes(SpriteOccluderTable.PARASOL_FAN, x, g, s) +
+                    floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
             SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
             SceneSpace.SceneVariant.TOWER,
             -> listOf(floatArrayOf(x - halfWidthUnits(v) * s, g - v.spriteUnitsTall * s, x + halfWidthUnits(v) * s, g))
             else -> emptyList()
         }
+    }
+
+    /**
+     * The occluding rectangles of one foliage family, at the reference viewport.
+     *
+     * **This is the v5.2 half of item 124, and the numbers it reads are not written down here.**
+     * Every box a crown declared used to be its whole sprite canvas, so a palm fan that is 51%
+     * ink and 49% air declared 100% of a 56x48-unit rectangle solid -- and the separation pass
+     * walked the desert's bar nineteen hundredths of a tile away from a frontage the audit's
+     * photograph shows is plainly legible behind that fan. [SpriteOccluderTable] carries the ink
+     * profile, measured off the shipped PNGs by `tools/assets/build_occluder_table.py`; what stays
+     * here is the *model*, which is a judgement and is therefore written a second time in
+     * `ShopFrontVisibilityTest` rather than imported from here.
+     *
+     * Two steps, and only the second is a choice:
+     *
+     *  1. **The box is the drawing's content, not its canvas.** `normalize` leaves two pixels of
+     *     transparent guard on each side because a `SCENE_UNITS` blit is filtered and cropping
+     *     onto the ink makes the sampler clamp (v4.31, measured on the lake sprites). That margin
+     *     belongs in the PNG and has never belonged in an occlusion box: for the palm it was 3.67
+     *     units of declared-solid air above the topmost leaf. This step also retires the oak box's
+     *     one-unit-too-wide left edge without anyone typing 50 in place of 51.
+     *  2. **The box is then no wider than the drawing's widest row and no taller than its tallest
+     *     column**, about the content's own centre.
+     *
+     * **Why the extremes and not the area.** The obvious model is `k = sqrt(coverage)` about the
+     * centre, which gives the rectangle the area the ink has. It was implemented and measured,
+     * and so was a two-band variant that keeps full height and narrows each half to its own
+     * coverage. All three were run over the same twelve generated layouts:
+     *
+     * | model | shops that move | themes |
+     * |---|---|---|
+     * | sqrt(coverage) about the centre | 7 | 6 |
+     * | two bands, each narrowed to its own coverage | 9 | 7 |
+     * | **widest row x tallest column** | **1** | **1 (desert)** |
+     *
+     * The first two shrink a *filled* shape as hard as a sparse one, because area cannot tell the
+     * difference between ink that is missing and ink that is spread out: they take 13% off each
+     * side of the oak, whose canopy is a solid five-lobe blob, and they take the parasol's fan in
+     * by 11% although it is a filled half-disc with no hole in it at all. Everything the oak and
+     * the parasol then stop covering is a shop that moves for no reason anybody looking at the
+     * frame could name, and six of the seven moves are exactly that.
+     *
+     * This model cannot make that mistake, and the reason is worth stating as a property rather
+     * than as a result: **a rectangle is only narrowed by as much as the drawing never reaches.**
+     * For a shape whose bounding box is touched along a full row and a full column -- every convex
+     * filled silhouette, the oak's canopy and the parasol's half-disc included -- both factors are
+     * 1 and the box is unchanged. It moves only where no single row is ever full, which is the
+     * definition of a raggiera, and that is the only family item 124 was ever about. It is also
+     * the conservative one of the three: its box is the largest, so of the three it is the least
+     * able to declare a shop visible that is not.
+     *
+     * A family is every drawing that may stand in that place -- three palm crowns, two oak crowns
+     * -- because the layout is generated per theme while the crown is picked at draw time from
+     * user-editable flags, so the pass cannot know which one it will be. Their boxes are returned
+     * as a LIST rather than merged into one bounding rectangle: [frontCoverage] takes an exact
+     * union, so overlapping rectangles cost nothing and a bounding box would hand back some of the
+     * air this whole method exists to stop declaring.
+     *
+     * **What is not modelled, and was not before either**: `drawTree` rotates the crown by up to
+     * four degrees of sway, and a fir stands in a leafy tree's place under this same variant with
+     * a silhouette this box has never described. Both are pre-existing and neither was widened
+     * here; `V5_2A_REPORT.md` section 8 carries them as found.
+     */
+    private fun crownBoxes(
+        family: List<SpriteOccluderTable.InkBox>,
+        x: Float,
+        g: Float,
+        s: Float,
+    ): List<FloatArray> = family.map { ink ->
+        val cx = (ink.contentLeft + ink.contentRight) / 2f
+        val cy = (ink.contentTop + ink.contentBottom) / 2f
+        val halfW = (ink.contentRight - ink.contentLeft) * ink.rowMax / 2f
+        val halfH = (ink.contentBottom - ink.contentTop) * ink.columnMax / 2f
+        floatArrayOf(
+            x + (cx - halfW) * s,
+            g + (cy - halfH) * s,
+            x + (cx + halfW) * s,
+            g + (cy + halfH) * s,
+        )
     }
 
     /** The trunk or pole alone -- the box whose mere crossing of a front is the defect. */

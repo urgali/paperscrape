@@ -138,8 +138,8 @@ renders, measures and checks them against that registry — which records every 
 box, anchor rule, scale convention and tint class — and against the Kotlin call sites that blit
 them.
 (Counts are deliberately not written here: `ls app/src/main/res/drawable-nodpi/*.png | wc -l` is the
-answer, and a number kept by hand in a document goes stale. Measured at v4.28: 305 PNGs, 143 of them
-with an SVG source, 162 declared gaps.)
+answer, and a number kept by hand in a document goes stale. The v4.28 snapshot this sentence used to
+carry proved the point — it was five releases and sixty-six sprites out of date by v5.1.)
 
 **People are a special case, since v4.30.** A person is not shipped once per colour. Each shape is a
 **fixed layer** plus up to four **weight masks** — skin, head, shirt, trousers — and the renderer

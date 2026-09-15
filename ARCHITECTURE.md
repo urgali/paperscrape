@@ -6,34 +6,21 @@ Planned work and visual design decisions are deliberately **not** in here, and t
 not published: they live in the project's internal working notes. This file is limited to the
 implementation as it stands.
 
-**Last fully verified against v3.8** (`versionCode = 29`), by reading the source and running
-`test` + `lintDebug` + `assembleDebug` + `assembleRelease` and the instrumented suite on an
-Android 17 device.
+**Validity stamp: last read end to end against v3.8** (`versionCode = 29`), by reading the source
+and running `test` + `lintDebug` + `assembleDebug` + `assembleRelease` and the instrumented suite.
+Every release since has updated the sections its work touched and left the rest, which is why most
+of the document is in fact current and none of it is *guaranteed* to be. Treat a section as current
+if it names a version at or after the thing you are looking at, and check the source otherwise.
 
-**v3.9 (`versionCode = 30`) is a two-item corrective release and this document was *not* re-read in
-full for it.** What it changed here is one line: `LiveWeatherStatus` gained `REJECTED_API_KEY`
-(§ Weather, below). Nothing else in the architecture moved — no provider, no renderer, no build
-configuration beyond swapping one deprecated Gradle source-set call for its replacement.
+The two-item releases that followed the stamp used to be recorded here as three stacked paragraphs,
+each correcting the one above it; `AI_PROJECT_RULES.md` 14.10 forbids that shape, and what they said
+is in the sections themselves and in `RELEASE_HISTORY.md`. In short: v3.9 added
+`LiveWeatherStatus.REJECTED_API_KEY`; v4.0 raised `targetSdk` to 37, equal to `compileSdk`, after
+assessing Android 17's behaviour changes one at a time against this app's own code, and added
+`LocalityLabelCache` — display only, and it cannot affect the position Live Weather uses.
 
-**v4.0 (`versionCode = 31`) is likewise two strands, and this document was not re-read in full for
-it either.** Two things changed here:
-
-- **`targetSdk` is now 37**, equal to `compileSdk`. The paragraph below that described them as
-  deliberately one apart is history now — the app opts into Android 17's behaviour changes, none of
-  which required a code change — each was assessed individually against this app's own code before
-the target was raised, rather than the target being moved and the app watched for breakage.
-- **`LocalityLabelCache`** joins the location package: the policy deciding when a device fix is
-  worth reverse-geocoding, and the row that shows the result now shows the place name *and* the
-  coordinates rather than one in place of the other. The renderer, the weather pipeline and the
-  location *acquisition* path are all unchanged — this is display only, and cannot affect the
-  position Live Weather uses.
-
-This stamp had said *"v75 … current as of v1.0 Stable (`versionCode = 1`)"* for twenty-seven
-releases, which is the whole of **P2-8**: sections were updated as work landed, so most of the
-document was in fact current, but nothing said which — and a validity stamp nobody can trust is
-worse than none. v3.7 re-read the document against the source in full and closed the item. Every
-file in `engine/` now appears in the table below; fourteen did not before, including four the same
-release added.
+The stamp itself said *"v75 … current as of v1.0 Stable"* for twenty-seven releases, which is the
+whole of **P2-8**: a validity stamp nobody can trust is worse than none.
 
 ---
 
@@ -71,15 +58,25 @@ PaperScrape/
 
 ### Size
 
-| Metric | Value |
-|---|---|
-| Kotlin files | 46 |
-| Kotlin lines | ~11,100 |
-| Sprite PNGs in `drawable-nodpi/` | **111 files, 111 unique contents** — no byte-identical pair; the V2 asset library replaced the whole set in v76 |
-| Vector drawables | 4 |
-| Unit tests | **548** (45 classes, JVM-local, no Android dependencies) |
-| Instrumentation tests | 0 |
-| Largest files | `PaperRenderer.kt` 1,728 · `SceneObjectRenderer.kt` 1,152 · `WorldSceneScreen.kt` 813 · `WallpaperPrefs.kt` 789 · `SettingsComponents.kt` 736 |
+**No counts are written here.** Every row of this table was a hand-kept number, and by v5.1 every
+one of them was false — Kotlin files said 46 against 110, sprite PNGs 111 against 371, unit tests
+548 against 1 477, and *instrumentation tests 0* against 175, which is the row that mattered because
+this project's frame checks are instrumented. The table had not been touched since the v3.8 stamp
+above. `AI_PROJECT_RULES.md` 14.11: where the tree can be asked directly, the command is the only
+acceptable form.
+
+```bash
+find app/src/main -name '*.kt' | wc -l                              # Kotlin files, main
+find app/src/main -name '*.kt' -print0 | xargs -0 cat | wc -l       # Kotlin lines, main
+ls app/src/main/res/drawable-nodpi/*.png | wc -l                    # shipped sprites
+ls app/src/main/res/drawable/*.xml | wc -l                          # vector drawables
+grep -rc '@Test' app/src/test --include='*.kt'       | awk -F: '{n+=$2} END{print n}'   # unit
+grep -rc '@Test' app/src/androidTest --include='*.kt' | awk -F: '{n+=$2} END{print n}'  # instrumented
+find app/src/main -name '*.kt' -print0 | xargs -0 wc -l | sort -rn | sed -n '2,6p'      # largest files
+```
+
+The one thing that is a property rather than a count: **the shipped sprite set contains no
+byte-identical pair**, and has not since the V2 asset library replaced the whole set in v76.
 
 ---
 
@@ -130,6 +127,7 @@ PaperScrape/
 | `BusinessHours.kt` | How open the shops and towers are at a scene hour (v4.22): a toggle that defaults to bitwise-off, `open == close` as always-open, wraparound spans, and a boundary fade that is `SunPositionCalculator.smoothEdge`'s own twilight over the opening span. Runs on `DayPhase.hour24` -- the hour that moved the sun -- never a clock of its own. |
 | `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview (v3.7). The preview builds its objects from the same sprites at the same offsets by hand, and the snow cap's copy had drifted 3 units right and 2 down; both now read from here. |
 | `NeighbourhoodTable.kt` | **Generated** (`tools/assets/buildings/build_neighbourhood.py`): what each of the five building families is made of, as a list of slots, each holding the alternative pieces one instance may be dealt. A part is `FIXED` art, a `WALL_MASK`/`GLASS_MASK` weight summed at the blit, a `SNOW` layer, or a call-out (`LAMP`, `OCCUPANTS`) to a behaviour at the piece's own declared coordinates. |
+| `SpriteOccluderTable.kt` | **Generated** (`tools/assets/build_occluder_table.py`): where the ink is in every drawing an occlusion box has to speak for — the three palm crowns, the oak's two, the parasol's procedural fan — as a content box in object units plus the drawing's fullest row and fullest column. v5.2: the boxes used to be the sprite *canvases*, hand-typed in two places (the layout pass and `ShopFrontVisibilityTest`), and a palm fan that is 51% ink declared 100% of its rectangle solid. Both sides now read this and build their own rectangle from it; `SpriteOccluderTableFreshnessTest` re-measures it straight from the PNG so it cannot fall behind a redraw. |
 | `NeighbourhoodComposer.kt` | Deals one building out of that table — one alternative and one repeat count per slot, from the object's own stable identity — and stacks the pieces bottom-up. Read by **both** things that draw a building, which is what replaced `SkyscraperSpriteLayout` (v5.0): rather than hoisting the offsets two hand copies disagreed about, there is one composer and no copy. `Deal` is owned and reused by its caller, so a scene does not allocate a list per building per frame. |
 | `SceneColour.kt` | The one blend the colour rules are built from: `ColorUtils.blendARGB`'s arithmetic without the framework call, so `colorFor` and `windowGlassColor` run on the host and the JVM suite can evaluate them. `SceneColourBlendTest` (instrumented) proves the two identical over a sweep. |
 | `SpriteCache.kt` / `SpriteCacheIndex.kt` | The bitmap cache and its bookkeeping. The index is `SpriteCache`'s own `private val` — ids, byte counts and LRU order in `IntArray`s, deliberately free of Android types so the eviction logic is unit-testable, and cleared by the same `clear()` the memory-pressure path calls. |
@@ -637,9 +635,15 @@ literals — `PaperRenderer` declares both per sprite in named constants that
 numbers that are only correct together are pinned from both ends.
 
 `SceneObjectRenderer` draws in one convention only, so it binds `SCENE_UNITS`
-once in two thin `drawSprite`/`drawTintedSprite` wrappers instead of repeating
-it at 60 call sites. `PaperRenderer` is the only class that mixes conventions,
-so it has no wrappers at all: each of its 12 call sites names its own scale.
+once in its thin `drawSprite`/`drawTintedSprite`/`drawSpriteFaded` wrappers instead of repeating
+it at every call site. `PaperRenderer` is the only class that mixes conventions, so it has no
+wrappers at all: each of its calls names its own scale. This paragraph carried "60" and "12" from
+a release in which the blitter's own API was different; count them rather than read them here:
+
+```bash
+grep -c 'drawSprite(\|drawTintedSprite(\|drawSpriteFaded(' app/src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt
+grep -c 'blit(' app/src/main/kotlin/com/paperscrape/livewallpaper/engine/PaperRenderer.kt
+```
 
 Tinting uses `PorterDuffColorFilter` in `MULTIPLY` mode (not `SRC_IN`), so
 baked-in shading in a sprite survives the runtime tint. Trade-off: the rendered
@@ -1620,9 +1624,9 @@ recorded figure.
 SVG source; the ones that do not name a generator instead.** Since v4.30 that second group is the
 people's layer files, which declare `source.kind = "generated"` and name
 `tools/generate_people_layers.py`; before it, it was the per-skin-tone recolours under
-`source.kind = "none"`. Measured at v4.28: 305 entries, 143 with an SVG, 162 recolours —
-`paperscrape-assets validate` prints the three numbers, which is where to read them rather than
-here. Every sprite being
+`source.kind = "none"`. `paperscrape-assets validate` prints the three numbers — entries, sources, declared gaps — which
+is where to read them. The v4.28 snapshot that stood here (305 / 143 / 162) was wrong by v5.1 and
+is removed rather than re-typed. Every sprite being
 *described* by the registry is new in v76 and is the single most consequential thing
 the V2 asset library changed; being *regenerable* is a separate, smaller set.
 `tools/assets/README.md` states the registry-to-`res` relation as a rule rather than a
@@ -2132,7 +2136,7 @@ what order, is decided outside this document.
 10. **Test coverage is narrow, but less so than this entry used to claim.** The JVM suite
     covers the pure deterministic logic, and the sentence that stood here for many releases —
     *"no automated test in this project observes a rendered frame on either backend"* — has been
-    false since v3.2: 26 Canvas goldens (counted 2026-09-06, after v4.23) and 3 GL goldens do
+    false since v3.2: the Canvas goldens and the three GL references do
     exactly that, and v3.7
     added a region-targeted GL gate; v4.22 added derived per-focus gates on the settings scenes;
     v4.23 added `halloween-moon`, the first committed frame in which a celestial body is drawn
@@ -2162,8 +2166,10 @@ what order, is decided outside this document.
 12. **Each engine has its own EGL context**, so the picker's preview engine and the
     live engine do not share textures the way they share `SpriteCache`'s bitmaps.
     Whether that costs enough VRAM to matter is unmeasured.
-13. **No localisation.** `stringResource` has zero usages; 13 of 15 declared
-    strings are unused while ~71 literals are hardcoded in Compose.
+13. **No localisation.** Almost every UI string is a literal in Compose rather than a
+    `strings.xml` entry. "Zero `stringResource` usages" stood here until v5.1 and there are
+    now a handful; the decision (English-only, `ROADMAP.md` Deferred) is unchanged, the count
+    is not worth keeping — `grep -rc stringResource app/src/main --include='*.kt'` answers it.
 14. **Incomplete Material 3 colour scheme.** Four roles defined out of ~30; the
     rest fall back to Material's baseline palette. `themes.xml` still inherits
     from a framework Material 1 theme.

@@ -49,9 +49,9 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64. An ordinary bump: one release, one step.
-        versionCode = 64
-        versionName = "5.1"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65. Ordinary bumps: one release, one step.
+        versionCode = 65
+        versionName = "5.2"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
