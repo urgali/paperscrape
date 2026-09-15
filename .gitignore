@@ -36,6 +36,10 @@ local.properties
 # quoted in RELEASE_HISTORY.md.
 tools/assets/staging/
 tools/assets/**/__pycache__/
+# `tools/assets/buildings/out/` is the same thing for the neighbourhood concepts: the tooling's
+# own test suite writes ~110 generated SVG/PNG files there on every run. Listed here before it was
+# ever tracked, which is the only time a `.gitignore` line does the whole job on its own.
+tools/assets/buildings/out/
 
 # Internal working documents — they belong to the delivery ZIP, not to this repository.
 # Machine setup and session notes, the standing brief, the design reasoning, the

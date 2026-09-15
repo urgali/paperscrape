@@ -265,7 +265,10 @@ class ShippedAgainstSourceTest(unittest.TestCase):
         # `tools/assets/buildings/build_neighbourhood.py` and decomposed into a fixed layer and its
         # weight masks, which is the same reason the people's layers have no source since v4.30.
         # The registry says so in each entry's `source.reason` rather than leaving the field empty.
-        self.assertEqual(103, len(self.results))
+        # v5.1: +1. The one flower clump became two -- `ground_flowers_bloom` and
+        # `ground_flowers_dry`, so an autumn or a winter scene stops drawing midsummer blooms --
+        # and both are SVG, so the pair adds a source rather than replacing one.
+        self.assertEqual(104, len(self.results))
 
     def test_no_shipped_sprite_differs_from_its_source_in_shape(self):
         for result in self.results:

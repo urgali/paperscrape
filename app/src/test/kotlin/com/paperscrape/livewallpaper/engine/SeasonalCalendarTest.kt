@@ -30,6 +30,10 @@ class SeasonalCalendarTest {
     fun `the calendar covers every day of the year`() {
         // `null` used to mean "keep whatever the user last picked", which made an automatic
         // setting unpredictable for most of the year. Every date resolves now.
+        //
+        // v5.1: **for the factory calendar**, which is what this file tests throughout. A user may
+        // move a season and open a gap; that is deliberate, and `SeasonalCalendarStorageTest`
+        // covers what happens when they do.
         var date = LocalDate.of(2026, 1, 1)
         val end = LocalDate.of(2027, 1, 1)
         while (date.isBefore(end)) {
@@ -45,14 +49,19 @@ class SeasonalCalendarTest {
     }
 
     @Test
-    fun `winter starts on the eighth of january and ends on the first of march`() {
+    fun `winter holds january and february under new year`() {
+        // v5.1: winter runs 1 December to 29 February, so it is the floor under New Year rather
+        // than starting where New Year stops -- and it ends in February, not on 1 March.
         assertEquals("winter", theme(1, 8))
-        assertEquals("winter", theme(3, 1))
+        assertEquals("winter", theme(2, 28))
+        assertEquals("spring", theme(3, 1))
     }
 
     @Test
-    fun `spring starts on the second of march and ends on the last of may`() {
-        assertEquals("spring", theme(3, 2))
+    fun `spring starts on the first of march and ends on the last of may`() {
+        // v5.1: the meteorological boundary moved spring's first day from the 2nd to the 1st. This
+        // is the one calendar day in the year whose answer the rewrite changed.
+        assertEquals("spring", theme(3, 1))
         assertEquals("spring", theme(5, 31))
     }
 
@@ -99,9 +108,15 @@ class SeasonalCalendarTest {
     fun `every window changes on the day after its last`() {
         val boundaries = listOf(
             Triple(LocalDate.of(2026, 1, 7), "new_year", "winter"),
-            Triple(LocalDate.of(2026, 3, 1), "winter", "spring"),
+            // v5.1: winter now ends in February. 2026 is a common year, so its last day is the
+            // 28th; `leap day resolves` covers the 29th in 2028.
+            Triple(LocalDate.of(2026, 2, 28), "winter", "spring"),
             Triple(LocalDate.of(2026, 5, 31), "spring", "beach"),
             Triple(LocalDate.of(2026, 8, 31), "beach", "autumn"),
+            // v5.1: unchanged as values, different in meaning. Autumn no longer stops on 30
+            // September and restart on 1 November -- it runs straight through, and Halloween
+            // passes over it. The observable boundary is the same either way, which is the claim
+            // `SeasonalCalendarIdentityTest` walks day by day rather than asserting here.
             Triple(LocalDate.of(2026, 9, 30), "autumn", "halloween"),
             Triple(LocalDate.of(2026, 10, 31), "halloween", "autumn"),
             Triple(LocalDate.of(2026, 11, 30), "autumn", "christmas"),

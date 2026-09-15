@@ -122,6 +122,103 @@ class PreviewRendererAgreementTest {
     }
 
     /**
+     * The palm joined the hoisted set in v5.1, and this is what it buys.
+     *
+     * Its two origins were plain literals on both sides — two of the 55 the v3.8 audit found in
+     * exact agreement and deliberately left alone, because numbers that have never moved cannot
+     * have drifted. v5.1 moved both of them: the crown onto a larger canvas built around its
+     * declared attachment, the trunk onto a foot that is no longer its content's centre because
+     * the spindle leans. Two hand copies edited in one pass is the state the tree was in the
+     * release before its snow cap slid three units right, so the copy went rather than being made
+     * correctly one more time.
+     */
+    @Test
+    fun `the preview palm is blitted at the renderer's own two origins`() {
+        for (themeId in listOf("beach", "desert")) {
+            val parts = previewParts(themeId)
+            val trunks = parts.filter { it.resId == R.drawable.palmtree_trunk }
+            val crowns = parts.filter { it.resId == R.drawable.palmtree_fronds }
+            assertTrue("$themeId draws no palm trunk", trunks.isNotEmpty())
+            assertTrue("$themeId draws no palm crown", crowns.isNotEmpty())
+            for (trunk in trunks) {
+                assertEquals("$themeId trunk x", PalmSpriteLayout.TRUNK_X, trunk.ox, 0f)
+                assertEquals("$themeId trunk y", PalmSpriteLayout.TRUNK_Y, trunk.oy, 0f)
+            }
+            for (crown in crowns) {
+                assertEquals("$themeId crown x", PalmSpriteLayout.CROWN_X, crown.ox, 0f)
+                assertEquals("$themeId crown y", PalmSpriteLayout.CROWN_Y, crown.oy, 0f)
+            }
+            // The shipped v5.0 pair, named so a half-finished revert is unambiguous rather than a
+            // silent slide: the crown used to hang at (-20,-90.33) over a trunk at (-6,-58).
+            assertTrue("$themeId is back on the v5.0 trunk origin", trunks.none { it.ox == -6f })
+            assertTrue("$themeId is back on the v5.0 crown origin", crowns.none { it.oy == -90.33f })
+        }
+    }
+
+    /**
+     * All three palm crowns blit at one origin, which is what makes the winter one a choice rather
+     * than a layer.
+     *
+     * Until v5.1 the frost was five white caps drawn *over* the live crown and the two had to
+     * cover each other pixel for pixel; they are three whole drawings on one canvas now, and the
+     * renderer picks one. If a future redraw gave any of them its own origin, the palm would start
+     * changing shape when the season did, and it would do it silently.
+     */
+    @Test
+    fun `the three palm crowns share one origin on both sides`() {
+        val theme = ThemeCatalog.byId("beach")
+        val base = defaultCustomizationFor("beach")
+        val origins = listOf(
+            base to R.drawable.palmtree_fronds,
+            base.copy(winterColorsEnabled = true) to R.drawable.palmtree_fronds_frost,
+            base.copy(halloweenEnabled = true) to R.drawable.palmtree_fronds_dead,
+        ).map { (customization, resId) ->
+            val scene = ThemePreviewScenes.forTheme(theme, customization)
+            val parts = (scene.items + scene.backdrop + scene.ground).flatMap { it.parts }
+                .filter { it.resId == resId }
+            assertTrue("no crown drawn for $resId", parts.isNotEmpty())
+            parts.map { it.ox to it.oy }.distinct()
+        }
+        for (crown in origins) {
+            assertEquals("a crown is drawn at more than one origin", 1, crown.size)
+            assertEquals(PalmSpriteLayout.CROWN_X to PalmSpriteLayout.CROWN_Y, crown.single())
+        }
+        // And the winter one is drawn *instead of* the live one, not on top of it.
+        val winter = ThemePreviewScenes.forTheme(theme, base.copy(winterColorsEnabled = true))
+        val winterParts = (winter.items + winter.backdrop + winter.ground).flatMap { it.parts }
+        assertTrue(
+            "the frosted crown is still being stacked on the live one",
+            winterParts.none { it.resId == R.drawable.palmtree_fronds },
+        )
+    }
+
+    /**
+     * The crown's centre is off the trunk, and everything hung on it reads the same number.
+     *
+     * This is the consequence of the lean that reaches furthest: the Christmas lights, the falling
+     * leaves and the occlusion box are all placed on the crown's content, and before v5.1 every
+     * one of them could assume that content was centred on the pivot. Stating the centre once is
+     * what stops the next one of them assuming it again.
+     */
+    @Test
+    fun `the palm crown's centre is derived from its own blit`() {
+        assertEquals(
+            PalmSpriteLayout.CROWN_X + PalmSpriteLayout.CROWN_HALF_WIDTH,
+            PalmSpriteLayout.CROWN_CENTRE_X,
+            0f,
+        )
+        assertEquals(
+            PalmSpriteLayout.CROWN_Y + PalmSpriteLayout.CROWN_HALF_HEIGHT,
+            PalmSpriteLayout.CROWN_CENTRE_Y,
+            0f,
+        )
+        assertTrue(
+            "a palm crown centred on its own trunk is the assumption v5.1 broke",
+            PalmSpriteLayout.CROWN_CENTRE_X != 0f,
+        )
+    }
+
+    /**
      * The Halloween tree drops its crown for bare branches, at the crown's own origin — the one
      * other part that shares the lift and could drift the same way.
      */

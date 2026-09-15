@@ -276,6 +276,29 @@ class PeopleGoldenTest {
      * On `spring` rather than `sunset`, which is what `people-group` already draws: two goldens of
      * one frame under two names would double the maintenance and halve the coverage, and the first
      * version of this file did exactly that -- the two PNGs came out byte-identical.
+     *
+     * ### v5.1 re-authored this PNG, and `spring` is the whole reason
+     *
+     * **This is the only golden in the suite that draws ground flowers**, and nothing in this file
+     * says so. `spring` is the one theme whose defaults carry `flowersEnabled = true`
+     * (`SceneCustomization.defaultCustomizationFor`: *"Spring without flowers is a green summer"*),
+     * `SceneGolden.render` builds its scene from `defaultCustomizationFor(themeId)`, and
+     * `themeId = "spring"` appears exactly once in the whole of `androidTest` -- here.
+     *
+     * v5.1 split the one flower clump into a pair, in bloom and gone over, so an autumn or a
+     * winter scene stops drawing midsummer blooms. This frame is the blooming one, and it moved:
+     * **297 pixels of 288 000 (0.103%) differ by more than 8 per channel from the v5.0 PNG, every
+     * one of them between y 577 and y 622, x 55..350** -- the clumps, and nothing else. Houses,
+     * windows, people, trees, cars, road and sky came out identical pixel for pixel. Re-authored on
+     * the BV6600 with the maintainer's written go-ahead; the same `updateGoldens` run rewrote the
+     * other seven goldens of this class and **all seven came back byte-identical to the committed
+     * files**, which is what says the device reproduced them and only the artwork moved.
+     *
+     * **The lesson is about the check, not the picture.** The question "does any golden draw X?"
+     * was answered by grepping `androidTest` for the name of X's flag. No test names it, and the
+     * conclusion drawn -- that no golden draws flowers -- did not follow: a golden names a
+     * **theme**, and what a theme switches on lives in `defaultCustomizationFor`. Ask the theme,
+     * then ask what the theme turns on. See `BACKLOG_v5_1.md` item 122.
      */
     @Test
     fun `people-window`() = SceneGolden.assertMatches(

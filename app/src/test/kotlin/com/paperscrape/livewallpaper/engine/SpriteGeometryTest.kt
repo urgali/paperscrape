@@ -290,6 +290,50 @@ class SpriteGeometryTest {
      * than the six the shipped facade cost; that is not a byte and this limit cannot see it. It was
      * measured on the `perf` build before this shipped -- see `NeighbourhoodTable` and the v5.0
      * report for the frame cost, which is the number that decides whether a blit count matters.
+     *
+     * ### v5.1: the line does not move, and the number under it does
+     *
+     * The set is **38 104 992 B**, leaving **692 320 B**. It rose by **15 552 B**: the one flower
+     * clump became two, `ground_flowers_bloom` and `ground_flowers_dry`, so an autumn or a winter
+     * scene stops drawing midsummer blooms. One 108x36 canvas at 4 bytes a pixel, and 2.20 % of
+     * the 707 872 B v5.0 left. Nothing was traded for it and nothing needed to be: a second
+     * reading of one clump is the cheapest seasonal artwork in the set, and the alternative was a
+     * meadow in flower under falling leaves.
+     *
+     * The GL side of the same change is **not** 15 552 B -- see
+     * `SpriteDrawScaleTest.uploadedTexelBudget`, v5.1, for why it is 17 080 and what that says.
+     *
+     * ### v5.1 again, for the palms, and the line still does not move
+     *
+     * The set is **38 243 376 B**, leaving **553 936 B**. It rose by a further **138 384 B**: the
+     * palm was redrawn from scratch and its four canvases grew with it -- the trunk from 33x174 to
+     * 63x174 px because a leaning spindle with a flared foot does not fit in eleven units of
+     * width, and each of the three crowns from 120x120 to 168x144 because the blades of a palm
+     * fall *below* the point they converge at and the old canvas had six units under it.
+     *
+     * *What was looked for first, as every paragraph here has to.* Two things, and both were
+     * refused on what they cost the picture rather than on what they saved. The dead crown fills
+     * only 0.51 of its canvas -- a collapsed crown occupies less than a live one -- and giving it a
+     * tighter canvas of its own would recover about 40 KB; it would also give it an origin of its
+     * own, which is the arrangement v5.1 deliberately left behind, because three crowns at one
+     * declared attachment is what lets the renderer *choose* one instead of stacking a frost
+     * overlay on a live crown and requiring the two to cover each other pixel for pixel. And the
+     * shipped canvases could have been kept at 120x120 -- no palm that falls below its own
+     * convergence fits in them, which was the finding that opened the redraw.
+     *
+     * *What it costs, on the three things this limit bounds.* The four PNGs compress from 13 578 B
+     * to 27 507 B, so the APK grows by **13 929 B**. The `Canvas` path's worst case grows by the
+     * full 138 384. The per-sprite transient decode peak does not move: the largest of the four is
+     * 96 768 B against a set whose largest is `person_*`'s 117x252.
+     *
+     * The trunk's own canvas was cut back in the same pass and the number above is after it:
+     * `paperscrape-assets normalize` reported 78x174 of removable padding down to 63x174, so the
+     * drawing was re-authored two units left on a 21-unit canvas rather than cropped, which is
+     * 10 440 B of this budget that never arrived and one fewer pending crop.
+     *
+     * *And the GL side is a third number again.* **+69 004 B**, not 138 384 and not the 63 988 a
+     * host measurement of the content boxes predicted -- see
+     * `SpriteDrawScaleTest.uploadedTexelBudget`, v5.1's second paragraph.
      */
     private val decodedByteBudget = 37L * 1024L * 1024L
 

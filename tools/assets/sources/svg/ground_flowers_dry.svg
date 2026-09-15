@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="36" viewBox="0 0 36 12">
+  <!--
+    One clump of ground flowers gone over: thistle, coneflower, goldenrod, a spent aster, a grass
+    spike and a seed head, on the same 36x12 canvas as `ground_flowers_bloom` and at the same blit
+    origin, so the two are interchangeable at the call site.
+
+    **It serves autumn and winter both**, which is why it is named for what it draws rather than
+    for a season: dry stems and seed heads standing out of snow are a real thing to look at, and a
+    file called `ground_flowers_autumn` would have been lying every time the winter palette was on.
+    The renderer chooses it whenever the seasonal palette is AUTUMN or WINTER; `flowersEnabled`
+    still only says whether there are flowers at all.
+
+    Fixed art, for the same reason as its blooming twin: see `ground_flowers_bloom.svg`.
+
+    Same hand as that twin, two cut papers per head (ink shadow offset 0.55 units, light paper over
+    it) with scalloped edges, so the two read as one set of artwork under one lamp.
+
+    Everything stands on y=12, the canvas's own bottom edge, so the blit origin puts the stems on
+    the ground line and nothing has to be nudged per size.
+  -->
+  <path d="M5.50 12 Q5.35 8.80 5.20 5.60" stroke="#A8813F" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <path d="M12.50 12 Q12.65 8.30 12.80 4.60" stroke="#A8813F" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <path d="M19.50 12 Q19.45 9.30 19.40 6.60" stroke="#A8813F" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <path d="M26.50 12 Q25.95 8.50 26.40 5.00" stroke="#A8813F" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <path d="M32.50 12 Q32.65 9.20 32.80 6.40" stroke="#A8813F" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <ellipse cx="3.95" cy="11.15" rx="2.00" ry="0.65" fill="#88713B" transform="rotate(-25.0 3.95 11.15)"/><ellipse cx="3.40" cy="10.60" rx="2.00" ry="0.65" fill="#B8953F" transform="rotate(-25.0 3.40 10.60)"/>
+  <ellipse cx="15.75" cy="10.55" rx="2.00" ry="0.65" fill="#88713B" transform="rotate(15.0 15.75 10.55)"/><ellipse cx="15.20" cy="10.00" rx="2.00" ry="0.65" fill="#B8953F" transform="rotate(15.0 15.20 10.00)"/>
+  <ellipse cx="23.15" cy="10.95" rx="2.00" ry="0.65" fill="#88713B" transform="rotate(-18.0 23.15 10.95)"/><ellipse cx="22.60" cy="10.40" rx="2.00" ry="0.65" fill="#B8953F" transform="rotate(-18.0 22.60 10.40)"/>
+  <ellipse cx="35.15" cy="11.15" rx="2.00" ry="0.65" fill="#88713B" transform="rotate(22.0 35.15 11.15)"/><ellipse cx="34.60" cy="10.60" rx="2.00" ry="0.65" fill="#B8953F" transform="rotate(22.0 34.60 10.60)"/>
+  <ellipse cx="5.75" cy="5.15" rx="1.50" ry="2.20" fill="#553F30"/><ellipse cx="5.20" cy="4.60" rx="1.50" ry="2.20" fill="#6B4A2E"/>
+  <path d="M6.75 3.00 L6.58 3.21 L6.24 3.32 L6.04 3.40 L6.10 3.61 L6.22 3.95 L6.17 4.21 L5.90 4.21 L5.60 4.01 L5.41 3.91 L5.28 4.08 L5.10 4.39 L4.86 4.51 L4.69 4.30 L4.66 3.94 L4.62 3.73 L4.40 3.74 L4.05 3.79 L3.80 3.67 L3.87 3.41 L4.13 3.16 L4.27 3.00 L4.13 2.84 L3.87 2.59 L3.80 2.33 L4.05 2.21 L4.40 2.26 L4.62 2.27 L4.66 2.06 L4.69 1.70 L4.86 1.49 L5.10 1.61 L5.28 1.92 L5.41 2.09 L5.60 1.99 L5.90 1.79 L6.17 1.79 L6.22 2.05 L6.10 2.39 L6.04 2.60 L6.24 2.68 L6.58 2.79 Z" fill="#E8D9A0"/>
+  <path d="M16.35 4.95 L16.10 5.31 L15.60 5.55 L15.29 5.75 L15.36 6.11 L15.55 6.64 L15.47 7.07 L15.04 7.15 L14.51 6.96 L14.15 6.89 L13.95 7.20 L13.71 7.70 L13.35 7.95 L12.99 7.70 L12.75 7.20 L12.55 6.89 L12.19 6.96 L11.66 7.15 L11.23 7.07 L11.15 6.64 L11.34 6.11 L11.41 5.75 L11.10 5.55 L10.60 5.31 L10.35 4.95 L10.60 4.59 L11.10 4.35 L11.41 4.15 L11.34 3.79 L11.15 3.26 L11.23 2.83 L11.66 2.75 L12.19 2.94 L12.55 3.01 L12.75 2.70 L12.99 2.20 L13.35 1.95 L13.71 2.20 L13.95 2.70 L14.15 3.01 L14.51 2.94 L15.04 2.75 L15.47 2.83 L15.55 3.26 L15.36 3.79 L15.29 4.15 L15.60 4.35 L16.10 4.59 Z" fill="#A88438"/><path d="M15.80 4.40 L15.55 4.76 L15.05 5.00 L14.74 5.20 L14.81 5.56 L15.00 6.09 L14.92 6.52 L14.49 6.60 L13.96 6.41 L13.60 6.34 L13.40 6.65 L13.16 7.15 L12.80 7.40 L12.44 7.15 L12.20 6.65 L12.00 6.34 L11.64 6.41 L11.11 6.60 L10.68 6.52 L10.60 6.09 L10.79 5.56 L10.86 5.20 L10.55 5.00 L10.05 4.76 L9.80 4.40 L10.05 4.04 L10.55 3.80 L10.86 3.60 L10.79 3.24 L10.60 2.71 L10.68 2.28 L11.11 2.20 L11.64 2.39 L12.00 2.46 L12.20 2.15 L12.44 1.65 L12.80 1.40 L13.16 1.65 L13.40 2.15 L13.60 2.46 L13.96 2.39 L14.49 2.20 L14.92 2.28 L15.00 2.71 L14.81 3.24 L14.74 3.60 L15.05 3.80 L15.55 4.04 Z" fill="#E9B33A"/>
+  <circle cx="12.80" cy="4.40" r="1.20" fill="#4A2C1A"/>
+  <ellipse cx="19.95" cy="6.75" rx="1.30" ry="0.75" fill="#A88E42"/><ellipse cx="19.40" cy="6.20" rx="1.30" ry="0.75" fill="#E9C24A"/>
+  <ellipse cx="19.65" cy="5.55" rx="1.10" ry="0.75" fill="#A88E42"/><ellipse cx="19.10" cy="5.00" rx="1.10" ry="0.75" fill="#E9C24A"/>
+  <ellipse cx="20.05" cy="4.45" rx="0.90" ry="0.75" fill="#A88E42"/><ellipse cx="19.50" cy="3.90" rx="0.90" ry="0.75" fill="#E9C24A"/>
+  <ellipse cx="19.75" cy="3.55" rx="0.60" ry="0.75" fill="#A88E42"/><ellipse cx="19.20" cy="3.00" rx="0.60" ry="0.75" fill="#E9C24A"/>
+  <path d="M29.25 5.15 L29.05 5.47 L28.65 5.68 L28.40 5.85 L28.42 6.15 L28.51 6.60 L28.38 6.95 L28.01 6.99 L27.60 6.81 L27.31 6.72 L27.08 6.93 L26.79 7.27 L26.44 7.39 L26.17 7.13 L26.06 6.69 L25.95 6.41 L25.64 6.36 L25.19 6.35 L24.88 6.15 L24.92 5.78 L25.19 5.42 L25.34 5.15 L25.19 4.88 L24.92 4.52 L24.88 4.15 L25.19 3.95 L25.64 3.94 L25.95 3.89 L26.06 3.61 L26.17 3.17 L26.44 2.91 L26.79 3.03 L27.08 3.37 L27.31 3.58 L27.60 3.49 L28.01 3.31 L28.38 3.35 L28.51 3.70 L28.42 4.15 L28.40 4.45 L28.65 4.62 L29.05 4.83 Z" fill="#9384A9"/><path d="M28.70 4.60 L28.50 4.92 L28.10 5.13 L27.85 5.30 L27.87 5.60 L27.96 6.05 L27.83 6.40 L27.46 6.44 L27.05 6.26 L26.76 6.17 L26.53 6.38 L26.24 6.72 L25.89 6.84 L25.62 6.58 L25.51 6.14 L25.40 5.86 L25.09 5.81 L24.64 5.80 L24.33 5.60 L24.37 5.23 L24.64 4.87 L24.79 4.60 L24.64 4.33 L24.37 3.97 L24.33 3.60 L24.64 3.40 L25.09 3.39 L25.40 3.34 L25.51 3.06 L25.62 2.62 L25.89 2.36 L26.24 2.48 L26.53 2.82 L26.76 3.03 L27.05 2.94 L27.46 2.76 L27.83 2.80 L27.96 3.15 L27.87 3.60 L27.85 3.90 L28.10 4.07 L28.50 4.28 Z" fill="#C9B3E6"/>
+  <circle cx="26.40" cy="4.60" r="0.70" fill="#8B5E3C"/>
+  <path d="M32.8 6.4 Q33.4 3.6 35.2 2.6" stroke="#A8813F" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+  <ellipse cx="33.75" cy="5.75" rx="0.95" ry="0.50" fill="#A89E7B" transform="rotate(-70.0 33.75 5.75)"/><ellipse cx="33.20" cy="5.20" rx="0.95" ry="0.50" fill="#E8D9A0" transform="rotate(-70.0 33.20 5.20)"/>
+  <ellipse cx="34.35" cy="4.55" rx="0.95" ry="0.50" fill="#A89E7B" transform="rotate(-60.0 34.35 4.55)"/><ellipse cx="33.80" cy="4.00" rx="0.95" ry="0.50" fill="#E8D9A0" transform="rotate(-60.0 33.80 4.00)"/>
+  <ellipse cx="35.15" cy="3.65" rx="0.95" ry="0.50" fill="#A89E7B" transform="rotate(-45.0 35.15 3.65)"/><ellipse cx="34.60" cy="3.10" rx="0.95" ry="0.50" fill="#E8D9A0" transform="rotate(-45.0 34.60 3.10)"/>
+  <circle cx="30.15" cy="9.15" r="1.30" fill="#4A3528"/><circle cx="29.60" cy="8.60" r="1.30" fill="#5A3A22"/>
+  <path d="M29.80 12 Q29.70 10.30 29.60 8.60" stroke="#A8813F" stroke-width="0.7" stroke-linecap="round" fill="none"/>
+</svg>

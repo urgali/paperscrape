@@ -1,9 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="33" height="174" viewBox="2 4 11 58">
-  
-<path d="M3 62 C2 42 4 24 8 4 L13 5 C10 25 9 44 10 62 Z" fill="#C98F5A"></path>
-        <g fill="#A5713F">
-          <rect x="3.4" y="46" width="6.6" height="2.4"></rect>
-          <rect x="4" y="32" width="6.4" height="2.4"></rect>
-          <rect x="5" y="18" width="6.2" height="2.4"></rect>
-        </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="63" height="174" viewBox="0 0 21 58">
+  <!--
+    The coconut palm's trunk: a curved spindle that leans 7 units to the right over a flared
+    foot, with crescent leaf scars up the front, a shadow band down the right flank and a strip
+    of light down the left.
+
+    **Its anchor is the foot, and the foot is declared.** The drawn content spans x 2..60 px
+    while the foot's centre is at x 24 px (8 local units), because the trunk leans: the
+    horizontal centre of what is drawn is *not* where the tree meets the ground, so
+    `CONTENT_BOTTOM_CENTRE` - which is true of every straight trunk and was true of the one
+    this replaces - would derive 31 px and stand the palm more than two units beside its own
+    ground shadow, pivoting its sway off its base. The registry says `DECLARED_ATTACHMENT` at
+    (24, 174) for that reason, and `drawPalmTree` blits at (-8, -58), which is that point
+    negated.
+
+    The canvas is 21x58 units and carries two pixels of transparent guard on each side, which
+    is what `paperscrape-assets normalize` leaves and not slack: a `SCENE_UNITS` blit is
+    filtered, so the column beside the ink is the one the sampler reads at the edge, and
+    cropping onto the ink makes it clamp and read the ink twice (v4.31, measured at 6 pixels a
+    frame on the lake sprites).
+
+    The top of the bark is the canvas's own top row: the crown's attachment is placed two units
+    below it, so there is no transparent slack up there to account for.
+
+    Fixed art, deliberately, like every other palm sprite: the colours are in the file and no
+    call site multiplies them. The user gets the palms switch and no colour - a frond that
+    followed a theme's tree tint would be a frond of the wrong green, which is the same reason
+    the roof snow, the awning and the flower clumps carry their own palette.
+
+    Every card is cut paper with its own shadow underneath: the same outline mixed 34 % towards
+    #2B2A33 and offset by (2.0, 2.7) units for the large cards, (1.0, 1.4) for the small ones,
+    which is the shadow grammar `tools/assets/buildings/core.py` gives the neighbourhood. Edges
+    carry a deterministic 0.2-0.6 unit wobble written into the coordinates rather than a filter,
+    and there is no stroke anywhere: shapes separate by paper, not by outline.
+  -->
+<polygon points="2.81,58.00 4.74,56.73 6.07,53.73 6.09,49.60 6.54,45.97 6.89,42.72 7.75,39.09 8.00,35.38 8.83,31.89 8.90,27.98 9.38,24.31 10.24,20.80 10.79,17.43 11.33,13.55 12.53,9.77 13.05,6.25 13.92,2.37 20.27,2.47 19.48,6.13 18.93,10.18 18.76,13.28 17.72,17.47 17.59,20.67 17.04,24.73 16.20,27.80 16.10,31.64 15.81,35.42 15.57,38.97 14.93,42.56 15.11,46.44 14.47,49.59 14.34,53.66 15.85,57.13 17.31,58.00" fill="#6B4A36"/>
+<polygon points="0.81,58.09 2.74,54.03 4.07,51.03 4.09,46.90 4.54,43.27 4.89,40.02 5.75,36.39 6.00,32.68 6.83,29.19 6.90,25.28 7.38,21.61 8.24,18.10 8.79,14.73 9.33,10.85 10.53,7.07 11.05,3.55 11.92,-0.33 18.27,-0.23 17.48,3.43 16.93,7.48 16.76,10.58 15.72,14.77 15.59,17.97 15.04,22.03 14.20,25.10 14.10,28.94 13.81,32.72 13.57,36.27 12.93,39.86 13.11,43.74 12.47,46.89 12.34,50.96 13.85,54.43 15.31,58.23" fill="#8C5A38"/>
+<polygon points="10.03,58.04 9.68,54.25 9.35,50.82 9.78,47.27 10.14,43.43 10.29,39.90 10.60,36.25 11.06,32.47 11.42,28.99 11.62,25.46 12.25,21.84 13.00,18.13 13.57,14.27 13.81,10.86 14.45,7.14 15.28,3.76 16.02,0.10 18.42,0.16 17.39,3.73 17.05,7.12 16.68,10.64 15.79,14.73 15.32,17.99 14.69,21.84 14.70,25.40 14.27,28.96 13.82,32.61 13.42,36.40 12.95,39.93 12.97,43.66 12.61,47.01 12.63,50.82 13.76,54.37 15.12,57.99" fill="#533217"/>
+<polygon points="0.85,57.94 2.54,54.42 4.10,50.69 4.50,47.30 4.81,43.58 5.25,39.68 5.40,36.37 5.95,32.54 6.52,29.10 7.24,25.22 7.69,21.71 8.43,18.31 8.88,14.67 9.56,10.76 10.48,7.15 11.04,3.63 11.88,0.07 13.47,-0.15 12.70,3.50 12.11,7.30 11.38,10.70 10.64,14.48 9.82,17.93 9.37,21.57 8.95,25.31 8.28,29.09 8.03,32.49 7.45,36.43 7.15,40.00 6.56,43.36 6.20,47.24 6.10,50.66 5.10,54.56 4.18,58.12" fill="#A46E45"/>
+<polygon points="5.23,46.19 7.35,47.40 10.19,47.46 11.92,46.08 11.36,48.09 8.57,49.10 5.48,48.01" fill="#6B4326"/>
+<polygon points="6.00,37.95 8.09,39.28 10.71,39.26 12.51,38.06 12.04,40.22 9.39,40.79 6.10,39.96" fill="#6B4326"/>
+<polygon points="6.98,29.71 9.19,31.18 11.80,31.13 13.50,30.11 12.88,31.96 10.04,32.67 7.36,31.92" fill="#6B4326"/>
+<polygon points="8.20,21.55 10.11,23.14 12.61,23.04 14.39,21.69 13.91,23.86 11.45,24.54 8.49,23.68" fill="#6B4326"/>
+<polygon points="9.56,13.69 11.51,14.88 13.70,14.87 15.62,13.65 15.08,15.88 12.58,16.34 9.79,15.47" fill="#6B4326"/>
+<polygon points="11.22,5.22 13.08,6.58 15.19,6.95 16.75,5.66 16.13,7.59 14.08,8.18 11.46,7.33" fill="#6B4326"/>
 </svg>

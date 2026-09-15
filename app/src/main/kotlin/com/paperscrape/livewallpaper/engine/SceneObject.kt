@@ -595,7 +595,10 @@ object SceneObjectCatalog {
         // v4.21: 51, not 41. The "Quercia larga" crown is `tree_canopy`'s 101 units of content
         // blitted at -50, so it spans x -50..51 and the wider side governs a symmetric reach.
         SceneSpace.SceneVariant.TREE -> 51f
-        SceneSpace.SceneVariant.PALM_TREE -> 20f
+        // v5.1, re-derived for the "Cocco" palm: the crown is a 56-unit canvas filled by its own
+        // content and blitted at -21, so it spans x -21..35 and the wider side governs a symmetric
+        // reach. It leans, which is why 28 and not half of 56.
+        SceneSpace.SceneVariant.PALM_TREE -> PalmSpriteLayout.CROWN_HALF_WIDTH
         else -> 0f
     }
 
@@ -739,9 +742,12 @@ object SceneObjectCatalog {
                 floatArrayOf(x - 51f * s, g - 118f * s, x + 51f * s, g - 52f * s),
                 floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g),
             )
+            // v5.1: the crown blitted at (-21,-82) on a 56x48-unit canvas its content fills, and a
+            // trunk that leans -- its 21-unit canvas sits at -8, and the bark inside it spans
+            // x 0.67..20, so the box is not symmetric about the foot.
             SceneSpace.SceneVariant.PALM_TREE -> listOf(
-                floatArrayOf(x - 20f * s, g - 90.33f * s, x + 20f * s, g - 53.5f * s),
-                floatArrayOf(x - 6f * s, g - 58f * s, x + 5f * s, g),
+                floatArrayOf(x - 21f * s, g - 82f * s, x + 35f * s, g - 34f * s),
+                floatArrayOf(x - 8f * s, g - 58f * s, x + 13f * s, g),
             )
             SceneSpace.SceneVariant.PARASOL -> listOf(
                 floatArrayOf(x - 34f * s, g - 84f * s, x + 34f * s, g - 50f * s),
@@ -768,7 +774,11 @@ object SceneObjectCatalog {
             // serves is "a door and a window stay clear for their whole height", and a box that
             // under-reports the foot would let a trunk park on a doorway.
             SceneSpace.SceneVariant.TREE -> floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g)
-            SceneSpace.SceneVariant.PALM_TREE -> floatArrayOf(x - 6f * s, g - 58f * s, x + 5f * s, g)
+            // v5.1: the leaning trunk's own canvas, x -10..16 at this origin. The strict reading
+            // the TREE entry above argues for applies here too -- the spindle narrows above its
+            // flared foot, and a box that under-reported the foot would let a trunk park on a
+            // doorway.
+            SceneSpace.SceneVariant.PALM_TREE -> floatArrayOf(x - 8f * s, g - 58f * s, x + 13f * s, g)
             SceneSpace.SceneVariant.PARASOL -> floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             else -> null
         }

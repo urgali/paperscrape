@@ -248,7 +248,9 @@ class SpriteDrawScaleTest {
                     SceneObjectRenderer.FLOWER_SPRITE_UNITS_TALL,
                 ) * maxScatterDepthScale * SceneSpace.sceneScale(v.heightPx)
             },
-            "ground_flowers",
+            // Both clumps: one canvas, one origin, one scale path -- which is what lets the
+            // renderer swap them on the seasonal palette without touching any of the arithmetic.
+            "ground_flowers_bloom", "ground_flowers_dry",
         )
         put(
             DrawPath("snow drift / leaf heap", SpriteScale.SCENE_UNITS) { v ->
@@ -806,6 +808,54 @@ class SpriteDrawScaleTest {
      * step, zero or +16 MiB, not a slope. v4.29 measured the shelf packer saturating at the fifth
      * theme at default densities, which is why the device census was re-run with the mix before
      * this shipped; its result is in the v5.0 report.
+     *
+     * ### v5.1: the line does not move either, and the two limits disagree about the same change
+     *
+     * The set uploads **15 786 508 B**, leaving **990 708 B** (v5.0 left 1 007 788). It rose by
+     * **17 080 B** for the second flower clump -- and `SpriteGeometryTest.decodedByteBudget` rose
+     * by **15 552** for the same sprite. **The GPU figure is the larger one**, and the reason is
+     * the crop this function models rather than anything about the canvas. Neither new sprite
+     * costs more here than it costs there: each decodes to 15 552 B and uploads 13 860. What is
+     * larger is the *change*, because the sprite that left was unusually cheap here -- the shipped
+     * clump was thin, drawn inside a content box of 93x27 on a 108x36 canvas, so the border cut
+     * after the reduction gave back a third of it and it uploaded only **10 640 B**. The v5.1
+     * drawing fills 104x32 of the same canvas, so there is much less border to cut.
+     *
+     * *What a frame actually holds is a third number again, and it is the smaller one.* A scene
+     * draws one clump or the other, never both -- the seasonal palette picks -- so the resident
+     * atlas cost of this change in any one scene is **+3 220 B**, and the 17 080 above is the
+     * upper bound this limit is defined to take: every sprite at the largest scale any path draws
+     * it at, including two that are alternatives to each other. The packing step the v5.0 note
+     * describes is untouched by that: one extra 105x33 tile does not appear in a page that was
+     * already holding the clump it replaces.
+     *
+     * ### v5.1 again, for the palms, and the host got this number wrong by 5 016 B
+     *
+     * The set uploads **15 855 512 B**, leaving **921 704 B**. The four redrawn palm sprites cost
+     * **+69 004 B**, against **+138 384** on `SpriteGeometryTest.decodedByteBudget` -- the usual
+     * direction, and for the usual reason: a canvas is charged there and the ink is charged here.
+     * The trunk's canvas was cut from 78 to 63 px wide late in the pass and **this number did not
+     * move at all**, which is the same point said the other way round: the fifteen columns that
+     * left were transparent, and transparent columns were never on this side of the ledger.
+     *
+     * **The number worth recording is that the proposal round predicted 63 988 and was 5 016 low,
+     * and the gap is not measurement noise.** That figure was the content box times four at level
+     * 0, which is the natural thing to compute on the host and is not what this function models:
+     * `GlTextureCache` crops the border **one pixel outside** the content on every side, so a
+     * sprite is charged for its ink plus a two-pixel margin in each axis. Over four sprites that is
+     * 5 016 B. It is small and it is systematic -- it scales with the perimeter, so a set of many
+     * small sprites would be under-predicted by much more -- and anything estimating this budget
+     * from a content box off the device should add the pad rather than discover it here.
+     *
+     * The palms sit at level 0 on both the scene path and the preview path, so the crop above is
+     * of the authored pixels and no reduction is involved; that is why the arithmetic is checkable
+     * by hand at all, and it is a consequence of `SpriteDrawScaleTest`'s own finding that a palm's
+     * headroom is 1.011 -- the tightest in the set bar none.
+     *
+     * *What a frame holds is smaller again, as it was for the flowers.* A scene draws one crown,
+     * never three: the live one, or Halloween's, or the winter palette's. The resident atlas cost
+     * of the crowns in any one scene is one 159x121 tile, and the 69 004 above is the upper bound
+     * this limit is defined to take.
      */
     private val uploadedTexelBudget = 16L * 1024L * 1024L
 

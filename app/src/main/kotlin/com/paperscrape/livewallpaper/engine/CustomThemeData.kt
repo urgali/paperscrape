@@ -301,6 +301,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("winterColorsEnabled", winterColorsEnabled)
     put("christmasDecorationsEnabled", christmasDecorationsEnabled)
     put("flowersEnabled", flowersEnabled)
+    put("palmsEnabled", palmsEnabled)
     put("halloweenEnabled", halloweenEnabled)
     put("horrorSkyEnabled", horrorSkyEnabled)
     put("santaEnabled", santaEnabled)
@@ -468,6 +469,10 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // correctly does not get them.
         christmasDecorationsEnabled = json.optBoolean("christmasDecorationsEnabled", defaults.christmasDecorationsEnabled),
         flowersEnabled = json.optBoolean("flowersEnabled", defaults.flowersEnabled),
+        // Absent from every payload written before v5.1, and the default it falls back to is
+        // `true` precisely so that a Beach or Desert theme saved before then keeps its palms
+        // rather than coming back planted with oaks. See `SceneCustomization.palmsEnabled`.
+        palmsEnabled = json.optBoolean("palmsEnabled", defaults.palmsEnabled),
         halloweenEnabled = json.optBoolean("halloweenEnabled", defaults.halloweenEnabled),
         horrorSkyEnabled = json.optBoolean("horrorSkyEnabled", defaults.horrorSkyEnabled),
         santaEnabled = json.optBoolean("santaEnabled", defaults.santaEnabled),

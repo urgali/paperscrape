@@ -48,8 +48,10 @@ android {
         // at the 63 this round's Fase 0 set: it answers "is this newer than what is installed",
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
-        versionCode = 63
-        versionName = "5.0"
+        //
+        // v5.0 → 63, v5.1 → 64. An ordinary bump: one release, one step.
+        versionCode = 64
+        versionName = "5.1"
 
         // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
         // (populated via a GitHub Secret in CI, same pattern as the release signing secrets

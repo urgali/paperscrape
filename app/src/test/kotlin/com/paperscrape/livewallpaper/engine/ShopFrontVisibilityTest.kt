@@ -132,7 +132,7 @@ class ShopFrontVisibilityTest {
             // the catalogue, and deliberately not imported from it: the whole point of this file
             // is that a wrong number has to be typed twice to hide a covered shop.
             SceneSpace.SceneVariant.TREE -> 51f
-            SceneSpace.SceneVariant.PALM_TREE -> 20f
+            SceneSpace.SceneVariant.PALM_TREE -> 28f
             SceneSpace.SceneVariant.PARASOL -> 34f
             else -> 0f
         }
@@ -166,8 +166,8 @@ class ShopFrontVisibilityTest {
                 floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g),
             )
             SceneSpace.SceneVariant.PALM_TREE -> listOf(
-                floatArrayOf(x - 20f * s, g - 90.33f * s, x + 20f * s, g - 53.5f * s),
-                floatArrayOf(x - 6f * s, g - 58f * s, x + 5f * s, g),
+                floatArrayOf(x - 21f * s, g - 82f * s, x + 35f * s, g - 34f * s),
+                floatArrayOf(x - 8f * s, g - 58f * s, x + 13f * s, g),
             )
             SceneSpace.SceneVariant.PARASOL -> listOf(
                 floatArrayOf(x - 34f * s, g - 84f * s, x + 34f * s, g - 50f * s),
@@ -188,7 +188,7 @@ class ShopFrontVisibilityTest {
         val x = o.tileFractionX * tile
         return when (v) {
             SceneSpace.SceneVariant.TREE -> floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g)
-            SceneSpace.SceneVariant.PALM_TREE -> floatArrayOf(x - 6f * s, g - 58f * s, x + 5f * s, g)
+            SceneSpace.SceneVariant.PALM_TREE -> floatArrayOf(x - 8f * s, g - 58f * s, x + 13f * s, g)
             SceneSpace.SceneVariant.PARASOL -> floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             else -> null
         }

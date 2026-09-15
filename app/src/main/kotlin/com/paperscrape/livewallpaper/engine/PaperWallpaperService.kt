@@ -352,7 +352,8 @@ class PaperWallpaperService : WallpaperService() {
 
         private fun applyEffectiveTheme(): Boolean {
             val effectiveId = if (settings.autoThemeByDate) {
-                SeasonalThemeRules.themeForDate() ?: settings.themeId
+                SeasonalThemeRules.themeForDate(calendar = settings.seasonalCalendar)
+                    ?: settings.themeId
             } else {
                 settings.themeId
             }

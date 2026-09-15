@@ -8,6 +8,7 @@ import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.customThemeEntryFromJson
 import com.paperscrape.livewallpaper.engine.sceneCustomizationFromJson
 import com.paperscrape.livewallpaper.engine.toJson
+import com.paperscrape.livewallpaper.engine.toJsonString
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import org.json.JSONArray
 import org.json.JSONObject
@@ -82,6 +83,15 @@ data class AppBackup(
         val swipeScroll: Boolean,
         val scrollSpeed: Float,
         val autoThemeByDate: Boolean,
+        /**
+         * The holiday calendar, serialised exactly as DataStore holds it.
+         *
+         * Carried as the document rather than as its fields so that this mirror does not have to
+         * grow a member per window: the calendar's own reader already treats an unknown window and
+         * a malformed entry as "take the factory value", which is the behaviour a backup from
+         * another version needs anyway. Empty string means the factory calendar.
+         */
+        val seasonalCalendarJson: String,
     )
 
     companion object {
@@ -124,6 +134,8 @@ data class AppBackup(
                 swipeScroll = settings.swipeScroll,
                 scrollSpeed = settings.scrollSpeed,
                 autoThemeByDate = settings.autoThemeByDate,
+                seasonalCalendarJson =
+                    if (settings.seasonalCalendar.isFactory) "" else settings.seasonalCalendar.toJsonString(),
             ),
             themeCustomizations = settings.themeCustomizations,
             customThemeData = customThemeData,
@@ -197,6 +209,9 @@ fun AppBackup.toJsonString(): String = JSONObject().apply {
             put("swipeScroll", settings.swipeScroll)
             put("scrollSpeed", settings.scrollSpeed.toDouble())
             put("autoThemeByDate", settings.autoThemeByDate)
+            if (settings.seasonalCalendarJson.isNotEmpty()) {
+                put("seasonalCalendar", settings.seasonalCalendarJson)
+            }
         },
     )
     put(
@@ -309,6 +324,9 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
                 swipeScroll = s.optBoolean("swipeScroll", defaults.swipeScroll),
                 scrollSpeed = s.optDouble("scrollSpeed", defaults.scrollSpeed.toDouble()).toFloat(),
                 autoThemeByDate = s.optBoolean("autoThemeByDate", defaults.autoThemeByDate),
+                // Absent means the factory calendar, which is also what a backup taken before this
+                // field existed means. Both read back as the empty string.
+                seasonalCalendarJson = s.optString("seasonalCalendar", ""),
             ),
             themeCustomizations = customizations,
             customThemeData = CustomThemeData(overrides = overrides, customThemes = customThemes),

@@ -17,6 +17,10 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.paperscrape.livewallpaper.prefs.PrefsRecovery.recoveringFromReadErrors
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.engine.AutoColorMode
+import com.paperscrape.livewallpaper.engine.CalendarWindow
+import com.paperscrape.livewallpaper.engine.SeasonalCalendar
+import com.paperscrape.livewallpaper.engine.seasonalCalendarFromJsonString
+import com.paperscrape.livewallpaper.engine.toJsonString
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.PeopleDensity
 import com.paperscrape.livewallpaper.engine.MountainLayerConfig
@@ -168,6 +172,17 @@ data class WallpaperSettings(
     // same spirit as parallaxStrength already defaulting to on, not an opt-in decorative extra.
     val scrollSpeed: Float = 0.15f,
     val autoThemeByDate: Boolean = false, // opt-in: overrides themeId during known seasonal windows
+    /**
+     * The user's edits to the holiday calendar, or [SeasonalCalendar.DEFAULT] if they have made
+     * none.
+     *
+     * **Only the difference is stored.** The factory dates live in [CalendarWindow], so an install
+     * that has never opened the calendar screen has no key here and resolves every date exactly as
+     * a build without the feature would — which is the premise `SeasonalCalendarIdentityTest`
+     * checks day by day. It also means a future release that moves a factory boundary moves it for
+     * everyone who has not overridden that particular window.
+     */
+    val seasonalCalendar: SeasonalCalendar = SeasonalCalendar.DEFAULT,
     /** In-progress (not yet saved) scene-object edits, and which theme they belong to. Only
      * applied when [pendingCustomizationThemeId] matches the theme actually being rendered --
      * see [com.paperscrape.livewallpaper.engine.CustomThemeRegistry.resolveActiveCustomization].
@@ -322,6 +337,7 @@ class WallpaperPrefs(private val context: Context) {
         val FIXED_HOUR = floatPreferencesKey("fixed_hour")
         val PARALLAX_STRENGTH = floatPreferencesKey("parallax_strength")
         val AUTO_THEME_BY_DATE = booleanPreferencesKey("auto_theme_by_date")
+        val SEASONAL_CALENDAR = stringPreferencesKey("seasonal_calendar_json")
         val PENDING_CUSTOMIZATION_THEME_ID = stringPreferencesKey("pending_customization_theme_id")
 
         /**
@@ -418,6 +434,7 @@ class WallpaperPrefs(private val context: Context) {
         val WINTER_COLORS_ENABLED = booleanPreferencesKey("winter_colors_enabled")
         val CHRISTMAS_DECORATIONS_ENABLED = booleanPreferencesKey("christmas_decorations_enabled")
         val FLOWERS_ENABLED = booleanPreferencesKey("flowers_enabled")
+        val PALMS_ENABLED = booleanPreferencesKey("palms_enabled")
         val HALLOWEEN_ENABLED = booleanPreferencesKey("halloween_enabled")
         val HORROR_SKY_ENABLED = booleanPreferencesKey("horror_sky_enabled")
         val SANTA_ENABLED = booleanPreferencesKey("santa_enabled")
@@ -471,6 +488,7 @@ class WallpaperPrefs(private val context: Context) {
             swipeScroll = prefs[Keys.SWIPE_SCROLL] ?: true,
             scrollSpeed = prefs[Keys.SCROLL_SPEED] ?: 0.15f,
             autoThemeByDate = prefs[Keys.AUTO_THEME_BY_DATE] ?: false,
+            seasonalCalendar = seasonalCalendarFromJsonString(prefs[Keys.SEASONAL_CALENDAR]),
             pendingCustomizationThemeId = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID],
             pendingCustomization = readFlatCustomization(prefs, pendingThemeId ?: "sunset"),
             // The theme under live edit has its state in the flat scratch keys, not yet in its own
@@ -612,6 +630,7 @@ class WallpaperPrefs(private val context: Context) {
             winterColorsEnabled = prefs[Keys.WINTER_COLORS_ENABLED] ?: defaults.winterColorsEnabled,
             christmasDecorationsEnabled = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED] ?: defaults.christmasDecorationsEnabled,
             flowersEnabled = prefs[Keys.FLOWERS_ENABLED] ?: defaults.flowersEnabled,
+            palmsEnabled = prefs[Keys.PALMS_ENABLED] ?: defaults.palmsEnabled,
             halloweenEnabled = prefs[Keys.HALLOWEEN_ENABLED] ?: defaults.halloweenEnabled,
             horrorSkyEnabled = prefs[Keys.HORROR_SKY_ENABLED] ?: defaults.horrorSkyEnabled,
             santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
@@ -721,6 +740,7 @@ class WallpaperPrefs(private val context: Context) {
         this[Keys.WINTER_COLORS_ENABLED] = c.winterColorsEnabled
         this[Keys.CHRISTMAS_DECORATIONS_ENABLED] = c.christmasDecorationsEnabled
         this[Keys.FLOWERS_ENABLED] = c.flowersEnabled
+        this[Keys.PALMS_ENABLED] = c.palmsEnabled
         this[Keys.HALLOWEEN_ENABLED] = c.halloweenEnabled
         this[Keys.HORROR_SKY_ENABLED] = c.horrorSkyEnabled
         this[Keys.SANTA_ENABLED] = c.santaEnabled
@@ -792,6 +812,11 @@ class WallpaperPrefs(private val context: Context) {
         prefs[Keys.SWIPE_SCROLL] = settings.swipeScroll
         prefs[Keys.SCROLL_SPEED] = settings.scrollSpeed
         prefs[Keys.AUTO_THEME_BY_DATE] = settings.autoThemeByDate
+        // The factory calendar is the absence of the key, not a document that happens to agree with
+        // it: writing one would pin this install to today's factory dates for good. A backup taken
+        // before this field existed, and one taken from an untouched install, both arrive as "".
+        if (settings.seasonalCalendarJson.isEmpty()) prefs.remove(Keys.SEASONAL_CALENDAR)
+        else prefs[Keys.SEASONAL_CALENDAR] = settings.seasonalCalendarJson
 
         prefs.clearAllThemeCustomizationKeys()
         prefs.remove(Keys.PENDING_CUSTOMIZATION_THEME_ID)
@@ -906,6 +931,22 @@ class WallpaperPrefs(private val context: Context) {
 
     suspend fun setAutoThemeByDate(enabled: Boolean) =
         context.dataStore.editDurably { it[Keys.AUTO_THEME_BY_DATE] = enabled }
+
+    /**
+     * Stores [calendar], or removes the key entirely when it is back to the factory shape.
+     *
+     * The removal is the half that matters. "Reset to factory dates" has to leave the install
+     * indistinguishable from one that never touched the calendar, or the reset would freeze it on
+     * the dates this release happens to ship.
+     */
+    suspend fun setSeasonalCalendar(calendar: SeasonalCalendar) =
+        context.dataStore.editDurably {
+            if (calendar.isFactory) it.remove(Keys.SEASONAL_CALENDAR)
+            else it[Keys.SEASONAL_CALENDAR] = calendar.toJsonString()
+        }
+
+    /** Puts every window back on its code-declared dates. */
+    suspend fun resetSeasonalCalendar() = setSeasonalCalendar(SeasonalCalendar.DEFAULT)
 
     // Every mutator below also stamps PENDING_CUSTOMIZATION_THEME_ID = forThemeId in the same
     // atomic edit, so it's always unambiguous which theme the in-progress edit belongs to (see
@@ -1274,6 +1315,19 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setFlowersEnabled(enabled: Boolean, forThemeId: String) =
         context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.FLOWERS_ENABLED] = enabled
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /**
+     * Palms on or off, on the two themes that have any. Independent of every other flag.
+     *
+     * It does not touch TREES: turning palms off leaves the tree slots exactly as populated as
+     * they were and changes which species fills them, so this is not a second way to empty the
+     * shore. See [SceneCustomization.palmsEnabled].
+     */
+    suspend fun setPalmsEnabled(enabled: Boolean, forThemeId: String) =
+        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.PALMS_ENABLED] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 

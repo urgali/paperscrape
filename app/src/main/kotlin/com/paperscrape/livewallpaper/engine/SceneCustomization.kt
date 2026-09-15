@@ -377,6 +377,37 @@ data class SceneCustomization(
      * whether they are there.
      */
     val flowersEnabled: Boolean = false,
+    /**
+     * Palms on the two summer themes: on or off, and nothing else.
+     *
+     * **What it actually switches is which tree the Beach and Desert layouts draw.** Those two
+     * themes map their tree slots to [SceneObjectType.PALM_TREE] (`SceneObjectCatalog`), and
+     * until v5.1 the only way to be rid of the palms was to turn the whole TREES category off,
+     * which left the shore bare. With this off those slots draw the ordinary broadleaf tree
+     * instead -- same positions, same depths, same density -- so the scene keeps its vegetation.
+     * The swap is made once, where the renderer builds its object list from the layout
+     * ([palmSpeciesApplied]), so a slot that has become a tree is a tree to every later
+     * question: its size, its occlusion box, its falling leaves, its preview.
+     *
+     * An oak on sand is a thing the maintainer chose with the objection in front of them. The
+     * alternative on the table was a bare beach, and a beach with the wrong tree on it is a
+     * scene; a beach with nothing on it is a gap.
+     *
+     * **A plain boolean rather than an `ObjectVariantConfig`, for the same reason
+     * [flowersEnabled] is one.** Density and visibility already belong to TREES and are not
+     * being duplicated here -- this is not a second population, it is which species the one
+     * population is drawn as -- and a palm's colours are fixed art with no tint for a colour
+     * pair to occupy.
+     *
+     * **On by default, unlike every other switch in this group, and the reason is upgrades.** A
+     * theme saved before v5.1 carries no `palmsEnabled` field, and
+     * [sceneCustomizationFromJson] fills an absent field from [SceneCustomization.DEFAULT]
+     * rather than from the theme's own defaults -- so a `false` here would silently fell the
+     * palms of every Beach and Desert theme a user had already saved. On every theme that is
+     * not one of those two it is inert: no layout there places a palm, so the flag has nothing
+     * to change.
+     */
+    val palmsEnabled: Boolean = true,
     val halloweenEnabled: Boolean = false,
     /**
      * The horror sky: near-black overhead, a hard orange band at the horizon.
@@ -706,6 +737,29 @@ private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantCo
     else -> null
 }
 
+/**
+ * The species this slot is drawn as, given the current config: a palm where [palmsEnabled] is on,
+ * an ordinary tree where it is not.
+ *
+ * **Applied once, on the way from the layout to the renderer's object list, rather than at the
+ * blit.** Everything downstream of that list reads `spec.type` -- `SceneObjectRenderer.variantFor`
+ * for the drawing, `SceneVariant.baseScale` and `spriteUnitsTall` for the size,
+ * `SceneObjectCatalog.occluderBoxes` for what it hides, `recordLeafSource` for what falls off it
+ * -- so making the swap here is what stops an oak being drawn at a palm's height inside a palm's
+ * occlusion box. Deciding it per draw call would have meant repeating it in five places that each
+ * ask the type a different question, which is the shape of the per-asset constants
+ * `CLAUDE.md` forbids.
+ *
+ * The one thing it does **not** move is the shop-visibility pass, which runs at layout generation
+ * where no customization exists (`SceneObjectCatalog.layoutFor`). A tree is wider than a palm, so
+ * turning palms off can leave a shop front more covered than the pass allowed for. That is the
+ * behaviour every density and visibility setting already has -- the layout is dealt once and the
+ * user's switches are read after it -- and it is not made worse here by being said out loud.
+ */
+fun SceneCustomization.palmSpeciesApplied(spec: StaticSceneObject): StaticSceneObject =
+    if (palmsEnabled || spec.type != SceneObjectType.PALM_TREE) spec
+    else spec.copy(type = SceneObjectType.TREE)
+
 /** Whether this candidate slot should actually render, given the current config. Types with no
  * customization category (e.g. CAR, whose membership is a distributed count -- see [keptCars]
  * and [CarSelection]) are always kept.
@@ -766,6 +820,25 @@ fun SceneCustomization.colorFor(spec: StaticSceneObject, dayBlend: Float): Int {
 }
 
 fun SceneCustomization.colorFor(spec: CarObject, dayBlend: Float): Int = blend(cars, variantIndexFor(spec), dayBlend)
+
+/**
+ * How lit [spec]'s fixed art is at [dayBlend], as the neutral grey a blit multiplies by.
+ *
+ * The companion of [colorFor] for a sprite that has no tint to interpolate: same category, same
+ * per-instance variant, same pair -- so a palm and the tree beside it lose their light together,
+ * and two palms whose hashes picked different variants differ from each other exactly as two trees
+ * would. See [SceneColour.neutralShade] for why it is a ratio and not a constant.
+ *
+ * A type with no category has no pair to read, and full daylight is the honest answer: the object
+ * is drawn as authored, which is what it was doing before there was a shade at all.
+ */
+fun SceneCustomization.nightShadeFor(spec: StaticSceneObject, dayBlend: Float): Int {
+    val config = configFor(spec.type) ?: return SpriteBlitter.UNTINTED
+    val variant = variantIndexFor(spec)
+    val day = if (variant == 0) config.colorDay1 else config.colorDay2
+    val night = if (variant == 0) config.colorNight1 else config.colorNight2
+    return SceneColour.neutralShade(day, night, dayBlend)
+}
 
 /** The parasol's 5 wedges alternate between the two configured colors (not a per-instance
  * variant pick like other categories, since a single parasol shows both colors as stripes). */

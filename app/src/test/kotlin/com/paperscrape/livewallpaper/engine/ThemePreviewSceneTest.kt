@@ -140,13 +140,17 @@ class ThemePreviewSceneTest {
         val scene = sceneFor("easter")
         assertTrue(scene.contains(R.drawable.bunny_body))
         assertTrue(scene.contains(R.drawable.easteregg_shell))
-        assertFalse(scene.contains(R.drawable.ground_flowers))
+        assertFalse(scene.contains(R.drawable.ground_flowers_bloom))
+        assertFalse(scene.contains(R.drawable.ground_flowers_dry))
     }
 
     @Test
     fun `spring is the theme with flowers`() {
         val scene = sceneFor("spring")
-        assertTrue(scene.contains(R.drawable.ground_flowers))
+        // In bloom, not gone over: spring is the one theme that starts with flowers on, and it
+        // starts with neither seasonal palette.
+        assertTrue(scene.contains(R.drawable.ground_flowers_bloom))
+        assertFalse(scene.contains(R.drawable.ground_flowers_dry))
         assertTrue(scene.hasLake)
         assertFalse(scene.contains(R.drawable.bunny_body))
     }
@@ -193,6 +197,32 @@ class ThemePreviewSceneTest {
     }
 
     @Test
+    fun `the card draws the clump the scene would draw, under every palette`() {
+        // The gallery is where the two clumps are seen side by side, one card per theme, and the
+        // card is what a user decides from. A preview that kept the blooming clump while the scene
+        // drew the dry one would be advertising a wallpaper that does not exist -- so this asserts
+        // against `SceneObjectRenderer`'s own chooser rather than against a copy of its rule, and
+        // it fails the moment the two files start deciding separately.
+        val palettes = listOf(
+            "none" to { c: SceneCustomization -> c.copy(fallColorsEnabled = false, winterColorsEnabled = false) },
+            "autumn" to { c: SceneCustomization -> c.copy(fallColorsEnabled = true, winterColorsEnabled = false) },
+            "winter" to { c: SceneCustomization -> c.copy(fallColorsEnabled = false, winterColorsEnabled = true) },
+        )
+        for (theme in ThemeCatalog.ALL) {
+            for ((name, palette) in palettes) {
+                val c = palette(defaultCustomizationFor(theme.id).copy(flowersEnabled = true))
+                val scene = ThemePreviewScenes.forTheme(theme, c)
+                val drawn = SceneObjectRenderer.groundFlowerSprite(c)
+                val other =
+                    if (drawn == R.drawable.ground_flowers_bloom) R.drawable.ground_flowers_dry
+                    else R.drawable.ground_flowers_bloom
+                assertTrue("${theme.id}/$name: the card is missing the clump", scene.contains(drawn))
+                assertFalse("${theme.id}/$name: the card drew the other clump", scene.contains(other))
+            }
+        }
+    }
+
+    @Test
     fun `no preview draws a decoration the theme has turned off`() {
         val decorations = mapOf(
             R.drawable.snowman_body to { c: SceneCustomization -> c.snowmen.visible },
@@ -201,7 +231,8 @@ class ThemePreviewSceneTest {
             R.drawable.bunny_body to { c: SceneCustomization -> c.bunnies.visible },
             R.drawable.easteregg_shell to { c: SceneCustomization -> c.easterEggs.visible },
             R.drawable.pumpkin_body to { c: SceneCustomization -> c.pumpkins.visible },
-            R.drawable.ground_flowers to { c: SceneCustomization -> c.flowersEnabled },
+            R.drawable.ground_flowers_bloom to { c: SceneCustomization -> c.flowersEnabled },
+            R.drawable.ground_flowers_dry to { c: SceneCustomization -> c.flowersEnabled },
         )
         for (theme in ThemeCatalog.ALL) {
             val customization = defaultCustomizationFor(theme.id)

@@ -25,9 +25,9 @@ import org.junit.runner.RunWith
  * This closes it from the other side. The scene is driven through a recording canvas, every blit
  * is caught with the tint it was given, and the sprite's own pixels then say which rule applies:
  *
- *  * **finished art must be blitted with the identity.** `MULTIPLY` can only darken, so any tint
- *    other than white applied to a sprite that carries its own colours darkens or shifts them --
- *    a green frond times an autumn orange is mud.
+ *  * **finished art must be blitted with the identity, or with a neutral grey.** `MULTIPLY` can
+ *    only darken, so a *coloured* tint applied to a sprite that carries its own colours shifts
+ *    them -- a green frond times an autumn orange is mud.
  *  * **a mask must never be blitted with the identity.** White is the `MULTIPLY` identity, so a
  *    mask drawn with it renders as the white silhouette `dolphin_body` and `sailboat_hull`
  *    shipped as.
@@ -35,6 +35,32 @@ import org.junit.runner.RunWith
  * Neither rule needs a list of names: the artwork decides which of the two a sprite is, and the
  * recorder says what was done to it. A sprite that changes class and whose call site does not
  * move with it fails here whichever way round the change was made.
+ *
+ * ### v5.1: "or with a neutral grey", and why that is a sharpening rather than a hole
+ *
+ * The first rule used to read "must be blitted with the identity", full stop, and its own
+ * justification gave two consequences of a non-white tint as though they were one thing:
+ * *"darkens or shifts them"*. They are not one thing, and the v5.1 palms are the case that
+ * separated them.
+ *
+ * Fixed art carries no tint to interpolate between a category's day and night colours, so until
+ * v5.1 nothing in the scene could tell a fixed-art sprite what hour it was and the palms came out
+ * of midnight at exactly the value they came out of noon. `SpriteBlitter.draw` now takes a
+ * **shade** -- a neutral grey saying how much light is on the artwork -- and `SceneColour`
+ * derives it from the object's own day/night pair. That is a multiply by something other than
+ * white, and it is the first one in the library.
+ *
+ * **What the rule was protecting survives untouched.** A neutral grey scales all three channels by
+ * the same factor: every ratio between the sprite's own colours is preserved exactly, which is
+ * the whole of what "the artwork keeps its colours" means, and the same green frond times an
+ * autumn orange is still caught because an autumn orange is not neutral. What is no longer caught
+ * is a sprite being *darkened uniformly*, which is not a defect -- it is the thing the shade was
+ * added to express.
+ *
+ * **Deliberately still nameless.** Exempting the four palm sprites by name would have been the
+ * smaller edit and the wrong one: it would say "these four may compound hues", which is not true
+ * of them and not what changed. The property is what changed, so the property is what this
+ * states.
  */
 @RunWith(AndroidJUnit4::class)
 class SpriteTintAtBlitTest {
@@ -75,7 +101,7 @@ class SpriteTintAtBlitTest {
             val name = context.resources.getResourceEntryName(resId)
             val carriesColour = carriesColour(resId)
             val offending = if (carriesColour) {
-                tints.filter { it != IDENTITY }
+                tints.filter { it != IDENTITY && !isNeutral(it) }
             } else {
                 tints.filter { it == IDENTITY }
             }
@@ -88,13 +114,27 @@ class SpriteTintAtBlitTest {
             }
         }
         assertEquals(
-            "finished art multiplied by a colour compounds two hues: $compounded",
+            "finished art multiplied by a colour compounds two hues (a neutral grey is a shade, " +
+                "not a tint, and is allowed -- see this class's own note): $compounded",
             emptyList<String>(), compounded,
         )
         assertEquals(
             "a mask blitted with white draws as a silhouette: $silhouettes",
             emptyList<String>(), silhouettes,
         )
+    }
+
+    /**
+     * Whether [tint] scales all three channels by the same factor, and so says how lit a sprite is
+     * rather than what colour it is. Opaque, because a shade is a multiplier and not a fade: alpha
+     * is a separate argument on the same blit and mixing the two would make "how lit" and "how
+     * visible" one number again.
+     */
+    private fun isNeutral(tint: Int): Boolean {
+        if ((tint ushr 24) != 0xFF) return false
+        val r = (tint shr 16) and 0xFF
+        val g = (tint shr 8) and 0xFF
+        return r == g && g == (tint and 0xFF)
     }
 
     /** Whether the shipped PNG has an opaque pixel whose channels are not all equal. */

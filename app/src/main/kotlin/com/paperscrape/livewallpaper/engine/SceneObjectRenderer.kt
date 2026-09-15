@@ -137,7 +137,10 @@ class SceneObjectRenderer(
 
     private fun buildStaticRuntimes(): List<StaticRuntime> = layout.staticObjects
         .filter { spec -> customization.keepCandidate(spec) }
-        .map { StaticRuntime(it) }
+        // The palms switch is resolved here, once, and never again: from this point on a slot the
+        // user has turned the palms off for *is* a tree, to the drawing, the size, the occlusion
+        // box and the leaf recorder alike. See [SceneCustomization.palmSpeciesApplied].
+        .map { StaticRuntime(customization.palmSpeciesApplied(it)) }
         .sortedBy { it.spec.depthFraction }
 
     /**
@@ -1059,6 +1062,32 @@ class SceneObjectRenderer(
         const val FLOWER_SPRITE_UNITS_TALL = 12f
 
         /**
+         * Which of the two clumps the ground carries: in bloom, or gone over to seed heads.
+         *
+         * **The seasonal palette decides, and nothing new was added to decide it.** The scene
+         * already says which season it is wearing -- [SceneCustomization.fallColorsEnabled] and
+         * [SceneCustomization.winterColorsEnabled], the pair the `Seasonal palette` choice is
+         * made of -- and a meadow in flower under autumn leaves was the same mismatch the fall
+         * palette itself was added to fix for the trees. `flowersEnabled` keeps its one job: it
+         * says whether there are flowers at all, not which ones.
+         *
+         * **Winter takes the dry clump too**, on purpose. Dry stems, seed heads and thistles
+         * standing out of the snow are a real thing to look at, and the alternative was either a
+         * third drawing or a winter meadow in midsummer bloom. That is also why neither sprite is
+         * named for a season: `ground_flowers_autumn` would have been a lie every time it snowed.
+         *
+         * **One function, two call sites.** [drawGroundFlowers] and `ThemePreviewScene` both read
+         * it, so the gallery card cannot show the clump the scene does not draw -- a preview that
+         * disagrees with the scene is the one thing that file must not do.
+         */
+        fun groundFlowerSprite(customization: SceneCustomization): Int =
+            if (customization.fallColorsEnabled || customization.winterColorsEnabled) {
+                R.drawable.ground_flowers_dry
+            } else {
+                R.drawable.ground_flowers_bloom
+            }
+
+        /**
          * The most drifts or heaps the ground carries at 100%, and how big one is.
          *
          * Fewer than [FLOWER_CLUMP_COUNT] because a drift is a chunkier object than a clump of
@@ -1290,6 +1319,26 @@ class SceneObjectRenderer(
     }
 
     /**
+     * Same as [drawSprite], with [shade] neutral grey standing for how much light is on it.
+     *
+     * **Fixed art does not go dark at night, and until v5.1 nothing in the scene made it.** Every
+     * object that dims at dusk dims because a *tint* is interpolated between the user's day and
+     * night colours and multiplied over a mask; a sprite that carries its own colours has no tint
+     * to interpolate, so it keeps daylight values under a midnight sky. Measured on the palms:
+     * a frond read (107,168,79) at 13:00 and (107,168,79) at 23:00 while the wall of the house
+     * beside it fell to 0.40 of its own daytime value.
+     *
+     * This is the mechanism for saying so, and it is deliberately **not** a tint: see
+     * [SpriteBlitter.draw]'s `shade`. The one caller is [drawPalmTree]; the rest of the fixed-art
+     * library still stands lit at midnight and that is recorded as a defect rather than fixed in
+     * passing, because every one of those sprites needs its own judgement about what its night
+     * looks like (`BACKLOG_v5_1.md`).
+     */
+    private fun drawShadedSprite(canvas: SceneCanvas, resId: Int, originXUnits: Float, originYUnits: Float, shade: Int) {
+        sprites.draw(canvas, resId, originXUnits, originYUnits, SpriteScale.SCENE_UNITS, shade = shade)
+    }
+
+    /**
      * Same as [drawSprite], faded to [alpha].
      *
      * Used for the two night overlays the V2 asset set introduced: a lit house window and a lit
@@ -1486,13 +1535,16 @@ class SceneObjectRenderer(
     private fun recordLeafSource(variant: SceneSpace.SceneVariant, id: Int, x: Float, groundY: Float, scale: Float) {
         if (leafSourceCount >= MAX_LEAF_SOURCES) return
         // The crown as each is actually blitted: the leafy canopy hangs at -38 with its own
-        // content centred another 43 above that and 74 units tall; the palm's fan at -90.33 with
-        // its content centre 18 below its origin and 37 units tall. Derived from the two call
-        // sites and the two sprites rather than guessed, so a change to either moves the leaves
-        // with it.
+        // content centred another 43 above that and 74 units tall; the palm's crown at -82 with
+        // its content centre 24 below its origin, 48 units tall and offset seven to the right of
+        // the trunk. Derived from the two call sites and the two sprites rather than guessed, so a
+        // change to either moves the leaves with it.
         val centreUnits: Float
         val halfHeightUnits: Float
         val halfWidthUnits: Float
+        // How far the crown's own centre sits from the trunk. Zero for everything whose foliage is
+        // over its own stem, which was every variant until v5.1's palm leaned.
+        val centreXUnits: Float
         when (variant) {
             // v4.21, re-derived for the "Quercia larga" and not carried over: the crown is
             // `tree_canopy`'s 101x66 u of content blitted at (-50,-80) inside the -38 lift, so in
@@ -1500,11 +1552,24 @@ class SceneObjectRenderer(
             // (the wider of the two sides, so the band covers the whole crown). The band is 24%
             // wider than v4.20's 41 and its bottom edge sits 8 units lower -- both consequences of
             // the artwork, which is why these are stated as the content box rather than tuned.
-            SceneSpace.SceneVariant.TREE -> { centreUnits = -85f; halfHeightUnits = 33f; halfWidthUnits = 51f }
-            SceneSpace.SceneVariant.PALM_TREE -> { centreUnits = -72f; halfHeightUnits = 18.5f; halfWidthUnits = 20f }
+            SceneSpace.SceneVariant.TREE -> {
+                centreUnits = -85f; halfHeightUnits = 33f; halfWidthUnits = 51f; centreXUnits = 0f
+            }
+            // v5.1, re-derived for the "Cocco" palm and not carried over: the crown is a 56x48-unit
+            // canvas filled by its own content, blitted at (-21,-82), so in object space it is
+            // x -21..35, y -82..-34. Centre (7,-58), half-height 24, half-width 28. Both the width
+            // and the offset are consequences of the artwork -- a crown whose blades fall below
+            // their own convergence, hung off a trunk that leans -- which is why they are stated
+            // as the blit and its canvas rather than tuned.
+            SceneSpace.SceneVariant.PALM_TREE -> {
+                centreUnits = PalmSpriteLayout.CROWN_CENTRE_Y
+                halfHeightUnits = PalmSpriteLayout.CROWN_HALF_HEIGHT
+                halfWidthUnits = PalmSpriteLayout.CROWN_HALF_WIDTH
+                centreXUnits = PalmSpriteLayout.CROWN_CENTRE_X
+            }
             else -> return
         }
-        leafSourceX[leafSourceCount] = x
+        leafSourceX[leafSourceCount] = x + centreXUnits * scale
         // rc2: a leaf detaches at the crown's *bottom edge*, not its centre. Spawned at the
         // centre, the first 40% of every fall happened inside the canopy, where the leaf was
         // either invisible or read as a dark blot lying on the foliage -- two of those were
@@ -1528,7 +1593,8 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Wildflowers on the open ground, drawn before anything that stands on it.
+     * Wildflowers on the open ground, drawn before anything that stands on it -- in bloom under a
+     * plain palette, gone over to seed heads under an autumn or a winter one ([groundFlowerSprite]).
      *
      * **Placed on the same ground line and the same perspective as everything else**, so a clump
      * near the road is larger than one at the back and both sit where their stems meet the earth.
@@ -1542,6 +1608,9 @@ class SceneObjectRenderer(
      */
     private fun drawGroundFlowers(canvas: SceneCanvas, geom: GroundGeometry, screenWidth: Float, screenHeight: Float) {
         if (!customization.flowersEnabled) return
+        // In bloom or gone over. Decided once, from [groundFlowerSprite], so the scene and the
+        // gallery card cannot disagree; see there for why the seasonal palette is what decides.
+        val dry = groundFlowerSprite(customization) == R.drawable.ground_flowers_dry
         val sceneScale = SceneSpace.sceneScale(screenHeight)
         for (i in 0 until FLOWER_CLUMP_COUNT) {
             val h = (i * 2654435761L.toInt()) xor (i shl 7)
@@ -1564,7 +1633,17 @@ class SceneObjectRenderer(
                     canvas.save()
                     canvas.translate(x, groundY)
                     canvas.scale(scale, scale)
-                    drawSprite(canvas, R.drawable.ground_flowers, -18f, -12f)
+                    // **Two literal blits rather than one of a chosen resource**, and the
+                    // duplicated origin is the point. `tools/assets` resolves a call site by
+                    // reading the `R.drawable.<name>` literal out of it, so a blit of a variable
+                    // takes the sprite out of the scale, tint and origin checks entirely -- the
+                    // pair's shared (-18, -12) is exactly the claim worth keeping machine-checked,
+                    // because it is what lets the two be swapped at all.
+                    if (dry) {
+                        drawSprite(canvas, R.drawable.ground_flowers_dry, -18f, -12f)
+                    } else {
+                        drawSprite(canvas, R.drawable.ground_flowers_bloom, -18f, -12f)
+                    }
                     canvas.restore()
                 }
                 x += tile
@@ -2774,6 +2853,11 @@ class SceneObjectRenderer(
      * Called from **inside** each plant's own sway transform, so the lights lean with the branches
      * instead of staying rigid while the leaves move around them -- which also removes any need to
      * leave slack at the edges for the sway to swing into.
+     *
+     * [centerX] defaults to the trunk, because for a leafy tree the crown is over its own stem.
+     * It is an argument because for a palm it is not: v5.1's crown hangs to the right of a trunk
+     * that leans, so its content's centre is seven units off the pivot and a string placed on the
+     * pivot would have hung half its bulbs beside the tree.
      */
     private fun drawChristmasLights(
         canvas: SceneCanvas,
@@ -2782,9 +2866,10 @@ class SceneObjectRenderer(
         centerY: Float,
         radiusX: Float,
         radiusY: Float,
+        centerX: Float = 0f,
     ) {
         canvas.save()
-        canvas.translate(0f, centerY)
+        canvas.translate(centerX, centerY)
         for (i in christmasLightX.indices) {
             val phase = ((r.idleSeed + i * 0.37f) * 10f) % 6.283f
             val blink = (elapsed.sinAt(2.4f, phase) * 0.5f + 0.5f)
@@ -2862,16 +2947,19 @@ class SceneObjectRenderer(
      * fallColorsEnabled/winterColorsEnabled branches only ever existed in [drawTree] (the
      * non-palm variant), so a palm tree never even checked either flag. Added the same two
      * branches here, adapted to a palm's shape: fall tints the fronds with the same autumn
-     * palette [fallLeafColorFor] uses for regular trees; winter dusts frost-white tips on the
-     * fronds (full snow-covered fronds would look wrong on a palm) and adds the same string of
-     * blinking Christmas lights [drawChristmasLights] gives a regular tree, now along the trunk.
+     * palette [fallLeafColorFor] uses for regular trees; winter frosts the crown and adds the same
+     * string of blinking Christmas lights [drawChristmasLights] gives a regular tree.
      *
-     * **The fall branch is gone as of the V2 asset set, deliberately.** The fronds are drawn in
-     * their own green rather than as a mask, so there is no tint left for an autumn palette to
-     * occupy; multiplying finished art by an orange would compound two colours, not recolour one.
-     * The winter treatment survives unchanged because it was never a tint: it is a separate frost
-     * sprite laid over the fronds, plus the lights. A palm therefore no longer responds to Fall
-     * Colors, which is a consequence of the redesign and not a defect to patch at this call site.
+     * **The fall branch is gone as of the V2 asset set, deliberately.** The crown is drawn in its
+     * own green rather than as a mask, so there is no tint left for an autumn palette to occupy;
+     * multiplying finished art by an orange would compound two colours, not recolour one. The
+     * winter treatment survives because it was never a tint either -- v5.1 made it a whole frosted
+     * crown drawn *instead of* the green one, where it used to be white tips laid over it. A palm
+     * therefore no longer responds to Fall Colors, which is a consequence of the redesign and not
+     * a defect to patch at this call site.
+     *
+     * **What it does respond to, as of v5.1, is the hour.** See the `light` this function opens
+     * with: fixed art carries no tint to interpolate, so a shade is supplied for it.
      */
     /**
      * Sprite-blit pilot conversion (see `SpriteCache`'s own doc comment). The old version bent
@@ -2887,47 +2975,75 @@ class SceneObjectRenderer(
     private fun drawPalmTree(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float = 1f) {
         val sway = elapsed.sinAt(0.9f, r.idleSeed) * 6f
         drawGroundShadow(canvas, 22f)
+        // **The light on it, which until v5.1 there was none of.** Every sprite of this tree is
+        // fixed art, so nothing here interpolated between the user's day and night colours the way
+        // a tinted mask does, and the palms stood at full midday green under a midnight sky. See
+        // [nightShadeFor] for where the grey comes from and [drawShadedSprite] for why it is a
+        // shade rather than a tint.
+        val light = customization.nightShadeFor(r.spec, dayBlend)
 
         canvas.save()
         canvas.rotate(sway) // whole tree leans as one rigid body, pivoted at its base (0,0)
-        // trunk: 42x186, anchored CONTENT_BOTTOM_CENTRE at (24,186), so the origin that stands it
-        // on the ground with its base centred on the pivot is (-8,-62). It was 33 wide and
-        // originated at -6; V2 widened it to carry the new frond fan.
-        drawSprite(canvas, R.drawable.palmtree_trunk, -6f, -58f)
-        // fronds: the attachment point is no longer measured off the artwork, it is declared.
-        // The V2 fan is 120x120 with a DECLARED_ATTACHMENT at (60,102) -- (20,34) in local units
-        // -- which is the point where the blades converge. The trunk's own content top sits at
-        // -58.33 (11px of the 186 are transparent above the bark), and the attachment is placed
-        // two units below that at -56.33 so the fan overlaps the trunk rather than balancing on
-        // it. Origin is therefore attachment - (20,34) = (-20,-90.33). The old pair of hand-tuned
-        // numbers (-16,-87.45) described a differently shaped sprite and does not transfer.
+        // trunk: 63x174 px -- 21x58 local units -- with the foot's centre at x=8 units, so the
+        // origin that stands it on the ground with its foot on the pivot is (-8,-58).
         //
-        // The fronds are fixed art in V2 and no longer follow the tree colour or Fall Colors --
-        // see this class's own note on the retired accent constants, and `DESIGN_NOTES.md`.
+        // **The foot, not the content's centre, and the two are different now.** The v5.1 trunk
+        // leans 7 units to the right, so its drawn content spans x 0.67..20 units while the foot
+        // sits at 8: `CONTENT_BOTTOM_CENTRE` would derive 10.33 and stand the palm more than two
+        // units beside its own ground shadow, pivoting the sway off its base. The registry
+        // declares the foot instead, and this origin is that declaration negated.
+        drawShadedSprite(canvas, R.drawable.palmtree_trunk, PalmSpriteLayout.TRUNK_X, PalmSpriteLayout.TRUNK_Y, light)
+        // The crown's attachment point is declared, not measured off the artwork: the 56x48-unit
+        // canvas carries a DECLARED_ATTACHMENT at (84,78) px -- (28,26) in local units -- which is
+        // where the seven blades converge. The trunk's bark reaches the top of its own canvas at
+        // -58, and the attachment is placed two units below that at -56 so the crown overlaps the
+        // trunk rather than balancing on it. Origin is therefore attachment - (28,26), taken from
+        // the attachment's own world position (7,-56) because the trunk leans: (-21,-82).
+        //
+        // The crown is fixed art and does not follow the tree colour or Fall Colors -- see this
+        // class's own note on the retired accent constants, and `DESIGN_NOTES.md`.
+        //
         // **Halloween reaches the palms too.** The leafy trees lost their canopy from the first
         // release of the flag and the palms did not, so a Halloween beach kept a row of healthy
-        // green fans over its bare-branch neighbours. The dead crown is drawn on the live one's
-        // canvas with the same content box, so it blits at the same origin and the frost overlay
-        // and the light ellipse below keep the geometry they were derived from.
+        // green fans over its bare-branch neighbours. Desaturating the live crown was the cheaper
+        // option and the wrong one: a grey palm is a palm in bad light, not a dead one. The
+        // collapsed, folded-back blades are what carry it.
         //
-        // Desaturating the live fan was the cheaper option and the wrong one: a grey palm is a
-        // palm in bad light, not a dead one. The drooping, splayed fronds are what carry it.
-        if (customization.halloweenEnabled) {
-            drawSprite(canvas, R.drawable.palmtree_fronds_dead, -20f, -90.33f)
-        } else {
-            drawSprite(canvas, R.drawable.palmtree_fronds, -20f, -90.33f)
-        }
-        // Frost is the season; the lights are the decoration. Two flags, tested separately, so a
-        // frosted palm without lights and a lit palm without frost are both expressible.
-        if (customization.winterColorsEnabled && !customization.halloweenEnabled) {
-            drawSprite(canvas, R.drawable.palmtree_fronds_frost, -20f, -90.33f)
+        // **And the frost is a third crown now, not a layer over the first.** Until v5.1 the
+        // winter palette blitted five white caps on top of the live crown, which is not how snow
+        // reaches anything else in this library -- a roof gets a whole drawing with the snow in
+        // it. All three crowns are drawn on one canvas at one attachment, so this is a choice of
+        // which one to blit and not a stack, and the pixel-for-pixel coverage condition the
+        // overlay needed went with it.
+        //
+        // Three literal blits rather than a `when` picking a resource into a local, which reads
+        // better and is the difference between a call site `paperscrape-assets validate` can check
+        // the scale, the tint class and the origin of and one it can only record as an unreadable
+        // runtime lookup. The registry's call-site check is the only thing comparing a declared
+        // anchor against the origin a blit actually uses, and three of the four palm sprites would
+        // have dropped out of it.
+        val crownX = PalmSpriteLayout.CROWN_X
+        val crownY = PalmSpriteLayout.CROWN_Y
+        when {
+            customization.halloweenEnabled ->
+                drawShadedSprite(canvas, R.drawable.palmtree_fronds_dead, crownX, crownY, light)
+            customization.winterColorsEnabled ->
+                drawShadedSprite(canvas, R.drawable.palmtree_fronds_frost, crownX, crownY, light)
+            else ->
+                drawShadedSprite(canvas, R.drawable.palmtree_fronds, crownX, crownY, light)
         }
         if (customization.christmasDecorationsEnabled) {
-            // Same derivation as the leafy tree's, from the fan's own content: 120x120 px with
-            // content at (0,0)-(120,110) is (-20,-90.33)..(20,-53.67) at this origin, centred on
-            // (0,-72) with half extents 20 x 18.33. Inset further than the leafy tree's because a
-            // frond fan is mostly gaps -- a light near its edge would hang in clear air.
-            drawChristmasLights(canvas, r, elapsed, centerY = -72f, radiusX = 13f, radiusY = 10f)
+            // Same derivation as the leafy tree's, from the crown's own content: the 56x48-unit
+            // canvas blitted at (-21,-82) spans (-21,-82)..(35,-34), so its centre is (7,-58) and
+            // its half extents are 28 x 24. **The centre is no longer over the trunk**, which is
+            // what the x argument exists for: the crown hangs to the right of a leaning trunk and
+            // a string of lights centred on 0 would have hung half of itself in clear air. Inset
+            // from the half extents because a crown of blades is mostly gaps.
+            drawChristmasLights(
+                canvas, r, elapsed,
+                centerX = PalmSpriteLayout.CROWN_CENTRE_X, centerY = PalmSpriteLayout.CROWN_CENTRE_Y,
+                radiusX = 18f, radiusY = 13f,
+            )
         }
         canvas.restore()
     }

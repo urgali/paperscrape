@@ -112,7 +112,9 @@ PaperScrape/
 | `CustomThemeData.kt` | JSON (de)serialisation of custom themes and overrides. |
 | `CustomThemeRegistry.kt` | Synchronous in-memory cache of custom themes, with a `generation()` counter used to detect changes. |
 | `RandomSceneGenerator.kt` | Procedural theme/layout generation for the "Random" theme. |
-| `SeasonalThemeRules.kt` | Date-based automatic theme selection (includes a Computus implementation for Easter). |
+| `SeasonalThemeRules.kt` | Date-based automatic theme selection (includes a Computus implementation for Easter). Reads its dates from `SeasonalCalendar` rather than holding them. |
+| `SeasonalCalendar.kt` | The calendar as data: the eight `CalendarWindow`s, their factory spans, and the user's edits to them. Stores **only the difference** from the factory, so an untouched install has no document at all. |
+| `SeasonalCalendarCoverage.kt` | Walks the year to find gaps and same-tier overlaps. One enumeration, shared by the settings screen's gate and by the tests. |
 | `SunPositionCalculator.kt` | Day phase, sun/moon arc position, moon phase, simplified sunrise/sunset. |
 | `FireworkEffect.kt`, `SantaSleighEffect.kt` | Self-contained timed effects. |
 | `SceneSpace.kt` | **The one place the world's size is stated.** The horizon, the ground plane's projection, the road's lanes and edges, and every category's real height in metres against the local units its art occupies. Every base scale is derived here, so the ratios between objects cannot be edited one at a time. |
@@ -1229,11 +1231,48 @@ no per-card bitmap: the description is built once and kept by `remember`, sprite
 the process-wide `SpriteCache`, and a card costs roughly twenty static blits on composition and on
 scroll, and nothing at rest.
 
+### The automatic-theme calendar
+
+Two tiers, checked in order: four **occasions** (Easter, Halloween, Christmas, New Year) over four
+**seasons** (winter, spring, summer, autumn). An occasion passes *over* whatever season is beneath
+it; seasons partition the year and cannot overlap each other. The first match wins, and the order
+is `CalendarWindow`'s declaration order — code, not configuration.
+
+**The seasons are a continuous ribbon, and until v5.1 they were not.** The shipped table had five
+season entries covering 296 days and leaving **69** — the whole of October, the whole of December
+and 1–7 January — with no season at all. Every one of those days happened to be inside an occasion,
+so the calendar resolved for every date while resting on the occasions to do it. That was invisible
+until the dates became editable: shortening Halloween would have exposed an October with nothing
+underneath. The four seasons now start on the first of their month (1 Dec, 1 Mar, 1 Jun, 1 Sep),
+which is the meteorological convention; winter's last day is stated as **29 February** so a leap day
+cannot fall out of the ribbon, and in a common year no date can equal it.
+
+Autumn was two entries, split around Halloween, and is one. Halloween taking October back is the
+tiers doing their job, and `SeasonalCalendarIdentityTest` walks ten years day by day to show the
+two shapes agree rather than asserting that they must.
+
+**The dates are the user's, and only the dates.** `SeasonalCalendar` holds a span per window and
+two offsets for Easter; it is persisted as versioned JSON under one preference key, and it records
+**only the windows that differ from the factory**. An install that has never opened the calendar
+screen therefore has no key, resolves exactly as a build without the feature would — which is what
+`SeasonalCalendarIdentityTest` checks against a transcription of the v5.0 table — and follows a
+future release that moves a factory boundary. Resetting removes the key rather than writing a
+document that agrees with today's defaults.
+
+Easter is the one window with no dates. Its Sunday is Computus, and what the user sets is the
+window's length either side. It is also exempt from the overlap check: it is first in precedence and
+wins wherever it lands, and it moves by up to five weeks between years, so a year-free "does Easter
+overlap Halloween" has no answer and a validator that produced one would be inventing it.
+
+`themeForDate` still returns `String?`. With the factory calendar nothing can be uncovered, but a
+user may move a season and open a gap; the caller falls back to the hand-picked theme, and the
+settings screen names the uncovered dates rather than leaving them to be discovered on the day.
+
 ### Theme resolution
 
 ```
 settings.themeId
-   └─ if autoThemeByDate → SeasonalThemeRules.themeForDate() may override
+   └─ if autoThemeByDate → SeasonalThemeRules.themeForDate(settings.seasonalCalendar) may override
         └─ CustomThemeRegistry.resolveActiveCustomization(themeId, pending…)
              ├─ user override for a built-in theme, or
              ├─ saved custom theme's own customization, or
@@ -1722,12 +1761,23 @@ No flow operators are used: there is no `debounce`, `conflate`, `sample` or
 `distinctUntilChanged` in the project. None is needed, because the write path
 itself no longer fires per drag tick — see below.
 
-### Continuous controls
+### Continuous controls, and what is not one
 
-All 16 `Slider` call sites go through `PreferenceSlider`, which holds the
+A slider is right for a value with few positions and no name — a density, a strength, a count of
+days. It is wrong for a value the user already knows, and v5.1's first round proved it: the two
+ends of a calendar window were sliders over all 366 month-days, which on the reference device is
+**366 positions across a 632-pixel control, 1.7 pixels per day**. A fingertip selects a week there,
+not a date. They are typed now (`ui/DateEntry.kt`), and Easter's two **lengths** — nought to seven
+days, eight positions on the same track — stayed sliders, which is the distinction rather than a
+compromise.
+
+**Every** `Slider` call site goes through `PreferenceSlider`, which holds the
 in-flight value in local Compose state for the duration of the drag and writes
 to DataStore **once**, from `onValueChangeFinished`, and only when the value
-actually changed. Value captions are rendered by the same composable from the
+actually changed. The count used to be written here as 16; it was 24 by v5.0 and
+26 now, and a number that drifts every release is worse than none — count them
+with `grep -rhoE 'PreferenceSlider\(|SettingsSliderRow\(' app/src/main/kotlin`
+and subtract the two declarations. Value captions are rendered by the same composable from the
 displayed value, so they stay live during a drag without any write.
 
 The handover between the local value and the persisted value arriving back
@@ -1881,23 +1931,34 @@ print(t,'tests,',f,'failures,',e,'errors,',s,'skipped')"
 python3 -c "import xml.etree.ElementTree as ET,collections;print(collections.Counter(i.get('id') for i in ET.parse('app/build/reports/lint-results-debug.xml').getroot().findall('issue')))"
 ```
 
-**Last run: v4.24, 2026-09-07**, JDK 17, AGP 9.3.1, Gradle 9.7.1, 2 m 58 s on a four-core
-Linux host with a warm dependency cache.
+**Last run: v5.1, 2026-09-14**, JDK 17, AGP 9.3.1, Gradle 9.7.1, 4 m 59 s on a four-core Linux
+host with a warm dependency cache, `--rerun-tasks` so nothing is answered from the build cache,
+from a clean extraction of the delivery archive.
+
+**Every figure in this block was wrong before this run, not only the one that was reported.** It
+had been carrying v4.24's numbers since 2026-09-07 — eight releases — and the block *was* dated,
+which made the staleness checkable and did not prevent it. Measured against v5.0, before this
+round added anything: the test count was out by **63**, the lint count by **16**, the compiler
+warnings by **2**, and only the APK size was close. **Re-measure and re-date the whole block rather
+than correcting one line of it**: a uniformly old block reads as old, a mixed one does not.
 
 | Task | Result |
 |---|---|
-| `./gradlew assembleDebug` | **BUILD SUCCESSFUL**, `app-debug.apk` 21.58 MB |
-| `./gradlew testDebugUnitTest` | **BUILD SUCCESSFUL** — 1340 tests, 0 failures, 0 errors, 0 skipped |
-| `./gradlew lintDebug` | **BUILD SUCCESSFUL** — 29 issues: 26 warnings, 3 hints, 0 errors, 0 fatal |
-| Kotlin compiler warnings | **19** |
+| `./gradlew assembleDebug` | **BUILD SUCCESSFUL**, `app-debug.apk` 22 669 106 B (21.62 MiB) |
+| `./gradlew testDebugUnitTest` | **BUILD SUCCESSFUL** — 1452 tests, 0 failures, 0 errors, 0 skipped |
+| `./gradlew lintDebug` | **BUILD SUCCESSFUL** — 45 issues: 42 warnings, 3 hints, 0 errors, 0 fatal |
+| Kotlin compiler warnings | **21** |
+| instrumented suite, BV6600 | **OK (171 tests)** in 2 934.3 s |
 
-Lint breakdown: `UnusedResources` ×18, `UseKtx` ×3, `AutoboxingStateCreation` ×3, plus single
-instances of `UnusedAttribute`, `VectorRaster`, `ConfigurationScreenWidthHeight`,
-`DataExtractionRules` and `ObsoleteSdkInt`. `OldTargetApi` is not among them: it fires only
-while `targetSdk` lags `compileSdk`, and since v4.0 both are 37.
+Lint breakdown: `UnusedResources` ×32, `UseKtx` ×4, `AutoboxingStateCreation` ×3, plus single
+instances of `UnusedAttribute`, `VectorRaster`, `GradleDependency`,
+`ConfigurationScreenWidthHeight`, `DataExtractionRules` and `ObsoleteSdkInt`. `OldTargetApi` is not
+among them: it fires only while `targetSdk` lags `compileSdk`, and since v4.0 both are 37. The
+`UnusedResources` count grew with the neighbourhood redraw, which left drawables behind; that is
+recorded here rather than silenced.
 
-The nineteen compiler warnings are four groups, all pre-existing and none introduced by a
-recent change: eleven `Java type mismatch: inferred type is 'Nothing?', but 'String' was
+The twenty-one compiler warnings are five groups, all pre-existing: eleven `Java type mismatch:
+inferred type is 'Nothing?', but 'String' was
 expected` and three of the same against `File`, which are `org.json`'s platform types read
 through Kotlin's nullability; four deprecations of `TRIM_MEMORY_RUNNING_LOW` and
 `TRIM_MEMORY_RUNNING_CRITICAL`; and one `Condition is always 'true'`. They are recorded rather
@@ -1938,6 +1999,8 @@ The table below is the JVM layer; the instrumented layer follows it.
 | `SceneObjectTileCullingTest` | Tile enumeration: bit-exact equality with the fixed three-copy loop over 76,608 swept cases, agreement with a brute-force scan of offsets -40..+40, the `floor` start-offset contract, inclusive behaviour at both edges, exact tile boundaries, degenerate tile widths, out-of-range anchors, and that two copies of one object can never overlap |
 | `SunPositionCalculatorTest` | Day/night classification, `progress` and `dayBlend` contracts, the celestial arc, sunrise/sunset approximation (equinox day length, hemispheric asymmetry, polar clamping, longitude offset), moon phase cycling, and the clock reading that replaced a per-frame `Calendar` — pinned against that `Calendar` at tolerance `0f` across eight time zones, a year of non-hour-aligned samples, and pre-epoch instants |
 | `SeasonalThemeRulesTest` | Computus against published Easter dates 1900–2100, the Sunday and 22 Mar–25 Apr invariants across 1900–2200, window boundaries and precedence, and that every rule resolves to an id present in `ThemeCatalog` |
+| `SeasonalCalendarIdentityTest` | **The gate for the v5.1 rewrite.** Transcribes the v5.0 table and walks it against the factory calendar for fifteen years, allowing exactly one difference — 1 March — and asserting it is present in every year and is `winter`→`spring`. Also walks the continuous autumn against a split one for ten years, and re-measures v5.0's 69 uncovered days so the reason for the change survives as a number |
+| `SeasonalCalendarStorageTest` | The calendar as a document: that the factory calendar stores nothing, that an edit back to a factory value stops being an override, the JSON round trip (wrapping spans and 29 February included), unreadable and partly-unknown documents falling back whole rather than in part, the same-tier overlap gate, Easter's exemption from it, and that a gap costs the day rather than breaking the calendar |
 | `CustomThemeDataJsonTest` | Serialisation round trips (including all built-in themes), schema versioning and legacy compatibility, and defensive parsing of corrupt input |
 | `IntKeyLruSlotsTest` | The multi-component key table `GradientShaderCache` runs on: exactness (a difference in *any* of the five components, including the zero padding, must miss), the capacity bound under a continuous stream of new keys, exact LRU order, slot recycling, and that two floats one ULP apart are distinct keys |
 | `SolarDayPublicationTest` | **P2-6.** That three separately-published fields can be read half-updated — demonstrated deterministically with a barrier, and with the fields already `@Volatile`, so it is a statement about the shape and not about a missing annotation — and that one immutable snapshot behind one `@Volatile` cannot be, under the identical interleaving and under 200 000 unsynchronised sampled reads |

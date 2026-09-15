@@ -11,25 +11,41 @@ import java.time.temporal.ChronoUnit
  * [ThemeCatalog.byId] resolves and [SceneObjectCatalog.layoutFor] lays out. Nothing here is
  * hardcoded to the built-in set, so a custom theme could be scheduled the same way.
  *
- * ### The calendar covers the whole year
+ * ### The dates are data, and the user owns them
+ *
+ * Every window's dates used to live inside the lambda that tested them, which is why they could
+ * not be shown, stored or changed. They are [SeasonalCalendar] now — a small document the user
+ * edits on the Holiday calendar screen — and this object is the thing that reads it. What the user
+ * may move is **only the dates**: [CalendarWindow] decides which windows exist, what they are
+ * called, which theme each picks and the order they are checked in, and none of that is a
+ * preference.
+ *
+ * ### The seasons are a continuous ribbon
  *
  * It used to cover four windows and return `null` for the rest, leaving the caller on whatever the
  * user last picked by hand. That made "automatic" mean "automatic in December, at Easter and over
  * the summer", which is not a setting anybody can predict the behaviour of. **Every date now
  * resolves.**
  *
+ * v5.1 made that true of the seasons themselves rather than of the table as a whole. The shipped
+ * seasons covered 296 days and left 69 — all of October, all of December, 1–7 January — with no
+ * season under them at all; every one of those days happened to be inside an occasion, so the
+ * calendar looked complete while resting on the occasions to be so. The moment a user shortened
+ * Halloween, October would have had nothing underneath. The four seasons now partition the year on
+ * meteorological boundaries, and an occasion passes *over* a season rather than standing in for one.
+ *
  * ### Precedence is a list, not an accident
  *
  * The old table relied on ordering alone, with a comment asking the next editor to keep narrow
  * windows above broad ones — and its two December windows overlapped in a way that made Christmas
- * unreachable on 30 and 31 December. The occasions are now a separate ordered list checked before
- * the seasons, and the seasons partition what is left and cannot overlap each other:
+ * unreachable on 30 and 31 December. Occasions are a separate ordered tier checked before the
+ * seasons, and the seasons partition what is left and cannot overlap each other:
  *
  * 1. **Easter** — moves every year, so it wins wherever it lands.
  * 2. **Halloween**
  * 3. **Christmas**
  * 4. **New Year**
- * 5. **Spring / Winter / Autumn / Beach** — the seasonal fallback.
+ * 5. **Winter / Spring / Summer / Autumn** — the seasonal floor.
  *
  * Putting Easter above Halloween and Christmas is a statement of intent rather than of dates: the
  * three cannot collide in the Gregorian calendar, and stating the order anyway means the answer
@@ -37,55 +53,25 @@ import java.time.temporal.ChronoUnit
  */
 object SeasonalThemeRules {
 
-    private data class Window(val label: String, val themeId: String, val matches: (LocalDate) -> Boolean)
-
     /** Between [from] and [to] inclusive on the month-and-day, wrapping across the year end. */
     private fun between(date: LocalDate, from: MonthDay, to: MonthDay): Boolean {
         val md = MonthDay.from(date)
         return if (from <= to) md >= from && md <= to else md >= from || md <= to
     }
 
-    /**
-     * The dated occasions, in precedence order. Checked before [seasons].
-     *
-     * Halloween, Christmas and New Year are fixed. Easter is not, and deliberately so: pinning it
-     * to a fixed week would put it in the wrong month most years.
-     */
-    private val occasions: List<Window> = listOf(
-        Window("Easter", "easter") { date ->
-            // Good Friday through Easter Monday: the long weekend, not a week either side of it.
-            // The old rule spanned -3..+3, which reached back into Holy Week and forward past the
-            // point anyone is still decorating.
+    private fun matches(date: LocalDate, window: CalendarWindow, calendar: SeasonalCalendar): Boolean =
+        if (window.isComputed) {
+            // Easter is the one window with no dates: it has a computed Sunday and two lengths.
             val daysFromEaster = ChronoUnit.DAYS.between(computeEasterSunday(date.year), date)
-            daysFromEaster in -2..1
-        },
-        Window("Halloween", "halloween") { date ->
-            between(date, MonthDay.of(10, 1), MonthDay.of(10, 31))
-        },
-        Window("Christmas", "christmas") { date ->
-            between(date, MonthDay.of(12, 1), MonthDay.of(12, 26))
-        },
-        Window("New Year", "new_year") { date ->
-            between(date, MonthDay.of(12, 27), MonthDay.of(1, 7))
-        },
-    )
+            calendar.easter.covers(daysFromEaster)
+        } else {
+            val span = calendar.spanFor(window)
+            between(date, span.start, span.end)
+        }
 
-    /**
-     * The seasons, which cover the rest of the year exactly once each.
-     *
-     * Northern-hemisphere. A future refinement could flip it on the device's latitude; until then
-     * a stated hemisphere is better than an ambiguous one.
-     */
-    private val seasons: List<Window> = listOf(
-        Window("Winter", "winter") { date -> between(date, MonthDay.of(1, 8), MonthDay.of(3, 1)) },
-        Window("Spring", "spring") { date -> between(date, MonthDay.of(3, 2), MonthDay.of(5, 31)) },
-        Window("Summer", "beach") { date -> between(date, MonthDay.of(6, 1), MonthDay.of(8, 31)) },
-        Window("Autumn", "autumn") { date -> between(date, MonthDay.of(9, 1), MonthDay.of(9, 30)) },
-        Window("Autumn", "autumn") { date -> between(date, MonthDay.of(11, 1), MonthDay.of(11, 30)) },
-    )
-
-    private fun windowFor(date: LocalDate): Window? =
-        occasions.firstOrNull { it.matches(date) } ?: seasons.firstOrNull { it.matches(date) }
+    private fun windowFor(date: LocalDate, calendar: SeasonalCalendar): CalendarWindow? =
+        CalendarWindow.OCCASIONS.firstOrNull { matches(date, it, calendar) }
+            ?: CalendarWindow.SEASONS.firstOrNull { matches(date, it, calendar) }
 
     /**
      * The themeId for [date], which is **the device's local date** by default.
@@ -94,11 +80,39 @@ object SeasonalThemeRules {
      * rather than at some hour determined by an offset from UTC. The same local date always
      * produces the same theme: nothing here reads a clock time, a zone or anything else that could
      * make the answer depend on when within the day it was asked.
+     *
+     * `null` means no window covers [date]. With the factory calendar that cannot happen — the
+     * seasons are a partition — but a user may move a season and open a gap, and the caller
+     * already falls back to the theme they picked by hand.
      */
-    fun themeForDate(date: LocalDate = LocalDate.now()): String? = windowFor(date)?.themeId
+    fun themeForDate(
+        date: LocalDate = LocalDate.now(),
+        calendar: SeasonalCalendar = SeasonalCalendar.DEFAULT,
+    ): String? = windowFor(date, calendar)?.themeId
 
     /** Same as [themeForDate], but the window's label, for the settings screen to display. */
-    fun labelForDate(date: LocalDate = LocalDate.now()): String? = windowFor(date)?.label
+    fun labelForDate(
+        date: LocalDate = LocalDate.now(),
+        calendar: SeasonalCalendar = SeasonalCalendar.DEFAULT,
+    ): String? = windowFor(date, calendar)?.label
+
+    /** The window covering [date], for a screen that needs more than its name. */
+    fun windowForDate(
+        date: LocalDate = LocalDate.now(),
+        calendar: SeasonalCalendar = SeasonalCalendar.DEFAULT,
+    ): CalendarWindow? = windowFor(date, calendar)
+
+    /**
+     * The dates Easter's window spans in [year], for display.
+     *
+     * The screen shows Easter as two lengths because that is what it is, but a user still wants to
+     * know where it lands this year, and that is arithmetic rather than a stored date.
+     */
+    fun easterWindowIn(year: Int, calendar: SeasonalCalendar = SeasonalCalendar.DEFAULT): ClosedRange<LocalDate> {
+        val sunday = computeEasterSunday(year)
+        return sunday.minusDays(calendar.easter.daysBefore.toLong())..
+            sunday.plusDays(calendar.easter.daysAfter.toLong())
+    }
 
     /**
      * Anonymous Gregorian algorithm ("Computus") for Easter Sunday in a given year. Standard and

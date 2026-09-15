@@ -57,7 +57,11 @@ import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneTheme
+import com.paperscrape.livewallpaper.engine.CalendarWindow
+import com.paperscrape.livewallpaper.engine.EasterSpan
+import com.paperscrape.livewallpaper.engine.SeasonalCalendar
 import com.paperscrape.livewallpaper.engine.SeasonalThemeRules
+import com.paperscrape.livewallpaper.engine.coverage
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
@@ -77,7 +81,7 @@ import kotlinx.coroutines.launch
  * time" was switched off. Each destination below owns one kind of decision, and the home screen
  * owns none of them: it says which theme is showing, who chose it, and where everything else is.
  */
-private enum class SettingsDestination { HOME, THEME_GALLERY, WEATHER, SEASONS, WORLD, ADVANCED }
+private enum class SettingsDestination { HOME, THEME_GALLERY, WEATHER, SEASONS, CALENDAR, WORLD, ADVANCED }
 
 /**
  * The saved themes, as state the settings tree can read -- **published on every emission, not
@@ -201,7 +205,11 @@ fun SettingsScreen(
     // it did not.
     val customThemeData = savedThemes.value
 
-    val calendarThemeId = if (settings.autoThemeByDate) SeasonalThemeRules.themeForDate() else null
+    val calendarThemeId = if (settings.autoThemeByDate) {
+        SeasonalThemeRules.themeForDate(calendar = settings.seasonalCalendar)
+    } else {
+        null
+    }
     val effectiveThemeId = calendarThemeId ?: settings.themeId
     val effectiveTheme = ThemeCatalog.byId(effectiveThemeId)
     val customization = CustomThemeRegistry.resolveActiveCustomization(
@@ -255,7 +263,7 @@ fun SettingsScreen(
                     onCheckedChange = { scope.launch { prefs.setAutoThemeByDate(it) } },
                 )
                 if (settings.autoThemeByDate) {
-                    val label = SeasonalThemeRules.labelForDate()
+                    val label = SeasonalThemeRules.labelForDate(calendar = settings.seasonalCalendar)
                     SettingsRow(
                         title = if (label != null) "Today: $label" else "Today: your own pick",
                         supporting = if (label != null) {
@@ -266,6 +274,15 @@ fun SettingsScreen(
                         icon = Icons.Outlined.Info,
                     )
                 }
+                // Reachable whether or not the switch is on: the dates are worth looking at before
+                // deciding to turn it on, and an edit made with it off is kept.
+                SettingsNavigationRow(
+                    title = "Holiday calendar",
+                    supporting = calendarRowSummary(settings.seasonalCalendar),
+                    icon = holidayCalendarIcon,
+                    supportingIsAccent = !settings.seasonalCalendar.isFactory,
+                    onClick = { destination = SettingsDestination.CALENDAR },
+                )
                 SettingsRow(
                     title = "Shuffle a random theme",
                     supporting = if (RandomSceneGenerator.isRandomThemeId(settings.themeId)) {
@@ -336,6 +353,13 @@ fun SettingsScreen(
             scope = scope,
             onRequestLocationPermission = onRequestLocationPermission,
             onOpenWeatherEffects = { destination = SettingsDestination.WORLD },
+            onBack = { destination = SettingsDestination.HOME },
+        )
+        SettingsDestination.CALENDAR -> HolidayCalendarScreen(
+            calendar = settings.seasonalCalendar,
+            autoThemeEnabled = settings.autoThemeByDate,
+            prefs = prefs,
+            scope = scope,
             onBack = { destination = SettingsDestination.HOME },
         )
         SettingsDestination.SEASONS -> SeasonsScreen(
@@ -518,6 +542,23 @@ private fun themeRowSummary(themeName: String, customThemeData: CustomThemeData)
     }
 }
 
+/**
+ * The one-line summary under "Holiday calendar".
+ *
+ * Names the count of moved windows rather than today's window: the row is about the calendar's
+ * shape, and the row above it already says which theme today resolved to.
+ */
+private fun calendarRowSummary(calendar: SeasonalCalendar): String {
+    val moved = calendar.spans.size + if (calendar.easter != EasterSpan.FACTORY) 1 else 0
+    val gaps = calendar.coverage().uncoveredDays.size
+    return when {
+        gaps > 0 -> "$moved changed - $gaps days with no season under them"
+        moved == 0 -> "${CalendarWindow.entries.size} windows, all on their default dates"
+        moved == 1 -> "1 window moved from its default dates"
+        else -> "$moved windows moved from their default dates"
+    }
+}
+
 private fun weatherRowSummary(settings: WallpaperSettings): String {
     val location = when (
         SettingsUiModel.locationMode(
@@ -547,6 +588,10 @@ private fun seasonsRowSummary(customization: SceneCustomization): String {
         customization.halloweenEnabled,
         customization.horrorSkyEnabled,
         customization.flowersEnabled,
+        // `palmsEnabled` is deliberately not here. Everything else in this list is off out of the
+        // box and on only because the user (or the theme) put it there, which is what "N
+        // decorations on" means; palms are on by default and inert on ten of the twelve themes, so
+        // counting them would report a decoration on every Winter scene that cannot show one.
         customization.snowmen.visible,
         customization.gifts.visible,
         customization.penguins.visible,

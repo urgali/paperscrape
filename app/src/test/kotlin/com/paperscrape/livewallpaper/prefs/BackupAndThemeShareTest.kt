@@ -2,6 +2,12 @@ package com.paperscrape.livewallpaper.prefs
 
 import com.paperscrape.livewallpaper.engine.CUSTOM_THEME_SCHEMA_VERSION
 import com.paperscrape.livewallpaper.engine.CustomThemeData
+import com.paperscrape.livewallpaper.engine.CalendarSpan
+import com.paperscrape.livewallpaper.engine.CalendarWindow
+import com.paperscrape.livewallpaper.engine.EasterSpan
+import com.paperscrape.livewallpaper.engine.SeasonalCalendar
+import com.paperscrape.livewallpaper.engine.seasonalCalendarFromJsonString
+import com.paperscrape.livewallpaper.engine.toJsonString
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
@@ -57,6 +63,9 @@ class BackupAndThemeShareTest {
         swipeScroll = false,
         scrollSpeed = 0.42f,
         autoThemeByDate = true,
+        seasonalCalendar = SeasonalCalendar.DEFAULT
+            .withSpan(CalendarWindow.HALLOWEEN, CalendarSpan(10, 15, 11, 2))
+            .withEaster(EasterSpan(daysBefore = 5, daysAfter = 3)),
         // Runtime state a backup must not carry, set to something distinctive.
         resolvedGpsLatitude = 12f,
         resolvedGpsLongitude = 34f,
@@ -155,6 +164,30 @@ class BackupAndThemeShareTest {
         val parsed = parseAppBackup(backup().toJsonString())
         assertTrue(parsed is BackupParseResult.Ok)
         assertEquals(backup().settings, (parsed as BackupParseResult.Ok).backup.settings)
+    }
+
+    @Test
+    fun `a backup carries the holiday calendar, and an untouched one as nothing`() {
+        // Without this the feature would look complete and lose every date edit on a phone swap,
+        // which is the failure mode a backup exists to prevent.
+        val parsed = (parseAppBackup(backup().toJsonString()) as BackupParseResult.Ok).backup
+        assertEquals(
+            seasonalCalendarFromJsonString(busySettings.seasonalCalendar.toJsonString()),
+            seasonalCalendarFromJsonString(parsed.settings.seasonalCalendarJson),
+        )
+        // An untouched calendar travels as the empty string, not as a document that agrees with
+        // today's defaults -- restoring it must leave the install free to follow a future default.
+        val plain = AppBackup.from(WallpaperSettings(), CustomThemeData.EMPTY, "5.1", 0L)
+        assertEquals("", plain.settings.seasonalCalendarJson)
+    }
+
+    @Test
+    fun `a backup taken before the calendar existed restores as the factory calendar`() {
+        val document = JSONObject(backup().toJsonString())
+        document.getJSONObject("settings").remove("seasonalCalendar")
+        val parsed = parseAppBackup(document.toString())
+        assertTrue(parsed is BackupParseResult.Ok)
+        assertEquals("", (parsed as BackupParseResult.Ok).backup.settings.seasonalCalendarJson)
     }
 
     @Test

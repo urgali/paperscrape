@@ -1,5 +1,47 @@
 {
   "gaps": {
+    "bar_chamfer_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "bar_chamfer_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "bar_chamfer_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "bar_chamfer_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "bar_signboard_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "bar_signboard_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "bar_signboard_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "bar_signboard_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_ground_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_ground_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_ground_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_gable_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_gable_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_gable_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_gable_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_mansard_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_mansard_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_mansard_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_mansard_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_turret_gable_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_turret_gable_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_turret_gable_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_turret_tower_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_turret_tower_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_turret_tower_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_roof_turret_tower_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_storey_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_storey_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_large_storey_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_ground_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_ground_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_ground_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_roof_gable_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_roof_gable_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_roof_gable_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_roof_mansard_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_roof_mansard_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_roof_mansard_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_roof_mansard_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_storey_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_storey_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "house_small_storey_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "person_boy_summer_head_car_fx": "Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "person_boy_summer_head_car_mh": "Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "person_boy_summer_head_car_ms": "Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
@@ -194,255 +236,39 @@
     "person_woman_winter_walk2_mb": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "person_woman_winter_walk2_mh": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "person_woman_winter_walk2_ms": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
-    "person_woman_winter_walk2_mt": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+    "person_woman_winter_walk2_mt": "Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "restaurant_pavilion_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "restaurant_pavilion_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "restaurant_pavilion_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "restaurant_pavilion_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_bay_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_bay_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_crown_dome_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_crown_dome_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_crown_dome_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_crown_spire_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_crown_spire_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_crown_spire_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_row_tier1_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_row_tier1_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_row_tier2_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_row_tier2_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_row_tier3_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_row_tier3_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_snow_left1_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_snow_left2_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_snow_right1_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_snow_right2_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_snow_top_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_tier1_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_tier1_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_tier1_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_tier2_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_tier2_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_tier3_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "tower_tier3_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
   },
   "results": [
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        300,
-        48
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        300,
-        48
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "bar_cornice",
-      "reference_bbox": [
-        0,
-        0,
-        300,
-        48
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        300,
-        48
-      ],
-      "size_match": true,
-      "total_pixels": 14400,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        60,
-        84
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        60,
-        84
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "bar_door",
-      "reference_bbox": [
-        0,
-        0,
-        60,
-        84
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        60,
-        84
-      ],
-      "size_match": true,
-      "total_pixels": 5040,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        18,
-        30
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        18,
-        30
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "bar_lantern",
-      "reference_bbox": [
-        0,
-        0,
-        18,
-        30
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        18,
-        30
-      ],
-      "size_match": true,
-      "total_pixels": 540,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        300,
-        18
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        300,
-        18
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "bar_roof_snow",
-      "reference_bbox": [
-        0,
-        0,
-        300,
-        18
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        300,
-        18
-      ],
-      "size_match": true,
-      "total_pixels": 5400,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        246,
-        30
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        246,
-        30
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "bar_sign",
-      "reference_bbox": [
-        0,
-        0,
-        246,
-        30
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        246,
-        30
-      ],
-      "size_match": true,
-      "total_pixels": 7380,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        270,
-        276
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        270,
-        276
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "bar_wall",
-      "reference_bbox": [
-        0,
-        0,
-        270,
-        276
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        270,
-        276
-      ],
-      "size_match": true,
-      "total_pixels": 74520,
-      "verdict": "PIXEL_IDENTICAL"
-    },
     {
       "alpha_iou": 1.0,
       "bbox_delta": [
@@ -1068,15 +894,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        4,
-        6,
-        345,
-        174
+        1,
+        3,
+        342,
+        171
       ],
-      "candidate_padding_fraction": 0.045677161419290346,
+      "candidate_padding_fraction": 0.02041653842207858,
       "candidate_size": [
-        345,
-        174
+        342,
+        171
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -1085,18 +911,18 @@
       "mean_alpha_diff": 0.0,
       "name": "dolphin_body",
       "reference_bbox": [
-        4,
-        6,
-        345,
-        174
+        1,
+        3,
+        342,
+        171
       ],
-      "reference_padding_fraction": 0.045677161419290346,
+      "reference_padding_fraction": 0.02041653842207858,
       "reference_size": [
-        345,
-        174
+        342,
+        171
       ],
       "size_match": true,
-      "total_pixels": 60030,
+      "total_pixels": 58482,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -1396,12 +1222,12 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        5,
-        9,
-        98,
+        4,
+        4,
+        108,
         36
       ],
-      "candidate_padding_fraction": 0.35416666666666663,
+      "candidate_padding_fraction": 0.1440329218106996,
       "candidate_size": [
         108,
         36
@@ -1411,14 +1237,14 @@
       "max_alpha_diff": 0,
       "max_rgb_diff_where_opaque": 0,
       "mean_alpha_diff": 0.0,
-      "name": "ground_flowers",
+      "name": "ground_flowers_bloom",
       "reference_bbox": [
-        5,
-        9,
-        98,
+        4,
+        4,
+        108,
         36
       ],
-      "reference_padding_fraction": 0.35416666666666663,
+      "reference_padding_fraction": 0.1440329218106996,
       "reference_size": [
         108,
         36
@@ -1437,609 +1263,35 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        39,
-        105
+        4,
+        4,
+        108,
+        36
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.1440329218106996,
       "candidate_size": [
-        39,
-        105
+        108,
+        36
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
       "max_alpha_diff": 0,
       "max_rgb_diff_where_opaque": 0,
       "mean_alpha_diff": 0.0,
-      "name": "house_large_chimney",
+      "name": "ground_flowers_dry",
       "reference_bbox": [
-        0,
-        0,
-        39,
-        105
+        4,
+        4,
+        108,
+        36
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.1440329218106996,
       "reference_size": [
-        39,
-        105
+        108,
+        36
       ],
       "size_match": true,
-      "total_pixels": 4095,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        66,
-        135
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        66,
-        135
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_large_door",
-      "reference_bbox": [
-        0,
-        0,
-        66,
-        135
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        66,
-        135
-      ],
-      "size_match": true,
-      "total_pixels": 8910,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        450,
-        150
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        450,
-        150
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_large_roof",
-      "reference_bbox": [
-        0,
-        0,
-        450,
-        150
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        450,
-        150
-      ],
-      "size_match": true,
-      "total_pixels": 67500,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        1,
-        0,
-        299,
-        117
-      ],
-      "candidate_padding_fraction": 0.00666666666666671,
-      "candidate_size": [
-        300,
-        117
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_large_roof_snow",
-      "reference_bbox": [
-        1,
-        0,
-        299,
-        117
-      ],
-      "reference_padding_fraction": 0.00666666666666671,
-      "reference_size": [
-        300,
-        117
-      ],
-      "size_match": true,
-      "total_pixels": 35100,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        450,
-        18
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        450,
-        18
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_large_trim",
-      "reference_bbox": [
-        0,
-        0,
-        450,
-        18
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        450,
-        18
-      ],
-      "size_match": true,
-      "total_pixels": 8100,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        420,
-        285
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        420,
-        285
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_large_wall",
-      "reference_bbox": [
-        0,
-        0,
-        420,
-        285
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        420,
-        285
-      ],
-      "size_match": true,
-      "total_pixels": 119700,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        78,
-        18
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        78,
-        18
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_shared_planter",
-      "reference_bbox": [
-        0,
-        0,
-        78,
-        18
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        78,
-        18
-      ],
-      "size_match": true,
-      "total_pixels": 1404,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        66,
-        63
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        66,
-        63
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_shared_window",
-      "reference_bbox": [
-        0,
-        0,
-        66,
-        63
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        66,
-        63
-      ],
-      "size_match": true,
-      "total_pixels": 4158,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        36,
-        90
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        36,
-        90
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_small_chimney",
-      "reference_bbox": [
-        0,
-        0,
-        36,
-        90
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        36,
-        90
-      ],
-      "size_match": true,
-      "total_pixels": 3240,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        60,
-        114
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        60,
-        114
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_small_door",
-      "reference_bbox": [
-        0,
-        0,
-        60,
-        114
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        60,
-        114
-      ],
-      "size_match": true,
-      "total_pixels": 6840,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        318,
-        120
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        318,
-        120
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_small_roof",
-      "reference_bbox": [
-        0,
-        0,
-        318,
-        120
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        318,
-        120
-      ],
-      "size_match": true,
-      "total_pixels": 38160,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        1,
-        0,
-        203,
-        99
-      ],
-      "candidate_padding_fraction": 0.009803921568627416,
-      "candidate_size": [
-        204,
-        99
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_small_roof_snow",
-      "reference_bbox": [
-        1,
-        0,
-        203,
-        99
-      ],
-      "reference_padding_fraction": 0.009803921568627416,
-      "reference_size": [
-        204,
-        99
-      ],
-      "size_match": true,
-      "total_pixels": 20196,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        318,
-        12
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        318,
-        12
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_small_trim",
-      "reference_bbox": [
-        0,
-        0,
-        318,
-        12
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        318,
-        12
-      ],
-      "size_match": true,
-      "total_pixels": 3816,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        288,
-        210
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        288,
-        210
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_small_wall",
-      "reference_bbox": [
-        0,
-        0,
-        288,
-        210
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        288,
-        210
-      ],
-      "size_match": true,
-      "total_pixels": 60480,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        66,
-        66
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        66,
-        66
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "house_window_lit",
-      "reference_bbox": [
-        0,
-        0,
-        66,
-        66
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        66,
-        66
-      ],
-      "size_match": true,
-      "total_pixels": 4356,
+      "total_pixels": 3888,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4307,301 +3559,14 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
+        2,
         0,
-        0,
-        276,
-        27
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        276,
-        27
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "restaurant_awning",
-      "reference_bbox": [
-        0,
-        0,
-        276,
-        27
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        276,
-        27
-      ],
-      "size_match": true,
-      "total_pixels": 7452,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        330,
-        36
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        330,
-        36
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "restaurant_cornice",
-      "reference_bbox": [
-        0,
-        0,
-        330,
-        36
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        330,
-        36
-      ],
-      "size_match": true,
-      "total_pixels": 11880,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        54,
-        84
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        54,
-        84
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "restaurant_door",
-      "reference_bbox": [
-        0,
-        0,
-        54,
-        84
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        54,
-        84
-      ],
-      "size_match": true,
-      "total_pixels": 4536,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        156,
-        24
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        156,
-        24
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "restaurant_roof_snow",
-      "reference_bbox": [
-        0,
-        0,
-        156,
-        24
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        156,
-        24
-      ],
-      "size_match": true,
-      "total_pixels": 3744,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        276,
-        39
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        276,
-        39
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "restaurant_sign",
-      "reference_bbox": [
-        0,
-        0,
-        276,
-        39
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        276,
-        39
-      ],
-      "size_match": true,
-      "total_pixels": 10764,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        300,
-        288
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        300,
-        288
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "restaurant_wall",
-      "reference_bbox": [
-        0,
-        0,
-        300,
-        288
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        300,
-        288
-      ],
-      "size_match": true,
-      "total_pixels": 86400,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        90,
-        66
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        90,
-        66
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "restaurant_window",
-      "reference_bbox": [
-        0,
-        0,
-        90,
-        66
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        90,
-        66
-      ],
-      "size_match": true,
-      "total_pixels": 5940,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        8,
-        0,
-        252,
+        246,
         51
       ],
-      "candidate_padding_fraction": 0.031746031746031744,
+      "candidate_padding_fraction": 0.008130081300813052,
       "candidate_size": [
-        252,
+        246,
         51
       ],
       "differing_pixels": 0,
@@ -4611,18 +3576,18 @@
       "mean_alpha_diff": 0.0,
       "name": "sailboat_hull",
       "reference_bbox": [
-        8,
+        2,
         0,
-        252,
+        246,
         51
       ],
-      "reference_padding_fraction": 0.031746031746031744,
+      "reference_padding_fraction": 0.008130081300813052,
       "reference_size": [
-        252,
+        246,
         51
       ],
       "size_match": true,
-      "total_pixels": 12852,
+      "total_pixels": 12546,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4635,14 +3600,14 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        27,
+        3,
         0,
-        206,
+        182,
         180
       ],
-      "candidate_padding_fraction": 0.14761904761904765,
+      "candidate_padding_fraction": 0.021857923497267784,
       "candidate_size": [
-        210,
+        183,
         180
       ],
       "differing_pixels": 0,
@@ -4652,18 +3617,18 @@
       "mean_alpha_diff": 0.0,
       "name": "sailboat_sail",
       "reference_bbox": [
-        27,
+        3,
         0,
-        206,
+        182,
         180
       ],
-      "reference_padding_fraction": 0.14761904761904765,
+      "reference_padding_fraction": 0.021857923497267784,
       "reference_size": [
-        210,
+        183,
         180
       ],
       "size_match": true,
-      "total_pixels": 37800,
+      "total_pixels": 32940,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -4746,252 +3711,6 @@
       ],
       "size_match": true,
       "total_pixels": 73062,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        132,
-        18
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        132,
-        18
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "skyscraper_canopy",
-      "reference_bbox": [
-        0,
-        0,
-        132,
-        18
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        132,
-        18
-      ],
-      "size_match": true,
-      "total_pixels": 2376,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        96,
-        96
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        96,
-        96
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "skyscraper_entrance",
-      "reference_bbox": [
-        0,
-        0,
-        96,
-        96
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        96,
-        96
-      ],
-      "size_match": true,
-      "total_pixels": 9216,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        168,
-        27
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        168,
-        27
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "skyscraper_roof_snow",
-      "reference_bbox": [
-        0,
-        0,
-        168,
-        27
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        168,
-        27
-      ],
-      "size_match": true,
-      "total_pixels": 4536,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        180,
-        96
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        180,
-        96
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "skyscraper_setback",
-      "reference_bbox": [
-        0,
-        0,
-        180,
-        96
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        180,
-        96
-      ],
-      "size_match": true,
-      "total_pixels": 17280,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        0,
-        0,
-        270,
-        450
-      ],
-      "candidate_padding_fraction": 0.0,
-      "candidate_size": [
-        270,
-        450
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "skyscraper_wall",
-      "reference_bbox": [
-        0,
-        0,
-        270,
-        450
-      ],
-      "reference_padding_fraction": 0.0,
-      "reference_size": [
-        270,
-        450
-      ],
-      "size_match": true,
-      "total_pixels": 121500,
-      "verdict": "PIXEL_IDENTICAL"
-    },
-    {
-      "alpha_iou": 1.0,
-      "bbox_delta": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "boundary_confined": true,
-      "candidate_bbox": [
-        15,
-        15,
-        237,
-        300
-      ],
-      "candidate_padding_fraction": 0.11012658227848104,
-      "candidate_size": [
-        237,
-        300
-      ],
-      "differing_pixels": 0,
-      "interior_alpha_mismatch": 0,
-      "max_alpha_diff": 0,
-      "max_rgb_diff_where_opaque": 0,
-      "mean_alpha_diff": 0.0,
-      "name": "skyscraper_wall_lit",
-      "reference_bbox": [
-        15,
-        15,
-        237,
-        300
-      ],
-      "reference_padding_fraction": 0.11012658227848104,
-      "reference_size": [
-        237,
-        300
-      ],
-      "size_match": true,
-      "total_pixels": 71100,
       "verdict": "PIXEL_IDENTICAL"
     },
     {

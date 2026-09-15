@@ -1010,6 +1010,16 @@
    ],
    "state": "DISTINCT",
    "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "ground_flowers",
+   "axis": "season",
+   "members": [
+    "ground_flowers_bloom",
+    "ground_flowers_dry"
+   ],
+   "state": "DISTINCT",
+   "reason": "The two readings of one clump: in bloom, and gone over to seed heads and thistles. v5.1 split them because a single meadow was drawn under every palette, so an autumn or a winter scene carried midsummer flowers -- the same defect the fall palette was added to fix for the trees. The dry member covers autumn and winter both, which is why the group is named for the pair and neither member is named for a season."
   }
  ],
  "sprites": [
@@ -1820,14 +1830,14 @@
    "notes": ""
   },
   {
-   "name": "ground_flowers",
+   "name": "ground_flowers_bloom",
    "category": "vegetation",
    "width": 108,
    "height": 36,
    "contentBox": [
-    5,
-    9,
-    98,
+    4,
+    4,
+    108,
     36
    ],
    "scale": "SCENE_UNITS",
@@ -1841,9 +1851,35 @@
    "season": "all",
    "source": {
     "kind": "svg",
-    "file": "ground_flowers.svg"
+    "file": "ground_flowers_bloom.svg"
    },
-   "notes": "One clump of ground flowers: three kinds at three sizes on a single canvas, so a scatter of them is one blit per clump rather than one per bloom. Fixed art -- the user gets ON and OFF and no colour, because a meadow that follows a theme's building tint is a meadow of the wrong flowers."
+   "notes": "One clump of ground flowers in bloom: tulip, daisy, buttercup, bluebells and cosmos on a single canvas, so a scatter of them is one blit per clump rather than one per bloom. The blooming half of the ground_flowers pair -- ground_flowers_dry is the same clump gone over, and the renderer picks between them from the seasonal palette. Neither is named for a season: the dry one serves autumn and winter both. Fixed art -- the user gets ON and OFF and no colour, because a meadow that follows a theme's building tint is a meadow of the wrong flowers. Every head is two cut papers, an ink shadow offset 0.55 units under a light paper, which is the v4.32 buildings' shadow grammar."
+  },
+  {
+   "name": "ground_flowers_dry",
+   "category": "vegetation",
+   "width": 108,
+   "height": 36,
+   "contentBox": [
+    4,
+    4,
+    108,
+    36
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "ground_flowers_dry.svg"
+   },
+   "notes": "One clump of ground flowers gone over: thistle, coneflower, goldenrod, a spent aster, a grass spike and a seed head. Same canvas and same blit origin as ground_flowers_bloom, so the two are interchangeable at the call site. Drawn for autumn AND winter -- dry stems standing out of snow are a real thing to look at, and calling this sprite _autumn would have been a lie every time the winter palette was on. Fixed art, same reason as its twin. Chosen whenever the seasonal palette is AUTUMN or WINTER; flowersEnabled still only says whether there are flowers at all."
   },
   {
    "name": "house_large_ground_fx",
@@ -2914,98 +2950,98 @@
   {
    "name": "palmtree_fronds",
    "category": "vegetation",
-   "width": 120,
-   "height": 120,
+   "width": 168,
+   "height": 144,
    "contentBox": [
-    0,
-    0,
-    120,
-    111
+    8,
+    11,
+    165,
+    130
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
    "anchorRule": "DECLARED_ATTACHMENT",
    "anchor": [
-    60,
-    102
+    84,
+    78
    ],
    "season": "all",
    "source": {
     "kind": "svg",
     "file": "palmtree_fronds.svg"
    },
-   "notes": ""
+   "notes": "The coconut palm's living crown, redrawn from scratch in v5.1 from concept A \"Cocco\". Seven broad lens-shaped blades that arch and fall, each a card with its own paper shadow and a lighter fold along its back, and three coconuts under the convergence. The canvas is 56x48 units because the blades fall BELOW the attachment point, which the 40x40 canvas this replaces had no room for. Its two alternatives share this canvas and this origin."
   },
   {
    "name": "palmtree_fronds_dead",
    "category": "vegetation",
-   "width": 120,
-   "height": 120,
+   "width": 168,
+   "height": 144,
    "contentBox": [
-    0,
-    0,
-    120,
-    110
-   ],
-   "scale": "SCENE_UNITS",
-   "tint": "FIXED_ART",
-   "usage": "referenced",
-   "anchorRule": "PART_LOCAL",
-   "anchor": [
-    0,
-    0
-   ],
-   "season": "all",
-   "source": {
-    "kind": "svg",
-    "file": "palmtree_fronds_dead.svg"
-   },
-   "notes": "Halloween palm crown: the same fan, dead. Drawn on palmtree_fronds' canvas with the same content box, so it blits at the same origin and the Christmas lights and the frost overlay keep the geometry they were derived from. Fixed art in the trunk browns -- a dead frond is not a theme colour."
-  },
-  {
-   "name": "palmtree_fronds_frost",
-   "category": "vegetation",
-   "width": 120,
-   "height": 120,
-   "contentBox": [
-    0,
-    0,
-    120,
-    102
+    26,
+    44,
+    150,
+    144
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
    "anchorRule": "DECLARED_ATTACHMENT",
    "anchor": [
-    60,
-    102
+    84,
+    78
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "palmtree_fronds_dead.svg"
+   },
+   "notes": "Halloween's palm crown: the same seven blades collapsed and folded back down the trunk, two stumps still up, in straw browns. A whole crown on palmtree_fronds' canvas with the same declared attachment, so drawPalmTree blits it at the same origin in place of the live one. Its content sits low in the canvas because a fallen crown occupies less of it; cropping to the ink would move the sprite. Fixed art in the straw browns for the same reason tree_dead_branches is: a dead frond is not a theme colour."
+  },
+  {
+   "name": "palmtree_fronds_frost",
+   "category": "vegetation",
+   "width": 168,
+   "height": 144,
+   "contentBox": [
+    8,
+    10,
+    166,
+    129
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "DECLARED_ATTACHMENT",
+   "anchor": [
+    84,
+    78
    ],
    "season": "winter",
    "source": {
     "kind": "svg",
     "file": "palmtree_fronds_frost.svg"
    },
-   "notes": ""
+   "notes": "The winter palette's palm crown: the same seven blades in a cold green with snow settled along the backs of the five upper ones. v5.1 made it a WHOLE CROWN rather than the five white caps that used to be blitted on top of the live one, so drawPalmTree draws it INSTEAD of palmtree_fronds and the pixel-for-pixel coverage condition the overlay needed is gone. Same canvas, same declared attachment. Snow is white over a #C9D6E0 card, the two papers house_small_roof_snow.svg cuts it from."
   },
   {
    "name": "palmtree_trunk",
    "category": "vegetation",
-   "width": 33,
+   "width": 63,
    "height": 174,
    "contentBox": [
     2,
     0,
-    33,
+    61,
     174
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
-   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchorRule": "DECLARED_ATTACHMENT",
    "anchor": [
-    17.5,
+    24,
     174
    ],
    "season": "all",
@@ -3013,7 +3049,7 @@
     "kind": "svg",
     "file": "palmtree_trunk.svg"
    },
-   "notes": ""
+   "notes": "The coconut palm's trunk, v5.1: a curved spindle leaning 7 units right over a flared foot, crescent leaf scars up the front, a shadow band down the right flank and a strip of light down the left. ANCHORED ON ITS FOOT, WHICH IS DECLARED RATHER THAN DERIVED. The drawn content spans x 2..60 px while the foot's centre is at x 24 px, because the trunk leans -- CONTENT_BOTTOM_CENTRE, true of the straight trunk this replaces, would derive 31 and stand the palm more than two units beside its own ground shadow while pivoting its sway off its base. drawPalmTree blits at (-8, -58), which is this anchor negated. The canvas is what `normalize` leaves: two pixels of guard on each side, because a filtered blit reads the column beside the ink and clamping onto it changes the edge (v4.31)."
   },
   {
    "name": "penguin_beak",

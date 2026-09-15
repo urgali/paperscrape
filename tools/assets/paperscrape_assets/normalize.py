@@ -160,12 +160,17 @@ def co_registered_groups(names: set[str]) -> list[Group]:
 EXCLUSIONS: tuple[Exclusion, ...] = (
     Exclusion(
         "palmtree_fronds",
-        "The canvas is 102x176 and 176 is not a multiple of the authoring oversample, so the "
-        "sprite is already off the grid. Cropping the empty rows above the fronds is clean, but "
-        "the result is still off the grid because its bottom edge is the sprite's own; putting it "
-        "on the grid would mean padding back what was removed or cropping artwork. The pair also "
-        "shares the hand-tuned -87.45 origin, which is anchor semantics. Deferred to the "
-        "perspective work.",
+        "**v5.1 rewrote this entry, and every word of what it said had stopped being true.** It "
+        "described a 102x176 canvas off the authoring grid, a pair sharing a hand-tuned -87.45 "
+        "origin, and a deferral to the perspective work; the sprite had been 120x120 since the V2 "
+        "set and the origin had been derived from a declared attachment since then too. The "
+        "exclusion survived because an exclusion is never re-read: nothing fails when its reason "
+        "goes stale, which is the whole hazard of a list like this one. The v5.1 palm is 168x144 "
+        "and the reason it is here is now a real one. Its margin IS the registration: all three "
+        "crowns are drawn around one DECLARED_ATTACHMENT at (84, 78) px, which is where the "
+        "blades converge and which drawPalmTree blits negated, so cropping to the ink would move "
+        "the crown against the trunk and against the other two crowns. The same crop car_lights "
+        "refuses, for the same reason.",
     ),
     Exclusion(
         "wave_tube_body",
@@ -204,21 +209,31 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "Shares skyscraper_wall's 90x150 canvas and is blitted at the same origin, so the night "
         "facade lands exactly on the day one. Its ink is only the lit panes.",
     ),
-    Exclusion(
-        "ground_flowers",
-        "The canvas is the clump's footprint, not its ink: the margins around the blooms are the "
-        "spacing that keeps two adjacent clumps from touching, and the stems stand on the bottom "
-        "edge so the blit origin puts them on the ground line. Cropping to the ink would move both.",
+    *(
+        Exclusion(
+            name,
+            "The canvas is the clump's footprint, not its ink: the margins around the heads are "
+            "the spacing that keeps two adjacent clumps from touching, and the stems stand on the "
+            "bottom edge so the blit origin puts them on the ground line. Cropping to the ink "
+            "would move both. The pair share one canvas and one origin so the renderer can swap "
+            "them on the seasonal palette, which is a second reason neither may be cropped alone.",
+        )
+        for name in ("ground_flowers_bloom", "ground_flowers_dry")
     ),
     Exclusion(
         "palmtree_fronds_dead",
-        "Halloween's crown for the palm. Shares palmtree_fronds' canvas and content box so the two "
-        "blit at one origin; cropping it alone would separate them.",
+        "Halloween's crown for the palm. Shares palmtree_fronds' canvas and declared attachment "
+        "so the two blit at one origin; cropping it alone would separate them. Its content fills "
+        "only about half that canvas -- a crown that has collapsed back down the trunk occupies "
+        "less than a live one -- and that is the price of the shared origin, not padding.",
     ),
     Exclusion(
         "palmtree_fronds_frost",
-        "Overlays palmtree_fronds at the same origin and shares its off-grid canvas. Deferred for "
-        "the same reasons.",
+        "The winter palette's crown for the palm. **Not an overlay any more**: until v5.1 this was "
+        "five white caps blitted on top of the live crown, and this entry said so; it is a whole "
+        "frosted crown now, drawn instead of the live one, on the same canvas at the same declared "
+        "attachment. The reason not to crop is unchanged and is now the registration rather than a "
+        "shared off-grid canvas.",
     ),
     *(
         Exclusion(

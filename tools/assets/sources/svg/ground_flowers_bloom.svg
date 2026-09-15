@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="36" viewBox="0 0 36 12">
+  <!--
+    One clump of ground flowers in bloom: five kinds at three sizes on one canvas, so a scattering
+    of them is one blit rather than one per bloom.
+
+    **The blooming half of a pair.** `ground_flowers_dry` is the same clump gone over: seed heads,
+    thistles and a grass spike instead of petals. The renderer picks between them from the seasonal
+    palette (`fallColorsEnabled` / `winterColorsEnabled`), so a meadow in an autumn or a winter
+    scene is not a meadow in flower. Neither file is named for a season, because the dry one serves
+    two of them and a name that said `autumn` would be a lie every time it snowed.
+
+    Fixed art, deliberately. The user gets ON and OFF and no colour: a meadow whose flowers follow
+    a theme's building colour is a meadow of the wrong flowers, and every other decoration that
+    carries its own palette (the awning, the roof snow, the sleigh) is fixed for the same reason.
+
+    Every head is two cut papers, the same outline dropped to ink (mixed 34 % with #2B2A33) and
+    offset by 0.55 units, with the light paper over it, which is the shadow grammar the v4.32
+    buildings are drawn in. Edges are scalloped. Tulip, daisy, buttercup, bluebells, cosmos.
+
+    Everything stands on y=12, the canvas's own bottom edge, so the blit origin puts the stems on
+    the ground line and nothing has to be nudged per size.
+  -->
+  <path d="M5.50 12 Q5.35 9.10 5.20 6.20" stroke="#4E7A3A" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <path d="M12.50 12 Q12.65 8.40 12.80 4.80" stroke="#4E7A3A" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <path d="M19.50 12 Q19.45 9.80 19.40 7.60" stroke="#4E7A3A" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <path d="M26.50 12 Q25.95 8.60 26.40 5.20" stroke="#4E7A3A" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <path d="M32.50 12 Q32.55 9.40 32.60 6.80" stroke="#4E7A3A" stroke-width="0.85" stroke-linecap="round" fill="none"/>
+  <ellipse cx="3.95" cy="11.15" rx="2.00" ry="0.80" fill="#4D743A" transform="rotate(-25.0 3.95 11.15)"/><ellipse cx="3.40" cy="10.60" rx="2.00" ry="0.80" fill="#5E9A3E" transform="rotate(-25.0 3.40 10.60)"/>
+  <ellipse cx="15.75" cy="10.55" rx="2.00" ry="0.80" fill="#4D743A" transform="rotate(15.0 15.75 10.55)"/><ellipse cx="15.20" cy="10.00" rx="2.00" ry="0.80" fill="#5E9A3E" transform="rotate(15.0 15.20 10.00)"/>
+  <ellipse cx="23.15" cy="10.95" rx="2.00" ry="0.80" fill="#4D743A" transform="rotate(-18.0 23.15 10.95)"/><ellipse cx="22.60" cy="10.40" rx="2.00" ry="0.80" fill="#5E9A3E" transform="rotate(-18.0 22.60 10.40)"/>
+  <ellipse cx="35.15" cy="11.15" rx="2.00" ry="0.80" fill="#4D743A" transform="rotate(22.0 35.15 11.15)"/><ellipse cx="34.60" cy="10.60" rx="2.00" ry="0.80" fill="#5E9A3E" transform="rotate(22.0 34.60 10.60)"/>
+  <path d="M4.05 7.85 L4.05 5.38 Q4.81 3.77 5.41 4.91 Q5.75 3.48 6.09 4.91 Q6.69 3.77 7.45 5.38 L7.45 7.85 Z" fill="#A24A62"/><path d="M3.50 7.30 L3.50 4.83 Q4.27 3.22 4.86 4.36 Q5.20 2.93 5.54 4.36 Q6.13 3.22 6.90 4.83 L6.90 7.30 Z" fill="#E05A7A"/>
+  <path d="M16.25 4.95 L16.07 5.31 L15.69 5.58 L15.44 5.82 L15.45 6.16 L15.52 6.62 L15.40 7.00 L15.02 7.12 L14.56 7.05 L14.22 7.04 L13.98 7.29 L13.71 7.67 L13.35 7.85 L12.99 7.67 L12.72 7.29 L12.48 7.04 L12.14 7.05 L11.68 7.12 L11.30 7.00 L11.18 6.62 L11.25 6.16 L11.26 5.82 L11.01 5.58 L10.63 5.31 L10.45 4.95 L10.63 4.59 L11.01 4.32 L11.26 4.08 L11.25 3.74 L11.18 3.28 L11.30 2.90 L11.68 2.78 L12.14 2.85 L12.48 2.86 L12.72 2.61 L12.99 2.23 L13.35 2.05 L13.71 2.23 L13.98 2.61 L14.22 2.86 L14.56 2.85 L15.02 2.78 L15.40 2.90 L15.52 3.28 L15.45 3.74 L15.44 4.08 L15.69 4.32 L16.07 4.59 Z" fill="#B7B1AD"/><path d="M15.70 4.40 L15.52 4.76 L15.14 5.03 L14.89 5.27 L14.90 5.61 L14.97 6.07 L14.85 6.45 L14.47 6.57 L14.01 6.50 L13.67 6.49 L13.43 6.74 L13.16 7.12 L12.80 7.30 L12.44 7.12 L12.17 6.74 L11.93 6.49 L11.59 6.50 L11.13 6.57 L10.75 6.45 L10.63 6.07 L10.70 5.61 L10.71 5.27 L10.46 5.03 L10.08 4.76 L9.90 4.40 L10.08 4.04 L10.46 3.77 L10.71 3.53 L10.70 3.19 L10.63 2.73 L10.75 2.35 L11.13 2.23 L11.59 2.30 L11.93 2.31 L12.17 2.06 L12.44 1.68 L12.80 1.50 L13.16 1.68 L13.43 2.06 L13.67 2.31 L14.01 2.30 L14.47 2.23 L14.85 2.35 L14.97 2.73 L14.90 3.19 L14.89 3.53 L15.14 3.77 L15.52 4.04 Z" fill="#FFF7EC"/>
+  <circle cx="12.80" cy="4.40" r="1.00" fill="#F2B233"/>
+  <path d="M22.05 7.55 L21.85 7.95 L21.44 8.21 L21.14 8.41 L21.04 8.76 L20.92 9.23 L20.60 9.55 L20.15 9.48 L19.78 9.17 L19.50 8.95 L19.14 8.96 L18.65 8.99 L18.25 8.78 L18.18 8.34 L18.36 7.89 L18.48 7.55 L18.36 7.21 L18.18 6.76 L18.25 6.32 L18.65 6.11 L19.14 6.14 L19.50 6.15 L19.78 5.93 L20.15 5.62 L20.60 5.55 L20.92 5.87 L21.04 6.34 L21.14 6.69 L21.44 6.89 L21.85 7.15 Z" fill="#B08830"/><path d="M21.50 7.00 L21.30 7.40 L20.89 7.66 L20.59 7.86 L20.49 8.21 L20.37 8.68 L20.05 9.00 L19.60 8.93 L19.23 8.62 L18.95 8.40 L18.59 8.41 L18.10 8.44 L17.70 8.23 L17.63 7.79 L17.81 7.34 L17.93 7.00 L17.81 6.66 L17.63 6.21 L17.70 5.77 L18.10 5.56 L18.59 5.59 L18.95 5.60 L19.23 5.38 L19.60 5.07 L20.05 5.00 L20.37 5.32 L20.49 5.79 L20.59 6.14 L20.89 6.34 L21.30 6.60 Z" fill="#F5B82E"/>
+  <circle cx="19.40" cy="7.00" r="0.60" fill="#C9731A"/>
+  <path d="M25.08 5.95 L26.02 5.95 L26.60 7.65 L26.07 7.95 L25.55 7.65 L25.03 7.95 L24.50 7.65 Z" fill="#5F6DA5"/><path d="M24.53 5.40 L25.47 5.40 L26.05 7.10 L25.52 7.40 L25.00 7.10 L24.48 7.40 L23.95 7.10 Z" fill="#7A8FE0"/>
+  <path d="M26.98 4.95 L27.92 4.95 L28.50 6.65 L27.97 6.95 L27.45 6.65 L26.93 6.95 L26.40 6.65 Z" fill="#5F6DA5"/><path d="M26.43 4.40 L27.37 4.40 L27.95 6.10 L27.42 6.40 L26.90 6.10 L26.38 6.40 L25.85 6.10 Z" fill="#7A8FE0"/>
+  <path d="M28.38 6.75 L29.32 6.75 L29.90 8.45 L29.38 8.75 L28.85 8.45 L28.33 8.75 L27.80 8.45 Z" fill="#5F6DA5"/><path d="M27.83 6.20 L28.77 6.20 L29.35 7.90 L28.82 8.20 L28.30 7.90 L27.78 8.20 L27.25 7.90 Z" fill="#7A8FE0"/>
+  <path d="M35.45 6.55 L35.26 6.92 L34.86 7.17 L34.58 7.38 L34.54 7.72 L34.52 8.19 L34.30 8.54 L33.88 8.56 L33.47 8.34 L33.15 8.21 L32.83 8.34 L32.42 8.56 L32.00 8.54 L31.78 8.19 L31.76 7.72 L31.72 7.38 L31.44 7.17 L31.04 6.92 L30.85 6.55 L31.04 6.18 L31.44 5.93 L31.72 5.72 L31.76 5.38 L31.78 4.91 L32.00 4.56 L32.42 4.54 L32.83 4.76 L33.15 4.89 L33.47 4.76 L33.88 4.54 L34.30 4.56 L34.52 4.91 L34.54 5.38 L34.58 5.72 L34.86 5.93 L35.26 6.18 Z" fill="#AD6B7F"/><path d="M34.90 6.00 L34.71 6.37 L34.31 6.62 L34.03 6.83 L33.99 7.17 L33.97 7.64 L33.75 7.99 L33.33 8.01 L32.92 7.79 L32.60 7.66 L32.28 7.79 L31.87 8.01 L31.45 7.99 L31.23 7.64 L31.21 7.17 L31.17 6.83 L30.89 6.62 L30.49 6.37 L30.30 6.00 L30.49 5.63 L30.89 5.38 L31.17 5.17 L31.21 4.83 L31.23 4.36 L31.45 4.01 L31.87 3.99 L32.28 4.21 L32.60 4.34 L32.92 4.21 L33.33 3.99 L33.75 4.01 L33.97 4.36 L33.99 4.83 L34.03 5.17 L34.31 5.38 L34.71 5.63 Z" fill="#F08DA6"/>
+  <circle cx="32.60" cy="6.00" r="0.70" fill="#F5D95A"/>
+</svg>

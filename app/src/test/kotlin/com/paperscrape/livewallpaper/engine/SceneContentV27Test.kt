@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.engine
 
+import com.paperscrape.livewallpaper.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -67,6 +68,52 @@ class SceneContentV27Test {
         assertEquals(plain.fallColorsEnabled, flowered.fallColorsEnabled)
         assertEquals(plain.christmasDecorationsEnabled, flowered.christmasDecorationsEnabled)
         assertEquals(plain.halloweenEnabled, flowered.halloweenEnabled)
+    }
+
+    // --- Which clump, v5.1 --------------------------------------------------------------------
+
+    @Test
+    fun `the seasonal palette picks the clump and the flowers switch does not`() {
+        val plain = defaultCustomizationFor("spring")
+        assertEquals(
+            "no seasonal palette means the meadow is in flower",
+            R.drawable.ground_flowers_bloom,
+            SceneObjectRenderer.groundFlowerSprite(plain),
+        )
+        assertEquals(
+            "an autumn scene with flowers on gets the clump gone over, not midsummer blooms",
+            R.drawable.ground_flowers_dry,
+            SceneObjectRenderer.groundFlowerSprite(plain.copy(fallColorsEnabled = true)),
+        )
+        assertEquals(
+            "winter takes the dry clump too: seed heads out of the snow, not a third drawing",
+            R.drawable.ground_flowers_dry,
+            SceneObjectRenderer.groundFlowerSprite(plain.copy(winterColorsEnabled = true)),
+        )
+    }
+
+    @Test
+    fun `flowersEnabled says whether, never which`() {
+        // The whole point of hanging the choice on the palette: v5.1 added no preference, no menu
+        // entry and no backup field, so `flowersEnabled` has to stay a pure on/off. If turning the
+        // flowers off and on again could change *which* clump is drawn, it would have quietly
+        // become a second seasonal control.
+        for (theme in ThemeCatalog.ALL) {
+            val c = defaultCustomizationFor(theme.id)
+            assertEquals(
+                "${theme.id}: the switch moved the drawing",
+                SceneObjectRenderer.groundFlowerSprite(c.copy(flowersEnabled = false)),
+                SceneObjectRenderer.groundFlowerSprite(c.copy(flowersEnabled = true)),
+            )
+        }
+    }
+
+    @Test
+    fun `the two clumps are two drawings`() {
+        // A pair whose members are the same resource is a feature that does nothing and fails
+        // nothing -- which is exactly what the registry's IDENTICAL_GAP state exists to record,
+        // and what the seasonal person art shipped for a whole release.
+        assertTrue(R.drawable.ground_flowers_bloom != R.drawable.ground_flowers_dry)
     }
 
     // --- Balloons, removed --------------------------------------------------------------------

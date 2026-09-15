@@ -10,6 +10,7 @@ import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Egg
 import androidx.compose.material.icons.outlined.LocalFlorist
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -27,13 +28,14 @@ import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-/** The five seasons decorations are grouped under. Presentation only; no flag knows about it. */
+/** The six seasons decorations are grouped under. Presentation only; no flag knows about it. */
 private enum class Season(val title: String) {
     WINTER("Winter"),
     CHRISTMAS("Christmas"),
     HALLOWEEN("Halloween"),
     EASTER("Easter"),
     SPRING("Spring"),
+    SUMMER("Summer"),
 }
 
 /**
@@ -160,6 +162,9 @@ internal fun SeasonsScreen(
             SeasonRow(Season.SPRING, Icons.Outlined.LocalFlorist, listOf(
                 "Flowers" to customization.flowersEnabled,
             )) { openSeason = Season.SPRING }
+            SeasonRow(Season.SUMMER, Icons.Outlined.WbSunny, listOf(
+                "Palms" to customization.palmsEnabled,
+            )) { openSeason = Season.SUMMER }
         }
 
         OutlinedButton(
@@ -283,6 +288,16 @@ private fun SeasonDetailScreen(
                         onCheckedChange = { scope.launch { prefs.setFlowersEnabled(it, forThemeId) } },
                     )
                 }
+                Season.SUMMER -> {
+                    SettingsSwitchRow(
+                        title = "Palms",
+                        supporting = "Palm trees on the Beach and Desert themes. Turn them off and those two draw the " +
+                            "same broadleaf trees as everywhere else - same places, same number, so the shore does " +
+                            "not go bare.",
+                        checked = customization.palmsEnabled,
+                        onCheckedChange = { scope.launch { prefs.setPalmsEnabled(it, forThemeId) } },
+                    )
+                }
             }
         }
         SettingsCaption(
@@ -292,6 +307,10 @@ private fun SeasonDetailScreen(
                 Season.HALLOWEEN -> "Halloween and Horror sky are independent of each other and of the palette."
                 Season.EASTER -> "Both are available on any theme, not only the Easter one."
                 Season.SPRING -> "Flowers are available on any theme, not only the Spring one."
+                // The one switch in this screen that is on out of the box, and the only one whose
+                // scope is two themes rather than all of them: no other layout places a palm, so
+                // on the other ten this changes nothing whichever way it is set.
+                Season.SUMMER -> "Only Beach and Desert have palms. On every other theme this changes nothing."
             },
         )
     }

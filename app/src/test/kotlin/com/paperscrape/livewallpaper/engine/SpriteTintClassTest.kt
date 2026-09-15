@@ -126,8 +126,10 @@ class SpriteTintClassTest {
         // Halloween's palm crown. Fixed art in the trunk browns for the same reason
         // `tree_dead_branches` is: a dead frond is not a theme colour.
         "palmtree_fronds_dead",
-        // The flower clump. Fixed art for the reason its own registry note gives.
-        "ground_flowers",
+        // The flower clumps, in bloom and gone over. Fixed art for the reason their own
+        // registry notes give: a meadow that followed a theme's building tint would be a meadow
+        // of the wrong flowers.
+        "ground_flowers_bloom", "ground_flowers_dry",
         // **The neighbourhood's fixed layer, v5.0.** One `_fx` per piece: every ink that does not
         // follow one of the two colours the engine resolves at the blit, plus the dark half of
         // every ink that does -- a paper shadow is `(1-t)*paint + t*INK` and the `t*INK` term does

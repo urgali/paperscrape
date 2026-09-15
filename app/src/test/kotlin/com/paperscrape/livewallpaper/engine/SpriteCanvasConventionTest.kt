@@ -76,6 +76,21 @@ class SpriteCanvasConventionTest {
         // `pumpkin_face`. Its twin `wave_tube_crest` does reach the canvas, and must: the spray is
         // thrown to the very front of the shape.
         "wave_tube_body",
+        // **v5.1's palm crowns, and their margin is the declared attachment itself.** All three
+        // are drawn on one 168x144 canvas around the point at (84, 78) px where the blades
+        // converge, because the live crown's blades fall *below* their own convergence and the
+        // frosted one's do too -- that is the shape of a palm, and it is what the 120x120 canvas
+        // they replace had no room for. `drawPalmTree` blits all three at that attachment negated,
+        // so a crop onto either one's ink would move it against the other two and against the
+        // trunk. The same registration crop as `pumpkin_face` and `wave_tube_body`.
+        //
+        // `palmtree_fronds_dead` shares that canvas and that attachment and is deliberately *not*
+        // here: a crown that has collapsed back down the trunk reaches the canvas's own bottom
+        // edge, so it satisfies the convention without an exemption. The three are one drawing in
+        // three states -- if one of them is ever recut, all three are, and this list is part of
+        // what has to be re-read when that happens.
+        "palmtree_fronds",
+        "palmtree_fronds_frost",
         // `tree_fir_snow` was here until v4.21 trimmed it to its content and gave it its own blit
         // origin. See this class's own doc for why that is a recovery rather than a lost anchor.
     )
@@ -139,7 +154,10 @@ class SpriteCanvasConventionTest {
         // shared rather than written twice.
         // 370 in v5.0: the 34 flat-facade building sprites left and the 72 pieces of the redrawn
         // neighbourhood arrived. See `SpriteGeometryTest.decodedByteBudget`, v5.0.
-        assertEquals("370 sprites are expected", 370, all.size)
+        // 371 in v5.1: the one flower clump became two, in bloom and gone over, so the scene can
+        // stop drawing midsummer blooms under an autumn or a winter palette. One canvas, one
+        // origin, one extra 108x36 PNG.
+        assertEquals("371 sprites are expected", 371, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -154,7 +172,14 @@ class SpriteCanvasConventionTest {
         // 193 until v5.0. The 34 flat facades reached their edges, as a facade drawn to its own
         // outline does; the 72 pieces that replace them are layers, and 48 of them reach an edge
         // while the rest carry the registration margin the exemption above describes.
-        assertEquals("207 of them reach a canvas edge", 207, touching)
+        // 208 in v5.1: the second flower clump reaches its own edges exactly as the first does --
+        // the stems stand on the bottom edge, which is what puts them on the ground line.
+        // 206 with the palms redrawn in the same release, and it falls for the reason this test
+        // exists to record rather than for waste: the live crown and the frosted one moved onto a
+        // canvas built around their declared attachment and are now two of the exemptions above.
+        // The dead crown reaches its own bottom edge and the trunk its top and bottom, so those
+        // two stay in this count and only two names crossed over.
+        assertEquals("206 of them reach a canvas edge", 206, touching)
     }
 
     private companion object {

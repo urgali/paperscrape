@@ -15,7 +15,7 @@ absolute threshold asks small sprites for more precision than large ones.
 
 | Verdict | Sprites |
 |---|---|
-| `PIXEL_IDENTICAL` | 137 |
+| `PIXEL_IDENTICAL` | 104 |
 | `EDGE_EQUIVALENT` | 0 |
 | `DIVERGENT` | 0 |
 
@@ -23,12 +23,6 @@ absolute threshold asks small sprites for more precision than large ones.
 
 | Sprite | Size | IoU | Mean alpha diff | Max alpha diff | Differing px | Solid/empty conflicts | Edge-confined | Max RGB diff | bbox delta | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `bar_cornice` | 300x48 | 1.000000 | 0.0000 | 0 | 0 / 14400 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `bar_door` | 60x84 | 1.000000 | 0.0000 | 0 | 0 / 5040 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `bar_lantern` | 18x30 | 1.000000 | 0.0000 | 0 | 0 / 540 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `bar_roof_snow` | 300x18 | 1.000000 | 0.0000 | 0 | 0 / 5400 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `bar_sign` | 246x30 | 1.000000 | 0.0000 | 0 | 0 / 7380 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `bar_wall` | 270x276 | 1.000000 | 0.0000 | 0 | 0 / 74520 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `bird_body` | 51x21 | 1.000000 | 0.0000 | 0 | 0 / 1071 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `bunny_body` | 102x183 | 1.000000 | 0.0000 | 0 | 0 / 18666 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `bunny_innerear` | 45x45 | 1.000000 | 0.0000 | 0 | 0 / 2025 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
@@ -44,7 +38,7 @@ absolute threshold asks small sprites for more precision than large ones.
 | `car_window_estate` | 243x75 | 1.000000 | 0.0000 | 0 | 0 / 18225 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `car_window_saloon` | 177x75 | 1.000000 | 0.0000 | 0 | 0 / 13275 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `cloud_body` | 798x396 | 1.000000 | 0.0000 | 0 | 0 / 316008 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `dolphin_body` | 345x174 | 1.000000 | 0.0000 | 0 | 0 / 60030 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `dolphin_body` | 342x171 | 1.000000 | 0.0000 | 0 | 0 / 58482 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `easteregg_pattern` | 96x57 | 1.000000 | 0.0000 | 0 | 0 / 5472 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `easteregg_shell` | 96x120 | 1.000000 | 0.0000 | 0 | 0 / 11520 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `firetruck_body` | 297x174 | 1.000000 | 0.0000 | 0 | 0 / 51678 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
@@ -52,22 +46,8 @@ absolute threshold asks small sprites for more precision than large ones.
 | `firework` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `gift_box` | 120x90 | 1.000000 | 0.0000 | 0 | 0 / 10800 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `gift_ribbon` | 120x120 | 1.000000 | 0.0000 | 0 | 0 / 14400 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `ground_flowers` | 108x36 | 1.000000 | 0.0000 | 0 | 0 / 3888 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_large_chimney` | 39x105 | 1.000000 | 0.0000 | 0 | 0 / 4095 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_large_door` | 66x135 | 1.000000 | 0.0000 | 0 | 0 / 8910 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_large_roof` | 450x150 | 1.000000 | 0.0000 | 0 | 0 / 67500 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_large_roof_snow` | 300x117 | 1.000000 | 0.0000 | 0 | 0 / 35100 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_large_trim` | 450x18 | 1.000000 | 0.0000 | 0 | 0 / 8100 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_large_wall` | 420x285 | 1.000000 | 0.0000 | 0 | 0 / 119700 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_shared_planter` | 78x18 | 1.000000 | 0.0000 | 0 | 0 / 1404 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_shared_window` | 66x63 | 1.000000 | 0.0000 | 0 | 0 / 4158 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_small_chimney` | 36x90 | 1.000000 | 0.0000 | 0 | 0 / 3240 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_small_door` | 60x114 | 1.000000 | 0.0000 | 0 | 0 / 6840 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_small_roof` | 318x120 | 1.000000 | 0.0000 | 0 | 0 / 38160 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_small_roof_snow` | 204x99 | 1.000000 | 0.0000 | 0 | 0 / 20196 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_small_trim` | 318x12 | 1.000000 | 0.0000 | 0 | 0 / 3816 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_small_wall` | 288x210 | 1.000000 | 0.0000 | 0 | 0 / 60480 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `house_window_lit` | 66x66 | 1.000000 | 0.0000 | 0 | 0 / 4356 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `ground_flowers_bloom` | 108x36 | 1.000000 | 0.0000 | 0 | 0 / 3888 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `ground_flowers_dry` | 108x36 | 1.000000 | 0.0000 | 0 | 0 / 3888 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `leaf_pile` | 108x21 | 1.000000 | 0.0000 | 0 | 0 / 2268 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `lightning_bolt` | 90x252 | 1.000000 | 0.0000 | 0 | 0 / 22680 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `moon_crescent` | 240x240 | 1.000000 | 0.0000 | 0 | 0 / 57600 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
@@ -123,23 +103,10 @@ absolute threshold asks small sprites for more precision than large ones.
 | `pumpkin_face` | 114x90 | 1.000000 | 0.0000 | 0 | 0 / 10260 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `pumpkin_stem` | 18x36 | 1.000000 | 0.0000 | 0 | 0 / 648 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `rainbow_arc` | 594x297 | 1.000000 | 0.0000 | 0 | 0 / 176418 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `restaurant_awning` | 276x27 | 1.000000 | 0.0000 | 0 | 0 / 7452 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `restaurant_cornice` | 330x36 | 1.000000 | 0.0000 | 0 | 0 / 11880 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `restaurant_door` | 54x84 | 1.000000 | 0.0000 | 0 | 0 / 4536 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `restaurant_roof_snow` | 156x24 | 1.000000 | 0.0000 | 0 | 0 / 3744 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `restaurant_sign` | 276x39 | 1.000000 | 0.0000 | 0 | 0 / 10764 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `restaurant_wall` | 300x288 | 1.000000 | 0.0000 | 0 | 0 / 86400 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `restaurant_window` | 90x66 | 1.000000 | 0.0000 | 0 | 0 / 5940 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `sailboat_hull` | 252x51 | 1.000000 | 0.0000 | 0 | 0 / 12852 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `sailboat_sail` | 210x180 | 1.000000 | 0.0000 | 0 | 0 / 37800 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `sailboat_hull` | 246x51 | 1.000000 | 0.0000 | 0 | 0 / 12546 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
+| `sailboat_sail` | 183x180 | 1.000000 | 0.0000 | 0 | 0 / 32940 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `santa_sleigh_scene` | 594x123 | 1.000000 | 0.0000 | 0 | 0 / 73062 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `santa_sleigh_trot` | 594x123 | 1.000000 | 0.0000 | 0 | 0 / 73062 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `skyscraper_canopy` | 132x18 | 1.000000 | 0.0000 | 0 | 0 / 2376 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `skyscraper_entrance` | 96x96 | 1.000000 | 0.0000 | 0 | 0 / 9216 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `skyscraper_roof_snow` | 168x27 | 1.000000 | 0.0000 | 0 | 0 / 4536 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `skyscraper_setback` | 180x96 | 1.000000 | 0.0000 | 0 | 0 / 17280 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `skyscraper_wall` | 270x450 | 1.000000 | 0.0000 | 0 | 0 / 121500 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
-| `skyscraper_wall_lit` | 237x300 | 1.000000 | 0.0000 | 0 | 0 / 71100 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `snow_pile` | 108x21 | 1.000000 | 0.0000 | 0 | 0 / 2268 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `snowman_body` | 114x222 | 1.000000 | 0.0000 | 0 | 0 / 25308 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
 | `snowman_nose` | 39x12 | 1.000000 | 0.0000 | 0 | 0 / 468 | 0 | yes | 0 | 0,0,0,0 | `PIXEL_IDENTICAL` |
@@ -168,6 +135,48 @@ recorded state of the project rather than an omission from a report.
 
 | Sprite | Why |
 |---|---|
+| `bar_chamfer_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `bar_chamfer_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `bar_chamfer_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `bar_chamfer_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `bar_signboard_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `bar_signboard_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `bar_signboard_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `bar_signboard_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_ground_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_ground_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_ground_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_gable_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_gable_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_gable_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_gable_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_mansard_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_mansard_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_mansard_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_mansard_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_turret_gable_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_turret_gable_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_turret_gable_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_turret_tower_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_turret_tower_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_turret_tower_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_roof_turret_tower_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_storey_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_storey_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_large_storey_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_ground_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_ground_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_ground_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_roof_gable_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_roof_gable_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_roof_gable_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_roof_mansard_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_roof_mansard_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_roof_mansard_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_roof_mansard_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_storey_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_storey_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `house_small_storey_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
 | `person_boy_summer_head_car_fx` | Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
 | `person_boy_summer_head_car_mh` | Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
 | `person_boy_summer_head_car_ms` | Written by tools/generate_people_layers.py from person_boy_summer_head_car's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
@@ -363,3 +372,33 @@ recorded state of the project rather than an omission from a report.
 | `person_woman_winter_walk2_mh` | Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
 | `person_woman_winter_walk2_ms` | Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
 | `person_woman_winter_walk2_mt` | Written by tools/generate_people_layers.py from person_woman_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `restaurant_pavilion_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `restaurant_pavilion_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `restaurant_pavilion_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `restaurant_pavilion_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_bay_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_bay_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_crown_dome_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_crown_dome_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_crown_dome_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_crown_spire_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_crown_spire_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_crown_spire_snow_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_row_tier1_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_row_tier1_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_row_tier2_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_row_tier2_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_row_tier3_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_row_tier3_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_snow_left1_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_snow_left2_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_snow_right1_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_snow_right2_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_snow_top_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_tier1_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_tier1_mg` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_tier1_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_tier2_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_tier2_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_tier3_fx` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |
+| `tower_tier3_mw` | Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one. |

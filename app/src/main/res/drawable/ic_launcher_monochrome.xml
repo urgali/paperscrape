@@ -1,21 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Single-color silhouette for Android 13+ themed icons (Settings > Wallpaper & style >
-     Themed icons). The system applies its own tint, so this uses one flat fill color and drops
-     internal detail (window/door outlines) that wouldn't read at a single flat tint anyway —
-     just the sun + house shape, matching ic_launcher_foreground's proportions and position. -->
+<!-- Single-colour silhouette for Android 13+ themed icons (Settings > Wallpaper & style >
+     Themed icons). The system throws the colours away and tints the silhouette, so everything
+     that tells one building from another has to live in the shape.
+
+     That is why the silhouette is NOT one solid block: gaps are left between buildings that
+     touch, and the windows are holes (evenOdd). Without colour they are the only thing that
+     makes the heights and the pieces read instead of a single mass. Filling them in "to
+     simplify" deletes the drawing: do not.
+
+     The gaps measured on this pathData, edge to edge: 1.59 dp between bar and tree, 1.60
+     between spired tower and bar, 2.40 between small house and domed tower, 2.90 for the other
+     two pairs. The tightest is 1.59 dp. A launcher shows the middle 72 dp of this canvas, so 1
+     dp is size/72 pixels: that gap is 4.2 px on a 192 px icon but only 1.06 px at 48 px. It is
+     the first thing to close if anyone thickens the silhouette.
+
+     Containment: 27.95 dp from the centre against a safe radius of 33 dp, so 5.05 dp of margin. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#FF000000"
-        android:pathData="M30,27 m-10.5,0 a10.5,10.5 0,1 1,21 0 a10.5,10.5 0,1 1,-21 0" />
-    <group android:translateX="54" android:translateY="82" android:scaleX="0.6" android:scaleY="0.6">
-        <path android:fillColor="#FF000000"
-            android:pathData="M-38,-4 L38,-4 L38,2 L-38,2 Z
-                               M-36,-46 L36,-46 L36,0 L-36,0 Z
-                               M-46,-46 L0,-80 L46,-46 Z
-                               M18,-74 L30,-74 L30,-54 L18,-54 Z
-                               M16,-77 L32,-77 L32,-70 L16,-70 Z" />
-    </group>
+
+    <!-- Small house -->
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M35.4,65.2 L35.4,61.29 L34.36,60.5 L33,59.46 L30.6,61.29 L30.6,62.76 L31.95,62.76 L31.95,64.11 L30.6,64.11 L30.6,65.2 Z M35.4,62.76 L35.4,64.11 L34.05,64.11 L34.05,62.76 Z" />
+    <!-- Domed tower -->
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M40.67,41.43 L40.34,41.57 L40.1,41.73 L39.97,41.87 L39.92,41.96 L39.9,42.07 L39.9,47.84 L38.9,47.84 L38.9,54.32 L37.8,54.32 L37.8,65.2 L46.2,65.2 L46.2,58.8 L44.63,58.8 L45.05,58.48 L42.87,58.48 L42.87,56.08 L45.27,56.08 L45.27,58.31 L46.2,57.6 L46.2,54.32 L45.1,54.32 L45.1,47.84 L44.1,47.84 L44.1,42.07 L44.08,41.96 L44.03,41.87 L43.9,41.73 L43.66,41.57 L43.33,41.43 L42.93,41.31 L42,41.15 L41.07,41.31 Z M40.8,49.08 L43.2,49.08 L43.2,51.48 L40.8,51.48 Z M38.73,56.08 L41.13,56.08 L41.13,58.48 L38.73,58.48 Z M38.73,63.44 L38.73,61.04 L41.13,61.04 L41.13,63.44 Z M42.87,63.44 L42.87,61.04 L45.27,61.04 L45.27,63.44 Z" />
+    <!-- Large house -->
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M57.9,65.2 L57.9,57.41 L56.21,56.12 L56.21,56.12 L53.5,54.06 L49.1,57.41 L49.1,65.2 Z M52,60.24 L52,62.64 L49.6,62.64 L49.6,60.24 Z M57.4,60.24 L57.4,62.64 L55,62.64 L55,60.24 Z" />
+    <!-- Spired tower -->
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M63.11,43.89 L62.01,43.89 L62.01,51.72 L60.8,51.72 L60.8,65.2 L70.2,65.2 L70.2,56.2 L70.2,51.72 L68.99,51.72 L68.99,43.89 L67.89,43.89 L67.89,37.24 L65.5,33.66 L63.11,37.24 Z M64.3,45.81 L66.7,45.81 L66.7,48.21 L64.3,48.21 Z M62.07,55.29 L62.07,52.89 L64.47,52.89 L64.47,55.29 Z M66.53,55.29 L66.53,52.89 L68.93,52.89 L68.93,55.29 Z M62.07,59.66 L62.07,57.26 L64.47,57.26 L64.47,59.66 Z M66.53,59.66 L66.53,57.26 L68.93,57.26 L68.93,59.66 Z M62.07,64.03 L62.07,61.63 L64.47,61.63 L64.47,64.03 Z M66.53,64.03 L66.53,61.63 L68.93,61.63 L68.93,64.03 Z" />
+    <!-- Bar -->
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M76.8,65.2 L76.8,63.76 L76.61,63.66 L76.24,63.66 L76.24,63.46 L76.05,63.36 L75.39,62.81 L75.04,62.39 L75.04,63.66 L71.8,63.66 L71.8,65.2 Z M74.1,59.7 L74.18,58.84 L74.43,58.01 L74.55,57.8 L74.2,57.8 L74.2,55.2 L72.44,55.2 L72.44,57.8 L71.8,57.8 L71.8,60.42 L74.17,60.42 Z" />
+    <!-- Tree -->
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M79.57,62.28 L80.05,62.02 L80.48,61.68 L80.82,61.25 L81.08,60.77 L81.24,60.25 L81.3,59.7 L81.24,59.15 L81.08,58.63 L80.82,58.15 L80.48,57.72 L80.05,57.38 L79.57,57.12 L79.05,56.96 L78.5,56.9 L77.95,56.96 L77.43,57.12 L76.95,57.38 L76.52,57.72 L76.18,58.15 L75.92,58.63 L75.76,59.15 L75.7,59.7 L75.76,60.25 L75.92,60.77 L76.18,61.25 L76.52,61.68 L76.95,62.02 L77.43,62.28 L78.4,62.58 L78.4,65.2 L78.6,65.2 L78.6,62.58 Z" />
+    <!-- Taxi -->
+    <path android:fillColor="#FF000000" android:fillType="evenOdd"
+        android:pathData="M50.16,72.82 L50.16,72.85 L50.15,72.88 L50.15,72.91 L50.14,72.93 L50.12,72.96 L50.11,72.99 L50.09,73.01 L50.07,73.03 L50.05,73.05 L50.03,73.07 L50,73.08 L49.97,73.1 L49.95,73.11 L49.92,73.11 L49.89,73.12 L49.86,73.12 L47.3,73.12 L47.3,77.2 L48.17,77.2 L48.2,77.2 L48.23,77.21 L48.26,77.21 L48.29,77.22 L48.32,77.24 L48.34,77.25 L48.36,77.27 L48.39,77.29 L48.41,77.32 L48.42,77.34 L48.44,77.37 L48.45,77.39 L48.46,77.42 L48.47,77.45 L48.54,77.93 L48.74,78.31 L49.05,78.62 L49.43,78.82 L49.86,78.89 L50.29,78.82 L50.67,78.62 L50.98,78.31 L51.18,77.93 L51.25,77.45 L51.26,77.42 L51.27,77.39 L51.28,77.37 L51.3,77.34 L51.31,77.32 L51.33,77.29 L51.36,77.27 L51.38,77.25 L51.4,77.24 L51.43,77.22 L51.46,77.21 L51.49,77.21 L51.52,77.2 L51.55,77.2 L55.45,77.2 L55.48,77.2 L55.51,77.21 L55.54,77.21 L55.57,77.22 L55.6,77.24 L55.62,77.25 L55.64,77.27 L55.67,77.29 L55.69,77.32 L55.7,77.34 L55.72,77.37 L55.73,77.39 L55.74,77.42 L55.75,77.45 L55.82,77.93 L56.02,78.31 L56.33,78.62 L56.71,78.82 L57.14,78.89 L57.57,78.82 L57.95,78.62 L58.26,78.31 L58.46,77.93 L58.53,77.45 L58.54,77.42 L58.55,77.39 L58.56,77.37 L58.58,77.34 L58.59,77.32 L58.61,77.29 L58.64,77.27 L58.66,77.25 L58.68,77.24 L58.71,77.22 L58.74,77.21 L58.77,77.21 L58.8,77.2 L58.83,77.2 L59.7,77.2 L59.7,73.12 L56.62,73.12 L56.59,73.12 L56.56,73.11 L56.53,73.11 L56.51,73.1 L56.48,73.08 L56.45,73.07 L56.43,73.05 L56.41,73.03 L56.39,73.01 L56.37,72.99 L56.36,72.96 L56.34,72.93 L56.33,72.91 L56.33,72.88 L56.32,72.85 L56.32,72.82 L56.32,68.96 L50.16,68.96 Z" />
 </vector>

@@ -79,7 +79,7 @@ class UnitFrameTest {
         "santaSleigh" to "1/3 px of the sleigh",
         "dolphin" to "1/3 px of dolphin_body",
         "sailboat" to "1/3 px of sailboat_hull and sailboat_sail",
-        "flower" to "1/3 px of ground_flowers",
+        "flower" to "1/3 px of ground_flowers_bloom / ground_flowers_dry (one canvas, two drawings)",
         "pile" to "1/3 px of leaf_pile",
         "lake" to "1/3 px of the lake band's own sprites",
         "objectLocal" to "any scene object's own local units -- a bound over all of them, " +

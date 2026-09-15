@@ -96,6 +96,20 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
      * shapes whose paint carried the alpha; as sprites they still need it, and routing them
      * through [drawTinted] with a white tint would say "tinted with the identity colour", which
      * is exactly the wording the fixed-art/tintable split exists to make unambiguous.
+     *
+     * [shade] is **how much light is falling on the artwork**, and it is why this is a parameter
+     * of the fixed-art entry point rather than a use of [drawTinted]. A tint answers "what colour
+     * is this object"; a shade answers "how lit is it", and the two are not the same question
+     * even though `MULTIPLY` is the same arithmetic underneath. Fixed art keeps every colour it
+     * was drawn with -- their relationships survive a neutral multiplier exactly, which is the
+     * property the tint/fixed-art split is defined by -- and [UNTINTED], the default, is full
+     * daylight.
+     *
+     * **Pass a neutral grey.** Nothing enforces it here, because there is no cheap way to, but a
+     * coloured value through this argument is a tint wearing a shade's name and belongs in
+     * [drawTinted] where the registry and `SpriteTintClassTest` can both see it. The one caller
+     * is [SceneObjectRenderer.drawPalmTree], whose grey is derived from the scene's own
+     * day/night pair rather than chosen.
      */
     fun draw(
         canvas: SceneCanvas,
@@ -104,8 +118,9 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
         originY: Float,
         scale: SpriteScale,
         alpha: Int = 255,
+        shade: Int = UNTINTED,
     ) {
-        blit(canvas, resId, originX, originY, scale, UNTINTED, alpha, additive = false)
+        blit(canvas, resId, originX, originY, scale, shade, alpha, additive = false)
     }
 
     /**
@@ -189,8 +204,11 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
         /**
          * The `MULTIPLY` identity: multiplying a sprite by white leaves it exactly as authored, so
          * an untinted blit and a white-tinted one are the same operation and need no separate path.
+         *
+         * It is also full daylight for [draw]'s `shade`, and the same value serves both because
+         * they are the same identity: nothing removed, nothing added.
          */
-        private const val UNTINTED = 0xFFFFFFFF.toInt()
+        internal const val UNTINTED = 0xFFFFFFFF.toInt()
 
         /**
          * The oversample baked into every [SpriteScale.SCENE_UNITS] sprite: it is authored at 3x

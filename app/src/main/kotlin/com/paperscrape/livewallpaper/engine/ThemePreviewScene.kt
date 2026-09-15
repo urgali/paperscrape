@@ -130,7 +130,7 @@ object ThemePreviewScenes {
     private const val CAR_PAINTED_FLOOR_UNITS = 30.5f
 
     /** `SceneObjectCatalog` maps these two themes' tree slots to `PALM_TREE`. */
-    private val PALM_THEMES = setOf("beach", "desert")
+    internal val PALM_THEMES = setOf("beach", "desert")
 
     /** The carved moon's own tint in `PaperRenderer`; not the theme's `moonColor`. */
     private const val HALLOWEEN_MOON_COLOUR = 0xFFFF8C2A.toInt()
@@ -152,7 +152,9 @@ object ThemePreviewScenes {
         // Night for the two themes whose subject *is* the night: the fireworks theme and the
         // horror sky. Everything else reads its day palette, which is what a gallery is for.
         val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
-        val palms = theme.id in PALM_THEMES
+        // The palms switch, read the same way the wallpaper reads it: with it off, those two
+        // themes' tree slots draw the ordinary tree, so the card has to show that and not palms.
+        val palms = theme.id in PALM_THEMES && c.palmsEnabled
 
         val skyTop: Int
         val skyBottom: Int
@@ -375,12 +377,17 @@ object ThemePreviewScenes {
         // preview showing something the scene does not contain, which is the one thing this file
         // must not do.
         if (c.flowersEnabled) {
+            // Which clump, from the renderer's own function rather than from a copy of its rule:
+            // the card is the one place a user sees the two side by side as they flip the seasonal
+            // palette, so a preview drawing the blooming clump under autumn leaves would be
+            // advertising a scene the wallpaper does not draw.
+            val flowers = SceneObjectRenderer.groundFlowerSprite(c)
             var seed = theme.id.hashCode() xor 0x5EED
             repeat(10) { i ->
                 seed = seed * 1103515245 + 12345
                 val x = 24f + i * 31f + ((seed ushr 9) % 12)
                 val y = ROW_GROUND - ((seed ushr 5) % 14)
-                groundItems += PreviewItem(x, y, 0.95f, listOf(PreviewSprite(R.drawable.ground_flowers, -18f, -12f)))
+                groundItems += PreviewItem(x, y, 0.95f, listOf(PreviewSprite(flowers, -18f, -12f)))
             }
         }
         if (theme.hasFireworks) {
@@ -646,16 +653,32 @@ object ThemePreviewScenes {
         return parts
     }
 
-    private fun palmTree(dead: Boolean, frost: Boolean): List<PreviewSprite> {
-        val parts = mutableListOf(PreviewSprite(R.drawable.palmtree_trunk, -6f, -58f))
-        parts += if (dead) {
-            PreviewSprite(R.drawable.palmtree_fronds_dead, -20f, -90.33f)
-        } else {
-            PreviewSprite(R.drawable.palmtree_fronds, -20f, -90.33f)
-        }
-        if (frost) parts += PreviewSprite(R.drawable.palmtree_fronds_frost, -20f, -90.33f)
-        return parts
-    }
+    /**
+     * The same two blits [SceneObjectRenderer.drawPalmTree] makes, at the same two origins.
+     *
+     * v5.1 moved both and turned the frost from an overlay into a third crown, so the `when` here
+     * mirrors that one rather than stacking: all three crowns share one canvas and one declared
+     * attachment, and choosing between them is the whole of it. Both origins come from
+     * [PalmSpriteLayout], which the renderer reads too, so a redraw moves both sides or neither.
+     *
+     * **No shade, and that is consistent rather than an omission.** The wallpaper's palm dims with
+     * the hour as of v5.1; this one does not, because *nothing in this row does* -- the leafy tree
+     * two branches up is drawn with `c.trees.colorDay1` whether or not the card is a night one, so
+     * a palm that dimmed here would be the one plant on a night card that had noticed. Whether the
+     * tree line should read its night colours at all is a question about this file, not about the
+     * palm, and it is older than this release.
+     */
+    private fun palmTree(dead: Boolean, frost: Boolean): List<PreviewSprite> = listOf(
+        PreviewSprite(R.drawable.palmtree_trunk, PalmSpriteLayout.TRUNK_X, PalmSpriteLayout.TRUNK_Y),
+        PreviewSprite(
+            when {
+                dead -> R.drawable.palmtree_fronds_dead
+                frost -> R.drawable.palmtree_fronds_frost
+                else -> R.drawable.palmtree_fronds
+            },
+            PalmSpriteLayout.CROWN_X, PalmSpriteLayout.CROWN_Y,
+        ),
+    )
 
     private fun snowman(c: Int) = listOf(
         PreviewSprite(R.drawable.snowman_body, -19f, -74f, c),

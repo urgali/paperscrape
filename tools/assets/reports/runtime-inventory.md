@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 332 |
-| Unique contents | 332 |
-| Bytes on disk | 1051.5 KB |
-| Decoded `ARGB_8888` | 36.91 MB |
-| Of which transparent padding | 14.63 MB (40 %) |
+| Files | 371 |
+| Unique contents | 371 |
+| Bytes on disk | 1139.3 KB |
+| Decoded `ARGB_8888` | 38.10 MB |
+| Of which transparent padding | 14.73 MB (39 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -20,24 +20,26 @@ from the shipped PNGs; nothing is copied from documentation.
 | `cloud_body` | 798x396 | 1.26 MB | 0 % |
 | `rainbow_arc` | 594x297 | 0.71 MB | 0 % |
 | `sun_glow` | 396x396 | 0.63 MB | 1 % |
-| `skyscraper_wall` | 270x450 | 0.49 MB | 0 % |
-| `house_large_wall` | 420x285 | 0.48 MB | 0 % |
 | `tree_fir` | 240x366 | 0.35 MB | 0 % |
-| `restaurant_wall` | 300x288 | 0.35 MB | 0 % |
-| `bar_wall` | 270x276 | 0.30 MB | 0 % |
 | `santa_sleigh_scene` | 594x123 | 0.29 MB | 2 % |
 | `santa_sleigh_trot` | 594x123 | 0.29 MB | 2 % |
+| `tower_tier1_fx` | 210x342 | 0.29 MB | 1 % |
+| `tower_tier1_mw` | 210x342 | 0.29 MB | 1 % |
+| `tree_canopy` | 303x198 | 0.24 MB | 0 % |
+| `car_body_estate` | 375x156 | 0.23 MB | 0 % |
 
 ## Every sprite
 
 | Sprite | Size | Mode | Content bbox | Padding | Opaque RGB | Grid |
 |---|---|---|---|---|---|---|
-| `bar_cornice` | 300x48 | RGBA | 0,0,300,48 | 0 % | 11 | yes |
-| `bar_door` | 60x84 | RGBA | 0,0,60,84 | 0 % | 38 | yes |
-| `bar_lantern` | 18x30 | RGBA | 0,0,18,30 | 0 % | 7 | yes |
-| `bar_roof_snow` | 300x18 | RGBA | 0,0,300,18 | 0 % | 16 | yes |
-| `bar_sign` | 246x30 | RGBA | 0,0,246,30 | 0 % | 48 | yes |
-| `bar_wall` | 270x276 | RGBA | 0,0,270,276 | 0 % | 5 | yes |
+| `bar_chamfer_fx` | 222x168 | RGBA | 0,1,220,166 | 3 % | 324 | yes |
+| `bar_chamfer_mg` | 147x102 | RGBA | 2,2,145,100 | 7 % | 1 | yes |
+| `bar_chamfer_mw` | 222x168 | RGBA | 0,1,220,166 | 3 % | 1 | yes |
+| `bar_chamfer_snow_fx` | 216x54 | RGBA | 2,2,216,54 | 5 % | 39 | yes |
+| `bar_signboard_fx` | 207x228 | RGBA | 2,1,206,226 | 3 % | 327 | yes |
+| `bar_signboard_mg` | 141x102 | RGBA | 0,2,139,100 | 5 % | 1 | yes |
+| `bar_signboard_mw` | 207x156 | RGBA | 2,0,206,156 | 1 % | 1 | yes |
+| `bar_signboard_snow_fx` | 183x99 | RGBA | 1,2,181,97 | 6 % | 34 | yes |
 | `bird_body` | 51x21 | RGBA | 2,1,50,20 | 15 % | 8 | yes |
 | `bunny_body` | 102x183 | RGBA | 0,0,102,183 | 0 % | 29 | yes |
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
@@ -53,7 +55,7 @@ from the shipped PNGs; nothing is copied from documentation.
 | `car_window_estate` | 243x75 | RGBA | 0,0,243,75 | 0 % | 1 | yes |
 | `car_window_saloon` | 177x75 | RGBA | 0,0,177,75 | 0 % | 1 | yes |
 | `cloud_body` | 798x396 | RGBA | 0,0,798,396 | 0 % | 34 | yes |
-| `dolphin_body` | 345x174 | RGBA | 4,6,345,174 | 5 % | 117 | yes |
+| `dolphin_body` | 342x171 | RGBA | 1,3,342,171 | 2 % | 117 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
 | `easteregg_shell` | 96x120 | RGBA | 0,0,96,120 | 0 % | 17 | yes |
 | `firetruck_body` | 297x174 | RGBA | 0,0,297,174 | 0 % | 161 | yes |
@@ -61,22 +63,42 @@ from the shipped PNGs; nothing is copied from documentation.
 | `firework` | 240x240 | RGBA | 9,9,231,231 | 14 % | 13 | yes |
 | `gift_box` | 120x90 | RGBA | 0,0,120,90 | 0 % | 10 | yes |
 | `gift_ribbon` | 120x120 | RGBA | 0,0,120,120 | 0 % | 12 | yes |
-| `ground_flowers` | 108x36 | RGBA | 5,9,98,36 | 35 % | 38 | yes |
-| `house_large_chimney` | 39x105 | RGBA | 0,0,39,105 | 0 % | 3 | yes |
-| `house_large_door` | 66x135 | RGBA | 0,0,66,135 | 0 % | 9 | yes |
-| `house_large_roof` | 450x150 | RGBA | 0,0,450,150 | 0 % | 21 | yes |
-| `house_large_roof_snow` | 300x117 | RGBA | 1,0,299,117 | 1 % | 43 | yes |
-| `house_large_trim` | 450x18 | RGBA | 0,0,450,18 | 0 % | 1 | yes |
-| `house_large_wall` | 420x285 | RGBA | 0,0,420,285 | 0 % | 11 | yes |
-| `house_shared_planter` | 78x18 | RGBA | 0,0,78,18 | 0 % | 23 | yes |
-| `house_shared_window` | 66x63 | RGBA | 0,0,66,63 | 0 % | 9 | yes |
-| `house_small_chimney` | 36x90 | RGBA | 0,0,36,90 | 0 % | 3 | yes |
-| `house_small_door` | 60x114 | RGBA | 0,0,60,114 | 0 % | 9 | yes |
-| `house_small_roof` | 318x120 | RGBA | 0,0,318,120 | 0 % | 5 | yes |
-| `house_small_roof_snow` | 204x99 | RGBA | 1,0,203,99 | 1 % | 17 | yes |
-| `house_small_trim` | 318x12 | RGBA | 0,0,318,12 | 0 % | 1 | yes |
-| `house_small_wall` | 288x210 | RGBA | 0,0,288,210 | 0 % | 3 | yes |
-| `house_window_lit` | 66x66 | RGBA | 0,0,66,66 | 0 % | 15 | yes |
+| `ground_flowers_bloom` | 108x36 | RGBA | 4,4,108,36 | 14 % | 120 | yes |
+| `ground_flowers_dry` | 108x36 | RGBA | 4,4,108,36 | 14 % | 147 | yes |
+| `house_large_ground_fx` | 261x96 | RGBA | 0,2,259,94 | 5 % | 192 | yes |
+| `house_large_ground_mg` | 120x45 | RGBA | 0,2,120,43 | 9 % | 1 | yes |
+| `house_large_ground_mw` | 261x93 | RGBA | 0,2,259,93 | 3 % | 0 | yes |
+| `house_large_roof_gable_fx` | 279x111 | RGBA | 0,0,279,110 | 1 % | 67 | yes |
+| `house_large_roof_gable_mg` | 18x21 | RGBA | 0,0,18,19 | 10 % | 1 | yes |
+| `house_large_roof_gable_mw` | 279x111 | RGBA | 0,0,279,110 | 1 % | 1 | yes |
+| `house_large_roof_gable_snow_fx` | 198x102 | RGBA | 1,2,196,100 | 5 % | 36 | yes |
+| `house_large_roof_mansard_fx` | 282x120 | RGBA | 1,2,280,119 | 4 % | 79 | yes |
+| `house_large_roof_mansard_mg` | 120x18 | RGBA | 0,0,119,17 | 6 % | 1 | yes |
+| `house_large_roof_mansard_mw` | 282x120 | RGBA | 1,2,280,119 | 4 % | 1 | yes |
+| `house_large_roof_mansard_snow_fx` | 204x36 | RGBA | 2,2,202,35 | 10 % | 40 | yes |
+| `house_large_roof_turret_gable_fx` | 231x96 | RGBA | 1,2,231,95 | 4 % | 23 | yes |
+| `house_large_roof_turret_gable_mw` | 231x96 | RGBA | 1,2,231,95 | 4 % | 0 | yes |
+| `house_large_roof_turret_gable_snow_fx` | 138x84 | RGBA | 0,2,138,84 | 2 % | 33 | yes |
+| `house_large_roof_turret_tower_fx` | 87x174 | RGBA | 1,2,86,173 | 4 % | 18 | yes |
+| `house_large_roof_turret_tower_mg` | 18x63 | RGBA | 1,2,17,61 | 17 % | 1 | yes |
+| `house_large_roof_turret_tower_mw` | 87x174 | RGBA | 1,2,86,173 | 4 % | 1 | yes |
+| `house_large_roof_turret_tower_snow_fx` | 51x60 | RGBA | 2,0,51,60 | 4 % | 35 | yes |
+| `house_large_storey_fx` | 258x72 | RGBA | 0,1,256,72 | 2 % | 85 | yes |
+| `house_large_storey_mg` | 210x36 | RGBA | 2,0,208,36 | 2 % | 1 | yes |
+| `house_large_storey_mw` | 258x72 | RGBA | 0,1,256,72 | 2 % | 1 | yes |
+| `house_small_ground_fx` | 186x96 | RGBA | 1,1,186,94 | 4 % | 193 | yes |
+| `house_small_ground_mg` | 45x42 | RGBA | 2,0,45,40 | 9 % | 1 | yes |
+| `house_small_ground_mw` | 186x96 | RGBA | 1,1,186,94 | 4 % | 0 | yes |
+| `house_small_roof_gable_fx` | 213x102 | RGBA | 2,1,213,100 | 4 % | 28 | yes |
+| `house_small_roof_gable_mw` | 213x102 | RGBA | 2,1,213,100 | 4 % | 0 | yes |
+| `house_small_roof_gable_snow_fx` | 147x93 | RGBA | 2,2,147,93 | 3 % | 38 | yes |
+| `house_small_roof_mansard_fx` | 207x105 | RGBA | 2,2,205,105 | 4 % | 64 | yes |
+| `house_small_roof_mansard_mg` | 18x18 | RGBA | 1,0,17,17 | 16 % | 1 | yes |
+| `house_small_roof_mansard_mw` | 207x105 | RGBA | 2,2,205,105 | 4 % | 1 | yes |
+| `house_small_roof_mansard_snow_fx` | 132x36 | RGBA | 2,2,130,35 | 11 % | 32 | yes |
+| `house_small_storey_fx` | 186x75 | RGBA | 1,0,186,74 | 2 % | 92 | yes |
+| `house_small_storey_mg` | 132x36 | RGBA | 2,0,130,36 | 3 % | 1 | yes |
+| `house_small_storey_mw` | 186x75 | RGBA | 1,0,186,74 | 2 % | 1 | yes |
 | `leaf_pile` | 108x21 | RGBA | 0,0,108,21 | 0 % | 31 | yes |
 | `lightning_bolt` | 90x252 | RGBA | 0,0,90,252 | 0 % | 1 | yes |
 | `moon_crescent` | 240x240 | RGBA | 120,21,220,219 | 66 % | 17 | yes |
@@ -327,23 +349,14 @@ from the shipped PNGs; nothing is copied from documentation.
 | `pumpkin_face` | 114x90 | RGBA | 30,30,84,75 | 76 % | 1 | yes |
 | `pumpkin_stem` | 18x36 | RGBA | 0,0,18,36 | 0 % | 1 | yes |
 | `rainbow_arc` | 594x297 | RGBA | 0,0,594,297 | 0 % | 6 | yes |
-| `restaurant_awning` | 276x27 | RGBA | 0,0,276,27 | 0 % | 9 | yes |
-| `restaurant_cornice` | 330x36 | RGBA | 0,0,330,36 | 0 % | 13 | yes |
-| `restaurant_door` | 54x84 | RGBA | 0,0,54,84 | 0 % | 37 | yes |
-| `restaurant_roof_snow` | 156x24 | RGBA | 0,0,156,24 | 0 % | 16 | yes |
-| `restaurant_sign` | 276x39 | RGBA | 0,0,276,39 | 0 % | 50 | yes |
-| `restaurant_wall` | 300x288 | RGBA | 0,0,300,288 | 0 % | 5 | yes |
-| `restaurant_window` | 90x66 | RGBA | 0,0,90,66 | 0 % | 12 | yes |
-| `sailboat_hull` | 252x51 | RGBA | 8,0,252,51 | 3 % | 71 | yes |
-| `sailboat_sail` | 210x180 | RGBA | 27,0,206,180 | 15 % | 77 | yes |
+| `restaurant_pavilion_fx` | 315x180 | RGBA | 2,0,314,178 | 2 % | 318 | yes |
+| `restaurant_pavilion_mg` | 174x51 | RGBA | 2,2,172,49 | 10 % | 1 | yes |
+| `restaurant_pavilion_mw` | 315x138 | RGBA | 2,0,314,136 | 2 % | 1 | yes |
+| `restaurant_pavilion_snow_fx` | 312x72 | RGBA | 2,2,310,70 | 7 % | 39 | yes |
+| `sailboat_hull` | 246x51 | RGBA | 2,0,246,51 | 1 % | 71 | yes |
+| `sailboat_sail` | 183x180 | RGBA | 3,0,182,180 | 2 % | 77 | yes |
 | `santa_sleigh_scene` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
 | `santa_sleigh_trot` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
-| `skyscraper_canopy` | 132x18 | RGBA | 0,0,132,18 | 0 % | 1 | yes |
-| `skyscraper_entrance` | 96x96 | RGBA | 0,0,96,96 | 0 % | 15 | yes |
-| `skyscraper_roof_snow` | 168x27 | RGBA | 0,0,168,27 | 0 % | 21 | yes |
-| `skyscraper_setback` | 180x96 | RGBA | 0,0,180,96 | 0 % | 20 | yes |
-| `skyscraper_wall` | 270x450 | RGBA | 0,0,270,450 | 0 % | 14 | yes |
-| `skyscraper_wall_lit` | 237x300 | RGBA | 15,15,237,300 | 11 % | 1 | yes |
 | `snow_pile` | 108x21 | RGBA | 0,0,108,21 | 0 % | 11 | yes |
 | `snowman_body` | 114x222 | RGBA | 0,0,114,222 | 0 % | 37 | yes |
 | `snowman_nose` | 39x12 | RGBA | 0,0,39,12 | 0 % | 1 | yes |
@@ -353,6 +366,32 @@ from the shipped PNGs; nothing is copied from documentation.
 | `sun_glow` | 396x396 | RGBA | 1,1,395,395 | 1 % | 1 | yes |
 | `taxi_checker` | 120x27 | RGBA | 0,0,120,27 | 0 % | 4 | yes |
 | `taxi_sign` | 42x18 | RGBA | 0,0,42,18 | 0 % | 12 | yes |
+| `tower_bay_fx` | 42x36 | RGBA | 2,2,40,36 | 15 % | 1 | yes |
+| `tower_bay_mg` | 42x36 | RGBA | 2,2,40,36 | 15 % | 1 | yes |
+| `tower_crown_dome_fx` | 99x93 | RGBA | 0,1,97,92 | 4 % | 43 | yes |
+| `tower_crown_dome_mw` | 99x69 | RGBA | 0,1,97,68 | 5 % | 0 | yes |
+| `tower_crown_dome_snow_fx` | 54x36 | RGBA | 1,2,53,35 | 12 % | 66 | yes |
+| `tower_crown_spire_fx` | 69x78 | RGBA | 0,0,68,77 | 3 % | 14 | yes |
+| `tower_crown_spire_mw` | 69x33 | RGBA | 0,0,68,32 | 4 % | 1 | yes |
+| `tower_crown_spire_snow_fx` | 60x30 | RGBA | 1,1,58,28 | 14 % | 39 | yes |
+| `tower_row_tier1_fx` | 168x27 | RGBA | 2,1,166,26 | 10 % | 1 | yes |
+| `tower_row_tier1_mg` | 168x27 | RGBA | 2,1,166,26 | 10 % | 1 | yes |
+| `tower_row_tier2_fx` | 129x27 | RGBA | 2,1,129,25 | 12 % | 1 | yes |
+| `tower_row_tier2_mg` | 129x27 | RGBA | 2,1,129,25 | 12 % | 1 | yes |
+| `tower_row_tier3_fx` | 90x27 | RGBA | 2,2,88,26 | 15 % | 1 | yes |
+| `tower_row_tier3_mg` | 90x27 | RGBA | 2,2,88,26 | 15 % | 1 | yes |
+| `tower_snow_left1_fx` | 27x27 | RGBA | 2,2,26,26 | 21 % | 26 | yes |
+| `tower_snow_left2_fx` | 27x27 | RGBA | 2,1,27,26 | 14 % | 35 | yes |
+| `tower_snow_right1_fx` | 27x27 | RGBA | 1,2,25,25 | 24 % | 45 | yes |
+| `tower_snow_right2_fx` | 30x27 | RGBA | 2,1,29,25 | 20 % | 29 | yes |
+| `tower_snow_top_fx` | 114x33 | RGBA | 2,2,113,31 | 14 % | 48 | yes |
+| `tower_tier1_fx` | 210x342 | RGBA | 0,0,210,340 | 1 % | 219 | yes |
+| `tower_tier1_mg` | 168x69 | RGBA | 2,2,166,67 | 8 % | 1 | yes |
+| `tower_tier1_mw` | 210x342 | RGBA | 0,0,210,340 | 1 % | 1 | yes |
+| `tower_tier2_fx` | 168x132 | RGBA | 1,2,168,132 | 2 % | 65 | yes |
+| `tower_tier2_mw` | 168x132 | RGBA | 1,2,168,132 | 2 % | 0 | yes |
+| `tower_tier3_fx` | 120x96 | RGBA | 0,2,119,95 | 4 % | 9 | yes |
+| `tower_tier3_mw` | 120x96 | RGBA | 0,2,119,95 | 4 % | 1 | yes |
 | `tree_canopy` | 303x198 | RGBA | 0,0,303,198 | 0 % | 36 | yes |
 | `tree_canopy_snowcap` | 294x114 | RGBA | 18,0,294,114 | 6 % | 33 | yes |
 | `tree_dead_branches` | 282x198 | RGBA | 33,0,281,198 | 12 % | 19 | yes |

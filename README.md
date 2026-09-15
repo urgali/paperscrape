@@ -22,6 +22,9 @@ moving on its own.
   city, tundra, Easter and Halloween — with optional automatic switching by date, which
   covers every day of the year and moves Easter with the calendar. Each one's gallery card
   draws a small version of that theme's own world, so you can see what you are choosing.
+- **The holiday calendar is yours to move.** Every window the automatic switch uses — the four
+  holidays and the four seasons — can start and end where you want, and Easter's length is
+  adjustable either side of a Sunday the app works out for you. One button puts it all back.
 - **Custom themes.** Save your own, built on any of the twelve, and keep them.
 - **Every part of the scene is adjustable.** Houses, buildings, trees, umbrellas,
   cars, people, hills, mountains, clouds, stars, rainbows, the lake and its boats and
