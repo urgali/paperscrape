@@ -184,6 +184,30 @@ class OpenMeteoProviderTest {
     @Test
     fun `a blank or whitespace key is no key`() {
         assertNull(OpenMeteoProvider.resolveApiKey("   "))
+        assertNull(OpenMeteoProvider.resolveApiKey(""))
+    }
+
+    /**
+     * **The user's key still does exactly what it did, and that is the half v5.3 had to not break.**
+     *
+     * Removing the app's baked-in key (v5.3B audit, S1: a `buildConfigField` String is a plain
+     * constant in the dex, so the maintainer's key was readable in every published APK) changed
+     * what a *blank* key means -- it used to fall through to the app's key, and now means the
+     * keyless free tier. It must not have changed what a *set* key means, which is: trimmed, used
+     * verbatim, and routed to the higher-limit customer endpoint.
+     *
+     * The test above it is the other half, and it is worth knowing that it used to be *ambiguous*:
+     * `resolveApiKey("   ")` returned null only because the env var happened to be unset on the
+     * machine running the test. A CI release build with the secret configured would have made it
+     * fail. There is no environment left to depend on.
+     */
+    @Test
+    fun `a user key is used verbatim and routes to the customer endpoint`() {
+        assertEquals("my-own-key", OpenMeteoProvider.resolveApiKey("my-own-key"))
+        assertEquals("my-own-key", OpenMeteoProvider.resolveApiKey("  my-own-key  "))
+        val url = OpenMeteoProvider.requestUrl(43.77925, 11.24626, userApiKey = "my-own-key")
+        assertTrue(url.startsWith("https://customer-api.open-meteo.com/"))
+        assertTrue(url.contains("apikey=my-own-key"))
     }
 
     @Test

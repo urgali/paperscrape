@@ -51,8 +51,23 @@
 
     <uses-feature android:name="android.software.live_wallpaper" android:required="true" />
 
+    <!-- usesCleartextTraffic="false" below is belt over the braces, and is labelled as such
+         rather than sold as a fix. The app never builds an http:// URL: every host in the
+         inventory above is https, and sanitizeGitHubUrl refuses any other scheme by construction,
+         so the only route to cleartext is an https-to-http redirect, and injecting one needs TLS
+         already broken.
+
+         It is here because minSdk is 26 and the platform default is only "refuse" from Android 9
+         onwards: on 8.0 and 8.1, which this app still supports, the platform default is "allow".
+         The attribute is honoured from API 23, so it covers exactly the two versions the framework
+         default does not. One line, no measurable risk removed, and it is now a declaration rather
+         than an inherited default that changes underneath the app. (v5.3B audit, S3.)
+
+         Note for the next editor: an XML comment may not contain a double hyphen, which is why
+         this file's comments use colons and full stops where the Kotlin ones use dashes. -->
     <application
         android:allowBackup="false"
+        android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"

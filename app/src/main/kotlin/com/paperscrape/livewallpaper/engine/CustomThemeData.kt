@@ -191,10 +191,22 @@ fun ObjectVariantConfig.toJson(): JSONObject = JSONObject().apply {
 fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig): ObjectVariantConfig = ObjectVariantConfig(
     visible = json.optBoolean("visible", default.visible),
     density = json.optFinite("density", default.density),
-    colorDay1 = if (json.has("colorDay1")) json.getInt("colorDay1") else default.colorDay1,
-    colorNight1 = if (json.has("colorNight1")) json.getInt("colorNight1") else default.colorNight1,
-    colorDay2 = if (json.has("colorDay2")) json.getInt("colorDay2") else default.colorDay2,
-    colorNight2 = if (json.has("colorNight2")) json.getInt("colorNight2") else default.colorNight2,
+    // `optInt` with the default, exactly like every other colour in this file -- the mountains,
+    // the lake, the sky, the hills. These four read `getInt` until v5.3, and `getInt` **throws**
+    // when the key is present but is not an integer, where `optInt` falls back. That is the whole
+    // of the v5.3B audit's S2: a backup with `"colorDay1":"nope"` in it -- 129 bytes, and no
+    // attacker needed, just a truncated download -- threw out through `sceneCustomizationFromJson`
+    // and closed the settings screen, because both parsers' call sites are inside a Compose
+    // `scope.launch { }` with no catch. `ImportParserFuzzTest` is the check that found it and it
+    // stays: it went from 221 escaping throwables to 0 on these four lines alone.
+    //
+    // `optInt(name, fallback)` also drops the `has` guard, which was doing nothing the fallback
+    // does not already do -- absent and unreadable now take the same path, which is the one the
+    // document deserves either way.
+    colorDay1 = json.optInt("colorDay1", default.colorDay1),
+    colorNight1 = json.optInt("colorNight1", default.colorNight1),
+    colorDay2 = json.optInt("colorDay2", default.colorDay2),
+    colorNight2 = json.optInt("colorNight2", default.colorNight2),
     autoMode1 = AutoColorMode.fromStorageId(json.optString("autoMode1", null)),
     autoMode2 = AutoColorMode.fromStorageId(json.optString("autoMode2", null)),
 )

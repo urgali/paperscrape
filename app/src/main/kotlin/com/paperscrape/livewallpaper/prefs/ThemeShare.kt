@@ -171,6 +171,12 @@ fun parseThemeShare(raw: String?): ThemeParseResult {
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("layout"))
     val name = root.optString("name").takeIf { it.isNotBlank() }
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("name"))
+    // The customization block gets the same `runCatching` as the theme and the layout above. It
+    // was the only unguarded call in this function until v5.3, and in `parseAppBackup` too --
+    // see the note at that call site, and `ImportParserFuzzTest`, which is what found it.
+    val customization = runCatching { sceneCustomizationFromJson(root.optJSONObject("customization")) }
+        .getOrNull()
+        ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("customization"))
 
     return ThemeParseResult.Ok(
         ThemeShare(
@@ -181,7 +187,7 @@ fun parseThemeShare(raw: String?): ThemeParseResult {
             name = name,
             theme = theme,
             layout = layout,
-            customization = sceneCustomizationFromJson(root.optJSONObject("customization")),
+            customization = customization,
         ),
     )
 }

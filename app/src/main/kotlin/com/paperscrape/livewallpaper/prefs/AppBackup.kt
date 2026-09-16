@@ -263,7 +263,15 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
         for (id in obj.keys()) {
             val entry = obj.optJSONObject(id)
                 ?: return BackupParseResult.Failed(BackupImportError.Malformed("themeCustomizations.$id"))
-            customizations[id] = sceneCustomizationFromJson(entry)
+            // `runCatching` for the same reason as the two blocks below, and it was missing here
+            // until v5.3 -- the one unguarded call in either parser, and it happened to be the one
+            // that reached the four `getInt`s of `objectVariantConfigFromJson`. Two independent
+            // oversights lining up is what turned a wrong colour into a closed settings screen
+            // (v5.3B audit, S2). The colours are `optInt` now, so this catches nothing today; it
+            // is here so the next reader who adds a throwing accessor downstream gets a refused
+            // document instead of a vanished app.
+            customizations[id] = runCatching { sceneCustomizationFromJson(entry) }.getOrNull()
+                ?: return BackupParseResult.Failed(BackupImportError.Malformed("themeCustomizations.$id"))
         }
     }
 

@@ -1,6 +1,5 @@
 package com.paperscrape.livewallpaper.weather
 
-import com.paperscrape.livewallpaper.BuildConfig
 import org.json.JSONObject
 
 /**
@@ -21,12 +20,18 @@ object OpenMeteoProvider : WeatherProvider {
     override val requiresApiKey: Boolean = false
 
     /**
-     * A user-entered key (from Settings, always wins if present) or the build's own baked-in key
-     * (from [BuildConfig.OPENMETEO_API_KEY], see app/build.gradle.kts). Null means "use the free
-     * keyless endpoint", which is never a hard failure for this provider.
+     * The user's key from Settings, or null for "use the free keyless endpoint" -- which is never
+     * a hard failure for this provider.
+     *
+     * **There is no longer a second source.** Until v5.3 a blank user key fell back to
+     * `BuildConfig.OPENMETEO_API_KEY`, the maintainer's own key baked in at build time; the v5.3B
+     * audit showed it shipped as a plain string in `classes.dex` of every published APK, and the
+     * maintainer chose to stop shipping it rather than proxy it (app/build.gradle.kts says the
+     * whole of why). A user who enters their own key still reaches the higher-limit endpoint on
+     * exactly the path they did before -- that half was never the problem and has not moved.
      */
     internal fun resolveApiKey(userApiKey: String): String? =
-        userApiKey.trim().ifBlank { BuildConfig.OPENMETEO_API_KEY }.trim().ifBlank { null }
+        userApiKey.trim().ifBlank { null }
 
     internal fun requestUrl(latitude: Double, longitude: Double, userApiKey: String): String {
         val apiKey = resolveApiKey(userApiKey)

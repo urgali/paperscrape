@@ -766,12 +766,15 @@ private sealed interface CitySearchUiState {
 private const val SEARCH_DEBOUNCE_MS = 500L
 
 /**
- * Optional user-entered Open-Meteo API key for Live Weather -- always takes priority over the
- * app's own baked-in key when set (see WeatherRepository.resolveApiKey). Blank is a perfectly
+ * Optional user-entered Open-Meteo API key for Live Weather (see
+ * [com.paperscrape.livewallpaper.weather.OpenMeteoProvider.resolveApiKey]). Blank is a perfectly
  * valid, fully-supported state: Open-Meteo's free tier needs no key at all, so this exists purely
  * as an upgrade path for a user who wants Open-Meteo's higher-limit customer endpoint under their
  * own account, not a requirement to make Live Weather work. That is why it is one level down,
  * under "Advanced", rather than in the main flow where v2.8 put it.
+ *
+ * It used to be described as taking "priority over the app's own baked-in key". v5.3 removed that
+ * baked-in key -- it shipped readable in the dex -- so this is now the only key there is.
  */
 /**
  * WeatherAPI.com's key, which unlike Open-Meteo's is **required**: there is no anonymous tier, so

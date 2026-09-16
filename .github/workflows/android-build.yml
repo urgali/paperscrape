@@ -153,10 +153,13 @@ jobs:
         # an unsigned APK (see app/build.gradle.kts: release signingConfig is only attached when
         # PAPERSCRAPE_RELEASE_STORE_FILE is set) and produce a confusing failure several steps
         # later. See scripts/generate-release-keystore.sh to create these secrets.
-        # OPENMETEO_API_KEY is intentionally NOT checked here -- it's optional (Open-Meteo's free
-        # tier works with no key at all, see app/build.gradle.kts's own comment on
-        # PAPERSCRAPE_OPENMETEO_API_KEY), so a release build without it just ships Live Weather
-        # on the keyless endpoint rather than failing the whole build.
+        # There is no weather key to check for. v5.3 stopped baking one into the APK: a
+        # `buildConfigField` String is a plain constant in the dex, so the maintainer's own
+        # Open-Meteo key was readable in every published release with `strings`. Live Weather runs
+        # on Open-Meteo's keyless free tier, and a user's own key from Settings still upgrades to
+        # the higher-limit endpoint. If a `OPENMETEO_API_KEY` GitHub Secret still exists on this
+        # repository, **delete it** -- nothing reads it any more, and `ShippedApkContractTest`
+        # fails the build if anything starts to.
         run: |
           missing=()
           [ -z "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ] && missing+=("RELEASE_KEYSTORE_BASE64")
@@ -183,10 +186,9 @@ jobs:
           PAPERSCRAPE_RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           PAPERSCRAPE_RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           PAPERSCRAPE_RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-          # Optional -- see app/build.gradle.kts's own comment. Leave the OPENMETEO_API_KEY
-          # GitHub Secret unset entirely to ship without a baked-in key (Live Weather still works
-          # via Open-Meteo's keyless free tier, or a user's own key entered in Settings).
-          PAPERSCRAPE_OPENMETEO_API_KEY: ${{ secrets.OPENMETEO_API_KEY }}
+          # The signing secrets are the only secrets this build takes, and they stay on the runner:
+          # they sign the APK, they do not go inside it. A PAPERSCRAPE_OPENMETEO_API_KEY used to sit
+          # here too and ended up as a readable string in the shipped dex -- see the step above.
         run: ./gradlew assembleRelease
 
       - name: Name the artefact after the release, and checksum it

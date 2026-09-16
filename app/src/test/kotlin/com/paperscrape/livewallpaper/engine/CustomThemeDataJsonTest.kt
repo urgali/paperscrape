@@ -484,6 +484,84 @@ class CustomThemeDataJsonTest {
         )
     }
 
+    /**
+     * **A colour that is present but is not a number falls back to the default instead of throwing.**
+     *
+     * The narrow, direct form of the v5.3B audit's S2. Four of this file's colours --
+     * `colorDay1`, `colorNight1`, `colorDay2`, `colorNight2` -- were read with `getInt`, which
+     * throws on a present-but-wrong value, while every sibling colour in the same file (the hills,
+     * the mountains, the lake, the sky) used `optInt`, which falls back. A 129-byte backup with
+     * `"colorDay1":"nope"` in it therefore closed the settings screen, because both import parsers
+     * are called from a Compose `scope.launch { }` with no catch.
+     *
+     * [com.paperscrape.livewallpaper.prefs.ImportParserFuzzTest] is the end-to-end guard and is
+     * where the defect was found. This one is deliberately narrower and slower to fool: it names
+     * the four fields, so reintroducing `getInt` on any one of them goes red here with that field
+     * in the message, whether or not anything upstream happens to be catching.
+     *
+     * Each is checked one at a time: a single object with all four wrong would pass with three of
+     * them still broken, because the first throw ends the call.
+     */
+    @Test
+    fun `a non-numeric colour falls back to its default rather than throwing`() {
+        val default = variantDefault()
+        val expected = mapOf(
+            "colorDay1" to default.colorDay1,
+            "colorNight1" to default.colorNight1,
+            "colorDay2" to default.colorDay2,
+            "colorNight2" to default.colorNight2,
+        )
+        for ((field, fallback) in expected) {
+            for (rubbish in listOf("nope", "", "0x11", "NaN")) {
+                val json = JSONObject().put(field, rubbish)
+                val parsed = objectVariantConfigFromJson(json, default)
+                val actual = when (field) {
+                    "colorDay1" -> parsed.colorDay1
+                    "colorNight1" -> parsed.colorNight1
+                    "colorDay2" -> parsed.colorDay2
+                    "colorNight2" -> parsed.colorNight2
+                    else -> error(field)
+                }
+                assertEquals(
+                    "$field = \"$rubbish\" did not fall back to the default. If this threw rather " +
+                        "than failing, the accessor is `getInt` again and a corrupt backup closes " +
+                        "the app (v5.3B audit, S2)",
+                    fallback,
+                    actual,
+                )
+            }
+        }
+    }
+
+    /**
+     * The other half of the same line: a colour that *is* a number is still read, so the fix above
+     * did not buy robustness by throwing the value away.
+     */
+    @Test
+    fun `a numeric colour is still read`() {
+        val default = variantDefault()
+        val json = JSONObject()
+            .put("colorDay1", 0x112233)
+            .put("colorNight1", 0x445566)
+            .put("colorDay2", -1)
+            .put("colorNight2", 0)
+        val parsed = objectVariantConfigFromJson(json, default)
+        assertEquals(0x112233, parsed.colorDay1)
+        assertEquals(0x445566, parsed.colorNight1)
+        assertEquals(-1, parsed.colorDay2)
+        assertEquals(0, parsed.colorNight2)
+    }
+
+    /** Four distinct, recognisable defaults, so a fallback that returns the wrong field shows up. */
+    private fun variantDefault() = ObjectVariantConfig(
+        visible = true,
+        density = 0.5f,
+        colorDay1 = 0x0A0A0A,
+        colorNight1 = 0x0B0B0B,
+        colorDay2 = 0x0C0C0C,
+        colorNight2 = 0x0D0D0D,
+    )
+
     @Test
     fun `entry missing its customization falls back to defaults`() {
         // customization was added after the first release of this format, so payloads without it

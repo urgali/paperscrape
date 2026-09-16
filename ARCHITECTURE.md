@@ -1824,10 +1824,10 @@ exists as a counter to work around this.
 
 | Component | Version |
 |---|---|
-| Android Gradle Plugin | 9.3.1 (verified present on Google Maven) |
+| Android Gradle Plugin | 9.4.0 (raised from 9.3.1 in v5.3 to close 41 Dependabot alerts -- see *Dependency security* below) |
 | Gradle | 9.7.1 (wrapper jar SHA-256 matches the checksum Gradle publishes for 9.7.1) |
-| Kotlin Compose plugin | 2.2.21 |
-| Kotlin | AGP built-in, driven by the Compose plugin version above -- 2.2.21 (the `org.jetbrains.kotlin.android` plugin is intentionally not applied) |
+| Kotlin Compose plugin | 2.4.20 (raised from 2.2.21 in v5.3, same reason) |
+| Kotlin | AGP built-in, driven by the Compose plugin version above -- 2.4.20 (the `org.jetbrains.kotlin.android` plugin is intentionally not applied) |
 | `compileSdk` | 37 |
 | `targetSdk` | **37** (raised from 36 in v4.0) |
 | `minSdk` | 26 |
@@ -1902,13 +1902,14 @@ upload the evidence. The rule written out of it is that an auxiliary job may not
 until it has passed on its own for a stated run of releases, and that bounding a diagnostic's exit
 status is not the same as bounding its time — a step that cannot fail can still hang. **The instrumented tests themselves were not removed** — see *Testing* above.
 
-Neither workflow needed a change for the Phase 2 upgrade. JDK 17 still builds
-AGP 9.3.1 / Gradle 9.7.1 (checked locally on a Temurin 17 that matches the
+Neither workflow needed a change for the Phase 2 upgrade, and neither needed one
+for the v5.3 dependency round either. JDK 17 still builds
+AGP 9.4.0 / Gradle 9.7.1 (checked locally on a Temurin 17 that matches the
 `setup-java` step, not inferred), the wrapper jar matches the SHA-256 Gradle
 publishes for 9.7.1 so wrapper validation still passes, and `compileSdk 37`
 needs nothing installed: the `ubuntu-latest` runner image already ships
 `android-37.0` alongside `android-36`, and build-tools 36.0.0, which is what
-AGP 9.3.1 selects by default.
+AGP 9.4.0 selects by default.
 
 `.github/workflows/dependency-submission.yml`
 - Submits the resolved dependency graph on push and weekly, feeding Dependabot
@@ -1917,6 +1918,50 @@ AGP 9.3.1 selects by default.
 
 All actions are pinned to full commit SHAs. `gradle/actions` is deliberately
 held at v5.x for licensing reasons documented inline.
+
+### Dependency security
+
+**Every Dependabot alert this repository has ever carried has been against a build-time
+dependency, never against anything in the APK.** At v5.2 there were 49 open, all attributed to
+`settings.gradle.kts` -- a file that declares no dependency at all, only repositories. The
+attribution is an artefact of how the workflow above reports: it submits the *resolved graph of
+the build*, and GitHub labels the whole graph with the settings file. Reading the label as a
+location will send you to eighteen lines of repository declarations and no further.
+
+What the graph actually contained was the Android Gradle Plugin's own transitive closure. The
+app's declared dependencies are androidx, Compose, DataStore and coroutines, plus JUnit and
+`org.json` for tests; `:app:dependencies` shows zero alerted coordinates on
+`releaseRuntimeClasspath`, `debugRuntimeClasspath` or `releaseCompileClasspath`. That does not
+make the alerts fake -- this code runs on developer machines and CI runners with the checkout in
+front of it -- but it does mean the severity of a *shipped* vulnerability never applied.
+
+v5.3 closed all 49 by raising versions, on the maintainer's explicit instruction not to close any
+of them by narrowing what the workflow submits, and not by dismissing them:
+
+- **41 Netty alerts** came from eleven `unified-test-platform-*` configurations AGP 9.3.1 created
+  on `:app`, two of which pulled `io.grpc:grpc-netty` and with it Netty 4.1.93 and 4.1.110. AGP
+  9.4.0 collapses all eleven into one configuration that resolves neither, so there was no
+  version of ours to raise -- the newer AGP is the fix.
+- **The remaining 8** are forced, in two places that are easy to mistake for one. The root
+  `build.gradle.kts` forces the **plugin classpath**; `app/build.gradle.kts` forces this
+  project's own configurations, of which `androidLintTool` is the one that mattered. Four alerts
+  survived on `androidLintTool` alone after the root force landed, and one of them
+  (`httpclient`) looked already fixed on the plugin classpath because ordinary conflict
+  resolution had lifted it there. **`buildEnvironment` alone cannot tell you this round is
+  finished; `:app:dependencies` can.**
+
+The check that says whether it is still true is not a document. Resolve the graph and scan every
+coordinate it contains -- the OSV API answers unauthenticated, and the GitHub Advisory Database
+is what it mirrors:
+
+```bash
+./gradlew --no-daemon buildEnvironment :app:dependencies
+# then query https://api.osv.dev/v1/querybatch for each resolved group:artifact:version
+```
+
+Reconstructed that way at v5.2 the scan returned exactly the 49 alerts GitHub showed, with the
+same per-package split and the same 2 critical / 19 high / 26 moderate / 2 low severities; after
+v5.3 it returns zero, against the whole graph rather than only the 49.
 
 ### Verified build
 
@@ -2082,7 +2127,7 @@ The limit is 0.50%. See `GlGolden.Tolerance` for the full table.
 Building requires a full JDK (17 recommended, matching CI), the Android SDK
 with platform 37 (Android 17) and build-tools 36, and network access to Google
 Maven and Maven Central. Platform 37 is what `compileSdk` links against;
-build-tools stays at 36.0.0, which is what AGP 9.3.1 selects by default. `README.md`'s *Build*
+build-tools stays at 36.0.0, which is what AGP 9.4.0 selects by default. `README.md`'s *Build*
 section has the minimal setup.
 
 **An Android 17 emulator is also required to release**, because the instrumented layer above is not

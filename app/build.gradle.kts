@@ -49,21 +49,34 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65. Ordinary bumps: one release, one step.
-        versionCode = 65
-        versionName = "5.2"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66. Ordinary bumps: one release, one step.
+        versionCode = 66
+        versionName = "5.3"
 
-        // Baked into BuildConfig at compile time from the PAPERSCRAPE_OPENMETEO_API_KEY env var
-        // (populated via a GitHub Secret in CI, same pattern as the release signing secrets
-        // above -- never committed in plaintext). Open-Meteo's free tier works with NO key at
-        // all (WeatherRepository falls back to the keyless api.open-meteo.com endpoint when this
-        // is blank), so this is purely an *optional* upgrade to Open-Meteo's higher-limit
-        // customer-api.open-meteo.com endpoint -- aa's own key, shipped with the app so most
-        // users never need to find or enter one themselves. A user who enters their own key in
-        // Settings (WallpaperPrefs.liveWeatherApiKey) always takes priority over this one -- see
-        // WeatherRepository.resolveApiKey.
-        val openMeteoApiKey = System.getenv("PAPERSCRAPE_OPENMETEO_API_KEY") ?: ""
-        buildConfigField("String", "OPENMETEO_API_KEY", "\"$openMeteoApiKey\"")
+        // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
+        //
+        // Until v5.3 the maintainer's own Open-Meteo key arrived here from a
+        // PAPERSCRAPE_OPENMETEO_API_KEY env var, populated by a GitHub Secret in CI, and went into
+        // BuildConfig via `buildConfigField`. The comment that stood here said it was "never
+        // committed in plaintext", which was **true and completely misleading**: it was never in
+        // the repository, and it was in every published APK. A `buildConfigField` of type String
+        // becomes a **string constant in the dex**, and R8 renames classes and methods, not string
+        // literals -- so the key sat in the string table between `ATOMIC` and `AUTUMN` where
+        // `strings` on a downloaded APK finds it in one command. The v5.3B audit demonstrated it
+        // by building with a marker and reading the marker back out of the minified `classes.dex`.
+        //
+        // Shipping a secret to every user is not a thing a build file should make easy, so the
+        // mechanism is gone rather than merely unused: there is no env var to set and no field to
+        // read. The maintainer decided in v5.3 to drop the higher-limit endpoint rather than run a
+        // proxy for it.
+        //
+        // **Nothing about Live Weather changes for a user.** Open-Meteo's free tier needs no key
+        // (`OpenMeteoProvider` builds the keyless api.open-meteo.com URL), and a user who enters
+        // their own key in Settings (`WallpaperPrefs.liveWeatherApiKey`) still reaches the
+        // higher-limit customer-api.open-meteo.com endpoint exactly as before -- see
+        // `OpenMeteoProvider.resolveApiKey`, which is where that precedence actually lives. (The
+        // comments here, in WallpaperPrefs and in WeatherTimeScreen all used to point at a
+        // `WeatherRepository.resolveApiKey` that has never existed.)
 
         // Needed by the golden-image tests in `src/androidTest`, which are the only instrumented
         // tests the project has. They render scenes through `CanvasSceneTarget` into a real
@@ -71,6 +84,30 @@ android {
         // `android.graphics.Paint` through, and the unit-test classpath's mockable android.jar
         // has no working Paint to read a colour back out of.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // **ARM only. The two Intel ABIs are deliberately not packaged, and that is a decision
+        // with a cost.**
+        //
+        // Two transitive AndroidX dependencies (`androidx.graphics.path` and DataStore's shared
+        // counter) ship a `.so` per ABI, and AGP packages all four by default. Measured by
+        // building both ways rather than estimated: the release APK went from **2 732 518 B to
+        // 2 665 676 B, -66 842 B, -2.45 %**, eight `.so` down to four and 467 entries down to 463.
+        // (A few of those bytes belong to the other v5.3 repairs in the same build -- the removed
+        // BuildConfig field, the manifest attribute; the four x86 `.so` themselves are 37 444 B of
+        // content, and 16 KiB alignment padding is the rest. The v5.3B audit isolated the ABI
+        // change alone at -66 866 B.) For scale: the v5.3 dependency round added **16 756 B**
+        // closing 41 netty advisories, and that was argued over line by line. A live wallpaper's
+        // installed base is ARM phones.
+        //
+        // **What it costs:** the APK no longer installs on an x86 emulator, which is the normal
+        // way to try an app on a development machine. There is no emulator installed here
+        // (CLAUDE.md §3: no `emulator` package, no system image, no AVD) and CI uses none, so
+        // nothing in the current workflow notices -- but it is a door being closed, and the
+        // maintainer closed it knowing that. Adding "x86_64" back to this list is all it takes to
+        // reopen it, at the measured price.
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
     }
 
     sourceSets {
@@ -214,6 +251,44 @@ android {
     }
 }
 
+// **The Dependabot alerts the root script's buildscript force cannot reach.**
+//
+// The root `build.gradle.kts` forces the *plugin* classpath. AGP also puts its own tooling on
+// configurations that belong to **this project**, and `androidLintTool` -- the lint tool's
+// classpath -- is one of them. The root block does not touch it, and after AGP 9.4.0 and the
+// root forces landed, `./gradlew :app:dependencies` still showed three alerted coordinates alive
+// on exactly that configuration and nowhere else:
+//
+//   org.apache.commons:commons-lang3:3.16.0     CVE-2025-48924   (MODERATE)
+//   org.bouncycastle:bcpkix-jdk18on:1.80.2      CVE-2026-5588    (MODERATE)
+//   org.bouncycastle:bcprov-jdk18on:1.80.2      CVE-2026-0636    (MODERATE)
+//
+// plus `org.apache.httpcomponents:httpclient:4.5.6` (CVE-2020-13956), which the plugin classpath
+// had already lifted to 4.5.14 by ordinary conflict resolution -- so on that classpath it looked
+// fixed while `androidLintTool`, where nothing else asks for httpclient, quietly kept 4.5.6.
+// Reading only `buildEnvironment` would have called this round finished with four alerts open.
+//
+// The versions match the root block deliberately: the same artifact resolving to two different
+// versions in one build is how you end up debugging a `NoSuchMethodError` that only lint sees.
+// Bouncy Castle's three jars move as a set for the same reason.
+//
+// `configureEach` rather than `getByName("androidLintTool")` because AGP creates that
+// configuration lazily; naming it eagerly resolves it during configuration. Forcing across every
+// configuration is safe here only because it was checked: none of these five coordinates appears
+// on `releaseRuntimeClasspath`, `debugRuntimeClasspath` or `releaseCompileClasspath` -- those
+// carry androidx, Compose, coroutines and kotlin-stdlib and nothing else -- so no force here can
+// reach the APK. Do not extend this list with a coordinate the app actually ships without
+// re-checking that.
+configurations.configureEach {
+    resolutionStrategy {
+        force("org.bouncycastle:bcpkix-jdk18on:1.84")
+        force("org.bouncycastle:bcprov-jdk18on:1.84")
+        force("org.bouncycastle:bcutil-jdk18on:1.84")
+        force("org.apache.commons:commons-lang3:3.20.0")
+        force("org.apache.httpcomponents:httpclient:4.5.14")
+    }
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.appcompat:appcompat:1.8.0")
@@ -275,5 +350,21 @@ tasks.withType<Test>().configureEach {
     // UP-TO-DATE and green. Kotlin sources are covered already, because changing one recompiles.
     inputs.file(layout.projectDirectory.file("src/main/AndroidManifest.xml"))
         .withPropertyName("appManifest")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And the same problem again, one directory up. `BuildTypeDeclarationTest` and
+    // `ShippedApkContractTest` read **this file** and the workflow files; neither is anything
+    // Gradle already tracks as an input here, so a build-script edit left the unit tests
+    // UP-TO-DATE and green without executing a line of either. `BuildTypeDeclarationTest`'s own
+    // KDoc records three mutations that all appeared to be caught by nothing for this reason, and
+    // CLAUDE.md §7 carries it as a standing trap with "run with --rerun-tasks" as the workaround.
+    //
+    // It is a two-line fix rather than a habit, so v5.3 declares them. The cost is that editing
+    // a build script now re-runs the unit tests, which is the correct answer: a test that reads a
+    // file and does not re-run when that file changes is not checking the file.
+    inputs.file(layout.projectDirectory.file("build.gradle.kts"))
+        .withPropertyName("appBuildScript")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(rootProject.layout.projectDirectory.dir(".github/workflows"))
+        .withPropertyName("ciWorkflows")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

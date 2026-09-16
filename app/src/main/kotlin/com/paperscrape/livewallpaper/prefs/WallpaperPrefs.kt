@@ -85,9 +85,11 @@ data class WallpaperSettings(
     val customLocationLabel: String = "",
     // Live Weather: global (not per-theme, like useLocationForSunTimes/useCustomLocation above)
     // since it needs one of the location modes active to know where to fetch conditions
-    // for. liveWeatherApiKey is the user's own Open-Meteo key, if they entered one -- always
-    // takes priority over the build's own baked-in key (see WeatherRepository.resolveApiKey);
-    // blank means "use the app's own key, or the free keyless tier if that's blank too".
+    // for. liveWeatherApiKey is the user's own Open-Meteo key, if they entered one, and since
+    // v5.3 it is the only one there is: blank means the free keyless tier, set means Open-Meteo's
+    // higher-limit customer endpoint (see OpenMeteoProvider.resolveApiKey -- never
+    // WeatherRepository.resolveApiKey, which three comments named and which has never existed).
+    // The build's own baked-in key was removed in v5.3 because it shipped readable in the dex.
     val liveWeatherEnabled: Boolean = false,
     val liveWeatherApiKey: String = "",
     /**
