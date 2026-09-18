@@ -1770,7 +1770,7 @@ class PaperRenderer(
             )
             canvas.restore()
         } else {
-            drawMoonWithPhase(canvas, cx, cy, radius, color)
+            drawMoonWithPhase(canvas, cx, cy, radius, color, dayPhase.moonPhase)
         }
     }
 
@@ -1783,7 +1783,14 @@ class PaperRenderer(
      * reused the same way for the waning side via a 180° rotation. Thresholds on `illuminated`
      * (already computed below, unchanged from the old technique) pick between the buckets.
      */
-    private fun drawMoonWithPhase(canvas: SceneCanvas, cx: Float, cy: Float, radius: Float, litColor: Int) {
+    private fun drawMoonWithPhase(
+        canvas: SceneCanvas,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+        litColor: Int,
+        phase: Float,
+    ) {
         val darkColor = ColorUtils.blendARGB(litColor, 0xFF10101A.toInt(), 0.82f)
         val s = radius / 120f
 
@@ -1838,7 +1845,13 @@ class PaperRenderer(
         )
         canvas.restore()
 
-        val phase = SunPositionCalculator.moonPhase()
+        // **[phase] is an argument and must stay one.** It was `SunPositionCalculator.moonPhase()`
+        // here until v5.4G -- a read of `System.currentTimeMillis()` in the middle of painting a
+        // frame whose hour, theme, customisation and scene clock were all pinned by the caller.
+        // Everything above this line is a function of the renderer's inputs; this line was not,
+        // and it is why `night` and `shops-closed-night` passed at 19:02 and failed at 22:25 on
+        // the same build. The buckets below are thresholds, so the leak is invisible for days at
+        // a time and then moves 17 pixels the moment the real moon crosses one.
         val angle = phase * 2f * kotlin.math.PI.toFloat()
         val cosA = kotlin.math.cos(angle)
         val illuminated = (1f - cosA) / 2f

@@ -33,7 +33,7 @@ list of rows saying so one at a time is the same evidence, at two hundred times 
 column of the table that would appear here is zero by definition. It is listed in
 `fidelity.json` if you need to see it.
 
-## Sprites with no recoverable source (267)
+## Sprites with no recoverable source (313)
 
 These ship today and cannot be regenerated from an SVG. The names are listed so the gap is
 a recorded state of the project rather than an omission from a report; the reason is
@@ -67,25 +67,36 @@ Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece 
 `tower_tier1_mg`, `tower_tier1_mw`, `tower_tier2_fx`, `tower_tier2_mw`, `tower_tier3_fx`,
 `tower_tier3_mw`
 
-### `tools/generate_people_layers.py` -- 195 sprites
+### `tools/generate_people_layers.py` -- 241 sprites
 
 Written by tools/generate_people_layers.py from person_<varies per sprite>'s own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.
 
-`person_boy_summer_head_car_fx`, `person_boy_summer_head_car_mh`,
-`person_boy_summer_head_car_ms`, `person_boy_summer_head_car_mt`,
-`person_boy_summer_head_window_fx`, `person_boy_summer_head_window_mh`,
-`person_boy_summer_head_window_ms`, `person_boy_summer_head_window_mt`,
-`person_boy_summer_walk0_fx`, `person_boy_summer_walk0_mb`, `person_boy_summer_walk0_mh`,
-`person_boy_summer_walk0_ms`, `person_boy_summer_walk0_mt`, `person_boy_summer_walk1_fx`,
-`person_boy_summer_walk1_mb`, `person_boy_summer_walk1_mh`, `person_boy_summer_walk1_ms`,
-`person_boy_summer_walk1_mt`, `person_boy_summer_walk2_fx`, `person_boy_summer_walk2_mb`,
-`person_boy_summer_walk2_mh`, `person_boy_summer_walk2_ms`, `person_boy_summer_walk2_mt`,
-`person_boy_winter_head_car_fx`, `person_boy_winter_head_car_ms`,
+`person_boy_summer_carry0_fx`, `person_boy_summer_carry0_mb`, `person_boy_summer_carry0_mh`,
+`person_boy_summer_carry0_ms`, `person_boy_summer_carry0_mt`, `person_boy_summer_carry1_fx`,
+`person_boy_summer_carry1_mb`, `person_boy_summer_carry1_mh`, `person_boy_summer_carry1_ms`,
+`person_boy_summer_carry1_mt`, `person_boy_summer_carry2_fx`, `person_boy_summer_carry2_mh`,
+`person_boy_summer_carry2_ms`, `person_boy_summer_carry2_mt`, `person_boy_summer_head_car_fx`,
+`person_boy_summer_head_car_mh`, `person_boy_summer_head_car_ms`,
+`person_boy_summer_head_car_mt`, `person_boy_summer_head_window_fx`,
+`person_boy_summer_head_window_mh`, `person_boy_summer_head_window_ms`,
+`person_boy_summer_head_window_mt`, `person_boy_summer_walk0_fx`, `person_boy_summer_walk0_mb`,
+`person_boy_summer_walk0_mh`, `person_boy_summer_walk0_ms`, `person_boy_summer_walk0_mt`,
+`person_boy_summer_walk1_fx`, `person_boy_summer_walk1_mb`, `person_boy_summer_walk1_mh`,
+`person_boy_summer_walk1_ms`, `person_boy_summer_walk1_mt`, `person_boy_summer_walk2_fx`,
+`person_boy_summer_walk2_mb`, `person_boy_summer_walk2_mh`, `person_boy_summer_walk2_ms`,
+`person_boy_summer_walk2_mt`, `person_boy_winter_carry0_fx`, `person_boy_winter_carry0_ms`,
+`person_boy_winter_carry0_mt`, `person_boy_winter_carry1_fx`, `person_boy_winter_carry1_ms`,
+`person_boy_winter_carry1_mt`, `person_boy_winter_carry2_fx`, `person_boy_winter_carry2_ms`,
+`person_boy_winter_carry2_mt`, `person_boy_winter_head_car_fx`, `person_boy_winter_head_car_ms`,
 `person_boy_winter_head_car_mt`, `person_boy_winter_walk0_fx`, `person_boy_winter_walk0_mb`,
 `person_boy_winter_walk0_ms`, `person_boy_winter_walk0_mt`, `person_boy_winter_walk1_fx`,
 `person_boy_winter_walk1_mb`, `person_boy_winter_walk1_ms`, `person_boy_winter_walk1_mt`,
 `person_boy_winter_walk2_fx`, `person_boy_winter_walk2_mb`, `person_boy_winter_walk2_ms`,
-`person_boy_winter_walk2_mt`, `person_girl_summer_head_car_fx`,
+`person_boy_winter_walk2_mt`, `person_girl_summer_carry0_fx`, `person_girl_summer_carry0_mh`,
+`person_girl_summer_carry0_ms`, `person_girl_summer_carry0_mt`, `person_girl_summer_carry1_fx`,
+`person_girl_summer_carry1_mh`, `person_girl_summer_carry1_ms`, `person_girl_summer_carry1_mt`,
+`person_girl_summer_carry2_fx`, `person_girl_summer_carry2_mh`, `person_girl_summer_carry2_ms`,
+`person_girl_summer_carry2_mt`, `person_girl_summer_head_car_fx`,
 `person_girl_summer_head_car_mh`, `person_girl_summer_head_car_ms`,
 `person_girl_summer_head_car_mt`, `person_girl_summer_head_window_fx`,
 `person_girl_summer_head_window_mh`, `person_girl_summer_head_window_ms`,
@@ -93,7 +104,11 @@ Written by tools/generate_people_layers.py from person_<varies per sprite>'s own
 `person_girl_summer_walk0_mh`, `person_girl_summer_walk0_ms`, `person_girl_summer_walk0_mt`,
 `person_girl_summer_walk1_fx`, `person_girl_summer_walk1_mh`, `person_girl_summer_walk1_ms`,
 `person_girl_summer_walk1_mt`, `person_girl_summer_walk2_fx`, `person_girl_summer_walk2_mh`,
-`person_girl_summer_walk2_ms`, `person_girl_summer_walk2_mt`, `person_girl_winter_head_car_fx`,
+`person_girl_summer_walk2_ms`, `person_girl_summer_walk2_mt`, `person_girl_winter_carry0_fx`,
+`person_girl_winter_carry0_mh`, `person_girl_winter_carry0_ms`, `person_girl_winter_carry0_mt`,
+`person_girl_winter_carry1_fx`, `person_girl_winter_carry1_ms`, `person_girl_winter_carry1_mt`,
+`person_girl_winter_carry2_fx`, `person_girl_winter_carry2_mh`, `person_girl_winter_carry2_ms`,
+`person_girl_winter_carry2_mt`, `person_girl_winter_head_car_fx`,
 `person_girl_winter_head_car_mh`, `person_girl_winter_head_car_ms`,
 `person_girl_winter_head_car_mt`, `person_girl_winter_walk0_fx`, `person_girl_winter_walk0_mb`,
 `person_girl_winter_walk0_mh`, `person_girl_winter_walk0_ms`, `person_girl_winter_walk0_mt`,

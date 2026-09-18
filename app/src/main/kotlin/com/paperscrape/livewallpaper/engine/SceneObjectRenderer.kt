@@ -1978,7 +1978,17 @@ class SceneObjectRenderer(
             // is *already* in, never from the weather predicate directly, so nothing can change
             // inside a frame; the state itself moves at the bottom of the loop and only when no
             // copy of the figure was drawn. See [PedestrianCarry].
-            val carrying = umbrellaCarrying[walkStagger] && person.age == PersonAge.ADULT
+            //
+            // **v5.4: in the rain, every walker who can hold one is holding one** -- no share and
+            // no deal, on the maintainer's instruction. `canHold` is the artwork's own limit and
+            // the only thing that keeps anybody bare-headed.
+            //
+            // **v5.4H drew the children, so it now holds for everybody.** `PeopleLayerTable.CARRY`
+            // has four families, `canHold` reads that array's own length, and not a line here
+            // changed to let the children through -- which is exactly what v5.4E left the predicate
+            // shaped like. The line below is still the index that would be out of bounds if it
+            // lied.
+            val carrying = umbrellaCarrying[walkStagger] && PedestrianCarry.canHold(person.kindIndex)
             val slots = if (carrying) {
                 PeopleLayerTable.CARRY[person.kindIndex][seasonIdx][frame]
             } else {
@@ -2023,15 +2033,14 @@ class SceneObjectRenderer(
                 // sprite is 43x84 local units with its content reaching the bottom edge, so the
                 // feet land on the ground line at -84 and the figure is centred at -21.5.
                 drawPersonLayers(canvas, slots, PERSON_ANCHOR_X_UNITS, PERSON_ANCHOR_Y_UNITS, colours)
-                if (carrying) drawUmbrella(canvas, walkStagger, crossing)
+                if (carrying) drawUmbrella(canvas, walkStagger, crossing, person.kindIndex)
                 canvas.restore()
             }
             umbrellaCarrying[walkStagger] = PedestrianCarry.nextCarrying(
                 current = carrying,
                 wanted = PedestrianCarry.wantsUmbrella(
                     raining = rainingNow,
-                    isAdult = person.age == PersonAge.ADULT,
-                    noise = CandidateNoise.value(themeId.hashCode(), walkStagger, PedestrianCarry.CH_UMBRELLA),
+                    canHold = PedestrianCarry.canHold(person.kindIndex),
                 ),
                 onScreen = onScreen,
             )
@@ -2054,6 +2063,12 @@ class SceneObjectRenderer(
      *
      * A field rather than a per-frame set because this *is* the state the off-screen rule protects:
      * it has to survive between frames for "only change out of sight" to mean anything.
+     *
+     * **This is now the only umbrella state there is.** Until v5.4 a second array beside it held
+     * the street's deal -- which of the adults the share had picked -- and had to be refilled from
+     * the whole population every rainy frame. With everybody carrying there is nothing to pick, so
+     * the deal, its two scratch arrays and the pass over the population that filled them are all
+     * gone; a rainy frame is now cheaper than it was, not dearer.
      */
     private val umbrellaCarrying =
         BooleanArray(PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE)
@@ -2073,16 +2088,56 @@ class SceneObjectRenderer(
     private val umbrellaHandlePaint = Paint().apply { color = 0xFF5B4A3E.toInt(); style = Paint.Style.FILL }
 
     /**
-     * The hand's centre on the 39x84 sprite canvas, from
+     * The hand's centre on the 39x84 sprite canvas, **per family**, from
      * `tools/assets/concepts/people/carry/hands.json`.
      *
-     * One point, not one per frame: pose P1 holds the forearm still while the far arm swings, so
-     * the hand is in the same place on all three walk frames -- the generator asserts that on every
-     * run. Both adult families share it, because both are drawn on the same canvas from the same
-     * shoulder.
+     * One point per family, not one per frame: pose P1 holds the forearm still while the far arm
+     * swings, so the hand is in the same place on all three walk frames -- the generator asserts
+     * that on every run.
+     *
+     * **It was one point for everybody until v5.4H, and that is what kept the children out.** The
+     * two adults do share a grip: same canvas, same shoulder, same arm. A child does not, and not
+     * by a little -- (31.5, 24.5) is **59.5 units above the feet**, higher than a whole child,
+     * whose head-top measures 54.0. Hanging the shipped grip on a child put the canopy in the air
+     * above it with the handle across its face, which is the photograph in `V5_4E_REPORT.md`
+     * §1.1. The children's own grip is 34.9 units up, on their own raised forearm.
+     *
+     * The boy and the girl do not share one either, and the reason is in the drawing rather than in
+     * the code: `CHILD_SUMMER_RISE` stands her hair 2.5 units above the head oval against his cap's
+     * 1.5, so that both land on the same target box -- which puts her head oval, her chin, her
+     * shoulder and therefore her hand **one unit lower on the canvas**.
+     *
+     * Indexed by `kindIndex`, the same index `PeopleLayerTable` and `PedestrianCarry.canHold` use.
      */
-    private val carryHandX = 31.5f
-    private val carryHandY = 24.5f
+    private val carryHandX = floatArrayOf(31.5f, 31.5f, 28.0f, 28.0f)
+    private val carryHandY = floatArrayOf(24.5f, 24.5f, 49.09f, 50.09f)
+
+    /**
+     * Where the top of the handle sits on the same canvas, per family, from the same file.
+     *
+     * The rule the whole set obeys is *0.7 units above the family's own summer ink*: the adults'
+     * ink reaches 1.667 and their shipped crown is 1.0, and the children's reaches 30.0 and 30.333.
+     * The adults' 1.0 is **frozen** -- it is the artwork the v4.28 photographs were approved on --
+     * and the generator checks the rule against it rather than recomputing it (`build_carry_sprites
+     * .SHIPPED_ADULT_CROWN`).
+     */
+    private val carryCrownY = floatArrayOf(1f, 1f, 29.3f, 29.63f)
+
+    /**
+     * How big the canopy is drawn for each family: **the maintainer's variante 1b**.
+     *
+     * A child holding the shipped canopy at full size is a child holding *its father's* umbrella --
+     * 48 units of canopy over a figure 54 units tall. At 70 % it is 33.6 over the same figure and
+     * reads as an umbrella that belongs to it. That is the whole of 1b, and it is a number here
+     * rather than a drawing: one canopy still ships, and the five colours are still the only thing
+     * between the rule and a row of identical umbrellas.
+     *
+     * **1.0 is not a scale, it is the absence of one.** [drawUmbrella] takes the untouched blit for
+     * the adults rather than a `scale(1f, 1f)` around it, so nothing an adult draws goes through
+     * arithmetic it did not go through before this pass -- which is what lets an adults-only golden
+     * be evidence that the adults did not move.
+     */
+    private val carryCanopyScale = floatArrayOf(1f, 1f, 0.7f, 0.7f)
 
     /**
      * Drawn inside the walker's own transform -- feet at the origin, up is negative y, +x the
@@ -2092,9 +2147,9 @@ class SceneObjectRenderer(
      * only the canopy is artwork. That is the parasol pole's recipe, and it is why the same pose
      * can carry a bag or a case later without a single new sprite.
      */
-    private fun drawUmbrella(canvas: SceneCanvas, addr: Int, crossing: Int) {
-        val hx = carryHandX + PERSON_ANCHOR_X_UNITS
-        val hy = carryHandY + PERSON_ANCHOR_Y_UNITS
+    private fun drawUmbrella(canvas: SceneCanvas, addr: Int, crossing: Int, kindIndex: Int) {
+        val hx = carryHandX[kindIndex] + PERSON_ANCHOR_X_UNITS
+        val hy = carryHandY[kindIndex] + PERSON_ANCHOR_Y_UNITS
         // v4.30: dealt per crossing like the four colours of the person holding it. It was the one
         // thing on the street that never re-shuffled once the four regions started to, and it
         // costs nothing to include -- the crossing is already in hand.
@@ -2105,9 +2160,24 @@ class SceneObjectRenderer(
                 PedestrianCarry.CH_UMBRELLA_COLOUR,
             ),
         )
-        val crownY = PERSON_ANCHOR_Y_UNITS + 1f
+        val crownY = PERSON_ANCHOR_Y_UNITS + carryCrownY[kindIndex]
         canvas.drawRect(hx - 1.2f, crownY, hx + 1.2f, hy, umbrellaHandlePaint)
-        drawTintedSprite(canvas, R.drawable.umbrella_canopy, hx - 24f, crownY - 22f, colour)
+        val k = carryCanopyScale[kindIndex]
+        if (k == 1f) {
+            drawTintedSprite(canvas, R.drawable.umbrella_canopy, hx - 24f, crownY - 22f, colour)
+        } else {
+            // The canopy is authored at the blitter's 3x, so "70 %" is not a resample of the PNG:
+            // it is one more factor in the transform the blit already divides by, and the bitmap
+            // still reaches the screen through a single filtered downscale rather than two. The
+            // origin is divided back out because it is given in the scaled space.
+            canvas.save()
+            canvas.scale(k, k)
+            drawTintedSprite(
+                canvas, R.drawable.umbrella_canopy,
+                (hx - 24f * k) / k, (crownY - 22f * k) / k, colour,
+            )
+            canvas.restore()
+        }
     }
 
     /**

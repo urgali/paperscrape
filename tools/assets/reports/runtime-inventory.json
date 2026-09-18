@@ -2955,6 +2955,510 @@
     },
     {
       "content_band_centre_x": [
+        0.4784897392047884,
+        0.4348382908404155
+      ],
+      "content_band_coverage": [
+        0.7219135802469135,
+        0.6537037037037037
+      ],
+      "content_bbox": [
+        26,
+        90,
+        106,
+        252
+      ],
+      "content_column_max": 0.9876543209876543,
+      "content_coverage": 0.6878086419753087,
+      "content_height": 162,
+      "content_row_max": 0.925,
+      "content_width": 80,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 424,
+      "file_bytes": 5509,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry0_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 160,
+      "pixels_sha256": "1583a022145f3935c7002ca43fda6b934c027456a0f7d209ca016a97516d0244",
+      "sha256": "7604457b69382a4dfdb3e5d855f02b3af736e6e23614cb39f1a9b6ca750a5d8a",
+      "transparent_padding_bytes": 66096,
+      "transparent_padding_fraction": 0.5604395604395604,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5460210610503865,
+        0.48819421350182907
+      ],
+      "content_band_coverage": [
+        0.45920303605313095,
+        0.521505376344086
+      ],
+      "content_bbox": [
+        28,
+        205,
+        90,
+        240
+      ],
+      "content_column_max": 0.9714285714285714,
+      "content_coverage": 0.4912442396313364,
+      "content_height": 35,
+      "content_row_max": 0.6774193548387096,
+      "content_width": 62,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 97,
+      "file_bytes": 1223,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry0_mb",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "8f220bd429410a7bd0a378627440dad38bf5efbd1e5274ffea4590a786120172",
+      "sha256": "19be0ac0ab745e7a0b8676a293158fec413c923aae18f95127f20cfcb9f44cf4",
+      "transparent_padding_bytes": 109256,
+      "transparent_padding_fraction": 0.9264007597340931,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.4045975782932006,
+        0.5278983685966275
+      ],
+      "content_band_coverage": [
+        0.6172747580044676,
+        0.7791842475386779
+      ],
+      "content_bbox": [
+        27,
+        90,
+        106,
+        125
+      ],
+      "content_column_max": 0.9428571428571428,
+      "content_coverage": 0.7005424954792043,
+      "content_height": 35,
+      "content_row_max": 0.9367088607594937,
+      "content_width": 79,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 71,
+      "file_bytes": 1156,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry0_mh",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "6747270a262783d3f110d5c6f840d9d5beabe9659603519fe73ee6b64fb706fc",
+      "sha256": "276aedc0372074e0f14a399fb8721815081e3369d2a0e1ddc7a06c36456aa736",
+      "transparent_padding_bytes": 106876,
+      "transparent_padding_fraction": 0.9062203228869895,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.4954993811649101,
+        0.24420148379539244
+      ],
+      "content_band_coverage": [
+        0.595355587808418,
+        0.11436865021770683
+      ],
+      "content_bbox": [
+        32,
+        113,
+        97,
+        219
+      ],
+      "content_column_max": 0.6132075471698113,
+      "content_coverage": 0.3548621190130624,
+      "content_height": 106,
+      "content_row_max": 0.8769230769230769,
+      "content_width": 65,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 123,
+      "file_bytes": 1969,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry0_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "242cf30cca161afd54a8db176e4780a6d5edb20bddb1030bb69f5ff861949c2f",
+      "sha256": "70e4bb1bb52cab7fe124d3e03767b46c4241796447f1e2a4439ab27dbea51fc5",
+      "transparent_padding_bytes": 90376,
+      "transparent_padding_fraction": 0.7663139329805997,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5150309771895241,
+        0.5029148375768218
+      ],
+      "content_band_coverage": [
+        0.703150912106136,
+        0.7048092868988391
+      ],
+      "content_bbox": [
+        29,
+        153,
+        96,
+        207
+      ],
+      "content_column_max": 0.9814814814814815,
+      "content_coverage": 0.7039800995024875,
+      "content_height": 54,
+      "content_row_max": 0.9850746268656716,
+      "content_width": 67,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 104,
+      "file_bytes": 1390,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry0_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "bb720bfb8139c7f85571837347564f9de1cbbd113ff7634b1eb4f5e9b9bae86f",
+      "sha256": "3620c3babdd2f855a1aabdc179b125794603ebedd72a4f8cf8ced52ef5317481",
+      "transparent_padding_bytes": 103464,
+      "transparent_padding_fraction": 0.8772893772893773,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.4635732592909013,
+        0.3930272108843537
+      ],
+      "content_band_coverage": [
+        0.7225308641975309,
+        0.6351851851851852
+      ],
+      "content_bbox": [
+        27,
+        90,
+        107,
+        252
+      ],
+      "content_column_max": 0.9938271604938271,
+      "content_coverage": 0.678858024691358,
+      "content_height": 162,
+      "content_row_max": 0.9375,
+      "content_width": 80,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 380,
+      "file_bytes": 4774,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry1_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 172,
+      "pixels_sha256": "4dc8741da041cdb3cc3659cf8e57c9813f03e5c5abc92caf7c692ef0bb0c1f9c",
+      "sha256": "8dfe123c4037118449e153ee85ace824a25d0593574bbdd812375eeb3ad8b05b",
+      "transparent_padding_bytes": 66096,
+      "transparent_padding_fraction": 0.5604395604395604,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5676419694824603,
+        0.48434004474272935
+      ],
+      "content_band_coverage": [
+        0.8358974358974359,
+        0.764102564102564
+      ],
+      "content_bbox": [
+        40,
+        206,
+        79,
+        236
+      ],
+      "content_column_max": 0.9333333333333333,
+      "content_coverage": 0.8,
+      "content_height": 30,
+      "content_row_max": 0.9743589743589743,
+      "content_width": 39,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 56,
+      "file_bytes": 794,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry1_mb",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "12d89c144f143018317261cb8d6e58abc18b600666c8156065a9493f24db9564",
+      "sha256": "2bd23542918666dfe558b27c3ab4907a31ad39853d5c702ff24e28cd09ff39aa",
+      "transparent_padding_bytes": 113256,
+      "transparent_padding_fraction": 0.9603174603174603,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.3892058156925022,
+        0.5219717104374071
+      ],
+      "content_band_coverage": [
+        0.6113179448994788,
+        0.790436005625879
+      ],
+      "content_bbox": [
+        28,
+        90,
+        107,
+        125
+      ],
+      "content_column_max": 0.9714285714285714,
+      "content_coverage": 0.7034358047016275,
+      "content_height": 35,
+      "content_row_max": 0.9113924050632911,
+      "content_width": 79,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 77,
+      "file_bytes": 1180,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry1_mh",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "49503615f8e132328fc8cca0c0fb32dce6cbd8d580c178fdb58fc36b31efc357",
+      "sha256": "ba98f70137843cff7b4683769e51b17924292f67fb09cc7864d0eeea52213ba0",
+      "transparent_padding_bytes": 106876,
+      "transparent_padding_fraction": 0.9062203228869895,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5258989310009718,
+        0.16144314868804666
+      ],
+      "content_band_coverage": [
+        0.5547169811320755,
+        0.1037037037037037
+      ],
+      "content_bbox": [
+        27,
+        112,
+        97,
+        219
+      ],
+      "content_column_max": 0.4766355140186916,
+      "content_coverage": 0.32710280373831774,
+      "content_height": 107,
+      "content_row_max": 0.8142857142857143,
+      "content_width": 70,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 125,
+      "file_bytes": 1916,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry1_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "a28506d8190e8e2a75a93d0751b581426ff0ce6ff60ed78892047b1e30fd306a",
+      "sha256": "883745ff50f5efa6cf476dc8409593007b49b3b46981baa04327f2d1dbdfd3c8",
+      "transparent_padding_bytes": 87976,
+      "transparent_padding_fraction": 0.7459639126305793,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5040364583333333,
+        0.4774664256198347
+      ],
+      "content_band_coverage": [
+        0.7182940516273849,
+        0.7901234567901234
+      ],
+      "content_bbox": [
+        29,
+        153,
+        95,
+        207
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.7542087542087542,
+      "content_height": 54,
+      "content_row_max": 1.0,
+      "content_width": 66,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 97,
+      "file_bytes": 1186,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry1_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "08a90714e691acfab16ee2324624bd85837ff9033f777ec1fd41f84c5291d760",
+      "sha256": "9378cc1422e58c783c68d00480603d8995affe598ba10f157bb0faafe041f284",
+      "transparent_padding_bytes": 103680,
+      "transparent_padding_fraction": 0.8791208791208791,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5201860649342283,
+        0.4243041337556193
+      ],
+      "content_band_coverage": [
+        0.6532112636981551,
+        0.5679012345679012
+      ],
+      "content_bbox": [
+        18,
+        90,
+        107,
+        252
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6105562491330282,
+      "content_height": 162,
+      "content_row_max": 0.8539325842696629,
+      "content_width": 89,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 418,
+      "file_bytes": 5355,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry2_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 171,
+      "pixels_sha256": "ec6bf48a0943488013713255a0e9359dedcf29eebb9236079ce47c5567464496",
+      "sha256": "0aa5fc1f7874d03063fbde6d7ede48ccd82ec9feba5831a7d07c82f0dd75c67d",
+      "transparent_padding_bytes": 60264,
+      "transparent_padding_fraction": 0.510989010989011,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.4064864066193853,
+        0.5220818425760286
+      ],
+      "content_band_coverage": [
+        0.6220588235294118,
+        0.8220588235294117
+      ],
+      "content_bbox": [
+        27,
+        90,
+        107,
+        124
+      ],
+      "content_column_max": 0.9705882352941176,
+      "content_coverage": 0.7220588235294118,
+      "content_height": 34,
+      "content_row_max": 0.95,
+      "content_width": 80,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 70,
+      "file_bytes": 1100,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry2_mh",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "ca3a33cddf5c5768927b5670959364efadf03c0b717464c21b06a163e8e8127f",
+      "sha256": "2de116e824f3a18e0e0c57626da8e0044a78d803a47e35e6752bb5c31379ac83",
+      "transparent_padding_bytes": 107056,
+      "transparent_padding_fraction": 0.907746574413241,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5866520049483299,
+        0.13239074550128535
+      ],
+      "content_band_coverage": [
+        0.49318403115871473,
+        0.0929066157153093
+      ],
+      "content_bbox": [
+        18,
+        114,
+        97,
+        219
+      ],
+      "content_column_max": 0.4095238095238095,
+      "content_coverage": 0.2911392405063291,
+      "content_height": 105,
+      "content_row_max": 0.7088607594936709,
+      "content_width": 79,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 115,
+      "file_bytes": 1873,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry2_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "33c0554e3c20a1146e386b0fe7f59c8e1b4bd8e04c465ccf2eb52025ee0b65f0",
+      "sha256": "58c0e747dea384d315a1aa2e1bcf69bf78527dfd4092f6b98f7d34422da90203",
+      "transparent_padding_bytes": 84756,
+      "transparent_padding_fraction": 0.7186609686609686,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5485396182764604,
+        0.48787019277656773
+      ],
+      "content_band_coverage": [
+        0.6652046783625731,
+        0.7889863547758285
+      ],
+      "content_bbox": [
+        20,
+        153,
+        96,
+        207
+      ],
+      "content_column_max": 0.9814814814814815,
+      "content_coverage": 0.7270955165692008,
+      "content_height": 54,
+      "content_row_max": 0.9473684210526315,
+      "content_width": 76,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 111,
+      "file_bytes": 1402,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_summer_carry2_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "05dbfd6d3350597699a9eed5ad735062e7fb3e69546c808e470ec5c7835f4598",
+      "sha256": "71576064cf249c3df61431d0fd271f9eb017b2c2b59eac86c8ea825c510cbbb2",
+      "transparent_padding_bytes": 101520,
+      "transparent_padding_fraction": 0.8608058608058609,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
         0.513621013935197,
         0.5044364804745427
       ],
@@ -3927,6 +4431,330 @@
     },
     {
       "content_band_centre_x": [
+        0.49151555854040746,
+        0.5744996400287977
+      ],
+      "content_band_coverage": [
+        0.7973226238286479,
+        0.6124338624338624
+      ],
+      "content_bbox": [
+        9,
+        85,
+        99,
+        252
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.7043246839654025,
+      "content_height": 167,
+      "content_row_max": 0.9444444444444444,
+      "content_width": 90,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 497,
+      "file_bytes": 6934,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry0_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 280,
+      "pixels_sha256": "d288bcad89b8e3e80673c04c68e277c8afda17456adb978be7e65981afb23756",
+      "sha256": "dbbc80a4a5e6806204ba2ae45e063eeaa6d58200067a8017de215d5ab2cde60c",
+      "transparent_padding_bytes": 57816,
+      "transparent_padding_fraction": 0.4902319902319902,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.46792708840019454,
+        0.34773073408467864
+      ],
+      "content_band_coverage": [
+        0.7132370932224126,
+        0.11795859412614347
+      ],
+      "content_bbox": [
+        31,
+        96,
+        98,
+        219
+      ],
+      "content_column_max": 0.6666666666666666,
+      "content_coverage": 0.4131780123771387,
+      "content_height": 123,
+      "content_row_max": 0.8507462686567164,
+      "content_width": 67,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 105,
+      "file_bytes": 1900,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry0_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "99bb36cdc30fcfd9d02d3c3a0feb0bbf1deaed92b881f7a49957db079d595db9",
+      "sha256": "aa866a84501d215568fba1227eed3a3bc2770df3048900e1c5b565ae23780a84",
+      "transparent_padding_bytes": 84972,
+      "transparent_padding_fraction": 0.7204924704924704,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.35929939659589,
+        0.5893155653109283
+      ],
+      "content_band_coverage": [
+        0.26687834224598933,
+        0.5225601604278075
+      ],
+      "content_bbox": [
+        9,
+        85,
+        97,
+        221
+      ],
+      "content_column_max": 0.5661764705882353,
+      "content_coverage": 0.3947192513368984,
+      "content_height": 136,
+      "content_row_max": 0.7840909090909091,
+      "content_width": 88,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 156,
+      "file_bytes": 3036,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry0_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "8b7a054e0ca000e99b1325354f5f028fc392b79b8c88aebf7efdac9a4111b0ac",
+      "sha256": "fa8fd969602359d3559b6a9324f3f0b0de5adfb27d1bab583e4cfd5094da1899",
+      "transparent_padding_bytes": 70064,
+      "transparent_padding_fraction": 0.5940849274182608,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5028916567086436,
+        0.5727366851863158
+      ],
+      "content_band_coverage": [
+        0.8124315443592552,
+        0.604301948051948
+      ],
+      "content_bbox": [
+        9,
+        85,
+        97,
+        252
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.7077436037016875,
+      "content_height": 167,
+      "content_row_max": 0.9659090909090909,
+      "content_width": 88,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 462,
+      "file_bytes": 6374,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry1_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 278,
+      "pixels_sha256": "5b23ce6476d1ecf219ddc519a030084105878a45b472fd79ca5d267979e83751",
+      "sha256": "359801f196b461ed6ad1e515428472cda1a62e30c5f39fa96a28f4250ba8e87c",
+      "transparent_padding_bytes": 59152,
+      "transparent_padding_fraction": 0.5015601682268349,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5101737474024475,
+        0.23474715570309732
+      ],
+      "content_band_coverage": [
+        0.676056338028169,
+        0.10090048487647195
+      ],
+      "content_bbox": [
+        26,
+        97,
+        97,
+        219
+      ],
+      "content_column_max": 0.5819672131147541,
+      "content_coverage": 0.3884784114523205,
+      "content_height": 122,
+      "content_row_max": 0.8309859154929577,
+      "content_width": 71,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 117,
+      "file_bytes": 1998,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry1_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "139f88dcce6b1d6a6b16bdfb20a6979bc810011ed6b1fef5db73cb2e00468468",
+      "sha256": "41dd924b21f94c31193178d62fae81e3e217fc8670ce8bd8e7c464f248669aff",
+      "transparent_padding_bytes": 83288,
+      "transparent_padding_fraction": 0.7062135395468728,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.3679155477885285,
+        0.5956931595178021
+      ],
+      "content_band_coverage": [
+        0.27349560513860716,
+        0.5463934699317008
+      ],
+      "content_bbox": [
+        9,
+        85,
+        96,
+        222
+      ],
+      "content_column_max": 0.583941605839416,
+      "content_coverage": 0.4109405151438879,
+      "content_height": 137,
+      "content_row_max": 0.7931034482758621,
+      "content_width": 87,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 136,
+      "file_bytes": 2722,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry1_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "086f0ac408f18da7aab8ec546a857d0de2bcf684fdbfa6ca14cf6a07684d5747",
+      "sha256": "b268626a3cd243b6ad4571c91dcc8df7fd3c7a390a1d3657e527c620cacc62d0",
+      "transparent_padding_bytes": 70260,
+      "transparent_padding_fraction": 0.5957468457468458,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5015743928959768,
+        0.5450955902110847
+      ],
+      "content_band_coverage": [
+        0.7961476725521669,
+        0.6040663456393793
+      ],
+      "content_bbox": [
+        8,
+        84,
+        97,
+        252
+      ],
+      "content_column_max": 0.9940476190476191,
+      "content_coverage": 0.7001070090957732,
+      "content_height": 168,
+      "content_row_max": 0.9662921348314607,
+      "content_width": 89,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 456,
+      "file_bytes": 6782,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry2_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 248,
+      "pixels_sha256": "6580b4c13e04ec44816f5851b6b0c69a1659372d608ed0516c4e180068e785ee",
+      "sha256": "5c130b6b77b4cd96ff9ab30e7975b01cf10de3608a2d4664090ac7ca0351eafe",
+      "transparent_padding_bytes": 58128,
+      "transparent_padding_fraction": 0.4928774928774929,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5655609141466805,
+        0.26819385593220335
+      ],
+      "content_band_coverage": [
+        0.5895491803278688,
+        0.09516129032258064
+      ],
+      "content_bbox": [
+        17,
+        96,
+        97,
+        219
+      ],
+      "content_column_max": 0.5121951219512195,
+      "content_coverage": 0.34034552845528454,
+      "content_height": 123,
+      "content_row_max": 0.725,
+      "content_width": 80,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 119,
+      "file_bytes": 2008,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry2_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "656a7ca5fc56d4867249670e50195e77db77401849185ddf6f8ce673f77c86bd",
+      "sha256": "0cd88d3075a17b39b17f01575fd8237ff66379d17b1a8993a6fa626ac97d513e",
+      "transparent_padding_bytes": 78576,
+      "transparent_padding_fraction": 0.6662596662596663,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.349935599135782,
+        0.5665051123709253
+      ],
+      "content_band_coverage": [
+        0.2702569169960474,
+        0.5915678524374176
+      ],
+      "content_bbox": [
+        8,
+        84,
+        96,
+        222
+      ],
+      "content_column_max": 0.5797101449275363,
+      "content_coverage": 0.43091238471673254,
+      "content_height": 138,
+      "content_row_max": 0.7840909090909091,
+      "content_width": 88,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 147,
+      "file_bytes": 2938,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_boy_winter_carry2_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "3a15513debf29391fa539c18ada6744a0132e2cec2a83cb9da8fc16ac103175b",
+      "sha256": "0fdfe6867fd19b54f9a56d6793208fb87daea7f6765f1aac5f0f4a30e709b7ff",
+      "transparent_padding_bytes": 69360,
+      "transparent_padding_fraction": 0.5881155881155881,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
         0.45625128923014685,
         0.49433463667363475
       ],
@@ -4607,6 +5435,438 @@
       "sha256": "1a5f8db23b9c99bf7684b214cb3f2cd1f98d7ec7b3e1ebc7320ab6131ba73324",
       "transparent_padding_bytes": 68808,
       "transparent_padding_fraction": 0.5834350834350834,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5046429389637359,
+        0.5057190170022998
+      ],
+      "content_band_coverage": [
+        0.7656914893617022,
+        0.6184659837142107
+      ],
+      "content_bbox": [
+        13,
+        91,
+        107,
+        252
+      ],
+      "content_column_max": 0.9937888198757764,
+      "content_coverage": 0.6916215144707282,
+      "content_height": 161,
+      "content_row_max": 1.0,
+      "content_width": 94,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 432,
+      "file_bytes": 6401,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry0_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 198,
+      "pixels_sha256": "28011b7b112585696835711da8de0c762465b55953d6bd45084823023fe8d6dd",
+      "sha256": "0046a9889062d0a95bf9a97ced78875d05c8c0a8629f943feabfa553773692dd",
+      "transparent_padding_bytes": 57400,
+      "transparent_padding_fraction": 0.48670465337132,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.48380681818181814,
+        0.4711709976169071
+      ],
+      "content_band_coverage": [
+        0.5506883604505632,
+        0.4531914893617021
+      ],
+      "content_bbox": [
+        13,
+        91,
+        107,
+        160
+      ],
+      "content_column_max": 0.8260869565217391,
+      "content_coverage": 0.5012334258402713,
+      "content_height": 69,
+      "content_row_max": 0.6702127659574468,
+      "content_width": 94,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 96,
+      "file_bytes": 2057,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry0_mh",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "1bdd2057c2b788961001ba151908d986d975420dfe5894d212475b8a2f2d0889",
+      "sha256": "c86ef1fbfeeaa1297b27d43e4431de3caa36658c84656d699016889ebe893a60",
+      "transparent_padding_bytes": 91992,
+      "transparent_padding_fraction": 0.78001628001628,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5364397496087637,
+        0.3956900199480143
+      ],
+      "content_band_coverage": [
+        0.3961267605633803,
+        0.2524377031419285
+      ],
+      "content_bbox": [
+        27,
+        118,
+        98,
+        247
+      ],
+      "content_column_max": 0.6356589147286822,
+      "content_coverage": 0.3237252975215635,
+      "content_height": 129,
+      "content_row_max": 0.7746478873239436,
+      "content_width": 71,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 132,
+      "file_bytes": 2397,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry0_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "9d7b777a82ec1551c25c10bf58daf11453bca25cd5cba2233428fdfafb44fae3",
+      "sha256": "598559e3f3663a692352ad733bd2f55332e1e82356e101859473c7a41b5a3998",
+      "transparent_padding_bytes": 81300,
+      "transparent_padding_fraction": 0.6893569393569393,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.503832536732165,
+        0.49836477391221917
+      ],
+      "content_band_coverage": [
+        0.743778801843318,
+        0.6944700460829493
+      ],
+      "content_bbox": [
+        27,
+        157,
+        97,
+        219
+      ],
+      "content_column_max": 0.9838709677419355,
+      "content_coverage": 0.7191244239631336,
+      "content_height": 62,
+      "content_row_max": 0.9714285714285714,
+      "content_width": 70,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 114,
+      "file_bytes": 1709,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry0_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "a6d75d327122304502e16ac0708265e66a9364165c7cce9dcc44be7967db4af2",
+      "sha256": "92bb3e205cd35b6d22e4dd1d939411d7aa46b02a8947b2de8ea9849546a439f0",
+      "transparent_padding_bytes": 100576,
+      "transparent_padding_fraction": 0.8528015194681862,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5004724040316618,
+        0.4924948611310292
+      ],
+      "content_band_coverage": [
+        0.7681578947368422,
+        0.5723196881091618
+      ],
+      "content_bbox": [
+        13,
+        91,
+        108,
+        252
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6696305982347173,
+      "content_height": 161,
+      "content_row_max": 0.9894736842105263,
+      "content_width": 95,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 421,
+      "file_bytes": 5762,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry1_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 203,
+      "pixels_sha256": "3a71f852d87d415210240e36cdc6e6e63663779fd8cf40a93d3410b663b269e6",
+      "sha256": "dea31d99df6d683732cce67b02f6f33100878ba15d288af813d6d4549f84a879",
+      "transparent_padding_bytes": 56756,
+      "transparent_padding_fraction": 0.48124406457739793,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.4843604174326197,
+        0.4666436940041351
+      ],
+      "content_band_coverage": [
+        0.5596992481203007,
+        0.436390977443609
+      ],
+      "content_bbox": [
+        13,
+        91,
+        108,
+        161
+      ],
+      "content_column_max": 0.8571428571428571,
+      "content_coverage": 0.4980451127819549,
+      "content_height": 70,
+      "content_row_max": 0.6631578947368421,
+      "content_width": 95,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 95,
+      "file_bytes": 2128,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry1_mh",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "ac88e7ba20326b824be52565a9d98ad23b7714cb1c9ad3e1b119a7479e3bff5c",
+      "sha256": "2e8fd20b4647910260a638654ee3707ea2c327b9da149b864ee869d014d253db",
+      "transparent_padding_bytes": 91336,
+      "transparent_padding_fraction": 0.7744539411206078,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5296262993480975,
+        0.34328380430574995
+      ],
+      "content_band_coverage": [
+        0.4337550728097398,
+        0.2220657276995305
+      ],
+      "content_bbox": [
+        27,
+        116,
+        98,
+        235
+      ],
+      "content_column_max": 0.5294117647058824,
+      "content_coverage": 0.3270209492247603,
+      "content_height": 119,
+      "content_row_max": 0.7746478873239436,
+      "content_width": 71,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 119,
+      "file_bytes": 2122,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry1_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "2a765b3c37b1737ef505382f0560c094edcd91d0a391ff761dfb055cf2042fef",
+      "sha256": "d7403ab246f76f136fa7a428e8dffb1bb892146f4b0c6b57fd9d67a95028f4a3",
+      "transparent_padding_bytes": 84140,
+      "transparent_padding_fraction": 0.7134377967711301,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5125628140703518,
+        0.5271523599502691
+      ],
+      "content_band_coverage": [
+        0.7442730247779337,
+        0.7232789855072463
+      ],
+      "content_bbox": [
+        27,
+        156,
+        96,
+        219
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.7336093857832988,
+      "content_height": 63,
+      "content_row_max": 0.9710144927536232,
+      "content_width": 69,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 99,
+      "file_bytes": 1330,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry1_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "4b0f3c31c631d04512f760898b50c5506d8d8c558b1fdd4e11339b8f99caf1f6",
+      "sha256": "f26a03d86a799b891cff0d8b621865f90d56f9fefd17cc24522c767848cc98e2",
+      "transparent_padding_bytes": 100548,
+      "transparent_padding_fraction": 0.8525641025641025,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.49657353482967753,
+        0.46299604304258707
+      ],
+      "content_band_coverage": [
+        0.7657552083333333,
+        0.5717447916666667
+      ],
+      "content_bbox": [
+        13,
+        92,
+        109,
+        252
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.66875,
+      "content_height": 160,
+      "content_row_max": 0.9895833333333334,
+      "content_width": 96,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 434,
+      "file_bytes": 6260,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry2_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 201,
+      "pixels_sha256": "9a3dfb5a50a07d502918891fd93182263752359b88f9628003e2566a0fcb765e",
+      "sha256": "6d9f99c23e9a64ada0097209722729043da5f2f4c6e4af6ba594264e3645affd",
+      "transparent_padding_bytes": 56496,
+      "transparent_padding_fraction": 0.479039479039479,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.4749457762557077,
+        0.4657805594324262
+      ],
+      "content_band_coverage": [
+        0.5591299019607843,
+        0.4264880952380952
+      ],
+      "content_bbox": [
+        13,
+        92,
+        109,
+        161
+      ],
+      "content_column_max": 0.8695652173913043,
+      "content_coverage": 0.49184782608695654,
+      "content_height": 69,
+      "content_row_max": 0.6666666666666666,
+      "content_width": 96,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 98,
+      "file_bytes": 2082,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry2_mh",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "a29eaef4fac38dd60d3251eac3496a9c0bfa89372091e372177f055a95979bc4",
+      "sha256": "4f719eca863ed7a3694bdc1bebd77a3a5ad0d8dad6aac983c68cfcfe44c81114",
+      "transparent_padding_bytes": 91440,
+      "transparent_padding_fraction": 0.7753357753357754,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.6041062801932366,
+        0.3553199057400738
+      ],
+      "content_band_coverage": [
+        0.38501778614772963,
+        0.1713991769547325
+      ],
+      "content_bbox": [
+        16,
+        118,
+        97,
+        237
+      ],
+      "content_column_max": 0.5126050420168067,
+      "content_coverage": 0.2773109243697479,
+      "content_height": 119,
+      "content_row_max": 0.6790123456790124,
+      "content_width": 81,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 126,
+      "file_bytes": 2195,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry2_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "655f138d1e5c1688d2d563ce3d851bc8e4190ba9cdc735315d8c47196254aabb",
+      "sha256": "71383757836e9fac71cc76fb69f3aaa706ef954a229e6a0d511bb37f3aeadf2c",
+      "transparent_padding_bytes": 79380,
+      "transparent_padding_fraction": 0.6730769230769231,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.538648423520701,
+        0.5179106041554398
+      ],
+      "content_band_coverage": [
+        0.7241086587436333,
+        0.7461799660441426
+      ],
+      "content_bbox": [
+        21,
+        157,
+        97,
+        219
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.735144312393888,
+      "content_height": 62,
+      "content_row_max": 0.9473684210526315,
+      "content_width": 76,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 115,
+      "file_bytes": 1585,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_summer_carry2_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "fd53f7e8a2f84537d1bec7c12b5ca752fc60558bcd6223d3114e55b550d9da97",
+      "sha256": "9df8d6affe1eb4fee19443ec887901dea0c23192a43c1de5079eb1cbd9ef7312",
+      "transparent_padding_bytes": 99088,
+      "transparent_padding_fraction": 0.8401845068511735,
       "width": 117
     },
     {
@@ -5507,6 +6767,402 @@
       "sha256": "4ae69c7fdb81d648ff4cd86c12e5105ea5633de191f63ce5fea5fe9b0be3ba8c",
       "transparent_padding_bytes": 100236,
       "transparent_padding_fraction": 0.8499185999186,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.4997344632768361,
+        0.49344909771876067
+      ],
+      "content_band_coverage": [
+        0.7233716475095785,
+        0.750191570881226
+      ],
+      "content_bbox": [
+        24,
+        78,
+        99,
+        252
+      ],
+      "content_column_max": 0.9482758620689655,
+      "content_coverage": 0.7367816091954023,
+      "content_height": 174,
+      "content_row_max": 0.96,
+      "content_width": 75,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 550,
+      "file_bytes": 6382,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry0_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 283,
+      "pixels_sha256": "bb6f4c429d2cd3c774f6f275e06a005b6037101484f3b20b2aa5b8183e85aa96",
+      "sha256": "9d5c4406d7ac3e8dcd6fc2bb9866b0f33a2b20345e8be2400911c7bba6a31ca8",
+      "transparent_padding_bytes": 65736,
+      "transparent_padding_fraction": 0.5573870573870574,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.4612965765084169,
+        0.5857457156090783
+      ],
+      "content_band_coverage": [
+        0.48142414860681115,
+        0.18676470588235294
+      ],
+      "content_bbox": [
+        26,
+        88,
+        94,
+        127
+      ],
+      "content_column_max": 0.5897435897435898,
+      "content_coverage": 0.33031674208144796,
+      "content_height": 39,
+      "content_row_max": 0.9558823529411765,
+      "content_width": 68,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 66,
+      "file_bytes": 1053,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry0_mh",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "ed73b4ce5228704afb25a246df61dc8b86eee400b507c157d689683ad5a708bd",
+      "sha256": "c79aa7daa1c5396a10c5ce2bc6ed92589e9c74307d4ffdc36b208a72ee2f515c",
+      "transparent_padding_bytes": 107328,
+      "transparent_padding_fraction": 0.91005291005291,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5063628857109154,
+        0.2647822269725541
+      ],
+      "content_band_coverage": [
+        0.6294995610184372,
+        0.11222732491389208
+      ],
+      "content_bbox": [
+        30,
+        119,
+        97,
+        222
+      ],
+      "content_column_max": 0.6601941747572816,
+      "content_coverage": 0.36835241269381247,
+      "content_height": 103,
+      "content_row_max": 0.8805970149253731,
+      "content_width": 67,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 121,
+      "file_bytes": 2005,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry0_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "60bd7d5fb275c79171cf2afb57d0682409d23a5098a0e08939090020db60de31",
+      "sha256": "54de6c072e3800ad216d4c0e99ecccf4c4cd8aa0e30bced117a57b9da63d7110",
+      "transparent_padding_bytes": 90332,
+      "transparent_padding_fraction": 0.7659408492741826,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5473252937538652,
+        0.4972649127376921
+      ],
+      "content_band_coverage": [
+        0.43672014260249553,
+        0.6221033868092691
+      ],
+      "content_bbox": [
+        30,
+        156,
+        96,
+        224
+      ],
+      "content_column_max": 0.9705882352941176,
+      "content_coverage": 0.5294117647058824,
+      "content_height": 68,
+      "content_row_max": 0.8181818181818182,
+      "content_width": 66,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 126,
+      "file_bytes": 1731,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry0_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "eb6a6314a860ba544a7b6337fd939abc5880ac6f9080db31a3eaa71f94d5fe7d",
+      "sha256": "cdb6639741c6490fb523c5a83f372dcebbffaaec581bcf7700e09da28a80ad51",
+      "transparent_padding_bytes": 99984,
+      "transparent_padding_fraction": 0.8477818477818477,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5056275098376996,
+        0.4812397949280079
+      ],
+      "content_band_coverage": [
+        0.7286424355389872,
+        0.7353215284249767
+      ],
+      "content_bbox": [
+        24,
+        78,
+        98,
+        252
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.7319819819819819,
+      "content_height": 174,
+      "content_row_max": 0.9594594594594594,
+      "content_width": 74,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 517,
+      "file_bytes": 5622,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry1_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 282,
+      "pixels_sha256": "49f8872d441542650ba01e9a5561fa23e0cecb45cd9753c420956615f2c7cb84",
+      "sha256": "a0e6fa6ee2b9809bb7086a7ebd6fc26bb079a0d2df5367ec52e585669ed3e698",
+      "transparent_padding_bytes": 66432,
+      "transparent_padding_fraction": 0.5632885632885632,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5235176692391496,
+        0.1536911759269528
+      ],
+      "content_band_coverage": [
+        0.596244131455399,
+        0.1052195526097763
+      ],
+      "content_bbox": [
+        27,
+        120,
+        98,
+        222
+      ],
+      "content_column_max": 0.5196078431372549,
+      "content_coverage": 0.35073184203258767,
+      "content_height": 102,
+      "content_row_max": 0.8028169014084507,
+      "content_width": 71,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 117,
+      "file_bytes": 1919,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry1_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "810a6387f433a23d08352deb4d1399f4b9996d059bdf269ebe776d152ad54e6c",
+      "sha256": "e5e99d85117ce49a9707ba6dad6a6eefbfdc8e386d29ea91b6fd1e6092beec2e",
+      "transparent_padding_bytes": 88968,
+      "transparent_padding_fraction": 0.7543752543752543,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5351991277570686,
+        0.4987068625128327
+      ],
+      "content_band_coverage": [
+        0.45816372682044326,
+        0.6637401229148375
+      ],
+      "content_bbox": [
+        29,
+        157,
+        96,
+        224
+      ],
+      "content_column_max": 0.9850746268656716,
+      "content_coverage": 0.5624860770773,
+      "content_height": 67,
+      "content_row_max": 0.8656716417910447,
+      "content_width": 67,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 89,
+      "file_bytes": 1331,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry1_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "3b16ff963d7f84a0696fb207240f02b5845b9b9566abfa8ba38457724a5dd11f",
+      "sha256": "2611f2c97513168c0ac5aff27a90228ae1ba64443439f51430cc64cd9ead7091",
+      "transparent_padding_bytes": 99980,
+      "transparent_padding_fraction": 0.8477479310812644,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5531321770397082,
+        0.49775233590665446
+      ],
+      "content_band_coverage": [
+        0.6579758901037286,
+        0.6780207457246986
+      ],
+      "content_bbox": [
+        16,
+        78,
+        98,
+        252
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6679983179142136,
+      "content_height": 174,
+      "content_row_max": 0.8902439024390244,
+      "content_width": 82,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 525,
+      "file_bytes": 6131,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry2_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 265,
+      "pixels_sha256": "5d540aeb99fc9389bd0e498db7eae88d4b5b2c2d6a644725a722d6c5da285bad",
+      "sha256": "d06e0ca03defa8db0cb57eb135a5ffc3231f724e42daee55b59a5b6a18ba0783",
+      "transparent_padding_bytes": 60864,
+      "transparent_padding_fraction": 0.5160765160765161,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.46292347784885096,
+        0.5417092619096299
+      ],
+      "content_band_coverage": [
+        0.4948939512961508,
+        0.16343283582089552
+      ],
+      "content_bbox": [
+        27,
+        88,
+        94,
+        127
+      ],
+      "content_column_max": 0.5384615384615384,
+      "content_coverage": 0.3249138920780712,
+      "content_height": 39,
+      "content_row_max": 0.9552238805970149,
+      "content_width": 67,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 58,
+      "file_bytes": 1049,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry2_mh",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "bc424c5039cdcb97c6e4bfe39f2f3c8e3d3137558367293e4080198e17b6833b",
+      "sha256": "23d1f70f423a29b7942116b447d8b2649d5f93b918e306d2a8a8df70974c4a1e",
+      "transparent_padding_bytes": 107484,
+      "transparent_padding_fraction": 0.9113756613756614,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.578379418891682,
+        0.14937492339747516
+      ],
+      "content_band_coverage": [
+        0.5150645624103299,
+        0.09516977522716404
+      ],
+      "content_bbox": [
+        16,
+        120,
+        98,
+        222
+      ],
+      "content_column_max": 0.4411764705882353,
+      "content_coverage": 0.305117168818747,
+      "content_height": 102,
+      "content_row_max": 0.7073170731707317,
+      "content_width": 82,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 119,
+      "file_bytes": 1956,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry2_ms",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "bd4a2e7a745c600efe78605d1596e5ee226bc295b4fac08cdcdb3814fafe2817",
+      "sha256": "bae800de22ba4c453b369b92adacee5be847dc4ab928835865dc38dde1d4f232",
+      "transparent_padding_bytes": 84480,
+      "transparent_padding_fraction": 0.7163207163207164,
+      "width": 117
+    },
+    {
+      "content_band_centre_x": [
+        0.5344207813347802,
+        0.49258710155670865
+      ],
+      "content_band_coverage": [
+        0.4504643962848297,
+        0.6594427244582043
+      ],
+      "content_bbox": [
+        21,
+        157,
+        97,
+        225
+      ],
+      "content_column_max": 0.9852941176470589,
+      "content_coverage": 0.554953560371517,
+      "content_height": 68,
+      "content_row_max": 0.8552631578947368,
+      "content_width": 76,
+      "decoded_bytes": 117936,
+      "distinct_colour_count": 120,
+      "file_bytes": 1636,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 252,
+      "mode": "RGBA",
+      "name": "person_girl_winter_carry2_mt",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "01a2e9f29af3cdf82b2def87132157a8ac0aea696a94ce75a8b6ef791655ff81",
+      "sha256": "93974f3e84042685fcdd82c57f6e78f319cdb2204c2535dabb537d895b07dce0",
+      "transparent_padding_bytes": 97264,
+      "transparent_padding_fraction": 0.8247184913851581,
       "width": 117
     },
     {

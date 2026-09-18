@@ -49,9 +49,9 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66. Ordinary bumps: one release, one step.
-        versionCode = 66
-        versionName = "5.3"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67. Ordinary bumps: one release, one step.
+        versionCode = 67
+        versionName = "5.4"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //

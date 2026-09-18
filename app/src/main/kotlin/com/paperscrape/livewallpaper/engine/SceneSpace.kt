@@ -484,24 +484,63 @@ object SceneSpace {
         /**
          * Shop front, measured to the top of the wall and not to its hanging sign.
          *
-         * **Raised from 5.2 m in v2.7, and the old number was the wrong shape of wrong.** It was
-         * measured as a single storey, which put a restaurant *below* a 6.4 m cottage and a bar
-         * below that -- so a parade of shops read as outbuildings behind the houses. A commercial
-         * frontage is a taller storey than a domestic one and usually carries something above it;
-         * 9 m is two domestic courses plus the parapet the sign hangs off, which is what the
-         * artwork actually draws.
+         * ### v5.4: the declaration now describes the building that is drawn (item 113)
+         *
+         * This entry read **8.2 m over 96 units** from v2.8 to v5.3, and the paragraph that
+         * justified it said what the 96 were: *"a shop front with a residential storey over it"*.
+         * **The v5.0 redraw took the residential storey away.** `RESTAURANT_PAVILION` is a
+         * single-storey pavilion, one deal, and it tops out at **56 units** -- 58 % of what the
+         * entry claimed. The bar's two deals top out at 53 and 73 of its 92.
+         *
+         * Two things were wrong because of it, and only the second is visible:
+         *
+         *  - the entry said the restaurant was 8.2 m tall, and at the common metre it is
+         *    **4.78 m**;
+         *  - `spriteUnitsTall` is the top edge of the rectangle the shop-front criterion divides
+         *    by (`SceneObject.frontRect`), so **42 % of the rectangle the 40 % ceiling was
+         *    measured over was empty sky**. Measured where the ink stops, two shops were over the
+         *    ceiling: `desert`'s restaurant at 43.0 % and `easter`'s at 43.5 %.
+         *
+         * **The correction is the declaration, not the drawing.** The drawing is what the
+         * maintainer chose from the phase-4 photographs and ratified in phase 5, and in this
+         * project nothing overrules a photograph. So all three numbers that described the old
+         * facade move together -- these two and `NeighbourhoodTable`'s own `unitsTall` -- and they
+         * move by the same factor, which is what makes the change invisible in the building
+         * itself: the renderer draws a piece unit at `metresTall * pixelsPerMetre / unitsTall`,
+         * and that is **0.085417 m per piece unit before and after**, to seven figures.
+         * `BuildingHeightDeclarationTest` pins both halves.
+         *
+         * **What is not invisible is the layout**, and it was costed before the edit: the
+         * separation pass places a shop by its declared height, so nine shops on eight of the
+         * twelve themes move, one of them by 0.18 of a tile. The photographs are in
+         * `consegna_v5_4d/foto/`.
+         *
+         * **And a v2.7 decision does not survive the correction.** That paragraph raised the shops
+         * so *"a parade of shops"* would not *"read as outbuildings behind the houses"*. On the
+         * shipped artwork it does: 4.78 m and 4.53-6.24 m against a large house's 7.17-10.85 m.
+         * The declaration was the only place that decision still held, and correcting it is what
+         * makes the contradiction visible rather than what creates it -- `BuildingHeightDeclarationTest`
+         * has carried the drawn figures since v5.0 and `SceneContentV27Test` asserted the opposite
+         * from the declaration in the same suite. Both now read the drawing. It is a question about
+         * the artwork, and it is the maintainer's.
          */
-        // **Both numbers changed together, and that is the whole correction.** v2.7 raised the
-        // metres and left the 60-unit single-storey wall, which multiplied every opening the
-        // artwork draws: a 4.2 m door and a 5.25 m sign on a building meant to read as a shop. The
-        // wall is now 96 units -- a shop front with a residential storey over it -- and 8.2 m over
-        // 96 puts the door back at 2.40 m, beside a house door of 2.36 m. The building is bigger
-        // than a house by mass, not by openings.
-        RESTAURANT(8.2f, 96f),
+        RESTAURANT(4.7833333f, 56f),
 
-        /** The same, one course lower. */
-        /** The same, one course lower: 92 units of wall at 7.7 m gives a 2.35 m door. */
-        BAR(7.7f, 92f),
+        /**
+         * The same family, the chamfered corner unit: 53 units on one deal and 73 on the other.
+         *
+         * Declared at the taller of the two, so a crown over the tall deal is never measured
+         * against a front rectangle shorter than the building it covers. The short deal therefore
+         * still leaves 27 % of its declared front as sky, against the 41 % of v5.3 -- see
+         * `ShopFrontVisibilityTest`, which measures each instance on its own ink and no longer has
+         * to.
+         *
+         * 74.50136 rather than a round 74.5: it is `73 * 92 / 90.146`, the family's own ratio, so
+         * `spriteUnitsTall / unitsTall` is bit-for-bit what it was and the bar is drawn at exactly
+         * the size it was drawn at in v5.3. A typed 74.5 would have moved it by 0.005 px at the
+         * reference viewport, which is nothing and is still not zero.
+         */
+        BAR(6.23544f, 74.50136f),
 
         /** Pole to canopy rim. Raised in v76.7: at 2.3 m it had shrunk out of the composition. */
         PARASOL(2.9f, 84f),

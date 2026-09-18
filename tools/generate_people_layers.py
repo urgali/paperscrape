@@ -108,10 +108,14 @@ def all_sprites() -> list:
     applied, and the carrying pose from ``build_carry_sprites`` with the shipped trim -- the same
     two paths that produced the PNGs in ``res``, so nothing here is a second drawing of the same
     figure.
+
+    **All four families carry since v5.4H.** ``bpc.KINDS`` rather than the two adults: the children
+    have a pose now, and writing the loop over the table's own family list is what keeps this from
+    being the place that remembers "adults only" after the artwork stopped agreeing.
     """
     sprites = list(bpc.family(STYLE))
     bpc.trim_to_content(sprites, STYLE)
-    for kind in ("man", "woman"):
+    for kind in bpc.KINDS:
         for season in ("summer", "winter"):
             for frame in range(3):
                 s, _ = carry.walker(kind, season, frame, carrying=True)
@@ -275,7 +279,7 @@ def write_table(report: dict) -> None:
 
     def carry_rows() -> str:
         out = []
-        for kind in ("man", "woman"):
+        for kind in bpc.KINDS:
             seasons = []
             for season in ("summer", "winter"):
                 frames = [f"person_{kind}_{season}_carry{f}" for f in (0, 1, 2, 1)]
@@ -344,7 +348,14 @@ internal object PeopleLayerTable {{
 {walk_rows()}
     )
 
-    /** The carrying pose, adults only: `[kind][season][frame]`. */
+    /**
+     * The carrying pose: `[kind][season][frame]`, **all four families since v5.4H**.
+     *
+     * It was two families, and `PedestrianCarry.canHold` is written to read this array's own length
+     * rather than a copy of the number -- so the children started carrying the moment the artwork
+     * landed here, with no second edit and no rule to change. That was the arrangement v5.4E left
+     * behind on purpose.
+     */
     val CARRY = arrayOf(
 {carry_rows()}
     )

@@ -163,13 +163,32 @@ class SceneContentV27Test {
 
     // --- The building hierarchy ---------------------------------------------------------------
 
+    /**
+     * **v5.4: this method used to assert the v2.7 decision and it asserts the v5.0 drawing now.**
+     *
+     * What it said was *"commercial buildings out-top the houses"*, and it read that off
+     * `SceneVariant.metresTall`. Item 113 found that number describing, for both shops, the
+     * two-storey facade the v5.0 neighbourhood redraw replaced with a single-storey pavilion: the
+     * restaurant declared 8.2 m and draws **4.78 m**, the bar declared 7.7 m and draws 4.53 or
+     * **6.24 m**, against a large house's 7.17 to 10.85 m.
+     *
+     * So the decision is not satisfied by the artwork and has not been for a release, and the
+     * declaration was the only place it survived. The maintainer's ruling on item 113 was to
+     * correct the declaration and leave the drawing alone -- the drawing is what was chosen from
+     * the phase-4 photographs -- so what is asserted here is the hierarchy the scene actually
+     * shows, with the one it was supposed to show named beside it.
+     *
+     * `BuildingHeightDeclarationTest` has carried the drawn figures since v5.0, in the same suite
+     * as this method's old claim. Nobody put the two together; this comment is the join.
+     */
     @Test
-    fun `commercial buildings out-top the houses`() {
-        val smallHouse = SceneSpace.SceneVariant.HOUSE_SMALL.metresTall
+    fun `the tower out-tops the shops, and the shops no longer out-top the houses`() {
         val largeHouse = SceneSpace.SceneVariant.HOUSE_LARGE.metresTall
         for (shop in listOf(SceneSpace.SceneVariant.BAR, SceneSpace.SceneVariant.RESTAURANT)) {
-            assertTrue("$shop should out-top a small house", shop.metresTall > smallHouse)
-            assertTrue("$shop should out-top a large house", shop.metresTall > largeHouse)
+            assertTrue(
+                "$shop is a single-storey pavilion since v5.0 and is shorter than a large house",
+                shop.metresTall < largeHouse,
+            )
         }
         assertTrue(
             "a tower should out-top the shops in front of it",
@@ -187,11 +206,13 @@ class SceneContentV27Test {
         // reads every variant's blits and fails if `spriteUnitsTall` stops being the extent the
         // renderer actually draws. Delete that test and this one goes back to being a tautology.
         fun drawnUnits(v: SceneSpace.SceneVariant) = v.baseScale * v.spriteUnitsTall
+        // v5.4: both of these used to point the other way, off the stale declaration -- see the
+        // method above. The corner bar out-draws the pavilion, and neither out-draws a large house.
         assertTrue(
-            drawnUnits(SceneSpace.SceneVariant.BAR) > drawnUnits(SceneSpace.SceneVariant.HOUSE_LARGE),
+            drawnUnits(SceneSpace.SceneVariant.BAR) < drawnUnits(SceneSpace.SceneVariant.HOUSE_LARGE),
         )
         assertTrue(
-            drawnUnits(SceneSpace.SceneVariant.RESTAURANT) > drawnUnits(SceneSpace.SceneVariant.BAR),
+            drawnUnits(SceneSpace.SceneVariant.BAR) > drawnUnits(SceneSpace.SceneVariant.RESTAURANT),
         )
         assertTrue(
             "a tower out-tops a shop by 1.90 as drawn; see SceneSpaceTest for why not 2.0",

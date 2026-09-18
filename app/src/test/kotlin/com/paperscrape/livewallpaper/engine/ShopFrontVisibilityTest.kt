@@ -43,6 +43,13 @@ class ShopFrontVisibilityTest {
     private val refH = 2340f
     private val tile = refW * 2f
 
+    /**
+     * The worst ink-measured shop-front coverage over the twelve built-in layouts, as v5.4 leaves
+     * it: 31.2 %, `halloween`/BAR. It was **43.5 %** (`easter`/RESTAURANT) before item 113 -- the
+     * correction moved nine shops on eight themes and took the worst reading under the ceiling.
+     */
+    private val INK_WORST = 0.3125f
+
     @Test
     fun `no shop front is covered beyond forty percent of its whole area on any built-in theme`() {
         var shopsChecked = 0
@@ -61,11 +68,26 @@ class ShopFrontVisibilityTest {
         assertTrue("expected a shop pair per theme, found $shopsChecked", shopsChecked >= 2 * themes.size)
     }
 
+    /**
+     * **The count guard is not decoration, and v5.4's sweep of item 117 is why it is here.**
+     *
+     * Every assertion in this method lives inside `for (shop in objects.filter { isShop(it) })`.
+     * If [isShop] stopped selecting anything -- it reads
+     * `SceneSpace.BUILDING_TOWER_MAX_DEPTH`, a constant that belongs to somebody else and has
+     * moved before -- the loop would run zero times and this test would report success over
+     * nothing, in exactly the shape `BACKLOG_v5_1.md` item 117 describes: a check run where its
+     * condition is true by construction. The sibling coverage test above has carried
+     * `shopsChecked >= 2 * themes.size` since it was written, and the duplication test below is
+     * guarded by its `byVariant.keys` equality, which an empty selection fails. This method was
+     * the one with nothing, and a guard in a neighbouring method guards nothing.
+     */
     @Test
     fun `no trunk or pole crosses any shop front on any built-in theme`() {
+        var shopsChecked = 0
         for (themeId in themes) {
             val objects = SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).staticObjects
             for (shop in objects.filter { isShop(it) }) {
+                shopsChecked++
                 val f = frontRect(shop)
                 val cx = (f[0] + f[2]) / 2f
                 val crossers = objects
@@ -81,6 +103,7 @@ class ShopFrontVisibilityTest {
                 )
             }
         }
+        assertEquals("this test asserted over no shop at all", 2 * themes.size, shopsChecked)
     }
 
     /**
@@ -125,6 +148,95 @@ class ShopFrontVisibilityTest {
         }
     }
 
+    /**
+     * The same criterion, measured where the shop's ink actually stops — **and it now holds.**
+     *
+     * The 40% ceiling above divides by [frontRect], whose top edge is `spriteUnitsTall`. Until
+     * v5.4 that number was not what the two shops draw: the restaurant declared 96 units and
+     * blits 56, so **42% of the rectangle the ceiling was measured over was empty sky**. A crown
+     * covering three fifths of the actual frontage was divided by an area two fifths of which no
+     * shop was ever drawn in, and read as passing.
+     *
+     * v5.3 measured it and pinned the numbers rather than the criterion, because re-declaring the
+     * shops was the maintainer's decision and not an implementation's:
+     *
+     * | | worst reading, v5.3 |
+     * |---|---|
+     * | the ceiling as the test above measures it | 31.2% (winter's bar) |
+     * | over the ink, which is what a viewer sees | **43.5%** (easter's restaurant) |
+     *
+     * with `desert`'s restaurant at 43.0% and `easter`'s at 43.5% over the ceiling.
+     *
+     * **v5.4 took that decision and the criterion bites again.** With the declaration corrected
+     * the separation pass places the shops by a height they actually have, and the ink-measured
+     * worst reading over all twelve themes falls under the ceiling — so this method asserts
+     * `<= 0.40`, which is the criterion itself, on the measurement that is what a viewer sees.
+     * The two readings above are kept in this comment because the difference between them is the
+     * whole of item 113: an acceptance criterion is only as good as the rectangle it divides by.
+     *
+     * It is still measured **per instance**, over the drawn extent of that instance's own deal,
+     * with the neighbouring buildings occluding at their drawn extent too — both sides moved
+     * together. The declaration is a family's, and the bar has two deals; measuring on ink is what
+     * keeps the shorter of them honest.
+     */
+    @Test
+    fun `measured where the ink stops, every shop front is inside the forty percent criterion`() {
+        var shopsChecked = 0
+        var worst = 0f
+        var worstShop = ""
+        val overCeiling = sortedSetOf<String>()
+        for (themeId in themes) {
+            val objects = SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).staticObjects
+            for (shop in objects.filter { isShop(it) }) {
+                shopsChecked++
+                val coverage = sampledFrontCoverage(objects, shop, onInk = true)
+                if (coverage > worst) {
+                    worst = coverage
+                    worstShop = "$themeId/${SceneObjectRenderer.variantFor(shop)}"
+                }
+                if (coverage > 0.40f) {
+                    overCeiling += "$themeId/${SceneObjectRenderer.variantFor(shop)} at " +
+                        "${"%.1f".format(coverage * 100)}%"
+                }
+            }
+        }
+        assertEquals("this test asserted over no shop at all", 2 * themes.size, shopsChecked)
+        assertTrue(
+            "measured on ink, these shop fronts are over the criterion: $overCeiling",
+            overCeiling.isEmpty(),
+        )
+        // The worst reading, named, so that a layout drifting towards the ceiling shows up as a
+        // changed number here before it shows up as a failure.
+        assertEquals("the worst ink-measured coverage is $worstShop", INK_WORST, worst, 0.005f)
+    }
+
+    /**
+     * The drawn extent of one building instance's own deal, in the variant's units.
+     *
+     * The deal is a pure function of `(tileFractionX, depthFraction)` — see
+     * [NeighbourhoodComposer.deal] — so this is the building that will actually be blitted at
+     * this spot, not a family average. Snow, porch lamps and window occupants are excluded on the
+     * same reading `BuildingHeightDeclarationTest` uses: a drift is weather, not building.
+     */
+    private fun drawnUnits(o: StaticSceneObject): Float {
+        val v = SceneObjectRenderer.variantFor(o)
+        val f = NeighbourhoodTable.FAMILIES[v] ?: return v.spriteUnitsTall
+        val deal = NeighbourhoodComposer.Deal()
+        NeighbourhoodComposer.deal(f, o.tileFractionX, o.depthFraction, deal)
+        var top = 0f
+        for (i in 0 until deal.size) {
+            val placed = deal[i]
+            for (part in placed.piece.parts) {
+                if (part.role != PartRole.SNOW && part.role != PartRole.LAMP &&
+                    part.role != PartRole.OCCUPANTS
+                ) {
+                    top = maxOf(top, -(placed.baseY + part.y))
+                }
+            }
+        }
+        return top * (v.spriteUnitsTall / f.unitsTall)
+    }
+
     // ---- independent geometry --------------------------------------------------------------
 
     private fun isShop(o: StaticSceneObject) =
@@ -148,21 +260,17 @@ class ShopFrontVisibilityTest {
         return units * SceneObjectRenderer.effectiveScaleFor(o, refH)
     }
 
-    private fun frontRect(shop: StaticSceneObject): FloatArray {
+    private fun frontRect(shop: StaticSceneObject, onInk: Boolean = false): FloatArray {
         val s = SceneObjectRenderer.effectiveScaleFor(shop, refH)
         val g = refH * SceneSpace.groundYFraction(shop.depthFraction)
         val x = shop.tileFractionX * tile
-        return floatArrayOf(
-            x - halfWidthPx(shop),
-            g - SceneObjectRenderer.variantFor(shop).spriteUnitsTall * s,
-            x + halfWidthPx(shop),
-            g,
-        )
+        val tall = if (onInk) drawnUnits(shop) else SceneObjectRenderer.variantFor(shop).spriteUnitsTall
+        return floatArrayOf(x - halfWidthPx(shop), g - tall * s, x + halfWidthPx(shop), g)
     }
 
     /** Everything one nearer object puts in front of a shop: bodies, crowns, trunks, canopies,
      * poles -- the whole silhouette, boxed. Same artwork measurements as the renderer's blits. */
-    private fun occluderBoxes(o: StaticSceneObject): List<FloatArray> {
+    private fun occluderBoxes(o: StaticSceneObject, onInk: Boolean = false): List<FloatArray> {
         val v = SceneObjectRenderer.variantFor(o)
         val s = SceneObjectRenderer.effectiveScaleFor(o, refH)
         val g = refH * SceneSpace.groundYFraction(o.depthFraction)
@@ -182,7 +290,14 @@ class ShopFrontVisibilityTest {
             SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
             SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
             SceneSpace.SceneVariant.TOWER,
-            -> listOf(floatArrayOf(x - halfWidthPx(o), g - v.spriteUnitsTall * s, x + halfWidthPx(o), g))
+            -> listOf(
+                floatArrayOf(
+                    x - halfWidthPx(o),
+                    g - (if (onInk) drawnUnits(o) else v.spriteUnitsTall) * s,
+                    x + halfWidthPx(o),
+                    g,
+                ),
+            )
             else -> emptyList()
         }
     }
@@ -252,12 +367,16 @@ class ShopFrontVisibilityTest {
     }
 
     /** Union coverage of the whole front, sampled on a 160x160 grid of the front rectangle. */
-    private fun sampledFrontCoverage(objects: List<StaticSceneObject>, shop: StaticSceneObject): Float {
-        val f = frontRect(shop)
+    private fun sampledFrontCoverage(
+        objects: List<StaticSceneObject>,
+        shop: StaticSceneObject,
+        onInk: Boolean = false,
+    ): Float {
+        val f = frontRect(shop, onInk)
         val cx = (f[0] + f[2]) / 2f
         val boxes = objects
             .filter { it !== shop && it.depthFraction > shop.depthFraction }
-            .flatMap { occluderBoxes(it) }
+            .flatMap { occluderBoxes(it, onInk) }
             .map { wrapBox(it, cx) }
             .filter { it[2] > f[0] && it[0] < f[2] && it[3] > f[1] && it[1] < f[3] }
         if (boxes.isEmpty()) return 0f

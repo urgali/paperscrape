@@ -37,6 +37,56 @@ import kotlin.math.abs
  * the storm golden does pin is everything `StormAtmosphere` drives: the darkened sky, the darkened
  * cloud band and the attenuated sun.
  *
+ * ### v5.4 lavoro D re-authored twenty-four of the thirty-three committed frames
+ *
+ * Twenty-one Canvas PNGs and **all three `gl-*.png`**, from two causes, each attributed with its
+ * own diagnostic build before anything was regenerated (`consegna_v5_4d/registri/40_*`):
+ *
+ *  - **the two shops' declaration** (`BACKLOG_v5_0.md` item 113). The separation pass places a shop
+ *    by `SceneSpace.SceneVariant.spriteUnitsTall`; correcting it moved nine shops on eight themes,
+ *    `sunset`'s restaurant by 0.18 of a tile. **Twenty-four assertions** went red over those
+ *    twenty-one PNGs, 844 to 2 852 px. (The two twenty-fours are a coincidence and are not the same
+ *    twenty-four: twenty-four *files* were rewritten — twenty-one Canvas plus the three GL, which
+ *    carry no assertions of their own in this harness — and twenty-four *assertions* changed, three
+ *    of them on `day` and two on `lake-busy`. This paragraph is written out because the suite's own
+ *    notes record that "33 Canvas goldens" has already been read as "33 Canvas files" once.)
+ *  - **the umbrella share** (`PedestrianCarry`). Exactly **one** frame, `umbrella-rain`, by
+ *    **56 px** — one of `sunset`'s three adults puts its umbrella down, because the share is dealt
+ *    now instead of rolled per walker.
+ *
+ * The two are disjoint and additive, which is what says the attribution is complete: on
+ * `umbrella-rain`, the shop cause alone gives 899 px, the umbrella cause alone 56, and the two
+ * together exactly **955**. The other nine committed frames are **pixel-identical** to what this
+ * device rendered before the change — the environment reproduces the shipped goldens exactly, so a
+ * frame that moved, moved because of the code.
+ *
+ * ### v5.4 lavoro E re-authored two, and the arithmetic of D closes on them
+ *
+ * The maintainer removed the share: in the rain **every walker who has a carry pose is carrying**.
+ * Two frames moved and they are the only two that *could* — an umbrella is state, not a predicate,
+ * so a golden rendered at scene time zero shows none whatever the rule is, and `umbrella-rain` and
+ * `wave-storm` are the only rainy scenes with a warm-up (320 frames x 0.25 s). `rain`,
+ * `rain-worst-sky` and `thunderstorm` all rain and all render at zero.
+ *
+ * Both moved by **56 px**, which is one canopy at this viewport — the same 56 lavoro D measured
+ * when one went down. `umbrella-rain`'s theme deals three adults and all three carry again;
+ * `wave-storm`'s `beach` deals four and the fourth picks one up.
+ *
+ * **The sum closes on `umbrella-rain`**, and it is worth writing because it makes lavoro D's
+ * attribution checkable from outside: against the v5.4C file, D was **955** and E is **899**, and
+ * 899 is exactly D's shop cause on its own. The umbrella went back up in the pixel it came down
+ * from. On `wave-storm`, C and D are byte-identical and E differs from both by the same 56.
+ *
+ * No `gl-*.png` moved, so the three GL references were **not** touched — the protocol below says to
+ * leave them unless the Canvas frames of their own scenes change, and none did. Of the nineteen
+ * frames `updateGoldens` rewrote, **seventeen came back byte-identical** to the committed files.
+ *
+ * The three GL references were regenerated for the first time since the BV6600 migration. They had
+ * been **passing** on the moved layout, at 899 px against `Tolerance.Gl`'s 0.50 % of the frame —
+ * 0.31 %, which is 62 % of the budget spent on one release's change. They are retrievable on this
+ * device (Android 10 lets `adb pull` reach the app's external files directory) and were pulled,
+ * not transcribed.
+ *
  * **Updating a golden.** Never blindly. Run with `-e updateGoldens true`, which writes the new PNGs
  * to the device's external files dir instead of comparing, then look at what changed and say why in
  * the commit. A golden that changed without a reason in the diff is a regression that has just been
@@ -204,6 +254,7 @@ object SceneGolden {
     fun assertMatches(scene: GoldenScene, extraFocus: List<GoldenFocus> = emptyList()) {
         scene.requireDeterministicLightning()
         val actual = render(scene)
+        assertReproducesOverTime(scene, actual)
         dumpIfAsked(scene.name, actual)
         if (updating()) {
             write(actual, File(outputDir(), "${scene.name}.png"))
@@ -263,6 +314,86 @@ object SceneGolden {
                 return
             }
         }
+    }
+
+    /**
+     * How far the clock is moved for [assertReproducesOverTime]: **191 days, 13 hours and 7
+     * minutes.**
+     *
+     * Not a round number, and not a small one, for three separate reasons:
+     *
+     *  - **the hour of the day changes**, which is what a scene pinned to `fixedHour` must be
+     *    immune to;
+     *  - **the day of the year and the season change**, which is what the seasonal calendar and
+     *    the sunrise/sunset approximation would be read through;
+     *  - **the moon is on the other side of its cycle.** 191 days 13 h 7 min is 6.4864 synodic
+     *    months, so the phase advances by 0.4864 -- and there is no starting phase for which the
+     *    pair falls in the same one of the nine pictures `drawMoonWithPhase` can paint. (The two
+     *    can share an *illuminated* bucket: `illuminated` is `sin^2(pi * phase)`, symmetric about
+     *    the full moon, so the pair meets at one phase per half cycle. At that phase they are on
+     *    opposite sides of it, which is a 180 degree rotation and a different picture. Verified
+     *    the hard way: the first mutation written for this check leaked the clock into
+     *    `illuminated` **and not** into `waxing`, and passed.)
+     *
+     * That last point is why the displacement is large rather than the three hours that exposed
+     * the defect. The leak is a *threshold* crossing: a few hours moves the real moon across a
+     * boundary on two or three days a month and on the rest changes nothing, which is exactly how
+     * `night` stayed green every evening from before v5.4D until the night somebody rendered it
+     * after 22:00.
+     *
+     * The pair is `now` and `now + this`, not two fixed instants, so it walks with the calendar:
+     * a leak that this pair happens not to separate today is separated by the same check tomorrow.
+     */
+    const val REPRODUCIBILITY_DISPLACEMENT_MILLIS = 191L * 86_400_000L + 13L * 3_600_000L + 7L * 60_000L
+
+    /**
+     * **The frame has to be the same frame tomorrow.**
+     *
+     * Renders [scene] a second time with the device's wall clock moved
+     * [REPRODUCIBILITY_DISPLACEMENT_MILLIS] into the future and requires the two frames to be
+     * pixel-identical -- exactly, with none of [CHANNEL_TOLERANCE]'s allowance, because this is the
+     * same renderer on the same device drawing the same description twice and anti-aliasing has
+     * nothing to differ about (see [countDifferingExactly]).
+     *
+     * ### The hole it closes
+     *
+     * [SceneGolden]'s own notes argue that restricting the double-regeneration check to *changed*
+     * scenes loses nothing, because "a newly non-deterministic scene is a changed scene by
+     * definition -- it cannot match its committed golden". That sentence is true of a scene that
+     * is non-deterministic **within a run** and false of one that is non-deterministic **over
+     * time**: `night` matched its committed golden at 19:02 and again at 19:05 and did not match
+     * it at 22:25, on a build that had not changed, because
+     * `PaperRenderer.drawMoonWithPhase` was reading `System.currentTimeMillis()` and the real
+     * moon had crossed from crescent to half. Twenty-one Canvas frames were re-authored in v5.4D
+     * and two more in v5.4E, and nothing in either pass could have noticed that two of the thirty
+     * were not reproducible at all.
+     *
+     * Every Canvas golden pays for this, rather than a list of the scenes somebody thought could
+     * be affected: a list of scenes that read the clock is a list nobody can maintain, which is
+     * the whole argument this project makes against hand-kept counts. The GL harness is not
+     * separately covered and does not need to be -- what it would be testing is
+     * [PaperRenderer], which is the same object this renders through, and a clock read there
+     * fails here first.
+     *
+     * The cost is one extra render of each scene, warm-up included, plus two `cmd alarm` calls.
+     */
+    fun assertReproducesOverTime(scene: GoldenScene, firstFrame: Bitmap) {
+        val later = DeviceClock.displacedBy(REPRODUCIBILITY_DISPLACEMENT_MILLIS) { render(scene) }
+        val differing = countDifferingExactly(later, firstFrame)
+        if (differing == 0) return
+        write(firstFrame, File(outputDir(), "${scene.name}-now.png"))
+        write(later, File(outputDir(), "${scene.name}-later.png"))
+        fail(
+            "Golden scene '${scene.name}' does not reproduce over time: rendered twice on this " +
+                "build, seconds apart, with nothing changed but the phone's wall clock " +
+                "(+${REPRODUCIBILITY_DISPLACEMENT_MILLIS / 86_400_000L} days), the two frames " +
+                "differ in $differing pixels. Something on the render path is reading the real " +
+                "clock instead of taking it as an input, so this golden can go red on its own " +
+                "without a line of code changing -- and green again later. Both frames are in " +
+                "${outputDir()} as '${scene.name}-now.png' and '${scene.name}-later.png'. Do not " +
+                "re-author the golden: find the read. SunPositionCalculator.moonPhase() was the " +
+                "last one (v5.4G).",
+        )
     }
 
     /**
@@ -331,6 +462,28 @@ object SceneGolden {
 
     fun differingFraction(expected: Bitmap, actual: Bitmap): Double =
         countDiffering(expected, actual, 0, 0, WIDTH, HEIGHT) / (WIDTH * HEIGHT).toDouble()
+
+    /**
+     * Pixels on which two frames disagree **at all**, with none of [CHANNEL_TOLERANCE]'s
+     * allowance.
+     *
+     * [countDiffering]'s tolerance exists for a comparison across Skia builds and Android
+     * versions; [assertReproducesOverTime] compares two frames drawn by one process on one device
+     * seconds apart, where there is nothing for anti-aliasing to differ about and a single
+     * greyscale level of difference is already a leak. The v5.4G defect would have failed either
+     * way -- it moved whole pixels -- but a clock read that only tinted something would not.
+     */
+    private fun countDifferingExactly(a: Bitmap, b: Bitmap): Int {
+        val row = IntArray(WIDTH)
+        val otherRow = IntArray(WIDTH)
+        var differing = 0
+        for (y in 0 until HEIGHT) {
+            a.getPixels(row, 0, WIDTH, 0, y, WIDTH, 1)
+            b.getPixels(otherRow, 0, WIDTH, 0, y, WIDTH, 1)
+            for (x in 0 until WIDTH) if (row[x] != otherRow[x]) differing++
+        }
+        return differing
+    }
 
     private fun countDiffering(expected: Bitmap, actual: Bitmap, left: Int, top: Int, right: Int, bottom: Int): Int {
         val width = right - left

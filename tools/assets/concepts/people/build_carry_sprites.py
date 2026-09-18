@@ -29,16 +29,21 @@ to be looked at before anything is regenerated. It is not a smoke test; it is th
 
 ### What ships, and what does not
 
-The **base** render of each frame is written to ``carry/`` as SVG and PNG and is *not* shipped: the
-call site indexes by skin tone only, so a fourth un-toned copy of every frame would be 1 415 232
-decoded bytes nothing blits. What ships is the 36 tone PNGs -- 2 adult families x 2 seasons x
-3 frames x 3 tones -- recoloured by ``tools/generate_skin_variants.py``'s own verified single-colour
-move, written straight into ``app/src/main/res/drawable-nodpi`` the way that script writes its own
-variants. Children never carry anything, so no child frame is drawn.
+The **base** render of each frame is written to ``carry/`` as SVG and PNG and is *not* shipped: it
+is the drawing, kept beside the concept scripts. What ships is written by
+``tools/generate_people_layers.py``, which calls [walker] itself and turns each frame into fixed art
+plus one weight mask per colourable region -- the v4.30 arrangement, in which a colour is not an
+axis of the artwork at all. Until v5.4H this script also wrote 36 **skin-tone** PNGs into
+``res``; v4.30 retired those and the loop that wrote them was left behind, so running the script
+put files back that nothing draws. It is gone; see [build].
 
-The hand's centre per frame goes to ``carry/hands.json``; ``SceneObjectRenderer`` reads those three
-numbers to hang the handle, which is a rectangle drawn in code so that the same pose can carry any
-object later without new artwork.
+**v5.4H draws the children too.** The maintainer chose strada 1 variante 1b of the v5.4F proposal
+round: the near arm raised, and the canopy at 70 %. Four families here, twelve frames, and
+``PeopleLayerTable.CARRY`` goes from two families to four.
+
+The hand's centre and the crown of the handle go, **per family**, to ``carry/hands.json``;
+``SceneObjectRenderer`` reads them to hang the handle, which is a rectangle drawn in code so that
+the same pose can carry any object later without new artwork.
 """
 from __future__ import annotations
 
@@ -54,7 +59,10 @@ sys.path.insert(0, str(TOOL_ROOT))
 sys.path.insert(0, str(HERE))
 
 import build_people_concepts as bpc  # noqa: E402
-from build_people_concepts import Sprite, cut, oval, quad, shade, ground_shadow, ADULT, ADULT_TOP, CHILD_TOP, SUMMER, WINTER, SKIN, HAIR, CREAM, UNIT  # noqa: E402
+from build_people_concepts import (Sprite, cut, oval, quad, shade, ground_shadow, ADULT, ADULT_TOP,  # noqa: E402
+                                   CHILD_TOP, SUMMER, WINTER, SKIN, HAIR, CREAM, UNIT,
+                                   CHILD_GEOMETRY, CHILD_OF_ADULT, ADULT_BOX_UNITS,
+                                   CHILD_SUMMER_RISE, CHILD_GROUND)
 from paperscrape_assets import raster  # noqa: E402
 from paperscrape_assets.inventory import measure_raster  # noqa: E402
 
@@ -68,11 +76,114 @@ TRIM = (1, 1)            # the shipped family's trim: 41x85 -> 39x84, origin +(1
 CANVAS = (39, 84)
 
 
+def child_walker(kind: str, season: str, frame: int, carrying: bool) -> tuple[Sprite, dict]:
+    """``walker_rilievo_child`` verbatim, except the near arm when ``carrying`` (v5.4H).
+
+    A second function beside [walker] for the same reason ``build_people_concepts`` has two: since
+    v4.30 the child is not the adult scaled. Its skeleton is derived **from the target box
+    downwards** -- crown, head, neck, torso, and the legs are whatever is left to the ground -- so
+    ``CHILD_OF_ADULT`` lands on the proportion by construction. A branch inside [walker] would have
+    had to choose between the two derivations on every line, and the copy here is held to the
+    shipped drawing by [check_reproduces_shipped], which renders boy and girl through *this* path
+    and compares them byte for byte with what ships.
+
+    **The pose is the maintainer's choice of v5.4F, strada 1 variante 1b: the near arm raised.** It
+    is the adult's P1 at a child's proportions -- elbow 5 down and 2.5 forward of the arm root
+    against the adult's 9 and 3, forearm 10.5 up against 16 -- and like P1 it is fixed on all three
+    walk frames while the far arm keeps swinging. The 1b half of the choice is not here: it is the
+    canopy drawn at 70 %, which is a number in ``SceneObjectRenderer`` and not a drawing.
+    """
+    p = CHILD_GEOMETRY
+    name = f"person_{kind}_{season}_walk{frame}" if not carrying else f"person_{kind}_{season}_carry{frame}"
+    s = Sprite(name, 41, 85)
+    seed = f"person_{kind}_{season}_walk{frame}"   # the same wobble as the shipped frame
+    gar = (SUMMER if season == "summer" else WINTER)[kind]
+    skin, hair = SKIN[kind], HAIR[kind]
+    cx = 20.0
+    head_ry, head_rx = p["head_ry"], p["head_rx"]
+    content_top = 85.0 - CHILD_OF_ADULT * ADULT_BOX_UNITS
+    crown = content_top + CHILD_SUMMER_RISE[kind]
+    head_cy = crown + head_ry
+    chin = head_cy + head_ry
+    shoulder = chin + p["neck"]
+    hip = shoulder + p["torso"]
+    stride = (p["stride"], 0.0, -p["stride"])[frame]
+    swing = (-p["swing"], 0.0, p["swing"])[frame]
+    bob = 1.0 if frame == 1 else 0.0
+    ground_shadow(s, cx=cx, rx=p["shadow"])
+    leg_w = p["leg_w"]
+    leg_col = gar["bottom"] or skin
+    s.add(cut(quad(cx - 3, hip - 2, leg_w, cx - 3 - stride, CHILD_GROUND - bob, leg_w - 0.5), seed + "L1"), shade(leg_col, 0.14))
+    s.add(cut(quad(cx + 3, hip - 2, leg_w, cx + 3 + stride, CHILD_GROUND - bob, leg_w - 0.5), seed + "L2"), leg_col)
+    for i, fx in enumerate((cx - 3 - stride, cx + 3 + stride)):
+        s.add(cut(oval(fx + 1, CHILD_GROUND + 0.5 - bob, p["foot"], 2.4, 10), seed + f"F{i}", 0.25), gar["shoe"] if i else shade(gar["shoe"], 0.14))
+    hem = hip + (p["coat"] if season == "winter" else (p["dress"] if kind == "girl" else 0))
+    sw = p["sw"]
+    hw = p["hw_girl"] if (season == "summer" and kind == "girl") else p["hw_boy"]
+    body = [(cx - sw + 2, shoulder), (cx + sw - 2, shoulder), (cx + sw, shoulder + 3), (cx + hw, hem - 2), (cx + hw - 2, hem), (cx - hw + 2, hem), (cx - hw, hem - 2), (cx - sw, shoulder + 3)]
+    s.add(cut(body, seed + "B"), gar["top"])
+    arm_len, arm_w = p["arm_len"], p["arm_w"]
+    sleeve = gar["top"]
+    hands = {}
+    carry_parts = []
+    for i, (ax, sw_dir, col) in enumerate(((cx - sw + 1.5, -swing, shade(sleeve, 0.16)), (cx + sw - 1.5, swing, sleeve))):
+        if i == 1 and carrying:
+            # ---- the carrying arm: upper arm to an elbow, forearm to a hand ----
+            elbow = (ax + 2.5, shoulder + 7.0)
+            hand = (ax + 2.0, chin - 2.0)
+            # Drawn last (see the end): the hand is in front of the face, and the shipped order
+            # puts the head over the arms.
+            carry_parts = [
+                (cut(quad(ax, shoulder + 2, arm_w, elbow[0], elbow[1], arm_w - 0.4), seed + "A1"), col, {}),
+                (cut(quad(elbow[0], elbow[1], arm_w - 0.4, hand[0], hand[1], arm_w - 0.9), seed + "A1b"), col, {}),
+                (cut(oval(hand[0], hand[1], 3.0, 3.0, 10), seed + "Hd1", 0.25), skin, {}),
+            ]
+            hands = {"hand": hand}
+            continue
+        s.add(cut(quad(ax, shoulder + 2, arm_w, ax + sw_dir, shoulder + 2 + arm_len, arm_w - 0.5), seed + f"A{i}"), col)
+        s.add(cut(oval(ax + sw_dir, shoulder + 3 + arm_len, 3.0, 3.0, 10), seed + f"Hd{i}", 0.25), skin if i else shade(skin, 0.14))
+    if season == "winter":
+        sc = p["scarf"]
+        s.add(cut([(cx - sc * 0.85, chin - 1.5), (cx + sc * 0.85, chin - 1.5), (cx + sc * 0.9, chin + 4), (cx + 3, chin + 9), (cx - 2, chin + 9), (cx - 2, chin + 4.5), (cx - sc * 0.85, chin + 4)], seed + "scarf"), gar["belt"])
+    s.add(cut([(cx - 3, chin - 3), (cx + 3.5, chin - 3), (cx + 3.5, shoulder + 2), (cx - 3, shoulder + 2)], seed + "N"), skin, relief=False)
+    hx, hy = cx + 0.5, head_cy
+    if season == "winter" and kind == "boy":
+        s.add(cut(oval(hx - 3, hy + 0.5, head_rx + 4.5, head_ry + 4.5, 14), seed + "hood", 0.3), gar["top"])
+        s.add(cut(oval(hx - 1.5, hy + 0.5, head_rx + 1.5, head_ry + 1.5, 14), seed + "hoodin", 0.25), CREAM, relief=False)
+    s.add(cut(oval(cx + 0.5, head_cy, head_rx, head_ry, 14), seed + "H", 0.3), skin)
+    s.head = (hx, hy, head_rx, head_ry)
+    if season == "summer":
+        lobes = {
+            "boy": [(hx - 3, hy - head_ry + 3, 7, 4.5), (hx + 3.5, hy - head_ry + 2.5, 6, 4.5)],
+            "girl": [(hx - 3, hy - head_ry + 2.5, 7.5, 5), (hx + 3.5, hy - head_ry + 2, 6, 4.5), (hx - head_rx - 2, hy + 3, 4, 6), (hx + head_rx + 2, hy + 3, 4, 6)],
+        }[kind]
+        for i, (lx, ly, rx, ry) in enumerate(lobes):
+            s.add(cut(oval(lx, ly, rx, ry, 10), seed + f"lobe{i}", 0.3), hair if kind != "boy" else gar["cap"])
+        if kind == "boy":
+            s.add(cut([(hx + 2, hy - head_ry + 3), (hx + head_rx + 5.5, hy - head_ry + 3.5), (hx + head_rx + 5.5, hy - head_ry + 6.5), (hx + 2, hy - head_ry + 6.5)], seed + "brim"), gar["cap"])
+        if kind == "girl":
+            for i, bx in enumerate((hx - head_rx - 2, hx + head_rx + 2)):
+                s.add(cut(oval(bx, hy - 2.5, 2.4, 2.2, 8), seed + f"bow{i}", 0.2), gar["bow"], relief=False)
+    else:
+        if kind == "girl":
+            s.add(cut(oval(hx, hy - head_ry + 1.5, head_rx + 1.5, 5.5, 12), seed + "hat", 0.3), gar["hat"])
+            s.add(cut([(hx - head_rx - 2, hy - head_ry + 1.5), (hx + head_rx + 2, hy - head_ry + 1.5), (hx + head_rx + 2, hy - head_ry + 5), (hx - head_rx - 2, hy - head_ry + 5)], seed + "hatband"), CREAM)
+            s.add(cut(oval(hx, hy - head_ry - 4, 3.2, 3.0, 10), seed + "pom", 0.25), CREAM)
+    for points, fill, kw in carry_parts:
+        s.add(points, fill, **kw)
+    return s, hands
+
+
 def walker(kind: str, season: str, frame: int, carrying: bool) -> tuple[Sprite, dict]:
     """``walker_rilievo`` verbatim, except the near arm when ``carrying``.
 
+    Dispatches to [child_walker] for the two child families exactly as ``walker_rilievo`` dispatches
+    to ``walker_rilievo_child``: since v4.30 a child is not an adult scaled down.
+
     Returns the sprite and, for the carrying pose, the hand centre in untrimmed units.
     """
+    if not ADULT[kind]:
+        return child_walker(kind, season, frame, carrying)
     name = f"person_{kind}_{season}_walk{frame}" if not carrying else f"person_{kind}_{season}_carry{frame}"
     s = Sprite(name, 41, 85)
     seed = f"person_{kind}_{season}_walk{frame}"   # the same wobble as the shipped frame
@@ -185,60 +296,122 @@ def render(s: Sprite):
 
 
 def check_reproduces_shipped() -> None:
-    """The proof that this path is the shipped one: the shipped man, summer, three frames."""
-    for frame in range(3):
-        s, _ = walker("man", "summer", frame, carrying=False)
-        s = bpc.faced(trimmed(s), STYLE)
-        _, r = render(s)
-        shipped = (RES / f"{s.name}.png").read_bytes()
-        same = r.png_bytes == shipped
-        print(f"  reproduces shipped {s.name}: {'byte-identical' if same else 'DIFFERS'}")
-        if not same:
-            raise SystemExit("the generator no longer reproduces the shipped frame; stop and look")
+    """The proof that this path is the shipped one: **all four families**, both seasons, every frame.
+
+    v4.28 checked the man's three summer walk frames, which was the whole argument while only the
+    two adult families had a carrying pose. v5.4H adds the children, and the children are not the
+    adults scaled ([child_walker]), so the check has to reach them: a second derivation of the
+    child skeleton that drifted by a unit would draw a child whose umbrella hangs off a shoulder
+    nobody ships, and nothing else in the pipeline would say so.
+
+    It is not a smoke test; it is the whole argument.
+    """
+    checked = 0
+    for kind in bpc.KINDS:
+        for season in ("summer", "winter"):
+            for frame in range(3):
+                s, _ = walker(kind, season, frame, carrying=False)
+                s = bpc.faced(trimmed(s), STYLE)
+                _, r = render(s)
+                shipped = (RES / f"{s.name}.png").read_bytes()
+                if r.png_bytes != shipped:
+                    raise SystemExit(
+                        f"the generator no longer reproduces the shipped frame {s.name}; stop and look")
+                checked += 1
+    print(f"  reproduces {checked} shipped walk frames byte-identically ({', '.join(bpc.KINDS)})")
+
+
+#: How far above a family's own ink the handle's crown sits, in canvas units.
+#:
+#: The adults' shipped ``crownY`` is 1.0 and their summer ink reaches 1.667, so the rule the shipped
+#: number already obeys is "0.7 above the ink"; the children are given the same rule rather than a
+#: second one. **Measured on the summer frame**, which is the skeleton ``CHILD_SUMMER_RISE`` is
+#: defined to land on the target box with -- a winter hood or a pompom stands higher and is not
+#: compensated, exactly as the adults' winter hat is not.
+CROWN_ABOVE_INK = 0.7
+
+#: The adults' crown, **frozen at the value that ships** (``SceneObjectRenderer.carryCrownY``).
+#:
+#: The rule above is read off the adults rather than applied to them. Measured, the man's summer ink
+#: asks for 0.97 and the woman's for 1.30, and the shipped set hangs both handles at 1.0 -- one
+#: number for the two families. That is the artwork the v4.28 photographs were approved on and the
+#: pixels every adult golden was authored against, so v5.4H does not move it by a third of a unit to
+#: tidy an arithmetic: the children need a grip the adults never had, and that is the whole of what
+#: this pass is allowed to change about the umbrella. The rule is **checked** against it below, so a
+#: future redraw that walks the adults' heads away from 1.0 says so instead of drifting.
+SHIPPED_ADULT_CROWN = 1.0
 
 
 def build() -> None:
+    """Writes the carrying pose for every family that has one, and the grips the engine hangs it by.
+
+    ### What lands where
+
+    The **base** render of each frame goes to ``carry/`` as SVG and PNG and is *not* shipped: it is
+    the drawing this pose is, kept beside the concept scripts so the next change to it can be seen.
+    What ships is written by ``tools/generate_people_layers.py``, which calls [walker] itself and
+    turns each frame into fixed art plus one weight mask per colourable region.
+
+    **This used to write 36 skin-tone PNGs straight into ``res`` and no longer does.** That was the
+    v4.28 arrangement, and v4.30 retired it: a person is drawn as fixed art plus region masks with
+    the colour arriving at the blit, so the tone copies were deleted from the shipped set two
+    releases ago. The loop that wrote them stayed here, which meant running this script put 36
+    retired files back into ``res`` that nothing draws and both memory ceilings charge for. Nothing
+    had run it since, so nothing had noticed.
+
+    ### hands.json
+
+    ``<kind>/<frame>`` is the hand's centre on the 39x84 canvas and ``<kind>/crown`` the top of the
+    handle, both in trimmed units, both read by ``SceneObjectRenderer``. Per **family**, because the
+    child's grip is not the adult's and the girl's is not the boy's -- ``CHILD_SUMMER_RISE`` puts her
+    head a unit higher, so her shoulder, and with it her hand, is a unit lower on the canvas.
+    """
     out = HERE / "carry"
     out.mkdir(parents=True, exist_ok=True)
     check_reproduces_shipped()
     hands: dict = {}
-    shipped_bytes = 0
+    written = 0
     decoded = 0
-    count = 0
-    for kind in ("man", "woman"):
+    for kind in bpc.KINDS:
         for season in ("summer", "winter"):
             for frame in range(3):
                 s, h = walker(kind, season, frame, carrying=True)
                 s = bpc.faced(trimmed(s), STYLE)
                 svg, r = render(s)
                 (out / f"{s.name}.svg").write_text(svg + "\n", encoding="utf-8")
-                base_png = out / f"{s.name}.png"
-                base_png.write_bytes(r.png_bytes)
+                (out / f"{s.name}.png").write_bytes(r.png_bytes)
                 box = measure_raster(s.name, r).content_bbox
                 if box[2] > CANVAS[0] * UNIT - 1:
                     raise SystemExit(f"{s.name}: content box {box} reaches the canvas edge")
                 dx, dy = TRIM
                 hands[f"{kind}/{frame}"] = [round(h["hand"][0] - dx, 2), round(h["hand"][1] - dy, 2)]
-                # The three tones, by the shipped recolour, written where the app reads them.
-                for tone, target in enumerate(skin_tool.TONES):
-                    source, variant = skin_tool.recolour(base_png, skin_tool.SKIN_BASE[kind], target)
-                    problem = skin_tool.verify(source, variant, skin_tool.SKIN_BASE[kind])
-                    if problem:
-                        raise SystemExit(f"{s.name} tone {tone}: {problem}")
-                    p = RES / f"{s.name}_skin{tone}.png"
-                    variant.save(p, optimize=True)
-                    shipped_bytes += p.stat().st_size
-                    decoded += r.size[0] * r.size[1] * 4
-                    count += 1
-                print(f"  {s.name}: {r.size[0]}x{r.size[1]} content {list(box)} hand {hands[f'{kind}/{frame}']}")
+                if season == "summer" and frame == 0:
+                    crown = round(box[1] / UNIT - CROWN_ABOVE_INK, 2)
+                    if ADULT[kind]:
+                        if abs(crown - SHIPPED_ADULT_CROWN) > 0.35:
+                            raise SystemExit(
+                                f"{kind}: the shipped adult crown {SHIPPED_ADULT_CROWN} is no longer "
+                                f"what the ink asks for ({crown}); the adults' handles have moved "
+                                f"and that is a decision, not a regeneration")
+                        crown = SHIPPED_ADULT_CROWN
+                    hands[f"{kind}/crown"] = crown
+                written += 1
+                decoded += r.size[0] * r.size[1] * 4
+                print(f"  {s.name}: {r.size[0]}x{r.size[1]} content {list(box)} "
+                      f"hand {hands[f'{kind}/{frame}']}")
     (out / "hands.json").write_text(json.dumps(hands, indent=1) + "\n", encoding="utf-8")
     # The hand is fixed across the three frames of this pose by construction: P1 does not follow
     # the swing. Said out loud here so a future edit that makes it move is noticed.
-    for kind in ("man", "woman"):
+    for kind in bpc.KINDS:
         frames = [hands[f"{kind}/{f}"] for f in range(3)]
         if len(set(map(tuple, frames))) != 1:
             raise SystemExit(f"{kind}: P1's hand must not move between frames, got {frames}")
-    print(f"shipped tone PNGs: {count}, {shipped_bytes} B on disk, {decoded} B decoded")
+    grips = {tuple(hands[f"{k}/0"]) for k in bpc.KINDS}
+    print(f"base frames written to carry/: {written}, {decoded} B if they were shipped "
+          f"(they are not -- generate_people_layers.py writes what ships)")
+    print(f"grips: " + ", ".join(f"{k}={hands[f'{k}/0']} crown={hands[f'{k}/crown']}" for k in bpc.KINDS))
+    if len(grips) < 2:
+        raise SystemExit("every family got the same grip, which the children cannot have")
 
 
 if __name__ == "__main__":

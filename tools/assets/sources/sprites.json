@@ -172,6 +172,106 @@
    "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
+   "id": "ground_flowers",
+   "axis": "season",
+   "members": [
+    "ground_flowers_bloom",
+    "ground_flowers_dry"
+   ],
+   "state": "DISTINCT",
+   "reason": "The two readings of one clump: in bloom, and gone over to seed heads and thistles. v5.1 split them because a single meadow was drawn under every palette, so an autumn or a winter scene carried midsummer flowers -- the same defect the fall palette was added to fix for the trees. The dry member covers autumn and winter both, which is why the group is named for the pair and neither member is named for a season."
+  },
+  {
+   "id": "boy_carry0_fx",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry0_fx",
+    "person_boy_winter_carry0_fx"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "boy_carry0_ms",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry0_ms",
+    "person_boy_winter_carry0_ms"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "boy_carry0_mt",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry0_mt",
+    "person_boy_winter_carry0_mt"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "boy_carry1_fx",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry1_fx",
+    "person_boy_winter_carry1_fx"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "boy_carry1_ms",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry1_ms",
+    "person_boy_winter_carry1_ms"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "boy_carry1_mt",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry1_mt",
+    "person_boy_winter_carry1_mt"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "boy_carry2_fx",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry2_fx",
+    "person_boy_winter_carry2_fx"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "boy_carry2_ms",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry2_ms",
+    "person_boy_winter_carry2_ms"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "boy_carry2_mt",
+   "axis": "season",
+   "members": [
+    "person_boy_summer_carry2_mt",
+    "person_boy_winter_carry2_mt"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
    "id": "boy_head_car_fx",
    "axis": "season",
    "members": [
@@ -317,6 +417,116 @@
    "members": [
     "person_boy_summer_walk2_mt",
     "person_boy_winter_walk2_mt"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry0_fx",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry0_fx",
+    "person_girl_winter_carry0_fx"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry0_mh",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry0_mh",
+    "person_girl_winter_carry0_mh"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry0_ms",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry0_ms",
+    "person_girl_winter_carry0_ms"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry0_mt",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry0_mt",
+    "person_girl_winter_carry0_mt"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry1_fx",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry1_fx",
+    "person_girl_winter_carry1_fx"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry1_ms",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry1_ms",
+    "person_girl_winter_carry1_ms"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry1_mt",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry1_mt",
+    "person_girl_winter_carry1_mt"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry2_fx",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry2_fx",
+    "person_girl_winter_carry2_fx"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry2_mh",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry2_mh",
+    "person_girl_winter_carry2_mh"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry2_ms",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry2_ms",
+    "person_girl_winter_carry2_ms"
+   ],
+   "state": "DISTINCT",
+   "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
+  },
+  {
+   "id": "girl_carry2_mt",
+   "axis": "season",
+   "members": [
+    "person_girl_summer_carry2_mt",
+    "person_girl_winter_carry2_mt"
    ],
    "state": "DISTINCT",
    "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
@@ -1010,16 +1220,6 @@
    ],
    "state": "DISTINCT",
    "reason": "The seasonal pair of one layer of one shape. Distinct exactly as the drawings they are cut from are: a winter figure wears a coat, a hat or a hood and a scarf, so both the fixed art and every region's weight differ from the summer figure's."
-  },
-  {
-   "id": "ground_flowers",
-   "axis": "season",
-   "members": [
-    "ground_flowers_bloom",
-    "ground_flowers_dry"
-   ],
-   "state": "DISTINCT",
-   "reason": "The two readings of one clump: in bloom, and gone over to seed heads and thistles. v5.1 split them because a single meadow was drawn under every palette, so an autumn or a winter scene carried midsummer flowers -- the same defect the fall palette was added to fix for the trees. The dry member covers autumn and winter both, which is why the group is named for the pair and neither member is named for a season."
   }
  ],
  "sprites": [
@@ -3156,6 +3356,370 @@
    "notes": ""
   },
   {
+   "name": "person_boy_summer_carry0_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    26,
+    90,
+    106,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    66.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_boy_summer_carry0_mb",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    28,
+    205,
+    90,
+    240
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    240
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the trousers region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry0_mh",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    90,
+    106,
+    125
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    66.5,
+    125
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the head -- hair, or whatever is worn on it instead region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry0_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    32,
+    113,
+    97,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.5,
+    219
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry0_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    29,
+    153,
+    96,
+    207
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    207
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry1_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    90,
+    107,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    67.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_boy_summer_carry1_mb",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    40,
+    206,
+    79,
+    236
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.5,
+    236
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the trousers region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry1_mh",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    28,
+    90,
+    107,
+    125
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    67.5,
+    125
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the head -- hair, or whatever is worn on it instead region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry1_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    112,
+    97,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    219
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry1_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    29,
+    153,
+    95,
+    207
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    207
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry2_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    18,
+    90,
+    107,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_boy_summer_carry2_mh",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    90,
+    107,
+    124
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    67.0,
+    124
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the head -- hair, or whatever is worn on it instead region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry2_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    18,
+    114,
+    97,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    57.5,
+    219
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_summer_carry2_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    20,
+    153,
+    96,
+    207
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    58.0,
+    207
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
    "name": "person_boy_summer_head_car_fx",
    "category": "person",
    "width": 114,
@@ -3858,6 +4422,240 @@
    "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
   },
   {
+   "name": "person_boy_winter_carry0_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    9,
+    85,
+    99,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    54.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_boy_winter_carry0_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    31,
+    96,
+    98,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    64.5,
+    219
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_winter_carry0_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    9,
+    85,
+    97,
+    221
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    53.0,
+    221
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_winter_carry1_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    9,
+    85,
+    97,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    53.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_boy_winter_carry1_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    26,
+    97,
+    97,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    219
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_winter_carry1_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    9,
+    85,
+    96,
+    222
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    52.5,
+    222
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_winter_carry2_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    8,
+    84,
+    97,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    52.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_boy_winter_carry2_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    17,
+    96,
+    97,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    57.0,
+    219
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_boy_winter_carry2_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    8,
+    84,
+    96,
+    222
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    52.0,
+    222
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_boy_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
    "name": "person_boy_winter_head_car_fx",
    "category": "person",
    "width": 114,
@@ -4348,6 +5146,318 @@
    "source": {
     "kind": "none",
     "reason": "Written by tools/generate_people_layers.py from person_boy_winter_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry0_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    13,
+    91,
+    107,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    60.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_girl_summer_carry0_mh",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    13,
+    91,
+    107,
+    160
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    60.0,
+    160
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the head -- hair, or whatever is worn on it instead region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry0_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    118,
+    98,
+    247
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    247
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry0_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    157,
+    97,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.0,
+    219
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry1_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    13,
+    91,
+    108,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    60.5,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_girl_summer_carry1_mh",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    13,
+    91,
+    108,
+    161
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    60.5,
+    161
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the head -- hair, or whatever is worn on it instead region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry1_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    116,
+    98,
+    235
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    235
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry1_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    156,
+    96,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    219
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry2_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    13,
+    92,
+    109,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    252
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_girl_summer_carry2_mh",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    13,
+    92,
+    109,
+    161
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    161
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the head -- hair, or whatever is worn on it instead region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry2_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    118,
+    97,
+    237
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    56.5,
+    237
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_summer_carry2_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    21,
+    157,
+    97,
+    219
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    219
+   ],
+   "season": "summer",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_summer_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
   },
@@ -4998,6 +6108,292 @@
    "source": {
     "kind": "none",
     "reason": "Written by tools/generate_people_layers.py from person_girl_summer_walk2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_winter_carry0_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    24,
+    78,
+    99,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.5,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_girl_winter_carry0_mh",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    26,
+    88,
+    94,
+    127
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    60.0,
+    127
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the head -- hair, or whatever is worn on it instead region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_winter_carry0_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    30,
+    119,
+    97,
+    222
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.5,
+    222
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_winter_carry0_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    30,
+    156,
+    96,
+    224
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    63.0,
+    224
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry0's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_winter_carry1_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    24,
+    78,
+    98,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    61.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_girl_winter_carry1_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    120,
+    98,
+    222
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    222
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_winter_carry1_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    29,
+    157,
+    96,
+    224
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    62.5,
+    224
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry1's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_winter_carry2_fx",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    78,
+    98,
+    252
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    57.0,
+    252
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The fixed art of this shape: every ink that does not follow one of the four colours the engine resolves at the blit, plus the dark half of every ink that does -- a shadow is (1-t)*paint + t*DARK and the t*DARK term does not move when the paint does. Written by tools/generate_people_layers.py from the same drawing code that draws the shipped figure, so its alpha channel is the figure's own, pixel for pixel."
+  },
+  {
+   "name": "person_girl_winter_carry2_mh",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    27,
+    88,
+    94,
+    127
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    60.5,
+    127
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the head -- hair, or whatever is worn on it instead region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_winter_carry2_ms",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    16,
+    120,
+    98,
+    222
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    57.0,
+    222
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": "The weight mask of the skin region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
+  },
+  {
+   "name": "person_girl_winter_carry2_mt",
+   "category": "person",
+   "width": 117,
+   "height": 252,
+   "contentBox": [
+    21,
+    157,
+    97,
+    225
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "CONTENT_BOTTOM_CENTRE",
+   "anchor": [
+    59.0,
+    225
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/generate_people_layers.py from person_girl_winter_carry2's own drawing, through the same code that draws the shipped figure. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
    },
    "notes": "The weight mask of the shirt or coat region: how much of each pixel follows that region's colour, white with the weight in the alpha so that BitmapFactory's premultiplication leaves exactly the product the engine multiplies the colour by. Added to the fixed layer rather than laid over it -- two source-over layers split the pixel's coverage and a + b(1-a) is not linear, so once the engine halves each one separately they stop recomposing and a halo appears at the edge. Written by tools/generate_people_layers.py; PeopleLayerAssetTest checks that the layers add up to the drawing at the colours it was painted in."
   },

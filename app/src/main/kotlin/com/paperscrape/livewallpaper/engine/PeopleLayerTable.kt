@@ -18,7 +18,6 @@ import com.paperscrape.livewallpaper.R
  */
 internal object PeopleLayerTable {
 
-
     /** Slot of the fixed art in a shape's array. */
     const val FIXED = 0
 
@@ -91,7 +90,14 @@ internal object PeopleLayerTable {
         ),
     )
 
-    /** The carrying pose, adults only: `[kind][season][frame]`. */
+    /**
+     * The carrying pose: `[kind][season][frame]`, **all four families since v5.4H**.
+     *
+     * It was two families, and `PedestrianCarry.canHold` is written to read this array's own length
+     * rather than a copy of the number -- so the children started carrying the moment the artwork
+     * landed here, with no second edit and no rule to change. That was the arrangement v5.4E left
+     * behind on purpose.
+     */
     val CARRY = arrayOf(
         arrayOf(
             arrayOf(
@@ -119,6 +125,34 @@ internal object PeopleLayerTable {
                 intArrayOf(R.drawable.person_woman_winter_carry1_fx, R.drawable.person_woman_winter_carry1_ms, R.drawable.person_woman_winter_walk1_mh, R.drawable.person_woman_winter_carry1_mt, R.drawable.person_woman_winter_walk1_mb),
                 intArrayOf(R.drawable.person_woman_winter_carry2_fx, R.drawable.person_woman_winter_carry2_ms, R.drawable.person_woman_winter_walk2_mh, R.drawable.person_woman_winter_carry2_mt, R.drawable.person_woman_winter_walk2_mb),
                 intArrayOf(R.drawable.person_woman_winter_carry1_fx, R.drawable.person_woman_winter_carry1_ms, R.drawable.person_woman_winter_walk1_mh, R.drawable.person_woman_winter_carry1_mt, R.drawable.person_woman_winter_walk1_mb),
+            ),
+        ),
+        arrayOf(
+            arrayOf(
+                intArrayOf(R.drawable.person_boy_summer_carry0_fx, R.drawable.person_boy_summer_carry0_ms, R.drawable.person_boy_summer_carry0_mh, R.drawable.person_boy_summer_carry0_mt, R.drawable.person_boy_summer_carry0_mb),
+                intArrayOf(R.drawable.person_boy_summer_carry1_fx, R.drawable.person_boy_summer_carry1_ms, R.drawable.person_boy_summer_carry1_mh, R.drawable.person_boy_summer_carry1_mt, R.drawable.person_boy_summer_carry1_mb),
+                intArrayOf(R.drawable.person_boy_summer_carry2_fx, R.drawable.person_boy_summer_carry2_ms, R.drawable.person_boy_summer_carry2_mh, R.drawable.person_boy_summer_carry2_mt, R.drawable.person_boy_summer_walk2_mb),
+                intArrayOf(R.drawable.person_boy_summer_carry1_fx, R.drawable.person_boy_summer_carry1_ms, R.drawable.person_boy_summer_carry1_mh, R.drawable.person_boy_summer_carry1_mt, R.drawable.person_boy_summer_carry1_mb),
+            ),
+            arrayOf(
+                intArrayOf(R.drawable.person_boy_winter_carry0_fx, R.drawable.person_boy_winter_carry0_ms, 0, R.drawable.person_boy_winter_carry0_mt, R.drawable.person_boy_winter_walk0_mb),
+                intArrayOf(R.drawable.person_boy_winter_carry1_fx, R.drawable.person_boy_winter_carry1_ms, 0, R.drawable.person_boy_winter_carry1_mt, R.drawable.person_boy_winter_walk1_mb),
+                intArrayOf(R.drawable.person_boy_winter_carry2_fx, R.drawable.person_boy_winter_carry2_ms, 0, R.drawable.person_boy_winter_carry2_mt, R.drawable.person_boy_winter_walk2_mb),
+                intArrayOf(R.drawable.person_boy_winter_carry1_fx, R.drawable.person_boy_winter_carry1_ms, 0, R.drawable.person_boy_winter_carry1_mt, R.drawable.person_boy_winter_walk1_mb),
+            ),
+        ),
+        arrayOf(
+            arrayOf(
+                intArrayOf(R.drawable.person_girl_summer_carry0_fx, R.drawable.person_girl_summer_carry0_ms, R.drawable.person_girl_summer_carry0_mh, R.drawable.person_girl_summer_carry0_mt, 0),
+                intArrayOf(R.drawable.person_girl_summer_carry1_fx, R.drawable.person_girl_summer_carry1_ms, R.drawable.person_girl_summer_carry1_mh, R.drawable.person_girl_summer_carry1_mt, 0),
+                intArrayOf(R.drawable.person_girl_summer_carry2_fx, R.drawable.person_girl_summer_carry2_ms, R.drawable.person_girl_summer_carry2_mh, R.drawable.person_girl_summer_carry2_mt, 0),
+                intArrayOf(R.drawable.person_girl_summer_carry1_fx, R.drawable.person_girl_summer_carry1_ms, R.drawable.person_girl_summer_carry1_mh, R.drawable.person_girl_summer_carry1_mt, 0),
+            ),
+            arrayOf(
+                intArrayOf(R.drawable.person_girl_winter_carry0_fx, R.drawable.person_girl_winter_carry0_ms, R.drawable.person_girl_winter_carry0_mh, R.drawable.person_girl_winter_carry0_mt, R.drawable.person_girl_winter_walk0_mb),
+                intArrayOf(R.drawable.person_girl_winter_carry1_fx, R.drawable.person_girl_winter_carry1_ms, R.drawable.person_girl_winter_walk1_mh, R.drawable.person_girl_winter_carry1_mt, R.drawable.person_girl_winter_walk1_mb),
+                intArrayOf(R.drawable.person_girl_winter_carry2_fx, R.drawable.person_girl_winter_carry2_ms, R.drawable.person_girl_winter_carry2_mh, R.drawable.person_girl_winter_carry2_mt, R.drawable.person_girl_winter_walk2_mb),
+                intArrayOf(R.drawable.person_girl_winter_carry1_fx, R.drawable.person_girl_winter_carry1_ms, R.drawable.person_girl_winter_walk1_mh, R.drawable.person_girl_winter_carry1_mt, R.drawable.person_girl_winter_walk1_mb),
             ),
         ),
     )

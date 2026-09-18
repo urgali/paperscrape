@@ -171,9 +171,18 @@ def main() -> None:
 
     # Variant groups and retired bases both spoke about the tone copies, which no longer exist.
     names = {e["name"] for e in kept}
+    #
+    # **The generated season pairs are dropped here and rebuilt below, and that is what makes this
+    # script safe to run twice.** It appends one group per layer file at the end; until v5.4H it did
+    # not first remove the ones a previous run had appended, so a second run over an unchanged tree
+    # doubled `variants` from 102 to 206 and `validate` stopped with `duplicate variant group id
+    # 'boy_head_car_fx'`. Nothing had run it twice since v4.30, so nothing had said so. A group is
+    # this script's own if every member is a layer file; the hand-written ones name un-suffixed
+    # sprites and are kept.
     document["variants"] = [
         group for group in document["variants"]
         if all(member in names for member in group["members"])
+        and not all(layer_of(member)[0] is not None for member in group["members"])
     ]
     document["retiredBases"] = {
         base: heir for base, heir in document["retiredBases"].items() if heir in names

@@ -334,8 +334,52 @@ class SpriteGeometryTest {
      * *And the GL side is a third number again.* **+69 004 B**, not 138 384 and not the 63 988 a
      * host measurement of the content boxes predicted -- see
      * `SpriteDrawScaleTest.uploadedTexelBudget`, v5.1's second paragraph.
+     *
+     * ### v5.4H raises it to 42 MiB for the children's umbrella, and this is the argument
+     *
+     * The set is **43 668 432 B = 41.65 MiB**, and 42 MiB is the next figure above it, leaving
+     * **371 760 B** (v5.1 left 553 936). It rose by **5 425 056 B**: the two child families gained
+     * the carrying pose the maintainer chose in the v5.4F proposal round, 46 PNGs -- 12 `fx`, 12
+     * `ms`, 12 `mt`, 8 `mh`, 2 `mb`, on the same 117x252 canvas every walker is drawn on.
+     *
+     * **This ceiling is the one thing in the pass that did not fit, and it did not fit by a lot.**
+     * v5.1 left 553 936 B under it, which is **4.7 person canvases**. The artwork needed 46. So
+     * this is not a ceiling that a tighter drawing gets under, and the arithmetic says so without
+     * any judgement in it: a child at the blitter's 3x is about 78x162 px at its very smallest, and
+     * 46 of those are 2.3 MiB. There is no arrangement of twelve poses that fits in four canvases.
+     *
+     * *What was looked for first, as every paragraph here has had to.* The prompt's own fallback
+     * was layer reuse, and it was measured rather than assumed. `mh` and `mb` are **already**
+     * shared -- `generate_people_layers` refuses to write a layer byte-identical to one it has
+     * written, which is why 46 files carry 60 slots. `mt` cannot join them: the raised arm is
+     * sleeve, region `TOP`, so it is the very mask the pose moves, and it cannot be shared between
+     * the three frames either because the *far* arm is sleeve as well and that one still swings.
+     * `ms` cannot: the hands move. Sharing more is not available, and sharing everything available
+     * saves ten files out of 46 and is already done.
+     *
+     * *And the other ceiling did fit, which is worth saying in the same breath.*
+     * `SpriteDrawScaleTest.uploadedTexelBudget` -- GL texture memory, the limit the pass was gated
+     * on -- takes the children with **~535 KB to spare**, because it charges ink and a child's ink
+     * is two thirds of the canvas it is drawn on. The two limits disagree about this change more
+     * sharply than about any change before it, and the reason is the whole of why there are two:
+     * this one charges a canvas.
+     *
+     * *What it costs, on the three things this limit bounds.* The 46 PNGs compress to **132 362 B**,
+     * so the APK grows by that. The `Canvas` path -- settings and gallery previews on every device,
+     * the wallpaper once EGL has failed three times -- holds the authored bitmap of every sprite it
+     * has drawn until memory pressure, so its worst case grows by the full 5 425 056 B. The
+     * per-sprite transient decode peak does **not** move: every new file is 117x252, which is the
+     * size every person sprite already is.
+     *
+     * *And the sentence this paragraph exists to make unavoidable.* **Moving this line is the
+     * maintainer's decision and not the pass's**, as the assertion below says and as the six moves
+     * above it all were. The cost was declared to the maintainer in the proposal round -- *"+4,2 MB
+     * decodificati"*, `proposte_bambini_v5_4/PROPOSTE.md` §2 -- and strada 1b was chosen knowing it;
+     * what the proposal did not do was hold that figure against the **margin**, which was 553 936 B.
+     * `V5_4H_REPORT.md` opens on this number so it can be reversed in one line, and reversing it
+     * means the children go back to walking bare-headed in the rain.
      */
-    private val decodedByteBudget = 37L * 1024L * 1024L
+    private val decodedByteBudget = 42L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {

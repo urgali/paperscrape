@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon background for the Summer alias: sky, sun, sea, ground and road, in that
+     theme's own colours. Nothing here is invented for the icon: SceneTheme.BEACH.skyDay for the
+     sky ramp and the two blues the scene actually paints the water with; hillColorsDay[1] is the
+     sand.
+
+     Containment: the only drawing that has to stay inside the safe zone is the sun, at 31.03 dp
+     from the centre against a safe radius of 33 dp, so 1.97 dp of margin. Everything else in this
+     file reaches the edge or lies outside the mask on purpose: sky, sea, ground, asphalt, centre
+     line, wave crests and the sail boat are background that bleeds under any launcher mask, and
+     clipping them is the intended behaviour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:pathData="M0,0 H108 V108 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="54" android:startY="0"
+                android:endX="54" android:endY="66">
+                <item android:offset="0" android:color="#FF4FC3E8" />
+                <item android:offset="1" android:color="#FFE0F7FA" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#FFF5A623" android:fillType="evenOdd"    android:pathData="M44.4,37 L44.33,37.84 L44.14,38.67 L43.81,39.45 L43.37,40.17 L42.82,40.82 L42.17,41.37 L41.45,41.81 L40.67,42.14 L39.84,42.33 L39,42.4 L38.16,42.33 L37.33,42.14 L36.55,41.81 L35.83,41.37 L35.18,40.82 L34.63,40.17 L34.19,39.45 L33.86,38.67 L33.67,37.84 L33.6,37 L33.67,36.16 L33.86,35.33 L34.19,34.55 L34.63,33.83 L35.18,33.18 L35.83,32.63 L36.55,32.19 L37.33,31.86 L38.16,31.67 L39,31.6 L39.84,31.67 L40.67,31.86 L41.45,32.19 L42.17,32.63 L42.82,33.18 L43.37,33.83 L43.81,34.55 L44.14,35.33 L44.33,36.16 Z" />
+    <path android:fillColor="#FFFFD873" android:fillType="evenOdd"    android:pathData="M47.27,35.69 L46.96,34.41 L46.46,33.2 L45.77,32.08 L44.92,31.08 L43.92,30.23 L42.8,29.54 L41.59,29.04 L40.31,28.73 L39,28.63 L37.69,28.73 L36.41,29.04 L35.2,29.54 L34.08,30.23 L33.08,31.08 L32.23,32.08 L31.54,33.2 L31.04,34.41 L30.73,35.69 L30.63,37 L30.73,38.31 L31.04,39.59 L31.54,40.8 L32.23,41.92 L33.08,42.92 L34.08,43.77 L35.2,44.46 L36.41,44.96 L37.69,45.27 L39,45.37 L40.31,45.27 L41.59,44.96 L42.8,44.46 L43.92,43.77 L44.92,42.92 L45.77,41.92 L46.46,40.8 L46.96,39.59 L47.27,38.31 L47.37,37 Z M46.2,38.14 L45.93,39.25 L45.5,40.31 L44.9,41.28 L44.15,42.15 L43.28,42.9 L42.31,43.5 L41.25,43.93 L40.14,44.2 L39,44.29 L37.86,44.2 L36.75,43.93 L35.69,43.5 L34.72,42.9 L33.85,42.15 L33.1,41.28 L32.5,40.31 L32.07,39.25 L31.8,38.14 L31.71,37 L31.8,35.86 L32.07,34.75 L32.5,33.69 L33.1,32.72 L33.85,31.85 L34.72,31.1 L35.69,30.5 L36.75,30.07 L37.86,29.8 L39,29.71 L40.14,29.8 L41.25,30.07 L42.31,30.5 L43.28,31.1 L44.15,31.85 L44.9,32.72 L45.5,33.69 L45.93,34.75 L46.2,35.86 L46.29,37 Z" />
+    <path android:fillColor="#FF98DDF1"    android:pathData="M0,49 H108 V108 H0 Z" />
+    <path android:fillColor="#FF60BAD6"    android:pathData="M0,53.5 H108 V108 H0 Z" />
+    <path android:fillColor="#FFFFFFFF" android:fillAlpha="0.7" android:fillType="evenOdd"    android:pathData="M8,55.5 L8,56.4 L13,56.4 L13,55.5 Z M88,56.9 L93,56.9 L93,56 L88,56 Z M30,59.4 L34,59.4 L34,58.5 L30,58.5 Z" />
+    <path android:fillColor="#FF6B4326" android:fillType="evenOdd"    android:pathData="M21,52.5 L26.5,52.5 L25.6,54.3 L21.9,54.3 Z" />
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"    android:pathData="M22.2,52.2 L22.2,45.5 L26.2,52.2 Z" />
+    <path android:fillColor="#FFEFD9A3"    android:pathData="M0,66 H108 V108 H0 Z" />
+    <path android:fillColor="#FF5B5650"    android:pathData="M0,71 H108 V80 H0 Z" />
+    <path android:fillColor="#FFF3E6D0" android:fillType="evenOdd"    android:pathData="M6,76.2 L6,75 L2,75 L2,76.2 Z M14,75 L10,75 L10,76.2 L14,76.2 Z M22,75 L18,75 L18,76.2 L22,76.2 Z M30,75 L26,75 L26,76.2 L30,76.2 Z M38,75 L34,75 L34,76.2 L38,76.2 Z M46,75 L42,75 L42,76.2 L46,76.2 Z M54,75 L50,75 L50,76.2 L54,76.2 Z M62,76.2 L62,75 L58,75 L58,76.2 Z M70,75 L66,75 L66,76.2 L70,76.2 Z M78,75 L74,75 L74,76.2 L78,76.2 Z M86,75 L82,75 L82,76.2 L86,76.2 Z M94,75 L90,75 L90,76.2 L94,76.2 Z M102,75 L98,75 L98,76.2 L102,76.2 Z M110,75 L106,75 L106,76.2 L110,76.2 Z" />
+
+</vector>

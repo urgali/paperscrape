@@ -39,6 +39,24 @@ object SunPositionCalculator {
          * because the phone says 14:00.
          */
         val hour24: Float,
+        /**
+         * Where the moon is in its ~29.53-day cycle for this frame, 0 = new, 0.5 = full.
+         *
+         * Carried for exactly the reason [hour24] is, and it is the same defect one field over:
+         * **anything the scene draws must arrive as an input to the frame, not be fetched from a
+         * clock while the frame is being painted.** Until v5.4G `PaperRenderer.drawMoonWithPhase`
+         * called [moonPhase] itself, with its `System.currentTimeMillis()` default, so a scene
+         * whose hour, theme, customisation and scene clock were all pinned still drew a moon
+         * chosen by the phone. Rendered three hours apart on one build, `night` moved by 17
+         * pixels and `shops-closed-night` by 39: the two goldens that had been green at 19:02
+         * were red at 22:25, because the phase had crossed a sprite boundary and the code had
+         * not changed at all.
+         *
+         * The live wallpaper passes the real phase every frame (see [PaperWallpaperService]); a
+         * caller that does not name one gets [FIXED_MOON_PHASE], so its frame is a function of
+         * what it wrote down.
+         */
+        val moonPhase: Float,
     )
 
     /**
@@ -77,6 +95,7 @@ object SunPositionCalculator {
         hour24: Float,
         sunriseHour: Float = 6f,
         sunsetHour: Float = 20f,
+        moonPhase: Float = FIXED_MOON_PHASE,
     ): DayPhase {
         val lightHours = dayLengthHours(sunriseHour, sunsetHour)
         val dayLength = lightHours.coerceAtLeast(1f)
@@ -115,8 +134,26 @@ object SunPositionCalculator {
             celestialY = celestialY,
             isSunVisible = isDay,
             hour24 = wrap24(hour24),
+            moonPhase = moonPhase,
         )
     }
+
+    /**
+     * The moon a frame gets when its caller did not say which moon it wanted: **a waxing
+     * crescent**, one eighth of the way round the cycle.
+     *
+     * It is a picture, not a tuning. [PaperRenderer.drawMoonWithPhase] does not draw a continuous
+     * terminator: it picks one of four silhouettes on thresholds of the illuminated fraction and
+     * rotates the shape 180 degrees for the waning half, so the whole of the phase axis reaches a
+     * frame as **eight discrete pictures plus a dark disc**. 0.125 gives `illuminated = 0.146`,
+     * comfortably inside the crescent bucket (`< 0.35`) and well clear of the new-moon floor
+     * (`0.02`), so it is not near a boundary that a later change to those thresholds could push
+     * it over.
+     *
+     * It is also the moon the committed goldens were authored under, which is why fixing the
+     * defect this constant exists for moved **no** golden: see the v5.4G report.
+     */
+    const val FIXED_MOON_PHASE = 0.125f
 
     /**
      * The blend at sunrise and at sunset -- half day, half night, from both sides.
@@ -287,6 +324,12 @@ object SunPositionCalculator {
      * Real lunar phase for the given moment, as a fraction of the ~29.53-day synodic month:
      * 0 = new moon, 0.25 = first quarter, 0.5 = full moon, 0.75 = last quarter, cycling back to
      * 1 = new moon again. Good to within a few hours, which is more than enough for a wallpaper.
+     *
+     * **This function is a clock, and only the wallpaper service may call it.** The default
+     * argument is the whole of the v5.4G defect: the renderer used to reach in here while
+     * painting, which made the frame a function of when it was painted rather than of the scene
+     * it was handed. The phase now arrives in [DayPhase.moonPhase], and
+     * `RenderPathReadsNoWallClockTest` is what keeps it that way.
      */
     fun moonPhase(epochMillis: Long = System.currentTimeMillis()): Float {
         val daysSinceReference = (epochMillis - REFERENCE_NEW_MOON_EPOCH_MILLIS) / 86_400_000.0

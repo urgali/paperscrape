@@ -75,17 +75,127 @@
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true">
 
-        <!-- Settings / preview activity shown from the app launcher and from the system wallpaper picker -->
+        <!-- Settings / preview activity, shown from the system wallpaper picker and from whichever
+             of the launcher aliases below is enabled.
+
+             It has no MAIN/LAUNCHER filter of its own any more, and must not get one back: it
+             would be a second, permanent entry in the app drawer beside the seasonal one. It is
+             still exported, because the wallpaper picker starts it by the component name written
+             in res/xml/wallpaper.xml. -->
         <activity
             android:name=".ui.SettingsActivity"
             android:exported="true"
             android:theme="@style/Theme.PaperScrape"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|layoutDirection|locale|keyboardHidden">
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|layoutDirection|locale|keyboardHidden" />
+
+        <!-- The launcher entry, in six flavours, of which exactly one is ever enabled.
+             icon.SeasonalIcon says which, icon.LauncherIconSwitch does the enabling, and
+             SeasonalIconManifestTest checks that this block and that enum still agree.
+
+             They are aliases and not six icons on one activity because an app cannot change the
+             icon it declares; it can only choose which of its launcher entries the system draws.
+             The switch is made from inside the app with DONT_KILL_APP: that flag is what keeps the
+             live wallpaper alive across the change, and nothing outside the app can pass it.
+
+             android:name on each of these is a stable identifier. A home-screen shortcut points at
+             the alias by name, so renaming one strands every user who had the app on their home
+             screen; treat these six strings as shipped API. -->
+
+        <!-- No season: the shipped town. This is the one the manifest enables, so it is what a
+             fresh install draws until the app first runs, and it is where a calendar with a gap
+             in it lands. It reuses the icon this app already had rather than being a sixth
+             drawing; enabling any of the five instead would be a guess that is wrong four times
+             out of five. -->
+        <activity-alias
+            android:name=".ui.IconDefault"
+            android:targetActivity=".ui.SettingsActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+
+        <!-- Winter: CalendarWindow.WINTER, and any occasion landing inside it that has no icon. -->
+        <activity-alias
+            android:name=".ui.IconWinter"
+            android:targetActivity=".ui.SettingsActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_winter"
+            android:roundIcon="@mipmap/ic_launcher_winter"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Spring: CalendarWindow.SPRING, and any occasion landing inside it that has no icon. -->
+        <activity-alias
+            android:name=".ui.IconSpring"
+            android:targetActivity=".ui.SettingsActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_spring"
+            android:roundIcon="@mipmap/ic_launcher_spring"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Summer: CalendarWindow.SUMMER, and any occasion landing inside it that has no icon. -->
+        <activity-alias
+            android:name=".ui.IconSummer"
+            android:targetActivity=".ui.SettingsActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_summer"
+            android:roundIcon="@mipmap/ic_launcher_summer"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Autumn: CalendarWindow.AUTUMN, and any occasion landing inside it that has no icon. -->
+        <activity-alias
+            android:name=".ui.IconAutumn"
+            android:targetActivity=".ui.SettingsActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_autumn"
+            android:roundIcon="@mipmap/ic_launcher_autumn"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Christmas: CalendarWindow.CHRISTMAS, the one occasion with an icon of its own. It is
+             the evening scene, which is why it has a moon and not a sun: drawn from the day
+             palette it sat 9 of 255 away from Winter and was invisible on a home screen. -->
+        <activity-alias
+            android:name=".ui.IconChristmas"
+            android:targetActivity=".ui.SettingsActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_christmas"
+            android:roundIcon="@mipmap/ic_launcher_christmas"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Shares the downloaded APK with the system installer. The file sits in this app's own
              cache directory, which no other process can read by path, so a content URI with a

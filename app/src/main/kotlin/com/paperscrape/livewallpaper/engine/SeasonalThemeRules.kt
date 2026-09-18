@@ -96,6 +96,22 @@ object SeasonalThemeRules {
         calendar: SeasonalCalendar = SeasonalCalendar.DEFAULT,
     ): String? = windowFor(date, calendar)?.label
 
+    /**
+     * The *season* covering [date], with the occasions above it ignored.
+     *
+     * [windowForDate] answers "what is today", which on 31 October is Halloween. This answers the
+     * other question -- "what time of year is today" -- which on 31 October is autumn, and which
+     * the launcher icon needs because there are eight windows and only five icons: the three
+     * occasions without an icon of their own borrow the season's (see `SeasonalIconRules`).
+     *
+     * `null` only where the seasons do not cover the date, which the factory calendar cannot
+     * produce and a user who drags a season boundary can.
+     */
+    fun seasonForDate(
+        date: LocalDate = LocalDate.now(),
+        calendar: SeasonalCalendar = SeasonalCalendar.DEFAULT,
+    ): CalendarWindow? = CalendarWindow.SEASONS.firstOrNull { matches(date, it, calendar) }
+
     /** The window covering [date], for a screen that needs more than its name. */
     fun windowForDate(
         date: LocalDate = LocalDate.now(),

@@ -7,6 +7,7 @@ import android.os.Looper
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
+import com.paperscrape.livewallpaper.icon.SeasonalIconController
 import com.paperscrape.livewallpaper.location.DeviceLocationFix
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.location.DeviceLocationProvider
@@ -115,6 +116,26 @@ class PaperWallpaperService : WallpaperService() {
     private fun onEngineVisibilityChanged(nowVisible: Boolean, wasVisible: Boolean) {
         if (nowVisible == wasVisible) return
         visibleEngineCount = (visibleEngineCount + if (nowVisible) 1 else -1).coerceAtLeast(0)
+    }
+
+    /**
+     * Keeps the launcher icon on the season the date is in.
+     *
+     * On the service and not on the engine because a wallpaper process commonly runs two engines
+     * at once -- the home screen's and the picker's preview -- and one date deserves one receiver
+     * and one answer, not two of each racing to write the same component states.
+     */
+    private var iconController: SeasonalIconController? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        iconController = SeasonalIconController(applicationContext).also { it.start() }
+    }
+
+    override fun onDestroy() {
+        iconController?.stop()
+        iconController = null
+        super.onDestroy()
     }
 
     override fun onCreateEngine(): Engine = PaperEngine().also { engines.add(it) }
@@ -421,6 +442,9 @@ class PaperWallpaperService : WallpaperService() {
                         lastWeatherFetchElapsed = Long.MIN_VALUE / 4
                         weatherWakeUp.trySend(Unit)
                     }
+                    // The user moving a window on the Seasons screen moves the icon with it:
+                    // both read the same calendar, which is the point of reading it from there.
+                    iconController?.onCalendarChanged(newSettings.seasonalCalendar)
                     onRenderThread {
                         val changed = applyEffectiveTheme()
                         renderer?.parallaxStrength = newSettings.parallaxStrength
@@ -686,6 +710,10 @@ class PaperWallpaperService : WallpaperService() {
             // `!visible` check to park, and a loop asleep in `withTimeoutOrNull` would otherwise
             // hold its two-minute timer to the end.
             weatherWakeUp.trySend(Unit)
+            // Same reason the theme is re-applied further down: a day may have turned over while
+            // this engine was not drawing. The receiver in SeasonalIconController catches midnight
+            // while the process is alive; this catches the case where it was not.
+            if (visible) iconController?.refresh()
             val thread = glThread
             if (thread != null) {
                 if (visible) {
@@ -882,6 +910,14 @@ class PaperWallpaperService : WallpaperService() {
                 hour24 = hour,
                 sunriseHour = today.sunriseHour,
                 sunsetHour = today.sunsetHour,
+                // **The one place the real moon enters the scene, and deliberately the only one.**
+                // The renderer used to read this clock itself while painting the disc; a frame is
+                // now a function of what it was handed, and what a live wallpaper is handed is the
+                // sky over the phone. Computed every frame rather than only when the moon is up:
+                // it is three double operations and no allocation, and a phase that appears in the
+                // frame description only on the frames that happen to show a moon is the kind of
+                // conditional input a golden cannot write down.
+                moonPhase = SunPositionCalculator.moonPhase(),
             )
 
             renderer?.draw(target, dayPhase, elapsedSeconds, deltaSeconds)

@@ -260,10 +260,18 @@ class SceneSpaceTest {
             SceneSpace.SceneVariant.BUNNY,
             SceneSpace.SceneVariant.EASTER_EGG,
             SceneSpace.SceneVariant.PARASOL,
-            SceneSpace.SceneVariant.HOUSE_SMALL,
-            SceneSpace.SceneVariant.HOUSE_LARGE,
-            SceneSpace.SceneVariant.BAR,
+            // **v5.4, item 113: the two shops moved down this list and swapped with each other.**
+            // They declared 7.7 m and 8.2 m for a two-storey facade the v5.0 redraw replaced with
+            // a single-storey pavilion; measured off the pieces they actually blit, at the metre
+            // the whole table is argued in, the restaurant is **4.78 m** and the bar 4.53 or
+            // **6.24 m**. So a shop is shorter than a large house and the corner bar is the taller
+            // of the two, which is the opposite of what this chain said while it read the stale
+            // numbers. See [SceneSpace.SceneVariant.RESTAURANT] for why the declaration moved and
+            // not the drawing, and for the v2.7 decision the drawing has not satisfied since v5.0.
             SceneSpace.SceneVariant.RESTAURANT,
+            SceneSpace.SceneVariant.HOUSE_SMALL,
+            SceneSpace.SceneVariant.BAR,
+            SceneSpace.SceneVariant.HOUSE_LARGE,
             // **A fir is taller than a leafy tree, and always has been drawn that way.** This
             // list had FIR below TREE because the size table declared 9.3 m against 9.8 -- but
             // FIR is unreachable (`variantFor` never returns it; a fir is a state of a TREE
@@ -308,12 +316,20 @@ class SceneSpaceTest {
         // A snowman and a gift are smaller than the person who built and wrapped them.
         assertTrue(SceneSpace.SceneVariant.SNOWMAN.metresTall < SceneSpace.PERSON_METRES_TALL)
         assertTrue(SceneSpace.SceneVariant.GIFT.metresTall < SceneSpace.SceneVariant.SNOWMAN.metresTall)
-        // Stated as its own relation as well as through the chain above, because "a commercial
-        // building out-tops a house" is the property the v2.6 device pass reported missing, and a
-        // chain can be satisfied by moving either end of it.
+        // **"A commercial building out-tops a house" was the v2.6 device pass's report and the
+        // v2.7 fix, and the shipped artwork has not satisfied it since v5.0.** The assertion that
+        // stood here read `BAR.metresTall > HOUSE_LARGE.metresTall` off a declaration that
+        // described a building nobody draws any more; corrected, the bar is 6.24 m against a large
+        // house's 7.60 m. The relation is stated the way it is now true, against the drawing,
+        // rather than deleted -- so that a redraw which restores the decision moves this line and
+        // somebody has to look at it.
         assertTrue(
-            "a bar should out-top the largest house",
-            SceneSpace.SceneVariant.BAR.metresTall > SceneSpace.SceneVariant.HOUSE_LARGE.metresTall,
+            "the corner bar is the taller of the two shops, as drawn",
+            SceneSpace.SceneVariant.BAR.metresTall > SceneSpace.SceneVariant.RESTAURANT.metresTall,
+        )
+        assertTrue(
+            "and both shops are shorter than a large house, which is a question about the artwork",
+            SceneSpace.SceneVariant.BAR.metresTall < SceneSpace.SceneVariant.HOUSE_LARGE.metresTall,
         )
         // **The margin is 1.90, and it always was.** This asked for 2.0 and passed on a TOWER that
         // declared 16.8 m, which v4.15 found was measured to the tip of its aerial: the building it

@@ -326,14 +326,22 @@ internal object NeighbourhoodTable {
                 BuildingSlot(listOf(TOWER_CROWN_SPIRE, TOWER_CROWN_DOME), 1, 1),
             ),
         ),
+        // **v5.4, item 113: 56 and 73, not 96 and 90.146.** Both families inherited the height of
+        // the two-storey facade the v5.0 redraw replaced, and `unitsTall` is the third of the
+        // three numbers that said so -- see [SceneSpace.SceneVariant.RESTAURANT]. The pavilion
+        // draws 56 piece units and the corner bar 53 or 73, measured off their own parts by
+        // `BuildingHeightDeclarationTest`. Each family's `unitsTall` moved by exactly the factor
+        // its variant's `metresTall` did, so `metresTall / unitsTall` -- the only quantity the
+        // blit scale depends on -- is unchanged and no piece of either building is drawn at a
+        // different size.
         SceneSpace.SceneVariant.RESTAURANT to BuildingFamily(
-            96.0f, 50.0f, WindowBuildingKind.COMMERCIAL,
+            56.0f, 50.0f, WindowBuildingKind.COMMERCIAL,
             listOf(
                 BuildingSlot(listOf(RESTAURANT_PAVILION), 1, 1),
             ),
         ),
         SceneSpace.SceneVariant.BAR to BuildingFamily(
-            90.146f, 33.0f, WindowBuildingKind.COMMERCIAL,
+            73.0f, 33.0f, WindowBuildingKind.COMMERCIAL,
             listOf(
                 BuildingSlot(listOf(BAR_SIGNBOARD, BAR_CHAMFER), 1, 1),
             ),

@@ -119,7 +119,7 @@ byte-identical pair**, and has not since the V2 asset library replaced the whole
 | `SolarDay.kt` | Today's sunrise, sunset and whether they came from a real position, as one immutable value (**P2-6**, v3.6). Published through a single `@Volatile` reference on the engine so the render thread cannot read a sunrise from one location beside a sunset from another — which three separate fields, `@Volatile` or not, allow. |
 | `LakeLanes.kt` | Which lane each lake decoration occupies and how deep it sits, so boats cannot share a line and a leaping dolphin sorts by where its body is rather than by the lane it left. Since v4.28 the waves sort in the same pass, keyed by their waterline said in the boat's convention. |
 | `WaveTint.kt` | Where a wave's body and foam sit in luma, given the water under them. Pure arithmetic, so `WaveContrastTest` measures the same numbers the renderer draws: the cheaper carry for the direction, the foam always the lighter paper, and the gate that is a floor rather than a target. |
-| `PedestrianCarry.kt` | Which walkers have an umbrella up and when that may change -- `CarSelection.offScreen`'s "only out of sight" rule taken over for people, plus the share, the rain predicate and the canopy palette. |
+| `PedestrianCarry.kt` | Which walkers have an umbrella up and when that may change -- `CarSelection.offScreen`'s "only out of sight" rule taken over for people, plus the share (**dealt over the street since v5.4**, not rolled per walker), the rain predicate and the canopy palette. |
 | `CandidateNoise.kt` | The stable per-candidate pseudo-random values the stateless candidate model is built on: same slot, same value, every frame, with density thinning and colour-variant assignment deliberately drawn from uncorrelated streams. |
 | `CloudCoverage.kt` | How many clouds a cover fraction means, shared by the theme's own setting and Live Weather's. |
 | `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern -- and since v4.22 the day/night crossfade model the car count borrows (`CarSelection.densityAt`): one "a crossfade, not a threshold" rule, two users. |
@@ -137,6 +137,14 @@ byte-identical pair**, and has not since the V2 asset library replaced the whole
 
 ### Other packages
 
+- `icon/SeasonalIcon.kt` — the six launcher icons as an enum, the one place a `CalendarWindow` and
+  an icon are tied together, and `SeasonalIconRules.iconForDate`, which is pure and JVM-tested.
+- `icon/LauncherIconSwitch.kt` — the `PackageManager` side: reads the six components' enabled state
+  and writes only what differs, always with `DONT_KILL_APP`.
+- `icon/SeasonalIconController.kt` — when it looks: wallpaper start, `ACTION_DATE_CHANGED` and its
+  two siblings through a code-registered receiver, and a settings change that moves the calendar.
+  All three arrive on the main thread and the work is binder calls, so it owns one single-thread
+  executor: off the wallpaper's main thread, and serialised rather than racing.
 - `prefs/WallpaperPrefs.kt` — main DataStore store, exposes `settingsFlow`.
 - `prefs/CustomThemeStore.kt` — separate DataStore for custom themes/overrides.
 - `location/DeviceLocationKind.kt` — the two device positioning systems, each bound to exactly one
@@ -327,7 +335,8 @@ frame.
 
 ```
              renderScene(target, deltaSeconds)
-             │     ├─ SunPositionCalculator.compute(hour, sunrise, sunset) → DayPhase
+             │     ├─ SunPositionCalculator.compute(hour, sunrise, sunset,
+             │     │                                   moonPhase) → DayPhase
              │     └─ PaperRenderer.draw(target, dayPhase, elapsedSeconds, deltaSeconds)
              │           ├─ syncObjectRendererWithTheme()
              │           ├─ drawSky            (vertical gradient)
@@ -913,9 +922,17 @@ position hash, so towers sit on the skyline and shop fronts among the houses.
 two houses stack a ground floor, none-to-two storeys and a roof, so two neighbours carry two
 silhouettes, and the tower, restaurant and bar pick one cut-out figure each. A family's
 `unitsTall` is therefore a **reference** height that the deals vary around rather than a drawn
-extent — `BuildingHeightDeclarationTest` measures by how much, and records that the two shops draw
-a little over half what they declare because the figures chosen for them are single-storey
-buildings where the facades they replace were two.
+extent — `BuildingHeightDeclarationTest` measures by how much.
+
+**v5.4 corrected the two shops' reference, which had stayed at the two-storey facade's** (96 and
+90.146 piece units against a drawn 56 and 53–73), and with it the two numbers in
+`SceneSpace.SceneVariant` that are derived from it. All three moved by the same factor on purpose:
+the scale a piece is blitted at reduces to `metresTall * pixelsPerMetre / unitsTall`, with
+`spriteUnitsTall` cancelling, so correcting only the variant would have shrunk both shops by 42 %
+and correcting all three moves nothing. What the correction does move is the *layout* —
+`spriteUnitsTall` is the top edge of the rectangle the shop-front criterion divides by
+(`SceneObject.frontRect`) and the height the separation pass places a shop by — and that is the
+whole of `BACKLOG_v5_0.md` item 113.
 
 What this replaced: `HILL_SAFE_DEPTH_MIN`/`MAX`, `ROAD_SAFE_DEPTH_MAX` and
 `depthScaleFor` in `PaperRenderer`, `GLOBAL_OBJECT_SCALE` and
@@ -1271,6 +1288,45 @@ overlap Halloween" has no answer and a validator that produced one would be inve
 `themeForDate` still returns `String?`. With the factory calendar nothing can be uncovered, but a
 user may move a season and open a gap; the caller falls back to the hand-picked theme, and the
 settings screen names the uncovered dates rather than leaving them to be discovered on the day.
+
+### The seasonal launcher icon (v5.4)
+
+The app icon follows the date through **this same calendar** — the user's own windows, not a civil
+calendar of its own. Moving the start of winter on the Holiday calendar screen moves the icon with
+it, which is the point: two ideas of "winter" in one app is a duplicate that gets paid for the day
+they disagree.
+
+It follows the **date**, not the theme on screen. `autoThemeByDate` is opt-in and off by default,
+so an icon that followed the scene would never change for most users; the icon is a calendar
+indicator, and in December a user who picked the beach by hand sees a Christmas icon over a summer
+scene by design.
+
+**Eight windows, six icons.** Five are seasonal (the four seasons plus Christmas, the one occasion
+with a drawing of its own) and one belongs to no season. Halloween, Easter and New Year have no
+icon and take the icon of the season they fall in — *derived* by asking the calendar which season
+covers that date, never tabulated, so a user who drags a season drags this with it.
+`SeasonalIcon.DEFAULT` is the shipped sunset town: it is what the manifest enables, so a fresh
+install never shows a season that is not the season, and it is where a calendar with a gap in it
+lands.
+
+**The mechanism is `activity-alias`.** An app cannot change the icon it declares; it can only
+choose which of its launcher entries the system draws. `ui.SettingsActivity` no longer carries a
+LAUNCHER filter — six aliases do, exactly one enabled at a time — and `LauncherIconSwitch` enables
+the new one **before** disabling the old, so the package is never momentarily without a launcher
+entry for a launcher to react to.
+
+**`DONT_KILL_APP` is the whole of the safety argument.** This process is the live wallpaper.
+Without the flag the platform kills it, and measured on a BV6600 that is about seven and a half
+seconds of black screen before the system re-binds the service; with it, the engine object is the
+same one before and after. The flag cannot be passed from outside the app, which is why this is
+code and not a script.
+
+**Nothing polls.** `SeasonalIconController` registers for `ACTION_DATE_CHANGED` (plus
+`TIME_CHANGED` and `TIMEZONE_CHANGED`) in code rather than in the manifest — implicit broadcasts
+have been refused to manifest receivers since Android 8, and the process is already alive whenever
+the wallpaper is set, so there is nothing to wake. A registered receiver costs nothing until it
+fires: no alarm, no job, no wakelock. A device whose wallpaper is not this app runs none of it and
+corrects itself the next time the wallpaper or the settings screen starts.
 
 ### Theme resolution
 
@@ -2112,6 +2168,25 @@ that needs to warm a storm up says so with `GoldenScene.pinLightning`, which cle
 `PaperRenderer.lightningStrikesEnabled` **for that render alone**. The wallpaper's own lightning is
 untouched: nothing in `src/main` writes that flag, and v5.0 Fase 0 measured the strike cadence and
 flash intensity on v4.31's production build and on this one to say so rather than assume it.
+
+**The wall clock is the v5.4G addition, and it is the same shape of hole one level up.** A golden
+is a claim that a frame is a function of the scene written beside it, and everything the harness
+pins it pins by *passing* — theme, customisation, scene clock, day phase, scroll, lightning. The
+one input the renderer could reach without being handed it was the time of day:
+`PaperRenderer.drawMoonWithPhase` called `SunPositionCalculator.moonPhase()` while painting, whose
+default argument is `System.currentTimeMillis()`, so the moon in a pinned frame was chosen by the
+phone. The phase is discrete — four silhouettes on thresholds of the illuminated fraction, the
+waning half reusing the waxing shapes rotated 180° — so the leak showed nothing for days and then
+moved 17 pixels of `night` and 39 of `shops-closed-night` the evening the real moon crossed from
+crescent to half. The phase now travels in `SunPositionCalculator.DayPhase.moonPhase`, the
+wallpaper service fills it in from the real moon, and a caller that names none gets
+`SunPositionCalculator.FIXED_MOON_PHASE`. Two checks keep it there:
+`SceneGolden.assertReproducesOverTime` renders every Canvas golden a second time with the device's
+wall clock moved 191 days (`DeviceClock`, through `cmd alarm set-time`) and requires the two frames
+to be identical pixel for pixel, and `RenderPathReadsNoWallClockTest` refuses a clock read in
+`PaperRenderer.kt`, `SceneObjectRenderer.kt` or `SunPositionCalculator.compute` at all. The
+behavioural one is the one that catches a leak; the source rule is what covers a leak in a theme or
+a weather no golden renders.
 
 **The region gate is the v3.7 addition, and it exists because the whole-frame gates provably could
 not see one class of regression.** Driver-to-driver disagreement is *spread* — it is anti-aliased

@@ -157,7 +157,14 @@ class SpriteCanvasConventionTest {
         // 371 in v5.1: the one flower clump became two, in bloom and gone over, so the scene can
         // stop drawing midsummer blooms under an autumn or a winter palette. One canvas, one
         // origin, one extra 108x36 PNG.
-        assertEquals("371 sprites are expected", 371, all.size)
+        // 417 in v5.4H: the two child families gained a carrying pose, 2 x 2 x 3 frames as fixed
+        // art plus the region masks the pose actually moves -- 12 `fx`, 12 `ms`, 12 `mt`, 8 `mh`
+        // and 2 `mb`. **Not 36, which is what the proposal round costed it at**, and the ten extra
+        // are the interesting half: the proposal read the adults' pattern, where the raised arm
+        // uncovers nothing the walking arm was hiding. A child's arm is shorter against a shorter
+        // body, so raising it uncovers the girl's hair and both children's trousers, and those
+        // masks stop being byte-identical to the walking frame's and stop being shared.
+        assertEquals("417 sprites are expected", 417, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -179,7 +186,11 @@ class SpriteCanvasConventionTest {
         // canvas built around their declared attachment and are now two of the exemptions above.
         // The dead crown reaches its own bottom edge and the trunk its top and bottom, so those
         // two stay in this count and only two names crossed over.
-        assertEquals("206 of them reach a canvas edge", 206, touching)
+        // 218 in v5.4H: the twelve child carrying frames' fixed layers stand on their bottom edge,
+        // which is what puts a walker's feet on the ground line -- exactly as the twelve adult
+        // carrying frames and the twenty-four walking ones already do. The pose's 34 region masks
+        // do not reach an edge and cannot; see the exemption above.
+        assertEquals("218 of them reach a canvas edge", 218, touching)
     }
 
     private companion object {

@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 371 |
-| Unique contents | 371 |
-| Bytes on disk | 1152.9 KB |
-| Decoded `ARGB_8888` | 38.24 MB |
-| Of which transparent padding | 14.80 MB (39 %) |
+| Files | 417 |
+| Unique contents | 417 |
+| Bytes on disk | 1282.1 KB |
+| Decoded `ARGB_8888` | 43.67 MB |
+| Of which transparent padding | 18.70 MB (43 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -114,6 +114,20 @@ from the shipped PNGs; nothing is copied from documentation.
 | `penguin_belly` | 54x102 | RGBA | 0,0,54,102 | 0 % | 1 | yes |
 | `penguin_body` | 84x132 | RGBA | 0,0,84,132 | 0 % | 22 | yes |
 | `penguin_feet` | 60x12 | RGBA | 0,0,60,12 | 0 % | 1 | yes |
+| `person_boy_summer_carry0_fx` | 117x252 | RGBA | 26,90,106,252 | 56 % | 160 | yes |
+| `person_boy_summer_carry0_mb` | 117x252 | RGBA | 28,205,90,240 | 93 % | 1 | yes |
+| `person_boy_summer_carry0_mh` | 117x252 | RGBA | 27,90,106,125 | 91 % | 1 | yes |
+| `person_boy_summer_carry0_ms` | 117x252 | RGBA | 32,113,97,219 | 77 % | 1 | yes |
+| `person_boy_summer_carry0_mt` | 117x252 | RGBA | 29,153,96,207 | 88 % | 1 | yes |
+| `person_boy_summer_carry1_fx` | 117x252 | RGBA | 27,90,107,252 | 56 % | 172 | yes |
+| `person_boy_summer_carry1_mb` | 117x252 | RGBA | 40,206,79,236 | 96 % | 1 | yes |
+| `person_boy_summer_carry1_mh` | 117x252 | RGBA | 28,90,107,125 | 91 % | 1 | yes |
+| `person_boy_summer_carry1_ms` | 117x252 | RGBA | 27,112,97,219 | 75 % | 1 | yes |
+| `person_boy_summer_carry1_mt` | 117x252 | RGBA | 29,153,95,207 | 88 % | 1 | yes |
+| `person_boy_summer_carry2_fx` | 117x252 | RGBA | 18,90,107,252 | 51 % | 171 | yes |
+| `person_boy_summer_carry2_mh` | 117x252 | RGBA | 27,90,107,124 | 91 % | 1 | yes |
+| `person_boy_summer_carry2_ms` | 117x252 | RGBA | 18,114,97,219 | 72 % | 1 | yes |
+| `person_boy_summer_carry2_mt` | 117x252 | RGBA | 20,153,96,207 | 86 % | 1 | yes |
 | `person_boy_summer_head_car_fx` | 114x126 | RGBA | 7,11,112,126 | 16 % | 107 | yes |
 | `person_boy_summer_head_car_mh` | 114x126 | RGBA | 15,11,108,45 | 78 % | 1 | yes |
 | `person_boy_summer_head_car_ms` | 114x126 | RGBA | 19,38,102,110 | 58 % | 1 | yes |
@@ -141,6 +155,15 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_boy_summer_walk2_mh` | 117x252 | RGBA | 27,90,107,124 | 91 % | 1 | yes |
 | `person_boy_summer_walk2_ms` | 117x252 | RGBA | 18,114,101,220 | 70 % | 1 | yes |
 | `person_boy_summer_walk2_mt` | 117x252 | RGBA | 20,157,97,207 | 87 % | 1 | yes |
+| `person_boy_winter_carry0_fx` | 117x252 | RGBA | 9,85,99,252 | 49 % | 280 | yes |
+| `person_boy_winter_carry0_ms` | 117x252 | RGBA | 31,96,98,219 | 72 % | 1 | yes |
+| `person_boy_winter_carry0_mt` | 117x252 | RGBA | 9,85,97,221 | 59 % | 1 | yes |
+| `person_boy_winter_carry1_fx` | 117x252 | RGBA | 9,85,97,252 | 50 % | 278 | yes |
+| `person_boy_winter_carry1_ms` | 117x252 | RGBA | 26,97,97,219 | 71 % | 1 | yes |
+| `person_boy_winter_carry1_mt` | 117x252 | RGBA | 9,85,96,222 | 60 % | 1 | yes |
+| `person_boy_winter_carry2_fx` | 117x252 | RGBA | 8,84,97,252 | 49 % | 248 | yes |
+| `person_boy_winter_carry2_ms` | 117x252 | RGBA | 17,96,97,219 | 67 % | 1 | yes |
+| `person_boy_winter_carry2_mt` | 117x252 | RGBA | 8,84,96,222 | 59 % | 1 | yes |
 | `person_boy_winter_head_car_fx` | 114x126 | RGBA | 2,10,111,126 | 12 % | 209 | yes |
 | `person_boy_winter_head_car_ms` | 114x126 | RGBA | 20,16,102,111 | 46 % | 1 | yes |
 | `person_boy_winter_head_car_mt` | 114x126 | RGBA | 2,10,111,126 | 12 % | 1 | yes |
@@ -160,6 +183,18 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_boy_winter_walk2_mb` | 117x252 | RGBA | 45,220,72,238 | 98 % | 1 | yes |
 | `person_boy_winter_walk2_ms` | 117x252 | RGBA | 17,96,101,220 | 65 % | 1 | yes |
 | `person_boy_winter_walk2_mt` | 117x252 | RGBA | 8,84,97,222 | 58 % | 1 | yes |
+| `person_girl_summer_carry0_fx` | 117x252 | RGBA | 13,91,107,252 | 49 % | 198 | yes |
+| `person_girl_summer_carry0_mh` | 117x252 | RGBA | 13,91,107,160 | 78 % | 1 | yes |
+| `person_girl_summer_carry0_ms` | 117x252 | RGBA | 27,118,98,247 | 69 % | 1 | yes |
+| `person_girl_summer_carry0_mt` | 117x252 | RGBA | 27,157,97,219 | 85 % | 1 | yes |
+| `person_girl_summer_carry1_fx` | 117x252 | RGBA | 13,91,108,252 | 48 % | 203 | yes |
+| `person_girl_summer_carry1_mh` | 117x252 | RGBA | 13,91,108,161 | 77 % | 1 | yes |
+| `person_girl_summer_carry1_ms` | 117x252 | RGBA | 27,116,98,235 | 71 % | 1 | yes |
+| `person_girl_summer_carry1_mt` | 117x252 | RGBA | 27,156,96,219 | 85 % | 1 | yes |
+| `person_girl_summer_carry2_fx` | 117x252 | RGBA | 13,92,109,252 | 48 % | 201 | yes |
+| `person_girl_summer_carry2_mh` | 117x252 | RGBA | 13,92,109,161 | 78 % | 1 | yes |
+| `person_girl_summer_carry2_ms` | 117x252 | RGBA | 16,118,97,237 | 67 % | 1 | yes |
+| `person_girl_summer_carry2_mt` | 117x252 | RGBA | 21,157,97,219 | 84 % | 1 | yes |
 | `person_girl_summer_head_car` | 114x126 | RGBA | 5,11,113,126 | 14 % | 195 | yes |
 | `person_girl_summer_head_car_fx` | 114x126 | RGBA | 5,11,113,126 | 14 % | 133 | yes |
 | `person_girl_summer_head_car_mh` | 114x126 | RGBA | 9,11,113,100 | 36 % | 1 | yes |
@@ -185,6 +220,17 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_girl_summer_walk2_mh` | 117x252 | RGBA | 13,92,109,161 | 78 % | 1 | yes |
 | `person_girl_summer_walk2_ms` | 117x252 | RGBA | 16,118,101,237 | 66 % | 1 | yes |
 | `person_girl_summer_walk2_mt` | 117x252 | RGBA | 21,160,96,219 | 85 % | 1 | yes |
+| `person_girl_winter_carry0_fx` | 117x252 | RGBA | 24,78,99,252 | 56 % | 283 | yes |
+| `person_girl_winter_carry0_mh` | 117x252 | RGBA | 26,88,94,127 | 91 % | 1 | yes |
+| `person_girl_winter_carry0_ms` | 117x252 | RGBA | 30,119,97,222 | 77 % | 1 | yes |
+| `person_girl_winter_carry0_mt` | 117x252 | RGBA | 30,156,96,224 | 85 % | 1 | yes |
+| `person_girl_winter_carry1_fx` | 117x252 | RGBA | 24,78,98,252 | 56 % | 282 | yes |
+| `person_girl_winter_carry1_ms` | 117x252 | RGBA | 27,120,98,222 | 75 % | 1 | yes |
+| `person_girl_winter_carry1_mt` | 117x252 | RGBA | 29,157,96,224 | 85 % | 1 | yes |
+| `person_girl_winter_carry2_fx` | 117x252 | RGBA | 16,78,98,252 | 52 % | 265 | yes |
+| `person_girl_winter_carry2_mh` | 117x252 | RGBA | 27,88,94,127 | 91 % | 1 | yes |
+| `person_girl_winter_carry2_ms` | 117x252 | RGBA | 16,120,98,222 | 72 % | 1 | yes |
+| `person_girl_winter_carry2_mt` | 117x252 | RGBA | 21,157,97,225 | 82 % | 1 | yes |
 | `person_girl_winter_head_car` | 114x126 | RGBA | 6,11,112,126 | 15 % | 178 | yes |
 | `person_girl_winter_head_car_fx` | 114x126 | RGBA | 6,11,112,126 | 15 % | 165 | yes |
 | `person_girl_winter_head_car_mh` | 114x126 | RGBA | 18,21,105,56 | 79 % | 1 | yes |

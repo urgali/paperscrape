@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Winter launcher icon, shown by the .ui.IconWinter alias. Structurally identical to
+     ic_launcher.xml: two drawn layers and a monochrome one.
+
+     The <monochrome> is repeated here rather than inherited because an activity-alias
+     carries a whole <adaptive-icon>, not a diff against another one. It points at the
+     one shipped monochrome on purpose: an Android 13+ themed icon throws the colour away
+     and keeps the silhouette, and five seasonal silhouettes of the same town would be
+     five identical shapes. The season shows in colour; the themed icon does not change. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_winter_background" />
+    <foreground android:drawable="@drawable/ic_launcher_winter_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

@@ -6,13 +6,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The umbrella appears and disappears out of sight, only in rain, and only for adults.
+ * The umbrella appears and disappears out of sight, and in the rain everyone who can hold one does.
  *
  * The interesting one is the first. v4.22 gave the cars a rule -- membership changes only while
  * nothing of the thing is on screen -- and [CarSelection.offScreen]'s own doc says in as many words
  * that pedestrians were left out of it. An object appearing *in the hand of a figure already
  * walking* is the case that rule was written for, so v4.28 takes it over; these tests are what say
  * it was taken over rather than approximated.
+ *
+ * **v5.4 replaced the other half, who carries, on the maintainer's instruction.** There was a share
+ * -- two adults in three, first rolled per walker and then dealt over the street -- and there is
+ * none now: in the rain, everybody who has a carry pose to be drawn in is carrying. What is left to
+ * test is therefore small, and deliberately so; the arithmetic these tests used to check no longer
+ * exists. `PedestrianCarryPopulationTest` checks the rule on the streets the app actually builds
+ * and `PedestrianUmbrellaSceneTest` checks that it reaches the pixels.
  */
 class PedestrianCarryTest {
 
@@ -20,32 +27,67 @@ class PedestrianCarryTest {
 
     @Test
     fun `nobody carries anything when it is not raining`() {
-        for (noise in listOf(0f, 0.3f, 0.66f, 0.99f)) {
+        for (canHold in listOf(true, false)) {
             assertFalse(
                 "an umbrella in a clear sky is the defect, not the feature",
-                PedestrianCarry.wantsUmbrella(raining = false, isAdult = true, noise = noise),
+                PedestrianCarry.wantsUmbrella(raining = false, canHold = canHold),
             )
         }
     }
 
+    /** **The maintainer's rule, in one assertion**: rain, a pose to hold it in, and that is all. */
     @Test
-    fun `children never carry, however the noise falls`() {
-        for (step in 0..100) {
+    fun `everyone who can hold one carries it in the rain`() {
+        assertTrue(
+            "in the rain every walker who can hold an umbrella holds one",
+            PedestrianCarry.wantsUmbrella(raining = true, canHold = true),
+        )
+    }
+
+    /**
+     * **`canHold` is the artwork's length and nothing else, and v5.4H is the proof of it.**
+     *
+     * Until v5.4H this asserted the opposite: `PeopleLayerTable.CARRY` had a pose for `man` and
+     * `woman` and for nobody else, so `CARRY[kindIndex]` for a child would have been an index out
+     * of bounds, and the two `assertFalse`s below were `true` for the children. The test's own
+     * comment said *"the day a child carry pose is drawn, it goes green on its own and the rule
+     * needs no edit"* -- and that is exactly what happened: the artwork landed, this file went red
+     * at the number, and `PedestrianCarry.kt` was not touched.
+     *
+     * So what it pins now is the same property from the other side: **every family the walk table
+     * has, the carry table has**. There is no family the scene can put on the pavement that the
+     * rain has no pose for, and a redraw that adds a fifth family without its carry pose fails here
+     * rather than at an index out of bounds in a rainy frame on a device.
+     */
+    @Test
+    fun `canHold is the artwork's own limit, not a rule about age`() {
+        assertEquals(
+            "a carry pose is shipped for every walking family: man, woman, boy, girl",
+            PeopleLayerTable.WALK.size, PeopleLayerTable.CARRY.size,
+        )
+        assertEquals("which is four", 4, PeopleLayerTable.CARRY.size)
+        assertTrue("the man has a pose", PedestrianCarry.canHold(0))
+        assertTrue("the woman has a pose", PedestrianCarry.canHold(1))
+        assertTrue("the boy has one since v5.4H", PedestrianCarry.canHold(2))
+        assertTrue("and so does the girl", PedestrianCarry.canHold(3))
+        assertFalse(
+            "and a family the artwork does not have still cannot be drawn holding one",
+            PedestrianCarry.canHold(PeopleLayerTable.CARRY.size),
+        )
+    }
+
+    /**
+     * A walker with no pose carries nothing however hard it is raining -- the other direction of
+     * the rule, and the one that keeps `CARRY[kindIndex]` in bounds.
+     */
+    @Test
+    fun `a walker with no carry pose never carries, in any weather`() {
+        for (raining in listOf(true, false)) {
             assertFalse(
-                "children walk through the rain -- the phase-2 photographs were approved on that",
-                PedestrianCarry.wantsUmbrella(raining = true, isAdult = false, noise = step / 100f),
+                "there is no pose to draw this walker holding one",
+                PedestrianCarry.wantsUmbrella(raining = raining, canHold = false),
             )
         }
-    }
-
-    @Test
-    fun `the share is the fraction of adults that carry, and it is neither none nor all`() {
-        val carried = (0..999).count {
-            PedestrianCarry.wantsUmbrella(raining = true, isAdult = true, noise = it / 1000f)
-        }
-        assertEquals("the share is read straight off the noise", (PedestrianCarry.SHARE * 1000).toInt(), carried)
-        assertTrue("a street where nobody carries is the rule failing", carried > 0)
-        assertTrue("a street where everybody carries reads as a uniform", carried < 1000)
     }
 
     // ---------------------------------------------------------------- the off-screen rule
