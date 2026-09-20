@@ -116,6 +116,51 @@ internal object NeighbourhoodComposer {
         into.windowCount = windows
     }
 
+    /**
+     * Fills [into] with the pieces [family] deals for [spec].
+     *
+     * The wallpaper's entry point, and the only one that can read a **dealt** silhouette: a slot
+     * the generator dealt takes the entry [SilhouetteDeal] recorded on it, and a slot nobody dealt
+     * falls back to the position hash above. Both paths stack the pieces with the same arithmetic,
+     * which is the property `PreviewRendererAgreementTest` rests on -- what changed in v5.5 is
+     * which silhouette a slot is asked for, never how one is built.
+     *
+     * Allocation-free on the draw path: the catalogue is enumerated once at class init and this
+     * indexes it.
+     */
+    fun deal(family: BuildingFamily, spec: StaticSceneObject, into: Deal) {
+        val catalogue = SilhouetteDeal.catalogueFor(spec)
+        val silhouette = if (catalogue == null) null else catalogue.getOrNull(spec.silhouette)
+        if (silhouette == null) {
+            deal(family, spec.tileFractionX, spec.depthFraction, into)
+        } else {
+            deal(family, silhouette, into)
+        }
+    }
+
+    /**
+     * Fills [into] with the pieces of one named [silhouette].
+     *
+     * The stacking is [deal]'s own, with the two hashes replaced by the silhouette's two arrays --
+     * so a dealt building and a hashed one at the same silhouette are the same building, piece for
+     * piece and window index for window index.
+     */
+    fun deal(family: BuildingFamily, silhouette: SilhouetteDeal.Silhouette, into: Deal) {
+        into.size = 0
+        var baseY = 0f
+        var windows = 0
+        val slots = family.slots
+        for (index in slots.indices) {
+            val piece = slots[index].options[silhouette.choices[index]]
+            for (repeat in 0 until silhouette.repeats[index]) {
+                into.add(piece, baseY, windows)
+                windows += piece.windows.size
+                baseY -= piece.height
+            }
+        }
+        into.windowCount = windows
+    }
+
     /** Four pieces covers the tallest family (ground + two storeys + roof); the rest grow. */
     private const val INITIAL_CAPACITY = 4
 

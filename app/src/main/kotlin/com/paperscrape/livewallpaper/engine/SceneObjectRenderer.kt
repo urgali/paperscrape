@@ -263,12 +263,22 @@ class SceneObjectRenderer(
          * Pure and free of Android types, so the mapping is unit-testable.
          */
         fun variantFor(spec: StaticSceneObject): SceneSpace.SceneVariant = when (spec.type) {
+            // **v5.5: the family follows the dealt silhouette.** It used to be a hash of
+            // `tileFractionX` alone, and that hash clumps on one seed like every other coin in
+            // this engine did before v4.2: measured on the twelve shipped ids, `autumn` kept five
+            // houses at its default density and every one of them was large. The house catalogue
+            // is dealt as one set spanning both families ([SilhouetteDeal.HOUSES]), so the family
+            // is a consequence of the deal and cannot also be an input to it.
+            //
+            // The position hash remains for a spec nobody dealt -- a pre-v5.5 custom theme, a
+            // random-theme layout, the flat preview -- which is what keeps those unchanged.
             SceneObjectType.HOUSE ->
-                if (kotlin.math.abs((spec.tileFractionX * 7561f).toInt()) % 2 == 1) {
-                    SceneSpace.SceneVariant.HOUSE_LARGE
-                } else {
-                    SceneSpace.SceneVariant.HOUSE_SMALL
-                }
+                SilhouetteDeal.houseVariantOrNull(spec.silhouette)
+                    ?: if (kotlin.math.abs((spec.tileFractionX * 7561f).toInt()) % 2 == 1) {
+                        SceneSpace.SceneVariant.HOUSE_LARGE
+                    } else {
+                        SceneSpace.SceneVariant.HOUSE_SMALL
+                    }
             // A tower belongs on the skyline and a shop front among the houses, so the choice is
             // made by depth rather than by a hash of the horizontal position — and since rc3 the
             // restaurant/bar split is by depth too (see SceneSpace.SHOP_VARIANT_DEPTH_SPLIT): the
@@ -2489,7 +2499,7 @@ class SceneObjectRenderer(
         // per asset (AI_PROJECT_RULES 7.3).
         val scale = variant.spriteUnitsTall / family.unitsTall
         val deal = neighbourhoodDeal
-        NeighbourhoodComposer.deal(family, spec.tileFractionX, spec.depthFraction, deal)
+        NeighbourhoodComposer.deal(family, spec, deal)
 
         drawGroundShadow(canvas, family.shadowHalf * scale)
         canvas.save()

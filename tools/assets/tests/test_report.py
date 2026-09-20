@@ -25,6 +25,7 @@ Run from `tools/assets/`:
 
 from __future__ import annotations
 
+import hashlib
 import sys
 import unittest
 from pathlib import Path
@@ -32,7 +33,7 @@ from pathlib import Path
 TOOL_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOL_ROOT))
 
-from paperscrape_assets import report  # noqa: E402
+from paperscrape_assets import inventory, report  # noqa: E402
 from paperscrape_assets.fidelity import FidelityResult  # noqa: E402
 
 
@@ -158,6 +159,128 @@ class SharedReasonTest(unittest.TestCase):
     def test_nothing_in_common_folds_to_the_marker_alone(self):
         self.assertEqual(report._shared_reason(["ab", "ba"]), "<varies per sprite>")
 
+
+
+
+def _measurement(name: str, width: int, height: int, **overrides) -> "inventory.SpriteMeasurement":
+    """A measurement carrying the fields the inventory report prints.
+
+    Everything the report does not read is given a plausible constant, so a case that changes a
+    number is visibly changing the number under test and nothing else.
+    """
+    decoded = width * height * 4
+    fields = dict(
+        name=name,
+        width=width,
+        height=height,
+        mode="RGBA",
+        has_alpha_channel=True,
+        file_bytes=decoded // 8,
+        decoded_bytes=decoded,
+        content_bbox=(0, 0, width, height),
+        content_width=width,
+        content_height=height,
+        content_coverage=0.5,
+        content_row_max=0.5,
+        content_column_max=0.5,
+        content_band_coverage=(0.5, 0.5),
+        content_band_centre_x=(0.5, 0.5),
+        transparent_padding_bytes=decoded // 4,
+        transparent_padding_fraction=0.25,
+        opaque_rgb_count=7,
+        distinct_colour_count=9,
+        fully_opaque=False,
+        on_grid=True,
+        # Distinct per name by default: the summary's "unique contents" is a count over digests,
+        # and a fixture that hands every sprite the same one would make that count untestable.
+        sha256=hashlib.sha256(name.encode()).hexdigest(),
+        pixels_sha256=hashlib.sha256(("px" + name).encode()).hexdigest(),
+    )
+    fields.update(overrides)
+    return inventory.SpriteMeasurement(**fields)
+
+
+class InventoryMarkdownTest(unittest.TestCase):
+    """`runtime-inventory.md`'s contract.
+
+    Item 125's open half, and it was open for the same reason the fidelity half had been: the
+    generator is called once by `inventory` and read by nobody, so nothing between writing it and
+    a person opening the file can tell a report from an empty string. Demonstrated rather than
+    assumed before these cases were written -- with `inventory_markdown` cut down to its title
+    line, `unittest discover -s tests` stayed green at 143 of 143 and `validate` exited 0.
+
+    The contract asserted here is what the file is *for*: every sprite is listed once with its
+    measured geometry, the summary totals are the sum of the parts rather than numbers of their
+    own, and the two conditional sections -- off-grid sprites and byte-identical groups -- name
+    what they find and stay out of the way when there is nothing to find.
+    """
+
+    def setUp(self):
+        self.small = _measurement("aaa_small", 12, 12)
+        self.large = _measurement("zzz_large", 120, 90)
+        self.measurements = [self.large, self.small]
+
+    def test_every_sprite_is_listed_once_with_its_size(self):
+        text = report.inventory_markdown(self.measurements, {})
+        for m in self.measurements:
+            rows = [l for l in text.splitlines() if l.startswith(f"| `{m.name}` |")]
+            self.assertEqual(2, len(rows), f"{m.name}: {rows}")  # heaviest table + every-sprite table
+            self.assertTrue(all(f"{m.width}x{m.height}" in r for r in rows), rows)
+
+    def test_the_every_sprite_table_is_in_name_order(self):
+        """A table written in measurement order makes every regeneration a reordering diff."""
+        text = report.inventory_markdown(self.measurements, {})
+        body = text.split("## Every sprite", 1)[1]
+        self.assertLess(body.index("aaa_small"), body.index("zzz_large"))
+
+    def test_the_counted_totals_are_the_sum_of_the_parts(self):
+        text = report.inventory_markdown(self.measurements, {})
+        self.assertIn("| Files | 2 |", text)
+        self.assertIn(f"| Decoded `ARGB_8888` | {(12 * 12 + 120 * 90) * 4 / 1e6:.2f} MB |", text)
+
+    def test_two_names_over_one_drawing_count_as_one_unique_content(self):
+        """The count that made the duplicate audit possible: it is over digests, not over files."""
+        twin = _measurement("zzz_large_copy", 120, 90, sha256=self.large.sha256)
+        text = report.inventory_markdown([self.large, self.small, twin], {})
+        self.assertIn("| Files | 3 |", text)
+        self.assertIn("| Unique contents | 2 |", text)
+
+    def test_an_off_grid_sprite_is_named_and_counted(self):
+        odd = _measurement("odd_one", 13, 13, on_grid=False)
+        text = report.inventory_markdown([self.small, odd], {})
+        self.assertIn("| Off the 3x authoring grid | 1 |", text)
+        self.assertIn("Off-grid: `odd_one`", text)
+
+    def test_nothing_off_grid_prints_no_off_grid_paragraph(self):
+        text = report.inventory_markdown(self.measurements, {})
+        self.assertIn("| Off the 3x authoring grid | 0 |", text)
+        self.assertNotIn("Off-grid:", text)
+
+    def test_a_byte_identical_group_lists_its_members(self):
+        text = report.inventory_markdown(self.measurements, {"a" * 64: ["one", "two"]})
+        self.assertIn("| Byte-identical duplicate groups | 1 |", text)
+        self.assertIn("## Byte-identical groups", text)
+        self.assertIn("| `one`, `two` |", text)
+
+    def test_no_duplicates_prints_no_duplicates_section(self):
+        text = report.inventory_markdown(self.measurements, {})
+        self.assertNotIn("## Byte-identical groups", text)
+
+    def test_the_heaviest_table_is_heaviest_first_and_stops_at_ten(self):
+        many = [_measurement(f"s{i:02d}", 3 * (i + 1), 3 * (i + 1)) for i in range(14)]
+        text = report.inventory_markdown(many, {})
+        heaviest = text.split("## Heaviest decoded sprites", 1)[1].split("## Every sprite", 1)[0]
+        listed = [l.split("`")[1] for l in heaviest.splitlines() if l.startswith("| `")]
+        self.assertEqual(10, len(listed))
+        self.assertEqual([f"s{i:02d}" for i in range(13, 3, -1)], listed)
+        # and the sprites it left out are still in the full table, which is the other half.
+        self.assertIn("| `s00` |", text.split("## Every sprite", 1)[1])
+
+    def test_a_sprite_with_no_content_box_prints_a_dash_rather_than_crashing(self):
+        """A fully transparent PNG has no bounding box; the report must still list it."""
+        blank = _measurement("blank_one", 12, 12, content_bbox=None)
+        text = report.inventory_markdown([blank], {})
+        self.assertIn("| `blank_one` | 12x12 | RGBA | - |", text)
 
 if __name__ == "__main__":
     unittest.main()

@@ -114,6 +114,7 @@ fun StaticSceneObject.toJson(): JSONObject = JSONObject().apply {
     put("depthFraction", depthFraction.toDouble())
     put("tileFractionX", tileFractionX.toDouble())
     put("scale", scale.toDouble())
+    put("silhouette", silhouette)
 }
 
 fun staticSceneObjectFromJson(json: JSONObject): StaticSceneObject = StaticSceneObject(
@@ -128,6 +129,11 @@ fun staticSceneObjectFromJson(json: JSONObject): StaticSceneObject = StaticScene
     },
     tileFractionX = json.requireFinite("tileFractionX"),
     scale = json.optFinite("scale", 1f),
+    // Absent from every payload written before v5.5, and the fallback is what those payloads
+    // need: `UNDEALT` means "hash the drawing from the position", which is exactly what the build
+    // that saved them did. So an existing custom theme loads as the same street it was saved as,
+    // with no migration and no schema bump -- the same shape `CarObject.type` was added in.
+    silhouette = json.optInt("silhouette", StaticSceneObject.UNDEALT),
 )
 
 fun CarObject.toJson(): JSONObject = JSONObject().apply {

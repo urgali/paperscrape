@@ -23,15 +23,26 @@
 buildscript {
     configurations.classpath {
         resolutionStrategy {
-            // CVE-2026-5588 (bcpkix, MODERATE) and CVE-2026-0636 (bcprov, MODERATE) are both
-            // first patched in 1.84. AGP 9.4.0 already moves this line from 1.79 to 1.80.2, which
-            // is enough for the CRITICAL CVE-2025-14813 on bcprov but not for the other two.
-            // bcutil is not itself under an alert; it is forced alongside the other two because
-            // Bouncy Castle ships the three as one version-locked set and mixing them is how you
-            // get a NoSuchMethodError at build time.
-            force("org.bouncycastle:bcpkix-jdk18on:1.84")
-            force("org.bouncycastle:bcprov-jdk18on:1.84")
-            force("org.bouncycastle:bcutil-jdk18on:1.84")
+            // Raised to 1.85 in v5.5C, for the last two Dependabot alerts this repository
+            // carried. Both are on bcprov and both are first patched in 1.85:
+            //
+            //   CVE-2026-8763  / GHSA-9pwp-9qqc-pr26  CRITICAL  Name Constraints bypass via a
+            //                                                   trailing dot in rfc822Name and URI
+            //   CVE-2026-13506 / GHSA-qp49-qgx5-5m26  HIGH      lazy ASN.1 sequence forcing resets
+            //                                                   the nesting-depth guard
+            //
+            // The earlier pair that had put this block at 1.84 -- CVE-2026-5588 (bcpkix) and
+            // CVE-2026-0636 (bcprov), both MODERATE, first patched in 1.84 -- stays covered,
+            // because 1.85 is past 1.84. AGP 9.4.0 still only brings 1.80.2 by itself, which is
+            // enough for the CRITICAL CVE-2025-14813 on bcprov and for nothing since.
+            //
+            // bcpkix and bcutil carry no alert of their own at 1.84; they are raised with bcprov
+            // because Bouncy Castle ships the three as one version-locked set and mixing them is
+            // how you get a NoSuchMethodError at build time. 1.85 exists for all three -- checked
+            // on Maven Central before this edit, not assumed.
+            force("org.bouncycastle:bcpkix-jdk18on:1.85")
+            force("org.bouncycastle:bcprov-jdk18on:1.85")
+            force("org.bouncycastle:bcutil-jdk18on:1.85")
 
             // CVE-2024-29371 (HIGH) in jose4j, reached through
             // com.android.tools.build:bundletool. First patched in 0.9.6; 0.9.7 is the current

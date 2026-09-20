@@ -47,6 +47,9 @@ SVG_DIR = SOURCES_DIR / "svg"
 REGISTRY_PATH = SOURCES_DIR / "sprites.json"
 STAGING_DIR = TOOL_ROOT / "staging"
 REPORTS_DIR = TOOL_ROOT / "reports"
+#: The neighbourhood generator writes its own committed report here rather than into
+#: `reports/`, which is why the staleness check missed it until v5.5C.
+BUILDINGS_DIR = TOOL_ROOT / "buildings"
 
 
 def _reject_runtime_directory(path: Path) -> Path:
@@ -166,7 +169,11 @@ def cmd_validate(_: argparse.Namespace) -> int:
     # The committed reports are claims about the shipped PNGs too, and they are the claims most
     # likely to go stale without anyone noticing: nothing reads them at build time. v5.2 found
     # both of them describing a palm that had been redrawn a release earlier.
-    problems.extend(report.stale_reports(REPORTS_DIR, runtime))
+    #
+    # `BUILDINGS_DIR` joined them in v5.5C: `buildings/budget.json` is the third committed report
+    # item 125 names, it lives outside `reports/`, and for three releases it was the one this
+    # check did not look at.
+    problems.extend(report.stale_reports(REPORTS_DIR, runtime, BUILDINGS_DIR))
 
     if problems:
         for problem in problems:

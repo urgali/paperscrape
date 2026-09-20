@@ -40,13 +40,26 @@ enum class SceneObjectType {
  * neither could be read without the other -- and made two categories' sizes impossible to compare,
  * since each was expressed against its own sprite's arbitrary internal scale. Payloads written
  * before the split are converted by the schema 1 -> 2 migration in `CustomThemeData.kt`.
+ *
+ * [silhouette] is **which of its category's drawings this slot was dealt** -- see
+ * [SilhouetteDeal], which also explains why it is recorded here rather than recomputed by
+ * whoever draws. Defaults to [UNDEALT], which is what a spec nobody dealt carries: a custom
+ * theme saved before v5.5, a random-theme layout, or one of the many tests that construct a bare
+ * candidate. Those keep the pre-v5.5 behaviour exactly -- the drawing is hashed from the position,
+ * as it always was -- so this field adds a path and changes none.
  */
 data class StaticSceneObject(
     val type: SceneObjectType,
     val depthFraction: Float,
     val tileFractionX: Float,
     val scale: Float = 1f,
-)
+    val silhouette: Int = UNDEALT,
+) {
+    companion object {
+        /** No deal recorded: the drawing is hashed from the position, as before v5.5. */
+        const val UNDEALT = -1
+    }
+}
 
 /** The 4 vehicle types that can appear on the road: plain car, police car, taxi, fire truck.
  * Only [PLAIN] is user-recolorable via the "Cars" category color pickers -- the other 3 use fixed,
@@ -398,13 +411,14 @@ object SceneObjectCatalog {
      * theme. See [CarSelection]. What this generator guarantees is unchanged: ten candidates,
      * five per lane, uniformly spaced around the loop.
      *
-     * Vehicle type is a stable weighted pick per candidate index (not `Random()` per frame --
+     * Vehicle type is dealt per candidate index rather than rolled (not `Random()` per frame --
      * every candidate must always render the same type, the same way its lane/speed are fixed at
-     * generation time), mostly [CarType.PLAIN] with a minority of each special type so they read
-     * as an occasional sighting rather than every third car being a police car. */
+     * generation time), mostly [CarType.PLAIN] with one of each special type so they read as an
+     * occasional sighting rather than every third car being a police car. **v5.5 replaced the
+     * per-candidate roll with the multiset [CAR_TYPE_DEAL]**, which is where the 70/10/10/10
+     * weights now live and why every theme carries all four types -- see that property. */
     internal fun generateCarCandidates(seed: Int, accentColor: Int): List<CarObject> {
-        val rnd = Random(seed)
-        val types = capSpecialsToOnePerType((0 until CANDIDATES_PER_CATEGORY).map { pickCarType(rnd) })
+        val types = capSpecialsToOnePerType(dealtCarTypes(seed, CANDIDATES_PER_CATEGORY))
         return (0 until CANDIDATES_PER_CATEGORY).map { i ->
             val nearLane = i % 2 == 0
             val slot = i / 2 // position of this car within its own lane's queue
@@ -433,11 +447,17 @@ object SceneObjectCatalog {
      * At most one vehicle of each special type in a candidate set -- items 11 and 14 of
      * `BACKLOG_v4_19.md`, which are the same defect counted twice.
      *
-     * [pickCarType] rolls each candidate independently, so nothing stopped two of them coming up
-     * the same special type: at a tenth each over ten candidates, **26.4% of seeds produce two or
-     * more fire engines** and as many produce two or more patrol cars. It is not a rare corner --
-     * it was photographed three times across the v4.19 evidence, most recently two fire engines in
-     * the same lane in the same night frame.
+     * The pick this cap was written against rolled each candidate independently, so nothing stopped
+     * two of them coming up the same special type: at a tenth each over ten candidates, **26.4% of
+     * seeds produce two or more fire engines** and as many produce two or more patrol cars. It was
+     * not a rare corner -- it was photographed three times across the v4.19 evidence, most recently
+     * two fire engines in the same lane in the same night frame.
+     *
+     * **Since v5.5 it has nothing to do on a built-in theme**, because [CAR_TYPE_DEAL] holds one of
+     * each special and a deal cannot produce a duplicate. It is kept, and kept in the call path,
+     * for two reasons: a custom or random layout may carry any list of types, and a cap that is
+     * asserted by `capSpecialsToOnePerType`'s own test is a cheaper guarantee than the reader's
+     * memory that the multiset upstream happens to be unique.
      *
      * The cap belongs here rather than in the renderer because "how many of each type this theme
      * has" is decided exactly once, at generation, and every candidate of a theme shares the one
@@ -460,19 +480,47 @@ object SceneObjectCatalog {
         }
     }
 
-    /** Weighted pick: mostly plain cars, each special type a minority so they read as an
-     * occasional sighting. Called with the same per-candidate [Random] sequence
-     * [generateCarCandidates] already draws lane/speed/reverse from, so a candidate's type is
-     * just as stable/deterministic as everything else about it. */
-    private fun pickCarType(rnd: Random): CarType {
-        val roll = rnd.nextFloat()
-        return when {
-            roll < 0.70f -> CarType.PLAIN
-            roll < 0.80f -> CarType.POLICE
-            roll < 0.90f -> CarType.TAXI
-            else -> CarType.FIRE_TRUCK
+    /**
+     * The ten types one theme's road carries, as a multiset dealt across its ten slots.
+     *
+     * **The declared weights, dealt exactly rather than rolled.** The pick this replaces was
+     * `roll < 0.70 -> PLAIN, < 0.80 -> POLICE, < 0.90 -> TAXI, else FIRE_TRUCK` -- an independent
+     * roll per candidate off `Random(seed + 6)`. Over millions of seeds that is 70/10/10/10; over
+     * the ten candidates one seed produces it is a hand, and measured on the twelve shipped ids it
+     * dealt **two of the four types to four of the twelve themes**: `tundra` and `spring` carried
+     * no fire engine and no taxi between them, `easter` and `halloween` no patrol car and no taxi.
+     * Seven plain and one of each special *is* 70/10/10/10 on ten slots, so the weights are not
+     * approximated here -- they are met, and every theme shows all four types.
+     *
+     * This is [SeededBalance.drawCount]'s argument in the one case where the fraction happens to
+     * come out whole, and [capSpecialsToOnePerType]'s cap becomes a property of the multiset rather
+     * than a repair applied to a roll: the cap still runs, and now has nothing to do.
+     */
+    private val CAR_TYPE_DEAL: List<CarType> = listOf(
+        CarType.PLAIN, CarType.PLAIN, CarType.PLAIN, CarType.PLAIN,
+        CarType.PLAIN, CarType.PLAIN, CarType.PLAIN,
+        CarType.POLICE, CarType.TAXI, CarType.FIRE_TRUCK,
+    )
+
+    /** Which entry of [CAR_TYPE_DEAL] candidate [slot] of [slotCount] gets. See [SilhouetteDeal]
+     *  for why the expression is `(rotation + rank) % size` and not a rank alone. */
+    private fun dealtCarTypes(seed: Int, slotCount: Int): List<CarType> {
+        val size = CAR_TYPE_DEAL.size
+        val rotation = (CandidateNoise.value(seed, 0, CH_CAR_TYPE_ROTATION) * size)
+            .toInt().coerceIn(0, size - 1)
+        return (0 until slotCount).map { slot ->
+            val rank = SeededBalance.rankOf(
+                seed, CH_CAR_TYPE, slot, slotCount, addressStride = 1, addressOffset = 0,
+            )
+            CAR_TYPE_DEAL[(rotation + rank) % size]
         }
     }
+
+    /** Which slot gets which vehicle type. */
+    private const val CH_CAR_TYPE = 52
+
+    /** Where the type multiset starts, so a shorter inventory still varies by theme. */
+    private const val CH_CAR_TYPE_ROTATION = 53
 
     /** The uniform 6-category candidate set shared by every theme. [treeType] lets themes like
      * Beach use palm trees instead of plain trees for their "trees" category slots while still
@@ -504,9 +552,21 @@ object SceneObjectCatalog {
         val seed = themeId.hashCode()
         val houseBack = 0.28f..0.48f
         val houseFront = 0.62f..0.95f
-        val houses = generateSplitStaticCandidates(SceneObjectType.HOUSE, seed + 1, houseBack, houseFront)
+        // Each population's silhouettes are dealt across its own slots here, at generation, where
+        // the seed and the slot index are both in hand -- see [SilhouetteDeal] for why that is the
+        // only place it can happen. The commercial candidates are dealt *after*
+        // [singleShopPerVariant], because that pass is what settles which of them is a tower and
+        // which a shop front, and a building's catalogue follows from that. [separateShopFrontages]
+        // moves only `tileFractionX` and so cannot disturb a deal.
+        val houses = SilhouetteDeal.dealtAcross(
+            generateSplitStaticCandidates(SceneObjectType.HOUSE, seed + 1, houseBack, houseFront),
+            seed,
+        )
         val staticObjects = separateShopFrontages(
-            singleShopPerVariant(generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, 0.0f..0.80f)) +
+            SilhouetteDeal.dealtAcross(
+                singleShopPerVariant(generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, 0.0f..0.80f)),
+                seed,
+            ) +
                 houses +
                 generateStaticCandidates(treeType, seed + 5, 0.18f..1.0f) +
                 parasolsBeside(houses, seed + 4),

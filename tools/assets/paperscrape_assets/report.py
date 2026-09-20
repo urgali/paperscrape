@@ -32,9 +32,54 @@ SHEET_CELL = 150
 SHEET_LABEL_HEIGHT = 16
 
 
+#: The four name prefixes `buildings/core.py`'s `budget` counts as its "shipped perimeter",
+#: and the suffix it excludes. Duplicated from there rather than imported, because
+#: `buildings/` is a standalone script directory that imports its own modules by bare name and
+#: cannot be imported from inside this package without a `sys.path` edit at call time.
+#: `tests/test_budget.py` asserts the two selections agree on the real tree, so the duplicate
+#: is a checked one rather than a remembered one.
+BUDGET_PERIMETER_PREFIXES = ("house", "skyscraper", "restaurant", "bar")
+BUDGET_PERIMETER_EXCLUDES = "_q"
+
+#: `Perimetro spedito (46 PNG, senza palma): 3480876 B decodificati, 3435092 B caricati ...`
+_BUDGET_MD_PERIMETER = re.compile(
+    r"Perimetro spedito \((\d+) PNG[^)]*\): (\d+) B decodificati, (\d+) B caricati"
+)
+
+
+def budget_perimeter(measurements: dict[str, "SpriteMeasurement"]) -> dict[str, int]:
+    """`budget`'s `shipped_perimeter` block, re-derived from measurements already taken.
+
+    `buildings/core.py`'s `budget` opens each PNG a second time to compute this. Here it comes
+    out of the inventory pass `validate` has already run, so checking the committed budget for
+    staleness costs `validate` nothing beyond the arithmetic -- the same reason
+    :func:`stale_reports` compares the reports' own claims instead of re-running the generators.
+
+    `uploaded_level0` is the ink bounding box grown by one texel on each side and clamped to the
+    canvas, times four bytes: what the atlas uploads at mip level 0 once the fully transparent
+    border is cropped away. The one-texel skirt is there so bilinear sampling at the edge reads a
+    transparent neighbour rather than clamping.
+    """
+    total = {"files": 0, "decoded": 0, "uploaded_level0": 0}
+    for name, m in measurements.items():
+        if name.split("_")[0] not in BUDGET_PERIMETER_PREFIXES:
+            continue
+        if BUDGET_PERIMETER_EXCLUDES in name:
+            continue
+        total["files"] += 1
+        total["decoded"] += m.decoded_bytes
+        if m.content_bbox is not None:
+            x0, y0, x1, y1 = m.content_bbox
+            width = min(x1, m.width - 1) - max(x0 - 1, 0) + 1
+            height = min(y1, m.height - 1) - max(y0 - 1, 0) + 1
+            total["uploaded_level0"] += width * height * 4
+    return total
+
+
 def stale_reports(
     reports_dir: Path,
     measurements: dict[str, "SpriteMeasurement"],
+    buildings_dir: Path | None = None,
 ) -> list[str]:
     """Which committed reports no longer describe the shipped artwork.
 
@@ -52,7 +97,20 @@ def stale_reports(
     the number of names tells you at a glance whether a redraw or a whole library moved.
 
     Each report is checked against whatever of itself is a claim about a PNG: the inventory's
-    per-file SHA-256, and fidelity's recorded reference size and content box.
+    per-file SHA-256, fidelity's recorded reference size and content box, and -- since v5.5C --
+    the neighbourhood budget's `shipped_perimeter` block.
+
+    **What the budget half does and does not reach.** `buildings/budget.json` has two parts. Its
+    `shipped_perimeter` is a claim about the PNGs in `drawable-nodpi`, so it is checked here, and
+    `buildings/budget.md` is checked to still quote the same three numbers -- the two files are
+    written by one statement and can only diverge if one of them is edited by hand, which is
+    exactly the way a committed artefact starts lying. Its `concepts` block describes the PNGs
+    under `buildings/out/`, which are a generator's scratch output, are not committed and are
+    excluded from the delivered archive; there is nothing shipped to compare them against, and
+    saying so here is better than a check that silently covers half a file.
+
+    Until v5.5C the budget was the one committed report nothing looked at: item 125's second half
+    was closed in v5.2 over two of the three, and the third was named in the item and missed.
     """
     problems: list[str] = []
 
@@ -98,6 +156,47 @@ def stale_reports(
                     f"fidelity.json: {result['name']}'s reference content box was "
                     f"{tuple(recorded_bbox)}; it now ships as {live.content_bbox}"
                 )
+
+    if buildings_dir is not None:
+        problems.extend(_stale_budget(buildings_dir, measurements))
+
+    return problems
+
+
+def _stale_budget(
+    buildings_dir: Path,
+    measurements: dict[str, "SpriteMeasurement"],
+) -> list[str]:
+    """`buildings/budget.json`'s shipped perimeter against the PNGs that ship, and `.md` against it."""
+    problems: list[str] = []
+    json_path = buildings_dir / "budget.json"
+    if not json_path.is_file():
+        return problems
+
+    recorded = json.loads(json_path.read_text(encoding="utf-8")).get("shipped_perimeter") or {}
+    live = budget_perimeter(measurements)
+    for field in ("files", "decoded", "uploaded_level0"):
+        if field in recorded and recorded[field] != live[field]:
+            problems.append(
+                f"buildings/budget.json: shipped_perimeter.{field} was recorded as "
+                f"{recorded[field]}; the shipped PNGs now give {live[field]}"
+            )
+
+    md_path = buildings_dir / "budget.md"
+    if md_path.is_file() and recorded:
+        match = _BUDGET_MD_PERIMETER.search(md_path.read_text(encoding="utf-8"))
+        if match is None:
+            problems.append(
+                "buildings/budget.md: the shipped-perimeter line is not there to be checked"
+            )
+        else:
+            quoted = dict(zip(("files", "decoded", "uploaded_level0"), (int(g) for g in match.groups())))
+            for field, value in quoted.items():
+                if field in recorded and recorded[field] != value:
+                    problems.append(
+                        f"buildings/budget.md: quotes {field} as {value}; budget.json beside it "
+                        f"records {recorded[field]}"
+                    )
 
     return problems
 

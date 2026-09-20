@@ -455,10 +455,12 @@ def build_concept(concept: str, buildings: dict, out: Path):
 
 # ------------------------------------------------------------------ contabilita'
 def uploaded_bytes(path):
-    im = Image.open(path)
-    a = np.array(im.convert("RGBA"))[:, :, 3]
-    ys, xs = np.where(a > 0)
-    w, h = im.size
+    # `with`, because `budget` calls this once per shipped PNG and the suite that arrived with
+    # v5.5C runs it: 46 unclosed readers per call is 46 ResourceWarnings in the test output.
+    with Image.open(path) as im:
+        a = np.array(im.convert("RGBA"))[:, :, 3]
+        ys, xs = np.where(a > 0)
+        w, h = im.size
     return int((min(xs.max() + 1, w - 1) - max(xs.min() - 1, 0) + 1) * (min(ys.max() + 1, h - 1) - max(ys.min() - 1, 0) + 1) * 4)
 
 
@@ -466,8 +468,9 @@ def budget(concepts, files_by: dict, out: Path):
     shipped = {}
     for n in sorted(os.listdir(RES)):
         if n.endswith(".png") and n.split("_")[0] in ("house", "skyscraper", "restaurant", "bar") and "_q" not in n:
-            im = Image.open(RES / n)
-            shipped[n[:-4]] = (im.size[0] * im.size[1] * 4, uploaded_bytes(RES / n))
+            with Image.open(RES / n) as im:
+                size = im.size
+            shipped[n[:-4]] = (size[0] * size[1] * 4, uploaded_bytes(RES / n))
     rep = {"shipped_perimeter": {"files": len(shipped), "decoded": sum(v[0] for v in shipped.values()),
                                  "uploaded_level0": sum(v[1] for v in shipped.values())}, "concepts": {}}
     lines = ["# Contabilita' dei concept contro i due tetti (generata da build_fase3.py)", "",

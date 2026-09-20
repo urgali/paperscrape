@@ -21,6 +21,13 @@ report that matches, and it must name the sprite and both geometries on a report
 The 750 KB `comparison-sheet.png` is deliberately not compared: item 125 argues that one out, and
 the rasteriser probe already guards the toolchain that draws it.
 
+**v5.5C added the third report.** Item 125 names three committed artefacts and v5.2's check reached
+two: `buildings/budget.json` writes itself into `buildings/`, not into `reports/`, and was simply
+not passed in. Its `shipped_perimeter` block is a claim about the same drawable set the other two
+describe, so it is checked the same way -- and `buildings/budget.md`, which quotes those three
+numbers back in a sentence, is checked against the JSON beside it, because two committed files
+written by one statement can only come apart when somebody edits one of them.
+
 Run from `tools/assets/`:
 
     /home/bober/.venvs/paperscrape-assets/bin/python -m unittest discover -s tests
@@ -43,6 +50,7 @@ from paperscrape_assets import inventory, report  # noqa: E402
 REPO_ROOT = TOOL_ROOT.parent.parent
 RUNTIME_DIR = REPO_ROOT / "app/src/main/res/drawable-nodpi"
 REPORTS_DIR = TOOL_ROOT / "reports"
+BUILDINGS_DIR = TOOL_ROOT / "buildings"
 
 
 class StaleReportTest(unittest.TestCase):
@@ -128,6 +136,96 @@ class StaleReportTest(unittest.TestCase):
         """A tree with no reports committed is a different question, and not this check's."""
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual([], report.stale_reports(Path(tmp), self.measurements))
+
+
+class StaleBudgetTest(unittest.TestCase):
+    """The third committed report, reached for the first time in v5.5C."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.measurements = {m.name: m for m in inventory.measure_directory(RUNTIME_DIR)}
+
+    def _with_patched_budget(self, patch) -> list[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            scratch = Path(tmp)
+            for name in ("budget.json", "budget.md"):
+                shutil.copy(BUILDINGS_DIR / name, scratch / name)
+            patch(scratch)
+            return report.stale_reports(REPORTS_DIR, self.measurements, scratch)
+
+    def test_the_committed_budget_describes_the_shipped_artwork(self):
+        self.assertEqual([], self._with_patched_budget(lambda scratch: None))
+
+    def test_a_perimeter_left_behind_by_a_redraw_is_named_with_both_numbers(self):
+        """A building redrawn larger moves `decoded`, and nothing before this said so."""
+        def patch(scratch: Path) -> None:
+            path = scratch / "budget.json"
+            data = json.loads(path.read_text())
+            data["shipped_perimeter"]["decoded"] = 3_000_000
+            path.write_text(json.dumps(data))
+
+        # Two problems, and deliberately: editing the JSON alone also puts it out of step with
+        # the markdown beside it, and both facts are true and separately actionable.
+        problems = self._with_patched_budget(patch)
+        self.assertEqual(2, len(problems), problems)
+        self.assertIn("buildings/budget.json: shipped_perimeter.decoded", problems[0])
+        self.assertIn("3000000", problems[0])
+        self.assertIn(str(report.budget_perimeter(self.measurements)["decoded"]), problems[0])
+        self.assertIn("buildings/budget.md", problems[1])
+
+    def test_a_png_added_to_the_perimeter_moves_the_file_count(self):
+        def patch(scratch: Path) -> None:
+            path = scratch / "budget.json"
+            data = json.loads(path.read_text())
+            data["shipped_perimeter"]["files"] = 45
+            path.write_text(json.dumps(data))
+
+        problems = self._with_patched_budget(patch)
+        self.assertIn("shipped_perimeter.files", "\n".join(problems))
+
+    def test_a_crop_that_leaves_the_canvas_alone_still_moves_the_uploaded_column(self):
+        """`decoded` is the canvas and `uploaded_level0` is the ink box: a crop moves only one."""
+        def patch(scratch: Path) -> None:
+            path = scratch / "budget.json"
+            data = json.loads(path.read_text())
+            data["shipped_perimeter"]["uploaded_level0"] += 4
+            path.write_text(json.dumps(data))
+
+        problems = self._with_patched_budget(patch)
+        self.assertEqual(2, len(problems), problems)
+        self.assertIn("shipped_perimeter.uploaded_level0", problems[0])
+        # `decoded` did not move, and is not reported: the two columns are independent claims.
+        self.assertNotIn("shipped_perimeter.decoded", "\n".join(problems))
+
+    def test_a_markdown_left_behind_when_the_json_was_refreshed_is_named(self):
+        """The two files are written together; they come apart when one is edited by hand."""
+        def patch(scratch: Path) -> None:
+            path = scratch / "budget.md"
+            text = path.read_text()
+            path.write_text(text.replace("3480876 B decodificati", "9999999 B decodificati", 1))
+
+        problems = self._with_patched_budget(patch)
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("buildings/budget.md", problems[0])
+        self.assertIn("9999999", problems[0])
+
+    def test_a_markdown_whose_perimeter_line_is_gone_is_named_rather_than_passed(self):
+        """A report that cannot be checked must not read as a report that checked out."""
+        def patch(scratch: Path) -> None:
+            path = scratch / "budget.md"
+            path.write_text("# Contabilita'\n")
+
+        problems = self._with_patched_budget(patch)
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("not there to be checked", problems[0])
+
+    def test_no_budget_committed_is_not_a_stale_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual([], report.stale_reports(REPORTS_DIR, self.measurements, Path(tmp)))
+
+    def test_the_budget_is_skipped_entirely_when_no_directory_is_given(self):
+        """`stale_reports` keeps its two-argument shape for callers that only hold `reports/`."""
+        self.assertEqual([], report.stale_reports(REPORTS_DIR, self.measurements))
 
 
 if __name__ == "__main__":

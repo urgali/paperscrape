@@ -103,7 +103,10 @@ class UnitFrameTest {
         "POLICE_" to setOf("car"),
         "ESTATE_CABIN_" to setOf("car"),
         "LIVERY_" to setOf("car"),
-        "TALLEST_VEHICLE_" to setOf("car"),
+        // v5.5: renamed from TALLEST_VEHICLE_ when the fire engine was given its own window
+        // in `VehicleScalePixelTest` -- the constant is the tallest CAR and never was the tallest
+        // vehicle, and the frame it is measured in is the car's.
+        "TALLEST_CAR_" to setOf("car"),
         "DOOR_ACCESSORY_" to setOf("car"),
         "PERSON_" to setOf("walk"),
         "PEDESTRIAN_" to setOf("walk"),

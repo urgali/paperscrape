@@ -85,14 +85,35 @@ class VehicleScalePixelTest {
     private val empty by lazy { SceneGolden.render(scene(0f, 0f)) }
 
     /**
-     * The tallest thing the road can put on a lane, in local units: a body plus whatever it
+     * The tallest **car** the road can put on a lane, in local units: a body plus whatever it
      * carries on its roof. Derived so that adding a body or a roof accessory moves it.
+     *
+     * **It is not the tallest vehicle, and until v5.5 this class assumed it was.** The fire engine
+     * is 2.9 m against a car's 1.69, it is not a [CarShell] at all -- `CarShell.forCar` returns
+     * `SALOON` for it only so the function is total, and it draws from its own body at its own
+     * [SceneSpace.FIRE_TRUCK_BASE_SCALE] -- so nothing in this expression can reach it. See
+     * [fireEngineHeight].
      */
-    private val TALLEST_VEHICLE_UNITS: Float = maxOf(
+    private val TALLEST_CAR_UNITS: Float = maxOf(
         CarShell.COMPACT.unitsTall + SceneObjectRenderer.TAXI_SIGN_HEIGHT_UNITS,
         CarShell.SALOON.unitsTall + SceneObjectRenderer.POLICE_LIGHTBAR_HEIGHT_UNITS,
         CarShell.ESTATE.unitsTall,
     )
+
+    /**
+     * The drawn height of the fire engine on [lane], in this frame's pixels.
+     *
+     * Its own sprite units through its own base scale, because it shares neither with the cars:
+     * `FIRE_TRUCK_SPRITE_UNITS_TALL` is 68 against the car's 56, and `FIRE_TRUCK_METRES_TALL` is
+     * 2.9 against 1.69. On the far lane that is **40.8 px** where the car fleet spans 23.8..26.7,
+     * so the two do not overlap and a blob's height alone says which it is.
+     */
+    private fun fireEngineHeight(lane: Float): Float =
+        predicted(SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL, SceneSpace.FIRE_TRUCK_BASE_SCALE, lane)
+
+    /** Whether a blob of this height on [lane] is the fire engine rather than a car. */
+    private fun isFireEngine(height: Float, lane: Float): Boolean =
+        kotlin.math.abs(height - fireEngineHeight(lane)) <= 1.5f
 
     /** The predicted drawn height of one thing, in this frame's pixels. */
     private fun predicted(spriteUnits: Float, baseScale: Float, groundYFraction: Float): Float =
@@ -134,11 +155,17 @@ class VehicleScalePixelTest {
             val shortest = predicted(
                 CarShell.entries.minOf { it.unitsTall }, SceneSpace.CAR_BASE_SCALE, lane,
             )
-            val tallest = predicted(TALLEST_VEHICLE_UNITS, SceneSpace.CAR_BASE_SCALE, lane)
+            val tallest = predicted(TALLEST_CAR_UNITS, SceneSpace.CAR_BASE_SCALE, lane)
+            // Two windows, not one wide band. Widening the car band to swallow the fire engine
+            // would have made it 23.8..42.3 on the far lane and stopped catching the wrong-lane
+            // scale this test exists for; the fire engine gets its own window, tighter than the
+            // cars' because there is exactly one of it.
+            val inCarBand = height >= shortest - 1.5f && height <= tallest + 1.5f
             assertTrue(
-                "a vehicle at x=${v[0]}..${v[1]} is ${height}px, outside the fleet's band of " +
-                    "${"%.1f".format(shortest)}..${"%.1f".format(tallest)} px for lane $lane",
-                height >= shortest - 1.5f && height <= tallest + 1.5f,
+                "a vehicle at x=${v[0]}..${v[1]} is ${height}px, which is neither the car fleet's " +
+                    "${"%.1f".format(shortest)}..${"%.1f".format(tallest)} px nor the fire engine's " +
+                    "${"%.1f".format(fireEngineHeight(lane))} px for lane $lane",
+                inCarBand || isFireEngine(height, lane),
             )
         }
         assertTrue("no vehicle was found on the far lane", farSeen > 0)
@@ -239,8 +266,16 @@ class VehicleScalePixelTest {
      * The occupants stay behind the glass (one driver per vehicle since rc4).
      *
      * Their skin is the only thing in a vehicle painted in the shipped person tones, so the busts
-     * can be found by colour and checked against the window the car draws — measured in the car's
-     * own local units through the lane's scale, so the check holds on either lane.
+     * can be found by colour and checked against the window their vehicle draws — measured in that
+     * vehicle's own local units through the lane's scale, so the check holds on either lane.
+     *
+     * **Whose roof, is the whole question, and until v5.5 this asked the wrong one.** The roof line
+     * was `predicted(CAR_SPRITE_UNITS_TALL, CAR_BASE_SCALE, lane)` for every bust — a car's roof,
+     * applied to the fire engine too, which stands 40.8 px on the far lane where a car stands 25.
+     * A fire engine's driver sits perfectly inside its own cab and about 17 px above a car's
+     * roofline, so the assertion failed on a vehicle that was drawn correctly. The vehicle is
+     * classified by its measured height first — the two are 25 px apart and cannot be confused —
+     * and then checked against the roof **it** has.
      */
     @Test
     fun theBustsStayInsideTheGlass() {
@@ -249,27 +284,42 @@ class VehicleScalePixelTest {
         val skin = listOf(intArrayOf(240, 201, 166), intArrayOf(220, 169, 124), intArrayOf(169, 113, 75))
 
         var busts = 0
-        for ((x, range) in extents) {
-            for (y in range.first..range.second) {
-                val p = withCars.getPixel(x, y)
-                val r = (p shr 16) and 0xFF
-                val g = (p shr 8) and 0xFF
-                val b = p and 0xFF
-                val isSkin = skin.any {
-                    kotlin.math.abs(r - it[0]) < 20 && kotlin.math.abs(g - it[1]) < 20 && kotlin.math.abs(b - it[2]) < 20
+        for (vehicle in objects(extents)) {
+            val height = (vehicle[3] - vehicle[2] + 1).toFloat()
+            val lane = listOf(
+                SceneSpace.ROAD_LANE_FAR_Y_FRACTION,
+                SceneSpace.ROAD_LANE_NEAR_Y_FRACTION,
+            ).minByOrNull { kotlin.math.abs(it * SceneGolden.HEIGHT - vehicle[3]) }!!
+            val ground = lane * SceneGolden.HEIGHT
+            // This vehicle's own roof: the fire engine's if that is what the blob measures,
+            // a car's otherwise.
+            val bodyUnits = if (isFireEngine(height, lane)) SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL
+            else SceneSpace.CAR_SPRITE_UNITS_TALL
+            val bodyScale = if (isFireEngine(height, lane)) SceneSpace.FIRE_TRUCK_BASE_SCALE
+            else SceneSpace.CAR_BASE_SCALE
+            val roof = ground - predicted(bodyUnits, bodyScale, lane)
+            for (x in vehicle[0]..vehicle[1]) {
+                val range = extents[x] ?: continue
+                for (y in range.first..range.second) {
+                    val p = withCars.getPixel(x, y)
+                    val r = (p shr 16) and 0xFF
+                    val g = (p shr 8) and 0xFF
+                    val b = p and 0xFF
+                    val isSkin = skin.any {
+                        kotlin.math.abs(r - it[0]) < 20 && kotlin.math.abs(g - it[1]) < 20 && kotlin.math.abs(b - it[2]) < 20
+                    }
+                    if (!isSkin) continue
+                    busts++
+                    // A bust pixel must sit above its vehicle's wheel line and below its roof —
+                    // i.e. inside the body, never floating over the road or above the vehicle.
+                    assertTrue("a bust pixel at ($x,$y) is below the wheel line $ground", y < ground)
+                    assertTrue(
+                        "a bust pixel at ($x,$y) is above the roof ${"%.1f".format(roof)} of the " +
+                            "${if (isFireEngine(height, lane)) "fire engine" else "car"} at " +
+                            "x=${vehicle[0]}..${vehicle[1]} (${height}px on lane $lane)",
+                        y > roof - 1f,
+                    )
                 }
-                if (!isSkin) continue
-                busts++
-                // A bust pixel must sit above its vehicle's wheel line and below its roof — i.e.
-                // inside the body, never floating over the road or above the car.
-                val lane = listOf(
-                    SceneSpace.ROAD_LANE_FAR_Y_FRACTION,
-                    SceneSpace.ROAD_LANE_NEAR_Y_FRACTION,
-                ).minByOrNull { kotlin.math.abs(it * SceneGolden.HEIGHT - range.second) }!!
-                val ground = lane * SceneGolden.HEIGHT
-                val roof = ground - predicted(SceneSpace.CAR_SPRITE_UNITS_TALL, SceneSpace.CAR_BASE_SCALE, lane)
-                assertTrue("a bust pixel at ($x,$y) is below the wheel line $ground", y < ground)
-                assertTrue("a bust pixel at ($x,$y) is above the roof ${"%.1f".format(roof)}", y > roof - 1f)
             }
         }
         assertTrue("no occupant was found behind any windscreen", busts >= 4)

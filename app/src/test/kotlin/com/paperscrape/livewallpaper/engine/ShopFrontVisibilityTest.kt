@@ -44,11 +44,26 @@ class ShopFrontVisibilityTest {
     private val tile = refW * 2f
 
     /**
-     * The worst ink-measured shop-front coverage over the twelve built-in layouts, as v5.4 leaves
-     * it: 31.2 %, `halloween`/BAR. It was **43.5 %** (`easter`/RESTAURANT) before item 113 -- the
-     * correction moved nine shops on eight themes and took the worst reading under the ceiling.
+     * The worst ink-measured shop-front coverage over the twelve built-in layouts, as v5.5 leaves
+     * it: **32.5 %, `halloween`/BAR**. It was 31.2 % on the same shop at v5.4, and **43.5 %**
+     * (`easter`/RESTAURANT) before item 113 -- that correction moved nine shops on eight themes
+     * and took the worst reading under the ceiling.
+     *
+     * **Why it moved in v5.5, and why re-pinning is the right response.** The repair deals the
+     * house catalogue across the ten house slots ([SilhouetteDeal]), so which slots are
+     * `HOUSE_SMALL` and which `HOUSE_LARGE` changed on every theme -- and a house's family is its
+     * drawn half-width, which is what this pass measures its neighbours' occlusion with. So
+     * [SceneObjectCatalog.separateShopFrontages] re-solved with different neighbours and settled
+     * **10 of the 24 shops** somewhere else; `city`'s bar wrapped the tile origin (0.00073 ->
+     * 0.99073) rather than moving a tile's width.
+     *
+     * The criterion itself did not move and is still met by every one of the 24, with **7.5 points
+     * of margin** on the worst. This number is the drift tripwire the method below documents, and
+     * a tripwire that fires on a layout change is doing its job: the change is attributed shop by
+     * shop in the delivery's `registri/40_shop_front_attribuzione.txt`, and the reading is a
+     * consequence of the deal rather than a shop getting quietly more covered.
      */
-    private val INK_WORST = 0.3125f
+    private val INK_WORST = 0.325f
 
     @Test
     fun `no shop front is covered beyond forty percent of its whole area on any built-in theme`() {

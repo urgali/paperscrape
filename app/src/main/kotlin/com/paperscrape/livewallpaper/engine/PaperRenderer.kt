@@ -138,6 +138,23 @@ class PaperRenderer(
     // what the code did.
     var liveWeatherOverride: com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot? = null
 
+    /**
+     * Eases the drawn cloud cover, and each candidate's opacity, toward what the forecast reports.
+     *
+     * Renderer-owned rather than snapshot-owned: the snapshot is replaced wholesale by the engine
+     * whenever a fetch lands, so anything remembered on it would be thrown away at exactly the
+     * moment it is needed. See [CloudCoverFade] for the report this answers.
+     */
+    private val cloudCoverFade = CloudCoverFade(CLOUD_POOL_SIZE)
+
+    /**
+     * This frame's cloud cover as actually drawn, or null when Live Weather is not driving.
+     *
+     * Refreshed once per frame by [updateWeatherPredicates] and read by both [drawClouds] and
+     * [stormStrength], which are separated by the whole sky in draw order.
+     */
+    private var drawnCloudCover: Float? = null
+
     // **Where the light is, this frame.** The water is a mirror since v4.26, so it has to know
     // three things the sky already worked out: whether a body was drawn at all, whether it was the
     // sun or the moon, and where. Written by [drawSky] and [drawCelestialBody], read by [drawLake],
@@ -1232,9 +1249,16 @@ class PaperRenderer(
     /** The storm gate the lightning already uses, so the two cannot disagree about a thunderstorm. */
     private var stormActiveNow = false
 
-    private fun updateWeatherPredicates() {
+    private fun updateWeatherPredicates(deltaSeconds: Float) {
         val live = liveWeatherOverride
         val precip = sceneCustomization.precipitation
+        // **The cover the scene draws, which is not always the cover the forecast reports.**
+        //
+        // Computed here, once, at the top of the frame, because two layers read it and they are
+        // drawn in the other order: [drawSky] dims by [stormStrength] before [drawClouds] places
+        // anything, so a cover eased inside `drawClouds` would leave the sky a frame behind the
+        // clouds it is meant to be darkening for. See [CloudCoverFade] for the report.
+        drawnCloudCover = cloudCoverFade.coverToward(live?.cloudCoverFraction, deltaSeconds)
         if (live != null) {
             rainingNow = live.precipitationType == PrecipitationType.RAIN && live.precipitationIntensity > 0f
             rainIntensityNow = if (rainingNow) live.precipitationIntensity else 0f
@@ -1344,7 +1368,7 @@ class PaperRenderer(
     }
 
     fun draw(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime, deltaSeconds: Float) {
-        updateWeatherPredicates()
+        updateWeatherPredicates(deltaSeconds)
         // One direction only, per explicit request -- full screen-width drift every ~25s at
         // scrollSpeed=1.0;
         // scrollSpeed=0 freezes it. Safe to let this grow unbounded now that hills and objects
@@ -1432,7 +1456,7 @@ class PaperRenderer(
             drawStars(canvas, dayPhase, elapsedSeconds)
             drawCelestialBody(canvas, dayPhase)
         }
-        drawClouds(canvas, dayPhase, elapsedSeconds)
+        drawClouds(canvas, dayPhase, elapsedSeconds, deltaSeconds)
         // Behind the mountains/hills on purpose (see drawRainbow's own doc comment) -- drawn
         // right after clouds, before anything that should occlude its base.
         drawRainbow(canvas, dayPhase)
@@ -1552,7 +1576,11 @@ class PaperRenderer(
             precipitationType = live.precipitationType,
             precipitationIntensity = live.precipitationIntensity,
             isThunderstorm = live.isThunderstorm,
-            cloudCoverFraction = live.cloudCoverFraction,
+            // The *drawn* cover, not the reported one: this is what darkens the sky and the
+            // clouds, and a sky that stepped to the new weather while the clouds under it were
+            // still easing into it would put the two layers a ramp apart. Falls back to the
+            // reported value on the frame before [updateWeatherPredicates] has ever run.
+            cloudCoverFraction = drawnCloudCover ?: live.cloudCoverFraction,
         )
     }
 
@@ -2025,7 +2053,12 @@ class PaperRenderer(
 
     private fun cloudBandHeightFor(screenHeight: Int): Float = CloudBand.heightFor(screenHeight)
 
-    private fun drawClouds(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
+    private fun drawClouds(
+        canvas: SceneCanvas,
+        dayPhase: SunPositionCalculator.DayPhase,
+        elapsedSeconds: SceneTime,
+        deltaSeconds: Float,
+    ) {
         val clouds = sceneCustomization.clouds
         cloudCoverage.beginFrame()
         // **The override is consulted before the theme's own switch, exactly as [drawPrecipitation]
@@ -2037,11 +2070,17 @@ class PaperRenderer(
         // promises that real conditions replace the theme's manual cloud setting; this is what
         // makes that true for both layers rather than one.
         val density = LiveWeatherSceneRules.cloudDensity(
-            liveCloudCover = liveWeatherOverride?.cloudCoverFraction,
+            // The eased cover, not the reported one -- [CloudCoverFade], and note it is the *only*
+            // argument that changes here: which clouds a given density admits, and where each one
+            // sits, are untouched.
+            liveCloudCover = drawnCloudCover,
             themeCloudsVisible = clouds.visible,
             themeCloudDensity = clouds.density,
         )
-        if (density == null) {
+        // A cover easing down to nothing reaches zero before the last clouds have finished fading,
+        // so "no clouds to place" is not yet "no clouds on screen": leaving early here would cut
+        // the fade off at its last step, which is the one frame this whole class exists to remove.
+        if (density == null && !cloudCoverFade.anythingVisible()) {
             // No clouds to place, either because the layer is off or because the forecast reports a
             // clear sky. Turning the cloud layer off must not also turn precipitation off, so with
             // no clouds to derive a field from the sky is treated as uniformly covered and
@@ -2068,8 +2107,12 @@ class PaperRenderer(
         // how many slots exist. When the count moved with the slider, every cloud's
         // `(i + 0.5) / candidateCount` position moved with it, so adjusting density relocated the
         // whole sky rather than thinning it.
+        // Zero when the layer has just been told to place nothing and is only finishing its fade;
+        // `isPresent` already answers false for every candidate at zero, which is precisely the
+        // "everything is on its way out" the frames after the early return above describe.
+        val placementDensity = density ?: 0f
         val effectOffset = CandidateThreshold.offsetFor(EffectId.CLOUDS)
-        val fallbackIndex = CandidateThreshold.fallbackIndexFor(density, CLOUD_POOL_SIZE, effectOffset)
+        val fallbackIndex = CandidateThreshold.fallbackIndexFor(placementDensity, CLOUD_POOL_SIZE, effectOffset)
         val seed = seedFor(EffectId.CLOUDS)
         val tileWidth = screenWidth * 2f
 
@@ -2077,7 +2120,14 @@ class PaperRenderer(
         val bandHeight = cloudBandHeightFor(screenHeight)
 
         for (i in 0 until CLOUD_POOL_SIZE) {
-            if (!CandidateThreshold.isPresent(i, density, effectOffset, fallbackIndex)) continue
+            // **Every candidate is asked every frame, present or not.** The opacity of the ones on
+            // their way out has to keep advancing, and a `continue` before the question would
+            // freeze a half-faded cloud on screen forever. The 41 calls cost an array read and a
+            // clamp each; the loop already walked all 41 to ask `isPresent`.
+            val present = CandidateThreshold.isPresent(i, placementDensity, effectOffset, fallbackIndex)
+            val opacity = cloudCoverFade.opacityOf(i, present, deltaSeconds)
+            if (opacity <= 0f) continue
+            val cloudAlpha = (opacity * 255f).toInt().coerceIn(0, 255)
 
             val tier = i % 4
             val parallax = (CLOUD_TIER_PARALLAX[tier] * parallaxStrength).coerceAtMost(1f)
@@ -2102,7 +2152,13 @@ class PaperRenderer(
                 // 45f) -- otherwise clouds crossing the screen edge get culled before their
                 // outermost lobe (up to ~2.1r from center) finishes drawing.
                 if (x < -160f * scale || x > screenWidth + 160f * scale) continue
-                drawPuffyCloud(canvas, x, laneY, scale)
+                drawPuffyCloud(canvas, x, laneY, scale, cloudAlpha)
+                // **A cloud that is fading contributes its whole geometry to the rain field, not
+                // its opacity.** Weighting it would put a second, softer ease inside the rain
+                // and buy nothing the eye can see: the coverage field only decides *where* rain
+                // may fall, the forecast's own intensity decides how much, and a cloud in flight
+                // is on screen for 1.5 s. Leaving it unweighted is also what keeps a settled
+                // frame's field bit-identical to the one that shipped.
                 val cloudHalfWidth = CloudCoverage.CLOUD_CONTENT_HALF_UNITS * scale
                 cloudCoverage.addCloud(
                     centerX = x,
@@ -2126,11 +2182,14 @@ class PaperRenderer(
      * `cloud_body.png` at generation time instead (`gen_cloud_sprite.py`, kept in chat, not
      * committed) -- same "bake it into the sprite" convention batches 1-3 established.
      */
-    private fun drawPuffyCloud(canvas: SceneCanvas, cx: Float, cy: Float, scale: Float) {
+    private fun drawPuffyCloud(canvas: SceneCanvas, cx: Float, cy: Float, scale: Float, alpha: Int) {
         canvas.save()
         canvas.translate(cx, cy)
         canvas.scale(scale, scale)
-        sprites.drawTinted(canvas, R.drawable.cloud_body, CLOUD_BLIT_X, CLOUD_BLIT_Y, SpriteScale.SCENE_UNITS, cloudPaint.color)
+        // [alpha] is how far through its fade this candidate is -- 255 for every cloud in a settled
+        // sky, which is every cloud of every frame until a forecast actually changes. The blitter
+        // has always taken the argument; see [CloudCoverFade].
+        sprites.drawTinted(canvas, R.drawable.cloud_body, CLOUD_BLIT_X, CLOUD_BLIT_Y, SpriteScale.SCENE_UNITS, cloudPaint.color, alpha)
         canvas.restore()
     }
 

@@ -49,9 +49,9 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67. Ordinary bumps: one release, one step.
-        versionCode = 67
-        versionName = "5.4"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68. Ordinary bumps: one release, one step.
+        versionCode = 68
+        versionName = "5.5"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
@@ -272,6 +272,13 @@ android {
 // versions in one build is how you end up debugging a `NoSuchMethodError` that only lint sees.
 // Bouncy Castle's three jars move as a set for the same reason.
 //
+// **v5.5C raised the three Bouncy Castle jars from 1.84 to 1.85**, for the repository's last two
+// Dependabot alerts -- CVE-2026-8763 / GHSA-9pwp-9qqc-pr26 (CRITICAL) and CVE-2026-13506 /
+// GHSA-qp49-qgx5-5m26 (HIGH), both on bcprov, both first patched in 1.85. The root block carries
+// the full reasoning; this one is raised with it because `androidLintTool` resolves
+// `bcprov-jdk18on` on its own and the root force does not reach here. The two MODERATE alerts
+// listed above stay covered: 1.85 is past the 1.84 that patched them.
+//
 // `configureEach` rather than `getByName("androidLintTool")` because AGP creates that
 // configuration lazily; naming it eagerly resolves it during configuration. Forcing across every
 // configuration is safe here only because it was checked: none of these five coordinates appears
@@ -281,9 +288,9 @@ android {
 // re-checking that.
 configurations.configureEach {
     resolutionStrategy {
-        force("org.bouncycastle:bcpkix-jdk18on:1.84")
-        force("org.bouncycastle:bcprov-jdk18on:1.84")
-        force("org.bouncycastle:bcutil-jdk18on:1.84")
+        force("org.bouncycastle:bcpkix-jdk18on:1.85")
+        force("org.bouncycastle:bcprov-jdk18on:1.85")
+        force("org.bouncycastle:bcutil-jdk18on:1.85")
         force("org.apache.commons:commons-lang3:3.20.0")
         force("org.apache.httpcomponents:httpclient:4.5.14")
     }
