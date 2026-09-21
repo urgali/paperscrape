@@ -46,7 +46,7 @@ class CommercialWindowPeopleTest {
      * wrong number and no assertion about [WindowOccupants] would notice.
      *
      * **v5.0 moved where the answer lives.** There is no longer a draw function per building to
-     * read: one composer draws all five families, and whether a building asks for occupants is a
+     * read: one composer draws all six families, and whether a building asks for occupants is a
      * property of its **pieces** -- a piece that declares windows carries an `OCCUPANTS` part, and
      * the composer hands it the building's own total. So the source half of this test asks the one
      * question the source can still lose (does the composer pass the *building's* count, or a
@@ -276,6 +276,12 @@ class CommercialWindowPeopleTest {
         for (spec in SceneObjectCatalog.layoutFor(themeId, theme.accentColor).staticObjects) {
             if (!customization.keepCandidate(spec)) continue
             val variant = SceneObjectRenderer.variantFor(spec)
+            // **The school is street-level glass and is deliberately not counted here.** It has a
+            // kind of its own and a rate of its own since v5.6F, and it is never empty by
+            // construction -- four panes at 0.60 deal two or three. Folding it in would raise the
+            // "occupants per commercial building" ratio below by a building that cannot fail, and
+            // the ratio exists to catch the two shops coming out empty, which is the defect that
+            // was actually reported. `WindowOccupantsTest` measures the school on its own.
             if (variant != SceneSpace.SceneVariant.BAR && variant != SceneSpace.SceneVariant.RESTAURANT) continue
             // The count this building is actually dealt, from its own position -- not a constant,
             // because a family's deals can differ in how many windows they have.

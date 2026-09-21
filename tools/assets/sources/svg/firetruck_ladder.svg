@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="150" height="21" viewBox="-2 -31 50 7">
 <!--
-  La scala, ridisegnata con gli stessi raccordi: due correnti a estremita' tonde e
-  otto pioli. Poggia sul tetto del corpo a y=-24 e ne e' coperta sul bordo
-  inferiore, cosi' legge come portata e non come sospesa.
+v5.6B d1_ritaglio - scala
 -->
-<rect x="-2" y="-31" width="50" height="1.8" rx="0.9" fill="#C9CDD2"/>
-<rect x="-2" y="-25.8" width="50" height="1.8" rx="0.9" fill="#C9CDD2"/>
-<rect x="1" y="-29.6" width="1.6" height="4.2" rx="0.8" fill="#C9CDD2"/>
-<rect x="7.28571" y="-29.6" width="1.6" height="4.2" rx="0.8" fill="#C9CDD2"/>
-<rect x="13.5714" y="-29.6" width="1.6" height="4.2" rx="0.8" fill="#C9CDD2"/>
-<rect x="19.8571" y="-29.6" width="1.6" height="4.2" rx="0.8" fill="#C9CDD2"/>
-<rect x="26.1429" y="-29.6" width="1.6" height="4.2" rx="0.8" fill="#C9CDD2"/>
-<rect x="32.4286" y="-29.6" width="1.6" height="4.2" rx="0.8" fill="#C9CDD2"/>
-<rect x="38.7143" y="-29.6" width="1.6" height="4.2" rx="0.8" fill="#C9CDD2"/>
-<rect x="45" y="-29.6" width="1.6" height="4.2" rx="0.8" fill="#C9CDD2"/>
+<polygon points="-1.26,-29.24 -0.24,-29.93 47.69,-29.55 48.04,-29.27 47.97,-28.68 47.28,-28.12 -0.56,-28.13 -0.96,-28.53" fill="#93969C"/>
+<polygon points="-2.26,-30.44 -1.24,-31.13 46.69,-30.75 47.04,-30.47 46.97,-29.88 46.28,-29.32 -1.56,-29.33 -1.96,-29.73" fill="#C9CDD2"/>
+<polygon points="-1.06,-24.78 -0.69,-25.12 47.42,-25.02 47.74,-24.31 48.26,-23.84 47.70,-23.36 -0.54,-23.47 -0.88,-23.72" fill="#93969C"/>
+<polygon points="-2.06,-25.98 -1.69,-26.32 46.42,-26.22 46.74,-25.51 47.26,-25.04 46.70,-24.56 -1.54,-24.67 -1.88,-24.92" fill="#C9CDD2"/>
+<polygon points="1.00,-29.60 2.60,-29.60 2.60,-25.40 1.00,-25.40" fill="#C9CDD2"/>
+<polygon points="7.29,-29.60 8.89,-29.60 8.89,-25.40 7.29,-25.40" fill="#C9CDD2"/>
+<polygon points="13.57,-29.60 15.17,-29.60 15.17,-25.40 13.57,-25.40" fill="#C9CDD2"/>
+<polygon points="19.86,-29.60 21.46,-29.60 21.46,-25.40 19.86,-25.40" fill="#C9CDD2"/>
+<polygon points="26.14,-29.60 27.74,-29.60 27.74,-25.40 26.14,-25.40" fill="#C9CDD2"/>
+<polygon points="32.43,-29.60 34.03,-29.60 34.03,-25.40 32.43,-25.40" fill="#C9CDD2"/>
+<polygon points="38.71,-29.60 40.31,-29.60 40.31,-25.40 38.71,-25.40" fill="#C9CDD2"/>
+<polygon points="45.00,-29.60 46.60,-29.60 46.60,-25.40 45.00,-25.40" fill="#C9CDD2"/>
 </svg>

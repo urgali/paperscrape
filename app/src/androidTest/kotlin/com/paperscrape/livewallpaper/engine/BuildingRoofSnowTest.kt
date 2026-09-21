@@ -183,6 +183,11 @@ class BuildingRoofSnowTest {
             listOf(StaticSceneObject(SceneObjectType.SKYSCRAPER, 0.40f, 0.25f))
         SceneSpace.SceneVariant.BAR ->
             listOf(StaticSceneObject(SceneObjectType.SKYSCRAPER, 0.70f, 0.25f))
+        // v5.6F: the middle third of the shop band. This test's own doc said a *sixth* building
+        // type is exactly what would ship bare, and it caught the school by deriving its coverage
+        // from `NeighbourhoodTable.FAMILIES.keys` -- it only needed somewhere to stand.
+        SceneSpace.SceneVariant.SCHOOL ->
+            listOf(StaticSceneObject(SceneObjectType.SKYSCRAPER, 0.55f, 0.25f))
         SceneSpace.SceneVariant.HOUSE_SMALL -> listOf(houseResolving(SceneSpace.SceneVariant.HOUSE_SMALL))
         SceneSpace.SceneVariant.HOUSE_LARGE -> listOf(houseResolving(SceneSpace.SceneVariant.HOUSE_LARGE))
         SceneSpace.SceneVariant.PALM_TREE ->

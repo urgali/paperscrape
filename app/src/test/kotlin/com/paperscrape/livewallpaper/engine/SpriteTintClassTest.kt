@@ -72,6 +72,9 @@ class SpriteTintClassTest {
         "tower_tier1_mg", "tower_tier1_mw", "tower_tier2_mw", "tower_tier3_mw",
         "restaurant_pavilion_mg", "restaurant_pavilion_mw",
         "bar_chamfer_mg", "bar_chamfer_mw", "bar_signboard_mg", "bar_signboard_mw",
+        // v5.6F: the school's wall and glass weights, the sixth family's, summed at the blit under
+        // the BUILDINGS colours exactly as the two shops' are.
+        "school_mg", "school_mw",
         "tree_canopy", "snowman_body", "gift_box",
         "penguin_body", "penguin_belly", "easteregg_shell", "bunny_body",
         "pumpkin_body", "car_body_compact", "car_body_saloon", "car_body_estate",
@@ -122,6 +125,7 @@ class SpriteTintClassTest {
         "tower_snow_right2_fx", "tower_snow_top_fx",
         "tower_crown_dome_snow_fx", "tower_crown_spire_snow_fx",
         "restaurant_pavilion_snow_fx", "bar_chamfer_snow_fx", "bar_signboard_snow_fx",
+        "school_snow_fx",
         "palmtree_trunk", "palmtree_fronds", "palmtree_fronds_frost",
         // Halloween's palm crown. Fixed art in the trunk browns for the same reason
         // `tree_dead_branches` is: a dead frond is not a theme colour.
@@ -145,7 +149,7 @@ class SpriteTintClassTest {
         "tower_bay_fx", "tower_crown_dome_fx", "tower_crown_spire_fx",
         "tower_row_tier1_fx", "tower_row_tier2_fx", "tower_row_tier3_fx",
         "tower_tier1_fx", "tower_tier2_fx", "tower_tier3_fx",
-        "restaurant_pavilion_fx", "bar_chamfer_fx", "bar_signboard_fx",
+        "restaurant_pavilion_fx", "bar_chamfer_fx", "bar_signboard_fx", "school_fx",
         // v2.8: a fir is a species.
         "tree_fir", "tree_fir_snow",
         "snowman_nose", "snowman_scarf", "gift_ribbon",

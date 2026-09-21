@@ -1,37 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="297" height="174" viewBox="-49.5 -24.5 99 58">
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="159" viewBox="-50 -25 100 53">
 <!--
-  L'autopompa v4.19, riportata all'annata delle tre vetture.
-
-  La 4.18 la lasciava con spigoli vivi e ruote piccole sotto un fondo piatto: due
-  generazioni di disegno affiancate sul veicolo piu' grande della scena. Qui prende
-  lo stesso vocabolario: archi CONCENTRICI alla ruota con un'unita'-auto d'aria,
-  stessi raggi di raccordo, stessa fascia inferiore, stessi fanali (gli sprite
-  condivisi con le auto) — e per la prima volta un fanale ROSSO in coda, cosi' la
-  direzione si legge dal solo veicolo come sulle vetture.
-
-  Vive nel proprio metro-per-unita': 2,9 m su 68 unita' contro gli 0,0302 m/u delle
-  auto, quindi un'unita' qui vale 1.4122 unita'-auto. I raccordi sono scritti
-  divisi per quel fattore, cosi' e' il RESO a combaciare, non il numero.
-
-  Ruota r=10.5 (contro le 11 delle auto: 14.8 unita'-auto, piu' grande come
-  dev'essere), arco r=11.71, tandem posteriore a 24.7 unita' = 1,175 diametri.
-  Tetto cabina -16 contro tetto corpo -24: e' la riga che separa un camion
-  da un'auto ingrandita. Terra y=37, fondo scocca y=32.04.
+v5.6F «Ritaglio» - fire engine, fixed art. Ground y=37; wheel discs r 11 at x -34, 9.325, 34, drawn in code in front of this paper; what is baked here is the crescent each one casts on it. The cab window is the hole in the even-odd outline, y -13..6; the sheet behind it is grown half a unit so no seam opens along the cut.
 -->
-<g fill="#dcdcdc" stroke="#dcdcdc" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">
-  <path fill-rule="evenodd" d="M-49 32.043 L-49 4 Q-49 -1 -44 -1.6 L-40 -2.4 Q-36.6 -2.8 -35.4 -5.2 L-32 -13 Q-31 -16 -27.6 -16 L-2 -16 L-2 -21.4 Q-2 -24 1 -24 L44 -24 Q49 -24 49 -19 L49 32.043 Z M-45.7081 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M-2.38314 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M22.2919 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z"/>
-</g>
-<path fill-rule="evenodd" d="M-49 32.043 L-49 4 Q-49 -1 -44 -1.6 L-40 -2.4 Q-36.6 -2.8 -35.4 -5.2 L-32 -13 Q-31 -16 -27.6 -16 L-2 -16 L-2 -21.4 Q-2 -24 1 -24 L44 -24 Q49 -24 49 -19 L49 32.043 Z M-45.7081 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M-2.38314 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M22.2919 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z" fill="#D6362E"/>
-<clipPath id="shell"><path clip-rule="evenodd" d="M-49 32.043 L-49 4 Q-49 -1 -44 -1.6 L-40 -2.4 Q-36.6 -2.8 -35.4 -5.2 L-32 -13 Q-31 -16 -27.6 -16 L-2 -16 L-2 -21.4 Q-2 -24 1 -24 L44 -24 Q49 -24 49 -19 L49 32.043 Z M-45.7081 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M-2.38314 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z M22.2919 26.5 a11.7081 11.7081 0 1 0 23.4163 0 a11.7081 11.7081 0 1 0 -23.4163 0 Z"/></clipPath>
-<g clip-path="url(#shell)">
-<path d="M-49 22 L49 22 L49 32.043 L-49 32.043 Z" fill="#B82A24"/>
-<rect x="-48" y="8.4" width="96" height="4.2" rx="1.4" fill="#F2E4C9"/>
-<path d="M-33.5 6 L-29.6 -13 L-4 -13 L-4 6 Z" fill="#B9D8E4"/>
-<rect x="2" y="0.4" width="13" height="7.2" rx="1.2" fill="#C9CDD2"/>
-<rect x="18" y="0.4" width="13" height="7.2" rx="1.2" fill="#C9CDD2"/>
-<rect x="34" y="0.4" width="13" height="7.2" rx="1.2" fill="#C9CDD2"/>
-<path d="M-2 6 L-2 22" stroke="#d8d8d8" stroke-width="1.1" fill="none"/>
-<rect x="-47.8" y="-1.4" width="7.6" height="5.6" rx="2" fill="#cccccc"/>
-<rect x="43" y="3.0" width="5.6" height="5.6" rx="1.8" fill="#cccccc"/>
-</g>
+<clipPath id="shell"><path clip-rule="evenodd" d="M-49.00 27.00 L-49.00 4.00 L-47.00 1.00 L-40.00 -1.00 L-36.00 -4.00 L-32.00 -13.00 L-30.00 -16.00 L-2.00 -16.00 L-2.00 -24.00 L46.00 -24.00 L49.00 -21.00 L49.00 27.00 Z M-32.90 6.00 L-33.38 5.41 L-29.72 -12.41 L-29.00 -13.00 L-4.60 -13.00 L-4.00 -12.40 L-4.00 5.40 L-4.60 6.00 Z"/></clipPath>
+<clipPath id="cg"><polygon points="-33.10,6.40 -33.75,5.62 -30.15,-12.62 -29.20,-13.40 -4.40,-13.40 -3.60,-12.60 -3.60,5.60 -4.40,6.40"/></clipPath>
+<path fill-rule="evenodd" d="M-47.37 27.08 L-48.75 25.80 L-49.10 5.30 L-48.54 2.97 L-47.37 2.32 L-45.68 0.80 L-41.57 -0.28 L-38.75 -1.49 L-37.27 -3.03 L-35.51 -5.74 L-33.11 -11.80 L-31.24 -14.39 L-30.81 -14.64 L-28.68 -16.24 L-3.34 -15.71 L-1.51 -17.96 L-1.90 -22.51 L-0.30 -24.39 L44.96 -23.57 L46.82 -22.58 L48.43 -22.29 L48.66 -19.82 L48.92 25.58 L47.72 26.95 Z M-32.90 6.00 L-33.38 5.41 L-29.72 -12.41 L-29.00 -13.00 L-4.60 -13.00 L-4.00 -12.40 L-4.00 5.40 L-4.60 6.00 Z" fill="#D6362E"/>
+<polygon points="-44.58,10.37 -43.98,9.77 46.82,9.77 47.42,10.37 47.42,13.17 46.82,13.77 -43.98,13.77 -44.58,13.17" fill="#AEA596" clip-path="url(#shell)"/>
+<polygon points="-46.00,8.60 -45.40,8.00 45.40,8.00 46.00,8.60 46.00,11.40 45.40,12.00 -45.40,12.00 -46.00,11.40" fill="#F2E4C9" clip-path="url(#shell)"/>
+<polygon points="3.42,2.57 4.22,1.77 14.62,1.77 15.42,2.57 15.42,7.97 14.62,8.77 4.22,8.77 3.42,7.97" fill="#93969C" clip-path="url(#shell)"/>
+<polygon points="2.00,0.80 2.80,0.00 13.20,0.00 14.00,0.80 14.00,6.20 13.20,7.00 2.80,7.00 2.00,6.20" fill="#C9CDD2" clip-path="url(#shell)"/>
+<polygon points="19.42,2.57 20.22,1.77 30.62,1.77 31.42,2.57 31.42,7.97 30.62,8.77 20.22,8.77 19.42,7.97" fill="#93969C" clip-path="url(#shell)"/>
+<polygon points="18.00,0.80 18.80,0.00 29.20,0.00 30.00,0.80 30.00,6.20 29.20,7.00 18.80,7.00 18.00,6.20" fill="#C9CDD2" clip-path="url(#shell)"/>
+<polygon points="35.42,2.57 36.22,1.77 46.62,1.77 47.42,2.57 47.42,7.97 46.62,8.77 36.22,8.77 35.42,7.97" fill="#93969C" clip-path="url(#shell)"/>
+<polygon points="34.00,0.80 34.80,0.00 45.20,0.00 46.00,0.80 46.00,6.20 45.20,7.00 34.80,7.00 34.00,6.20" fill="#C9CDD2" clip-path="url(#shell)"/>
+<polygon points="-21.58,27.77 -21.96,30.62 -23.06,33.27 -24.81,35.55 -27.08,37.30 -29.74,38.40 -32.58,38.77 -35.43,38.40 -38.08,37.30 -40.36,35.55 -42.11,33.27 -43.21,30.62 -43.58,27.77 -43.21,24.92 -42.11,22.27 -40.36,19.99 -38.08,18.24 -35.43,17.15 -32.58,16.77 -29.74,17.15 -27.08,18.24 -24.81,19.99 -23.06,22.27 -21.96,24.92" fill="#9C3230" clip-path="url(#shell)"/>
+<polygon points="-23.00,26.00 -23.37,28.85 -24.47,31.50 -26.22,33.78 -28.50,35.53 -31.15,36.63 -34.00,37.00 -36.85,36.63 -39.50,35.53 -41.78,33.78 -43.53,31.50 -44.63,28.85 -45.00,26.00 -44.63,23.15 -43.53,20.50 -41.78,18.22 -39.50,16.47 -36.85,15.37 -34.00,15.00 -31.15,15.37 -28.50,16.47 -26.22,18.22 -24.47,20.50 -23.37,23.15" fill="#D6362E" clip-path="url(#shell)"/>
+<polygon points="21.74,27.77 21.37,30.62 20.27,33.27 18.52,35.55 16.24,37.30 13.59,38.40 10.74,38.77 7.89,38.40 5.24,37.30 2.96,35.55 1.21,33.27 0.12,30.62 -0.26,27.77 0.12,24.92 1.21,22.27 2.96,19.99 5.24,18.24 7.89,17.15 10.74,16.77 13.59,17.15 16.24,18.24 18.52,19.99 20.27,22.27 21.37,24.92" fill="#9C3230" clip-path="url(#shell)"/>
+<polygon points="20.32,26.00 19.95,28.85 18.85,31.50 17.10,33.78 14.82,35.53 12.17,36.63 9.32,37.00 6.48,36.63 3.83,35.53 1.55,33.78 -0.20,31.50 -1.30,28.85 -1.68,26.00 -1.30,23.15 -0.20,20.50 1.55,18.22 3.82,16.47 6.48,15.37 9.32,15.00 12.17,15.37 14.82,16.47 17.10,18.22 18.85,20.50 19.95,23.15" fill="#D6362E" clip-path="url(#shell)"/>
+<polygon points="46.42,27.77 46.04,30.62 44.94,33.27 43.19,35.55 40.92,37.30 38.26,38.40 35.42,38.77 32.57,38.40 29.92,37.30 27.64,35.55 25.89,33.27 24.79,30.62 24.42,27.77 24.79,24.92 25.89,22.27 27.64,19.99 29.92,18.24 32.57,17.15 35.42,16.77 38.26,17.15 40.92,18.24 43.19,19.99 44.94,22.27 46.04,24.92" fill="#9C3230" clip-path="url(#shell)"/>
+<polygon points="45.00,26.00 44.63,28.85 43.53,31.50 41.78,33.78 39.50,35.53 36.85,36.63 34.00,37.00 31.15,36.63 28.50,35.53 26.22,33.78 24.47,31.50 23.37,28.85 23.00,26.00 23.37,23.15 24.47,20.50 26.22,18.22 28.50,16.47 31.15,15.37 34.00,15.00 36.85,15.37 39.50,16.47 41.78,18.22 43.53,20.50 44.63,23.15" fill="#D6362E" clip-path="url(#shell)"/>
+<polygon points="-49.00,23.00 49.00,23.00 49.00,27.00 -49.00,27.00" fill="#B82A24" clip-path="url(#shell)"/>
+<polygon points="-33.10,6.40 -33.75,5.62 -30.15,-12.62 -29.20,-13.40 -4.40,-13.40 -3.60,-12.60 -3.60,5.60 -4.40,6.40" fill="#B9D8E4"/>
+<polygon points="-38.50,-18.00 1.00,-18.00 1.00,-11.23 -38.50,-11.23" fill="#899DA8" clip-path="url(#cg)"/>
+<polygon points="-38.50,-18.00 -32.08,-18.00 -32.08,11.00 -38.50,11.00" fill="#899DA8" clip-path="url(#cg)"/>
 </svg>

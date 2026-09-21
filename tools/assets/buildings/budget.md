@@ -1,8 +1,8 @@
 # Contabilita' dei concept contro i due tetti (generata da build_fase3.py)
 
-Perimetro spedito (46 PNG, senza palma): 3480876 B decodificati, 3435092 B caricati (livello 0, ritaglio + 1 texel). Budget 4263156 B.
+Perimetro spedito (50 PNG, senza palma): 4267260 B decodificati, 4216152 B caricati (livello 0, ritaglio + 1 texel). Budget 4263156 B.
 
-## K1 mix: 72 PNG, 4603860 B decodificati (SOPRA il budget di -340704 B), 4545392 B caricati
+## K1 mix: 76 PNG, 5390244 B decodificati (SOPRA il budget di -1127088 B), 5326452 B caricati
 
 | PNG | px | decodificati B | caricati B |
 |---|---|---:|---:|
@@ -58,6 +58,10 @@ Perimetro spedito (46 PNG, senza palma): 3480876 B decodificati, 3435092 B caric
 | k2_r_padiglione_mg_q1 | 174x51 | 35496 | 33712 |
 | k2_r_padiglione_mw_q1 | 315x138 | 173880 | 172072 |
 | k2_r_padiglione_snow_fx_q1 | 312x72 | 89856 | 86800 |
+| k2_s_orologio_c_fx_q1 | 330x231 | 304920 | 303996 |
+| k2_s_orologio_c_mg_q1 | 294x51 | 59976 | 57232 |
+| k2_s_orologio_c_mw_q1 | 330x228 | 300960 | 300048 |
+| k2_s_orologio_c_snow_fx_q1 | 324x93 | 120528 | 119784 |
 | k2_t_bay_fx_q1 | 42x36 | 6048 | 5600 |
 | k2_t_bay_mg_q1 | 42x36 | 6048 | 5600 |
 | k2_t_gradini_1_fx_q1 | 210x342 | 287280 | 286440 |

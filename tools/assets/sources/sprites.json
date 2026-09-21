@@ -1538,13 +1538,13 @@
   {
    "name": "car_body_compact",
    "category": "vehicle",
-   "width": 279,
-   "height": 153,
+   "width": 282,
+   "height": 132,
    "contentBox": [
-    0,
-    0,
-    279,
-    153
+    3,
+    2,
+    280,
+    129
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
@@ -1559,18 +1559,18 @@
     "kind": "svg",
     "file": "car_body_compact.svg"
    },
-   "notes": "v4.19: nuova scocca A, la Compatta. Sostituisce car_body insieme a car_body_saloon e car_body_estate: l'auto civile ruota fra le tre in modo stabile per veicolo."
+   "notes": "v5.6F \u00abRitaglio\u00bb: one sheet of paper with the window holes cut out of it (evenodd), the wheel's shadow crescent baked into the mask, and no arches -- the discs are drawn in front of the paper. 44 units of canvas against v4.19's 51: the roof came down to -16 and the floor up to 26."
   },
   {
    "name": "car_body_estate",
    "category": "vehicle",
-   "width": 375,
-   "height": 156,
+   "width": 378,
+   "height": 132,
    "contentBox": [
-    0,
-    0,
-    375,
-    156
+    2,
+    1,
+    376,
+    130
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
@@ -1585,18 +1585,18 @@
     "kind": "svg",
     "file": "car_body_estate.svg"
    },
-   "notes": "v4.19: nuova scocca C, la Giardinetta, allungata a 124 unita' contro le 108 della berlina (+14,8%) su richiesta del maintainer, davanti e dietro."
+   "notes": "v5.6F \u00abRitaglio\u00bb: the same, on C's 124-unit plan; the third pane over the load bay is a hole in the paper like the other two."
   },
   {
    "name": "car_body_saloon",
    "category": "vehicle",
-   "width": 327,
-   "height": 150,
+   "width": 330,
+   "height": 132,
    "contentBox": [
-    0,
-    0,
-    327,
-    150
+    3,
+    2,
+    328,
+    130
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
@@ -1611,7 +1611,7 @@
     "kind": "svg",
     "file": "car_body_saloon.svg"
    },
-   "notes": "v4.19: nuova scocca B, la Berlina. E' anche la scocca fissa dell'auto della polizia."
+   "notes": "v5.6F \u00abRitaglio\u00bb: the same three-card construction as the compact, on B's 108-unit plan. Still the fixed shell of the police car."
   },
   {
    "name": "car_lamp_front",
@@ -1637,7 +1637,7 @@
     "kind": "svg",
     "file": "car_lamp_front.svg"
    },
-   "notes": "v4.19: lente anteriore ambra, CONDIVISA dalle tre scocche e dall'autopompa. Sostituisce car_lights_day, che era larga quanto tutta la vettura ed era quasi tutta trasparente."
+   "notes": "v4.19: amber front lens, SHARED by the three shells and the fire engine. Redrawn in v5.6F for \u00abRitaglio\u00bb: same 6x4-unit canvas, no housing seat behind it."
   },
   {
    "name": "car_lamp_front_lit",
@@ -1663,7 +1663,7 @@
     "kind": "svg",
     "file": "car_lamp_front_lit.svg"
    },
-   "notes": "v4.19: lente anteriore accesa, condivisa."
+   "notes": "v4.19: the same lens lit. Redrawn in v5.6F for \u00abRitaglio\u00bb."
   },
   {
    "name": "car_lamp_rear",
@@ -1689,7 +1689,7 @@
     "kind": "svg",
     "file": "car_lamp_rear.svg"
    },
-   "notes": "v4.19: lente posteriore rossa, condivisa."
+   "notes": "v4.19: red rear lens, SHARED by the three shells and the fire engine. Redrawn in v5.6F for \u00abRitaglio\u00bb."
   },
   {
    "name": "car_lamp_rear_lit",
@@ -1715,18 +1715,18 @@
     "kind": "svg",
     "file": "car_lamp_rear_lit.svg"
    },
-   "notes": "v4.19: lente posteriore accesa, condivisa."
+   "notes": "v4.19: the same lens lit. Redrawn in v5.6F for \u00abRitaglio\u00bb."
   },
   {
    "name": "car_window_compact",
    "category": "vehicle",
-   "width": 186,
-   "height": 75,
+   "width": 210,
+   "height": 81,
    "contentBox": [
-    0,
-    0,
-    186,
-    75
+    1,
+    1,
+    208,
+    80
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -1741,18 +1741,18 @@
     "kind": "svg",
     "file": "car_window_compact.svg"
    },
-   "notes": "v4.19: vetratura della Compatta."
+   "notes": "v5.6F \u00abRitaglio\u00bb: the glass is a sheet BEHIND the body paper, seen through the holes, with a shadow band along the top and front edge of each hole -- which is what says the glass is behind. Three panes; the canvas carries half a unit of margin, so its blit origin (-28,-13) is not the pane's own top (-12)."
   },
   {
    "name": "car_window_estate",
    "category": "vehicle",
-   "width": 243,
-   "height": 75,
+   "width": 267,
+   "height": 81,
    "contentBox": [
-    0,
-    0,
-    243,
-    75
+    1,
+    1,
+    266,
+    80
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -1767,18 +1767,18 @@
     "kind": "svg",
     "file": "car_window_estate.svg"
    },
-   "notes": "v4.19: le due luci della Giardinetta, abitacolo e terzo finestrino, in un solo sprite."
+   "notes": "v5.6F \u00abRitaglio\u00bb: three panes, the third over the load bay. Only the cabin pane is measured against the occupant criteria."
   },
   {
    "name": "car_window_saloon",
    "category": "vehicle",
-   "width": 177,
-   "height": 75,
+   "width": 183,
+   "height": 81,
    "contentBox": [
-    0,
-    0,
-    177,
-    75
+    1,
+    1,
+    181,
+    80
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -1793,7 +1793,7 @@
     "kind": "svg",
     "file": "car_window_saloon.svg"
    },
-   "notes": "v4.19: vetratura della Berlina."
+   "notes": "v5.6F \u00abRitaglio\u00bb: two panes with a 3.5-unit paper pillar between them, in place of the drawn seat back the cars carried until v5.5."
   },
   {
    "name": "cloud_body",
@@ -1902,14 +1902,9 @@
   {
    "name": "firetruck_body",
    "category": "vehicle",
-   "width": 297,
-   "height": 174,
-   "contentBox": [
-    0,
-    0,
-    297,
-    174
-   ],
+   "width": 300,
+   "height": 159,
+   "contentBox": [2, 1, 297, 157],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
    "usage": "referenced",
@@ -1923,7 +1918,7 @@
     "kind": "svg",
     "file": "firetruck_body.svg"
    },
-   "notes": "v4.19: ridisegnata nel linguaggio delle tre vetture (archi concentrici con l'unita' d'aria, stessi raccordi, fascia inferiore) e con un fanale rosso in coda che non aveva."
+   "notes": "v5.6F \u00abRitaglio\u00bb: red paper with the cab glass cut out of it, the cream band and the three doors as cards with their own shadow paper, and three discs in front. 104x60 units at origin (-51,-26)."
   },
   {
    "name": "firetruck_ladder",
@@ -1949,7 +1944,7 @@
     "kind": "svg",
     "file": "firetruck_ladder.svg"
    },
-   "notes": "v4.19: scala ridisegnata con gli stessi raccordi."
+   "notes": "v4.19: the ladder over the appliance's body. Redrawn in v5.6F for \u00abRitaglio\u00bb on the same 50x7-unit canvas."
   },
   {
    "name": "firework",
@@ -10529,7 +10524,7 @@
     "kind": "svg",
     "file": "police_lightbar.svg"
    },
-   "notes": ""
+   "notes": "v4.19: the bar on the police saloon's roof. Redrawn in v5.6F for \u00abRitaglio\u00bb on the same 20x6-unit canvas."
   },
   {
    "name": "police_stripe",
@@ -10539,8 +10534,8 @@
    "contentBox": [
     0,
     0,
-    120,
-    27
+    119,
+    26
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -10555,7 +10550,7 @@
     "kind": "svg",
     "file": "police_stripe.svg"
    },
-   "notes": "v4.19: 44 -> 40 unita'. La corsa di lamiera fra i due archi della compatta alla riga della banda e' 42 unita', quindi 44 sbordava di un'unita' per lato sul vuoto dell'arco. Misurato sull'artwork spedito."
+   "notes": "v4.19: 44 -> 40 units, because the run of shell between the compact's two arches at the band's own row is 42. v5.6F redraws it as a card with a chamfer and its own shadow paper; the arches it was measured against no longer exist, and the 40 is kept because it is the run of paper the band lies on."
   },
   {
    "name": "pumpkin_body",
@@ -10870,6 +10865,110 @@
    "notes": "Redrawn in v4.7 from the approved C2 FINAL mockup: the reindeer, the sleigh and the load are new artwork, Santa is the Mockup B figure unchanged. The near side panel is drawn after Santa and after the load and his near arm is drawn once more on top of it, which is what makes him read as sitting inside the tub. The content box shrank because the team's baselines are now aligned -- hooves and runner share a line -- so the group no longer touches the canvas edges. Frame two is santa_sleigh_trot; only the reindeer legs differ, and the two reindeer are in opposite phases within a frame."
   },
   {
+   "name": "school_fx",
+   "category": "building",
+   "width": 330,
+   "height": 231,
+   "contentBox": [
+    1,
+    0,
+    328,
+    230
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "school_mg",
+   "category": "building",
+   "width": 294,
+   "height": 51,
+   "contentBox": [
+    2,
+    2,
+    292,
+    49
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "school_mw",
+   "category": "building",
+   "width": 330,
+   "height": 228,
+   "contentBox": [
+    1,
+    0,
+    328,
+    228
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "TINTABLE",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "all",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
+   "name": "school_snow_fx",
+   "category": "building",
+   "width": 324,
+   "height": 93,
+   "contentBox": [
+    2,
+    0,
+    322,
+    93
+   ],
+   "scale": "SCENE_UNITS",
+   "tint": "FIXED_ART",
+   "usage": "referenced",
+   "anchorRule": "PART_LOCAL",
+   "anchor": [
+    0,
+    0
+   ],
+   "season": "winter",
+   "source": {
+    "kind": "none",
+    "reason": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one."
+   },
+   "notes": ""
+  },
+  {
    "name": "snow_pile",
    "category": "vegetation",
    "width": 108,
@@ -11059,8 +11158,8 @@
    "contentBox": [
     0,
     0,
-    120,
-    27
+    119,
+    26
    ],
    "scale": "SCENE_UNITS",
    "tint": "FIXED_ART",
@@ -11075,7 +11174,7 @@
     "kind": "svg",
     "file": "taxi_checker.svg"
    },
-   "notes": "v4.19: 44 -> 40 unita'. La corsa di lamiera fra i due archi della compatta alla riga della banda e' 42 unita', quindi 44 sbordava di un'unita' per lato sul vuoto dell'arco. Misurato sull'artwork spedito."
+   "notes": "v4.19: the chequer band, 40 units, the same width as the police stripe and for the same reason. Redrawn in v5.6F for \u00abRitaglio\u00bb."
   },
   {
    "name": "taxi_sign",
@@ -11101,7 +11200,7 @@
     "kind": "svg",
     "file": "taxi_sign.svg"
    },
-   "notes": ""
+   "notes": "v4.19: the sign on the taxi's roof. Redrawn in v5.6F for \u00abRitaglio\u00bb on the same 14x6-unit canvas."
   },
   {
    "name": "tower_bay_fx",

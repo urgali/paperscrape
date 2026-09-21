@@ -72,17 +72,69 @@ class SceneVariantResolutionTest {
                 SceneObjectRenderer.variantFor(
                     spec(
                         SceneObjectType.SKYSCRAPER,
-                        depth = SceneSpace.SHOP_VARIANT_DEPTH_SPLIT - 0.05f,
+                        depth = SceneSpace.RESTAURANT_MAX_DEPTH - 0.05f,
                         x = it / 40f,
                     ),
                 )
             }
             .toSet()
         assertEquals(setOf(SceneSpace.SceneVariant.RESTAURANT), farShop)
+        val middleShop = (0 until 40)
+            .map {
+                SceneObjectRenderer.variantFor(
+                    spec(
+                        SceneObjectType.SKYSCRAPER,
+                        depth = SceneSpace.SCHOOL_MAX_DEPTH - 0.05f,
+                        x = it / 40f,
+                    ),
+                )
+            }
+            .toSet()
+        assertEquals(setOf(SceneSpace.SceneVariant.SCHOOL), middleShop)
         val nearShop = (0 until 40)
             .map { SceneObjectRenderer.variantFor(spec(SceneObjectType.SKYSCRAPER, depth = 0.8f, x = it / 40f)) }
             .toSet()
         assertEquals(setOf(SceneSpace.SceneVariant.BAR), nearShop)
+    }
+
+    /**
+     * **The four places that read the shop-band thresholds give the same answer at every depth.**
+     *
+     * A new storefront touches six or seven files and none of the misses is a compile error -- a
+     * missing arm gives a building that is never drawn, or one drawn from another family's
+     * catalogue. Three of the four are reachable from here: which variant the renderer resolves,
+     * which catalogue the deal picks, and which band the layout pass keeps a shop in. (The fourth,
+     * `CustomThemeData.migrateDuplicateStorefronts`, is a private migration and is measured by
+     * `PrePassSixThemeMigrationTest`.)
+     *
+     * Walked at 1/1000 of a tile over the whole band rather than at a few sampled depths, because
+     * the failure this catches is a threshold in one file and a different one in another, and two
+     * numbers 0.01 apart agree everywhere except in the 0.01 between them.
+     */
+    @Test
+    fun `the variant, the catalogue and the layout band agree at every depth in the shop band`() {
+        val expected = mapOf(
+            SceneSpace.SceneVariant.RESTAURANT to SilhouetteDeal.RESTAURANTS,
+            SceneSpace.SceneVariant.SCHOOL to SilhouetteDeal.SCHOOLS,
+            SceneSpace.SceneVariant.BAR to SilhouetteDeal.BARS,
+            SceneSpace.SceneVariant.TOWER to SilhouetteDeal.TOWERS,
+        )
+        val seen = mutableSetOf<SceneSpace.SceneVariant>()
+        for (step in 0..1000) {
+            val depth = step / 1000f * SceneSpace.SHOP_BAND_MAX_DEPTH
+            val spec = spec(SceneObjectType.SKYSCRAPER, depth = depth, x = 0.5f)
+            val variant = SceneObjectRenderer.variantFor(spec)
+            seen += variant
+            assertEquals(
+                "at depth $depth the renderer draws a $variant and the deal offers another catalogue",
+                expected.getValue(variant),
+                SilhouetteDeal.catalogueFor(spec),
+            )
+        }
+        assertEquals(
+            "every storefront must be reachable somewhere in the band",
+            expected.keys, seen,
+        )
     }
 
     // --- The scale pipeline ---------------------------------------------------------------

@@ -41,6 +41,10 @@ PREFIXES: dict[str, str] = {
     "k2_r_padiglione": "restaurant_pavilion",
     "k2_b_insegna": "bar_signboard",
     "k2_b_smusso": "bar_chamfer",
+    # The sixth family (v5.6F). One figure, like the two shops: the concept round called it
+    # «S2 Orologio» with the maintainer's corrections applied (`_c`), and `school.py` keeps
+    # drawing under that name because the wobble seed is `name#index`.
+    "k2_s_orologio_c": "school",
     # Piece names (a piece is a stackable unit; its cards are the groups above). `k1_roof_turret_b`
     # is a piece whose two cards are the gable and the little tower, so it needs a name of its own
     # and longest-prefix matching keeps the three apart.

@@ -1,8 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 4 4">
 <!--
-  Lente posteriore accesa, di notte.
-  Condivisa dalle tre scocche: ogni scocca porta la propria sede
-  e questa lente ci atterra sopra al proprio origine dichiarato.
+v5.6B d1_ritaglio - lente car_lamp_rear_lit 4x4 u
 -->
-<rect x="0" y="0" width="4" height="4" rx="1.5" fill="#E8503C"/>
+<polygon points="0.00,1.00 1.00,0.00 3.00,0.00 4.00,1.00 4.00,3.00 3.00,4.00 1.00,4.00 0.00,3.00" fill="#E8503C"/>
 </svg>

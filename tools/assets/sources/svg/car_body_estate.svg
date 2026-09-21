@@ -1,32 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="375" height="156" viewBox="-66.5 -20.8 125 52">
+<svg xmlns="http://www.w3.org/2000/svg" width="378" height="132" viewBox="-63 -17 126 44">
 <!--
-  Concept C — la Giardinetta: due volumi lunghi, tetto piatto fino al portellone.
-
-  Allungata rispetto alla fase 1 su entrambi i lati come chiesto: il cofano
-  guadagna 8 unita' davanti (muso da -58 a -66) e la coda 8 dietro (da 50 a 58),
-  per 124 unita' contro le 108 della berlina — il 14,8% in piu'. Il terzo
-  finestrino e le barre sul tetto sono cio' che la dice giardinetta a colpo d'occhio.
-
-  Vocabolario condiviso v4.19: fondo scocca y=30, terra y=37,
-  ruota r=11 dentro arco concentrico r=12.5 (un'unita' d'aria),
-  vano vetro identico sulle tre vetture (cielo -16, davanzale 9).
-  Altezza governata: 57.8 unita'. Lunghezza: 124 unita'.
-  Coordinate locali di scena: il minimo del viewBox E' l'origine del blit.
-  Fronte a sinistra.
+v5.6F «Ritaglio» - estate. viewBox min = the blit origin; ground y=37; roof -16, floor 26; the panes are holes in this paper, y -12..13, with the glass sheet behind them.
 -->
-<g fill="#dcdcdc" stroke="#dcdcdc" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">
-  <path fill-rule="evenodd" d="M-66 30 L-66 9.4 Q-66 4 -60.6 3.4 L-44 0.2 Q-40.6 -0.4 -38.6 -2.2 L-28.4 -15 Q-26 -19 -21 -19 L46 -19 Q52.6 -19 54.2 -14.6 L57.4 1.6 Q58 3 58 5.4 L58 30 Z M-12 -20.3 L40 -20.3 L40 -19.4 L-12 -19.4 Z M-54.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M25.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z"/>
-</g>
-<path fill-rule="evenodd" d="M-66 30 L-66 9.4 Q-66 4 -60.6 3.4 L-44 0.2 Q-40.6 -0.4 -38.6 -2.2 L-28.4 -15 Q-26 -19 -21 -19 L46 -19 Q52.6 -19 54.2 -14.6 L57.4 1.6 Q58 3 58 5.4 L58 30 Z M-12 -20.3 L40 -20.3 L40 -19.4 L-12 -19.4 Z M-54.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M25.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z" fill="#ededed"/>
-<clipPath id="shell"><path clip-rule="evenodd" d="M-66 30 L-66 9.4 Q-66 4 -60.6 3.4 L-44 0.2 Q-40.6 -0.4 -38.6 -2.2 L-28.4 -15 Q-26 -19 -21 -19 L46 -19 Q52.6 -19 54.2 -14.6 L57.4 1.6 Q58 3 58 5.4 L58 30 Z M-12 -20.3 L40 -20.3 L40 -19.4 L-12 -19.4 Z M-54.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z M25.5 26 a12.5 12.5 0 1 0 25 0 a12.5 12.5 0 1 0 -25 0 Z"/></clipPath>
-<g clip-path="url(#shell)">
-<path d="M-66 23 L58 23 L58 30 L-66 30 Z" fill="#e6e6e6"/>
-<rect x="-64" y="9.6" width="120" height="1.4" rx="0.7" fill="#ffffff"/>
-<path d="M-2 11.6 L-3 28" stroke="#d8d8d8" stroke-width="1.1" fill="none"/>
-<path d="M20 11.6 L19 28" stroke="#d8d8d8" stroke-width="1.1" fill="none"/>
-<rect x="-11" y="12.4" width="4.4" height="1.5" rx="0.75" fill="#cbcbcb"/>
-<rect x="11" y="12.4" width="4.4" height="1.5" rx="0.75" fill="#cbcbcb"/>
-<rect x="-65.2" y="4.8" width="7.6" height="5.6" rx="2" fill="#cccccc"/>
-<rect x="51.8" y="3.4" width="5.6" height="5.6" rx="1.6" fill="#cccccc"/>
-</g>
+<clipPath id="shell"><path clip-rule="evenodd" d="M-59.40 25.76 L-61.64 24.42 L-62.11 11.99 L-60.89 9.41 L-60.81 7.93 L-58.51 7.00 L-36.64 6.76 L-34.84 6.65 L-33.94 6.87 L-33.20 3.62 L-26.47 -14.58 L-23.47 -16.57 L55.42 -16.28 L59.41 -14.81 L60.83 -12.15 L61.75 -10.12 L61.61 -9.38 L61.69 -7.51 L62.11 24.58 L60.43 26.34 Z M-29.20 13.00 L-30.00 13.00 L-30.00 13.00 L-29.78 12.23 L-23.22 -11.23 L-22.20 -12.00 L-0.30 -12.00 L0.50 -11.20 L0.50 12.20 L-0.30 13.00 Z M4.80 13.00 L4.00 12.20 L4.00 -11.20 L4.80 -12.00 L27.20 -12.00 L28.00 -11.20 L28.00 12.20 L27.20 13.00 Z M33.80 13.00 L33.00 12.20 L33.00 -11.20 L33.80 -12.00 L55.20 -12.00 L56.03 -11.20 L56.97 12.20 L56.20 13.00 Z"/></clipPath>
+<path fill-rule="evenodd" d="M-59.40 25.76 L-61.64 24.42 L-62.11 11.99 L-60.89 9.41 L-60.81 7.93 L-58.51 7.00 L-36.64 6.76 L-34.84 6.65 L-33.94 6.87 L-33.20 3.62 L-26.47 -14.58 L-23.47 -16.57 L55.42 -16.28 L59.41 -14.81 L60.83 -12.15 L61.75 -10.12 L61.61 -9.38 L61.69 -7.51 L62.11 24.58 L60.43 26.34 Z M-29.20 13.00 L-30.00 13.00 L-30.00 13.00 L-29.78 12.23 L-23.22 -11.23 L-22.20 -12.00 L-0.30 -12.00 L0.50 -11.20 L0.50 12.20 L-0.30 13.00 Z M4.80 13.00 L4.00 12.20 L4.00 -11.20 L4.80 -12.00 L27.20 -12.00 L28.00 -11.20 L28.00 12.20 L27.20 13.00 Z M33.80 13.00 L33.00 12.20 L33.00 -11.20 L33.80 -12.00 L55.20 -12.00 L56.03 -11.20 L56.97 12.20 L56.20 13.00 Z" fill="#FFFFFF"/>
+<polygon points="-28.00,27.50 -28.41,30.61 -29.61,33.50 -31.51,35.99 -34.00,37.89 -36.89,39.09 -40.00,39.50 -43.11,39.09 -46.00,37.89 -48.49,35.99 -50.39,33.50 -51.59,30.61 -52.00,27.50 -51.59,24.39 -50.39,21.50 -48.49,19.01 -46.00,17.11 -43.11,15.91 -40.00,15.50 -36.89,15.91 -34.00,17.11 -31.51,19.01 -29.61,21.50 -28.41,24.39" fill="#A8A8A8" clip-path="url(#shell)"/>
+<polygon points="-30.00,25.00 -30.41,28.11 -31.61,31.00 -33.51,33.49 -36.00,35.39 -38.89,36.59 -42.00,37.00 -45.11,36.59 -48.00,35.39 -50.49,33.49 -52.39,31.00 -53.59,28.11 -54.00,25.00 -53.59,21.89 -52.39,19.00 -50.49,16.51 -48.00,14.61 -45.11,13.41 -42.00,13.00 -38.89,13.41 -36.00,14.61 -33.51,16.51 -31.61,19.00 -30.41,21.89" fill="#FFFFFF" clip-path="url(#shell)"/>
+<polygon points="54.00,27.50 53.59,30.61 52.39,33.50 50.49,35.99 48.00,37.89 45.11,39.09 42.00,39.50 38.89,39.09 36.00,37.89 33.51,35.99 31.61,33.50 30.41,30.61 30.00,27.50 30.41,24.39 31.61,21.50 33.51,19.01 36.00,17.11 38.89,15.91 42.00,15.50 45.11,15.91 48.00,17.11 50.49,19.01 52.39,21.50 53.59,24.39" fill="#A8A8A8" clip-path="url(#shell)"/>
+<polygon points="52.00,25.00 51.59,28.11 50.39,31.00 48.49,33.49 46.00,35.39 43.11,36.59 40.00,37.00 36.89,36.59 34.00,35.39 31.51,33.49 29.61,31.00 28.41,28.11 28.00,25.00 28.41,21.89 29.61,19.00 31.51,16.51 34.00,14.61 36.89,13.41 40.00,13.00 43.11,13.41 46.00,14.61 48.49,16.51 50.39,19.00 51.59,21.89" fill="#FFFFFF" clip-path="url(#shell)"/>
 </svg>

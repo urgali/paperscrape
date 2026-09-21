@@ -1,10 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="243" height="75" viewBox="-30 -16 81 25">
+<svg xmlns="http://www.w3.org/2000/svg" width="267" height="81" viewBox="-31 -13 89 27">
 <!--
-  Concept C — le due luci della Giardinetta: l'abitacolo (due sedute) e il
-  terzo finestrino del vano di carico, separati da 6 unita' di montante in lamiera.
-  Rientrato 2 unita' dal profilo opaco della cabina;
-  cielo -16, davanzale 9, 25 unita' di altezza.
+v5.6F «Ritaglio» - estate glass. The sheet that lies BEHIND the body paper: each pane is grown half a unit past the hole it fills so no seam opens along the cut, and the shadow band along the top and front edge of each hole is what says the glass is behind.
 -->
-<path d="M-30 9 L-20 -16 L28 -16 L30 9 Z" fill="#B9D8E4"/>
-<path d="M36 9 L36 -16 L49 -16 L51 9 Z" fill="#B9D8E4"/>
+<clipPath id="p0"><polygon points="-29.70,13.50 -30.50,13.50 -30.50,13.50 -30.29,12.73 -23.71,-11.73 -22.70,-12.50 0.20,-12.50 1.00,-11.70 1.00,12.70 0.20,13.50"/></clipPath>
+<clipPath id="p1"><polygon points="4.30,13.50 3.50,12.70 3.50,-11.70 4.30,-12.50 27.70,-12.50 28.50,-11.70 28.50,12.70 27.70,13.50"/></clipPath>
+<clipPath id="p2"><polygon points="33.30,13.50 32.50,12.70 32.50,-11.70 33.30,-12.50 55.70,-12.50 56.53,-11.70 57.47,12.70 56.70,13.50"/></clipPath>
+<polygon points="-29.70,13.50 -30.50,13.50 -30.50,13.50 -30.29,12.73 -23.71,-11.73 -22.70,-12.50 0.20,-12.50 1.00,-11.70 1.00,12.70 0.20,13.50" fill="#B9D8E4"/>
+<polygon points="-35.00,-17.00 5.50,-17.00 5.50,-9.50 -35.00,-9.50" fill="#899DA8" clip-path="url(#p0)"/>
+<polygon points="-35.00,-17.00 -28.00,-17.00 -28.00,18.00 -35.00,18.00" fill="#899DA8" clip-path="url(#p0)"/>
+<polygon points="4.30,13.50 3.50,12.70 3.50,-11.70 4.30,-12.50 27.70,-12.50 28.50,-11.70 28.50,12.70 27.70,13.50" fill="#B9D8E4"/>
+<polygon points="-1.00,-17.00 33.00,-17.00 33.00,-9.50 -1.00,-9.50" fill="#899DA8" clip-path="url(#p1)"/>
+<polygon points="-1.00,-17.00 6.00,-17.00 6.00,18.00 -1.00,18.00" fill="#899DA8" clip-path="url(#p1)"/>
+<polygon points="33.30,13.50 32.50,12.70 32.50,-11.70 33.30,-12.50 55.70,-12.50 56.53,-11.70 57.47,12.70 56.70,13.50" fill="#B9D8E4"/>
+<polygon points="28.00,-17.00 61.97,-17.00 61.97,-9.50 28.00,-9.50" fill="#899DA8" clip-path="url(#p2)"/>
+<polygon points="28.00,-17.00 35.00,-17.00 35.00,18.00 28.00,18.00" fill="#899DA8" clip-path="url(#p2)"/>
 </svg>

@@ -33,13 +33,13 @@ list of rows saying so one at a time is the same evidence, at two hundred times 
 column of the table that would appear here is zero by definition. It is listed in
 `fidelity.json` if you need to see it.
 
-## Sprites with no recoverable source (313)
+## Sprites with no recoverable source (317)
 
 These ship today and cannot be regenerated from an SVG. The names are listed so the gap is
 a recorded state of the project rather than an omission from a report; the reason is
 written once per group, because it is the same reason.
 
-### `tools/assets/buildings/build_neighbourhood.py` -- 72 sprites
+### `tools/assets/buildings/build_neighbourhood.py` -- 76 sprites
 
 Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.
 
@@ -58,14 +58,14 @@ Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece 
 `house_small_roof_mansard_fx`, `house_small_roof_mansard_mg`, `house_small_roof_mansard_mw`,
 `house_small_roof_mansard_snow_fx`, `house_small_storey_fx`, `house_small_storey_mg`,
 `house_small_storey_mw`, `restaurant_pavilion_fx`, `restaurant_pavilion_mg`,
-`restaurant_pavilion_mw`, `restaurant_pavilion_snow_fx`, `tower_bay_fx`, `tower_bay_mg`,
-`tower_crown_dome_fx`, `tower_crown_dome_mw`, `tower_crown_dome_snow_fx`,
-`tower_crown_spire_fx`, `tower_crown_spire_mw`, `tower_crown_spire_snow_fx`,
-`tower_row_tier1_fx`, `tower_row_tier1_mg`, `tower_row_tier2_fx`, `tower_row_tier2_mg`,
-`tower_row_tier3_fx`, `tower_row_tier3_mg`, `tower_snow_left1_fx`, `tower_snow_left2_fx`,
-`tower_snow_right1_fx`, `tower_snow_right2_fx`, `tower_snow_top_fx`, `tower_tier1_fx`,
-`tower_tier1_mg`, `tower_tier1_mw`, `tower_tier2_fx`, `tower_tier2_mw`, `tower_tier3_fx`,
-`tower_tier3_mw`
+`restaurant_pavilion_mw`, `restaurant_pavilion_snow_fx`, `school_fx`, `school_mg`, `school_mw`,
+`school_snow_fx`, `tower_bay_fx`, `tower_bay_mg`, `tower_crown_dome_fx`, `tower_crown_dome_mw`,
+`tower_crown_dome_snow_fx`, `tower_crown_spire_fx`, `tower_crown_spire_mw`,
+`tower_crown_spire_snow_fx`, `tower_row_tier1_fx`, `tower_row_tier1_mg`, `tower_row_tier2_fx`,
+`tower_row_tier2_mg`, `tower_row_tier3_fx`, `tower_row_tier3_mg`, `tower_snow_left1_fx`,
+`tower_snow_left2_fx`, `tower_snow_right1_fx`, `tower_snow_right2_fx`, `tower_snow_top_fx`,
+`tower_tier1_fx`, `tower_tier1_mg`, `tower_tier1_mw`, `tower_tier2_fx`, `tower_tier2_mw`,
+`tower_tier3_fx`, `tower_tier3_mw`
 
 ### `tools/generate_people_layers.py` -- 241 sprites
 

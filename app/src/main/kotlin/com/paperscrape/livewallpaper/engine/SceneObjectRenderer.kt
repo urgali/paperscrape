@@ -281,15 +281,22 @@ class SceneObjectRenderer(
                     }
             // A tower belongs on the skyline and a shop front among the houses, so the choice is
             // made by depth rather than by a hash of the horizontal position — and since rc3 the
-            // restaurant/bar split is by depth too (see SceneSpace.SHOP_VARIANT_DEPTH_SPLIT): the
-            // old position hash made a shop's identity a function of where its jitter landed it,
+            // choice *among* shops is by depth too (see SceneSpace.RESTAURANT_MAX_DEPTH): the old
+            // position hash made a shop's identity a function of where its jitter landed it,
             // which is how rc2 delivered two identical trattorias in one screen. Depth never
             // changes after generation, so the identity survives the visibility pass's x moves.
+            //
+            // v5.6F: three thirds of the shop band instead of two halves. These four arms and the
+            // four in `SceneObject.singleShopPerVariant`, `SilhouetteDeal.catalogueFor` and
+            // `CustomThemeData.migrateDuplicateStorefronts` have to read the same thresholds --
+            // `SceneVariantResolutionTest` walks the band and checks all four agree.
             SceneObjectType.SKYSCRAPER ->
                 if (spec.depthFraction < SceneSpace.BUILDING_TOWER_MAX_DEPTH) {
                     SceneSpace.SceneVariant.TOWER
-                } else if (spec.depthFraction < SceneSpace.SHOP_VARIANT_DEPTH_SPLIT) {
+                } else if (spec.depthFraction < SceneSpace.RESTAURANT_MAX_DEPTH) {
                     SceneSpace.SceneVariant.RESTAURANT
+                } else if (spec.depthFraction < SceneSpace.SCHOOL_MAX_DEPTH) {
+                    SceneSpace.SceneVariant.SCHOOL
                 } else {
                     SceneSpace.SceneVariant.BAR
                 }
@@ -562,8 +569,8 @@ class SceneObjectRenderer(
         // room to grow (see `PIXELS_PER_METRE_AT_REFERENCE`).
 
         /** The blit origin of `car_window`, and therefore the top edge of the glass. */
-        /** Half of `firetruck_body`'s 98-unit canvas: the widest vehicle the road carries. */
-        const val FIRE_TRUCK_HALF_WIDTH_UNITS = 49.5f
+        /** Half of `firetruck_body`'s 100-unit canvas: the widest vehicle the road carries. */
+        const val FIRE_TRUCK_HALF_WIDTH_UNITS = 50f
 
         /**
          * Where a vehicle's wheels touch the road, in the local space [drawCar] establishes.
@@ -613,27 +620,32 @@ class SceneObjectRenderer(
         const val FIRE_TRUCK_INNER_WHEEL_X_UNITS = 9.325f
 
         /**
-         * The tyre, and the hub ring inside it.
+         * The tyre, and the hub inside it.
          *
          * The appliance's wheel is bigger than the saloon's, which is the other half of what stops
          * it reading as a large car; the ratio between hub and tyre is the same for both, because
          * that is the treatment and not the size. Whatever the radius, the centre sits exactly one
          * radius above [VEHICLE_GROUND_Y_UNITS], so a wheel of any size touches the same road.
-         */
-        const val CAR_WHEEL_RADIUS_UNITS = 11f
-        const val FIRE_TRUCK_WHEEL_RADIUS_UNITS = 10.5f
-        const val WHEEL_HUB_RATIO = 5.5f / 9f
-
-        /**
-         * The air between a tyre and the arch cut over it, and the one number that made v4.19's
-         * wheels stop reading as castors bolted under a slab.
          *
-         * Every shell punches its arches as a circle **concentric with the wheel** at
-         * [CAR_WHEEL_RADIUS_UNITS] + this, so the gap is the same all the way round instead of
-         * closing at the top the way a chord-and-arc arch does. The fire engine divides it by its
-         * own metre-per-unit so the *rendered* gap matches -- see `firetruck_body.svg`.
+         * **v5.6F: bigger, and a filled hub instead of a ring.** The reference photograph's wheel
+         * is a whole disc of card glued on top of the body, 0.40-0.43 of the body's height, with
+         * no hubcap and no ring -- and at the size a car is drawn on this road a ring is a stroke
+         * under a pixel wide. 12 units of tyre against the slab's 53 is 0.45; the hub is 0.34 of
+         * the tyre, 8.2 units across, which survives the reduction at 7.2 px in the near lane.
+         *
+         * **There are no wheel arches any more**, so there is no `WHEEL_ARCH_AIR_UNITS` beside
+         * these. A disc lies in front of the paper with 46 % of itself below the shell's floor;
+         * nothing is cut away over it, and the air a v4.19 arch kept concentric is air that no
+         * longer exists. `VehicleAndShopFrontTest` measured that air on the shipped PNGs and now
+         * measures the absence of the cut instead.
          */
-        const val WHEEL_ARCH_AIR_UNITS = 1f
+        const val CAR_WHEEL_RADIUS_UNITS = 12f
+        const val FIRE_TRUCK_WHEEL_RADIUS_UNITS = 11f
+        const val WHEEL_HUB_RATIO = 0.34f
+
+        /** The paper the discs are cut from: ink for the tyre, a light card for the hub. */
+        val WHEEL_TYRE_COLOUR = 0xFF2B2A33.toInt()
+        val WHEEL_HUB_COLOUR = 0xFFC9C3BA.toInt()
 
         /**
          * The livery band on the doors, for the police car and the taxi.
@@ -682,10 +694,10 @@ class SceneObjectRenderer(
          * all**, so its direction was readable only from the cab; now it says which way it is
          * going the way every car does.
          */
-        const val FIRE_TRUCK_LAMP_FRONT_X_UNITS = -47f
-        const val FIRE_TRUCK_LAMP_FRONT_Y_UNITS = -0.6f
-        const val FIRE_TRUCK_LAMP_REAR_X_UNITS = 43.8f
-        const val FIRE_TRUCK_LAMP_REAR_Y_UNITS = 3.8f
+        const val FIRE_TRUCK_LAMP_FRONT_X_UNITS = -49f
+        const val FIRE_TRUCK_LAMP_FRONT_Y_UNITS = 2f
+        const val FIRE_TRUCK_LAMP_REAR_X_UNITS = 45.5f
+        const val FIRE_TRUCK_LAMP_REAR_Y_UNITS = 4f
 
         /** What a lamp is when it is lit. Warm for a headlight, saturated for a beacon. */
         const val HEADLIGHT_LIT = 0xFFFFF0BE.toInt()
@@ -766,19 +778,36 @@ class SceneObjectRenderer(
          * whichever car they are riding in. Per-body glazing heights would have given three
          * occupant scales and three sets of criteria to re-derive.
          *
-         * 25 units, top -16 to sill 9, is what the height table asks for rather than what the
+         * 25 units, top -12 to sill 13, is what the height table asks for rather than what the
          * roof allowed. A table-sized bust is 44 canvas units at [CAR_OCCUPANT_SCALE] = 20.93
          * units of drawn content, so a 25-unit pane leaves **16.3% of air** above the crown --
          * inside the 10-25% band v4.18 established, where its own 23-unit pane would have left
          * 9% and needed the occupant shrunk to fit. The bodies were drawn around this number,
          * which is the whole difference from v4.18: there the pane was bent to fit the shell.
          */
-        const val CAR_GLASS_ORIGIN_Y_UNITS = -16f
-        const val CAR_GLASS_SPRITE_HEIGHT_UNITS = 25f
-        const val CAR_GLASS_HEIGHT_UNITS = CAR_GLASS_SPRITE_HEIGHT_UNITS
+        /**
+         * **v5.6F: the pane and the sprite are no longer the same rectangle.**
+         *
+         * «Ritaglio» puts the glass *behind* the body paper and cuts the panes out of it, so the
+         * glass sheet is grown half a unit past every edge of the hole -- otherwise a seam opens
+         * between two papers that are supposed to be layered -- and its canvas carries another
+         * half unit. The pane therefore runs -12..13 inside a sprite blitted at -13 and 27 units
+         * tall, and the three numbers below are what used to be one.
+         *
+         * **The pane is still 25 units, and that is the whole point of choosing these values.**
+         * The occupant scale, both seat positions and every head-fit criterion divide by
+         * [CAR_GLASS_HEIGHT_UNITS]; keeping it at 25 is what lets a redraw of the whole fleet
+         * leave the people in the cars exactly the size they were. What moved is where the bay
+         * sits on the body: four units down, because the slab's roof came up from -19/-20 to -16
+         * and its floor from 27/31 to 26.
+         */
+        const val CAR_GLASS_SPRITE_Y_UNITS = -13f
+        const val CAR_GLASS_SPRITE_HEIGHT_UNITS = 27f
+        const val CAR_GLASS_TOP_Y_UNITS = -12f
+        const val CAR_GLASS_HEIGHT_UNITS = 25f
 
         /** The window sill: the bottom edge of the drawn glass, and where a bust stands. */
-        const val CAR_SILL_Y_UNITS = CAR_GLASS_ORIGIN_Y_UNITS + CAR_GLASS_HEIGHT_UNITS
+        const val CAR_SILL_Y_UNITS = CAR_GLASS_TOP_Y_UNITS + CAR_GLASS_HEIGHT_UNITS
 
         /**
          * The head part of a window bust, in its own local units: hair crown down to the neck.
@@ -875,7 +904,7 @@ class SceneObjectRenderer(
         /**
          * One scale per vehicle family, each the same rule: the table head, seat-fitted, in the
          * vehicle's own units, over the artwork's head. Not a share of the pane: the pane was
-         * sized to fit the head (see [CAR_GLASS_ORIGIN_Y_UNITS]), not the head to fit the pane.
+         * sized to fit the head (see [CAR_GLASS_TOP_Y_UNITS]), not the head to fit the pane.
          */
         val CAR_OCCUPANT_SCALE: Float
             get() = OCCUPANT_SEATED_FIT * OCCUPANT_HEAD_METRES /
@@ -904,7 +933,7 @@ class SceneObjectRenderer(
          * sat **4.4 units** apart; at 21.5 with a 17-unit head they sit **4.5** apart. Nothing is
          * being squeezed that was not already this close for releases -- the head keeps the
          * proportion the artwork was approved at, the cabins keep their shape, and the pair keeps
-         * its own [CAR_SEAT_BACK_X_UNITS] centre because both seats move by the same amount.
+         * its own centre between the two panes, because both seats move by the same amount.
          *
          * ### Why the pitch was 23 and not 20
          *
@@ -953,31 +982,18 @@ class SceneObjectRenderer(
         const val CAR_PASSENGER_Y_UNITS = CAR_SILL_Y_UNITS
 
         /**
-         * The seat back between the two occupants — the element that says *two seats* rather
-         * than a bench.
+         * **The seat back is not drawn any more, and the pane is why.**
          *
-         * **Where it can live, and why nowhere else.** The pane is 54 units and two heads take
-         * 36.16 of it; what is left pays for 3% of clear glass between them and 13% of light to
-         * each pillar, with about a fifth of a unit to spare. There is no room for a mullion in
-         * the head gap — drawing one there would eat the very glass the gap criterion measures.
-         * Below the chin line the arithmetic is completely different: the busts narrow to about
-         * 13 units at the jaw, so the gap there is five units wide and nothing is measured in it
-         * (`theTwoHeadsAreSeparatedByClearGlass` stops at the chin, deliberately, because two
-         * people sitting one behind the other are *meant* to meet at the shoulders).
+         * Until v5.5 a car's glass was one hole and the light between the two heads was empty, so
+         * a 2.6-unit bar of upholstery was painted into it to say there was a seat there.
+         * «Ritaglio» cuts *two* holes with a 3.5-unit pillar of body paper between them, exactly
+         * where that bar stood -- x 0.5 to 4, against the bar's 1.7 to 4.3 -- so the mark is drawn
+         * out of the artwork instead of out of code, and the shoulders close over its lower half
+         * the way they always did.
          *
-         * So the seat back rises out of that gap: 2.6 units wide, from local y 5.4 — below where
-         * the head-gap scan stops (the chin sits at 4.72 with the sill at 9) — down to the sill.
-         * It is drawn **after the glass and before either bust**, so both occupants sit in front
-         * of it and it is visible only in the daylight between them, which is what a seat back
-         * seen through a side window looks like. Nothing occludes a person; the shoulders close
-         * over its lower half by themselves.
+         * Recorded here rather than removed silently, because the bar was four constants, a colour
+         * and two primitives, and because the light on either side of it is still measured.
          */
-        const val CAR_SEAT_BACK_X_UNITS = (CAR_HEAD_X_UNITS + CAR_PASSENGER_X_UNITS) / 2f
-        const val CAR_SEAT_BACK_HALF_WIDTH_UNITS = 1.3f
-        const val CAR_SEAT_BACK_TOP_Y_UNITS = 5.4f
-
-        /** Upholstery seen through glass: dark enough to read against the pane at lane scale. */
-        val CAR_SEAT_BACK_COLOUR = 0xFF5A6068.toInt()
 
         /**
          * The fire engine's cab glass, painted into `firetruck_body`: 19 units from -13 to the
@@ -1001,17 +1017,29 @@ class SceneObjectRenderer(
          * cars with hard corners and small wheels poking out from under a flat floor -- the
          * castor look the cars had just lost -- so two generations of drawing were side by side
          * on the largest, loudest vehicle in the scene. The redraw takes the same vocabulary:
-         * arches **concentric** with the tyre at [WHEEL_ARCH_AIR_UNITS] of air, the same corner
-         * radii and the same darker lower band, both lamp lenses shared with the cars, and a
-         * cab-over nose with an upright windscreen that has room for a table-sized head.
+         * arches concentric with the tyre at a unit of air, the same corner radii and the same
+         * darker lower band, both lamp lenses shared with the cars, and a cab-over nose with an
+         * upright windscreen that has room for a table-sized head. (The arches went with v5.6F;
+         * the rest of that vocabulary is what «Ritaglio» re-cut it in.)
          *
          * The canvas now reaches the ladder, so the body's own origin is the sprite's top-left
-         * at (-49.5, -31) and [SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL] is still 68 -- the
-         * vehicle did not change size, only drawing. The cab roof stays eight units below the
-         * body roof, which is the one line that says truck rather than scaled-up car.
+         * and [SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL] is still 68 -- the vehicle did not change
+         * size, only drawing. The cab roof stays eight units below the body roof, which is the one
+         * line that says truck rather than scaled-up car.
+         *
+         * **v5.6F redraws it in «Ritaglio»'s language, on a 100x53 canvas at (-50,-25).**
+         * The proposal round authored it at 104x60 on (-51,-26) and `paperscrape-assets normalize
+         * --apply` took the four transparent units off the right and the seven off the bottom and
+         * the one off each of the other two sides, which is 30 240 B of decoded memory and moved
+         * the origin by exactly the trim: **no drawn pixel changed coordinates**, measured on the
+         * ink before and after (x -49.33..49, y -24.67..27.33 both times).**
+         * Red paper with the cab window cut out of it and the glass sheet behind, the cream band
+         * and the three locker doors as cards with their own shadow paper, and three whole discs
+         * in front. The ladder, the two beacons and the cab sill do not move; the two lamp seats
+         * do, because the nose and the tail did.
          */
-        const val FIRE_TRUCK_BODY_X_UNITS = -49.5f
-        const val FIRE_TRUCK_BODY_Y_UNITS = -24.5f
+        const val FIRE_TRUCK_BODY_X_UNITS = -50f
+        const val FIRE_TRUCK_BODY_Y_UNITS = -25f
         const val FIRE_TRUCK_CAB_ROOF_Y_UNITS = -16f
         const val FIRE_TRUCK_LADDER_X_UNITS = -2f
         const val FIRE_TRUCK_LADDER_Y_UNITS = -31f
@@ -2353,6 +2381,8 @@ class SceneObjectRenderer(
                 drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.RESTAURANT)
             SceneSpace.SceneVariant.BAR ->
                 drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.BAR)
+            SceneSpace.SceneVariant.SCHOOL ->
+                drawNeighbourhoodBuilding(canvas, r, elapsed, dayBlend, SceneSpace.SceneVariant.SCHOOL)
             SceneSpace.SceneVariant.TREE -> drawTree(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.PALM_TREE -> drawPalmTree(canvas, r, elapsed, dayBlend)
             SceneSpace.SceneVariant.PARASOL -> drawParasol(canvas, r, elapsed, dayBlend)
@@ -2453,7 +2483,7 @@ class SceneObjectRenderer(
      * stacked, tinted from the category's own colour, with the behaviours hung on the coordinates
      * the pieces declare.
      *
-     * **One function for five families.** Until v5.0 the small house, the large house, the tower,
+     * **One function for six families.** Until v5.0 the small house, the large house, the tower,
      * the restaurant and the bar each had a function of their own, and each was one flat facade:
      * a wall, a roof, a trim, a door, and a window sticker at literal coordinates. Five functions
      * meant five places to remember that snow is a layer and not a tint, that a shop's glass
@@ -2665,7 +2695,7 @@ class SceneObjectRenderer(
         // 57 closed: `seasonIndexFor(INDOORS)` was always 0 -- the hat belongs to the street, not to
         // the room behind the pane -- so the winter column of this table named twelve recolours
         // nothing could ever select. [PeopleLayerTable.WINDOW] has one column.
-        val occupant = WindowOccupants.occupantAt(seed, buildingSeed, windowIndex)
+        val occupant = WindowOccupants.occupantAt(seed, buildingSeed, windowIndex, kind)
         val slots = PeopleLayerTable.WINDOW[occupant.kindIndex]
         // **A figure at a window does not cross anything**, so its colours are dealt from its own
         // address and stay put. That is what it did before v4.30 too; what changed is that the
@@ -3232,13 +3262,20 @@ class SceneObjectRenderer(
 
     /**
      * The fire truck's own body, in the same local space [drawCar] establishes for every vehicle:
-     * ground contact at y=37, wheel centres at (+/-38, 28).
+     * ground contact at y=37, wheel centres at (-34, 26), (9.325, 26) and (34, 26).
      *
      * It exists because the fire truck used to be `car_body` tinted red with a ladder blitted
      * over it, which gave it the same low-sedan outline as the taxi and the police car -- the
-     * one thing a fire engine must not have. `firetruck_body` is 300x162: a flat roof at y=-16
-     * against the sedan's -11, a cab with its own window, a body divided by a cream stripe over
-     * three equipment lockers, and a dark chassis bar that the wheels sit into.
+     * one thing a fire engine must not have. `firetruck_body` is **300x159 px = 100x53 units**: a
+     * flat roof at y=-24 with the cab's own at -16, a cab window cut out of the paper, a body
+     * divided by a cream band over three locker doors, and a dark chassis bar along the floor.
+     *
+     * **Those two lines were both wrong before v5.6F, and they are the reason this paragraph
+     * names numbers at all.** They read "wheel centres at (+/-38, 28)" against constants of 34
+     * and a radius that put the centre at 26.5, and "`firetruck_body` is 300x162" against a PNG
+     * that had been 297x174 since v4.19. A comment that describes artwork has to be re-read when
+     * the artwork is redrawn, and neither of these was; the v5.6B proposal round found them by
+     * measuring.
      *
      * The ladder is drawn **first**, so the body's roof line paints over its lower rail and the
      * ladder reads as carried on the roof rather than hovering above it. Its own origin was the
@@ -3443,26 +3480,7 @@ class SceneObjectRenderer(
             // One of the three v4.19 bodies, with its glass. Both come from [shell], so a car
             // cannot end up wearing one body's shell and another's glazing.
             drawTintedSprite(canvas, shell.bodyRes, shell.bodyXUnits, shell.bodyYUnits, bodyColor)
-            drawSprite(canvas, shell.glassRes, shell.glassXUnits, CAR_GLASS_ORIGIN_Y_UNITS)
-
-            // The seat back between the two occupants, drawn on the glass and under both of
-            // them. See [CAR_SEAT_BACK_X_UNITS] for why it starts below the chin line.
-            if (c.spec.type.seatsTwo) {
-                fillPaint.color = CAR_SEAT_BACK_COLOUR
-                // A rect with a disc for its crown: `SceneCanvas` carries no round-rect, and the
-                // two primitives it does carry are what every other rounded shape here is built
-                // from.
-                canvas.drawCircle(
-                    CAR_SEAT_BACK_X_UNITS, CAR_SEAT_BACK_TOP_Y_UNITS + CAR_SEAT_BACK_HALF_WIDTH_UNITS,
-                    CAR_SEAT_BACK_HALF_WIDTH_UNITS, fillPaint,
-                )
-                canvas.drawRect(
-                    CAR_SEAT_BACK_X_UNITS - CAR_SEAT_BACK_HALF_WIDTH_UNITS,
-                    CAR_SEAT_BACK_TOP_Y_UNITS + CAR_SEAT_BACK_HALF_WIDTH_UNITS,
-                    CAR_SEAT_BACK_X_UNITS + CAR_SEAT_BACK_HALF_WIDTH_UNITS,
-                    CAR_SILL_Y_UNITS, fillPaint,
-                )
-            }
+            drawSprite(canvas, shell.glassRes, shell.glassSpriteXUnits, CAR_GLASS_SPRITE_Y_UNITS)
 
             when (c.spec.type) {
                 CarType.POLICE -> {
@@ -3600,11 +3618,12 @@ class SceneObjectRenderer(
             )
         }
 
-        // Wheels: dark tire with a lighter gray hub ring -- a plain 2-tone treatment with no
-        // separate hubcap disc, which is all the paper-cutout look wants. The treatment is shared
-        // by every vehicle in the fleet; where the wheels stand is not, because each body has its
-        // own wheelbase and cuts its own arches around them. The estate's are asymmetric (-42 and
-        // +38), which is what a long load bay behind a short rear overhang looks like.
+        // Wheels: a disc of ink with a smaller disc of light card on it, drawn **after** the
+        // body and its occupants, because in «Ritaglio» the wheel is a whole circle glued on top
+        // of the paper rather than a tyre showing through an arch. The treatment is shared by
+        // every vehicle in the fleet; where the wheels stand is not, because each body carries its
+        // own wheelbase. The estate's are asymmetric (-42 and +40), which is what a long load bay
+        // behind a short rear overhang looks like.
         val wheelFrontX = if (isFireTruck) -FIRE_TRUCK_WHEEL_X_UNITS else shell.wheelFrontXUnits
         val wheelRearX = if (isFireTruck) FIRE_TRUCK_WHEEL_X_UNITS else shell.wheelRearXUnits
         val wheelRadius = if (isFireTruck) FIRE_TRUCK_WHEEL_RADIUS_UNITS else CAR_WHEEL_RADIUS_UNITS
@@ -3612,21 +3631,26 @@ class SceneObjectRenderer(
         val hubRadius = wheelRadius * WHEEL_HUB_RATIO
         if (isFireTruck) {
             // The rear pair's inner wheel, under the outer one. See FIRE_TRUCK_INNER_WHEEL_X_UNITS.
-            fillPaint.color = 0xFF2B2B2B.toInt()
-            canvas.drawCircle(FIRE_TRUCK_INNER_WHEEL_X_UNITS, wheelY, wheelRadius, fillPaint)
-            strokePaint.strokeWidth = 3f
-            strokePaint.color = 0xFF8A8A8A.toInt()
-            canvas.drawCircle(FIRE_TRUCK_INNER_WHEEL_X_UNITS, wheelY, hubRadius, strokePaint)
+            drawWheel(canvas, FIRE_TRUCK_INNER_WHEEL_X_UNITS, wheelY, wheelRadius, hubRadius)
         }
-        fillPaint.color = 0xFF2B2B2B.toInt()
-        canvas.drawCircle(wheelFrontX, wheelY, wheelRadius, fillPaint)
-        canvas.drawCircle(wheelRearX, wheelY, wheelRadius, fillPaint)
-        strokePaint.strokeWidth = 3f
-        strokePaint.color = 0xFF8A8A8A.toInt()
-        canvas.drawCircle(wheelFrontX, wheelY, hubRadius, strokePaint)
-        canvas.drawCircle(wheelRearX, wheelY, hubRadius, strokePaint)
-        strokePaint.strokeWidth = 2.5f
+        drawWheel(canvas, wheelFrontX, wheelY, wheelRadius, hubRadius)
+        drawWheel(canvas, wheelRearX, wheelY, wheelRadius, hubRadius)
 
         canvas.restore()
+    }
+
+    /**
+     * One wheel: a disc of ink with a smaller disc of light card centred on it.
+     *
+     * Two fills and no stroke since v5.6F. The hub was a 3-unit ring, and a ring is the one shape
+     * this scale cannot carry -- at 0.88 px per unit in the near lane its stroke resolved to a
+     * single grey pixel on each side of a dark disc and read as noise. A filled hub at 0.34 of the
+     * tyre is 7.2 px across there, which is the size the two lamp lenses are.
+     */
+    private fun drawWheel(canvas: SceneCanvas, cx: Float, cy: Float, radius: Float, hubRadius: Float) {
+        fillPaint.color = WHEEL_TYRE_COLOUR
+        canvas.drawCircle(cx, cy, radius, fillPaint)
+        fillPaint.color = WHEEL_HUB_COLOUR
+        canvas.drawCircle(cx, cy, hubRadius, fillPaint)
     }
 }

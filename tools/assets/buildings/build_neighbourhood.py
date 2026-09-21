@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """v5.0 -- the neighbourhood, drawn and declared.
 
-The five building families (small house, large house, tower, restaurant, bar) are no longer one
-flat facade each. The two houses are a STACK of pieces (ground floor, storeys, roof) chosen per
+The six building families (small house, large house, tower, restaurant, bar, school) are no longer
+one flat facade each. The two houses are a STACK of pieces (ground floor, storeys, roof) chosen per
 instance; the tower, the restaurant and the bar are one cut-out figure each. This script draws
 every piece, writes the PNGs into `res/drawable-nodpi`, writes the table the engine composes from,
 and writes the registry entries that describe them -- the four outputs that have to agree, from
@@ -34,6 +34,31 @@ import vocab
 from names import production
 
 WHITE = "#FFFFFF"
+
+#: Notes that belong on a family's row in the generated table and cannot live in the generated
+#: file, because the next run would delete them. v5.4's item-113 paragraph was written by hand
+#: into `NeighbourhoodTable.kt` and was therefore one regeneration away from being lost with the
+#: correction it explains -- `core.UNITS_TALL` still carried the pre-v5.4 96 and 90.146 when v5.6F
+#: re-ran this script.
+FAMILY_NOTES = {
+    "RESTAURANT": (
+        "        // **v5.4, item 113: 56 and 73, not 96 and 90.146.** Both families inherited the height of\n"
+        "        // the two-storey facade the v5.0 redraw replaced, and `unitsTall` is the third of the\n"
+        "        // three numbers that said so -- see [SceneSpace.SceneVariant.RESTAURANT]. The pavilion\n"
+        "        // draws 56 piece units and the corner bar 53 or 73, measured off their own parts by\n"
+        "        // `BuildingHeightDeclarationTest`. Each family's `unitsTall` moved by exactly the factor\n"
+        "        // its variant's `metresTall` did, so `metresTall / unitsTall` -- the only quantity the\n"
+        "        // blit scale depends on -- is unchanged and no piece of either building is drawn at a\n"
+        "        // different size.\n"
+    ),
+    "SCHOOL": (
+        "        // **v5.6F: the sixth family.** One figure with one deal, drawn 74 piece units above the\n"
+        "        // ground line against the 72 it declares -- the two are the turret cornice and the grid\n"
+        "        // margin, and `BuildingHeightDeclarationTest` measures the ratio rather than trusting\n"
+        "        // this sentence. Its `WindowBuildingKind` is its own: a school is street-level glass\n"
+        "        // like the two shops, and it is the only one of the three that shows children.\n"
+    ),
+}
 # ---- the derivations, all of them functions of the wall (report v5.0 SS3) -------------------
 vocab.BASE_DARK = W(0.74, DARK)    # ground-floor band: the wall 26 % towards the ink
 vocab.BASE_LIGHT = W(0.62, WHITE)  # the tower's hall: the wall 38 % towards white
@@ -44,17 +69,17 @@ vocab.DOOR = W(0.40, DARK)         # door: 60 % towards the ink
 vocab.CHIMNEY = W(0.60, DARK)      # chimney, box: 40 % towards the ink
 vocab.SIDE = None
 vocab.TOP = None
-import k1_scatola, k2_profilo   # noqa: E402  (they import the constants already substituted)
+import k1_scatola, k2_profilo, school   # noqa: E402  (they import the constants already substituted)
 k2_profilo.W_TIER2 = W(0.90, WHITE)
 
 HERE = Path(__file__).resolve().parent
 TABLE_KT = core.REPO / "app/src/main/kotlin/com/paperscrape/livewallpaper/engine/NeighbourhoodTable.kt"
 REGISTRY = core.TOOL_ROOT / "sources/sprites.json"
 
-#: The 34 PNGs the redraw replaces: every shipped sprite of the five families. The palm is not one
+#: The 34 PNGs the redraw replaces: every shipped sprite of the six families. The palm is not one
 #: of them (item 25 keeps it as shipped) and neither is anything a house shares with the rest of
 #: the scene, which is why this is a prefix list and not `startswith("house")`.
-RETIRED_PREFIXES = ("house_", "skyscraper_", "restaurant_", "bar_")
+RETIRED_PREFIXES = ("house_", "skyscraper_", "restaurant_", "bar_", "school_")
 
 #: Why a registry entry for one of these has no SVG. The people's layers (v4.30) set the shape of
 #: this: a sprite written by a generator from its own drawing code has no source file to re-render
@@ -90,6 +115,10 @@ def families(house_roofs_small=("gable", "mansard"),
         "TOWER": Building("TOWER", [Slot([k2_profilo.tower_body()]), Slot([crown[c]() for c in crowns])], 35.0, [0.0], 0.0),
         "RESTAURANT": Building("RESTAURANT", [Slot([k2_profilo.r_padiglione()])], 50.0, [0.0], 0.0),
         "BAR": Building("BAR", [Slot([bars[b]() for b in bar_figures])], 33.0, [0.0], 0.0),
+        # v5.6F. One figure and one deal, like the restaurant: `SilhouetteDeal` enumerates a
+        # catalogue of exactly one for it, which is what keeps `indexFor` off the rotation it
+        # would otherwise take on a family with no alternatives to rotate through.
+        "SCHOOL": Building("SCHOOL", [Slot([school.school()])], 40.0, [0.0], 0.0),
     }
 
 
@@ -122,6 +151,7 @@ def kotlin_table(table: dict, pieces: dict) -> str:
             f"                BuildingSlot(listOf({', '.join(production(o).upper() for o in s['options'])}), {s['rmin']}, {s['rmax']})"
             for s in t["slots"])
         rows.append(
+            (FAMILY_NOTES.get(family, "")) +
             f"        SceneSpace.SceneVariant.{family} to BuildingFamily(\n"
             f"            {t['unitsTall']}f, {t['shadowHalf']}f, WindowBuildingKind.{t['kind']},\n"
             f"            listOf(\n{slots},\n            ),\n"
@@ -133,7 +163,7 @@ def kotlin_table(table: dict, pieces: dict) -> str:
 import com.paperscrape.livewallpaper.R
 
 /**
- * What each of the five building families is made of. **Generated** by
+ * What each of the six building families is made of. **Generated** by
  * `tools/assets/buildings/build_neighbourhood.py`; edit that script, not this file.
  *
  * A family is a list of SLOTS, bottom-up. A slot holds the alternative PIECES the composer may

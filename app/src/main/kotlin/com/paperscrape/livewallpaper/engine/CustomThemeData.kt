@@ -659,9 +659,18 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
  *
  * The same rule and the same arithmetic as [SceneObjectCatalog.singleShopPerVariant], applied to a
  * stored layout instead of a generated one: of the shop-band candidates
- * (`depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH`), the depth-middle one of each half-band
- * either side of [SceneSpace.SHOP_VARIANT_DEPTH_SPLIT] stays a shop, and every other one keeps its
+ * (`depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH`), the depth-middle one of each of the
+ * three bands (see [SceneSpace.RESTAURANT_MAX_DEPTH]) stays a shop, and every other one keeps its
  * slot, its x and its size and takes a tower depth interleaved across the tower band.
+ *
+ * **v5.6F added the third band here too, and this file is not one of the six places the pass
+ * brief listed.** It is a seventh, and it is the one a compiler cannot find: the two halves were
+ * written out as two `filter` calls rather than read from a table, so adding a storefront leaves
+ * this migration keeping one shop per *half*-band -- which, on a payload that carries two
+ * candidates in the same new third, is two identical schools in one frame, the exact defect this
+ * function exists to remove. No layout this app has ever generated can produce that (a generated
+ * shop stands at 0.444 or 0.711, which are in different thirds), so it is a hole rather than a
+ * bug; it is closed because "the same rule and the same arithmetic" above is a claim, not a hope.
  *
  * Only `depthFraction` moves, and only for the surplus. A shop's depth *is* what makes it a shop
  * (see [SceneSpace.BUILDING_TOWER_MAX_DEPTH]), so this changes what a building is drawn as and
@@ -682,9 +691,12 @@ private fun migrateDuplicateStorefronts(objects: JSONArray?) {
     fun depthOf(i: Int) = objects.getJSONObject(i).optFinite("depthFraction", 0f)
     fun middleByDepth(indices: List<Int>): Int? =
         indices.sortedBy { depthOf(it) }.let { if (it.isEmpty()) null else it[it.size / 2] }
+    fun inBand(from: Float, to: Float): Int? =
+        middleByDepth(shopIndices.filter { depthOf(it) >= from && depthOf(it) < to })
     val kept = setOfNotNull(
-        middleByDepth(shopIndices.filter { depthOf(it) < SceneSpace.SHOP_VARIANT_DEPTH_SPLIT }),
-        middleByDepth(shopIndices.filter { depthOf(it) >= SceneSpace.SHOP_VARIANT_DEPTH_SPLIT }),
+        inBand(SceneSpace.BUILDING_TOWER_MAX_DEPTH, SceneSpace.RESTAURANT_MAX_DEPTH),
+        inBand(SceneSpace.RESTAURANT_MAX_DEPTH, SceneSpace.SCHOOL_MAX_DEPTH),
+        inBand(SceneSpace.SCHOOL_MAX_DEPTH, Float.POSITIVE_INFINITY),
     )
     val demoted = shopIndices.filterNot { it in kept }
     if (demoted.isEmpty()) return

@@ -38,7 +38,7 @@ SHEET_LABEL_HEIGHT = 16
 #: cannot be imported from inside this package without a `sys.path` edit at call time.
 #: `tests/test_budget.py` asserts the two selections agree on the real tree, so the duplicate
 #: is a checked one rather than a remembered one.
-BUDGET_PERIMETER_PREFIXES = ("house", "skyscraper", "restaurant", "bar")
+BUDGET_PERIMETER_PREFIXES = ("house", "skyscraper", "restaurant", "bar", "school")
 BUDGET_PERIMETER_EXCLUDES = "_q"
 
 #: `Perimetro spedito (46 PNG, senza palma): 3480876 B decodificati, 3435092 B caricati ...`

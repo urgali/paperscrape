@@ -206,6 +206,14 @@ class SpriteDrawScaleTest {
             "restaurant_pavilion_fx", "restaurant_pavilion_mg", "restaurant_pavilion_mw",
             "restaurant_pavilion_snow_fx",
         )
+        // v5.6F. `tower_row_tier3_*` is drawn by the school too and is declared once, under the
+        // tower: the two families are within 0.02 % of the same px-per-unit, because both are the
+        // common metre times 45 (the tower 3.8437, the school 3.8438), so which of the two owns
+        // the declaration cannot change the level it resolves to.
+        neighbourhood(
+            "school", SceneSpace.SceneVariant.SCHOOL,
+            "school_fx", "school_mg", "school_mw", "school_snow_fx",
+        )
         neighbourhood(
             "bar", SceneSpace.SceneVariant.BAR,
             "bar_chamfer_fx", "bar_chamfer_mg", "bar_chamfer_mw", "bar_chamfer_snow_fx",
@@ -856,8 +864,45 @@ class SpriteDrawScaleTest {
      * never three: the live one, or Halloween's, or the winter palette's. The resident atlas cost
      * of the crowns in any one scene is one 159x121 tile, and the 69 004 above is the upper bound
      * this limit is defined to take.
+     *
+     * ### v5.6F raises it to 17 MiB for the school, and 18 was measured and refused
+     *
+     * The set uploads **16 981 636 B**, and 17 MiB is the next figure above it, leaving
+     * **844 156 B** (v5.1 left 921 704). It rose by **703 524 B**: the school's four PNGs upload
+     * 781 060 and the sixteen redrawn vehicles give back 77 536. The school is charged nearly its
+     * whole canvas here because a facade is ink to its edges -- 781 060 of 786 384 -- while the
+     * vehicles give back three times what they give back on the decoded ceiling, because a body
+     * cut lower is a body with less transparent corner to crop.
+     *
+     * **18 MiB is not needed, and that is a measurement rather than an opinion.** The richer
+     * school `S2_C2`, with bay windows on the upper floor too, uploads 17 064 208 B -- inside
+     * 17 MiB with 761 584 B to spare. There is no artwork on this pass's table that 17 does not
+     * hold, so the second MiB was not asked for.
+     *
+     * *What was looked for first.* The sign, which is where a shop's texels usually go: it costs
+     * **zero** here as well, because the plaque is drawn inside canvases the turret already fills
+     * and the upper rows reuse `tower_row_tier3`, a stamp already in the set. Nothing was traded
+     * for the 703 524; what was traded is on the other ceiling, and it is written there.
+     *
+     * *And the reason the number this protects is not the number that binds.* **Nothing in the
+     * shipped app reads this constant** -- it is a build gate, like
+     * `SpriteGeometryTest.decodedByteBudget`, and the six occurrences of the two figures in
+     * production code are all in comments. The device's real limit is the one atlas page this
+     * budget is *modelled on* and is not the same as: 2048x2048 RGBA, 16 MiB, allocated once. A
+     * twelve-theme walk in one process measured **583 of its 2048 rows occupied, with zero sprites
+     * falling out to a texture of their own**, and the school takes it to **585** -- two rows, and
+     * 1 463 still free, which is about 11.4 MiB. On the device, sixty seconds of live wallpaper
+     * with the school in frame measured GL mtrack at 39 721 and 40 046 KB against 39 717 and
+     * 39 717 without it, which is inside the 330 KB the same state varies by between its own two
+     * runs; 30.06-30.07 fps and zero dropped frames. So this ceiling moving is an upper bound
+     * moving, and the page underneath it is a quarter full. `misura_v5_6d/MISURA_V5_6D.md` carries
+     * the census, the frame times and the pressure test.
+     *
+     * *And the decision, which is the maintainer's.* Both ceilings were put in front of them with
+     * these numbers and the device measurement beside them, and both were moved by one MiB. The
+     * pass did not move either on its own authority, and the school does not fit under 16.
      */
-    private val uploadedTexelBudget = 16L * 1024L * 1024L
+    private val uploadedTexelBudget = 17L * 1024L * 1024L
 
     @Test
     fun `the shipped sprite set stays inside the texture memory it uploads`() {

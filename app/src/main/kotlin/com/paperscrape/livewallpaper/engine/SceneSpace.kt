@@ -542,6 +542,24 @@ object SceneSpace {
          */
         BAR(6.23544f, 74.50136f),
 
+        /**
+         * The school: a turret with a clock, four bay windows and a pencil on a plaque.
+         *
+         * **72 units = 6.15 m at the common metre**, the same 0.085417 m per piece unit every
+         * other family is drawn at -- which is the whole reason a child at one of its windows is
+         * the size of a child anywhere else.
+         *
+         * It **draws 74** and declares 72: the two units are the turret cornice, which tops out at
+         * -73.5 and is rounded to the sprite grid at -74. Every other family varies around its
+         * declaration too (the tower by 5-15 %, the large house by up to 45 %), and this is the
+         * smallest variation in the set at 2.8 %. `BuildingHeightDeclarationTest` measures it off
+         * the blits rather than reading this paragraph.
+         *
+         * Between the restaurant's 4.78 m and the bar's 6.24 m, which is where its depth band puts
+         * it: see [RESTAURANT_MAX_DEPTH].
+         */
+        SCHOOL(6.15f, 72f),
+
         /** Pole to canopy rim. Raised in v76.7: at 2.3 m it had shrunk out of the composition. */
         PARASOL(2.9f, 84f),
 
@@ -615,20 +633,57 @@ object SceneSpace {
     const val BUILDING_TOWER_MAX_DEPTH = 0.30f
 
     /**
-     * Within the shop band ([BUILDING_TOWER_MAX_DEPTH]..0.80), the depth below which a shop is
-     * the restaurant and above which it is the bar.
+     * The far edge of the shop band: past this, a building candidate is not generated at all.
      *
-     * Which of the two a shop becomes used to be a hash of its horizontal position — sanctioned
+     * Written here rather than only in `SceneObjectCatalog`'s `0.0f..0.80f` because the two
+     * thresholds below are derived from it, and a band whose end is a literal in one file and a
+     * divisor in another is a band that can be widened in one place only.
+     */
+    const val SHOP_BAND_MAX_DEPTH = 0.80f
+
+    /**
+     * **The shop band is divided in three equal parts, one per storefront: restaurant, school,
+     * bar, in that order from far to near.**
+     *
+     * Which shop a candidate becomes used to be a hash of its horizontal position — sanctioned
      * at the time as "interchangeable at any depth", which is true of the *artwork* but made the
      * shop's identity a function of the hundredth-of-a-tile its jitter (or the visibility pass)
      * happened to land it on: nothing stopped every shop in a scene from hashing to the same
      * storefront, and the rc2 frames delivered exactly that — two identical trattorias in one
      * screen. Depth is the property that already decides what a building *is* (tower vs shop,
      * [BUILDING_TOWER_MAX_DEPTH]), it never changes after generation, and the catalogue keeps at
-     * most one shop per half-band ([SceneObjectCatalog] `singleShopPerVariant`), so it also
-     * decides *which* shop — stably, whatever the visibility pass does to x.
+     * most one shop per band ([SceneObjectCatalog] `singleShopPerVariant`), so it also decides
+     * *which* shop — stably, whatever the visibility pass does to x.
+     *
+     * ### Why three equal thirds, and not the 0.55 this replaces (v5.6F)
+     *
+     * A third shop needs a third band, and the two splits had to be chosen rather than inherited.
+     * Three properties settled it, in this order:
+     *
+     *  - **Every band must hold candidates on every theme, or a theme silently loses a shop.**
+     *    A building candidate's depth carries no jitter: `SceneObjectCatalog` lays the ten of them
+     *    on `i / 9 * 0.80`, so the six in the shop band stand at 0.356, 0.444, 0.533, 0.622, 0.711
+     *    and 0.800 on all twelve themes and on every custom one. Equal thirds put **exactly two in
+     *    each**, and both splits land in a gap between two candidate depths rather than near one.
+     *    Any division that left a band with one candidate would make that shop's presence depend
+     *    on the density slider not dropping it.
+     *  - **Far to near should read as small to large**, which is the same argument
+     *    [BUILDING_TOWER_MAX_DEPTH] makes for putting towers behind the village. The three shops
+     *    are 4.78 m, 6.15 m and 6.24 m tall in that order, so restaurant-school-bar is the order
+     *    the perspective already implies.
+     *  - **The restaurant must not move**, and it does not: the middle candidate of the first
+     *    third is 0.444, which is where the restaurant has stood since rc3. The bar does move, from
+     *    0.711 to 0.800, and there is no arrangement in which it does not — three shops have to
+     *    occupy three of the six slots, and the school takes one the bar used to be able to reach.
+     *    That move is the reason `ShopFrontVisibilityTest` re-measures and the goldens re-authored.
      */
-    const val SHOP_VARIANT_DEPTH_SPLIT = 0.55f
+    private const val SHOP_BAND_THIRD = (SHOP_BAND_MAX_DEPTH - BUILDING_TOWER_MAX_DEPTH) / 3f
+
+    /** Below this a shop is the restaurant: the first third of the band. */
+    const val RESTAURANT_MAX_DEPTH = BUILDING_TOWER_MAX_DEPTH + SHOP_BAND_THIRD
+
+    /** Below this, and above [RESTAURANT_MAX_DEPTH], a shop is the school. Above it, the bar. */
+    const val SCHOOL_MAX_DEPTH = BUILDING_TOWER_MAX_DEPTH + 2f * SHOP_BAND_THIRD
 
     /**
      * The vehicles, kept out of [SceneVariant] because they are placed by lane rather than by

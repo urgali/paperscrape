@@ -1,14 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="120" height="27" viewBox="0 0 40 9">
 <!--
-  v4.19: shortened from 44 units to 40.
-
-  The band is blitted on whichever body wears the livery, and the compact (which is what a taxi
-  is now) has its wheels closer together than the saloon: at the band's own row the run of shell
-  between its two arch cuts is 42 units, so a 44-unit band hung a unit over each hole with nothing
-  behind it but road. Measured on the shipped artwork rather than guessed, and 40 clears both
-  bodies (the saloon's run is 54) with a unit of margin at each end.
+v5.6B d1_ritaglio - police_stripe
 -->
-  
-<rect x="0" y="0" width="40" height="9" fill="#2B4A73"></rect>
-        <rect x="0" y="3.5" width="40" height="2" fill="#FBF4E6"></rect>
+<polygon points="1.50,2.50 2.50,1.50 38.50,1.50 39.50,2.50 39.50,7.50 38.50,8.50 2.50,8.50 1.50,7.50" fill="#2B3F5D"/>
+<polygon points="0.00,1.00 1.00,0.00 37.00,0.00 38.00,1.00 38.00,6.00 37.00,7.00 1.00,7.00 0.00,6.00" fill="#2B4A73"/>
+<polygon points="0.00,2.70 38.00,2.70 38.00,4.30 0.00,4.30" fill="#FBF4E6"/>
 </svg>

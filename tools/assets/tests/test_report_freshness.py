@@ -36,6 +36,7 @@ Run from `tools/assets/`:
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sys
 import tempfile
@@ -198,11 +199,19 @@ class StaleBudgetTest(unittest.TestCase):
         self.assertNotIn("shipped_perimeter.decoded", "\n".join(problems))
 
     def test_a_markdown_left_behind_when_the_json_was_refreshed_is_named(self):
-        """The two files are written together; they come apart when one is edited by hand."""
+        """The two files are written together; they come apart when one is edited by hand.
+
+        The figure it corrupts is read out of the committed report rather than typed here: it
+        was `3480876` until v5.6F added the school to the perimeter, and a literal in a fixture
+        is a second copy of a number that has to be kept in step by hand -- which is the class of
+        defect this whole module exists to catch.
+        """
         def patch(scratch: Path) -> None:
             path = scratch / "budget.md"
             text = path.read_text()
-            path.write_text(text.replace("3480876 B decodificati", "9999999 B decodificati", 1))
+            decoded = re.search(r"Perimetro spedito \(\d+ PNG[^)]*\): (\d+) B decodificati", text)
+            assert decoded is not None, "the perimeter line has to be there to be corrupted"
+            path.write_text(text.replace(f"{decoded.group(1)} B decodificati", "9999999 B decodificati", 1))
 
         problems = self._with_patched_budget(patch)
         self.assertEqual(1, len(problems), problems)

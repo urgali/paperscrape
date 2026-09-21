@@ -729,8 +729,8 @@ object ThemePreviewScenes {
         return listOf(
             PreviewSprite(shell.bodyRes, shell.bodyXUnits, oy, c),
             PreviewSprite(
-                shell.glassRes, shell.glassXUnits,
-                oy + (SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS - shell.bodyYUnits),
+                shell.glassRes, shell.glassSpriteXUnits,
+                oy + (SceneObjectRenderer.CAR_GLASS_SPRITE_Y_UNITS - shell.bodyYUnits),
             ),
         )
     }

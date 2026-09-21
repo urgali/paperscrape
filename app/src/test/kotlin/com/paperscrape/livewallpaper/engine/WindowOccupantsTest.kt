@@ -28,6 +28,14 @@ class WindowOccupantsTest {
         const val WINDOWS = 8
     }
 
+    /**
+     * Everyone the sweep finds at a window of a building of this [kind].
+     *
+     * **v5.6F hands the kind to `occupantAt` as well as to `isOccupied`.** It did not before, and
+     * it did not matter before -- the kind reached presence only. Now that a school shows children
+     * it decides identity too, and a sampler that dropped the argument would have made every claim
+     * below a claim about a house.
+     */
     private fun occupants(kind: WindowBuildingKind, windowsPerBuilding: Int, buildings: Int = 60) =
         buildList {
             for (seed in seeds(40)) {
@@ -35,7 +43,7 @@ class WindowOccupantsTest {
                     val buildingSeed = b * 100_003
                     for (w in 0 until windowsPerBuilding) {
                         if (WindowOccupants.isOccupied(seed, buildingSeed, w, windowsPerBuilding, kind)) {
-                            add(WindowOccupants.occupantAt(seed, buildingSeed, w))
+                            add(WindowOccupants.occupantAt(seed, buildingSeed, w, kind))
                         }
                     }
                 }
@@ -46,10 +54,11 @@ class WindowOccupantsTest {
 
     /** Every supported building kind must actually produce occupants. */
     @Test
-    fun `houses, commercial buildings and skyscrapers all get occupants`() {
+    fun `houses, commercial buildings, skyscrapers and schools all get occupants`() {
         assertTrue(occupants(WindowBuildingKind.HOUSE, 4).isNotEmpty())
         assertTrue(occupants(WindowBuildingKind.COMMERCIAL, 3).isNotEmpty())
         assertTrue(occupants(WindowBuildingKind.SKYSCRAPER, 16).isNotEmpty())
+        assertTrue(occupants(WindowBuildingKind.SCHOOL, 4).isNotEmpty())
     }
 
     /**
@@ -91,17 +100,42 @@ class WindowOccupantsTest {
 
     // -------------------------------------------------------------- variety
 
-    /** The reported defect: the faces must not all be the same person. */
+    /**
+     * The reported defect: the faces must not all be the same person.
+     *
+     * **The school is excluded, and it is the only exclusion.** It is excluded because it is the
+     * one kind whose whole purpose is to *not* show all four -- a school shows children -- and the
+     * two halves it does show are asserted directly below, balanced against each other. An
+     * exclusion with nothing in its place would be the shape of a rule quietly dropped.
+     */
     @Test
     fun `all four kinds of person appear at windows of every building kind`() {
-        for (kind in WindowBuildingKind.entries) {
+        for (kind in WindowBuildingKind.entries - WindowBuildingKind.SCHOOL) {
             val windows = if (kind == WindowBuildingKind.SKYSCRAPER) 16 else 4
             val seen = occupants(kind, windows).map { it.age to it.sex }.toSet()
             assertEquals("$kind produced only $seen", 4, seen.size)
         }
     }
 
-    /** No kind of person may dominate: each of the four should be near a quarter of the total. */
+    /** A school shows a boy and a girl, and shows them in roughly equal numbers. */
+    @Test
+    fun `a school shows both kinds of child and neither dominates`() {
+        val all = occupants(WindowBuildingKind.SCHOOL, 4, buildings = 200)
+        assertTrue("too few samples: ${all.size}", all.size > 400)
+        val counts = all.groupingBy { it.kindIndex }.eachCount()
+        assertEquals("a school must show the boy and the girl and nobody else", setOf(2, 3), counts.keys)
+        for ((kindIndex, n) in counts) {
+            assertEquals("kind $kindIndex share", 0.5f, n.toFloat() / all.size, 0.06f)
+        }
+    }
+
+    /**
+     * No kind of person may dominate: each of the four should be near a quarter of the total.
+     *
+     * Sampled over houses, which is where it has always been sampled and which the school's age
+     * gate does not touch -- see `a school shows both kinds of child and neither dominates` for
+     * the school's own half of this.
+     */
     @Test
     fun `the four kinds of person appear in roughly equal numbers`() {
         val all = occupants(WindowBuildingKind.HOUSE, 4, buildings = 200)
@@ -145,20 +179,121 @@ class WindowOccupantsTest {
     // --------------------------------------------------------- independence
 
     /**
-     * Who is at a window must not depend on what sort of building it is.
+     * Who is at a window depends on the building only through the school's age gate.
      *
-     * Same address, three building kinds: the occupant is the same person, because
-     * [WindowOccupants.occupantAt] never sees the kind. Only *whether* anybody is there varies.
+     * **This method used to be a tautology and is the reason to read the rest of this comment.**
+     * It read `assertEquals(occupantAt(seed, b, w), occupantAt(seed, b, w))` under the heading
+     * "the occupant does not depend on the building kind" -- which is true of any pure function of
+     * two arguments and says nothing about the third, because there was no third. It guarded the
+     * claim it was named for only as long as the signature made that claim unbreakable, and v5.6F
+     * is where the signature changed.
+     *
+     * So it compares the three kinds that must agree **with each other and with the pre-v5.6
+     * signature**, at the same address, and then says exactly what the school changes: the age,
+     * and nothing else. A house, a shop, a bar and a tower are bitwise what they were.
      */
     @Test
-    fun `the occupant does not depend on the building kind`() {
+    fun `the occupant depends on the kind only through the school's age gate`() {
         for (seed in seeds(50)) {
             for (w in 0 until 8) {
-                val occupant = WindowOccupants.occupantAt(seed, 7 * 100_003, w)
-                // The value is a function of address alone -- no kind is passed at all.
-                assertEquals(occupant, WindowOccupants.occupantAt(seed, 7 * 100_003, w))
+                val b = 7 * 100_003
+                val legacy = WindowOccupants.occupantAt(seed, b, w)
+                for (kind in listOf(
+                    WindowBuildingKind.HOUSE,
+                    WindowBuildingKind.COMMERCIAL,
+                    WindowBuildingKind.SKYSCRAPER,
+                )) {
+                    assertEquals(
+                        "$kind must be the person the address alone gives, as it was before v5.6",
+                        legacy, WindowOccupants.occupantAt(seed, b, w, kind),
+                    )
+                }
+                val pupil = WindowOccupants.occupantAt(seed, b, w, WindowBuildingKind.SCHOOL)
+                assertEquals("a school changes the age", PersonAge.CHILD, pupil.age)
+                assertEquals("and not the sex", legacy.sex, pupil.sex)
+                assertEquals("and not the skin", legacy.skinIndex, pupil.skinIndex)
             }
         }
+    }
+
+    /**
+     * **A school never shows an adult**, over four hundred seeds and forty buildings.
+     *
+     * The rule the maintainer asked for, stated as the thing that can fail: swept rather than
+     * spot-checked, because the age is a coin at every other kind of window and a single sample
+     * would pass half the time on a broken gate.
+     */
+    @Test
+    fun `a school never shows an adult`() {
+        var sampled = 0
+        for (seed in seeds(400)) {
+            for (b in 0 until 40) {
+                for (w in 0 until 8) {
+                    val who = WindowOccupants.occupantAt(seed, b * 100_003, w, WindowBuildingKind.SCHOOL)
+                    assertEquals(
+                        "an adult is at a school window: seed $seed, building $b, window $w",
+                        PersonAge.CHILD, who.age,
+                    )
+                    sampled++
+                }
+            }
+        }
+        assertEquals("the sweep must actually have run", 400 * 40 * 8, sampled)
+    }
+
+    /**
+     * **The restaurant and the bar are untouched**, and this is what says so rather than a golden.
+     *
+     * The goldens move anyway in v5.6F -- a third shop band changes which building stands at which
+     * depth in every scene -- so "the shops did not change" cannot be read off a frame this
+     * release. It is read off the two things that decide a commercial occupant: the rate, and the
+     * person.
+     */
+    @Test
+    fun `the restaurant and the bar are exactly what they were`() {
+        assertEquals(
+            "the commercial rate is the one the two shops have had since v4.1",
+            0.40f, WindowOccupants.rateFor(WindowBuildingKind.COMMERCIAL), 0.0001f,
+        )
+        for (seed in seeds(200)) {
+            for (b in 0 until 20) {
+                for (w in 0 until 6) {
+                    val buildingSeed = b * 100_003
+                    assertEquals(
+                        "a commercial occupant moved",
+                        WindowOccupants.occupantAt(seed, buildingSeed, w),
+                        WindowOccupants.occupantAt(seed, buildingSeed, w, WindowBuildingKind.COMMERCIAL),
+                    )
+                    assertEquals(
+                        "a commercial window changed hands",
+                        WindowOccupants.isOccupied(seed, buildingSeed, w, 6, WindowBuildingKind.COMMERCIAL),
+                        WindowOccupants.isOccupied(seed, buildingSeed, w, 6, WindowBuildingKind.COMMERCIAL, 1f),
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * The school's rate, and the count it deals over four panes.
+     *
+     * 0.60 rather than the commercial 0.40, and the reason is arithmetic the maintainer was shown
+     * before choosing it: `windowCount * rate` over **four** panes is 1.6 at the commercial rate,
+     * and measured across the shipped themes that dealt one child in 13 of 24 samples and never
+     * more than two. At 0.60 it is 2.4, which deals two or three -- measured on all twelve shipped
+     * themes at the school's own position: two on six of them and three on the other six, and
+     * never fewer.
+     */
+    @Test
+    fun `a school of four windows shows two or three children`() {
+        assertEquals("the school's rate", 0.60f, WindowOccupants.rateFor(WindowBuildingKind.SCHOOL), 0.0001f)
+        val counts = mutableSetOf<Int>()
+        for (seed in seeds(200)) {
+            for (b in 0 until 40) {
+                counts += WindowOccupants.occupantCount(seed, b * 100_003, 4, WindowBuildingKind.SCHOOL)
+            }
+        }
+        assertEquals("four panes at 0.60 deal two or three occupants", setOf(2, 3), counts)
     }
 
     /** Window position must not bias who stands there: no "men on the ground floor" effect. */

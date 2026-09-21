@@ -39,24 +39,32 @@ class PrePassSixThemeMigrationTest {
 
     // ------------------------------------------------------------------ storefronts
 
-    /** Two restaurants and two bars on one tile: the shape a pre-pass-six save can hold. */
+    /**
+     * Two of each storefront on one tile: the shape a pre-pass-six save can hold.
+     *
+     * **v5.6F: six shops and three survivors, not four and two.** The shop band is three bands
+     * now ([SceneSpace.RESTAURANT_MAX_DEPTH]), and the migration's own doc promises "the same rule
+     * and the same arithmetic as `SceneObjectCatalog.singleShopPerVariant`" -- so this asserts one
+     * per band rather than one per half, which is what makes that promise checkable.
+     */
     @Test
     fun `a pre-pass-six theme keeps one shop per variant and the surplus becomes towers`() {
         val stored = prePassSix(
             entry(
-                shops = listOf(0.36f, 0.44f, 0.62f, 0.78f),
+                shops = listOf(0.36f, 0.44f, 0.50f, 0.58f, 0.70f, 0.78f),
                 cars = listOf(CarType.PLAIN, CarType.PLAIN),
             ),
         )
         val shops = shopDepths(load(stored))
 
-        assertEquals("one shop per variant half-band, and no more", 2, shops.size)
+        assertEquals("one shop per variant band, and no more", 3, shops.size)
         assertEquals(
-            "one below the variant split and one above it",
-            listOf(1, 1),
+            "one in each third of the shop band",
+            listOf(1, 1, 1),
             listOf(
-                shops.count { it < SceneSpace.SHOP_VARIANT_DEPTH_SPLIT },
-                shops.count { it >= SceneSpace.SHOP_VARIANT_DEPTH_SPLIT },
+                shops.count { it < SceneSpace.RESTAURANT_MAX_DEPTH },
+                shops.count { it >= SceneSpace.RESTAURANT_MAX_DEPTH && it < SceneSpace.SCHOOL_MAX_DEPTH },
+                shops.count { it >= SceneSpace.SCHOOL_MAX_DEPTH },
             ),
         )
     }
@@ -64,7 +72,7 @@ class PrePassSixThemeMigrationTest {
     /** The surplus is moved, not deleted: the theme still has every building it had. */
     @Test
     fun `the demoted shops keep their place in the scene and only change depth`() {
-        val before = entry(shops = listOf(0.36f, 0.44f, 0.62f, 0.78f), cars = listOf(CarType.PLAIN))
+        val before = entry(shops = listOf(0.36f, 0.44f, 0.50f, 0.62f, 0.70f, 0.78f), cars = listOf(CarType.PLAIN))
         val after = load(prePassSix(before))
 
         val originals = before.layout.staticObjects
@@ -78,7 +86,7 @@ class PrePassSixThemeMigrationTest {
         val demoted = migrated.filter {
             it.type == SceneObjectType.SKYSCRAPER && it.depthFraction < SceneSpace.BUILDING_TOWER_MAX_DEPTH
         }
-        assertEquals("two of the four commercial buildings should have become towers", 2, demoted.size)
+        assertEquals("three of the six commercial buildings should have become towers", 3, demoted.size)
     }
 
     /** A theme that was already correct is not touched. */

@@ -287,6 +287,10 @@
     "restaurant_pavilion_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "restaurant_pavilion_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "restaurant_pavilion_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "school_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "school_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "school_mw": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
+    "school_snow_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "tower_bay_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "tower_bay_mg": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
     "tower_crown_dome_fx": "Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.",
@@ -489,15 +493,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        279,
-        153
+        3,
+        2,
+        280,
+        129
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.05493767461852572,
       "candidate_size": [
-        279,
-        153
+        282,
+        132
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -506,18 +510,18 @@
       "mean_alpha_diff": 0.0,
       "name": "car_body_compact",
       "reference_bbox": [
-        0,
-        0,
-        279,
-        153
+        3,
+        2,
+        280,
+        129
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.05493767461852572,
       "reference_size": [
-        279,
-        153
+        282,
+        132
       ],
       "size_match": true,
-      "total_pixels": 42687,
+      "total_pixels": 37224,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -530,15 +534,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        375,
-        156
+        2,
+        1,
+        376,
+        130
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.033068783068783025,
       "candidate_size": [
-        375,
-        156
+        378,
+        132
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -547,18 +551,18 @@
       "mean_alpha_diff": 0.0,
       "name": "car_body_estate",
       "reference_bbox": [
-        0,
-        0,
-        375,
-        156
+        2,
+        1,
+        376,
+        130
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.033068783068783025,
       "reference_size": [
-        375,
-        156
+        378,
+        132
       ],
       "size_match": true,
-      "total_pixels": 58500,
+      "total_pixels": 49896,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -571,15 +575,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        327,
-        150
+        3,
+        2,
+        328,
+        130
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.044995408631772316,
       "candidate_size": [
-        327,
-        150
+        330,
+        132
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -588,18 +592,18 @@
       "mean_alpha_diff": 0.0,
       "name": "car_body_saloon",
       "reference_bbox": [
-        0,
-        0,
-        327,
-        150
+        3,
+        2,
+        328,
+        130
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.044995408631772316,
       "reference_size": [
-        327,
-        150
+        330,
+        132
       ],
       "size_match": true,
-      "total_pixels": 49050,
+      "total_pixels": 43560,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -776,15 +780,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        186,
-        75
+        1,
+        1,
+        208,
+        80
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.03862433862433867,
       "candidate_size": [
-        186,
-        75
+        210,
+        81
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -793,18 +797,18 @@
       "mean_alpha_diff": 0.0,
       "name": "car_window_compact",
       "reference_bbox": [
-        0,
-        0,
-        186,
-        75
+        1,
+        1,
+        208,
+        80
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.03862433862433867,
       "reference_size": [
-        186,
-        75
+        210,
+        81
       ],
       "size_match": true,
-      "total_pixels": 13950,
+      "total_pixels": 17010,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -817,15 +821,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        243,
-        75
+        1,
+        1,
+        266,
+        80
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.031997040736116866,
       "candidate_size": [
-        243,
-        75
+        267,
+        81
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -834,18 +838,18 @@
       "mean_alpha_diff": 0.0,
       "name": "car_window_estate",
       "reference_bbox": [
-        0,
-        0,
-        243,
-        75
+        1,
+        1,
+        266,
+        80
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.031997040736116866,
       "reference_size": [
-        243,
-        75
+        267,
+        81
       ],
       "size_match": true,
-      "total_pixels": 18225,
+      "total_pixels": 21627,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -858,15 +862,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
-        177,
-        75
+        1,
+        1,
+        181,
+        80
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.040680024286581684,
       "candidate_size": [
-        177,
-        75
+        183,
+        81
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -875,18 +879,18 @@
       "mean_alpha_diff": 0.0,
       "name": "car_window_saloon",
       "reference_bbox": [
-        0,
-        0,
-        177,
-        75
+        1,
+        1,
+        181,
+        80
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.040680024286581684,
       "reference_size": [
-        177,
-        75
+        183,
+        81
       ],
       "size_match": true,
-      "total_pixels": 13275,
+      "total_pixels": 14823,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -1063,15 +1067,15 @@
       ],
       "boundary_confined": true,
       "candidate_bbox": [
-        0,
-        0,
+        2,
+        1,
         297,
-        174
+        157
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.035220125786163514,
       "candidate_size": [
-        297,
-        174
+        300,
+        159
       ],
       "differing_pixels": 0,
       "interior_alpha_mismatch": 0,
@@ -1080,18 +1084,18 @@
       "mean_alpha_diff": 0.0,
       "name": "firetruck_body",
       "reference_bbox": [
-        0,
-        0,
+        2,
+        1,
         297,
-        174
+        157
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.035220125786163514,
       "reference_size": [
-        297,
-        174
+        300,
+        159
       ],
       "size_match": true,
-      "total_pixels": 51678,
+      "total_pixels": 47700,
       "verdict": "PIXEL_IDENTICAL"
     },
     {
@@ -3402,10 +3406,10 @@
       "candidate_bbox": [
         0,
         0,
-        120,
-        27
+        119,
+        26
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.04506172839506173,
       "candidate_size": [
         120,
         27
@@ -3419,10 +3423,10 @@
       "reference_bbox": [
         0,
         0,
-        120,
-        27
+        119,
+        26
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.04506172839506173,
       "reference_size": [
         120,
         27
@@ -4058,10 +4062,10 @@
       "candidate_bbox": [
         0,
         0,
-        120,
-        27
+        119,
+        26
       ],
-      "candidate_padding_fraction": 0.0,
+      "candidate_padding_fraction": 0.04506172839506173,
       "candidate_size": [
         120,
         27
@@ -4075,10 +4079,10 @@
       "reference_bbox": [
         0,
         0,
-        120,
-        27
+        119,
+        26
       ],
-      "reference_padding_fraction": 0.0,
+      "reference_padding_fraction": 0.04506172839506173,
       "reference_size": [
         120,
         27

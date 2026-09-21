@@ -3,7 +3,7 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.R
 
 /**
- * What each of the five building families is made of. **Generated** by
+ * What each of the six building families is made of. **Generated** by
  * `tools/assets/buildings/build_neighbourhood.py`; edit that script, not this file.
  *
  * A family is a list of SLOTS, bottom-up. A slot holds the alternative PIECES the composer may
@@ -302,6 +302,25 @@ internal object NeighbourhoodTable {
         0.00f, 0.00f, 0.00f, 0.00f,
     )
 
+    private val SCHOOL = BuildingPiece(
+        72.00f,
+        listOf(
+        BuildingPart(R.drawable.school_fx, -54.00f, -74.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.school_mw, -54.00f, -74.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.school_mg, -49.00f, -25.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier3_fx, -48.00f, -45.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier3_mg, -48.00f, -45.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier3_fx, 18.00f, -45.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier3_mg, 18.00f, -45.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.school_snow_fx, -54.00f, -76.00f, PartRole.SNOW),
+        BuildingPart(0, 0.00f, -28.00f, PartRole.LAMP),
+        ),
+        listOf(BuildingWindow(-48.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(-30.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(17.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(35.00f, -24.00f, 13.00f, 15.00f)),
+        listOf(BuildingWindow(-47.00f, -37.00f, 28.00f, 0f), BuildingWindow(19.00f, -37.00f, 28.00f, 0f), BuildingWindow(-48.00f, -7.50f, 13.00f, 0f), BuildingWindow(-30.00f, -7.50f, 13.00f, 0f), BuildingWindow(17.00f, -7.50f, 13.00f, 0f), BuildingWindow(35.00f, -7.50f, 13.00f, 0f)),
+        0.00f, 0.00f, 0.00f, 0.00f,
+    )
+
     val FAMILIES: Map<SceneSpace.SceneVariant, BuildingFamily> = mapOf(
         SceneSpace.SceneVariant.HOUSE_SMALL to BuildingFamily(
             67.434f, 30.0f, WindowBuildingKind.HOUSE,
@@ -344,6 +363,17 @@ internal object NeighbourhoodTable {
             73.0f, 33.0f, WindowBuildingKind.COMMERCIAL,
             listOf(
                 BuildingSlot(listOf(BAR_SIGNBOARD, BAR_CHAMFER), 1, 1),
+            ),
+        ),
+        // **v5.6F: the sixth family.** One figure with one deal, drawn 74 piece units above the
+        // ground line against the 72 it declares -- the two are the turret cornice and the grid
+        // margin, and `BuildingHeightDeclarationTest` measures the ratio rather than trusting
+        // this sentence. Its `WindowBuildingKind` is its own: a school is street-level glass
+        // like the two shops, and it is the only one of the three that shows children.
+        SceneSpace.SceneVariant.SCHOOL to BuildingFamily(
+            72.0f, 40.0f, WindowBuildingKind.SCHOOL,
+            listOf(
+                BuildingSlot(listOf(SCHOOL), 1, 1),
             ),
         ),
     )

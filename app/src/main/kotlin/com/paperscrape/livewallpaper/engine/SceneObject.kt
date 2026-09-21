@@ -617,13 +617,21 @@ object SceneObjectCatalog {
      * Keeps one commercial candidate per storefront and turns the rest into skyline towers.
      *
      * Of the shop-band candidates (depth >= [SceneSpace.BUILDING_TOWER_MAX_DEPTH]), the
-     * depth-middle one of each variant half-band (see [SceneSpace.SHOP_VARIANT_DEPTH_SPLIT])
-     * stays a shop -- the middle, because the half-band's extremes are the smallest and largest
-     * the street offers and the shop should read as an ordinary building of its row. Every other
-     * shop-band candidate keeps its slot, its x, its size roll and its category (so the density
-     * slider and the colour config govern exactly the same ten candidates as before) and moves
-     * to a tower depth, interleaved across the tower band between the four generated tower
-     * depths rather than stacked on them.
+     * depth-middle one of each variant band (see [SceneSpace.RESTAURANT_MAX_DEPTH]) stays a shop
+     * -- the middle, because the band's extremes are the smallest and largest the street offers
+     * and the shop should read as an ordinary building of its row. Every other shop-band candidate
+     * keeps its slot, its x, its size roll and its category (so the density slider and the colour
+     * config govern exactly the same ten candidates as before) and moves to a tower depth,
+     * interleaved across the tower band between the four generated tower depths rather than
+     * stacked on them.
+     *
+     * **This pass is what decides whether a storefront is drawn at all, which is why v5.6F's third
+     * band had to be added here before anywhere else.** A variant with no band of its own is never
+     * kept: the school would be demoted to a tower on every theme, and a census of the scene would
+     * come back *identical* to the one before it was added -- which reads as "the school costs
+     * nothing" and means "the school is not there". That is measured, not hypothetical: the v5.6D
+     * measurement round's first atlas census came back byte-identical to the baseline for exactly
+     * this reason.
      */
     private fun singleShopPerVariant(candidates: List<StaticSceneObject>): List<StaticSceneObject> {
         val shopIndices = candidates.indices.filter {
@@ -631,9 +639,13 @@ object SceneObjectCatalog {
         }
         fun middleByDepth(indices: List<Int>): Int? =
             indices.sortedBy { candidates[it].depthFraction }.let { if (it.isEmpty()) null else it[it.size / 2] }
+        fun inBand(from: Float, to: Float): Int? = middleByDepth(
+            shopIndices.filter { candidates[it].depthFraction >= from && candidates[it].depthFraction < to },
+        )
         val kept = setOfNotNull(
-            middleByDepth(shopIndices.filter { candidates[it].depthFraction < SceneSpace.SHOP_VARIANT_DEPTH_SPLIT }),
-            middleByDepth(shopIndices.filter { candidates[it].depthFraction >= SceneSpace.SHOP_VARIANT_DEPTH_SPLIT }),
+            inBand(SceneSpace.BUILDING_TOWER_MAX_DEPTH, SceneSpace.RESTAURANT_MAX_DEPTH),
+            inBand(SceneSpace.RESTAURANT_MAX_DEPTH, SceneSpace.SCHOOL_MAX_DEPTH),
+            inBand(SceneSpace.SCHOOL_MAX_DEPTH, Float.POSITIVE_INFINITY),
         )
         val demotedCount = shopIndices.size - kept.size
         var rank = 0
@@ -652,6 +664,11 @@ object SceneObjectCatalog {
         SceneSpace.SceneVariant.HOUSE_LARGE -> 75f
         SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR -> 34f
         SceneSpace.SceneVariant.TOWER -> 45f
+        // v5.6F: the school's own ink reaches x -53.7..55.3 of a 110-unit canvas, and the family
+        // draws at 1:1 (72 piece units to 72 variant units), so the wider side governs a
+        // symmetric reach the same way the tree's and the palm's do. It is the widest thing on
+        // the ground after the large house.
+        SceneSpace.SceneVariant.SCHOOL -> 56f
         // v4.21: 51, not 41. The "Quercia larga" crown is `tree_canopy`'s 101 units of content
         // blitted at -50, so it spans x -50..51 and the wider side governs a symmetric reach.
         SceneSpace.SceneVariant.TREE -> 51f
@@ -818,7 +835,7 @@ object SceneObjectCatalog {
                     floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
             SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
-            SceneSpace.SceneVariant.TOWER,
+            SceneSpace.SceneVariant.TOWER, SceneSpace.SceneVariant.SCHOOL,
             -> listOf(floatArrayOf(x - halfWidthUnits(v) * s, g - v.spriteUnitsTall * s, x + halfWidthUnits(v) * s, g))
             else -> emptyList()
         }

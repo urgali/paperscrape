@@ -40,6 +40,7 @@ import org.junit.Test
  * | `HOUSE_LARGE` | 145 u = 7.60 m | 136.9 – 207.0 u | 7.17 – 10.85 m |
  * | `TOWER` | 182 u = 15.60 m | 197.3 – 202.3 u | 16.91 – 17.34 m |
  * | `RESTAURANT` | **56 u = 4.78 m** | 56.0 u | 4.78 m |
+ * | `SCHOOL` | **72 u = 6.15 m** | 74.0 u | 6.32 m |
  * | `BAR` | **74.5 u = 6.24 m** | 54.1 – 74.5 u | 4.53 – 6.24 m |
  *
  * ### v5.4 closed item 113, and the two shop rows above are what moved
@@ -53,12 +54,12 @@ import org.junit.Test
  * All three numbers that described the old facade moved together and by the same factor -- the
  * variant's `metresTall` and `spriteUnitsTall`, and the family's own `unitsTall` -- so the
  * renderer's `metresTall / unitsTall`, which is the only quantity a blit's size depends on, is
- * **0.085417 m per piece unit before and after**. `all five families draw at the common metre`
+ * **0.085417 m per piece unit before and after**. `all six families draw at the common metre`
  * pins that, and `no shop is drawn at a different size than it was in v5.3` pins the corollary.
  * Nothing in either building moved; what moved is nine shops on eight themes, because the
  * separation pass places a shop by its declared height.
  *
- * **What the table now says, and did not before:** all five families vary around their
+ * **What the table now says, and did not before:** all six families vary around their
  * declaration, which is what makes the declaration usable by everything that divides by it --
  * starting with the shop-front criterion, whose 40 % ceiling was being measured over a rectangle
  * 42 % of which was sky.
@@ -121,12 +122,19 @@ class BuildingHeightDeclarationTest {
         // are in this list since v5.4** -- they used to have a method of their own recording that
         // they drew a little over half their declaration, which is the defect item 113 closed.
         // The restaurant has one deal and hits its declaration exactly; the bar declares its
-        // taller deal, so its shorter one sits at 0.73.
+        // taller deal, so its shorter one sits at 0.73; the school has one deal and sits 2.8 %
+        // over, which is its turret cornice rounded out to the sprite grid.
         val bounds = mapOf(
             SceneSpace.SceneVariant.HOUSE_SMALL to (0.85f to 1.25f),
             SceneSpace.SceneVariant.HOUSE_LARGE to (0.90f to 1.45f),
             SceneSpace.SceneVariant.TOWER to (1.05f to 1.15f),
             SceneSpace.SceneVariant.RESTAURANT to (1.00f to 1.00f),
+            // v5.6F: the school has one deal and draws 74 piece units against the 72 it declares
+            // -- its turret cornice tops out at -73.5 and the sprite grid rounds it to -74. 1.03
+            // is the smallest departure in the set; the ceiling is 1.05 so the deal has room to
+            // be re-cut without this needing an edit, and the floor is 1.00 because a figure that
+            // stopped reaching its own declaration would be a different building.
+            SceneSpace.SceneVariant.SCHOOL to (1.00f to 1.05f),
             SceneSpace.SceneVariant.BAR to (0.70f to 1.00f),
         )
         for ((variant, range) in bounds) {
@@ -248,11 +256,16 @@ class BuildingHeightDeclarationTest {
      * it declares`, and every variant's own scale by `SceneSpaceTest`.
      */
     @Test
-    fun `all five families draw at the common metre`() {
+    fun `all six families draw at the common metre`() {
+        // The school joined them in v5.6F at 6.15 m over 72 piece units, which is 0.085417 to six
+        // figures -- the same metre the restaurant's 8.2/96 fixed in v5.0 and the number every
+        // other family here was derived from. It matters for the school in particular because a
+        // child at one of its windows is scaled in piece units: a family off the common metre
+        // would put its people out of scale with the street outside it.
         for (variant in listOf(
             SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
             SceneSpace.SceneVariant.TOWER, SceneSpace.SceneVariant.RESTAURANT,
-            SceneSpace.SceneVariant.BAR,
+            SceneSpace.SceneVariant.BAR, SceneSpace.SceneVariant.SCHOOL,
         )) {
             val metrePerPieceUnit = variant.metresTall / family(variant).unitsTall
             assertEquals("$variant metres per piece unit", 0.085417f, metrePerPieceUnit, 0.00005f)

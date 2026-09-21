@@ -256,7 +256,7 @@ class SpriteGeometryTest {
      * **707 872 B** -- the convention every paragraph above has used, for the reason every one of
      * them gives (v4.30 left 836 064 B).
      *
-     * *What moved.* The five building families (small house, large house, tower, restaurant, bar)
+     * *What moved.* The five building families of v5.0 (small house, large house, tower, restaurant, bar)
      * are no longer one flat facade each, drawn as wall + roof + trim + door with the same window
      * sticker. The two houses are a STACK of pieces -- ground floor, storeys, roof -- chosen per
      * instance from the building's own stable hash, so two neighbours carry two silhouettes (4
@@ -378,8 +378,68 @@ class SpriteGeometryTest {
      * what the proposal did not do was hold that figure against the **margin**, which was 553 936 B.
      * `V5_4H_REPORT.md` opens on this number so it can be reversed in one line, and reversing it
      * means the children go back to walking bare-headed in the rain.
+     *
+     * ### v5.6F raises it to 43 MiB for the school, and this is the argument
+     *
+     * The set is **44 392 716 B = 42.34 MiB**, and 43 MiB is the next figure above it, leaving
+     * **696 052 B** (v5.4H left 371 760). It rose by **724 284 B**, which is two changes pulling
+     * opposite ways:
+     *
+     *  - **the school, +786 384 B** in four PNGs -- `school_fx` 330x231, `school_mw` 330x228,
+     *    `school_mg` 294x51 and `school_snow_fx` 324x93. It is the sixth building family and the
+     *    first new one since v5.0: a turret with a clock, four bay windows at the ground floor and
+     *    a plaque with a pencil on the facade;
+     *  - **the vehicle fleet, -62 100 B.** All sixteen vehicle PNGs were redrawn in the maintainer's
+     *    «Ritaglio» direction and the redraw is *cheaper* than what it replaces (976 104 against
+     *    1 038 204), because the slab is lower: a body canvas went from 50-52 units tall to 44.
+     *    **33 840 of those 62 100 are the appliance's canvas**, which the proposal round authored
+     *    at 104x60 with four transparent units on the right and seven on the bottom;
+     *    `paperscrape-assets normalize --apply` took them and the one unit on each of the other
+     *    two sides, moved the blit origin by exactly the trim, and left every ink pixel on the
+     *    coordinate it had. `tools/assets/tests/test_normalize.py` is what made that
+     *    non-negotiable: the shipped set may carry no trailing padding at all.
+     *
+     * *What was looked for first, as every paragraph here has had to.* Three things, and two of
+     * them are already taken:
+     *
+     *  - **The sign costs nothing and was measured, not assumed.** A plaque like the bar's is
+     *    +96 480 B *marginally* -- the 447 948 that was quoted for `bar_signboard` is the bar's
+     *    whole figure -- and the school's costs **zero**: the plaque sits inside canvases the
+     *    turret already pays for, its colours are the fixed ones `sign_plate` already uses, and the
+     *    two upper window rows drop from four panes to three, which is a stamp that already ships.
+     *  - **The richer school was refused on this ceiling.** `S2_C2` puts bay windows on the upper
+     *    floor as well: +145 440 B more, for four more panes on a building that already shows two
+     *    or three children. It was costed and not taken.
+     *  - **A school with no bay windows is free and is not a school.** S2 as first proposed drew
+     *    its ground floor in the tower's 6x7 window texture and declared **no** pane a bust can
+     *    stand in, so "a school shows children" would have been a rule about an empty set. That is
+     *    what the four openings buy, and most of the 786 384 is them.
+     *
+     * *What it costs, measured, on the three things this limit bounds.* The APK grows by
+     * **12 107 B**: the four school PNGs compress to 18 779 B and the sixteen redrawn vehicle PNGs
+     * to 15 961 B against the 22 633 B of the sixteen they replace. The `Canvas` path -- settings
+     * and gallery previews on every device, the wallpaper once EGL has failed three times -- holds
+     * the authored bitmap of every sprite it has drawn until memory pressure, so its worst case
+     * grows by the full 724 284 B. The per-sprite transient decode peak does **not** move: the
+     * largest new file is `school_fx` at 304 920 B, against a set whose largest is `tree_canopy`.
+     *
+     * *And the thing the v5.6D measurement round found, because it changes how both of these
+     * ceilings should be read.* **No line of shipped code reads either of them.** The six
+     * occurrences of the two numbers outside the two test files are all inside comments; they are
+     * build gates, and moving one changes which arithmetic the build accepts and not a byte of what
+     * the device does. What the device really has is **one 2048x2048 atlas page**, which is 16 MiB
+     * of RGBA exactly, and a walk of all twelve themes in one process measured it **583 rows of
+     * 2048 occupied with zero sprites falling out of it** -- the school adds **two**. Sixty seconds
+     * of live wallpaper with the school in the scene measured 30.07 fps against 30.03 without it,
+     * zero dropped frames out of 3 554, and GL memory inside its own 330 KB of run-to-run noise.
+     * So this ceiling is the one that binds, and it binds on the gallery and the APK rather than on
+     * anything the wallpaper does per frame. The measurements are in `misura_v5_6d/MISURA_V5_6D.md`.
+     *
+     * *And the sentence this paragraph exists to make unavoidable, again.* **The maintainer moved
+     * this line, after seeing a measurement on the device**, and the pass that needed it did not.
+     * Putting it back to 42 MiB means the scene has no school in it.
      */
-    private val decodedByteBudget = 42L * 1024L * 1024L
+    private val decodedByteBudget = 43L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {

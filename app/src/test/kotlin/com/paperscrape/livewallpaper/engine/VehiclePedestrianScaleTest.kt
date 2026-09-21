@@ -254,8 +254,15 @@ class VehiclePedestrianScaleTest {
                 carHead, SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE,
                 0.0001f,
             )
+            // v5.6F: 0.322 on all three, because «Ritaglio» stands all three bodies at 53 units
+            // and the head did not move -- a lower car with the same occupant is a slightly larger
+            // share of it. The band's top goes to 0.33 with that measurement; it is a guard
+            // against an occupant becoming absurd, not a target, and what it guards has not
+            // changed. Worth saying that the three are now *equal*: one pane, one head, one
+            // height, so a difference between two bodies here would be a defect rather than a
+            // property of the drawing.
             val share = carHead / shell.unitsTall
-            assertTrue("$shell: head over vehicle is $share, outside a sane band", share in 0.27f..0.32f)
+            assertTrue("$shell: head over vehicle is $share, outside a sane band", share in 0.27f..0.33f)
         }
         assertEquals("cab head over vehicle", 0.178f, cabHead / SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL, 0.002f)
     }
@@ -363,27 +370,35 @@ class VehiclePedestrianScaleTest {
     }
 
     /**
-     * The pane's rc2 geometry, and the door accessories riding the sill.
+     * The pane's geometry, and the door accessories riding the sill.
      *
-     * The glasshouse grew for the table-sized occupants: top -11 (two units of roof band remain
-     * over the flat roof at -13), sill 12 (three units of painted door remain above the arch
-     * tops at 15). The livery is blitted *at the sill*, so it follows it rather than being a
-     * second copy of the number; and the glass stays authored at its drawn size.
+     * The glasshouse grew for the table-sized occupants and has been 25 units ever since; v5.6F
+     * moved the whole bay four units down the body without changing its height, because the slab's
+     * roof came up from -19/-20 to -16. The livery is blitted *at the sill*, so it follows it
+     * rather than being a second copy of the number.
+     *
+     * **And the sprite is two units taller than the pane**, which is the v5.6F construction rather
+     * than a slack canvas: the glass sheet lies behind the body paper and is grown half a unit
+     * past the hole on every side so no seam can open between them, on a canvas with another half
+     * unit of padding. `the glass is authored at its drawn size` used to assert the two were
+     * equal; it asserts the growth is exactly one unit per side now, which is the same kind of
+     * claim about the same pair of numbers and is the one that is true of this drawing.
      */
     @Test
     fun `the glass stops short of the beltline and the accessories ride the sill`() {
-        // v4.19: the cabin's vertical layout is shared by all three bodies -- top -16, sill 9,
+        // v5.6F: the cabin's vertical layout is shared by all three bodies -- pane -12 to 13,
         // 25 units -- and it is what the height table asks for rather than what a roof allowed.
-        assertEquals("the glass top", -16f, SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS, 0.001f)
-        assertEquals("the sill", 9f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.002f)
+        assertEquals("the pane's top", -12f, SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS, 0.001f)
+        assertEquals("the sill", 13f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.002f)
+        // The discs are drawn last, in front of everything, so a pane that reached below their
+        // crowns would be a window with a wheel across it. «Ritaglio» lands exactly on that line
+        // rather than above it -- sill 13, wheel crown 37 - 24 = 13 -- which is what a low slab on
+        // big wheels looks like and is why this is `<=` and not `<`.
         assertTrue(
-            "the sill must stay above the arch crowns, which are one wheel radius plus the air " +
-                "above the wheel centre",
-            SceneObjectRenderer.CAR_SILL_Y_UNITS <
+            "the sill must not drop below the tops of the wheels, or a disc would cover the glass",
+            SceneObjectRenderer.CAR_SILL_Y_UNITS <=
                 SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS -
-                SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS -
-                SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS -
-                SceneObjectRenderer.WHEEL_ARCH_AIR_UNITS,
+                2f * SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS,
         )
         assertEquals(
             "the police stripe and the taxi chequer are blitted at the sill, whatever it is",
@@ -392,8 +407,14 @@ class VehiclePedestrianScaleTest {
             0.001f,
         )
         assertEquals(
-            "the glass is authored at its drawn size",
-            SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS,
+            "the glass sheet covers the pane with a unit of overlap at the top",
+            SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS - 1f,
+            SceneObjectRenderer.CAR_GLASS_SPRITE_Y_UNITS,
+            0.0001f,
+        )
+        assertEquals(
+            "and at the bottom",
+            SceneObjectRenderer.CAR_GLASS_HEIGHT_UNITS + 2f,
             SceneObjectRenderer.CAR_GLASS_SPRITE_HEIGHT_UNITS,
             0.0001f,
         )
@@ -441,7 +462,7 @@ class VehiclePedestrianScaleTest {
                 contentLeftUnits = HEAD_CAR_CONTENT_LEFT_UNITS,
                 contentRightUnits = HEAD_CAR_CONTENT_RIGHT_UNITS,
             )
-            val glassLeft = shell.glassXUnits
+            val glassLeft = shell.paneXUnits
             val glassRight = glassLeft + cabinPaneWidth(shell)
             assertTrue(
                 "$shell: the driver presses the A-pillar: ${driver.first} vs ${glassLeft + clearance}",
@@ -478,13 +499,21 @@ class VehiclePedestrianScaleTest {
     }
 
     /**
-     * Each pane is its own sprite, and the sprite is the pane.
+     * Each pane has its own sprite, and the sprite is **bigger than the pane**.
      *
-     * Every width criterion divides by a body's declared glass width, so it has to be that
-     * body's own `car_window_*` width and not a number that once was. Measured off each PNG.
+     * This method was called *"each pane is its own sprite, and the sprite is the pane"* until
+     * v5.6F and asserted the two widths were equal, which was true while the glass was an overlay
+     * stuck on top of the shell. «Ritaglio» puts it behind: the sheet is grown half a unit past
+     * every edge of the hole so the cut edge of the body paper lands on glass rather than on a
+     * seam, and the canvas carries another half unit. So the sprite is exactly two units wider
+     * than the cabin pane on the two bodies whose glazing *is* the cabin, and wider still on the
+     * estate, whose sprite also carries the load bay's own window.
+     *
+     * Every width criterion divides by the **pane**, which is the hole a head is seen through, so
+     * that is what [CarShell.paneWidthUnits] declares and what is checked against the drawing here.
      */
     @Test
-    fun `each declared pane width is its glass sprite's own width`() {
+    fun `each glass sprite covers its pane with the overlap that puts it behind the paper`() {
         for (shell in CarShell.entries) {
             val name = when (shell) {
                 CarShell.COMPACT -> "car_window_compact.png"
@@ -492,14 +521,18 @@ class VehiclePedestrianScaleTest {
                 CarShell.ESTATE -> "car_window_estate.png"
             }
             val image = javax.imageio.ImageIO.read(java.io.File(drawableDir(), name))
+            val spriteWidth = image.width / SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+            val glazing = if (shell == CarShell.ESTATE) ESTATE_GLAZING_WIDTH_UNITS else shell.paneWidthUnits
             assertEquals(
-                "$shell glassWidthUnits vs $name (${image.width} px)",
-                image.width / SpriteBlitter.SPRITE_PIXELS_PER_UNIT,
-                shell.glassWidthUnits,
-                0.0001f,
+                "$shell: $name (${image.width} px) must cover its glazing with a unit each side",
+                glazing + 2f, spriteWidth, 0.0001f,
             )
             assertEquals(
-                "$shell: and its height is the shared pane height",
+                "$shell: and it is blitted a unit left of the first pane",
+                shell.paneXUnits - 1f, shell.glassSpriteXUnits, 0.0001f,
+            )
+            assertEquals(
+                "$shell: and its height is the shared sprite height",
                 image.height / SpriteBlitter.SPRITE_PIXELS_PER_UNIT,
                 SceneObjectRenderer.CAR_GLASS_SPRITE_HEIGHT_UNITS,
                 0.0001f,
@@ -620,18 +653,15 @@ class VehiclePedestrianScaleTest {
         /**
          * The width of the pane the occupants actually sit in.
          *
-         * For two of the bodies that is the whole glass sprite. The estate's sprite also carries
-         * the third window over the load bay, which is not cabin glazing: counting it would
-         * flatter the pillar light and flatten the fill, so the cabin pane is measured to the
-         * end of the first pane instead.
+         * The exclusion of the estate's load-bay window used to live here, as a literal beside a
+         * `when`: it is a fact about the drawing, so v5.6F moved it into [CarShell.paneWidthUnits]
+         * and this reads it. The function stays because the criteria below read it by name and
+         * the name is what says *which* pane is meant.
          */
-        fun cabinPaneWidth(shell: CarShell): Float = when (shell) {
-            CarShell.ESTATE -> ESTATE_CABIN_PANE_WIDTH_UNITS
-            else -> shell.glassWidthUnits
-        }
+        fun cabinPaneWidth(shell: CarShell): Float = shell.paneWidthUnits
 
-        /** The estate's cabin pane alone, sill to sill, without the third window. */
-        const val ESTATE_CABIN_PANE_WIDTH_UNITS = 60f
+        /** The estate's whole glazing, cabin plus the load bay's own window: -30 to 57. */
+        const val ESTATE_GLAZING_WIDTH_UNITS = 87f
 
         /**
          * Where `police_stripe` and `taxi_checker` are actually blitted, **read from the source**.

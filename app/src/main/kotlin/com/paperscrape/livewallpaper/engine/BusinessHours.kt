@@ -5,13 +5,17 @@ package com.paperscrape.livewallpaper.engine
  *
  * ### What it governs, and what it does not
  *
- * The shops, the bar and the towers ([WindowBuildingKind.COMMERCIAL] and
- * [WindowBuildingKind.SKYSCRAPER]): inside their hours they behave exactly as they always have —
- * occupants at the glass, windows lit at night. Outside them nobody stands at a window and the
- * glass stays in its unlit daytime colour whatever the hour. Houses are deliberately not
- * businesses: their windows glowing at night are the effect that keeps the scene alive, and
- * [WindowBuildingKind.HOUSE] never consults this. The pedestrians on the pavement are untouched —
- * the hours govern windows, not the street.
+ * The shops, the school, the bar and the towers ([WindowBuildingKind.COMMERCIAL],
+ * [WindowBuildingKind.SCHOOL] and [WindowBuildingKind.SKYSCRAPER]): inside their hours they behave
+ * exactly as they always have — occupants at the glass, windows lit at night. Outside them nobody
+ * stands at a window and the glass stays in its unlit daytime colour whatever the hour. Houses are
+ * deliberately not businesses: their windows glowing at night are the effect that keeps the scene
+ * alive, and [WindowBuildingKind.HOUSE] never consults this. The pedestrians on the pavement are
+ * untouched — the hours govern windows, not the street.
+ *
+ * The school reaches this by the same rule every non-house does (`kind != HOUSE`), and that is a
+ * consequence of giving it a kind rather than a decision taken about schools: at night it is dark
+ * and empty like the bar beside it, which is what a school is at night.
  *
  * ### The clock
  *

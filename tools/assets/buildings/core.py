@@ -36,10 +36,20 @@ DARK = "#2B2A33"               # l'inchiostro scuro della scena (persone, ombre)
 RELIEF_T = 0.34                # carta d'ombra: mix(carta, DARK, 0.34) [M] persone
 M_PER_UNIT = 8.2 / 96.0        # metro comune: quello del ristorante (0.08542 m/u)
 
-FAMILIES = ("HOUSE_SMALL", "HOUSE_LARGE", "TOWER", "RESTAURANT", "BAR")
+FAMILIES = ("HOUSE_SMALL", "HOUSE_LARGE", "TOWER", "RESTAURANT", "BAR", "SCHOOL")
+#: The family reference height, in piece units, that `SceneVariant.spriteUnitsTall` is divided by.
+#: RESTAURANT and BAR carry the numbers v5.4 item 113 corrected them to (56 and 73, not 96 and
+#: 90.146): both had inherited the height of the two-storey facade the v5.0 redraw replaced, and
+#: this table was the one place the correction never reached -- so re-running the generator would
+#: have written the pre-v5.4 declaration back into `NeighbourhoodTable.kt`. Measured, not argued:
+#: the regeneration of the shipped five families reproduces all 72 PNGs byte for byte and
+#: differed from the shipped table in exactly these two numbers.
 UNITS_TALL = {"HOUSE_SMALL": 5.76 / M_PER_UNIT, "HOUSE_LARGE": 7.6 / M_PER_UNIT, "TOWER": 15.6 / M_PER_UNIT,
-              "RESTAURANT": 96.0, "BAR": 7.7 / M_PER_UNIT}
-KIND = {"HOUSE_SMALL": "HOUSE", "HOUSE_LARGE": "HOUSE", "TOWER": "SKYSCRAPER", "RESTAURANT": "COMMERCIAL", "BAR": "COMMERCIAL"}
+              "RESTAURANT": 56.0, "BAR": 73.0, "SCHOOL": 6.15 / M_PER_UNIT}
+#: The school is its own `WindowBuildingKind` since v5.6F: it is commercial glass on the street,
+#: but a school shows children and a restaurant and a bar must go on showing adults.
+KIND = {"HOUSE_SMALL": "HOUSE", "HOUSE_LARGE": "HOUSE", "TOWER": "SKYSCRAPER", "RESTAURANT": "COMMERCIAL",
+        "BAR": "COMMERCIAL", "SCHOOL": "SCHOOL"}
 #: px per unita' sul BV6600 alle profondita' della schiera [M] fase 1c/2:
 #: ppu = m*45/u * (0.2565 + 0.4503*d) * 0.6 * spriteUnitsTall/unitsTall
 PPU = {"HOUSE_SMALL": 0.862 * 110 / UNITS_TALL["HOUSE_SMALL"], "HOUSE_LARGE": 0.862 * 145 / UNITS_TALL["HOUSE_LARGE"],
@@ -62,8 +72,16 @@ GLASS_DAY, GLASS_NIGHT = "#B9CBD9", "#FFE79A"
 TERRACOTTA = "#A9573F"       # la tegola: il rosso della vela portato verso il legno
 SLATE = "#4B5566"            # l'ardesia: l'inchiostro portato verso il vetro di giorno
 INK_ROOF = "#1A1410"
-WALL_DAY = {"HOUSE": "#F3E6D0", "COMMERCIAL": "#5C6A78", "SKYSCRAPER": "#5C6A78"}
-WALL_NIGHT = {"HOUSE": "#6B5F52", "COMMERCIAL": "#303842", "SKYSCRAPER": "#303842"}
+#: SCHOOL repeats COMMERCIAL's two values rather than aliasing them: the school is drawn from the
+#: same BUILDINGS colours the restaurant and the bar are, and `decompose` subtracts these exact
+#: strings from the rendered art to get the fixed layer -- a different base would requantise every
+#: pixel of it.
+WALL_DAY = {"HOUSE": "#F3E6D0", "COMMERCIAL": "#5C6A78", "SKYSCRAPER": "#5C6A78", "SCHOOL": "#5C6A78"}
+WALL_NIGHT = {"HOUSE": "#6B5F52", "COMMERCIAL": "#303842", "SKYSCRAPER": "#303842", "SCHOOL": "#303842"}
+#: The shipped perimeter this accounting covers: every PNG of the six families. Duplicated in
+#: `paperscrape_assets.report.BUDGET_PERIMETER_PREFIXES`, which cannot import this module;
+#: `tests/test_budget.py` asserts the two selections agree on the real tree.
+PERIMETER_PREFIXES = ("house", "skyscraper", "restaurant", "bar", "school")
 BUDGET = 4_263_156
 
 
@@ -467,7 +485,7 @@ def uploaded_bytes(path):
 def budget(concepts, files_by: dict, out: Path):
     shipped = {}
     for n in sorted(os.listdir(RES)):
-        if n.endswith(".png") and n.split("_")[0] in ("house", "skyscraper", "restaurant", "bar") and "_q" not in n:
+        if n.endswith(".png") and n.split("_")[0] in PERIMETER_PREFIXES and "_q" not in n:
             with Image.open(RES / n) as im:
                 size = im.size
             shipped[n[:-4]] = (size[0] * size[1] * 4, uploaded_bytes(RES / n))

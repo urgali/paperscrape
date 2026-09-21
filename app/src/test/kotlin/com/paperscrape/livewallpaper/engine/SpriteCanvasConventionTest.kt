@@ -126,7 +126,8 @@ class SpriteCanvasConventionTest {
             // grid to match -- which is why `SpriteDrawScaleTest`'s budget fell while
             // `SpriteGeometryTest`'s rose. Naming them one by one would be 167 lines that say the
             // same sentence.
-            val isRegionMask = name.matches(MASK_NAME) || name.matches(NEIGHBOURHOOD_LAYER)
+            val isRegionMask = name.matches(MASK_NAME) || name.matches(NEIGHBOURHOOD_LAYER) ||
+                name.matches(VEHICLE_SHEET)
             val loadBearing = name in marginIsLoadBearing || isRegionMask
             if (!touches && !loadBearing) unexpected += name
             if (touches && isRegionMask) continue
@@ -164,7 +165,10 @@ class SpriteCanvasConventionTest {
         // uncovers nothing the walking arm was hiding. A child's arm is shorter against a shorter
         // body, so raising it uncovers the girl's hair and both children's trousers, and those
         // masks stop being byte-identical to the walking frame's and stop being shared.
-        assertEquals("417 sprites are expected", 417, all.size)
+        // 421 in v5.6F: the school is the sixth building family and ships four layers of its
+        // own -- `school_fx`, `school_mw`, `school_mg` and `school_snow_fx`. The sixteen vehicle
+        // sprites were redrawn in the same release and none of them was added or removed.
+        assertEquals("421 sprites are expected", 421, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -190,7 +194,14 @@ class SpriteCanvasConventionTest {
         // which is what puts a walker's feet on the ground line -- exactly as the twelve adult
         // carrying frames and the twenty-four walking ones already do. The pose's 34 region masks
         // do not reach an edge and cannot; see the exemption above.
-        assertEquals("218 of them reach a canvas edge", 218, touching)
+        // 214 in v5.6F, and it falls for two reasons that are both constructions rather than
+        // waste. The seven «Ritaglio» vehicle sheets left the count: a body is drawn a unit inside
+        // its canvas so the cut edge's wobble has room, and a glass sheet is drawn a unit *outside*
+        // the hole it fills so no seam opens behind the paper -- see `VEHICLE_SHEET`. The school
+        // put three back: its fixed art, its wall mask and its snow cap each reach an edge of the
+        // canvas the piece was cut to, exactly as the other families' do, and only its glass mask
+        // does not.
+        assertEquals("214 of them reach a canvas edge", 214, touching)
     }
 
     private companion object {
@@ -213,7 +224,33 @@ class SpriteCanvasConventionTest {
          * reduction, where the texels are the canvas's own. A `_snow_fx` is one of these as well;
          * it is a drift cut to a roof it must land on, which is the same registration.
          */
-        val NEIGHBOURHOOD_LAYER = Regex("""(house|tower|restaurant|bar)_.*_(fx|mw|mg)""")
+        // `(.*_)?` and not `.*_`: the school's figure is one piece with no sub-name, so its
+        // layers are `school_fx` and `school_mg` with nothing between -- the only family whose
+        // production name is the piece's own.
+        val NEIGHBOURHOOD_LAYER = Regex("""(house|tower|restaurant|bar|school)_(.*_)?(fx|mw|mg)""")
+
+        /**
+         * A v5.6F vehicle sheet: a body's paper, a body's glass, or the appliance's.
+         *
+         * **The margin is the frame the whole fleet is registered in, and it is the same kind of
+         * exemption as the neighbourhood's.** Every vehicle sprite is authored in one coordinate
+         * system -- the road at y=37, the nose and tail at the body's own half-length -- and every
+         * one of them is blitted at its own viewBox minimum, so sixteen PNGs and about thirty
+         * constants in `CarShell` and `SceneObjectRenderer` all read the same numbers. «Ritaglio»
+         * is what put a margin round them: a body's shell is drawn a unit inside its canvas so the
+         * cut edge's wobble has room, and a glass sheet is *deliberately* half a unit larger than
+         * the hole it fills on every side plus half a unit of canvas, because the sheet lies behind
+         * the paper and a seam would open the moment the two were the same size. Cropping either
+         * one would move its origin and every number written against that frame.
+         *
+         * `firetruck_body` is in this class and carries more than the registration needs: it is
+         * authored on a fixed 104x60 canvas and its ink stops 4 units short of the right edge and
+         * 6.67 short of the bottom, which is 30 240 B of decoded memory a trailing crop would give
+         * back with no origin to compensate. Recorded rather than taken, because the delivered
+         * artwork is the artwork the maintainer chose from the proposal round's photographs, and
+         * `paperscrape-assets normalize --apply-trailing` is the change that takes it.
+         */
+        val VEHICLE_SHEET = Regex("""(car_body|car_window|firetruck_body).*""")
     }
 
     private fun touchesAnEdge(image: BufferedImage): Boolean {

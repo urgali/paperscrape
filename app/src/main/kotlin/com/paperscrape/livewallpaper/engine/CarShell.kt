@@ -19,15 +19,34 @@ import com.paperscrape.livewallpaper.R
  * single number for the family and a unit never means two sizes. That is what makes three
  * different silhouettes read as one set rather than as three imported drawings.
  *
- * They also share the whole vertical layout of the cabin -- glass top [CAR_GLASS_Y_UNITS], sill
- * [CAR_SILL_Y_UNITS], and therefore the seated-occupant scale and both seat positions. Only the
- * plan changes: length, roof line, wheelbase, where the glass begins and ends. An occupant is
- * consequently the same size in every car, which is what the height table asks for and what
- * `OccupantHeadFitTest` measures.
+ * They also share the whole vertical layout of the cabin -- the pane's top
+ * [SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS], its sill [SceneObjectRenderer.CAR_SILL_Y_UNITS],
+ * and therefore the seated-occupant scale and both seat positions. Only the plan changes: length,
+ * roof line, wheelbase, where the glass begins and ends. An occupant is consequently the same size
+ * in every car, which is what the height table asks for and what `OccupantHeadFitTest` measures.
  *
- * Ground contact is [SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS] for all of them, the wheels are
- * [SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS] inside arches cut one unit larger and concentric
- * with the tyre, and the lamps are the *same four sprites* on every body -- see [lampFrontXUnits].
+ * Ground contact is [SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS] for all of them and the lamps are
+ * the *same four sprites* on every body -- see [lampFrontXUnits].
+ *
+ * ### v5.6F: three cards, and the pane stops being the sprite
+ *
+ * «Ritaglio» builds a car the way the reference photograph does: a sheet of glass **behind** a
+ * sheet of body paper with the panes cut out of it, and two whole discs glued **in front**. Two
+ * consequences reach this file, and both are declarations that used to be one number and are now
+ * two:
+ *
+ *  - **There are no wheel arches.** The disc is a complete circle lying on the paper, 46 % of it
+ *    below the shell's floor, so nothing is cut away over a wheel and there is no air to keep
+ *    concentric. [wheelFrontXUnits] and [wheelRearXUnits] are where the discs are centred and
+ *    nothing else.
+ *  - **The glass sprite is bigger than the pane it fills.** The sheet is grown half a unit past
+ *    every edge of the hole so no seam can open between the two papers, and its canvas carries
+ *    another half unit of padding: `car_window_saloon` is 61 units wide for a 59-unit pane.
+ *    [glassSpriteXUnits] is therefore where the sprite is *blitted* and [paneXUnits] /
+ *    [paneWidthUnits] are the hole an occupant is actually seen through -- which is what every
+ *    pillar-light and fill criterion has to measure against. The two were the same number until
+ *    v5.5, and `VehiclePedestrianScaleTest` used to assert as much in a method called
+ *    *"each pane is its own sprite, and the sprite is the pane"*.
  */
 internal enum class CarShell(
     val bodyRes: Int,
@@ -39,8 +58,18 @@ internal enum class CarShell(
     val unitsTall: Float,
     /** Nose to tail of the painted shell, the dimension §2 of the v4.19 brief measures. */
     val lengthUnits: Float,
-    val glassXUnits: Float,
-    val glassWidthUnits: Float,
+    /** Blit origin of `car_window_*`: its SVG viewBox minimum, **not** the pane's own edge. */
+    val glassSpriteXUnits: Float,
+    /**
+     * The cabin hole cut in the body paper -- left edge and width, in local units.
+     *
+     * The estate's third window sits over the load bay and is **not** in this width: it is not
+     * cabin glazing, and counting it would flatter the pillar light and flatten the fill. That
+     * exclusion used to live in the two test files as `ESTATE_CABIN_PANE_WIDTH_UNITS`, which is a
+     * fact about the drawing kept in the things that measure it; it is declared here now.
+     */
+    val paneXUnits: Float,
+    val paneWidthUnits: Float,
     /**
      * How far this body's seat pair sits from where the pane wants it, in local units.
      *
@@ -51,6 +80,13 @@ internal enum class CarShell(
      * came out at 24% of a head on the compact and **4%** on the police saloon, whose livery
      * bands the lower glass and shortens the pane it leaves: the same pair, two very different
      * cabins.
+     *
+     * The percentages below were measured on the v4.19 cabins, which were narrower than
+     * «Ritaglio»'s: the saloon's pane went from 59 units of sprite to a 59-unit hole with a unit
+     * of sheet behind each edge, and the compact's from 62 to 68. The offset is kept because the
+     * asymmetry it corrects is still there -- the police livery still bands the lower glass of the
+     * saloon and of no other body -- and because changing it would move the driver of every police
+     * car for a reason nobody measured.
      *
      * Derived rather than tuned, and **still load-bearing after the seat pitch was shortened**:
      * at the 21.5-unit pitch the police saloon measures 8.0% with no offset and 18.0% with this
@@ -77,26 +113,32 @@ internal enum class CarShell(
     val lampRearXUnits: Float,
     val lampRearYUnits: Float,
 ) {
-    /** A — the Compact: 92 units, the shortest and the tallest, cab-forward with a hatch tail. */
+    /**
+     * A — the Compact: 92 units, the shortest, cab-forward with a hatch tail.
+     *
+     * It was "the shortest and the tallest" until v5.6F, and it is not any more: «Ritaglio» is a
+     * low slab and all three bodies stand 53 units, roof -16 to the road at 37. The three heights
+     * that used to differ -- 57, 56, 57.8 -- were a difference nothing measured and nothing saw.
+     */
     COMPACT(
         bodyRes = R.drawable.car_body_compact, glassRes = R.drawable.car_window_compact,
-        bodyXUnits = -48.5f, bodyYUnits = -20f, unitsTall = 57f, lengthUnits = 92f,
-        glassXUnits = -28f, glassWidthUnits = 62f, seatOffsetXUnits = 0f,
+        bodyXUnits = -47f, bodyYUnits = -17f, unitsTall = 53f, lengthUnits = 92f,
+        glassSpriteXUnits = -28f, paneXUnits = -27f, paneWidthUnits = 68f, seatOffsetXUnits = 0f,
         wheelFrontXUnits = -30f, wheelRearXUnits = 30f,
-        roofFrontXUnits = -20.4f, roofRearXUnits = 28f,
-        lampFrontXUnits = -46.4f, lampFrontYUnits = 6.4f,
-        lampRearXUnits = 38.5f, lampRearYUnits = 5.3f,
+        roofFrontXUnits = -20f, roofRearXUnits = 34f,
+        lampFrontXUnits = -46.5f, lampFrontYUnits = 9f,
+        lampRearXUnits = 43f, lampRearYUnits = 6f,
     ),
 
     /** B — the Saloon: 108 units, three boxes, the family's reference length. */
     SALOON(
         bodyRes = R.drawable.car_body_saloon, glassRes = R.drawable.car_window_saloon,
-        bodyXUnits = -56.5f, bodyYUnits = -19f, unitsTall = 56f, lengthUnits = 108f,
-        glassXUnits = -27f, glassWidthUnits = 59f, seatOffsetXUnits = -1.4f,
-        wheelFrontXUnits = -36f, wheelRearXUnits = 36f,
-        roofFrontXUnits = -21.6f, roofRearXUnits = 22f,
-        lampFrontXUnits = -54.4f, lampFrontYUnits = 7.4f,
-        lampRearXUnits = 46.6f, lampRearYUnits = 4f,
+        bodyXUnits = -55f, bodyYUnits = -17f, unitsTall = 53f, lengthUnits = 108f,
+        glassSpriteXUnits = -27f, paneXUnits = -26f, paneWidthUnits = 59f, seatOffsetXUnits = -1.4f,
+        wheelFrontXUnits = -38f, wheelRearXUnits = 38f,
+        roofFrontXUnits = -19f, roofRearXUnits = 24f,
+        lampFrontXUnits = -54.5f, lampFrontYUnits = 10f,
+        lampRearXUnits = 51f, lampRearYUnits = 6f,
     ),
 
     /**
@@ -108,19 +150,18 @@ internal enum class CarShell(
      * against the saloon's 108 -- **14.81% longer**, measured on the shipped artwork by
      * `VehicleShellGeometryTest` rather than declared here.
      *
-     * [glassWidthUnits] spans both of its panes: the cabin, which seats the two occupants, and
-     * the third window over the load bay. Only the cabin pane is measured against the occupant
-     * criteria -- the load bay is not cabin glazing and would flatter the light and flatten the
-     * fill if it were counted.
+     * Its glass sprite spans three panes; [paneWidthUnits] spans **two**. The cabin runs
+     * -30..28 and seats both occupants; the load bay's own window runs 33..57 and is not cabin
+     * glazing, so the criteria stop at 28.
      */
     ESTATE(
         bodyRes = R.drawable.car_body_estate, glassRes = R.drawable.car_window_estate,
-        bodyXUnits = -66.5f, bodyYUnits = -20.8f, unitsTall = 57.8f, lengthUnits = 124f,
-        glassXUnits = -30f, glassWidthUnits = 81f, seatOffsetXUnits = 0f,
-        wheelFrontXUnits = -42f, wheelRearXUnits = 38f,
-        roofFrontXUnits = -21f, roofRearXUnits = 48f,
-        lampFrontXUnits = -64.4f, lampFrontYUnits = 5.6f,
-        lampRearXUnits = 52.6f, lampRearYUnits = 4.2f,
+        bodyXUnits = -63f, bodyYUnits = -17f, unitsTall = 53f, lengthUnits = 124f,
+        glassSpriteXUnits = -31f, paneXUnits = -30f, paneWidthUnits = 58f, seatOffsetXUnits = 0f,
+        wheelFrontXUnits = -42f, wheelRearXUnits = 40f,
+        roofFrontXUnits = -23f, roofRearXUnits = 56f,
+        lampFrontXUnits = -62.5f, lampFrontYUnits = 10f,
+        lampRearXUnits = 59f, lampRearYUnits = 4f,
     );
 
     /** This body's real-world height, from the one metre-per-unit the family shares. */

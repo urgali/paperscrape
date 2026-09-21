@@ -440,8 +440,9 @@ class PreviewRendererAgreementTest {
         )
         assertEquals("the tree's four", 4, sharedByConstant.size)
         assertEquals(
-            "the five families of the neighbourhood, shared through the table",
-            5, NeighbourhoodTable.FAMILIES.size,
+            // Six since v5.6F: the school joined the two houses, the tower and the two shops.
+            "the six families of the neighbourhood, shared through the table",
+            6, NeighbourhoodTable.FAMILIES.size,
         )
         val used = ThemeCatalog.ALL.flatMap { previewParts(it.id) }.map { it.resId }.toSet()
         assertTrue("the tree's shared sprites should all actually be drawn", sharedByConstant.count { it in used } >= 2)

@@ -138,6 +138,19 @@ internal object SilhouetteDeal {
     val BARS: List<Silhouette> = enumerate(SceneSpace.SceneVariant.BAR)
 
     /**
+     * The school's one figure: a catalogue of one, like the restaurant's, which is why it needs
+     * no deal either.
+     *
+     * **It needs the entry all the same, and that is the whole of what this constant is for.**
+     * Without an arm of its own in [catalogueFor] a school-band candidate falls through to
+     * [BARS], which has *two* entries -- so the deal hands it silhouette 1, and
+     * `NeighbourhoodComposer.deal` indexes a one-option slot with it and throws
+     * `IndexOutOfBoundsException` on the first frame. Measured in the v5.6D round, where the
+     * school was wired without this arm and the scene crashed rather than drawing a bar.
+     */
+    val SCHOOLS: List<Silhouette> = enumerate(SceneSpace.SceneVariant.SCHOOL)
+
+    /**
      * Which catalogue governs [spec], or null for a type whose drawing has no alternatives.
      *
      * A house's catalogue does **not** depend on its family, which is what keeps this free of the
@@ -151,7 +164,8 @@ internal object SilhouetteDeal {
         SceneObjectType.HOUSE -> HOUSES
         SceneObjectType.SKYSCRAPER -> when {
             spec.depthFraction < SceneSpace.BUILDING_TOWER_MAX_DEPTH -> TOWERS
-            spec.depthFraction < SceneSpace.SHOP_VARIANT_DEPTH_SPLIT -> RESTAURANTS
+            spec.depthFraction < SceneSpace.RESTAURANT_MAX_DEPTH -> RESTAURANTS
+            spec.depthFraction < SceneSpace.SCHOOL_MAX_DEPTH -> SCHOOLS
             else -> BARS
         }
         else -> null

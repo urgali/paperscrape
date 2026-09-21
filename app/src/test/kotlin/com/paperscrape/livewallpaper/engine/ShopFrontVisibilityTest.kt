@@ -63,7 +63,11 @@ class ShopFrontVisibilityTest {
      * shop in the delivery's `registri/40_shop_front_attribuzione.txt`, and the reading is a
      * consequence of the deal rather than a shop getting quietly more covered.
      */
-    private val INK_WORST = 0.325f
+    // v5.6F: 0.3125, new_year's bar, down from 0.325. The bar moved from depth 0.711 to 0.800
+    // when the shop band was divided in three -- there are three storefronts to place in six
+    // candidate depths now, and the bar takes the nearest of them. A nearer shop is a larger shop
+    // with fewer things in front of it, so the worst reading falls; the criterion did not move.
+    private val INK_WORST = 0.3125f
 
     @Test
     fun `no shop front is covered beyond forty percent of its whole area on any built-in theme`() {
@@ -118,7 +122,7 @@ class ShopFrontVisibilityTest {
                 )
             }
         }
-        assertEquals("this test asserted over no shop at all", 2 * themes.size, shopsChecked)
+        assertEquals("this test asserted over no shop at all", 3 * themes.size, shopsChecked)
     }
 
     /**
@@ -140,8 +144,17 @@ class ShopFrontVisibilityTest {
                 assertTrue("$themeId: ${list.size} ${variant}s in one tile", list.size <= 1)
             }
             assertEquals(
-                "$themeId: the street should offer both storefronts",
-                setOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR),
+                // v5.6F: three, not two. The school is the third storefront and the shop band is
+                // three equal thirds, so every theme offers one of each -- which is the other
+                // half of "no two of the same storefront share a screen": a band nobody keeps a
+                // shop in is a storefront no theme ever draws, and that failure looks exactly
+                // like success from a census.
+                "$themeId: the street should offer all three storefronts",
+                setOf(
+                    SceneSpace.SceneVariant.RESTAURANT,
+                    SceneSpace.SceneVariant.SCHOOL,
+                    SceneSpace.SceneVariant.BAR,
+                ),
                 byVariant.keys,
             )
             // The criterion as stated, swept: at every 4-px window start, the shops of one
@@ -215,7 +228,7 @@ class ShopFrontVisibilityTest {
                 }
             }
         }
-        assertEquals("this test asserted over no shop at all", 2 * themes.size, shopsChecked)
+        assertEquals("this test asserted over no shop at all", 3 * themes.size, shopsChecked)
         assertTrue(
             "measured on ink, these shop fronts are over the criterion: $overCeiling",
             overCeiling.isEmpty(),
@@ -263,6 +276,10 @@ class ShopFrontVisibilityTest {
             SceneSpace.SceneVariant.HOUSE_LARGE -> 75f
             SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR -> 34f
             SceneSpace.SceneVariant.TOWER -> 45f
+            // v5.6F: the school's ink spans -53.7..55.3 of its 110-unit canvas and the family
+            // draws at 1:1, so the wider side governs. Typed a second time here for the reason
+            // the tree's entry gives.
+            SceneSpace.SceneVariant.SCHOOL -> 56f
             // v4.21: re-measured off `tree_canopy` at its blit origin -- 101 units of content at
             // -50 spans x -50..51. Read from the artwork here as it is read from the artwork in
             // the catalogue, and deliberately not imported from it: the whole point of this file

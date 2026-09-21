@@ -1,8 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="177" height="75" viewBox="-27 -16 59 25">
+<svg xmlns="http://www.w3.org/2000/svg" width="183" height="81" viewBox="-27 -13 61 27">
 <!--
-  Concept B — vetratura della Berlina, trapezio fra montante A e montante C.
-  Rientrato 2 unita' dal profilo opaco della cabina;
-  cielo -16, davanzale 9, 25 unita' di altezza.
+v5.6F «Ritaglio» - saloon glass. The sheet that lies BEHIND the body paper: each pane is grown half a unit past the hole it fills so no seam opens along the cut, and the shadow band along the top and front edge of each hole is what says the glass is behind.
 -->
-<path d="M-27 9 L-19 -16 L22 -16 L32 9 Z" fill="#B9D8E4"/>
+<clipPath id="p0"><polygon points="-25.70,13.50 -26.50,13.50 -26.50,13.50 -26.29,12.73 -19.71,-11.73 -18.70,-12.50 0.20,-12.50 1.00,-11.70 1.00,12.70 0.20,13.50"/></clipPath>
+<clipPath id="p1"><polygon points="4.30,13.50 3.50,12.70 3.50,-11.70 4.30,-12.50 26.70,-12.50 27.68,-11.72 33.32,12.72 32.70,13.50"/></clipPath>
+<polygon points="-25.70,13.50 -26.50,13.50 -26.50,13.50 -26.29,12.73 -19.71,-11.73 -18.70,-12.50 0.20,-12.50 1.00,-11.70 1.00,12.70 0.20,13.50" fill="#B9D8E4"/>
+<polygon points="-31.00,-17.00 5.50,-17.00 5.50,-9.50 -31.00,-9.50" fill="#899DA8" clip-path="url(#p0)"/>
+<polygon points="-31.00,-17.00 -24.00,-17.00 -24.00,18.00 -31.00,18.00" fill="#899DA8" clip-path="url(#p0)"/>
+<polygon points="4.30,13.50 3.50,12.70 3.50,-11.70 4.30,-12.50 26.70,-12.50 27.68,-11.72 33.32,12.72 32.70,13.50" fill="#B9D8E4"/>
+<polygon points="-1.00,-17.00 37.81,-17.00 37.81,-9.50 -1.00,-9.50" fill="#899DA8" clip-path="url(#p1)"/>
+<polygon points="-1.00,-17.00 6.00,-17.00 6.00,18.00 -1.00,18.00" fill="#899DA8" clip-path="url(#p1)"/>
 </svg>

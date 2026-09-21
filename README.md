@@ -42,7 +42,8 @@ moving on its own.
   moving further than distant ones.
 - **Traffic and pedestrians.** Two lanes of cars, taxis, police cars and fire engines,
   each carrying an occupant; people walking the ground between the buildings and the
-  road, dressed for the season.
+  road, dressed for the season. Behind the windows there are people too — and behind the
+  school's, children.
 - **Weather.** Rain, snow and cloud cover per theme — or Live Weather, which replaces
   them with the real conditions where you are, fetched from Open-Meteo (no account
   needed), WeatherAPI.com or OpenWeather (free account, own API key). If no location is available,
@@ -50,9 +51,9 @@ moving on its own.
   theme's own weather rather than quietly asking the other service.
 - **Occasional visitors.** Santa's sleigh, fireworks, lightning and birds.
 - **Traffic and shop hours.** The car count is an explicit setting rather than a curve — at
-  its lowest a single sporadic car — and the road quietens by itself at dusk. Shops, the bar
-  and the towers can be given opening hours: outside them nobody stands at the glass and the
-  windows stay dark, even at night. Houses are homes and are unaffected. The toggle is off by
+  its lowest a single sporadic car — and the road quietens by itself at dusk. Shops, the school,
+  the bar and the towers can be given opening hours: outside them nobody stands at the glass and
+  the windows stay dark, even at night. Houses are homes and are unaffected. The toggle is off by
   default.
 - **Realistic moon phases**, as an optional switch. Halloween overrides it — the carved moon
   is the theme's own — and shows the switch off and locked while that theme is showing, without

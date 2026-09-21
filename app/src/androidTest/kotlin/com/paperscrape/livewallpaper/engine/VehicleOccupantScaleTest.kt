@@ -355,6 +355,59 @@ class VehicleOccupantScaleTest {
         return front || rear
     }
 
+    /**
+     * Inside one of the wheel discs, which are vehicle artwork and not a person.
+     *
+     * **The tyre is `#2B2A33` since v5.6F, which is the scene's ink -- and the scene's ink is
+     * also `PeopleColours.HAIR[0]`, black hair.** A colour scan cannot tell them apart and should
+     * not try: the discs are drawn in code at centres and radii this file can read, so the
+     * exclusion is geometric, exactly as the taxi sign's, the livery band's and the lamp seats'
+     * are. Without it every tyre pixel counts as an occupant painted outside the glass -- measured
+     * at 4 736 of them on one estate.
+     *
+     * The margin is a unit and a half, the same the lamp seats take, for the disc's own
+     * anti-aliased rim.
+     */
+    private fun inWheelDisc(type: CarType, shell: CarShell?, localX: Float, localY: Float): Boolean {
+        val isTruck = type == CarType.FIRE_TRUCK
+        val radius = if (isTruck) {
+            SceneObjectRenderer.FIRE_TRUCK_WHEEL_RADIUS_UNITS
+        } else {
+            SceneObjectRenderer.CAR_WHEEL_RADIUS_UNITS
+        }
+        val centres = if (isTruck) {
+            listOf(
+                -SceneObjectRenderer.FIRE_TRUCK_WHEEL_X_UNITS,
+                SceneObjectRenderer.FIRE_TRUCK_INNER_WHEEL_X_UNITS,
+                SceneObjectRenderer.FIRE_TRUCK_WHEEL_X_UNITS,
+            )
+        } else {
+            listOf(shell!!.wheelFrontXUnits, shell.wheelRearXUnits)
+        }
+        val cy = SceneObjectRenderer.VEHICLE_GROUND_Y_UNITS - radius
+        return centres.any { cx ->
+            val dx = localX - cx
+            val dy = localY - cy
+            dx * dx + dy * dy <= (radius + 1.5f) * (radius + 1.5f)
+        }
+    }
+
+    /**
+     * The appliance's cream band, the one across its flank at local y 8..12.
+     *
+     * `#F2E4C9` with its shadow paper under it, and the cream trousers an occupant can wear are
+     * `#EFDFC4`: three, five and five levels apart, so the band itself stays outside the
+     * tolerance of 4 and the anti-aliased pixels where it meets its own shadow do not. Measured
+     * on this build: **two pixels** of a whole appliance. Excluded the way the taxi sign and the
+     * livery band already are -- it is a piece of vehicle artwork that happens to be painted in a
+     * cream the outfits also deal, and the scan's job is to find a person outside the glass.
+     *
+     * The rectangle is the drawing's, read off `firetruck_body.svg`: the band spans x -46..46 at
+     * y 8..12 and its shadow paper reaches 47.42 and 13.77, with half a unit for the rim.
+     */
+    private fun inTruckBand(localX: Float, localY: Float): Boolean =
+        localX >= -46.5f && localX <= 48f && localY >= 7.5f && localY <= 14.3f
+
     private fun inTruckLampSeat(localX: Float, localY: Float): Boolean {
         val front = localX >= SceneObjectRenderer.FIRE_TRUCK_LAMP_FRONT_X_UNITS - 1.5f &&
             localX <= SceneObjectRenderer.FIRE_TRUCK_LAMP_FRONT_X_UNITS + LAMP_FRONT_W_UNITS + 1.5f &&
@@ -367,12 +420,26 @@ class VehicleOccupantScaleTest {
         return front || rear
     }
 
+    /**
+     * The glass **and the shadow the body paper casts on it**, which is also glass.
+     *
+     * v5.6F: «Ritaglio» lays the glass sheet *behind* the body and cuts the panes out of it, and
+     * paints a band of `mix(glass, ink, 0.34)` along the top and the front edge of every hole --
+     * the shadow of the paper's own cut edge falling on the sheet below. That band is the one
+     * mark in the drawing that says the glass is behind rather than stuck on top, and a scan that
+     * did not count it read the pane as 22.8 units of a 25-unit hole and put its top edge 2.6
+     * units too low. It is a second colour and not a wider tolerance: [GLASS_SHADE] is the
+     * drawing's own value, and stretching the tolerance far enough to reach it would have
+     * swallowed half the body palette on the way.
+     */
     private fun isGlass(pixel: Int): Boolean {
         if ((pixel ushr 24) < 200) return false
         val r = (pixel shr 16) and 0xFF
         val g = (pixel shr 8) and 0xFF
         val b = pixel and 0xFF
-        return abs(r - GLASS[0]) <= 6 && abs(g - GLASS[1]) <= 6 && abs(b - GLASS[2]) <= 6
+        if (abs(r - GLASS[0]) <= 6 && abs(g - GLASS[1]) <= 6 && abs(b - GLASS[2]) <= 6) return true
+        return abs(r - GLASS_SHADE[0]) <= 6 && abs(g - GLASS_SHADE[1]) <= 6 &&
+            abs(b - GLASS_SHADE[2]) <= 6
     }
 
     private fun isSkin(pixel: Int): Boolean {
@@ -428,7 +495,13 @@ class VehicleOccupantScaleTest {
             val r = (p shr 16) and 0xFF
             val g = (p shr 8) and 0xFF
             val b = p and 0xFF
-            if (abs(r - GLASS[0]) > 4 || abs(g - GLASS[1]) > 4 || abs(b - GLASS[2]) > 4) continue
+            // The pane's own two colours: the glass, and the shadow the body paper's cut edge
+            // casts on it. See [isGlass] -- a box drawn round the first alone measures the hole
+            // minus its shadow band, which is 22.8 units of a 25-unit pane.
+            val plain = abs(r - GLASS[0]) <= 4 && abs(g - GLASS[1]) <= 4 && abs(b - GLASS[2]) <= 4
+            val shade = abs(r - GLASS_SHADE[0]) <= 4 && abs(g - GLASS_SHADE[1]) <= 4 &&
+                abs(b - GLASS_SHADE[2]) <= 4
+            if (!plain && !shade) continue
             val x = i % WIDTH
             val y = i / WIDTH
             area++
@@ -559,7 +632,7 @@ class VehicleOccupantScaleTest {
             val topUnits = localY(glass.minY, lane, CarType.PLAIN)
             assertEquals(
                 "the glass top on lane $lane is at local y $topUnits",
-                SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS,
+                SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS,
                 topUnits,
                 1.5f,
             )
@@ -1022,7 +1095,7 @@ class VehicleOccupantScaleTest {
                         // leaving a stale rectangle behind -- which is exactly how v4.18's
                         // windows went out of date when the sill moved from 12 to 9.
                         if ((type == CarType.TAXI || type == CarType.POLICE) &&
-                            localY < SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS &&
+                            localY < SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS &&
                             abs(localX) <= 24f
                         ) continue
                         if ((type == CarType.TAXI || type == CarType.POLICE) &&
@@ -1036,6 +1109,9 @@ class VehicleOccupantScaleTest {
                         // and the livery band above are.
                         if (shell != null && inLampSeat(shell, localX, localY)) continue
                         if (isTruck && inTruckLampSeat(localX, localY)) continue
+                        if (isTruck && inTruckBand(localX, localY)) continue
+                        // The wheels: ink discs, and the scene's ink is also the black hair.
+                        if (inWheelDisc(type, shell, localX, localY)) continue
                         val inside = localX >= paneL - 0.5f && localX <= paneR + 0.5f &&
                             localY >= paneT - 0.5f && localY <= paneB + 0.5f
                         if (!inside) {
@@ -1096,7 +1172,7 @@ class VehicleOccupantScaleTest {
                 SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS -
                     SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS
             } else {
-                SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS
+                SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS
             }
             val pixels = IntArray(WIDTH * HEIGHT)
             frame.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
@@ -1203,10 +1279,21 @@ class VehicleOccupantScaleTest {
      * Measured on the rendered pixels, every row from the crown down to the chin line, both
      * lanes, all three civilian types:
      *
-     *  * the non-glass ink on the row must form **exactly two runs** -- one run means the heads
-     *    have merged, which is the rc5 defect;
-     *  * the glass between them must be at least **3% of the pane's width**, and it is
-     *    contiguous by construction, the runs being the complement of the glass.
+     *  * the ink on the row must form **exactly two runs** -- one run means the heads have
+     *    merged, which is the rc5 defect;
+     *  * what lies between them must be at least **3% of the pane's width**.
+     *
+     * **v5.6F: what separates two heads may be glass or it may be the car.** Until v5.5 a cabin
+     * was one hole and the only thing that could stand between the two busts was clear glass, so
+     * "ink" was simply "not glass" and the pillar question did not arise. «Ritaglio» cuts *two*
+     * holes with 3.5 units of body paper between them, and the two occupants sit in different
+     * windows -- which is a *stronger* separation than clear glass and read as a merge to a scan
+     * that called everything non-glass an occupant. So the complement is taken against glass
+     * **and** the body's own tint, sampled from the roof band of the very car being measured
+     * rather than assumed, and the criterion is unchanged in what it asserts: two marks, and
+     * something of the car between them. The old wording is kept above because the defect it was
+     * written for -- two busts pressed into one mass -- is exactly as fatal behind two panes as
+     * behind one.
      *
      * **Below the chin the busts are allowed to meet, and are meant to**: two people sitting one
      * behind the other occlude at the shoulders, and that contact is the depth cue that says
@@ -1225,6 +1312,21 @@ class VehicleOccupantScaleTest {
                 frame.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
                 fun screenY(local: Float) =
                     (groundY + (local - CAR_LOCAL_ORIGIN_ABOVE_CONTACT_UNITS) * px).toInt()
+
+                // The body's own tint, read off the roof band of this very car: two units above
+                // the pane's top edge and on the centre line, which is painted shell on every
+                // body and under both roof accessories. Sampled rather than assumed, because a
+                // plain car wears one of the two editable colours and a taxi and a police car
+                // wear their own.
+                val tint = pixels[
+                    screenY(SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS - 2f) * WIDTH + centreX.toInt()
+                ]
+                fun isShellTint(p: Int): Boolean {
+                    if ((p ushr 24) < 200) return false
+                    return abs(((p shr 16) and 0xFF) - ((tint shr 16) and 0xFF)) <= 6 &&
+                        abs(((p shr 8) and 0xFF) - ((tint shr 8) and 0xFF)) <= 6 &&
+                        abs((p and 0xFF) - (tint and 0xFF)) <= 6
+                }
 
                 var worstGap = Float.MAX_VALUE
                 var worstAt = ""
@@ -1265,7 +1367,8 @@ class VehicleOccupantScaleTest {
                     val runs = ArrayList<IntArray>()
                     var runStart = -1
                     for (x in glassMin..glassMax) {
-                        if (!isGlass(pixels[y * WIDTH + x])) {
+                        val p = pixels[y * WIDTH + x]
+                        if (!isGlass(p) && !isShellTint(p)) {
                             if (runStart < 0) runStart = x
                         } else if (runStart >= 0) {
                             if (x - runStart >= MIN_RUN_PX) runs.add(intArrayOf(runStart, x - 1))
@@ -1273,6 +1376,18 @@ class VehicleOccupantScaleTest {
                         }
                     }
                     if (runStart >= 0 && glassMax - runStart >= MIN_RUN_PX) runs.add(intArrayOf(runStart, glassMax))
+                    // **A person is at least two units of car wide; a seam between two pieces of
+                    // car is a pixel or two.** v5.6F: the pillar that «Ritaglio» leaves between
+                    // the two panes meets the glass's shadow band in a two-pixel blend which is
+                    // neither glass, nor the shell's tint, nor anybody -- and a
+                    // complement-of-glass scan counted it as a third occupant. Taking the
+                    // complement is still right, because the palette misses the brown hair and
+                    // every anti-aliased fringe; what it must not do is *invent* a person out of
+                    // the seam where two pieces of car meet. Measured on this build at both
+                    // lanes: the phantom run is 0.4 units wide and the narrowest real head run in
+                    // the scanned band is 13.
+                    val minRunUnits = 2f * px
+                    runs.retainAll { r -> (r[1] - r[0] + 1) >= minRunUnits }
                     if (runs.isEmpty()) continue
                     // A few pixels of glass showing through the anti-aliased edge of a hairline is
                     // not a gap between two people. The criterion itself says what counts as a
@@ -1294,7 +1409,8 @@ class VehicleOccupantScaleTest {
                             "${runs.size} run(s), not two -- the heads have merged",
                         2, runs.size,
                     )
-                    // by construction of the runs, everything between them is glass
+                    // By construction of the runs, everything between them is glass or the
+                    // pillar's own paper -- either way it is the car and not a person.
                     val clear = runs[1][0] - runs[0][1] - 1
                     val frac = clear / paneWidth
                     if (frac < worstGap) {
@@ -1366,11 +1482,20 @@ class VehicleOccupantScaleTest {
             }
             val height = (bottom - top + 1).toFloat()
             val predicted = shell.unitsTall * unitPx(lane, CarType.PLAIN)
+            // **2.5 px of measurement slop plus the cut edge's own wobble**, which is v5.6F's
+            // addition and not a loosening. `unitsTall` is the height the size table *governs* --
+            // roof line to wheel contact -- and «Ritaglio» cuts both of those edges with a
+            // per-vertex wobble of up to 0.6 units, so the drawn extent legitimately overshoots
+            // the governed one by up to that much at each end. Measured on this build: the estate
+            // on the far lane reads 138 px against a governed 135.0, which is 1.2 units of
+            // scissor-cut and anti-aliased rim. Expressed as the wobble rather than as a bigger
+            // number, so a body redrawn with a steadier hand tightens this by itself.
+            val wobble = CAR_CUT_EDGE_WOBBLE_UNITS * unitPx(lane, CarType.PLAIN)
             assertEquals(
                 "a plain $shell on lane $lane measured $height px",
                 predicted,
                 height,
-                2.5f,
+                2.5f + wobble,
             )
         }
     }
@@ -1465,6 +1590,22 @@ class VehicleOccupantScaleTest {
         /** `car_window`'s glass, which nothing else in the scene is painted in. */
         val GLASS = intArrayOf(185, 216, 228)
 
+        /**
+         * The shadow the body paper's cut edge casts on the glass behind it: `mix(GLASS, ink,
+         * 0.34)`, the project's one `RELIEF_T`. Measured on the shipped frame at (137, 157, 168),
+         * which is what `#B9D8E4` blended 34 % towards `#2B2A33` comes to.
+         */
+        val GLASS_SHADE = intArrayOf(137, 157, 168)
+
+        /**
+         * The per-vertex wobble «Ritaglio» cuts every paper edge of a car with: 0.6 units of
+         * **car**, the value
+         * `genera_mezzi.py` authored the fleet at and the same order as the neighbourhood's own
+         * 0.7. It is what makes a scissor cut a scissor cut, and it is why a drawn extent is not
+         * exactly the extent the size table governs.
+         */
+        const val CAR_CUT_EDGE_WOBBLE_UNITS = 0.6f
+
         /** Small enough to keep a face, large enough to drop an anti-aliased speck. */
         const val MIN_BLOB_AREA = 40
 
@@ -1533,12 +1674,18 @@ class VehicleOccupantScaleTest {
          * Derived from [CarShell] rather than restated. The estate's glass sprite also carries
          * the third window over the load bay, which is not cabin glazing: measuring against it
          * would flatter the pillar light and flatten the fill, so the cabin pane stops at the
-         * B-pillar. The number is the sprite's first pane, read off the artwork.
+         * B-pillar.
+         *
+         * **v5.6F: both numbers come off the shell, and neither is the sprite's.** «Ritaglio» puts
+         * the glass behind the body paper and cuts the panes out of it, so `car_window_*` is a
+         * unit wider than the hole on every side and the estate's exclusion stopped being the
+         * only reason these two differed. [CarShell.paneXUnits] and [CarShell.paneWidthUnits] are
+         * the hole an occupant is seen through, which is what every criterion below means by the
+         * pane; `ESTATE_CABIN_PANE_WIDTH_UNITS` moved into that declaration with them.
          */
         fun cabinPane(shell: CarShell): Pair<Float, Float> {
-            val left = shell.glassXUnits
-            val width = if (shell == CarShell.ESTATE) ESTATE_CABIN_PANE_WIDTH_UNITS else shell.glassWidthUnits
-            return left to left + width
+            val left = shell.paneXUnits
+            return left to left + shell.paneWidthUnits
         }
 
         /**
@@ -1561,7 +1708,7 @@ class VehicleOccupantScaleTest {
                 SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS -
                     SceneObjectRenderer.FIRE_TRUCK_GLASS_HEIGHT_UNITS
             } else {
-                SceneObjectRenderer.CAR_GLASS_ORIGIN_Y_UNITS
+                SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS
             }
             val bottom = if (isTruck) {
                 SceneObjectRenderer.FIRE_TRUCK_SILL_Y_UNITS
@@ -1570,9 +1717,6 @@ class VehicleOccupantScaleTest {
             }
             return floatArrayOf(left, right, top, bottom)
         }
-
-        /** The estate's cabin pane alone, sill to sill, without the third window. */
-        const val ESTATE_CABIN_PANE_WIDTH_UNITS = 60f
 
         /** The appliance's cab glass, painted into its body: see `firetruck_body.svg`. */
         val TRUCK_PANE = -33.5f to -4f

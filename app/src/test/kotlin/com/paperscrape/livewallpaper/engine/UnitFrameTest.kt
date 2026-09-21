@@ -102,6 +102,7 @@ class UnitFrameTest {
         "TAXI_SIGN_" to setOf("car"),
         "POLICE_" to setOf("car"),
         "ESTATE_CABIN_" to setOf("car"),
+        "ESTATE_GLAZING_" to setOf("car"),
         "LIVERY_" to setOf("car"),
         // v5.5: renamed from TALLEST_VEHICLE_ when the fire engine was given its own window
         // in `VehicleScalePixelTest` -- the constant is the tallest CAR and never was the tallest
@@ -144,9 +145,6 @@ class UnitFrameTest {
         "VEHICLE_GROUND_Y_UNITS" to (setOf("car", "firetruck") to
             "the height the shadow is painted at, the same number in each vehicle's own frame: " +
             "drawCar and the fire engine both translate by it"),
-        "WHEEL_ARCH_AIR_UNITS" to (setOf("car", "firetruck") to
-            "the arch gap, authored as the same number in both vehicles; the fire engine divides " +
-            "it by its own metre-per-unit where the rendered gap has to match"),
         "LAMP_FRONT_W_UNITS" to (setOf("car", "firetruck") to
             "car_lamp_front's own 6x4-unit size. Both vehicles blit that one PNG through " +
             "SpriteScale.SCENE_UNITS, so its size is a length in both local frames -- item 61 " +

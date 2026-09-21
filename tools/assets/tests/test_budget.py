@@ -130,10 +130,13 @@ class BudgetReportTest(unittest.TestCase):
         self.assertIn("SOPRA il budget di -", md)
         self.assertIn(f"SOPRA il budget di {core.BUDGET - decoded:+d} B", md)
 
-    def test_the_shipped_perimeter_counts_the_four_families_and_not_the_concept_pngs(self):
+    def test_the_shipped_perimeter_counts_the_six_families_and_not_the_concept_pngs(self):
+        # 46 until v5.6F added the school's four layers. The number is pinned rather than
+        # derived because the point of the assertion is that the perimeter is read from the
+        # shipped drawable set and not from whatever the concept run happened to draw.
         rep, _, md = self._run({"house_a": (24, 24)})
         perimeter = rep["shipped_perimeter"]
-        self.assertEqual(46, perimeter["files"])
+        self.assertEqual(50, perimeter["files"])
         self.assertIn(f"Perimetro spedito ({perimeter['files']} PNG", md)
         # The concept's own PNG is not in it: the perimeter is read from the shipped drawable set.
         self.assertNotEqual(perimeter["files"], rep["concepts"]["mix"]["files"])

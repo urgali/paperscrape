@@ -250,7 +250,9 @@ class SkinToneTest {
                     val buildingSeed = b * 100_003
                     for (w in 0 until 8) {
                         if (WindowOccupants.isOccupied(seed, buildingSeed, w, 8, kind)) {
-                            tones += WindowOccupants.occupantAt(seed, buildingSeed, w).skinIndex
+                            // The kind is passed since v5.6F: it reaches the occupant now, and a
+                            // sweep that dropped it would be asserting about a house four times.
+                            tones += WindowOccupants.occupantAt(seed, buildingSeed, w, kind).skinIndex
                         }
                     }
                 }

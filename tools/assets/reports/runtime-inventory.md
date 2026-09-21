@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 417 |
-| Unique contents | 417 |
-| Bytes on disk | 1282.1 KB |
-| Decoded `ARGB_8888` | 43.67 MB |
-| Of which transparent padding | 18.70 MB (43 %) |
+| Files | 421 |
+| Unique contents | 421 |
+| Bytes on disk | 1293.9 KB |
+| Decoded `ARGB_8888` | 44.39 MB |
+| Of which transparent padding | 18.75 MB (42 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -21,12 +21,12 @@ from the shipped PNGs; nothing is copied from documentation.
 | `rainbow_arc` | 594x297 | 0.71 MB | 0 % |
 | `sun_glow` | 396x396 | 0.63 MB | 1 % |
 | `tree_fir` | 240x366 | 0.35 MB | 0 % |
+| `school_fx` | 330x231 | 0.30 MB | 1 % |
+| `school_mw` | 330x228 | 0.30 MB | 1 % |
 | `santa_sleigh_scene` | 594x123 | 0.29 MB | 2 % |
 | `santa_sleigh_trot` | 594x123 | 0.29 MB | 2 % |
 | `tower_tier1_fx` | 210x342 | 0.29 MB | 1 % |
 | `tower_tier1_mw` | 210x342 | 0.29 MB | 1 % |
-| `tree_canopy` | 303x198 | 0.24 MB | 0 % |
-| `car_body_estate` | 375x156 | 0.23 MB | 0 % |
 
 ## Every sprite
 
@@ -44,22 +44,22 @@ from the shipped PNGs; nothing is copied from documentation.
 | `bunny_body` | 102x183 | RGBA | 0,0,102,183 | 0 % | 29 | yes |
 | `bunny_innerear` | 45x45 | RGBA | 0,0,44,45 | 2 % | 1 | yes |
 | `bunny_tail` | 30x30 | RGBA | 0,0,30,30 | 0 % | 8 | yes |
-| `car_body_compact` | 279x153 | RGBA | 0,0,279,153 | 0 % | 41 | yes |
-| `car_body_estate` | 375x156 | RGBA | 0,0,375,156 | 0 % | 44 | yes |
-| `car_body_saloon` | 327x150 | RGBA | 0,0,327,150 | 0 % | 40 | yes |
+| `car_body_compact` | 282x132 | RGBA | 3,2,280,129 | 5 % | 22 | yes |
+| `car_body_estate` | 378x132 | RGBA | 2,1,376,130 | 3 % | 22 | yes |
+| `car_body_saloon` | 330x132 | RGBA | 3,2,328,130 | 4 % | 22 | yes |
 | `car_lamp_front` | 18x12 | RGBA | 0,0,18,12 | 0 % | 1 | yes |
 | `car_lamp_front_lit` | 18x12 | RGBA | 0,0,18,12 | 0 % | 1 | yes |
 | `car_lamp_rear` | 12x12 | RGBA | 0,0,12,12 | 0 % | 1 | yes |
 | `car_lamp_rear_lit` | 12x12 | RGBA | 0,0,12,12 | 0 % | 1 | yes |
-| `car_window_compact` | 186x75 | RGBA | 0,0,186,75 | 0 % | 1 | yes |
-| `car_window_estate` | 243x75 | RGBA | 0,0,243,75 | 0 % | 1 | yes |
-| `car_window_saloon` | 177x75 | RGBA | 0,0,177,75 | 0 % | 1 | yes |
+| `car_window_compact` | 210x81 | RGBA | 1,1,208,80 | 4 % | 3 | yes |
+| `car_window_estate` | 267x81 | RGBA | 1,1,266,80 | 3 % | 3 | yes |
+| `car_window_saloon` | 183x81 | RGBA | 1,1,181,80 | 4 % | 3 | yes |
 | `cloud_body` | 798x396 | RGBA | 0,0,798,396 | 0 % | 34 | yes |
 | `dolphin_body` | 342x171 | RGBA | 1,3,342,171 | 2 % | 117 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
 | `easteregg_shell` | 96x120 | RGBA | 0,0,96,120 | 0 % | 17 | yes |
-| `firetruck_body` | 297x174 | RGBA | 0,0,297,174 | 0 % | 161 | yes |
-| `firetruck_ladder` | 150x21 | RGBA | 0,0,150,21 | 0 % | 1 | yes |
+| `firetruck_body` | 300x159 | RGBA | 2,1,297,157 | 4 % | 105 | yes |
+| `firetruck_ladder` | 150x21 | RGBA | 0,0,150,21 | 0 % | 8 | yes |
 | `firework` | 240x240 | RGBA | 9,9,231,231 | 14 % | 13 | yes |
 | `gift_box` | 120x90 | RGBA | 0,0,120,90 | 0 % | 10 | yes |
 | `gift_ribbon` | 120x120 | RGBA | 0,0,120,120 | 0 % | 12 | yes |
@@ -389,8 +389,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_woman_winter_walk2_mh` | 117x252 | RGBA | 22,2,99,41 | 90 % | 1 | yes |
 | `person_woman_winter_walk2_ms` | 117x252 | RGBA | 1,34,115,179 | 44 % | 1 | yes |
 | `person_woman_winter_walk2_mt` | 117x252 | RGBA | 3,89,114,195 | 60 % | 1 | yes |
-| `police_lightbar` | 60x18 | RGBA | 0,0,60,18 | 0 % | 9 | yes |
-| `police_stripe` | 120x27 | RGBA | 0,0,120,27 | 0 % | 4 | yes |
+| `police_lightbar` | 60x18 | RGBA | 0,0,60,18 | 0 % | 7 | yes |
+| `police_stripe` | 120x27 | RGBA | 0,0,119,26 | 5 % | 4 | yes |
 | `pumpkin_body` | 114x90 | RGBA | 0,0,114,90 | 0 % | 31 | yes |
 | `pumpkin_face` | 114x90 | RGBA | 30,30,84,75 | 76 % | 1 | yes |
 | `pumpkin_stem` | 18x36 | RGBA | 0,0,18,36 | 0 % | 1 | yes |
@@ -403,6 +403,10 @@ from the shipped PNGs; nothing is copied from documentation.
 | `sailboat_sail` | 183x180 | RGBA | 3,0,182,180 | 2 % | 77 | yes |
 | `santa_sleigh_scene` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
 | `santa_sleigh_trot` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
+| `school_fx` | 330x231 | RGBA | 1,0,328,230 | 1 % | 495 | yes |
+| `school_mg` | 294x51 | RGBA | 2,2,292,49 | 9 % | 1 | yes |
+| `school_mw` | 330x228 | RGBA | 1,0,328,228 | 1 % | 1 | yes |
+| `school_snow_fx` | 324x93 | RGBA | 2,0,322,93 | 1 % | 43 | yes |
 | `snow_pile` | 108x21 | RGBA | 0,0,108,21 | 0 % | 11 | yes |
 | `snowman_body` | 114x222 | RGBA | 0,0,114,222 | 0 % | 37 | yes |
 | `snowman_nose` | 39x12 | RGBA | 0,0,39,12 | 0 % | 1 | yes |
@@ -410,8 +414,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `star_sparkle` | 180x180 | RGBA | 14,8,168,164 | 26 % | 1 | yes |
 | `sun_body` | 240x240 | RGBA | 21,21,224,227 | 27 % | 18 | yes |
 | `sun_glow` | 396x396 | RGBA | 1,1,395,395 | 1 % | 1 | yes |
-| `taxi_checker` | 120x27 | RGBA | 0,0,120,27 | 0 % | 4 | yes |
-| `taxi_sign` | 42x18 | RGBA | 0,0,42,18 | 0 % | 12 | yes |
+| `taxi_checker` | 120x27 | RGBA | 0,0,119,26 | 5 % | 7 | yes |
+| `taxi_sign` | 42x18 | RGBA | 0,0,42,18 | 0 % | 8 | yes |
 | `tower_bay_fx` | 42x36 | RGBA | 2,2,40,36 | 15 % | 1 | yes |
 | `tower_bay_mg` | 42x36 | RGBA | 2,2,40,36 | 15 % | 1 | yes |
 | `tower_crown_dome_fx` | 99x93 | RGBA | 0,1,97,92 | 4 % | 43 | yes |
