@@ -59,6 +59,15 @@ data class ThemePreviewScene(
     val cars: List<PreviewItem>,
     val ground: List<PreviewItem>,
     val dots: List<PreviewDot>,
+    /**
+     * What floats on the lake, drawn in a pass of its own immediately after the water.
+     *
+     * A list rather than more entries in [backdrop], because [backdrop] is split at the horizon by
+     * the painter -- everything above it goes behind the hills, everything below in front of them
+     * -- and the water band can sit on either side of that line. Beach's sea starts above the
+     * horizon, so a boat put in [backdrop] there is painted *under* the water and disappears.
+     */
+    val water: List<PreviewItem> = emptyList(),
 ) {
     companion object {
         /** The preview's own coordinate space, 4:3 like the gallery card. */
@@ -109,19 +118,74 @@ object ThemePreviewGeometry {
  *
  * What lives here instead is *composition*: which slots exist and where they stand. The real scene
  * generates hundreds of objects across a screen five times this wide, and shrinking that produces a
- * grey mush; a preview is a dozen objects in four reading bands -- skyline, tree line, the house
- * row with its people, and the road.
+ * grey mush; a preview is a dozen objects, one per family, standing in the order of depth the
+ * scene stands them in -- towers, restaurant, large house, school, small house, bar, then the
+ * trees, the pavement and the road. See [forTheme].
  */
 object ThemePreviewScenes {
 
-    private const val ROW_BUILDINGS = 168f
-    private const val ROW_TREES = 179f
-    private const val ROW_HOUSES = 191f
-    private const val ROW_PEOPLE = 199f
-    private const val ROW_GROUND = 203f
+    /**
+     * The depth rows the card's street is built on, far to near.
+     *
+     * v5.7 replaced four reading bands with the scene's own order. `SceneSpace` deals the
+     * neighbourhood by `depthFraction`, and the families land in a fixed sequence: the towers on
+     * the skyline (0.00-0.27), the restaurant at 0.4444, the large house, the school at 0.6222,
+     * the small house, and the bar at 0.8000 as the nearest building of all -- every one of those
+     * three shop depths is the single value `SceneObjectCatalog` emits in all twelve built-ins,
+     * measured, not chosen here. A row is a ground line rather than a band: an object on a nearer
+     * row is appended later and is therefore drawn in front, which is the whole of the ordering.
+     *
+     * What this replaced put the restaurant and the bar side by side on one row with the two
+     * houses in front of them, so the bar -- the building a user stands closest to in the scene --
+     * was 88 % hidden behind the small house on ten of the twelve cards.
+     */
+    private const val ROW_TOWERS = 168f
+    private const val ROW_RESTAURANT = 178f
+    private const val ROW_HOUSE_LARGE = 182f
+    private const val ROW_SCHOOL = 190f
+    private const val ROW_HOUSE_SMALL = 194f
+    private const val ROW_BAR = 198f
+    private const val ROW_TREES = 200f
+    private const val ROW_PEOPLE = 203f
+    private const val ROW_GROUND = 205f
+    private const val ROW_CARS = 214f
+
+    /**
+     * Where a seasonal decoration that used to stand at the right edge stands now.
+     *
+     * The bar is the nearest building and it sits on the right edge, so a snowman, a pumpkin or a
+     * rabbit left at 288-296 would cover the one building this layout exists to reveal. They move
+     * in front of the small house instead, which is the next gap going left.
+     */
+    private const val DECOR_RIGHT_X = 232f
+
+    /**
+     * The water's lower edge, and how far it climbs when the lake is at full height.
+     *
+     * **This is the correction the round is named after.** `PaperRenderer.updateLakeBandY` anchors
+     * the lake's *bottom* to the guaranteed ground line and grows it *upward*; the card anchored
+     * its *top* to the horizon and grew it *downward*, and then stood boats and dolphins at
+     * constant offsets from that top. The two disagree for every lake shorter than about two
+     * thirds, which is every built-in lake but Beach's -- and the default is 0.33 -- so the
+     * animals were placed below the water they were supposed to be in. On Beach, the one card
+     * with no town in front to hide the mistake, a dolphin had 44 % of its body on the sand.
+     *
+     * 164 is the ground line the towers stand behind; 56 is the climb that puts a full-height
+     * lake's surface just under the horizon, where the scene's is.
+     *
+     * Named `CARD_` and not `LAKE_` on purpose: these are lengths on the card's own 320x240
+     * canvas, not lengths of the lake's sprites, and `UnitFrameTest`'s prefix table resolves
+     * `LAKE_` to the sprite frame. A number that declares the wrong frame is the one thing that
+     * test exists to stop.
+     */
+    private const val CARD_LAKE_BOTTOM_UNITS = 164f
+    private const val CARD_LAKE_FULL_HEIGHT_UNITS = 56f
+
+    /** A lake this tall is open water rather than a pond, and its life gets the middle of it. */
+    private const val OPEN_WATER_HEIGHT = 0.8f
+
     private const val ROAD_TOP = 207f
     private const val ROAD_BOTTOM = 229f
-    private const val ROW_CARS = 214f
 
     /** See [car]: where a wheelless preview car's painted floor sits, kept from v4.18. */
     private const val PREVIEW_CAR_FLOOR_DROP = 28f
@@ -140,6 +204,33 @@ object ThemePreviewScenes {
      * never passes it -- a card shows the theme's own hour -- but the World & scene strip has
      * always had a day/night toggle, because half the colours a user edits there are night
      * colours and a preview that cannot show them is not much of a preview.
+     */
+    /**
+     * [forceNight] overrides the time of day the theme would otherwise be shown at. The gallery
+     * never passes it -- a card shows the theme's own hour -- but the World & scene strip has
+     * always had a day/night toggle, because half the colours a user edits there are night
+     * colours and a preview that cannot show them is not much of a preview.
+     *
+     * ### v5.7: the card shows the street, in the scene's own order
+     *
+     * The composition this replaced was arranged for a picture rather than after the scene, and a
+     * census of all twelve built-ins against the catalogue found forty-nine places where the card
+     * said something the wallpaper does not do: no card showed the school, which every theme
+     * builds; the bar was 88 % behind the small house on ten of them; Beach omitted its entire
+     * town; Big City omitted its three houses (and a test asserted it must); the birds nobody
+     * drew; and every boat and dolphin stood outside the water (see [CARD_LAKE_BOTTOM_UNITS]).
+     *
+     * So the six building families are laid out far to near exactly as `SceneSpace` deals them --
+     * towers, restaurant, large house, school, small house, bar -- the road carries the fire
+     * appliance the traffic mix really contains one time in ten, gulls fly by day, and the lake's
+     * life is placed on lanes that are fractions of the band rather than at constant offsets.
+     *
+     * **Nothing here decides what a theme contains** -- that was true before and is still true.
+     * Every object stays conditional on the flag the wallpaper reads. What changed is only where
+     * the objects stand, and `ThemePreviewTruthTest` is the measure that keeps it honest: it
+     * re-runs the census on every built-in and on a custom customization, and fails if a family
+     * the scene draws is missing from the card, if the card invents one, if a boat or a dolphin
+     * has ink outside the water, or if anything is more than half covered by what follows it.
      */
     fun forTheme(
         theme: SceneTheme,
@@ -185,16 +276,13 @@ object ThemePreviewScenes {
         }
 
         val peaks = buildPeaks(theme, c, night)
-        val lakeBand = PreviewBand(
-            top = HORIZON + if (theme.id == "beach") 9f else 2f,
-            bottom = HORIZON + 2f + 36f * c.lake.height.coerceIn(0.1f, 1f),
-            colour = if (night) c.lake.colorNight else c.lake.colorDay,
-        )
+        val lake = lakeBand(c, night)
 
         val backdrop = mutableListOf<PreviewItem>()
         val items = mutableListOf<PreviewItem>()
         val cars = mutableListOf<PreviewItem>()
         val groundItems = mutableListOf<PreviewItem>()
+        val water = mutableListOf<PreviewItem>()
         val dots = mutableListOf<PreviewDot>()
 
         // --- sun or moon ----------------------------------------------------------------------
@@ -219,12 +307,22 @@ object ThemePreviewScenes {
 
         // --- clouds ---------------------------------------------------------------------------
         if (c.clouds.visible && !night) {
-            val cloudTint = if (night) c.clouds.colorNight else c.clouds.colorDay
+            val cloudTint = c.clouds.colorDay
             val heavy = c.precipitation.visible
             backdrop += PreviewItem(70f, 40f, if (heavy) 0.30f else 0.22f,
                 listOf(PreviewSprite(R.drawable.cloud_body, -128f, -85f, cloudTint, alpha = 235)))
             backdrop += PreviewItem(206f, 30f, if (heavy) 0.26f else 0.18f,
                 listOf(PreviewSprite(R.drawable.cloud_body, -128f, -85f, cloudTint, alpha = 225)))
+        }
+
+        // --- birds ------------------------------------------------------------------------------
+        // The flock the card never drew. `BirdsConfig.nightBirds` is off in every built-in, so a
+        // night card owes none -- and reading the flag rather than the theme's name means a custom
+        // theme that turns night birds on gets them here too.
+        if (c.birds.visible && (!night || c.birds.nightBirds)) {
+            backdrop += PreviewItem(128f, 62f, 0.9f, bird(c))
+            backdrop += PreviewItem(148f, 72f, 0.7f, bird(c))
+            if (c.birds.density >= 0.4f) backdrop += PreviewItem(112f, 78f, 0.6f, bird(c))
         }
 
         // --- stars ----------------------------------------------------------------------------
@@ -240,63 +338,65 @@ object ThemePreviewScenes {
             }
         }
 
-        // --- skyline --------------------------------------------------------------------------
+        // --- the street, far to near ------------------------------------------------------------
+        // The identities are `PreviewIdentity`'s, not invented here: each one is a position the
+        // deal reads, and it decides both the silhouette the slot composer produces and which of
+        // the category's two colours the building wears. Picking them rather than a colour is the
+        // whole difference from the flat-facade version -- see [neighbourhood].
         val cityLike = c.buildings.density >= 0.9f
-        // A lake this tall is a shore, not a pond: the town moves back to one building at the
-        // waterline so the water, the boats and the palms are what the card shows. Beach is the
-        // only built-in theme that reaches it (height 0.9); any custom theme that raises its lake
-        // that far gets the same treatment for the same reason.
-        val shoreline = c.lake.visible && c.lake.height >= 0.8f
-        // The identities are `PreviewIdentity`'s, not invented here: each one is a position a
-        // building of that family really occupies, and it decides both the silhouette the slot
-        // composer deals and which of the category's two colours the building wears. Picking them
-        // rather than a colour is the whole difference from the flat-facade version -- see
-        // [neighbourhood].
-        if (c.buildings.visible) {
-            if (shoreline) {
-                items += buildingItem(252f, ROW_GROUND, 0.38f, SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
-                    PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, night, winter)
-            } else if (cityLike) {
-                for ((index, x) in listOf(40f, 108f, 176f, 250f).withIndex()) {
-                    items += buildingItem(x, ROW_BUILDINGS, if (index % 2 == 0) 0.44f else 0.42f,
-                        SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
-                        PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, night, winter)
-                }
-                items += buildingItem(96f, ROW_HOUSES, 0.44f, SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
-                    PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, night, winter)
-                items += buildingItem(232f, ROW_HOUSES, 0.44f, SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
-                    PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, night, winter)
-            } else {
-                items += buildingItem(58f, ROW_BUILDINGS, 0.40f, SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
-                    PreviewIdentity.TOWER_X[0], PreviewIdentity.TOWER_DEPTH[0], c, night, winter)
-                items += buildingItem(152f, ROW_BUILDINGS, 0.42f, SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
-                    PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, night, winter)
-                items += buildingItem(236f, ROW_BUILDINGS, 0.42f, SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
-                    PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, night, winter)
-            }
-        }
+        // Tundra thins its woodland to a scattering rather than removing it, and that is exactly
+        // what its density says; the card reads the same number.
+        val sparse = c.trees.density <= 0.25f
 
-        // --- houses ---------------------------------------------------------------------------
-        if (c.houses.visible && !cityLike && !shoreline) {
-            items += buildingItem(96f, ROW_HOUSES, 0.46f, SceneSpace.SceneVariant.HOUSE_LARGE, SceneObjectType.HOUSE,
+        fun tower(x: Float, y: Float, fit: Float, index: Int) = buildingItem(
+            x, y, fit, SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
+            PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, night, winter,
+        )
+
+        if (c.buildings.visible) {
+            if (cityLike) {
+                // A city's skyline is what it is for, so it keeps all four towers.
+                for ((index, x) in listOf(40f, 108f, 176f, 250f).withIndex()) {
+                    items += tower(x, ROW_TOWERS, if (index % 2 == 0) 0.44f else 0.42f, index)
+                }
+            } else {
+                // Two towers frame the street: the scene's towers are its farthest objects and
+                // stand at both ends of the tile, not in a row in the middle.
+                items += tower(40f, ROW_TOWERS, 0.38f, 0)
+                items += tower(296f, ROW_TOWERS, 0.34f, 2)
+            }
+            items += buildingItem(128f, ROW_RESTAURANT, 0.38f,
+                SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
+                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, night, winter)
+        }
+        if (c.houses.visible) {
+            items += buildingItem(80f, ROW_HOUSE_LARGE, 0.40f,
+                SceneSpace.SceneVariant.HOUSE_LARGE, SceneObjectType.HOUSE,
                 PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, night, winter)
-            items += buildingItem(250f, ROW_HOUSES, 0.46f, SceneSpace.SceneVariant.HOUSE_SMALL, SceneObjectType.HOUSE,
+        }
+        if (c.buildings.visible) {
+            items += buildingItem(176f, ROW_SCHOOL, 0.40f,
+                SceneSpace.SceneVariant.SCHOOL, SceneObjectType.SKYSCRAPER,
+                PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, night, winter)
+        }
+        if (c.houses.visible) {
+            items += buildingItem(236f, ROW_HOUSE_SMALL, 0.40f,
+                SceneSpace.SceneVariant.HOUSE_SMALL, SceneObjectType.HOUSE,
                 PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, night, winter)
         }
+        if (c.buildings.visible) {
+            items += buildingItem(300f, ROW_BAR, 0.42f,
+                SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
+                PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, night, winter)
+        }
 
-        // --- trees ----------------------------------------------------------------------------
+        // --- trees ------------------------------------------------------------------------------
         if (c.trees.visible) {
-            // Tundra thins its woodland to a scattering rather than removing it, and that is
-            // exactly what its density says; the preview reads the same number.
-            val sparse = c.trees.density <= 0.25f
-            val xs = when {
-                sparse -> listOf(178f, 300f)
-                c.trees.density >= 0.7f -> listOf(24f, 120f, 200f, 300f)
-                else -> listOf(24f, 190f, 300f)
-            }
+            // Two, whatever the density, and one where the woodland is a scattering: a third has
+            // no place on this row that does not stand in front of a shop.
+            val xs = if (sparse) listOf(262f) else listOf(70f, 262f)
             xs.forEachIndexed { index, x ->
                 val leaf = if (c.fallColorsEnabled) FALL_LEAF_COLOURS[index % FALL_LEAF_COLOURS.size] else c.trees.colorDay1
-                val row = if (palms) ROW_TREES + 22f else ROW_TREES
                 val parts = when {
                     palms -> palmTree(dead = halloween, frost = winter)
                     // Christmas is the theme that puts firs among the trees.
@@ -304,78 +404,42 @@ object ThemePreviewScenes {
                     sparse -> fir(snow = winter, lights = false)
                     else -> tree(leaf, winter = winter, halloween = halloween)
                 }
-                items += PreviewItem(x, row, if (palms) 0.50f else 0.46f, parts)
-            }
-        }
-
-        // --- people ---------------------------------------------------------------------------
-        if (c.people.visible) {
-            val row = if (theme.id == "beach") ROW_GROUND else ROW_PEOPLE
-            items += PreviewItem(118f, row, 0.34f, person("man", winter, 1))
-            items += PreviewItem(142f, row, 0.34f, person("woman", winter, 2))
-            items += PreviewItem(268f, row, 0.34f, person("girl", winter, 0))
-        }
-
-        // --- cars -----------------------------------------------------------------------------
-        if (c.cars.visible) {
-            // One of each body, so the gallery shows the variety the road now has.
-            cars += PreviewItem(76f, ROW_CARS, 0.42f, car(CarShell.SALOON, c.cars.colorDay1))
-            cars += PreviewItem(236f, ROW_CARS, 0.42f, car(CarShell.ESTATE, c.cars.colorDay2))
-            if (cityLike) {
-                cars += PreviewItem(
-                    168f, ROW_CARS, 0.40f,
-                    car(CarShell.COMPACT, blendRgb(c.cars.colorDay1, 0xFFC1443B.toInt(), 0.6f)),
+                items += PreviewItem(
+                    x,
+                    if (palms) ROW_TREES + 4f else ROW_TREES,
+                    if (palms) 0.44f else 0.38f,
+                    parts,
                 )
             }
         }
 
-        // --- lake life ------------------------------------------------------------------------
-        if (c.lake.visible) {
-            if (c.lake.sailboatsVisible) {
-                backdrop += PreviewItem(60f, lakeBand.top + 14f, 0.34f, sailboat())
-                backdrop += PreviewItem(246f, lakeBand.top + 10f, 0.28f, sailboat())
-            }
-            if (c.lake.dolphinsVisible) {
-                backdrop += PreviewItem(108f, lakeBand.top + 24f, 0.32f,
-                    listOf(PreviewSprite(R.drawable.dolphin_body, -56.3f, -28f)))
-                backdrop += PreviewItem(212f, lakeBand.top + 19f, 0.24f,
-                    listOf(PreviewSprite(R.drawable.dolphin_body, -56.3f, -28f)))
+        // --- people -----------------------------------------------------------------------------
+        if (c.people.visible) {
+            val kinds = listOf("man", "woman", "girl")
+            listOf(118f, 142f, 268f).forEachIndexed { index, x ->
+                items += PreviewItem(x, ROW_PEOPLE, 0.34f, person(kinds[index], winter, (index + 1) % 3))
             }
         }
 
-        // --- seasonal decorations ---------------------------------------------------------------
-        if (c.snowmen.visible) {
-            groundItems += PreviewItem(52f, ROW_GROUND, 0.56f, snowman(c.snowmen.colorDay1))
-            if (c.snowmen.density >= 0.45f) groundItems += PreviewItem(292f, ROW_GROUND, 0.50f, snowman(c.snowmen.colorDay2))
+        // --- cars -------------------------------------------------------------------------------
+        if (c.cars.visible) {
+            // The traffic the scene really carries: it keeps ten vehicles at the default density
+            // and one in ten of them is the appliance, which is the loudest thing on the road and
+            // was the one body the card never showed.
+            cars += PreviewItem(60f, ROW_CARS, 0.42f, car(CarShell.SALOON, c.cars.colorDay1))
+            cars += PreviewItem(160f, ROW_CARS, 0.40f, fireTruck())
+            cars += PreviewItem(262f, ROW_CARS, 0.42f, car(CarShell.ESTATE, c.cars.colorDay2))
         }
-        if (c.gifts.visible) {
-            groundItems += PreviewItem(200f, ROW_GROUND, 0.55f, gift(c.gifts.colorDay1))
-            groundItems += PreviewItem(222f, ROW_GROUND, 0.48f, gift(c.gifts.colorDay2))
-            groundItems += PreviewItem(296f, ROW_GROUND, 0.50f, gift(c.gifts.colorDay1))
-        }
-        if (c.penguins.visible) {
-            groundItems += PreviewItem(120f, ROW_GROUND + 4f, 0.60f, penguin(c.penguins.colorDay1))
-            groundItems += PreviewItem(148f, ROW_GROUND + 4f, 0.54f, penguin(c.penguins.colorDay2))
-            groundItems += PreviewItem(236f, ROW_GROUND, 0.50f, penguin(c.penguins.colorDay1))
-        }
-        if (c.bunnies.visible) {
-            groundItems += PreviewItem(50f, ROW_GROUND, 0.60f, bunny(c.bunnies.colorDay1))
-            groundItems += PreviewItem(296f, ROW_GROUND, 0.52f, bunny(c.bunnies.colorDay2))
-        }
-        if (c.easterEggs.visible) {
-            groundItems += PreviewItem(196f, ROW_GROUND, 0.55f, easterEgg(c.easterEggs.colorDay1))
-            groundItems += PreviewItem(218f, ROW_GROUND, 0.48f, easterEgg(c.easterEggs.colorDay2))
-            groundItems += PreviewItem(92f, ROW_GROUND, 0.46f, easterEgg(c.easterEggs.colorDay1))
-        }
-        if (c.pumpkins.visible) {
-            groundItems += PreviewItem(52f, ROW_GROUND, 0.56f, pumpkin(c.pumpkins.colorDay1))
-            groundItems += PreviewItem(204f, ROW_GROUND, 0.50f, pumpkin(c.pumpkins.colorDay2))
-            groundItems += PreviewItem(288f, ROW_GROUND, 0.48f, pumpkin(c.pumpkins.colorDay1))
-        }
-        // Parasols are deliberately absent. The renderer draws them procedurally -- there is no
-        // parasol sprite in the library -- and standing in a differently-shaped sprite would be a
-        // preview showing something the scene does not contain, which is the one thing this file
-        // must not do.
+
+        // --- what is on the water ---------------------------------------------------------------
+        if (c.lake.visible) lakeLife(c, lake, water)
+
+        // --- the ground, then what stands on it ---------------------------------------------------
+        // **Wildflowers first.** `SceneObjectRenderer.drawGroundFlowers` says of itself that it
+        // draws "before anything that stands on it", and the card had them last -- after every
+        // seasonal decoration. No built-in showed it, because Spring is the only theme with
+        // flowers on and it has no snowmen, eggs or pumpkins; a customization that turns both on
+        // buried the decoration under a clump of grass, and the rule below caught it.
         if (c.flowersEnabled) {
             // Which clump, from the renderer's own function rather than from a copy of its rule:
             // the card is the one place a user sees the two side by side as they flip the seasonal
@@ -385,15 +449,84 @@ object ThemePreviewScenes {
             var seed = theme.id.hashCode() xor 0x5EED
             repeat(10) { i ->
                 seed = seed * 1103515245 + 12345
-                val x = 24f + i * 31f + ((seed ushr 9) % 12)
-                val y = ROW_GROUND - ((seed ushr 5) % 14)
+                val x = 12f + i * 30f + ((seed ushr 9) % 12)
+                val y = ROW_GROUND - ((seed ushr 5) % 10)
                 groundItems += PreviewItem(x, y, 0.95f, listOf(PreviewSprite(flowers, -18f, -12f)))
             }
         }
+        if (c.snowmen.visible) {
+            groundItems += PreviewItem(52f, ROW_GROUND, 0.56f, snowman(c.snowmen.colorDay1))
+            if (c.snowmen.density >= 0.45f) groundItems += PreviewItem(DECOR_RIGHT_X, ROW_GROUND, 0.50f, snowman(c.snowmen.colorDay2))
+        }
+        if (c.gifts.visible) {
+            groundItems += PreviewItem(200f, ROW_GROUND, 0.55f, gift(c.gifts.colorDay1))
+            groundItems += PreviewItem(222f, ROW_GROUND, 0.48f, gift(c.gifts.colorDay2))
+            groundItems += PreviewItem(60f, ROW_GROUND, 0.50f, gift(c.gifts.colorDay1))
+        }
+        if (c.penguins.visible) {
+            // 120 and 148 stood on the two adults at 118 and 142 and covered one of them by two
+            // thirds; 72 and 98 stand beside them.
+            groundItems += PreviewItem(72f, ROW_GROUND + 2f, 0.60f, penguin(c.penguins.colorDay1))
+            groundItems += PreviewItem(98f, ROW_GROUND + 2f, 0.54f, penguin(c.penguins.colorDay2))
+            groundItems += PreviewItem(236f, ROW_GROUND, 0.50f, penguin(c.penguins.colorDay1))
+        }
+        if (c.bunnies.visible) {
+            groundItems += PreviewItem(50f, ROW_GROUND, 0.60f, bunny(c.bunnies.colorDay1))
+            groundItems += PreviewItem(DECOR_RIGHT_X, ROW_GROUND, 0.52f, bunny(c.bunnies.colorDay2))
+        }
+        if (c.easterEggs.visible) {
+            groundItems += PreviewItem(196f, ROW_GROUND, 0.55f, easterEgg(c.easterEggs.colorDay1))
+            groundItems += PreviewItem(218f, ROW_GROUND, 0.48f, easterEgg(c.easterEggs.colorDay2))
+            groundItems += PreviewItem(92f, ROW_GROUND, 0.46f, easterEgg(c.easterEggs.colorDay1))
+        }
+        if (c.pumpkins.visible) {
+            groundItems += PreviewItem(52f, ROW_GROUND, 0.56f, pumpkin(c.pumpkins.colorDay1))
+            groundItems += PreviewItem(204f, ROW_GROUND, 0.50f, pumpkin(c.pumpkins.colorDay2))
+            groundItems += PreviewItem(DECOR_RIGHT_X, ROW_GROUND, 0.48f, pumpkin(c.pumpkins.colorDay1))
+        }
+        // Parasols are deliberately absent. The renderer draws them procedurally -- there is no
+        // parasol sprite in the library -- and standing in a differently-shaped sprite would be a
+        // preview showing something the scene does not contain, which is the one thing this file
+        // must not do. `ThemePreviewTruthTest` carries the same exception, named.
         if (theme.hasFireworks) {
             backdrop += PreviewItem(212f, 46f, 0.55f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFFFFD166.toInt())))
             backdrop += PreviewItem(258f, 66f, 0.42f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFFEF7DA8.toInt())))
-            backdrop += PreviewItem(172f, 70f, 0.34f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFF8AD6F0.toInt())))
+            backdrop += PreviewItem(160f, 70f, 0.34f, listOf(PreviewSprite(R.drawable.firework, -40f, -40f, 0xFF8AD6F0.toInt())))
+        }
+        // The sleigh, for the same reason the fireworks are three lines above it.
+        //
+        // Both are periodic flybys on a random interval rather than populations, and the card drew
+        // one and not the other; `ThemePreviewTruthTest` exempted the sleigh and named the
+        // inconsistency in the exemption's own text. The two cannot both be right, and this is the
+        // half that was missing: `santaEnabled` is a plain per-theme flag with no hour and no theme
+        // gate on it -- `PaperRenderer` hands it straight to `SantaSleighEffect.update` -- so a day
+        // card carrying it says exactly what the scene does.
+        //
+        // Read from the flag, not from the theme's name: `defaultCustomizationFor` seeds it from
+        // `theme.hasSantaSleigh` (Christmas alone), but the Seasons screen's switch reaches every
+        // theme, and a saved theme that turns it on gets the sleigh here too.
+        //
+        // **Placed where the effect flies it and where the sky is free.** `startFlight` picks
+        // `screenHeight * (0.10..0.26)`, which is 24..62 on this 240-unit canvas; 52 is inside that
+        // band. 0.26 puts 51 of the card's 320 units across it -- a shade under the near cloud's
+        // 58 -- and the span 116..167 is the gap between the two clouds, clear of the sun on the
+        // right and a unit clear of the nearest gull below. Fixed art, untinted, like the scene's.
+        //
+        // The two origins are `PaperRenderer`'s own, referenced rather than re-typed -- the same
+        // way the dolphin takes hers. -99.67 is knowingly not the centre of the drawing and that
+        // KDoc explains why; a copy here would be a second place for that to be "corrected".
+        // `santa_sleigh_scene` is the still frame of the two the scene alternates.
+        if (c.santaEnabled) {
+            backdrop += PreviewItem(
+                142f, 52f, 0.26f,
+                listOf(
+                    PreviewSprite(
+                        R.drawable.santa_sleigh_scene,
+                        PaperRenderer.SANTA_SLEIGH_ORIGIN_X_UNITS,
+                        PaperRenderer.SANTA_SLEIGH_ORIGIN_Y_UNITS,
+                    ),
+                ),
+            )
         }
 
         // --- weather --------------------------------------------------------------------------
@@ -426,7 +559,7 @@ object ThemePreviewScenes {
             skyBottom = skyBottom,
             groundColour = ground,
             peaks = peaks,
-            lake = lakeBand,
+            lake = lake,
             hasLake = c.lake.visible,
             hasRoad = true,
             roadColour = if (night) 0xFF24242C.toInt() else 0xFF3A3A40.toInt(),
@@ -435,8 +568,95 @@ object ThemePreviewScenes {
             cars = cars,
             ground = groundItems,
             dots = dots,
+            water = water,
         )
     }
+
+    /**
+     * The card's water band, anchored the way `PaperRenderer.updateLakeBandY` anchors the scene's.
+     *
+     * Bottom fixed, growing upward with the height the user sets. The version this replaced pinned
+     * the *top* to the horizon and grew downward, which put the surface in the right place only at
+     * full height and everywhere else left the lake's life below its own floor.
+     */
+    private fun lakeBand(c: SceneCustomization, night: Boolean): PreviewBand {
+        val height = c.lake.height.coerceIn(0.1f, 1f)
+        return PreviewBand(
+            top = CARD_LAKE_BOTTOM_UNITS - CARD_LAKE_FULL_HEIGHT_UNITS * height,
+            bottom = CARD_LAKE_BOTTOM_UNITS,
+            colour = if (night) c.lake.colorNight else c.lake.colorDay,
+        )
+    }
+
+    /**
+     * A boat and a dolphin, placed the way `PaperRenderer.gatherLakeDecorations` places them: on
+     * lanes that are **fractions of the band's own height**, at a scale the band can hold.
+     *
+     * One of each, because one of each is what the pool deals at the default densities
+     * (`CandidateThreshold` keeps 1 of the 6 sailboat candidates and 1 of the 6 dolphins in every
+     * built-in that has them). The scale is derived from the band rather than fixed, so a lake a
+     * user shrinks to a tenth gets a boat that still fits inside it; the caps stop a full-height
+     * sea from showing a dolphin the size of the bar.
+     */
+    private fun lakeLife(c: SceneCustomization, band: PreviewBand, into: MutableList<PreviewItem>) {
+        val height = band.bottom - band.top
+        val open = c.lake.height >= OPEN_WATER_HEIGHT
+        if (c.lake.sailboatsVisible) {
+            val scale = (height / 60f).coerceIn(0.14f, if (open) 0.30f else 0.24f)
+            // The hull's ink runs from oy 8 to oy 25 in the sprite's own space, so its middle is
+            // 16.5 units below the item's origin: subtracting that sits the waterline on the lane.
+            val lane = band.top + height * 0.38f
+            into += PreviewItem(if (open) 130f else 13f, lane - 16.5f * scale, scale, sailboat())
+        }
+        if (c.lake.dolphinsVisible) {
+            val scale = (0.75f * height / 57f).coerceIn(0.12f, if (open) 0.30f else 0.20f)
+            val lane = band.top + height * 0.42f
+            into += PreviewItem(if (open) 200f else 207f, lane - scale, scale, dolphin())
+        }
+    }
+
+    /**
+     * The dolphin, at the renderer's origin rather than at a copy of an older one.
+     *
+     * The literals here were `(-56.3, -28)`, the pair v4.31 measured as **(+0.87, +1.0) units off
+     * the animal's centre** and replaced in `PaperRenderer`; `DolphinLeapOriginTest` asserts the
+     * renderer is rid of them, and the card was still carrying them. Reading the constants is the
+     * fix that cannot drift again.
+     */
+    private fun dolphin() = listOf(
+        PreviewSprite(R.drawable.dolphin_body, PaperRenderer.DOLPHIN_ORIGIN_X_UNITS, PaperRenderer.DOLPHIN_ORIGIN_Y_UNITS),
+    )
+
+    /**
+     * A gull, in the heaviest of the theme's own bird colours.
+     *
+     * The offsets are the centre of `bird_body`'s 51x21 px canvas in scene units -- (8.5, 3.5) --
+     * because the renderer centres the same sprite on that axis to mirror the wing-flap about it.
+     * The card has no flap, so it needs the centre and nothing else. The size is pinned by
+     * `SpriteMeasurementClaimTest`.
+     */
+    private fun bird(c: SceneCustomization): List<PreviewSprite> {
+        val colour = c.birds.colors.maxByOrNull { it.weight }?.color ?: 0xFFFFFFFF.toInt()
+        return listOf(PreviewSprite(R.drawable.bird_body, -8.5f, -3.5f, colour))
+    }
+
+    /**
+     * The fire appliance, at `SceneObjectRenderer.drawFireTruck`'s own two origins, ladder first.
+     *
+     * Without the beacons and the lamps: those are the two rectangles and two lenses the renderer
+     * brightens on the night ramp, and the card has no clock -- the same reason it leaves out
+     * porch lights and window occupants.
+     */
+    private fun fireTruck(): List<PreviewSprite> = listOf(
+        PreviewSprite(
+            R.drawable.firetruck_ladder,
+            SceneObjectRenderer.FIRE_TRUCK_LADDER_X_UNITS, SceneObjectRenderer.FIRE_TRUCK_LADDER_Y_UNITS,
+        ),
+        PreviewSprite(
+            R.drawable.firetruck_body,
+            SceneObjectRenderer.FIRE_TRUCK_BODY_X_UNITS, SceneObjectRenderer.FIRE_TRUCK_BODY_Y_UNITS,
+        ),
+    )
 
     private fun buildPeaks(theme: SceneTheme, c: SceneCustomization, night: Boolean): List<PreviewPeak> {
         val out = mutableListOf<PreviewPeak>()
@@ -477,21 +697,38 @@ object ThemePreviewScenes {
      *
      * A building's silhouette and its colour both come from `(tileFractionX, depthFraction)` --
      * the slot composer's choices and `variantIndexFor`'s -- so a preview that wants to show a
-     * turret rather than a gable asks for a position, not for a turret. These are positions
-     * buildings of their family really occupy in a built-in layout (the restaurant's and the
-     * bar's are the ones `SceneObjectCatalog` emits per tile, the houses' the middle of the front
-     * band), so every card shows a street that exists.
+     * turret rather than a gable asks for a position, not for a turret.
      *
      * They were chosen by dealing them: `spire, dome, spire, dome` across the four towers and one
      * of each category colour on each row, which is what a skyline is for. Change one and the
      * card changes -- `ThemePreviewSceneTest` pins what each currently deals, so the change is
      * visible rather than silent.
+     *
+     * ### What these are, and what they are not
+     *
+     * They are **positions, dealt for a picture**. The paragraph that stood here said they were
+     * "positions buildings of their family really occupy in a built-in layout (the restaurant's
+     * and the bar's are the ones `SceneObjectCatalog` emits per tile)", and a census of all twelve
+     * built-ins says otherwise: the catalogue emits the restaurant at depth **0.4444** and the bar
+     * at **0.8000**, in every theme, and its towers never go past **0.2667**. So six of the ten
+     * numbers below -- both shop depths and three of the four tower depths -- are positions no
+     * building of that family stands at. Nothing is wrong with the *card* that follows from them
+     * (a dealt silhouette is a real silhouette wherever the hash lands), but the derivation was
+     * not what it claimed, and a future edit "restoring" them to the catalogue would move every
+     * shop on every card. Whether they should be the catalogue's is a question for a round that
+     * can look at the twelve cards it changes; this one only stops the sentence being false.
+     *
+     * [SCHOOL_DEPTH] is the exception, and is measured: the catalogue puts the school at 0.6222
+     * in all twelve, so the card can stand it exactly where the scene does. Its x is the one
+     * Tundra's school gets, picked the same way the other nine were.
      */
     internal object PreviewIdentity {
         val TOWER_X = floatArrayOf(0.0521f, 0.1319f, 0.44f, 0.2118f)
         val TOWER_DEPTH = floatArrayOf(0.2667f, 0.4618f, 0.66f, 0.7111f)
         const val RESTAURANT_X = 0.1319f
         const val RESTAURANT_DEPTH = 0.4618f
+        const val SCHOOL_X = 0.4458f
+        const val SCHOOL_DEPTH = 0.6222f
         const val BAR_X = 0.2118f
         const val BAR_DEPTH = 0.7111f
         const val HOUSE_LARGE_X = 0.2986f

@@ -75,10 +75,11 @@ internal object NeighbourhoodComposer {
      * The hash every per-instance choice in this engine is made from.
      *
      * Identical to `SceneCustomization`'s own `stableFraction(StaticSceneObject, Float)` -- the
-     * function that decides which of a category's two colours an object wears. Stated here as
-     * well, against the two fields rather than the object, so the preview can ask the same
-     * question about a position that is not a scene object at all. `SpriteTintClassTest` pins the
-     * two against each other.
+     * function that decides which objects a density keeps. (Until v5.7F it also decided which of a
+     * category's two colours an object wears; that is its own coin now, see
+     * `SceneCustomization.variantIndexFor`.) Stated here as well, against the two fields rather
+     * than the object, so the preview can ask the same question about a position that is not a
+     * scene object at all.
      */
     fun stableFraction(tileFractionX: Float, depthFraction: Float, salt: Float): Float {
         val raw = tileFractionX * 7919f + depthFraction * 7919f * 131f + salt

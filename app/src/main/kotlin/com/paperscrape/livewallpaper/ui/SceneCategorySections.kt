@@ -35,6 +35,18 @@ internal fun ObjectCategorySection(
     scope: CoroutineScope,
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
     showTitle: Boolean = true,
+    /**
+     * Whether to draw the "Show X" switch, for the same reason [showTitle] exists: the caller has
+     * already drawn one.
+     *
+     * The six seasonal decorations reach this block through `SeasonsScreen.DecorationRows`, which
+     * puts the category's switch on the season's own screen and a "X options -- Density and
+     * colours" row directly under it. So the switch was rendered twice for one `config.visible`
+     * and one `setCategoryVisible`, one tap apart, and the second one contradicted the row that
+     * led to it. The World & scene categories have no such outer switch -- there the parent row
+     * only summarises -- so they keep it, and the default is `true`.
+     */
+    showVisibilitySwitch: Boolean = true,
     /** What the density slider calls itself -- "Day density" where a night twin sits beside it. */
     densityLabel: String = "Density",
     /** Rendered directly under the density slider -- the cars put their night twin here, so the
@@ -44,12 +56,14 @@ internal fun ObjectCategorySection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showTitle) SectionTitle(title)
 
-        SettingSwitchRow(
-            title = "Show $title",
-            subtitle = "$title can appear in every theme",
-            checked = config.visible,
-            onCheckedChange = { scope.launch { prefs.setCategoryVisible(category, it, forThemeId) } },
-        )
+        if (showVisibilitySwitch) {
+            SettingSwitchRow(
+                title = "Show $title",
+                subtitle = "$title can appear in every theme",
+                checked = config.visible,
+                onCheckedChange = { scope.launch { prefs.setCategoryVisible(category, it, forThemeId) } },
+            )
+        }
 
         PreferenceSlider(
             label = { shown -> Text("$densityLabel: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },

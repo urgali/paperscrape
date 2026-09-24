@@ -197,6 +197,7 @@ class ImportParserFuzzTest {
                 weatherApiComApiKey = "",
                 openWeatherApiKey = "",
                 automaticUpdateCheckEnabled = true,
+                updateNotificationsEnabled = true,
                 fixedHour = 12f,
                 parallaxStrength = 0.5f,
                 scrollBackground = true,

@@ -20,8 +20,15 @@ class ThemePreviewSceneTest {
     private fun sceneFor(id: String): ThemePreviewScene =
         ThemePreviewScenes.forTheme(ThemeCatalog.byId(id), defaultCustomizationFor(id))
 
+    /**
+     * Every sprite the card draws, in every list it draws from.
+     *
+     * [ThemePreviewScene.water] belongs here and is easy to forget: it is where v5.7 moved the
+     * boats and the dolphins, so a helper that left it out would have made
+     * `beach has water with boats and dolphins` pass by looking at the wrong four lists.
+     */
     private fun ThemePreviewScene.allSprites(): List<Int> =
-        (backdrop + items + cars + ground).flatMap { item -> item.parts.map { it.resId } }
+        (backdrop + water + items + cars + ground).flatMap { item -> item.parts.map { it.resId } }
 
     /**
      * Whether the scene shows any of the winter drifts [variant]'s pieces can carry.
@@ -164,13 +171,24 @@ class ThemePreviewSceneTest {
         assertFalse("New Year is not Christmas", scene.contains(R.drawable.gift_box))
     }
 
+    /**
+     * This used to end `assertFalse("a city is towers and shops, not houses", ...)`, and that
+     * assertion was pinning a mistake rather than a property. `SceneObjectCatalog` gives Big City
+     * two large houses and a small one per tile -- the census reads them straight out of the
+     * layout -- so the card was under test to leave out three of the buildings the theme has. It
+     * was one of the forty-nine disagreements v5.7 measured between the twelve cards and the
+     * catalogue, and the only one a green test was actively defending.
+     *
+     * What is true about a city, and is what the name meant, is the *skyline*: four towers where
+     * every other theme gets two, and no mountains behind them.
+     */
     @Test
-    fun `city is built rather than settled`() {
+    fun `a city is a skyline, over the houses the scene gives it too`() {
         val scene = sceneFor("city")
         val towers = scene.items.count { item -> item.parts.any { it.resId == R.drawable.tower_tier1_fx } }
         assertTrue("expected a skyline, got $towers towers", towers >= 4)
         assertTrue(scene.peaks.isEmpty())
-        assertFalse("a city is towers and shops, not houses", scene.contains(R.drawable.house_large_ground_fx))
+        assertTrue("the city's own houses", scene.contains(R.drawable.house_large_ground_fx))
     }
 
     @Test
@@ -249,7 +267,7 @@ class ThemePreviewSceneTest {
     fun `every preview fits inside its own coordinate space`() {
         for (theme in ThemeCatalog.ALL) {
             val scene = ThemePreviewScenes.forTheme(theme, defaultCustomizationFor(theme.id))
-            for (item in scene.backdrop + scene.items + scene.cars + scene.ground) {
+            for (item in scene.backdrop + scene.water + scene.items + scene.cars + scene.ground) {
                 assertTrue("${theme.id} object off the left edge", item.x >= -10f)
                 assertTrue("${theme.id} object off the right edge", item.x <= ThemePreviewScene.WIDTH_UNITS + 10f)
                 assertTrue("${theme.id} object below the card", item.y <= ThemePreviewScene.HEIGHT_UNITS)

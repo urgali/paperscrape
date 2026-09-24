@@ -26,10 +26,11 @@ moving on its own.
   holidays and the four seasons — can start and end where you want, and Easter's length is
   adjustable either side of a Sunday the app works out for you. One button puts it all back.
 - **Custom themes.** Save your own, built on any of the twelve, and keep them.
-- **Every part of the scene is adjustable.** Houses, buildings, trees, umbrellas,
+- **Every part of the scene is adjustable.** Houses, buildings, trees, garden parasols,
   cars, people, hills, mountains, clouds, stars, rainbows, the lake and its boats and
   dolphins: each can be shown, hidden, thinned out, and — where the artwork allows it
-  — recoloured, with separate day and night colours.
+  — recoloured, with separate day and night colours. (The umbrellas people carry follow the
+  rain and have no switch of their own.)
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
   roofs and trees.
@@ -127,6 +128,12 @@ sprite pixels are shared with the rest of the process.
 verifies it against the SHA-256 the release publishes, and hands it to Android's installer, which
 asks the user to confirm. A release without a checksum is not installed in-app at all. Nothing
 downloads or installs without an explicit tap.
+
+Since v5.7 the app can also *tell* you a release exists: with both *Check for updates
+automatically* and *Notify me about new versions* switched on (both are off by default), the
+wallpaper checks at most once a day while it is on screen and posts a silent notification that
+opens the same update dialog. It never checks while another wallpaper is set, or while the
+wallpaper is out of sight.
 
 The flow reports four states — checking, downloading, verifying, ready to install — and cannot be
 left stuck on any of them: a cancelled download returns the screen to the offer rather than freezing

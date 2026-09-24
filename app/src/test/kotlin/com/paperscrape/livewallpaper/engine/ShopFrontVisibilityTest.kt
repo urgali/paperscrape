@@ -126,6 +126,47 @@ class ShopFrontVisibilityTest {
     }
 
     /**
+     * The school a saved street is given (item 141, v5.7F) obeys the frontage rules, and never
+     * stands in front of the shops the street already had.
+     *
+     * Measured with this class's own model rather than the one that placed it, which is the point
+     * of the model being written twice. The streets are the twelve built-ins as saved at their
+     * defaults (`keepCandidate`-filtered, which is what a saved theme stores) with their school
+     * taken out -- a street with a restaurant, a bar and no school, the shape every theme saved
+     * before v5.6 has.
+     */
+    @Test
+    fun `a school added to a saved street clears its own front and leaves the saved shops as they were`() {
+        var added = 0
+        for (themeId in themes) {
+            val c = defaultCustomizationFor(themeId)
+            val street = SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).staticObjects
+                .filter { c.keepCandidate(it) }
+                .filterNot { it.type == SceneObjectType.SKYSCRAPER && SceneObjectRenderer.variantFor(it) == SceneSpace.SceneVariant.SCHOOL }
+            val school = SceneObjectCatalog.missingSchoolFor(street)
+                ?: throw AssertionError("$themeId: a street with no school was given none")
+            added++
+            assertEquals(SceneSpace.SceneVariant.SCHOOL, SceneObjectRenderer.variantFor(school))
+            val after = street + school
+            val covered = sampledFrontCoverage(after, school)
+            assertTrue("$themeId: the added school has ${"%.0f".format(covered * 100)}% of its front covered", covered <= 0.40f)
+            val f = frontRect(school)
+            val cx = (f[0] + f[2]) / 2f
+            val crossers = street.filter { it.depthFraction > school.depthFraction }
+                .mapNotNull { verticalMemberBox(it)?.let { b -> wrapBox(b, cx) } }
+                .filter { b -> b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3] }
+            assertTrue("$themeId: a trunk or pole crosses the added school's front", crossers.isEmpty())
+            for (shop in street.filter { isShop(it) }) {
+                assertEquals(
+                    "$themeId: the saved ${SceneObjectRenderer.variantFor(shop)} is more covered once the school stands",
+                    sampledFrontCoverage(street, shop), sampledFrontCoverage(after, shop), 0f,
+                )
+            }
+        }
+        assertEquals("this test asserted over no street at all", themes.size, added)
+    }
+
+    /**
      * The rc3 duplication criterion: two commercial buildings of the same storefront never share
      * a screen width. The wallpaper auto-scrolls through the whole tile, so this must hold for
      * EVERY window position, and an object is on screen for screenWidth + its own width of

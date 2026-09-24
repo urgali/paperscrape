@@ -145,7 +145,7 @@ class RealThemeSilhouetteDistributionTest {
     // ------------------------------------------------------- the skyline
 
     /**
-     * Both tower crowns on every theme's skyline -- **except one, and it is named here.**
+     * Both tower crowns on every theme's skyline, with no exception.
      *
      * The deal gives the tower catalogue's slots a permutation of ranks, so with seven slots and
      * two crowns every theme is *dealt* three of one and four of the other. What a theme then
@@ -153,20 +153,21 @@ class RealThemeSilhouetteDistributionTest {
      * contract in [SilhouetteDeal] forbids counting what has already been drawn, because a deal
      * that corrected itself would change a survivor's silhouette when a slider moved.
      *
-     * **v5.6F: `christmas` shows one crown, and this pins the measurement rather than relaxing
-     * the rule.** The school made the shop band three bands, so one more shop-band candidate
-     * stays a shop and one fewer is demoted to the skyline: the tower catalogue went from **8
-     * slots to 7**, and every rank in it moved. Measured on the twelve shipped ids, christmas is
-     * dealt `1 1 0 0 0 1 1` and its density drops slots 2, 3 and 4 -- which is all three of its
-     * spires. Eleven themes still show both.
+     * **v5.6F to v5.7E: `christmas` showed one crown, and this test pinned it by name.** The
+     * school made the shop band three bands, so one more shop-band candidate stays a shop and one
+     * fewer is demoted to the skyline: the tower catalogue went from **8 slots to 7**, and every
+     * rank in it moved. Christmas was dealt `1 1 0 0 0 1 1` and its 65 % density dropped slots 2,
+     * 3 and 4 -- all three of its spires -- leaving four domes.
      *
-     * It is a coincidence of two independent seeded functions and not a mechanism: at 8 slots the
-     * same twelve seeds produced no clump, and nothing about a seven-slot deal makes one more
-     * likely in general. Named rather than excused, so that a second theme joining it, or
-     * christmas leaving it, fails here.
+     * **v5.7F repaired it in the theme's defaults, not in the deal** (item 139): Christmas's
+     * building density is 67 %, which keeps the spire at slot 4 and nothing else. Every repair of
+     * the deal itself re-dealt other themes' towers -- the cheapest, ranking over a phantom eighth
+     * slot, changed 27 crowns across nine themes -- so the deal is exactly what it was. The set is
+     * asserted empty rather than the check being deleted, so a later layout change that clumps a
+     * theme again fails here by name.
      */
     @Test
-    fun `every built-in theme shows both tower crowns, and one shows one`() {
+    fun `every built-in theme shows both tower crowns`() {
         val singleCrown = sortedSetOf<String>()
         for (theme in themes) {
             val towers = kept(theme.id, SceneObjectType.SKYSCRAPER)
@@ -178,8 +179,30 @@ class RealThemeSilhouetteDistributionTest {
         }
         assertEquals(
             "these themes show one crown on every tower they keep",
-            sortedSetOf("christmas"), singleCrown,
+            sortedSetOf<String>(), singleCrown,
         )
+    }
+
+    /**
+     * The item-139 repair adds one tower to Christmas and moves nothing else anywhere.
+     *
+     * Pinned as counts because "the density keeps one more slot" is only a repair if it is
+     * exactly one, and exactly a tower: at 65 % Christmas stood 4 towers, at 67 % it stands 5, and
+     * every other theme stands what it stood before. A later nudge past the next threshold
+     * (0.6719, a dome) would satisfy the crown test above and still be a different skyline.
+     */
+    @Test
+    fun `christmas stands five towers and every other theme the towers it had`() {
+        val keptTowers = mapOf(
+            "sunset" to 4, "autumn" to 6, "winter" to 4, "desert" to 7,
+            "christmas" to 5, "new_year" to 6, "beach" to 5, "city" to 7,
+            "tundra" to 5, "easter" to 5, "halloween" to 4, "spring" to 4,
+        )
+        for (theme in themes) {
+            val towers = kept(theme.id, SceneObjectType.SKYSCRAPER)
+                .filter { SceneObjectRenderer.variantFor(it) == SceneSpace.SceneVariant.TOWER }
+            assertEquals("${theme.id} keeps a different number of towers", keptTowers.getValue(theme.id), towers.size)
+        }
     }
 
     /**

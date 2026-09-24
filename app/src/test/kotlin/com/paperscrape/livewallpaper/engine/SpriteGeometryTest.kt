@@ -465,6 +465,20 @@ class SpriteGeometryTest {
             val (width, height) = pngSize(name)
             total += width.toLong() * height.toLong() * 4L
         }
+        // **Printed on every run, passing or failing** (v5.7E, item 132).
+        //
+        // The measurement was here all along and only spoke when it failed, so the only way to
+        // read the standing figure was to lower the constant by hand and read it off the
+        // assertion. Every round that wanted the number did exactly that, including the one that
+        // wrote this line -- and in between, the figure quoted in `ROADMAP.md` went a release out
+        // of date without anything noticing. A gate that only speaks when it is breached cannot
+        // show growth; this line is the growth, on every build, for free.
+        println(
+            "decodedByteBudget: %d B of %d (%.3f MiB of %d MiB), %d B of margin, %d PNGs".format(
+                total, decodedByteBudget, total / 1048576.0,
+                decodedByteBudget / 1048576L, decodedByteBudget - total, spriteNames().size,
+            ),
+        )
         assertTrue(
             "the sprite set decodes to $total bytes, past the $decodedByteBudget budget. Raising " +
                 "the budget is a decision about what the `Canvas` path holds resident and about " +

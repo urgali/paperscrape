@@ -49,23 +49,51 @@ package com.paperscrape.livewallpaper.engine
  * wallpaper that boots to the wrong sky, and 33 goldens that depend on which frame they were
  * captured at. [UNSET] is what distinguishes "has never drawn" from "has drawn 0".
  *
+ * ### The expiry eases too (item 135, v5.7F)
+ *
+ * The third way the sky could change in a frame. When the snapshot ages out --
+ * `LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS` after the last good reading, with the retries
+ * spent -- the scene falls back to the theme's own weather. Until v5.7F that went through
+ * [coverToward]'s null branch, which resets the ramp: measured, the drawn cover went from 0.87 to
+ * the theme's density **in one frame** where the same move as a forecast change takes 270, and
+ * the next good reading then snapped again because the ramp had been reset. The maintainer's
+ * decision of 2026-09-23 is that "we no longer know what sky it is" deserves the same dissolve as
+ * "the sky has changed". [coverLapsingTo] is that path: the same ramp and the same rate, towards
+ * the theme's cover instead of the forecast's, and the ramp is kept afterwards so the next reading
+ * eases in from where the sky actually is.
+ *
  * ### What it does not touch
  *
- * Only the Live-Weather-driven cover eases. Handing [coverToward] a null target -- Live Weather
- * switched off, or off the whole time -- resets the ramp and returns null, so the theme's own
- * cloud switch and slider reach `LiveWeatherSceneRules.cloudDensity` exactly as they do today.
- * Turning the feature on or off is a deliberate act with a settings screen open in front of it,
- * which is not the event that was reported.
+ * The theme's own sky, while nothing has lapsed. Handing [coverToward] a null target -- Live
+ * Weather switched off, or off the whole time, or the location or the provider changed so it
+ * cannot run -- resets the ramp and returns null, so the theme's own cloud switch and slider reach
+ * `LiveWeatherSceneRules.cloudDensity` exactly as they do today. Those are deliberate acts with a
+ * settings screen open in front of them, which is not the event that was reported, and a sky that
+ * answers at once is how the user sees the switch worked. Once a lapse has settled the same is
+ * true: the theme's slider is followed exactly, frame by frame.
+ *
+ * Nor precipitation or the storm, on any path: they have never eased, a forecast that stops the
+ * rain stops it in a frame, and giving the expiry a rain fade the forecast does not have would make
+ * the rarer event the smoother one.
  *
  * No allocation and no new artwork: one float, one [FloatArray] sized to the pool, and an alpha
  * argument `SpriteBlitter.drawTinted` has always taken. Neither sprite budget can move, because
- * both count the *set of PNGs* and this adds none -- `SpriteGeometryTest.decodedByteBudget` at
- * 42 MiB and `SpriteDrawScaleTest.uploadedTexelBudget` at 16 MiB are untouched by construction.
+ * both count the *set of PNGs* and this adds none -- `SpriteGeometryTest.decodedByteBudget` and
+ * `SpriteDrawScaleTest.uploadedTexelBudget` are untouched by construction. **The two tests carry
+ * their own ceilings and the measurements behind them; this paragraph deliberately does not
+ * re-type either figure.** It used to, and both went stale the release after it was written --
+ * the same rot `GlTextureAtlas` and `GlTextureCache` were rewritten to escape.
  */
 internal class CloudCoverFade(poolSize: Int) {
 
     /** The cover being drawn, or [UNSET] when nothing has been drawn yet. */
     private var cover: Float = UNSET
+
+    /**
+     * True once a lapse has eased all the way to the theme's cover: from then on the theme draws
+     * itself and [cover] only shadows it, so the next reading has somewhere to ease in from.
+     */
+    private var lapseSettled = false
 
     /** Per-candidate opacity in `0..1`, or [UNSET] before that candidate's first frame. */
     private val opacity = FloatArray(poolSize) { UNSET }
@@ -77,6 +105,7 @@ internal class CloudCoverFade(poolSize: Int) {
      * @return the cover to hand `LiveWeatherSceneRules.cloudDensity`, or null when [target] is.
      */
     fun coverToward(target: Float?, deltaSeconds: Float): Float? {
+        lapseSettled = false
         if (target == null) {
             cover = UNSET
             return null
@@ -84,6 +113,33 @@ internal class CloudCoverFade(poolSize: Int) {
         val wanted = target.coerceIn(0f, 1f)
         val settled = if (cover == UNSET) wanted else approach(cover, wanted, COVER_UNITS_PER_SECOND * deltaSeconds)
         cover = settled
+        return settled
+    }
+
+    /**
+     * The cover to draw this frame while the forecast has **lapsed**: the snapshot aged out and the
+     * scene is going back to the theme's own weather ([themeCover], its slider or 0 when its cloud
+     * switch is off).
+     *
+     * @return the eased cover, to hand `LiveWeatherSceneRules.cloudDensity` exactly as a forecast
+     * cover is handed -- or null once it has arrived, from which frame on the theme's own switch
+     * and slider draw the sky as they do with Live Weather off. Null straight away when nothing
+     * has ever been drawn from a forecast, because then there is no sky to ease from: that is the
+     * first observation, and it snaps for the reason the class KDoc gives.
+     */
+    fun coverLapsingTo(themeCover: Float, deltaSeconds: Float): Float? {
+        if (cover == UNSET) return null
+        val wanted = themeCover.coerceIn(0f, 1f)
+        if (lapseSettled) {
+            cover = wanted
+            return null
+        }
+        val settled = approach(cover, wanted, COVER_UNITS_PER_SECOND * deltaSeconds)
+        cover = settled
+        if (settled == wanted) {
+            lapseSettled = true
+            return null
+        }
         return settled
     }
 

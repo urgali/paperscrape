@@ -232,6 +232,32 @@ class LiveWeatherScheduleTest {
         assertFalse(decision.status.isDrivingTheScene)
     }
 
+    /**
+     * Item 135 (v5.7F): an expiry is the one way off Live Weather that nobody chose, and it is the
+     * only one the decision marks as lapsed -- which is what lets the renderer ease the sky there
+     * and snap it everywhere else.
+     */
+    @Test
+    fun `only an expiry is a lapse`() {
+        val now = 10 * hour
+        fun decide(enabled: Boolean, hasLocation: Boolean, result: WeatherFetchResult?, ageHours: Long?) =
+            LiveWeatherSchedule.decide(
+                enabled = enabled, hasLocation = hasLocation, result = result,
+                snapshot = ageHours?.let { snapshotAt(now - it * hour) },
+                nowMillis = now, previous = LiveWeatherStatus.OK,
+            )
+        assertTrue("aged out, retries failing", decide(true, true, failed(WeatherFailure.NETWORK), 4).lapsed)
+        assertTrue("aged out, no fetch due this pass", decide(true, true, null, 4).lapsed)
+        assertFalse("fresh and drawing", decide(true, true, null, 0).lapsed)
+        assertFalse("fresh, one request dropped: STALE still draws", decide(true, true, failed(WeatherFailure.NETWORK), 0).lapsed)
+        assertFalse("switched off", decide(false, true, null, 4).lapsed)
+        assertFalse("location switched off, snapshot fresh", decide(true, false, null, 0).lapsed)
+        assertFalse("key missing, snapshot fresh", decide(true, true, WeatherFetchResult.MissingApiKey, 0).lapsed)
+        assertFalse("nothing ever fetched", decide(true, true, failed(WeatherFailure.NETWORK), null).lapsed)
+        // and a lapse never draws: the flag describes a null override, it does not replace one
+        assertNull(decide(true, true, null, 4).snapshotForScene)
+    }
+
     /** A dropped request with fresh data still shows it -- the STALE design is deliberate. */
     @Test
     fun `a transient failure with fresh data keeps drawing it as stale`() {

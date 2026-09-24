@@ -89,10 +89,17 @@ class PrePassSixThemeMigrationTest {
         assertEquals("three of the six commercial buildings should have become towers", 3, demoted.size)
     }
 
-    /** A theme that was already correct is not touched. */
+    /**
+     * A theme that was already correct is not touched.
+     *
+     * **v5.7F: three shops, not two.** "One shop per variant" has meant three since v5.6F, and a
+     * two-shop street is no longer "already correct": the 4 -> 5 step gives it the school it is
+     * missing (`SavedThemeSchoolMigrationTest`). The fixture is the three-shop street, so this
+     * still asks what it always asked -- that the repair leaves a healthy theme alone.
+     */
     @Test
     fun `a theme with one shop per variant comes back unchanged`() {
-        val before = entry(shops = listOf(0.40f, 0.70f), cars = listOf(CarType.PLAIN))
+        val before = entry(shops = listOf(0.40f, 0.55f, 0.70f), cars = listOf(CarType.PLAIN))
         val after = load(prePassSix(before)).customThemes.single()
         assertEquals(before.layout.staticObjects, after.layout.staticObjects)
     }

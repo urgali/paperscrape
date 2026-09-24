@@ -84,6 +84,37 @@ data class MoonPhasesUiState(
 )
 
 /**
+ * How the four boat-and-dolphin controls on *Lake, boats and dolphins* must be drawn, given
+ * whether the lake itself is on.
+ *
+ * **The renderer already decided this; the controls were the only part that had not been told.**
+ * `PaperRenderer.updateLakeBandY` returns early while `lake.visible` is false, so `drawLake`
+ * never reaches the sailboats or the dolphins: with the lake off there is no water and nothing
+ * floats on it. The two switches nevertheless read **on** and both density sliders stayed fully
+ * live -- four controls that move without effect, on the one screen where the default themes make
+ * it easy to meet (Sunset ships with the lake off).
+ *
+ * The same rule as [MoonPhasesUiState], for the same reason and with the same refusal:
+ * **[sailboatsShownOn] and [dolphinsShownOn] are not what is stored, and nothing writes the
+ * difference back.** While the lake is off the switches show off and locked; the user's own
+ * values sit untouched in the DataStore and come back the moment the lake goes on. Writing
+ * `false` into the preferences to make the switches look right would destroy a choice the user
+ * made -- which is exactly the bug this shape exists to avoid.
+ *
+ * @property sailboatsShownOn what the sailboat switch is drawn as. The stored value, or `false`.
+ * @property dolphinsShownOn what the dolphin switch is drawn as. The stored value, or `false`.
+ * @property interactive whether the four controls accept a touch.
+ * @property blockedByLakeOff whether the lake is what is holding them, and therefore whether the
+ *   rows owe the user the sentence that says why.
+ */
+data class LakeContentsUiState(
+    val sailboatsShownOn: Boolean,
+    val dolphinsShownOn: Boolean,
+    val interactive: Boolean,
+    val blockedByLakeOff: Boolean,
+)
+
+/**
  * The translation layer between the settings UI's grouped choices and the preference flags that
  * have always backed them.
  *
@@ -190,4 +221,23 @@ object SettingsUiModel {
         SeasonalPalette.AUTUMN -> true to false
         SeasonalPalette.WINTER -> false to true
     }
+
+    /**
+     * How the sailboat and dolphin rows must be drawn, given the stored values and the lake.
+     *
+     * Pure, and stated here rather than inlined in the composable for the same three reasons
+     * [moonPhases] is: this is the whole of the rule, it is the thing that must not start writing
+     * to the preferences, and here it is readable and testable on the JVM without a device.
+     * See [LakeContentsUiState].
+     */
+    fun lakeContents(
+        lakeVisible: Boolean,
+        storedSailboatsVisible: Boolean,
+        storedDolphinsVisible: Boolean,
+    ): LakeContentsUiState = LakeContentsUiState(
+        sailboatsShownOn = storedSailboatsVisible && lakeVisible,
+        dolphinsShownOn = storedDolphinsVisible && lakeVisible,
+        interactive = lakeVisible,
+        blockedByLakeOff = !lakeVisible,
+    )
 }

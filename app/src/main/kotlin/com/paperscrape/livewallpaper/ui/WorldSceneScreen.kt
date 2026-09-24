@@ -24,12 +24,14 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Waves
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.engine.CustomThemeData
+import com.paperscrape.livewallpaper.engine.LakeConfig
 import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.sunCloudHeightForFraction
@@ -73,6 +76,19 @@ internal fun WorldSceneScreen(
     onBack: () -> Unit,
 ) {
     var activeSection by remember { mutableStateOf<String?>(null) }
+    // **N1 (v5.7C): the whole-scope reset now asks first, and names what goes.**
+    //
+    // `resetAllCategories` removes this theme's entire customization record -- which is what its
+    // author meant, and is more than the button's name says. "Scene" is this app's own name for
+    // *this* screen, while the seasonal decorations live on `SeasonsScreen` behind their own,
+    // narrower "Reset decorations to defaults"; so a button named after one screen silently
+    // cleared the other. It was also the only whole-scope reset in the app with no confirmation:
+    // "Reset all customised themes" in Advanced & about has one, and so does a theme card's
+    // "Reset to default". This is that missing third dialog, in the same shape as those two.
+    //
+    // Nothing moved and nothing was renamed: the button's label, its position and what it does
+    // once confirmed are byte for byte what they were.
+    var confirmSceneReset by remember { mutableStateOf(false) }
     // **What the forecast is actually doing, not what the switch says.** These two rows and their
     // sub-screens used to read `settings.liveWeatherEnabled`, so with the switch on and no
     // location they announced "Driven by Live Weather" and went read-only while Weather & time's
@@ -174,14 +190,28 @@ internal fun WorldSceneScreen(
                 onClick = { activeSection = "trees" },
             )
             SettingsNavigationRow(
-                title = "Umbrellas",
+                // **N2 (v5.7C): "Umbrellas" was two different objects.** This row has always
+                // meant `ObjectCategory.PARASOLS` -- the garden parasol standing beside a house.
+                // The app also draws a *carried* umbrella in a walker's hand whenever it rains
+                // (`PedestrianCarry`), which has no control anywhere, so a user who turned
+                // "Umbrellas" off and then saw umbrellas in the rain was reading the row
+                // correctly and the row was wrong. The name now says which object it is; the
+                // sub-screen says what happens to the other one.
+                title = "Parasols",
                 supporting = densitySummary(customization.parasols.visible, customization.parasols.density),
                 icon = Icons.Outlined.FilterDrama,
-                onClick = { activeSection = "umbrellas" },
+                onClick = { activeSection = "parasols" },
             )
             SettingsNavigationRow(
                 title = "Lake",
-                supporting = "Water, sailboats and dolphins",
+                // **N4 (v5.7C): the one of the five silent rows that has a state to report.**
+                // The screen's own intent is that "each row reports its own state", and ten of
+                // the fifteen do. Lake is the row that mattered: with the lake off, the screen
+                // below it shows four boat-and-dolphin controls, so a row that only said "Water,
+                // sailboats and dolphins" was the reason that screen read as broken. Sky, Cities,
+                // Hills and Mountains are deliberately left as they are -- none of them has a
+                // single on/off to report, and inventing one would be worse than a description.
+                supporting = lakeRowSummary(customization.lake),
                 icon = Icons.Outlined.Waves,
                 onClick = { activeSection = "lake" },
             )
@@ -244,23 +274,53 @@ internal fun WorldSceneScreen(
         SettingsCaption("Motion applies to every theme, not only this one.")
 
         OutlinedButton(
-            onClick = {
-                scope.launch {
-                    prefs.resetAllCategories(forThemeId)
-                    // "Reset everything to defaults" clearing only the in-progress scratch edit
-                    // wasn't enough on its own: resolveActiveCustomization() checks a *saved*
-                    // override for this theme *before* the scratch space, so if this built-in
-                    // theme was ever overridden, the reset appeared to do nothing at all -- the
-                    // saved override kept winning. Clear that too, if one exists.
-                    if (customThemeData.overrides.containsKey(forThemeId)) {
-                        customThemeStore.clearOverride(forThemeId)
-                    }
-                }
-            },
+            onClick = { confirmSceneReset = true },
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 24.dp),
         ) {
             Text("Reset this theme's scene to defaults")
         }
+    }
+
+    if (confirmSceneReset) {
+        AlertDialog(
+            onDismissRequest = { confirmSceneReset = false },
+            title = { Text("Reset $themeName to defaults?") },
+            // The point of the dialog is this sentence: it names the screen whose work also goes.
+            //
+            // Named by **season**, not by object, and deliberately. `resetAllCategories` removes
+            // every customization key this theme has, which on the decorations side is more than
+            // the six `ObjectCategory` values -- it also takes `halloweenEnabled`,
+            // `horrorSkyEnabled`, `christmasLightsEnabled`, `santaEnabled`, `flowersEnabled`,
+            // `palmsEnabled` and the two palette flags. A list of objects would therefore be both
+            // wrong today and one decoration away from being wrong again; the six seasons are the
+            // whole of that screen and cannot go stale.
+            text = {
+                Text(
+                    "This puts everything on this screen back to how $themeName ships - and it " +
+                        "also clears this theme's Seasons & decorations: every winter, " +
+                        "Christmas, Halloween, Easter, spring and summer decoration you have " +
+                        "switched on, and the autumn and winter palettes. Your other themes " +
+                        "are not affected.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        prefs.resetAllCategories(forThemeId)
+                        // "Reset everything to defaults" clearing only the in-progress scratch
+                        // edit wasn't enough on its own: resolveActiveCustomization() checks a
+                        // *saved* override for this theme *before* the scratch space, so if this
+                        // built-in theme was ever overridden, the reset appeared to do nothing at
+                        // all -- the saved override kept winning. Clear that too, if one exists.
+                        if (customThemeData.overrides.containsKey(forThemeId)) {
+                            customThemeStore.clearOverride(forThemeId)
+                        }
+                    }
+                    confirmSceneReset = false
+                }) { Text("Reset") }
+            },
+            dismissButton = { TextButton(onClick = { confirmSceneReset = false }) { Text("Cancel") } },
+        )
     }
 
     when (activeSection) {
@@ -274,7 +334,7 @@ internal fun WorldSceneScreen(
         "hills" -> HillsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "mountains" -> MountainsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "trees" -> TreesSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
-        "umbrellas" -> UmbrellasSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
+        "parasols" -> ParasolsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "lake" -> LakeSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "cars" -> CarsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "people" -> PeopleSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
@@ -287,6 +347,28 @@ private fun onOffSummary(visible: Boolean, subject: String): String =
 
 private fun densitySummary(visible: Boolean, density: Float): String =
     if (visible) "On - ${(density * 100).toInt()}%" else "Off"
+
+/**
+ * The Lake row's state line (N4, v5.7C).
+ *
+ * The lake is not a density category, so [densitySummary] does not fit it: what a reader of this
+ * row needs is whether there is water and, if there is, what is on it -- which is exactly the
+ * question the screen below makes confusing when the answer is "no water". With the lake off the
+ * boats and dolphins are deliberately **not** listed: they are not drawn and their controls are
+ * locked, so reporting them would re-create the contradiction this round removed.
+ */
+private fun lakeRowSummary(lake: LakeConfig): String {
+    if (!lake.visible) return "Off"
+    val floating = buildList {
+        if (lake.sailboatsVisible) add("sailboats")
+        if (lake.dolphinsVisible) add("dolphins")
+    }
+    return when (floating.size) {
+        0 -> "On - water only"
+        1 -> "On - ${floating[0]}"
+        else -> "On - ${floating[0]} and ${floating[1]}"
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 // Category screens -- unchanged from v2.8 apart from the shell they are drawn in
@@ -725,13 +807,20 @@ private fun PeopleSubScreen(customization: SceneCustomization, forThemeId: Strin
 }
 
 @Composable
-private fun UmbrellasSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
+private fun ParasolsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
-    SettingsFormSubScreen("Umbrellas", onBack) {
+    SettingsFormSubScreen("Parasols", onBack) {
         ObjectCategorySection(
-            title = "Umbrellas", config = customization.parasols, category = ObjectCategory.PARASOLS,
+            title = "Parasols", config = customization.parasols, category = ObjectCategory.PARASOLS,
             forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+        )
+        // The other half of N2: the object this screen does *not* control, named here so the
+        // rename is an answer rather than half of one.
+        SettingsCaption(
+            "These are the garden parasols that stand beside the houses. The umbrellas people " +
+                "carry are not one of the scene's objects: they go up by themselves whenever it " +
+                "rains, and this switch does not turn them off.",
         )
     }
     editingTarget?.let { target ->
@@ -842,9 +931,27 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
             onCommit = { committed -> scope.launch { prefs.setLakeHeight(committed, forThemeId) } },
             valueRange = 0f..1f,
         )
+        // **The four controls below follow the lake (v5.7C).** With the lake off nothing floats
+        // on it -- `PaperRenderer.updateLakeBandY` returns before `drawLake` ever reaches the
+        // boats -- and until now both switches still read "on" and both sliders still moved. This
+        // is the app's own pattern for exactly that, the one "Realistic Moon Phases" and the Live
+        // Weather controls already use: grey the control, say why in its subtitle, and **do not
+        // touch the stored value**. See [SettingsUiModel.lakeContents].
+        val lakeContents = SettingsUiModel.lakeContents(
+            lakeVisible = customization.lake.visible,
+            storedSailboatsVisible = customization.lake.sailboatsVisible,
+            storedDolphinsVisible = customization.lake.dolphinsVisible,
+        )
+        // Worded on the "Realistic Moon Phases" subtitle, which is the sentence this pattern
+        // already uses: what is holding the control, how to release it, and the promise that the
+        // stored value is still there.
+        val lakeOffNote = "The lake is off, so nothing floats on it. Turn Show Lake on to set " +
+            "this; your choice is kept until then."
         SettingSwitchRow(
-            title = "Show Sailboats", subtitle = "",
-            checked = customization.lake.sailboatsVisible,
+            title = "Show Sailboats",
+            subtitle = if (lakeContents.blockedByLakeOff) lakeOffNote else "",
+            checked = lakeContents.sailboatsShownOn,
+            enabled = lakeContents.interactive,
             onCheckedChange = { scope.launch { prefs.setLakeSailboatsVisible(it, forThemeId) } },
         )
         PreferenceSlider(
@@ -852,10 +959,13 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
             value = customization.lake.sailboatsDensity,
             onCommit = { committed -> scope.launch { prefs.setLakeSailboatsDensity(committed, forThemeId) } },
             valueRange = 0f..1f,
+            enabled = lakeContents.interactive,
         )
         SettingSwitchRow(
-            title = "Show Dolphins", subtitle = "",
-            checked = customization.lake.dolphinsVisible,
+            title = "Show Dolphins",
+            subtitle = if (lakeContents.blockedByLakeOff) lakeOffNote else "",
+            checked = lakeContents.dolphinsShownOn,
+            enabled = lakeContents.interactive,
             onCheckedChange = { scope.launch { prefs.setLakeDolphinsVisible(it, forThemeId) } },
         )
         PreferenceSlider(
@@ -863,6 +973,7 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
             value = customization.lake.dolphinsDensity,
             onCommit = { committed -> scope.launch { prefs.setLakeDolphinsDensity(committed, forThemeId) } },
             valueRange = 0f..1f,
+            enabled = lakeContents.interactive,
         )
     }
     editingTarget?.let { target ->

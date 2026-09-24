@@ -77,6 +77,7 @@ data class AppBackup(
         val weatherApiComApiKey: String,
         val openWeatherApiKey: String,
         val automaticUpdateCheckEnabled: Boolean,
+        val updateNotificationsEnabled: Boolean,
         val fixedHour: Float,
         val parallaxStrength: Float,
         val scrollBackground: Boolean,
@@ -128,6 +129,7 @@ data class AppBackup(
                 weatherApiComApiKey = settings.weatherApiComApiKey,
                 openWeatherApiKey = settings.openWeatherApiKey,
                 automaticUpdateCheckEnabled = settings.automaticUpdateCheckEnabled,
+                updateNotificationsEnabled = settings.updateNotificationsEnabled,
                 fixedHour = settings.fixedHour,
                 parallaxStrength = settings.parallaxStrength,
                 scrollBackground = settings.scrollBackground,
@@ -203,6 +205,7 @@ fun AppBackup.toJsonString(): String = JSONObject().apply {
             put("weatherApiComApiKey", settings.weatherApiComApiKey)
             put("openWeatherApiKey", settings.openWeatherApiKey)
             put("automaticUpdateCheckEnabled", settings.automaticUpdateCheckEnabled)
+            put("updateNotificationsEnabled", settings.updateNotificationsEnabled)
             put("fixedHour", settings.fixedHour.toDouble())
             put("parallaxStrength", settings.parallaxStrength.toDouble())
             put("scrollBackground", settings.scrollBackground)
@@ -326,6 +329,7 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
                 weatherApiComApiKey = s.optString("weatherApiComApiKey", defaults.weatherApiComApiKey),
                 openWeatherApiKey = s.optString("openWeatherApiKey", defaults.openWeatherApiKey),
                 automaticUpdateCheckEnabled = s.optBoolean("automaticUpdateCheckEnabled", defaults.automaticUpdateCheckEnabled),
+                updateNotificationsEnabled = s.optBoolean("updateNotificationsEnabled", defaults.updateNotificationsEnabled),
                 fixedHour = s.optDouble("fixedHour", defaults.fixedHour.toDouble()).toFloat(),
                 parallaxStrength = s.optDouble("parallaxStrength", defaults.parallaxStrength.toDouble()).toFloat(),
                 scrollBackground = s.optBoolean("scrollBackground", defaults.scrollBackground),

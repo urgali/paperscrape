@@ -133,6 +133,12 @@ class UnitFrameTest {
         "WIDTH_" to setOf("preview"),
         "HEIGHT_" to setOf("preview"),
         "HORIZON_" to setOf("preview"),
+        // v5.7: the card's own canvas again, for lengths whose quantity would otherwise read as a
+        // sprite's. `CARD_LAKE_BOTTOM_UNITS` is where the water's floor sits on the 320x240
+        // description, not a length of any lake sprite, and `LAKE_` above would have classified it
+        // as one -- an entry in the wrong frame is worse than no entry, because it makes a mixed
+        // expression look checked. Longest prefix wins, so this resolves before `CAR_`.
+        "CARD_" to setOf("preview"),
     )
 
     /**

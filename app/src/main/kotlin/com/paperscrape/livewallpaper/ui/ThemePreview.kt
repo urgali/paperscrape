@@ -97,20 +97,29 @@ private fun drawScene(
 
     for (peak in scene.peaks) {
         paint.color = peak.colour
-        shape.reset()
-        if (peak.dune) {
-            // A dune is the same silhouette with its shoulders rounded off, so the desert's
-            // horizon does not read as an alpine ridge.
-            shape.moveTo(peak.x - peak.halfWidth, horizon + 2f)
-            shape.lineTo(peak.x - peak.halfWidth * 0.55f, peak.peakY + (horizon - peak.peakY) * 0.35f)
-            shape.lineTo(peak.x, peak.peakY + (horizon - peak.peakY) * 0.15f)
-            shape.lineTo(peak.x + peak.halfWidth * 0.6f, peak.peakY + (horizon - peak.peakY) * 0.45f)
-            shape.lineTo(peak.x + peak.halfWidth, horizon + 2f)
-        } else {
-            shape.moveTo(peak.x - peak.halfWidth, horizon + 2f)
-            shape.lineTo(peak.x, peak.peakY)
-            shape.lineTo(peak.x + peak.halfWidth, horizon + 2f)
+        if (!peak.dune) {
+            // A dome, not an alpine triangle. `PaperRenderer.drawMountains` paints half-ellipses,
+            // and the mountains are the largest shapes on the card: drawing them as spikes made
+            // the one object a user could compare at a glance the one that matched least. The
+            // oval is centred on the ground line so exactly its upper half shows, and the hills,
+            // drawn next, cover the rest.
+            val base = horizon + 2f
+            target.drawOval(
+                peak.x - peak.halfWidth, peak.peakY,
+                peak.x + peak.halfWidth, base + (base - peak.peakY),
+                paint,
+            )
+            continue
         }
+        // A dune keeps its own silhouette -- shoulders rounded off, asymmetric -- because the
+        // desert's horizon is drawn by a different function in the scene too, and it is not a
+        // half-ellipse.
+        shape.reset()
+        shape.moveTo(peak.x - peak.halfWidth, horizon + 2f)
+        shape.lineTo(peak.x - peak.halfWidth * 0.55f, peak.peakY + (horizon - peak.peakY) * 0.35f)
+        shape.lineTo(peak.x, peak.peakY + (horizon - peak.peakY) * 0.15f)
+        shape.lineTo(peak.x + peak.halfWidth * 0.6f, peak.peakY + (horizon - peak.peakY) * 0.45f)
+        shape.lineTo(peak.x + peak.halfWidth, horizon + 2f)
         shape.close()
         target.drawShape(shape, paint)
     }
@@ -136,6 +145,10 @@ private fun drawScene(
         paint.color = scene.lake.colour
         target.drawRect(0f, scene.lake.top, w, scene.lake.bottom, paint)
     }
+    // Immediately after the water, and in a pass of its own: see [ThemePreviewScene.water]. The
+    // boats used to ride in `backdrop`, which is split at the horizon, so on the one theme whose
+    // water reaches above the horizon they were painted under it and vanished.
+    for (item in scene.water) drawItem(item, target, blitter)
 
     for (item in scene.backdrop.filter { it.y >= horizon }) drawItem(item, target, blitter)
     for (item in scene.items) drawItem(item, target, blitter)

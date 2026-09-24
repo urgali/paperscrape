@@ -194,6 +194,9 @@ object LiveWeatherSchedule {
         return LiveWeatherDecision(
             status = status,
             snapshotForScene = if (status.isDrivingTheScene) usable else null,
+            // Held, switched on, and too old to draw: the one way the scene leaves Live Weather
+            // that nobody chose. See [LiveWeatherDecision.lapsed].
+            lapsed = enabled && snapshot != null && usable == null,
         )
     }
 }
@@ -207,4 +210,18 @@ object LiveWeatherSchedule {
 data class LiveWeatherDecision(
     val status: LiveWeatherStatus,
     val snapshotForScene: LiveWeatherSnapshot?,
+    /**
+     * True when the scene is on the theme's own weather **because the conditions it held aged
+     * out**, not because anybody switched anything: Live Weather is on, a snapshot is held, and it
+     * is past [LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS].
+     *
+     * The renderer eases the sky across this change and snaps it across every other one (item
+     * 135, v5.7F). The distinction is the one `CloudCoverFade` already drew: switching the
+     * feature off, turning location off or choosing a provider with no key are deliberate acts
+     * made with the settings screen in front of the user, and the sky answering at once is the
+     * sign that the switch worked. An expiry happens three hours after the last good reading,
+     * with nobody looking at a setting -- the same event, for the person watching the wallpaper,
+     * as a forecast changing, and a forecast change has dissolved over nine seconds since v5.5B.
+     */
+    val lapsed: Boolean = false,
 )

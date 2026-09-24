@@ -139,6 +139,19 @@ class PaperRenderer(
     var liveWeatherOverride: com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot? = null
 
     /**
+     * Whether a null [liveWeatherOverride] means the conditions **aged out** rather than that
+     * somebody switched Live Weather off -- `LiveWeatherDecision.lapsed`, set beside the override
+     * and only ever read with it.
+     *
+     * It changes one thing: the cloud cover eases from the last forecast to the theme's own cover
+     * instead of arriving in a frame, and the next reading eases in from there (item 135, v5.7F;
+     * see [CloudCoverFade.coverLapsingTo]). Precipitation and the storm are not eased, on this
+     * path or on any other: a forecast that stops the rain stops it in a frame too, and that is
+     * v5.5B's scope, not this flag's.
+     */
+    var liveWeatherLapsed: Boolean = false
+
+    /**
      * Eases the drawn cloud cover, and each candidate's opacity, toward what the forecast reports.
      *
      * Renderer-owned rather than snapshot-owned: the snapshot is replaced wholesale by the engine
@@ -1258,7 +1271,14 @@ class PaperRenderer(
         // drawn in the other order: [drawSky] dims by [stormStrength] before [drawClouds] places
         // anything, so a cover eased inside `drawClouds` would leave the sky a frame behind the
         // clouds it is meant to be darkening for. See [CloudCoverFade] for the report.
-        drawnCloudCover = cloudCoverFade.coverToward(live?.cloudCoverFraction, deltaSeconds)
+        drawnCloudCover = if (live == null && liveWeatherLapsed) {
+            // The theme's own cover as `LiveWeatherSceneRules.cloudDensity` would draw it: its
+            // slider when its cloud switch is on, no clouds when it is off.
+            val clouds = sceneCustomization.clouds
+            cloudCoverFade.coverLapsingTo(if (clouds.visible) clouds.density else 0f, deltaSeconds)
+        } else {
+            cloudCoverFade.coverToward(live?.cloudCoverFraction, deltaSeconds)
+        }
         if (live != null) {
             rainingNow = live.precipitationType == PrecipitationType.RAIN && live.precipitationIntensity > 0f
             rainIntensityNow = if (rainingNow) live.precipitationIntensity else 0f

@@ -797,13 +797,50 @@ fun SceneCustomization.keepCandidate(spec: StaticSceneObject): Boolean {
 internal fun SceneCustomization.legacyKeepCar(spec: CarObject): Boolean =
     cars.visible && stableFraction(spec, salt = 0f) < cars.density
 
-/** Which of the 2 color variants (0 or 1) this instance uses. Salted differently from
- * [keepCandidate]'s threshold so density thinning and color-variant assignment don't correlate. */
-private fun variantIndexFor(spec: StaticSceneObject): Int =
-    if (stableFraction(spec, salt = 17.3f) < 0.5f) 0 else 1
+/**
+ * Which of the category's two colours (0 = Color 1, 1 = Color 2) this instance wears.
+ *
+ * ### A coin of its own since v5.7F (item 134)
+ *
+ * The menu promises *"Each one randomly uses Color 1 or Color 2"*, and until v5.7F this was
+ * `stableFraction(spec, salt = 17.3f) < 0.5f` under a comment claiming the salt kept it from
+ * correlating with [keepCandidate]'s threshold. It did the opposite. Adding a constant to a value
+ * and taking the fractional part only shifts it, so the colour was a fixed function of the very
+ * number that decides which objects stand -- and the survivors are the objects whose number is
+ * *low*, so they wore Color 2 far more often than Color 1. Measured on the twelve built-ins at
+ * their defaults: **94 to 206** over every object that wears the pair (houses alone 21 to 60),
+ * and **16 to 68** on the plain cars. Carrying the sum in `Double` does not help, because the
+ * cause is the correlation and not the precision (v5.7E: 24 to 57).
+ *
+ * This is an integer hash of both coordinates at full precision ([CandidateNoise.value] over
+ * their raw bits), so it has no relation to the density's fraction by construction. **It changes
+ * which colour an object wears and nothing else**: [keepCandidate] is untouched, so the same
+ * objects stand in every scene of every theme, and the density slider behaves exactly as before.
+ * Measured with it: **151 to 149** over the same objects, and 40 to 44 on the plain cars.
+ *
+ * ### Why this channel
+ *
+ * [COLOUR_COIN_CHANNEL] is the one number here that is a choice, and the choice is stated so it
+ * can be checked. The gallery card asks this function about seven fixed positions
+ * (`ThemePreviewScenes.PreviewIdentity`, the same on all twelve cards), which were picked so each
+ * row of the card shows both of the user's colours -- and the cards and those positions are
+ * approved and not to be touched. Of channels 1..400, exactly **three** (111, 118, 262) give the
+ * same answer as the old coin at all seven, so all twelve cards stay pixel-identical; of those,
+ * 118 is the one whose split on the twelve shipped scenes is nearest half-and-half in every
+ * category (houses 38/43, buildings 52/46, trees 32/35). `ColourCoinTest` pins the seven answers,
+ * because nothing else would notice a card changing colour. It is a fair coin, not a balanced deal: a scene of twenty
+ * objects can still come out twelve to eight, which is what a coin does.
+ */
+private fun variantIndexFor(spec: StaticSceneObject): Int = colourCoin(spec.tileFractionX, spec.depthFraction)
 
-private fun variantIndexFor(spec: CarObject): Int =
-    if (stableFraction(spec, salt = 17.3f) < 0.5f) 0 else 1
+/** The same coin for a car, over the two numbers that identify it on the road. */
+private fun variantIndexFor(spec: CarObject): Int = colourCoin(spec.laneYFraction, spec.startDelaySeconds)
+
+private fun colourCoin(first: Float, second: Float): Int =
+    if (CandidateNoise.value(first.toRawBits(), second.toRawBits(), COLOUR_COIN_CHANNEL) < 0.5f) 0 else 1
+
+/** See [variantIndexFor] for why 118, and why it is not a free parameter. */
+private const val COLOUR_COIN_CHANNEL = 118
 
 private fun blend(config: ObjectVariantConfig, variant: Int, dayBlend: Float): Int {
     val day = if (variant == 0) config.colorDay1 else config.colorDay2
@@ -909,6 +946,24 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
             mountainsBack = base.mountainsBack.copy(colorDay = 0xFFE3ECF5.toInt(), colorNight = 0xFFA9BDD6.toInt()),
             // The same exception as Winter's -- see that block.
             precipitation = base.precipitation.copy(visible = true, type = PrecipitationType.SNOW, intensity = 0.45f),
+            // **67 %, not the generic 65 %, and it is the whole of the repair for item 139.** The
+            // three-shop band of v5.6 took one slot off the tower catalogue (8 -> 7) and moved
+            // every rank in it, and on this seed the 65 % threshold then dropped exactly the three
+            // slots dealt a spire: Christmas stood four domes and no spire, where v5.5 had stood
+            // five towers wearing both crowns. The slot with the lowest threshold above 0.65 is a
+            // spire at 0.6602, and the next one above it sits at 0.6719, so 0.67 keeps that one
+            // tower and no other -- five towers again, both crowns, and not one house, tree or
+            // shop different, because this slider governs the towers alone (the three shops are
+            // exempt, see [keepCandidate]).
+            //
+            // Chosen over repairing the deal because every repair of the deal re-deals the
+            // towers of other themes too -- measured, the cheapest one changes the crown of 27
+            // towers across nine themes -- while this changes one theme and nothing else. It does
+            // not touch [SilhouetteDeal]: the deal is still a pure function of `(seed, slot)`,
+            // and moving this slider still removes slots without re-drawing any survivor.
+            // `RealThemeSilhouetteDistributionTest` is what fails if a later change to the
+            // layout breaks it again.
+            buildings = base.buildings.copy(density = 0.67f),
         )
         // **Winter, but not Christmas, and not a second Christmas theme either.** New Year sits
         // in the same season, so it gets the same snow-laden trees, roof snow and winter

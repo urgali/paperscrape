@@ -238,6 +238,11 @@ byte-identical pair**, and has not since the V2 asset library replaced the whole
   - `WeatherHttp.kt` — the one `HttpURLConnection` JSON GET both providers share, and the pure
     status → `WeatherFailure` mapping.
 - `update/UpdateChecker.kt`, `update/UpdatePrefs.kt` — GitHub Releases API.
+- `update/UpdateNotificationPolicy.kt`, `update/UpdateNotifier.kt` (v5.7) — the optional
+  once-a-day check the wallpaper engine runs from its own loop, and the notification it posts. The
+  policy object holds every rule (interval, permission by SDK level, snooze, one notification per
+  tag) with no Android type in it, so it is JVM-tested; the notifier is the channel, the
+  notification and the `PendingIntent` that opens the existing update dialog.
 - `update/ReleaseAssets.kt` — which attachment is the APK and which is its checksum (exact names),
   how a `sha256sum` file is read, and whether a downloaded package may be installed. All pure, all
   unit-tested: these are the parts that fail silently.
@@ -1239,7 +1244,9 @@ a customised one, the saved snapshot for a user theme.
 It holds **no Android type beyond resource ids**, which is what makes "what does this theme's
 preview contain" a unit-testable question; `ThemePreviewSceneTest` pins the characteristic object
 of each of the twelve themes and, in both directions, that nothing a theme has switched off is
-drawn.
+drawn. `ThemePreviewTruthTest` (v5.7) compares each card with the scene the same customization
+builds: every family the scene draws is on the card, every boat and dolphin has its ink in the
+water, and nothing is more than half covered by what is drawn after it.
 
 Both places that show a preview -- the gallery card and the strip at the top of World & scene --
 go through `ThemePreviewGeometry` (one 4:3 shape, one uniform scale, no per-call-site crop or

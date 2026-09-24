@@ -662,6 +662,19 @@ class VehicleOccupantScaleTest {
      * glass must still be glass. [SceneObjectRenderer.OCCUPANT_HEAD_PANE_SHARE] puts a head at
      * 51.9% of its pane, so the band is comfortably clear; the assertion asks only for a tenth of
      * the pane, which v4.15 fails on every frame and this release passes on all of them.
+     *
+     * **A head is a face, not a pixel (v5.7F).** This counted every skin-coloured *pixel* in the
+     * band, and v5.7F's colour coin -- which changed which of the user's two colours each plain
+     * car wears -- put the orange Color 1 on the near-lane estate. The anti-aliased pixel where
+     * its body meets the pane's rounded top corner is `DAAB78`, a blend of the body `F2A65A` and
+     * the glass `899DA8`, and it lands within 4 of a skin tone: one pixel, no occupant anywhere
+     * near it, and the test failed. So the band is now asked about **faces** in this class's own
+     * sense -- [skinBlobs], connected skin of at least [MIN_BLOB_AREA], "large enough to drop an
+     * anti-aliased speck", the rule every other face measurement here already uses. It is no
+     * weaker against the defect it exists for: a head reaching the band is a face whose top is
+     * in the band. Measured by mutation in v5.7F: seating every occupant 10 units higher
+     * (`CAR_HEAD_Y_UNITS - 10f` and its passenger and fire-engine twins) fails this at the first
+     * car it checks, with two faces of 716 and 617 px in the band.
      */
     @Test
     fun everyOccupantHasGlassAboveTheirHead() {
@@ -670,18 +683,15 @@ class VehicleOccupantScaleTest {
                 val frame = frameWithOneCar(type, lane, shell = shell)
                 val glass = glassBox(frame) ?: error("$type on $lane has no glass")
                 val band = maxOf(1, ((glass.maxY - glass.minY + 1) * 0.10f).toInt())
-                val pixels = IntArray(WIDTH * HEIGHT)
-                frame.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
-                var intruders = 0
-                for (y in glass.minY until glass.minY + band) {
-                    for (x in glass.minX..glass.maxX) {
-                        if (isSkin(pixels[y * WIDTH + x])) intruders++
-                    }
+                val intruders = skinBlobs(frame).filter {
+                    it.maxX >= glass.minX && it.minX <= glass.maxX &&
+                        it.minY < glass.minY + band && it.maxY >= glass.minY
                 }
                 assertEquals(
-                    "$type on lane $lane has a head in the top $band rows of its own glass",
+                    "$type on lane $lane has a head in the top $band rows of its own glass: " +
+                        intruders.joinToString { "face at ${it.minX},${it.minY} of ${it.area} px" },
                     0,
-                    intruders,
+                    intruders.size,
                 )
                 frame.recycle()
             }

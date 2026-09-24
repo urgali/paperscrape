@@ -7,6 +7,7 @@ import android.os.Looper
 import android.service.wallpaper.WallpaperService
 import android.util.Log
 import android.view.SurfaceHolder
+import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.icon.SeasonalIconController
 import com.paperscrape.livewallpaper.location.DeviceLocationFix
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
@@ -18,6 +19,11 @@ import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.BackupRepository
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.update.UpdateCheckResult
+import com.paperscrape.livewallpaper.update.UpdateChecker
+import com.paperscrape.livewallpaper.update.UpdateNotificationPolicy
+import com.paperscrape.livewallpaper.update.UpdateNotifier
+import com.paperscrape.livewallpaper.update.UpdatePrefs
 import com.paperscrape.livewallpaper.weather.LiveWeatherInputs
 import com.paperscrape.livewallpaper.weather.LiveWeatherSchedule
 import com.paperscrape.livewallpaper.weather.LiveWeatherSnapshot
@@ -306,12 +312,51 @@ class PaperWallpaperService : WallpaperService() {
         private var weatherTransientFailures = 0
 
         /**
+         * When the last **update** check was attempted, on the monotonic clock (v5.7D, A0).
+         *
+         * The same field, the same sentinel and the same clock as [lastWeatherFetchElapsed], for the
+         * same reason: a wall clock moved backwards once froze the weather loop until it caught up,
+         * and a schedule that can be frozen by a timezone edit is not a schedule. `elapsedRealtime`
+         * counts since boot, includes deep sleep and cannot go backwards.
+         *
+         * The sentinel is what makes the *first* pass of a freshly-bound engine due immediately, so
+         * a user who has just set the wallpaper is told about a waiting release now rather than
+         * tomorrow. It resets on every rebind, which is the honest cost of keeping the schedule in
+         * the engine: a device that rebinds its wallpaper several times a day checks several times
+         * a day. Bounded above by one check per rebind and one per day otherwise.
+         */
+        private var lastUpdateCheckElapsed: Long = Long.MIN_VALUE / 4
+
+        /**
+         * How many update checks in a row came back [UpdateCheckResult.Unreachable].
+         *
+         * Feeds the *same* [LiveWeatherSchedule.nextAttemptDelayMillis] ladder the weather loop
+         * uses, with [UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS] as the normal interval
+         * instead of the hourly one -- reused rather than re-derived, so there is one bounded-backoff
+         * rule in this app and not two that can drift. From two minutes it doubles to the daily cap,
+         * which is about eleven attempts across a day of being offline and none after that.
+         */
+        private var updateCheckTransientFailures = 0
+
+        /**
+         * The snooze and notified-tag store, built once with the engine rather than per pass.
+         *
+         * The same instance the settings screen uses in this process, so a snooze written from the
+         * dialog is visible to the loop without a restart -- a DataStore reads its own writes, and
+         * only its own.
+         */
+        private val updatePrefs by lazy { UpdatePrefs(applicationContext) }
+
+        /**
          * What the renderer was last told, so an unchanged decision costs nothing.
          *
          * Main-thread only: written and read by the weather loop alone, unlike the renderer's own
          * field which the render thread owns.
          */
         private var appliedLiveWeather: LiveWeatherSnapshot? = null
+
+        /** Whether the renderer was last told the conditions had aged out; see [applyLiveWeather]. */
+        private var appliedLiveWeatherLapsed: Boolean = false
 
         /**
          * What the settings screen was last told about Live Weather's fallback state.
@@ -600,8 +645,15 @@ class PaperWallpaperService : WallpaperService() {
                         lastWeatherFetchElapsed = Long.MIN_VALUE / 4
                         weatherTransientFailures = 0
                     }
-                    applyLiveWeather(decision.snapshotForScene)
+                    applyLiveWeather(decision.snapshotForScene, decision.lapsed)
                     publishWeatherStatus(decision.status)
+                    // **The update check rides this loop, once a day** (v5.7D, A0). It is here and
+                    // not in a job scheduler, an alarm or a WorkManager worker because that was the
+                    // decision: no new dependency, no new component, and it inherits the three
+                    // things this loop already had argued out -- the monotonic clock, the bounded
+                    // backoff, and ARC-02's parking. Its whole cost is one more `if` per two-minute
+                    // tick and one GitHub request a day.
+                    maybeCheckForUpdate()
                     // Waits for the tick *or* for a settings change, whichever comes first.
                     withTimeoutOrNull(WEATHER_CHECK_INTERVAL_MS) { weatherWakeUp.receive() }
                 }
@@ -933,6 +985,85 @@ class PaperWallpaperService : WallpaperService() {
          * Only on a change, because every write re-emits the settings flow to every collector and
          * this is evaluated on a two-minute tick.
          */
+        /**
+         * One pass of the update check, run from the Live Weather loop (A0, v5.7D).
+         *
+         * ### Why it lives in this loop and not in a scheduler
+         *
+         * The maintainer's decision, taken 2026-09-23 with its limit stated first. The alternative
+         * was a `WorkManager` periodic job, which would run whether or not this wallpaper is set and
+         * would survive reboot -- and would cost a **thirteenth dependency** in a project that ships
+         * twelve and has argued over each, a new initializer in a process that starts nothing, and a
+         * manifest disclosure that currently says truthfully that the app makes no timed background
+         * network call. Here, the check is one `if` on a tick that already exists.
+         *
+         * **The limit, which is not a bug to be fixed later.** This loop parks on `weatherWakeUp`
+         * while the engine is invisible (ARC-02), so the check only happens while PaperScrape is
+         * the wallpaper *and* on screen. Somebody who has the app installed and a different
+         * wallpaper set is never checked and never notified. That was said before the choice was
+         * made and accepted with it; *Advanced & about*'s button is what those users have.
+         *
+         * ### What each guard is for
+         *
+         * - **[isPreview]**: the settings screen's preview card is a second engine running this same
+         *   loop. It must not check and must not post -- the user is looking at the screen that
+         *   already shows the dialog, and the same reasoning that stopped the preview publishing the
+         *   weather status applies here twice over;
+         * - **the two switches**: the notification reports on the automatic check, so it needs both.
+         *   Neither is consulted once, at startup: they are read off `settings` every pass, so
+         *   turning either off stops the next check rather than the one after a restart;
+         * - **[UpdateNotificationPolicy.mayPost]**, read *before* the network call: a check whose
+         *   result could not be shown to anybody is a request made for nothing. On API 33+ with the
+         *   permission denied this is what keeps the app off the network entirely.
+         *
+         * Nothing here throws: `checkForUpdate` never does by construction, and the notification
+         * path returns a boolean rather than raising. A failure only moves the retry ladder.
+         */
+        private suspend fun maybeCheckForUpdate() {
+            if (isPreview) return
+            val current = settings
+            if (!current.automaticUpdateCheckEnabled || !current.updateNotificationsEnabled) return
+            if (!UpdateNotificationPolicy.mayPost(UpdateNotifier.notificationPermission(applicationContext))) return
+
+            val delay = LiveWeatherSchedule.nextAttemptDelayMillis(
+                consecutiveTransientFailures = updateCheckTransientFailures,
+                normalIntervalMillis = UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS,
+            )
+            if (!LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastUpdateCheckElapsed, delay)) return
+
+            // Stamped before the request, not after, so a slow or hanging call cannot be retried by
+            // the next tick two minutes later. The weather loop stamps in the same place.
+            lastUpdateCheckElapsed = SystemClock.elapsedRealtime()
+            val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+            updateCheckTransientFailures = if (UpdateNotificationPolicy.isTransient(result)) {
+                updateCheckTransientFailures + 1
+            } else {
+                0
+            }
+            val info = (result as? UpdateCheckResult.Available)?.info ?: return
+
+            // **The snooze is honoured, not routed around.** "Remind me later -> In a month" is
+            // keyed to the version tag, so a month on v5.6 does not hide v5.7 -- and a notification
+            // that ignored it would be the app answering a question the user has already answered.
+            val snooze = updatePrefs.readSnoozeState()
+            val post = UpdateNotificationPolicy.shouldPost(
+                notificationsEnabled = current.updateNotificationsEnabled,
+                permission = UpdateNotifier.notificationPermission(applicationContext),
+                tagName = info.tagName,
+                alreadyNotifiedTag = updatePrefs.readNotifiedTag(),
+                snoozedTag = snooze.versionTag,
+                snoozeUntilMillis = snooze.untilMillis,
+                nowMillis = System.currentTimeMillis(),
+            )
+            if (!post) return
+
+            // Recorded only if it actually went out: a tag written for a notification the platform
+            // dropped would silence that release for the one user who never saw it.
+            if (UpdateNotifier.post(applicationContext, info.tagName, BuildConfig.VERSION_NAME)) {
+                updatePrefs.setNotifiedTag(info.tagName)
+            }
+        }
+
         private fun publishWeatherStatus(status: LiveWeatherStatus) {
             if (publishedWeatherStatus == status) return
             publishedWeatherStatus = status
@@ -960,11 +1091,15 @@ class PaperWallpaperService : WallpaperService() {
          * this runs on the two-minute tick, and re-posting an identical override would queue a
          * render-thread event and a redraw every tick for no visible difference.
          */
-        private fun applyLiveWeather(snapshot: LiveWeatherSnapshot?) {
-            if (appliedLiveWeather == snapshot) return
+        private fun applyLiveWeather(snapshot: LiveWeatherSnapshot?, lapsed: Boolean) {
+            if (appliedLiveWeather == snapshot && appliedLiveWeatherLapsed == lapsed) return
             appliedLiveWeather = snapshot
+            appliedLiveWeatherLapsed = lapsed
             onRenderThread {
                 renderer?.liveWeatherOverride = snapshot
+                // Why the override is null, when it is: an expiry eases the sky back to the theme's,
+                // anything the user switched snaps it (item 135 -- see LiveWeatherDecision.lapsed).
+                renderer?.liveWeatherLapsed = lapsed
                 requestRedraw()
             }
         }

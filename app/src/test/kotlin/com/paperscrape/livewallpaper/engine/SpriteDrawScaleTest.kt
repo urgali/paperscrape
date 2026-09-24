@@ -443,7 +443,9 @@ class SpriteDrawScaleTest {
             for (customization in customizations) {
                 for (night in listOf(null, false, true)) {
                     val scene = ThemePreviewScenes.forTheme(theme, customization, night)
-                    val items = scene.backdrop + scene.items + scene.cars + scene.ground
+                    // `water` too: v5.7 moved the boats and the dolphins into their own pass, and
+                    // a list that stopped at `ground` would report no preview path for them at all.
+                    val items = scene.backdrop + scene.water + scene.items + scene.cars + scene.ground
                     for (item in items) {
                         for (part in item.parts) {
                             val previous = byResId[part.resId] ?: 0f
@@ -921,6 +923,17 @@ class SpriteDrawScaleTest {
             uncropped += uploaded(w, h, level)
             if (name.startsWith("person_")) people += cost
         }
+        // **Printed on every run, passing or failing** (v5.7E, item 132). The companion of the
+        // same line in `SpriteGeometryTest`: this figure appeared in no build output at all --
+        // the headroom test above prints the *decoded* set as a side effect of a different
+        // question, and this one printed nothing -- so reading it meant lowering the constant by
+        // hand. See that line for the argument.
+        println(
+            "uploadedTexelBudget: %d B of %d (%.3f MiB of %d MiB), %d B of margin, at %s".format(
+                total, uploadedTexelBudget, total / 1048576.0,
+                uploadedTexelBudget / 1048576L, uploadedTexelBudget - total, reference.label,
+            ),
+        )
         // The split is in the message rather than in a comment, because all three numbers are
         // things a release has to report and a number in a comment is a number that goes stale.
         assertTrue(

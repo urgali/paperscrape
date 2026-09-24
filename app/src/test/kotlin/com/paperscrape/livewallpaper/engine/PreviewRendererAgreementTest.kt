@@ -308,6 +308,11 @@ class PreviewRendererAgreementTest {
         }
         add(Triple(SceneSpace.SceneVariant.RESTAURANT,
             ThemePreviewScenes.PreviewIdentity.RESTAURANT_X, ThemePreviewScenes.PreviewIdentity.RESTAURANT_DEPTH))
+        // v5.7: the school. Every theme builds one and no card showed one, which is why it is here
+        // now -- and why its absence from this list would have gone unnoticed the same way, since
+        // the assertion below only checks buildings the card actually draws.
+        add(Triple(SceneSpace.SceneVariant.SCHOOL,
+            ThemePreviewScenes.PreviewIdentity.SCHOOL_X, ThemePreviewScenes.PreviewIdentity.SCHOOL_DEPTH))
         add(Triple(SceneSpace.SceneVariant.BAR,
             ThemePreviewScenes.PreviewIdentity.BAR_X, ThemePreviewScenes.PreviewIdentity.BAR_DEPTH))
         add(Triple(SceneSpace.SceneVariant.HOUSE_LARGE,

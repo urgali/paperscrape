@@ -352,7 +352,14 @@ private fun DecorationRows(
     )
 }
 
-/** The v2.8 category block, unchanged, on a screen of its own. */
+/**
+ * The v2.8 category block on a screen of its own: density, colours and the category's own reset.
+ *
+ * **Without the "Show X" switch**, which [DecorationRows] has already put on the season's screen
+ * one tap back, against the same `config.visible` and the same `setCategoryVisible`. Two switches
+ * for one flag is not a choice, and the row that leads here says what this screen is for --
+ * "Density and colours".
+ */
 @Composable
 private fun DecorationOptionsScreen(
     category: ObjectCategory,
@@ -381,6 +388,7 @@ private fun DecorationOptionsScreen(
             prefs = prefs,
             scope = scope,
             showTitle = false,
+            showVisibilitySwitch = false,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
         )
     }

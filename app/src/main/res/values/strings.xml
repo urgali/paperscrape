@@ -24,5 +24,23 @@
 
     <!-- Updates -->
     <string name="settings_auto_update_check_title">Check for updates automatically</string>
-    <string name="settings_auto_update_check_subtitle">When on, PaperScrape asks GitHub for a newer release each time you open these settings. Off by default; the button below always works.</string>
+    <string name="settings_auto_update_check_subtitle">When on, PaperScrape asks GitHub for a newer release each time you open these settings, and once a day while the wallpaper is on screen. Off by default; the button below always works.</string>
+
+    <!-- The second switch (v5.7D). A row of its own rather than a new meaning for the one above:
+         somebody who turned that one on asked for a prompt inside the app, and quietly turning
+         that into a notification would be changing what a control they already set means. -->
+    <string name="settings_update_notify_title">Notify me about new versions</string>
+    <string name="settings_update_notify_subtitle">Puts a quiet notification in the shade when a newer release appears. No sound and no pop-up. Only while PaperScrape is your wallpaper and on screen; it checks at most once a day.</string>
+    <string name="settings_update_notify_needs_check">Turn \"Check for updates automatically\" on first - this is how PaperScrape tells you what that check found. Your choice here is kept until then.</string>
+    <string name="settings_update_notify_blocked">Notifications are switched off for PaperScrape in your phone\'s settings, so nothing would appear.</string>
+
+    <!-- What the user sees in System settings > Apps > PaperScrape > Notifications. This is the
+         only account of the feature anyone gets from outside the app, so it says the cadence. -->
+    <string name="update_channel_name">Update available</string>
+    <string name="update_channel_description">A quiet note when a newer release of PaperScrape is out. At most one per version, no sound, and never more than once a day.</string>
+
+    <!-- Title %1$s is the new release tag, which already carries its own "v" (e.g. "v5.7");
+         body %1$s is the installed versionName, which does not, so the "v" is in the string. -->
+    <string name="update_notification_title">PaperScrape %1$s is available</string>
+    <string name="update_notification_body">You have v%1$s. Tap to see what\'s new.</string>
 </resources>

@@ -19,8 +19,25 @@
          here is checked against the source by InternetInventoryTest, so this list cannot go stale
          without a test going red.
 
-         api.github.com               update.UpdateChecker, once per app launch from Advanced &
-                                      about, to read the public Releases list. No credentials.
+         api.github.com               update.UpdateChecker, to read the public Releases list. No
+                                      credentials, and nothing about the device is sent: it is a
+                                      plain GET of a public page. THREE callers.
+                                      1. the "Check for updates" button in Advanced and about,
+                                         which always works;
+                                      2. only while "Check for updates automatically" is on (it
+                                         is off by default), once each time the settings screen
+                                         is opened;
+                                      3. since v5.7D, and only while BOTH that switch and
+                                         "Notify me about new versions" are on, at most once
+                                         every 24 hours from the wallpaper engine's own loop.
+                                         That loop parks while the wallpaper is not on screen
+                                         (ARC-02), so this is not a background timer and the app
+                                         still starts nothing of its own while it is closed: a
+                                         phone with PaperScrape installed but another wallpaper
+                                         set never makes this call at all. Both switches off,
+                                         which is the default, and only caller 1 remains.
+                                      With every switch off this host is contacted only when the
+                                      button is pressed.
          www.github.com               update.ApkDownloader, only after the user taps "Download and
                                       install": the release's APK and its SHA-256 file. Redirects
                                       to any other host are refused (see sanitizeGitHubUrl), which
@@ -38,8 +55,10 @@
                                       and nothing else, and never on a timer.
 
          Weather and geocoding send a coarse latitude/longitude or a typed place name; no device
-         identifier, no account, no analytics. The wallpaper engine makes no other call, and with
-         Live Weather off and no update check running the app uses the network not at all. -->
+         identifier, no account, no analytics. The wallpaper engine makes exactly two kinds of call,
+         both listed above and both on its own visible loop: the hourly weather fetch and, since
+         v5.7D, the daily update check. With Live Weather off and no update check enabled the app
+         uses the network not at all. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Used only by Advanced & about -> Updates, and only after the user taps "Download and
@@ -48,6 +67,21 @@
          APK it has just downloaded from its own GitHub release and verified against that
          release's SHA-256. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Declared for the one notification this app posts: "a newer release is available", from
+         the wallpaper engine's daily check, and only while the user has switched both
+         "Check for updates automatically" and "Notify me about new versions" on.
+
+         From Android 13 (API 33) this is a runtime permission and is asked for the first time the
+         second switch is turned on, never at startup: an app that asks on first launch is asking
+         before the user has any idea what it would say. Below API 33 the platform grants it at
+         install time and there is nothing to ask; update.UpdateNotificationPolicy is where that
+         boundary lives, and it is asserted from the JVM at 26, 29, 32, 33, 34 and 37 because the
+         project's only test device is API 29 and cannot reach the other branch at all.
+
+         The channel is IMPORTANCE_LOW: it appears in the shade and on the lock screen, and makes
+         no sound, no vibration and no pop-up banner. See update.UpdateNotifier. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.software.live_wallpaper" android:required="true" />
 

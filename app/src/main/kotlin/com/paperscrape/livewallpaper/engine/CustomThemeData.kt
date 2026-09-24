@@ -525,7 +525,7 @@ fun customThemeEntryFromJson(json: JSONObject): CustomThemeEntry = CustomThemeEn
  * When bumping, add the corresponding step to [migrateCustomThemeJson] and a test that loads a
  * fixture of the old shape and asserts the migrated result.
  */
-const val CUSTOM_THEME_SCHEMA_VERSION = 4
+const val CUSTOM_THEME_SCHEMA_VERSION = 5
 
 /**
  * Version reported for data written before schema versioning existed (v73 and earlier). Such
@@ -648,10 +648,50 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
         }
     }
 
+    // 4 -> 5: the school a street saved before v5.6 never had (item 141, v5.7F).
+    //
+    // The same shape as 3 -> 4 -- a generator was changed and the themes saved before the change
+    // were not -- and one-shot for the same reason: the content of a saved theme is the user's.
+    // v5.6 split the shop band into three and put a school in the middle third; a street saved
+    // before that has a restaurant and a bar and nothing in the middle third, so the school never
+    // appears however the sliders are set. The maintainer's decision of 2026-09-21 is that these
+    // streets get it (*"voglio che prendano la scuola"*).
+    //
+    // **It adds; it does not move.** See [SceneObjectCatalog.missingSchoolFor] for why a saved
+    // street has nothing that could be promoted without taking a building the user can see off
+    // their skyline. Runs after 3 -> 4 on purpose: the storefront repair may itself leave a
+    // building in the middle third of a very old payload, and then there is nothing to add.
+    //
+    // Guarded exactly as 3 -> 4 is: a failure leaves that one theme as it was found.
+    if (fromVersion < 5) {
+        forEachEntry(root) { entry ->
+            runCatching {
+                val layout = entry.optJSONObject("layout") ?: return@runCatching
+                addMissingSchool(layout.optJSONArray("staticObjects"))
+            }
+        }
+    }
+
     // Future breaking changes add one step each, in order, above this line:
-    //   if (fromVersion < 5) { ...rewrite root...; }
+    //   if (fromVersion < 6) { ...rewrite root...; }
     root.put("schemaVersion", CUSTOM_THEME_SCHEMA_VERSION)
     return CUSTOM_THEME_SCHEMA_VERSION
+}
+
+/**
+ * Appends the school a stored street is missing, or leaves it exactly as it is.
+ *
+ * Reads the stored objects the way the loader does ([staticSceneObjectFromJson]) because the
+ * placement measures each one's drawn extent, and a street that cannot be read whole is left
+ * alone rather than repaired from part of itself: the loader would reject it anyway, and a school
+ * placed against half a street could stand on a house nobody measured. Idempotent, because a
+ * second run finds the school it added in the middle third.
+ */
+private fun addMissingSchool(objects: JSONArray?) {
+    if (objects == null) return
+    val parsed = (0 until objects.length()).map { staticSceneObjectFromJson(objects.getJSONObject(it)) }
+    val school = SceneObjectCatalog.missingSchoolFor(parsed) ?: return
+    objects.put(school.toJson())
 }
 
 /**

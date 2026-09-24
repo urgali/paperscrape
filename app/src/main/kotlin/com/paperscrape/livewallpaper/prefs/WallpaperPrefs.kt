@@ -138,6 +138,19 @@ data class WallpaperSettings(
      * nothing but the reminder.
      */
     val automaticUpdateCheckEnabled: Boolean = false,
+    /**
+     * Whether a release found while nobody is looking may become a system notification.
+     *
+     * **A second switch and not a new meaning for the first** (v5.7D). The one above was turned on
+     * by people who wanted a prompt the next time they opened the app; posting a notification to
+     * them because of it would change, without asking, what a control they had already set does --
+     * which is exactly the defect v5.7C's N1 had just repaired in the reset button.
+     *
+     * Off by default, and inert while [automaticUpdateCheckEnabled] is off: the check this reports
+     * on is that one. The settings row is greyed in that state rather than hidden, so the order to
+     * switch them on in is visible.
+     */
+    val updateNotificationsEnabled: Boolean = false,
     // The GPS-derived coordinates PaperWallpaperService actually resolved (written by it via
     // WallpaperPrefs.setResolvedGpsLocation whenever a fix arrives) -- separate from
     // customLocationLatitude/Longitude above, which the *user* entered directly and therefore
@@ -332,6 +345,7 @@ class WallpaperPrefs(private val context: Context) {
         val OPEN_WEATHER_API_KEY = stringPreferencesKey("open_weather_api_key")
         val LIVE_WEATHER_STATUS = stringPreferencesKey("live_weather_status")
         val AUTOMATIC_UPDATE_CHECK = booleanPreferencesKey("automatic_update_check")
+        val UPDATE_NOTIFICATIONS = booleanPreferencesKey("update_notifications")
         val RESOLVED_GPS_LAT = floatPreferencesKey("resolved_gps_lat")
         val RESOLVED_GPS_LON = floatPreferencesKey("resolved_gps_lon")
         val DEVICE_FIX_AT = longPreferencesKey("device_fix_at")
@@ -481,6 +495,7 @@ class WallpaperPrefs(private val context: Context) {
             openWeatherApiKey = prefs[Keys.OPEN_WEATHER_API_KEY] ?: "",
             liveWeatherStatus = prefs[Keys.LIVE_WEATHER_STATUS] ?: LiveWeatherStatus.OFF.storageId,
             automaticUpdateCheckEnabled = prefs[Keys.AUTOMATIC_UPDATE_CHECK] ?: false,
+            updateNotificationsEnabled = prefs[Keys.UPDATE_NOTIFICATIONS] ?: false,
             resolvedGpsLatitude = prefs[Keys.RESOLVED_GPS_LAT],
             resolvedGpsLongitude = prefs[Keys.RESOLVED_GPS_LON],
             deviceFixTimestampMillis = prefs[Keys.DEVICE_FIX_AT] ?: 0L,
@@ -808,6 +823,7 @@ class WallpaperPrefs(private val context: Context) {
         prefs[Keys.WEATHER_API_COM_API_KEY] = settings.weatherApiComApiKey
         prefs[Keys.OPEN_WEATHER_API_KEY] = settings.openWeatherApiKey
         prefs[Keys.AUTOMATIC_UPDATE_CHECK] = settings.automaticUpdateCheckEnabled
+        prefs[Keys.UPDATE_NOTIFICATIONS] = settings.updateNotificationsEnabled
         prefs[Keys.FIXED_HOUR] = settings.fixedHour
         prefs[Keys.PARALLAX_STRENGTH] = settings.parallaxStrength
         prefs[Keys.SCROLL_BACKGROUND] = settings.scrollBackground
@@ -898,6 +914,9 @@ class WallpaperPrefs(private val context: Context) {
      */
     suspend fun setAutomaticUpdateCheckEnabled(enabled: Boolean) =
         context.dataStore.editDurably { it[Keys.AUTOMATIC_UPDATE_CHECK] = enabled }
+
+    suspend fun setUpdateNotificationsEnabled(enabled: Boolean) =
+        context.dataStore.editDurably { it[Keys.UPDATE_NOTIFICATIONS] = enabled }
 
     suspend fun setLiveWeatherStatus(status: LiveWeatherStatus) =
         context.dataStore.editDurably { it[Keys.LIVE_WEATHER_STATUS] = status.storageId }

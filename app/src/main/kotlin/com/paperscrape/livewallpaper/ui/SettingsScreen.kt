@@ -69,6 +69,8 @@ import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import com.paperscrape.livewallpaper.update.UpdateCheckResult
 import com.paperscrape.livewallpaper.update.UpdateChecker
 import com.paperscrape.livewallpaper.update.UpdateInfo
+import com.paperscrape.livewallpaper.update.UpdateNotificationPolicy
+import com.paperscrape.livewallpaper.update.UpdateNotifier
 import com.paperscrape.livewallpaper.update.UpdatePrefs
 import kotlinx.coroutines.launch
 
@@ -141,6 +143,21 @@ fun SettingsScreen(
     updatePrefs: UpdatePrefs,
     onApplyWallpaper: () -> Unit,
     onRequestLocationPermission: (permission: String, onResult: (Boolean) -> Unit) -> Unit,
+    /** See `AdvancedScreen`'s parameter of the same name (A1, v5.7D). */
+    onRequestNotificationPermission: (onResult: (Boolean) -> Unit) -> Unit = { it(true) },
+    /**
+     * The release tag carried by a tapped update notification, or null on an ordinary open (A3).
+     *
+     * Set by `SettingsActivity` from [UpdateNotifier.EXTRA_SHOW_UPDATE_TAG]. Its presence is what
+     * makes the check below run and the dialog appear **whatever the opt-in and the snooze say**:
+     * the tap is the request, exactly as the button in *Advanced & about* is, and both are the user
+     * asking rather than the app volunteering.
+     *
+     * The tag itself is not used to build the dialog -- the check that follows produces the real
+     * [UpdateInfo], with release notes and assets. Carrying it rather than a bare flag is what lets
+     * the notification for the release be taken out of the shade when its dialog opens.
+     */
+    openUpdateForTag: String? = null,
 ) {
     val settings by prefs.settingsFlow.collectAsState(initial = WallpaperSettings())
     val savedThemes = rememberCustomThemeData(customThemeStore)
@@ -161,10 +178,31 @@ fun SettingsScreen(
      */
     val updateState = remember { mutableStateOf<UpdateUiState>(UpdateUiState.Idle) }
     var destination by remember { mutableStateOf(SettingsDestination.HOME) }
+    /**
+     * Where **World & scene** was opened from, so back returns there (N3, v5.7C).
+     *
+     * `destination` is a single value, not a stack, which is right for a tree of screens that are
+     * all one tap from home -- except that World & scene has *two* doors. The second is Weather &
+     * time's "Weather effects" row, and because every sub-screen's `onBack` was hard-wired to
+     * HOME, going through that door and coming back landed on the settings home: the screen the
+     * user had been on was gone, and the one back press they expected to undo the tap undid two.
+     *
+     * One field rather than a back stack because the only screen with two doors is this one; a
+     * stack would be machinery for a case that does not exist. It is set on every route *into*
+     * WORLD, including the home one, so it can never be left pointing at a screen the user did
+     * not come from.
+     */
+    var worldOpenedFrom by remember { mutableStateOf(SettingsDestination.HOME) }
 
-    // Checked once per app launch (LaunchedEffect(Unit) runs exactly once for this composition),
-    // never as a background/recurring check -- this is deliberately an in-app-only prompt, not a
-    // system notification, per the requirement that it must not nag the user outside the app.
+    // Checked once each time this screen is composed -- which is once per app launch, since
+    // `SettingsActivity` holds the composition across every configuration change it can (see its
+    // `configChanges`) -- and only while the opt-in below is on. Never as a background or
+    // recurring check: this is an in-app-only prompt, not a system notification.
+    //
+    // The keyed `LaunchedEffect` below is what runs it, **not** `LaunchedEffect(Unit)`, which is
+    // what this comment used to claim. The key matters: `settings` arrives from a flow with a
+    // defaults-shaped initial value, so the first pass always sees the switch off, and it is the
+    // key changing to `true` when the stored value lands that runs the check at all.
     var availableUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
     var showSnoozeChoice by remember { mutableStateOf(false) }
     // Set when the update dialog's "Install update" is tapped: Advanced & about opens with this
@@ -175,8 +213,14 @@ fun SettingsScreen(
     // **No automatic check.** Opening the settings screen used to reach the network every time,
     // which is a request the user never made, for a feature they may not want. The check now runs
     // only if they have opted in, and the manual button in Advanced works whether they have or not.
-    LaunchedEffect(settings.automaticUpdateCheckEnabled) {
-        if (!settings.automaticUpdateCheckEnabled) return@LaunchedEffect
+    // Held here rather than read inside the effect: `LocalContext` is a composition local and the
+    // effect's body is a coroutine that outlives the composition pass that started it.
+    val screenContext = LocalContext.current
+    LaunchedEffect(settings.automaticUpdateCheckEnabled, openUpdateForTag) {
+        // A tapped notification is a request, so it runs whatever the opt-in says -- the user has
+        // just asked, the same way the button in Advanced & about is an ask (A3, v5.7D).
+        val askedByNotification = openUpdateForTag != null
+        if (!askedByNotification && !settings.automaticUpdateCheckEnabled) return@LaunchedEffect
         val snooze = updatePrefs.readSnoozeState()
         // Deliberately only the one outcome. A check nobody asked for has nothing to say about a
         // network that was not there -- the button in Advanced & about is what reports that (see
@@ -184,10 +228,20 @@ fun SettingsScreen(
         // screen on a train into an error message.
         val update = (UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME) as? UpdateCheckResult.Available)
             ?.info ?: return@LaunchedEffect
-        val isSnoozedForThisVersion = snooze.versionTag == update.tagName && System.currentTimeMillis() < snooze.untilMillis
-        if (!isSnoozedForThisVersion) {
+        // The same rule the engine's notification consults, read from one place so the two cannot
+        // drift -- see UpdateNotificationPolicy.isSnoozed, which is this expression moved.
+        val isSnoozedForThisVersion = UpdateNotificationPolicy.isSnoozed(
+            tagName = update.tagName,
+            snoozedTag = snooze.versionTag,
+            untilMillis = snooze.untilMillis,
+            nowMillis = System.currentTimeMillis(),
+        )
+        if (askedByNotification || !isSnoozedForThisVersion) {
             availableUpdate = update
         }
+        // The dialog is now open on this release, so the notification about it has done its job.
+        // Left in the shade it would be a second, now-redundant copy of what is on screen.
+        if (askedByNotification) UpdateNotifier.cancel(screenContext, update.tagName)
     }
 
     // **Read here, in this scope, deliberately.**
@@ -314,7 +368,10 @@ fun SettingsScreen(
                     title = "World & scene",
                     supporting = "Sky, landscape, people, traffic, motion",
                     icon = Icons.Outlined.Landscape,
-                    onClick = { destination = SettingsDestination.WORLD },
+                    onClick = {
+                        worldOpenedFrom = SettingsDestination.HOME
+                        destination = SettingsDestination.WORLD
+                    },
                 )
             }
 
@@ -352,7 +409,10 @@ fun SettingsScreen(
             prefs = prefs,
             scope = scope,
             onRequestLocationPermission = onRequestLocationPermission,
-            onOpenWeatherEffects = { destination = SettingsDestination.WORLD },
+            onOpenWeatherEffects = {
+                worldOpenedFrom = SettingsDestination.WEATHER
+                destination = SettingsDestination.WORLD
+            },
             onBack = { destination = SettingsDestination.HOME },
         )
         SettingsDestination.CALENDAR -> HolidayCalendarScreen(
@@ -380,7 +440,8 @@ fun SettingsScreen(
             customThemeStore = customThemeStore,
             customThemeData = customThemeData,
             scope = scope,
-            onBack = { destination = SettingsDestination.HOME },
+            // Not HOME: back goes to whichever of the two doors this screen was entered by.
+            onBack = { destination = worldOpenedFrom },
         )
         SettingsDestination.ADVANCED -> AdvancedScreen(
             updateState = updateState,
@@ -391,6 +452,7 @@ fun SettingsScreen(
             customThemeStore = customThemeStore,
             scope = scope,
             onUpdateFound = { availableUpdate = it },
+            onRequestNotificationPermission = onRequestNotificationPermission,
             startInstallFor = pendingInstall,
             onInstallStarted = { pendingInstall = null },
             onBack = { destination = SettingsDestination.HOME },
@@ -466,11 +528,15 @@ fun SettingsScreen(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            scope.launch { updatePrefs.snoozeUntilNextLaunch() }
+                            scope.launch { updatePrefs.dismissWithoutSnoozing() }
                             showSnoozeChoice = false
                             availableUpdate = null
                         },
-                    ) { Text("Next app launch") }
+                        // **"Not now", not "Next app launch"** (A4, v5.7D). The old label promised
+                        // a schedule the app does not keep: with the automatic check off -- the
+                        // default -- nothing asks again next launch, so the button named a thing
+                        // that never happened. This one is true in both configurations.
+                    ) { Text("Not now") }
                 },
             )
         }

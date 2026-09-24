@@ -784,6 +784,143 @@ object SceneObjectCatalog {
         return out
     }
 
+    /**
+     * The depth every generated layout stands its school at, on every theme.
+     *
+     * Derived from the generator's own arithmetic rather than typed: the middle, by depth, of the
+     * candidates [generateStaticCandidates] spreads over `0.0..0.80` that fall in the school's
+     * third -- the same choice [singleShopPerVariant] makes. With ten candidates that is candidate
+     * 7, at 0.6222, and a school added to an old saved layout stands exactly where a freshly
+     * generated one does, so the two cannot be told apart by their size or their row.
+     */
+    internal val GENERATED_SCHOOL_DEPTH: Float = run {
+        val n = CANDIDATES_PER_CATEGORY
+        val inThird = (0 until n)
+            .map { i -> 0.0f + (i / (n - 1).toFloat().coerceAtLeast(1f)) * (0.80f - 0.0f) }
+            .filter { it >= SceneSpace.RESTAURANT_MAX_DEPTH && it < SceneSpace.SCHOOL_MAX_DEPTH }
+            .sorted()
+        inThird[inThird.size / 2]
+    }
+
+    /**
+     * The school a layout saved before v5.6 never had, or null when it needs none -- item 141.
+     *
+     * ### Why a saved layout has no school, and why nothing in it can become one
+     *
+     * A saved theme freezes the objects that were **standing** when it was saved --
+     * `snapshotEntry` writes `rawLayout.staticObjects.filter { keepCandidate(it) }` -- not the ten
+     * candidates they came from. Before v5.6 the shop band had two halves, so a saved street
+     * carries a restaurant at 0.4444, a bar at 0.7111 and the towers its density kept; nothing
+     * stands in the school's third (0.4667..0.6333), and every tower that *is* there is one the
+     * user can see. Promoting one would therefore always take a building off the user's skyline
+     * to put it on their street. This adds instead: **one** school, and nothing that was already
+     * saved moves, changes colour or changes drawing.
+     *
+     * ### Where it stands
+     *
+     * At [GENERATED_SCHOOL_DEPTH], so its row and its size are the generated school's. Its x is
+     * chosen among the hundredth-of-a-tile probes around the point halfway between the saved
+     * restaurant and bar (the way the generator's three shops stand in depth order along the
+     * street), under the rules [separateShopFrontages] applies -- no trunk or pole across its
+     * front, its front covered by at most [SHOP_MAX_OCCLUSION] -- and three that are all "it
+     * moves nothing else":
+     *
+     *  - **no tree steps aside.** The generator's last resort moves trees; here the school parks
+     *    at its least-covered probe instead, because those trees are the user's;
+     *  - **it may not stand in front of a shop the user already has.** A probe whose body would
+     *    cover any part of the saved restaurant's front is refused outright -- not held to the
+     *    40 % ceiling the generator allows itself, because the first measurement of this rule
+     *    with the ceiling let Beach's school take its trattoria from 15.5 % covered to 36.4 %,
+     *    which is within the rule and is still the user's restaurant half hidden by a building
+     *    they never asked for;
+     *  - **of the probes left, the one that hides least and is hidden least wins**: the share of
+     *    its own front the nearer objects cover, plus the largest share of any saved house's
+     *    body it covers. The second term is there because the first measurement placed
+     *    Halloween's school over 92 % of a small house standing 0.002 in depth behind it -- two
+     *    buildings of one row drawn into each other -- and a first-acceptable scan cannot see
+     *    that, because the frontage rules only ever protected shops. Ties go to the probe nearer
+     *    the midpoint.
+     *
+     * Its silhouette is the school catalogue's only entry (0), which is what the generator deals
+     * it. Its size variation is 1, the mean of the generator's roll: there is no roll to repeat,
+     * and the mean is the one value that is not a choice.
+     *
+     * Null when the layout already has a building in the school's third (every layout saved from
+     * v5.6 on, and any older one whose storefront repair left one there), or has no shop at all
+     * (a street saved with its buildings switched off, where a lone school would be the only
+     * commercial building in a scene that deliberately had none).
+     */
+    internal fun missingSchoolFor(objects: List<StaticSceneObject>): StaticSceneObject? {
+        val commercial = objects.filter { it.type == SceneObjectType.SKYSCRAPER }
+        if (commercial.any {
+                it.depthFraction >= SceneSpace.RESTAURANT_MAX_DEPTH && it.depthFraction < SceneSpace.SCHOOL_MAX_DEPTH
+            }
+        ) {
+            return null
+        }
+        val shops = commercial.filter { isShop(it) }
+        if (shops.isEmpty()) return null
+        val restaurant = shops.firstOrNull { it.depthFraction < SceneSpace.RESTAURANT_MAX_DEPTH }
+        val bar = shops.firstOrNull { it.depthFraction >= SceneSpace.SCHOOL_MAX_DEPTH }
+        val start = if (restaurant != null && bar != null) {
+            // The midpoint of the shorter way round: the tile wraps, so 0.9 and 0.1 are 0.2 apart.
+            val gap = (bar.tileFractionX - restaurant.tileFractionX).mod(1f)
+            if (gap <= 0.5f) (restaurant.tileFractionX + gap / 2f).mod(1f)
+            else (restaurant.tileFractionX - (1f - gap) / 2f).mod(1f)
+        } else {
+            ((restaurant ?: bar)!!.tileFractionX + 0.5f).mod(1f)
+        }
+        val base = StaticSceneObject(
+            SceneObjectType.SKYSCRAPER,
+            depthFraction = GENERATED_SCHOOL_DEPTH,
+            tileFractionX = start,
+            scale = 1f,
+            silhouette = 0,
+        )
+        val deeperShops = shops.filter { it.depthFraction < base.depthFraction }
+        val before = deeperShops.map { frontCoverage(objects, it) }
+        fun sparesTheShops(candidate: StaticSceneObject): Boolean {
+            val withSchool = objects + candidate
+            return deeperShops.indices.all { k -> frontCoverage(withSchool, deeperShops[k]) <= before[k] + 1e-4f }
+        }
+        val housesBehind = objects.filter { it.type == SceneObjectType.HOUSE && it.depthFraction < base.depthFraction }
+        fun housesHidden(candidate: StaticSceneObject): Float =
+            housesBehind.maxOfOrNull { bodyCoveredBy(it, candidate) } ?: 0f
+        var best: StaticSceneObject? = null
+        var bestScore = Float.MAX_VALUE
+        var leastCovered: StaticSceneObject? = null
+        var leastCoverage = Float.MAX_VALUE
+        for (step in 0..50) {
+            for (sign in if (step == 0) intArrayOf(1) else intArrayOf(1, -1)) {
+                val candidate = base.copy(tileFractionX = (start + sign * step * 0.01f).mod(1f))
+                if (frontCrossed(objects, candidate) || !sparesTheShops(candidate)) continue
+                val covered = frontCoverage(objects, candidate)
+                if (covered < leastCoverage) {
+                    leastCoverage = covered
+                    leastCovered = candidate
+                }
+                if (covered > SHOP_MAX_OCCLUSION) continue
+                // Strictly less, so the probe nearer the midpoint keeps a tie.
+                val score = covered + housesHidden(candidate)
+                if (score < bestScore) {
+                    bestScore = score
+                    best = candidate
+                }
+            }
+        }
+        return best ?: leastCovered ?: base
+    }
+
+    /** The share of [behind]'s drawn body that [front]'s body covers, nearest wrapped copy. */
+    private fun bodyCoveredBy(behind: StaticSceneObject, front: StaticSceneObject): Float {
+        val a = frontRect(behind)
+        val b = wrapBoxToward(frontRect(front), (a[0] + a[2]) / 2f)
+        val w = minOf(a[2], b[2]) - maxOf(a[0], b[0])
+        val h = minOf(a[3], b[3]) - maxOf(a[1], b[1])
+        if (w <= 0f || h <= 0f) return 0f
+        return w * h / ((a[2] - a[0]) * (a[3] - a[1]))
+    }
+
     /** The shop's full drawn front at the reference viewport: (left, top, right, bottom) px. */
     private fun frontRect(shop: StaticSceneObject): FloatArray {
         val s = SceneObjectRenderer.effectiveScaleFor(shop, REF_SCREEN_H)

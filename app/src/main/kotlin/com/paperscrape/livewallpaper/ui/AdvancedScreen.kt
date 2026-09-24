@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Refresh
@@ -59,6 +60,8 @@ import com.paperscrape.livewallpaper.update.UpdateCheckResult
 import com.paperscrape.livewallpaper.update.UpdateChecker
 import com.paperscrape.livewallpaper.update.UpdateDownloadResult
 import com.paperscrape.livewallpaper.update.UpdateInfo
+import com.paperscrape.livewallpaper.update.UpdateNotificationPolicy
+import com.paperscrape.livewallpaper.update.UpdateNotifier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -90,11 +93,31 @@ internal fun AdvancedScreen(
     customThemeStore: CustomThemeStore,
     scope: CoroutineScope,
     onUpdateFound: (UpdateInfo) -> Unit,
+    /**
+     * Puts the system's notification-permission dialog in front of the user, on API 33+ (A1, v5.7D).
+     *
+     * Passed in from the Activity for the same reason `onRequestLocationPermission` is: a
+     * `registerForActivityResult` launcher has to be created before the Activity is started, so a
+     * composable cannot own one. It is only ever called when
+     * [com.paperscrape.livewallpaper.update.UpdateNotificationPolicy.mustAsk] says there is
+     * something to ask for -- below API 33 there is no such permission, and asking would return a
+     * result with no dialog, which reads exactly like a refusal.
+     */
+    onRequestNotificationPermission: (onResult: (Boolean) -> Unit) -> Unit = { it(true) },
     startInstallFor: UpdateInfo? = null,
     onInstallStarted: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    /**
+     * Whether the last attempt to switch notifications on was refused (A1, v5.7D).
+     *
+     * Screen-local and deliberately not persisted: it is about what just happened, not about what
+     * the app should do, and the permission itself is the durable record. On API 29 -- this
+     * project's only test device -- it can never become true, because there is no permission to
+     * refuse. See `UpdateNotificationPolicy`.
+     */
+    var notificationsBlocked by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
     var confirmResetAll by remember { mutableStateOf(false) }
     var updateState by updateState
@@ -265,6 +288,44 @@ internal fun AdvancedScreen(
                 icon = Icons.Outlined.SystemUpdate,
                 checked = settings.automaticUpdateCheckEnabled,
                 onCheckedChange = { scope.launch { prefs.setAutomaticUpdateCheckEnabled(it) } },
+            )
+            // **A row of its own, under the switch it depends on, and greyed while that one is
+            // off** (A1, v5.7D). Not a new meaning for the switch above: somebody turned that on to
+            // get a prompt inside the app, and making it also post notifications would change what
+            // a control they already set does -- which is N1's defect in different clothes, and N1
+            // was repaired one round ago.
+            SettingsSwitchRow(
+                title = stringResource(R.string.settings_update_notify_title),
+                supporting = when {
+                    !settings.automaticUpdateCheckEnabled ->
+                        stringResource(R.string.settings_update_notify_needs_check)
+                    settings.updateNotificationsEnabled && notificationsBlocked ->
+                        stringResource(R.string.settings_update_notify_blocked)
+                    else -> stringResource(R.string.settings_update_notify_subtitle)
+                },
+                icon = Icons.Outlined.Notifications,
+                enabled = settings.automaticUpdateCheckEnabled,
+                checked = settings.updateNotificationsEnabled && settings.automaticUpdateCheckEnabled,
+                onCheckedChange = { wanted ->
+                    if (!wanted) {
+                        scope.launch { prefs.setUpdateNotificationsEnabled(false) }
+                        return@SettingsSwitchRow
+                    }
+                    // Ask *before* storing, so the stored value and what the user will actually see
+                    // agree. A switch left on after a refusal is a control that says one thing and
+                    // does another; the supporting line above says so when the platform has since
+                    // blocked it anyway.
+                    val permission = UpdateNotifier.notificationPermission(context)
+                    if (UpdateNotificationPolicy.mustAsk(permission)) {
+                        onRequestNotificationPermission { granted ->
+                            notificationsBlocked = !granted
+                            if (granted) scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                        }
+                    } else {
+                        notificationsBlocked = false
+                        scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                    }
+                },
             )
             SettingsRow(
                 title = when (updateState) {

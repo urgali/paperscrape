@@ -18,6 +18,7 @@ import com.paperscrape.livewallpaper.icon.LauncherIconSwitch
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.ui.theme.PaperScrapeTheme
+import com.paperscrape.livewallpaper.update.UpdateNotifier
 import com.paperscrape.livewallpaper.update.UpdatePrefs
 
 class SettingsActivity : ComponentActivity() {
@@ -66,6 +67,16 @@ class SettingsActivity : ComponentActivity() {
         // `customThemeData` were updated in an undefined order, so a composable reading both could
         // see one of them stale. See `rememberCustomThemeData`.
 
+        // **The notification's destination** (A3, v5.7D). A tap on "PaperScrape v5.7 is available"
+        // arrives here carrying the release tag, and the settings screen opens with the existing
+        // "Update available" dialog already showing -- so the user keeps all three choices the
+        // in-app prompt has always offered: install, remind me later, project page.
+        //
+        // Read from `intent` in `onCreate` rather than from `onNewIntent`, which this Activity does
+        // not override: the notification's PendingIntent carries FLAG_ACTIVITY_CLEAR_TOP, and this
+        // Activity is `standard`, so the tap starts a fresh instance with a fresh intent either way.
+        val openUpdateForTag = intent?.getStringExtra(UpdateNotifier.EXTRA_SHOW_UPDATE_TAG)
+
         setContent {
             PaperScrapeTheme {
                 SettingsScreen(
@@ -74,6 +85,8 @@ class SettingsActivity : ComponentActivity() {
                     updatePrefs = updatePrefs,
                     onApplyWallpaper = { launchSetWallpaperFlow() },
                     onRequestLocationPermission = { permission, onGranted -> requestLocationPermission(permission, onGranted) },
+                    onRequestNotificationPermission = { onResult -> requestNotificationPermission(onResult) },
+                    openUpdateForTag = openUpdateForTag,
                 )
             }
         }
@@ -101,6 +114,37 @@ class SettingsActivity : ComponentActivity() {
             pendingLocationCallback?.invoke(granted)
             pendingLocationCallback = null
         }
+
+    private var pendingNotificationCallback: ((Boolean) -> Unit)? = null
+
+    /**
+     * The launcher for `POST_NOTIFICATIONS`, separate from the location one on purpose.
+     *
+     * Two launchers rather than one shared one because `registerForActivityResult` hands the result
+     * to whichever callback the launcher was registered with, and a single pending-callback field
+     * serving both would deliver a location answer to a notification request if the two ever
+     * overlapped. They cannot today; a second field costs nothing and removes the question.
+     */
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
+            pendingNotificationCallback?.invoke(granted)
+            pendingNotificationCallback = null
+        }
+
+    /**
+     * Puts the system's notification dialog up, on the platforms that have one.
+     *
+     * **Never reached below API 33**, because the caller asks
+     * `UpdateNotificationPolicy.mustAsk` first and that returns false for `NOT_REQUIRED`. It matters:
+     * `RequestPermission` on a permission the platform does not define returns a result immediately
+     * and without a dialog, and the result is `false` -- which the caller would read as a refusal
+     * and would switch the feature back off on every Android 8 to 12 device, this project's test
+     * phone among them.
+     */
+    private fun requestNotificationPermission(onResult: (Boolean) -> Unit) {
+        pendingNotificationCallback = onResult
+        requestNotificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
 
     /**
      * Asks for exactly the permission the chosen mode needs, and no more.
