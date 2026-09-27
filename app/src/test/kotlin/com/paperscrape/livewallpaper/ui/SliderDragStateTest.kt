@@ -165,4 +165,51 @@ class SliderDragStateTest {
         awaitingCommit = null
         assertEquals(0.11f, SliderDragState.displayValue(0.11f, inFlight, awaitingCommit), 0f)
     }
+
+    /**
+     * **A caller that transforms what it writes still gets its slider back** (v5.8C). The business
+     * hours are written to the quarter hour, so a drag to 13:07 comes back as 13:00. Awaiting 13:07
+     * -- as `PreferenceSlider` did until v5.8C -- held the local copy for ever, and a change to the
+     * stored value made elsewhere afterwards was never shown (v5.8B audit). Awaiting what the caller
+     * says it stores releases on the write, and the next external change is shown.
+     */
+    @Test
+    fun `a transformed commit releases on what is actually stored`() {
+        val quarter = { h: Float -> kotlin.math.round(h * 4f) / 4f }
+        var persisted = 9.0f
+        val settled = 13.07f
+        val expected = quarter(settled)
+        assertTrue(SliderDragState.shouldCommit(persisted, expected))
+        var awaitingCommit: Float? = expected
+        assertEquals("the thumb shows what will be stored", 13.0f, SliderDragState.displayValue(persisted, null, awaitingCommit), 0f)
+        persisted = 13.0f   // the quantised write lands
+        assertTrue(SliderDragState.shouldReleaseLocalValue(persisted, awaitingCommit))
+        assertFalse(
+            "awaiting the raw value is the defect: it never comes back",
+            SliderDragState.shouldReleaseLocalValue(persisted, settled),
+        )
+        awaitingCommit = null
+        persisted = 8.0f    // a change made elsewhere, later
+        assertEquals(8.0f, SliderDragState.displayValue(persisted, null, awaitingCommit), 0f)
+        // And a drag that stores what is already there writes nothing.
+        assertFalse(SliderDragState.shouldCommit(8.0f, quarter(8.1f)))
+    }
+
+    /** The three callers that transform say so, which is what the rule above rests on. */
+    @Test
+    fun `every slider that transforms its value declares what it stores`() {
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        var src: String? = null
+        while (dir != null && src == null) {
+            for (prefix in listOf("", "app/")) {
+                val f = java.io.File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/ui/WorldSceneScreen.kt")
+                if (f.isFile) src = f.readText()
+            }
+            dir = dir.parentFile
+        }
+        val calls = Regex("""PreferenceSlider\((.*?)\n\s{8,12}\)""", RegexOption.DOT_MATCHES_ALL).findAll(src!!).map { it.value }.toList()
+        val transforming = calls.filter { it.contains("quantiseToQuarterHour(committed)") || it.contains("sunCloudHeightForFraction(fraction)") }
+        assertEquals("the three transforming sliders", 3, transforming.size)
+        for (call in transforming) assertTrue("a transforming slider without storedAs:\n$call", call.contains("storedAs ="))
+    }
 }

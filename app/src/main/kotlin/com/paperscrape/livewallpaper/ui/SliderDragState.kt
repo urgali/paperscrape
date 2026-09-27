@@ -24,10 +24,13 @@ package com.paperscrape.livewallpaper.ui
  * persisted value has actually caught up with what was committed. [shouldReleaseLocalValue]
  * decides that.
  *
- * The float comparison is exact rather than approximate on purpose: the committed value is the
- * same `Float` that was written, and it round-trips through DataStore unchanged, so the value
- * coming back is bit-identical. An epsilon would risk releasing early on a genuinely different
- * nearby value.
+ * The float comparison is exact rather than approximate on purpose: when the caller writes the
+ * committed `Float` unchanged it comes back through DataStore bit-identical, and an epsilon would
+ * risk releasing early on a genuinely different nearby value. A caller that transforms the value
+ * before writing it (the Sun/Cloud Height mapping, the quarter-hour business sliders) never gets
+ * back what it committed, so `PreferenceSlider` awaits the transformed value (its `storedAs`);
+ * until v5.8C it awaited the raw one, the local value was never released, and later changes to the
+ * stored value were not shown until the slider left composition (v5.8B comment audit).
  */
 internal object SliderDragState {
 

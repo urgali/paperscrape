@@ -4,8 +4,10 @@ package com.paperscrape.livewallpaper.engine
  * A color palette that fully describes one "paper cutout" scene.
  *
  * All hex colors are ARGB ints, ready to feed to [android.graphics.Paint.setColor].
- * Sky colors are given for the four phases of the day; the renderer interpolates
- * smoothly between them based on the current sun elevation (see [SunPositionCalculator]).
+ * Sky colors are given for the four phases of the day; they seed the customization's sky
+ * ([SceneCustomization] `sky`), whose top [SkyGradient] blends between day and night and whose
+ * bottom passes through the dawn or dusk bottom colour, by the sun's position (see
+ * [SunPositionCalculator]). The dawn and dusk top colours are not drawn.
  */
 data class SceneTheme(
     val id: String,
@@ -17,19 +19,23 @@ data class SceneTheme(
     val skyDay: IntArray,
     val skyDusk: IntArray,
 
-    // Layered hill / silhouette colors, ordered from farthest (index 0) to nearest.
+    // Hill colours; only index 0 is read, as the single hill layer's day/night colour
+    // (`hillsColorDay`/`hillsColorNight`); the other entries are not drawn.
     val hillColorsDay: IntArray,
     val hillColorsNight: IntArray,
 
     val sunColor: Int,
     val moonColor: Int,
     val starColor: Int,
-    val accentColor: Int, // used for touch-spawned paper birds / leaves
+    val accentColor: Int, // generated cars' stored colour (recoloured by the customization)
 
     /** When true, PaperRenderer periodically launches a firework burst at night. */
     val hasFireworks: Boolean = false,
 
-    /** When true, Santa's sleigh periodically flies across the sky (Christmas theme only). */
+    /**
+     * The default of this theme's `santaEnabled` (true only for Christmas); the sleigh follows
+     * that per-theme switch, which any theme can turn on.
+     */
     val hasSantaSleigh: Boolean = false,
 ) {
     override fun equals(other: Any?): Boolean = other is SceneTheme && other.id == id
@@ -111,7 +117,7 @@ object ThemeCatalog {
         sunColor = 0xFFFFFDF2.toInt(),
         moonColor = 0xFFF3F8FF.toInt(),
         starColor = 0xFFFFFFFF.toInt(),
-        accentColor = 0xFFC1443B.toInt(), // festive red for the touch bird
+        accentColor = 0xFFC1443B.toInt(), // festive red
         hasSantaSleigh = true,
     )
 
@@ -188,7 +194,7 @@ object ThemeCatalog {
         sunColor = 0xFFFFF3C4.toInt(),
         moonColor = 0xFFEFE6FF.toInt(),
         starColor = 0xFFFFFFFF.toInt(),
-        accentColor = 0xFFE87FA0.toInt(), // spring pink for the touch bird
+        accentColor = 0xFFE87FA0.toInt(), // spring pink
     )
 
     /**

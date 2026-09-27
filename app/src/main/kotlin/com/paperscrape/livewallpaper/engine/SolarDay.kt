@@ -41,9 +41,9 @@ package com.paperscrape.livewallpaper.engine
  *
  * ### Cost
  *
- * One allocation per location fix, which arrives at most every few minutes, and one volatile read
- * per frame in place of three plain reads. Nothing is locked, and the draw path itself never sees
- * any of it.
+ * One allocation per location fix -- at most every few minutes from the device, once per settings
+ * change with a Custom position -- and one volatile read per frame in place of three plain reads.
+ * Nothing is locked, and the draw path itself never sees any of it.
  */
 internal class SolarDay private constructor(
     val sunriseHour: Float,

@@ -87,7 +87,10 @@ object LauncherIconSwitch {
      *
      * [date] and [calendar] are parameters so a test can ask for a day that is not today and a
      * calendar that is not this device's, and for no other reason: every caller in the app passes
-     * the device's date and the user's stored calendar.
+     * the device's date; `SettingsActivity` passes the user's stored calendar, and
+     * [SeasonalIconController] the one the engine last reported -- and it applies nothing before
+     * the first report, so a moved window no longer flips the icon to the factory answer and back
+     * at each service start (v5.8C).
      */
     fun applyForDate(
         context: Context,

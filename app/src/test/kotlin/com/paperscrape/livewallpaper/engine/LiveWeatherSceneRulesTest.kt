@@ -110,4 +110,14 @@ class LiveWeatherSceneRulesTest {
     fun `no clouds means uniform coverage, so precipitation is never silently cancelled`() {
         assertTrue(LiveWeatherSceneRules.coverageIsUniformWhenNoClouds())
     }
+
+    /** **No breaking waves under falling snow**, thundersnow included (v5.8C; v5.8B audit). */
+    @Test
+    fun `the lake raises waves in rain and in a storm, never under snow`() {
+        org.junit.Assert.assertTrue(LiveWeatherSceneRules.wavesOnLake(raining = true, stormActive = false, snowing = false))
+        org.junit.Assert.assertTrue(LiveWeatherSceneRules.wavesOnLake(raining = false, stormActive = true, snowing = false))
+        org.junit.Assert.assertFalse("thundersnow", LiveWeatherSceneRules.wavesOnLake(raining = false, stormActive = true, snowing = true))
+        org.junit.Assert.assertFalse(LiveWeatherSceneRules.wavesOnLake(raining = false, stormActive = false, snowing = true))
+        org.junit.Assert.assertFalse(LiveWeatherSceneRules.wavesOnLake(raining = false, stormActive = false, snowing = false))
+    }
 }

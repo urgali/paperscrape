@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""K2 «Profilo» -- la sagoma e' il soggetto.
+"""K2 «Profilo» (Profile) -- the silhouette is the subject.
 
-Ogni figura e' UNA carta (fronte piu' tetto tagliati insieme) con la sua ombra; sopra, il piano
-terra e' una seconda carta piu' scura, e le finestre sono un ritmo di piccoli vetri; l'insegna e'
-una targa con un emblema. Dal riferimento del maintainer: guglie, cappelli, torrette, mansarde,
-gradini, cupole, tetti a farfalla, blocchi d'angolo -- due figure per famiglia (costo dichiarato),
-e per la torre una figura piu' due corone. Il colore e' deciso e saturo: 4 tinte per istanza.
+Each figure is ONE card (front plus roof cut out together) with its shadow; on top of it, the
+ground floor is a second, darker card, and the windows are a rhythm of small panes; the sign is
+a plaque with an emblem. From the maintainer's reference: spires, hats, turrets, mansards,
+steps, domes, butterfly roofs, corner blocks -- two figures per family (declared cost), and for
+the tower one figure plus two crowns. The colour is bold and saturated: 4 hues per instance.
 """
 from core import (Group, Piece, Slot, Building, W, WALL, CREAM, DARK, YELLOW, RED, rect, chamfered, disc, half_disc, scallops)
 W_TIER2 = None
@@ -21,7 +21,7 @@ HUES = [-50.0, -20.0, 15.0, 45.0]
 SAT = 0.40
 
 
-def hs_guglia():
+def hs_spire():
     g = Group("k2_hs_guglia")
     p = Piece("k2_hs_guglia", 72)
     body = [(-23, 0), (-23, -40), (-26, -40), (0, -72), (26, -40), (23, -40), (23, 0)]
@@ -44,7 +44,7 @@ def hs_guglia():
     return p
 
 
-def hs_cappello():
+def hs_hat():
     g = Group("k2_hs_cappello")
     p = Piece("k2_hs_cappello", 54)
     g.face("wall", rect(-32, -32, 32, 0))
@@ -65,7 +65,7 @@ def hs_cappello():
     return p
 
 
-def hl_torretta():
+def hl_turret():
     g = Group("k2_hl_torretta")
     p = Piece("k2_hl_torretta", 94)
     g.face("wall", rect(-38, -56, 32, 0))
@@ -95,7 +95,7 @@ def hl_torretta():
     return p
 
 
-def hl_mansarda():
+def hl_mansard():
     g = Group("k2_hl_mansarda")
     p = Piece("k2_hl_mansarda", 82)
     g.face("wall", rect(-43, -52, 43, 0))
@@ -122,15 +122,15 @@ def hl_mansarda():
 
 
 def tower_body():
-    """Tre livelli a gradini: tre carte (una per livello, ognuna ritagliata sul suo riquadro: un
-    foglio unico era per il 45 % vuoto), le finestre a righe timbrate, gli affacci col vetro timbrato."""
+    """Three stepped tiers: three cards (one per tier, each cropped to its own box: a single
+    sheet was 45 % empty), the windows in stamped rows, the bays with stamped glass."""
     p = Piece("k2_t_gradini", 176)
     t1, t2, t3 = rect(-33, -108, 33, 0), rect(-26, -148, 26, -108), rect(-18, -176, 18, -148)
     g = Group("k2_t_gradini_1")
     g.face("t1", t1)
     g.add(t1, WALL, relief=T["relief"], amp=T["amp"])
     g.add(rect(-33, -26, 33, 0), BASE_LIGHT, amp=T["amp"] * 0.5)
-    g.add(chamfered(-16, -27.5, 16, -24, 0.8), TRIM, relief=T["relief"], amp=T["amp"] * 0.6, host="t1", label="pensilina")
+    g.add(chamfered(-16, -27.5, 16, -24, 0.8), TRIM, relief=T["relief"], amp=T["amp"] * 0.6, host="t1", label="canopy")
     glass_door(g, "t1", -8, -23, 16, 21, T["relief"], T["amp"])
     grid_windows(g, "t1", [-27, 21], [-21], 6, 8, T["amp"])
     rows(p, g, "t1", row_stamp("k2_t_row5", 5, 6, 7, 12, T["amp"]), 5, 6, 7, 12, -27, [-100, -88, -76, -52, -40])
@@ -186,14 +186,14 @@ def crown_dome():
     return p
 
 
-def r_padiglione():
+def r_pavilion():
     g = Group("k2_r_padiglione")
     p = Piece("k2_r_padiglione", 58)
     g.face("wall", rect(-50, -40, 50, 0))
     g.add(rect(-50, -40, 50, 0), WALL, relief=R["relief"], amp=R["amp"])
     g.face("coping", rect(-51, -43, 51, -39.5))
     g.add(chamfered(-51, -43, 51, -39.5, 0.6), TRIM, relief=R["relief"], amp=R["amp"] * 0.6)
-    g.add(half_disc(0, -42, 14, 12), CREAM, relief=R["relief"], amp=R["amp"] * 0.6, host="coping", rests=True, label="insegna a cupola", margin=1.0)
+    g.add(half_disc(0, -42, 14, 12), CREAM, relief=R["relief"], amp=R["amp"] * 0.6, host="coping", rests=True, label="dome sign", margin=1.0)
     g.add(disc(0, -48, 4.5, 12), RED); g.add(disc(0, -48, 2.0, 8), CREAM)
     awning(g, "wall", -46, 30, -30, 6.0, R["relief"], R["amp"], n=8)
     for x in (-44, -24, -4):
@@ -208,7 +208,7 @@ def r_padiglione():
     return p
 
 
-def r_farfalla():
+def r_butterfly():
     g = Group("k2_r_farfalla")
     p = Piece("k2_r_farfalla", 78)
     g.face("wall", rect(-48, -42, 48, 0))
@@ -221,7 +221,7 @@ def r_farfalla():
         win, _ = bay_window(g, "wall", x, -28, 20, 15, R["relief"], R["amp"], frame=1.5, sill=False)
         p.windows.append(win)
     p.lights += [(-40, -11.5, 20), (-14, -11.5, 20)]
-    g.add(chamfered(17, -27, 35, -24, 0.6), TRIM, relief=R["relief"], amp=R["amp"] * 0.6, host="wall", label="pensilina")
+    g.add(chamfered(17, -27, 35, -24, 0.6), TRIM, relief=R["relief"], amp=R["amp"] * 0.6, host="wall", label="canopy")
     steps(g, "wall", 18.5, 33.5, 0, 1, 2.0, R["relief"], R["amp"])
     door(g, "wall", 20, -22, 12, 20, R["relief"], R["amp"], "flat")
     grid_windows(g, "wall", [38], [-28], 8, 10, R["amp"])
@@ -231,7 +231,7 @@ def r_farfalla():
     return p
 
 
-def b_insegna():
+def b_signboard():
     g = Group("k2_b_insegna")
     p = Piece("k2_b_insegna", 72)
     g.face("wall", rect(-32, -48, 32, 0))
@@ -258,7 +258,7 @@ def b_insegna():
     return p
 
 
-def b_smusso():
+def b_chamfer():
     g = Group("k2_b_smusso")
     p = Piece("k2_b_smusso", 52)
     body = [(-35, -50), (20, -50), (35, -35), (35, 0), (-35, 0)]
@@ -283,24 +283,25 @@ def b_smusso():
 
 
 def buildings():
-    """La dotazione che sta nel budget: due figure per casa piccola e bar, una per casa grande e
-    ristorante, torre = un corpo + due corone. La dotazione piena (due figure per OGNI famiglia) e'
-    `buildings_full()`: costa 5 738 616 B [M], 1 475 460 B sopra il budget, e viene resa a parte
-    (`--riserva`) perche' il maintainer la veda e decida cosa vale il posto."""
+    """The set that fits in the budget: two figures for the small house and the bar, one for the
+    large house and the restaurant, tower = one body + two crowns. The full set (two figures for
+    EVERY family) is `buildings_full()`: it costs 5 738 616 B [M], 1 475 460 B over the budget,
+    and is rendered separately (`--riserva`) so that the maintainer can see it and decide what is
+    worth the room."""
     return {
-        "HOUSE_SMALL": Building("HOUSE_SMALL", [Slot([hs_guglia(), hs_cappello()])], 27.0, HUES, SAT),
-        "HOUSE_LARGE": Building("HOUSE_LARGE", [Slot([hl_mansarda()])], 40.0, HUES, SAT),
+        "HOUSE_SMALL": Building("HOUSE_SMALL", [Slot([hs_spire(), hs_hat()])], 27.0, HUES, SAT),
+        "HOUSE_LARGE": Building("HOUSE_LARGE", [Slot([hl_mansard()])], 40.0, HUES, SAT),
         "TOWER": Building("TOWER", [Slot([tower_body()]), Slot([crown_spire(), crown_dome()])], 35.0, HUES, SAT),
-        "RESTAURANT": Building("RESTAURANT", [Slot([r_padiglione()])], 50.0, HUES, SAT),
-        "BAR": Building("BAR", [Slot([b_insegna(), b_smusso()])], 33.0, HUES, SAT),
+        "RESTAURANT": Building("RESTAURANT", [Slot([r_pavilion()])], 50.0, HUES, SAT),
+        "BAR": Building("BAR", [Slot([b_signboard(), b_chamfer()])], 33.0, HUES, SAT),
     }
 
 
 def buildings_full():
     return {
-        "HOUSE_SMALL": Building("HOUSE_SMALL", [Slot([hs_guglia(), hs_cappello()])], 27.0, HUES, SAT),
-        "HOUSE_LARGE": Building("HOUSE_LARGE", [Slot([hl_torretta(), hl_mansarda()])], 40.0, HUES, SAT),
+        "HOUSE_SMALL": Building("HOUSE_SMALL", [Slot([hs_spire(), hs_hat()])], 27.0, HUES, SAT),
+        "HOUSE_LARGE": Building("HOUSE_LARGE", [Slot([hl_turret(), hl_mansard()])], 40.0, HUES, SAT),
         "TOWER": Building("TOWER", [Slot([tower_body()]), Slot([crown_spire(), crown_dome()])], 35.0, HUES, SAT),
-        "RESTAURANT": Building("RESTAURANT", [Slot([r_padiglione(), r_farfalla()])], 50.0, HUES, SAT),
-        "BAR": Building("BAR", [Slot([b_insegna(), b_smusso()])], 33.0, HUES, SAT),
+        "RESTAURANT": Building("RESTAURANT", [Slot([r_pavilion(), r_butterfly()])], 50.0, HUES, SAT),
+        "BAR": Building("BAR", [Slot([b_signboard(), b_chamfer()])], 33.0, HUES, SAT),
     }

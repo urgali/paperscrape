@@ -10,7 +10,7 @@ import org.json.JSONObject
  * upgrade" possible. A key routes to the higher-limit `customer-api.open-meteo.com` endpoint; no
  * key uses the free `api.open-meteo.com` one. Neither is a failure state.
  *
- * It is also the only one of the two that splits precipitation into rain, showers and snowfall,
+ * It is also the only one of the three that splits precipitation into rain, showers and snowfall,
  * which is why [WeatherObservation] has room for the split at all.
  */
 object OpenMeteoProvider : WeatherProvider {

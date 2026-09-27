@@ -296,11 +296,15 @@ class PedestrianPopulationTest {
         assertTrue("all seeds produced the same street", streets.distinct().size > 100)
     }
 
-    /** Nothing may read the clock: two calls a moment apart are identical by construction. */
+    /**
+     * Nothing may read the clock. Proved by the file naming none ([ClockFreeSource]) rather than
+     * by two calls 5 ms apart, which a rule reading the clock by the second passes (v5.8B); and
+     * the same arguments give the same street.
+     */
     @Test
     fun `the population does not depend on anything but its arguments`() {
+        assertEquals(emptyList<String>(), ClockFreeSource.clockReadsIn("engine/PedestrianPopulation.kt"))
         val first = build(12345)
-        Thread.sleep(5)
         assertEquals(first, build(12345))
     }
 

@@ -38,10 +38,12 @@ import kotlin.math.sin
  * Vertices accumulate into one interleaved buffer and are flushed when the bound texture changes or
  * the buffer fills. Because flat fills sample a 1x1 white texture rather than using a second shader,
  * a run of solid shapes between two sprites does not split the batch — and a long run of the same
- * sprite (the star field, the rain) collapses into a single draw call.
+ * sprite (the star field's sparkles) or of flat fills (the rain) shares one draw call until the
+ * buffer fills; full-intensity rain alone overflows it (see [MAX_VERTICES]).
  *
- * Batching by texture is as far as this goes without an atlas: a scene object alternating sprites
- * and flat parts still flushes between them. That is a known ceiling, not an oversight.
+ * Since v4.29 every sprite and the flat-fill white pixel share one [GlTextureAtlas], so a scene
+ * object alternating sprites and flat parts no longer flushes between them; only a standalone
+ * texture — the twelve-theme census finds none — still ends a batch.
  *
  * ## Curve tessellation
  *
@@ -95,7 +97,11 @@ internal class GlSceneTarget : SceneCanvas {
     private var surfaceWidth = 0
     private var surfaceHeight = 0
 
-    /** Set when the program failed to build; the caller falls back rather than drawing nothing forever. */
+    /**
+     * True once the program and the white pixel are built; false before that, after a lost or
+     * released context, or when either failed -- the render thread then rebuilds, and falls back
+     * only when that fails, rather than drawing nothing forever.
+     */
     var isUsable = false
         private set
 
@@ -162,7 +168,7 @@ internal class GlSceneTarget : SceneCanvas {
         // The white pixel lives in the atlas, so it goes with everything else and has to be the
         // first thing packed back in — both because flat geometry cannot be drawn without it, and
         // because being first is what keeps it in the atlas rather than pushed out to a texture of
-        // its own once the shelves fill.
+        // its own once the atlas fills.
         //
         // **The result is not optional.** Dropping it left `isUsable` true with `whiteTexture` at
         // 0, so every flat fill afterwards bound texture zero and drew black, with nothing able to
@@ -216,11 +222,12 @@ internal class GlSceneTarget : SceneCanvas {
      * with them.
      *
      * **A counter rather than an argument, because the argument has been wrong here before.** The
-     * batch ends only when the texture changes, every sprite has lived in one atlas since v4.29, and
-     * v4.30 draws a person in up to five layers -- so the arithmetic says a crowded frame is still
-     * one draw call. The plan v4.30 was written from had predicted "three draws per pedestrian,
-     * twenty-four more per frame" from the same kind of arithmetic and was wrong by the whole of it.
-     * `GlDrawCallTest` reads these two numbers off a real crowded frame on the device instead.
+     * batch ends only when the texture changes or the vertex buffer fills, every sprite has lived
+     * in one atlas since v4.29, and v4.30 draws a person in up to five layers -- so the arithmetic
+     * says a crowded frame is still one draw call. The plan v4.30 was written from had predicted
+     * "three draws per pedestrian, twenty-four more per frame" from the same kind of arithmetic and
+     * was wrong by the whole of it. `GlDrawCallTest` reads these two numbers off a real crowded
+     * frame on the device instead.
      *
      * Two increments in a function that already builds a vertex buffer and issues a draw: the cost
      * is not measurable beside what it counts, and it is the only thing that makes the claim
@@ -581,8 +588,8 @@ internal class GlSceneTarget : SceneCanvas {
         useTexture(whiteTexture)
         ensureRoom(6)
         val span = bottom - top
-        // Four vertices for a full-screen gradient. The Canvas backend rasterises the same gradient
-        // one pixel at a time.
+        // Six vertices (two triangles) for a full-screen gradient. The Canvas backend rasterises
+        // the same gradient one pixel at a time.
         gradientVertex(left, top, top, span, topColor, bottomColor, 1f)
         gradientVertex(right, top, top, span, topColor, bottomColor, 1f)
         gradientVertex(right, bottom, top, span, topColor, bottomColor, 1f)
@@ -740,9 +747,10 @@ internal class GlSceneTarget : SceneCanvas {
 
     private companion object {
         /**
-         * Vertex budget per batch. Sized so the densest single primitive run in the scene — the
-         * precipitation pool at 90 candidates, each a capped line — fits without an intermediate
-         * flush; beyond it a flush is a correctness mechanism, not a failure.
+         * Vertex budget per batch. With every sprite in one atlas a batch spans the whole frame,
+         * and full-intensity rain alone (240 candidates, each a round-capped line of at least 54
+         * vertices) does not fit in it, so an intermediate flush is expected; it is a correctness
+         * mechanism, not a failure.
          */
         const val MAX_VERTICES = 12288
         const val INV_255 = 1f / 255f

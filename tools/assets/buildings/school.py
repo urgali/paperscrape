@@ -29,7 +29,7 @@ from core import Group, Piece, W, WALL, CREAM, DARK, YELLOW, RED, rect, chamfere
 import math
 import vocab
 from vocab import TRIM, steps, door, snow_cap, row_stamp, rows, bay_window
-import k2_profilo
+import k2_profile
 
 #: The school's own hand: wobble amplitude and shadow-paper offset. Between the restaurant's
 #: (0.9 / 1.9, 2.6) and the tower's (1.1 / 2.4, 3.2), which is where a 72-unit building belongs.
@@ -98,9 +98,9 @@ def upper_rows(g, p):
 
     Four each is what S2_C drew, and `B_matita` trades the fourth pane of each row for the 38
     units of clear wall the plaque stands on. `k2_t_row3` is `tower_row_tier3`, already shipped
-    and already drawn at `k2_profilo.T["amp"]`, so the school pays nothing for it.
+    and already drawn at `k2_profile.T["amp"]`, so the school pays nothing for it.
     """
-    stamp = row_stamp("k2_t_row3", 3, 6, 7, 11, k2_profilo.T["amp"])
+    stamp = row_stamp("k2_t_row3", 3, 6, 7, 11, k2_profile.T["amp"])
     rows(p, g, "wall", stamp, 3, 6, 7, 11, -47, [-44])
     rows(p, g, "wall", stamp, 3, 6, 7, 11, 19, [-44])
     p.lights += [(-47, -37, 28), (19, -37, 28)]

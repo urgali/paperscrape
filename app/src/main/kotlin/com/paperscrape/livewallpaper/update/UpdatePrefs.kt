@@ -9,7 +9,10 @@ import com.paperscrape.livewallpaper.prefs.PrefsRecovery
 import com.paperscrape.livewallpaper.prefs.PrefsRecovery.recoveringFromReadErrors
 import kotlinx.coroutines.flow.first
 
-/** Shared with the instrumented recovery test, which corrupts this exact file. */
+/**
+ * Shared with the instrumented recovery test, which corrupts a scratch file named after it
+ * (`<name>-recoverytest`), never the real store.
+ */
 internal const val UPDATE_PREFS_STORE_NAME = "paperscrape_update_prefs"
 
 // Its own file and its own handler. A corrupt snooze file is the cheapest of the three to lose --
@@ -21,8 +24,9 @@ private val Context.updateDataStore by preferencesDataStore(
 )
 
 /**
- * Persists the "remind me later" choice for the update prompt. Read once per app launch (not a
- * reactive Flow) since this only matters at startup, before the prompt is shown.
+ * Persists what has already been decided about each release: the "remind me later" snooze and the
+ * last version notified about. Read on demand, not as a reactive Flow: by the settings screen
+ * before it shows the prompt, and by the wallpaper engine's loop before it posts a notification.
  *
  * Snoozing is tied to the *specific version* that was snoozed: if a newer release comes out
  * during the snooze period, the prompt reappears immediately for that newer version instead of

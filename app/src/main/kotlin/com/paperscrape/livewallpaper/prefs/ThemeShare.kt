@@ -29,8 +29,8 @@ import org.json.JSONObject
  * Everything needed to *draw* the theme and nothing about the person who made it: the scene's
  * colours ([SceneTheme]), what stands in it ([SceneObjectLayout]), and how it is customised
  * ([SceneCustomization]). **No global settings, no location, no weather API keys, no personal
- * preference of any kind** — `ThemeShareTest` reads a packaged theme back as raw JSON and fails if
- * any of those words appear in it.
+ * preference of any kind** — `BackupAndThemeShareTest` (`a shared theme carries nothing
+ * personal`) serialises a packaged theme and fails if any of those words appear in it.
  *
  * ### Why an exported theme is self-contained
  *

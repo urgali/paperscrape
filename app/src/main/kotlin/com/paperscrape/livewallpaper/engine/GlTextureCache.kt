@@ -31,7 +31,9 @@ import android.opengl.GLUtils
  *
  * They are not re-typed with fresh numbers here, because re-typing is exactly how they rotted
  * (`BACKLOG_v4_28.md` item 82, and item 63 before it). The measurements live where they can fail:
- * `SpriteDrawScaleTest.uploadedTexelBudget` for what the set uploads, and
+ * `SpriteDrawScaleTest.uploadedTexelBudget` for a host-side upper bound on what the set uploads
+ * (every sprite at its largest drawn scale; it fails above its ceiling and prints the figure on
+ * every run), and
  * `SpriteGeometryTest.decodedByteBudget` for what it decodes. The *ratio* the sentence exists to
  * make still holds and is what matters here.
  *
@@ -55,7 +57,8 @@ import android.opengl.GLUtils
  * every lookup, and this is the per-blit path. The table holds one entry per shipped sprite per
  * level a scene actually draws it at, and the scan stops at the first match.
  *
- * Every method touches GL state and must run on the render thread with the context current.
+ * Every method runs on the render thread; [register], [registerWhitePixel] and [clear] touch GL and
+ * need the context current, while [find], the accessors and [invalidate] do not.
  */
 internal class GlTextureCache {
 
@@ -189,9 +192,10 @@ internal class GlTextureCache {
     /**
      * [reduced] with its fully transparent border removed, or [reduced] itself when it has none.
      *
-     * Scans the alpha channel once per upload -- an upload happens once per sprite per level for the
-     * life of the process, not per frame. A bitmap with no opaque texel at all is returned whole:
-     * there is nothing to centre a crop on, and the atlas is perfectly able to hold it.
+     * Scans the alpha channel once per upload -- an upload happens once per sprite per level per
+     * atlas (each engine has its own, and a trim or a lost context empties it), not per frame. A
+     * bitmap with no opaque texel at all is returned whole: there is nothing to centre a crop on,
+     * and the atlas is perfectly able to hold it.
      *
      * **This crops to zero margin on every side, and that is only safe because of what happens
      * next.** A sprite's outermost transparent texel is what the bilinear sampler reads at the
@@ -203,7 +207,7 @@ internal class GlTextureCache {
      * **The exception is [uploadStandalone]**, which has no atlas and no border and is bound
      * `GL_CLAMP_TO_EDGE` with `GL_LINEAR`. Nothing has reached it since v4.29's packer -- the
      * twelve-theme census counts zero standalone entries at full density -- and the day something
-     * does, its edge is the clamped one. `ARCHITECTURE.md` §3 "The transparent margin is part of
+     * does, its edge is the clamped one. `ARCHITECTURE.md` §5 "The transparent margin is part of
      * the drawing" has the general rule, the measurement behind it, and where each of the four
      * draw paths stands; `BACKLOG_v4_31.md` item 106 is where it was measured.
      */

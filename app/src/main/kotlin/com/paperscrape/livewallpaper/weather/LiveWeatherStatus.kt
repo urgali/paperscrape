@@ -55,7 +55,10 @@ enum class LiveWeatherStatus(val storageId: String) {
      */
     REJECTED_API_KEY("rejected_api_key"),
 
-    /** The last fetch failed and there is no previous snapshot, so the theme's weather is showing. */
+    /**
+     * No usable snapshot remains, so the theme's weather is showing: the last fetch failed with
+     * none held, or the last one held has aged out.
+     */
     FAILED("failed"),
 
     /**

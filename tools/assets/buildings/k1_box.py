@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
-"""K1 «Scatola» -- la grammatica: un edificio e' una PILA di pezzi scelti per istanza.
+"""K1 «Scatola» (Box) -- the grammar: a building is a STACK of pieces chosen per instance.
 
-Non esiste una facciata: esistono piani terra, piani e tetti, ognuno una carta con la sua ombra,
-in tre larghezze (A 60 u: casa piccola, bar, torre; B 84 u: casa grande; C 96 u: ristorante). Il
-compositore sceglie per ogni slot un'alternativa e un numero di ripetizioni dall'identita'
-dell'edificio, cosi' due case vicine hanno tetti, altezze e colori diversi (dal riferimento del
-maintainer: sagome tutte diverse; piano terra diverso dai piani; finestre piccole in griglia; le
-insegne sono targhe). I fianchi sono piatti: un pezzo sta bene isolato e affiancato.
+There is no facade: there are ground floors, storeys and roofs, each a card with its shadow,
+in three widths (A 60 u: small house, bar, tower; B 84 u: large house; C 96 u: restaurant). For
+each slot the composer picks an alternative and a number of repeats from the building's
+identity, so two neighbouring houses have different roofs, heights and colours (from the
+maintainer's reference: silhouettes all different; ground floor different from the storeys;
+small windows in a grid; the signs are plaques). The flanks are flat: a piece looks right both
+standing alone and side by side.
 """
 from core import (Group, Piece, Slot, Building, W, WALL, CREAM, DARK, YELLOW, rect, chamfered, disc, half_disc, scallops)
 from vocab import (BASE_DARK, BASE_LIGHT, TRIM, ROOF_TILE, ROOF_SLATE, DOOR, GLASS, CHIMNEY,
                    wall_face, grid_windows, bay_window, door, glass_door, steps, awning, sign_plate, lantern, chimney,
                    snow_cap, dormer)
 
-H = dict(amp=0.7, relief=(1.5, 2.0))       # case (e pezzi A/B condivisi con bar)
-T = dict(amp=1.1, relief=(2.4, 3.2))       # torre
-R = dict(amp=0.9, relief=(1.9, 2.6))       # ristorante (C)
+H = dict(amp=0.7, relief=(1.5, 2.0))       # houses (and A/B pieces shared with the bar)
+T = dict(amp=1.1, relief=(2.4, 3.2))       # tower
+R = dict(amp=0.9, relief=(1.9, 2.6))       # restaurant (C)
 HUES = [-35.0, -12.0, 0.0, 18.0, 40.0]
 SAT = 0.30
 
@@ -84,7 +85,7 @@ def ground_tower_A():
     g = Group("k1_ground_tower_a")
     p = Piece("k1_ground_tower_a", 30)
     wall_face(g, "wall", rect(-30, -30, 30, 0), BASE_LIGHT, relief=T["relief"], amp=T["amp"])
-    g.add(chamfered(-17, -27.5, 17, -24, 0.8), TRIM, relief=T["relief"], amp=T["amp"] * 0.6, host="wall", label="pensilina")
+    g.add(chamfered(-17, -27.5, 17, -24, 0.8), TRIM, relief=T["relief"], amp=T["amp"] * 0.6, host="wall", label="canopy")
     glass_door(g, "wall", -9, -23, 18, 21, T["relief"], T["amp"])
     grid_windows(g, "wall", [-25, 19], [-21], 6, 8, T["amp"])
     p.lamps.append((-14.5, -26.5))
@@ -142,7 +143,7 @@ def storey_bay_A():
     g = Group("k1_storey_bay_a")
     p = Piece("k1_storey_bay_a", 22)
     wall_face(g, "wall", rect(-30, -22, 30, 0), WALL, relief=H["relief"], amp=H["amp"])
-    g.add(chamfered(-26, -5.5, 26, -2, 0.6), TRIM, relief=H["relief"], amp=H["amp"] * 0.6, host="wall", label="balcone")
+    g.add(chamfered(-26, -5.5, 26, -2, 0.6), TRIM, relief=H["relief"], amp=H["amp"] * 0.6, host="wall", label="balcony")
     for x in (-22, 9):
         win, _ = bay_window(g, "wall", x, -18.5, 13, 12, H["relief"], H["amp"], sill=False)
         p.windows.append(win); p.lights.append((x, -6.5, 13))
@@ -150,7 +151,7 @@ def storey_bay_A():
     return p
 
 
-# --- tetti ---------------------------------------------------------------------------------------
+# --- roofs ---------------------------------------------------------------------------------------
 def roof_gable(name, half, h, params, fill, chim_x=None, dormer_x=None):
     g = Group(name)
     p = Piece(name, h)
@@ -224,8 +225,8 @@ def roof_dome_A():
 
 
 def roof_turret_B():
-    """Tetto a falda con la torretta: due gruppi (falda, torretta) ritagliati ognuno sul suo riquadro,
-    e due calotte di neve: un solo foglio sarebbe stato per il 40 % vuoto (misurato: 190 KB -> 140)."""
+    """Pitched roof with the turret: two groups (slope, turret), each cropped to its own box, and
+    two snow caps: a single sheet would have been 40 % empty (measured: 190 KB -> 140)."""
     p = Piece("k1_roof_turret_b", 44)
     g = Group("k1_roof_turret_b_gable")
     tri = [(-46, 0), (-8, -30), (30, 0)]
@@ -260,7 +261,7 @@ def roof_flat_C():
 
 
 def pieces():
-    """Tutti i pezzi per nome (fase 4: il mix pesca solo quelli delle case)."""
+    """All the pieces by name (phase 4: the mix picks only the houses' pieces)."""
     gh_a, gh_b, gs_c, gb_a, gt_a = ground_house_A(), ground_house_B(), ground_shop_C(), ground_bar_A(), ground_tower_A()
     sh_a, sh_b, s_c, st_a, sb_a = storey_house_A(), storey_house_B(), storey_C(), storey_tower_A(), storey_bay_A()
     gable_a = roof_gable("k1_roof_gable_a", 34, 30, H, ROOF_TILE, chim_x=13)

@@ -19,7 +19,9 @@ object LiveWeatherSceneRules {
     /**
      * The cloud density to draw with, or null for "place no clouds".
      *
-     * @param liveCloudCover the forecast's 0..1 cover, or null when Live Weather is not active.
+     * @param liveCloudCover the 0..1 cover Live Weather is drawing (the forecast's, eased by
+     *   `CloudCoverFade`, or during a lapse easing back to the theme's), or null when Live Weather
+     *   is not driving the sky.
      * @param themeCloudsVisible the theme's own cloud switch.
      * @param themeCloudDensity the theme's own cloud slider.
      */
@@ -65,4 +67,13 @@ object LiveWeatherSceneRules {
         themeThunderstorm: Boolean,
     ): Boolean = liveIsThunderstorm
         ?: (themePrecipitationVisible && themePrecipitationIsRain && themeThunderstorm)
+
+    /**
+     * Whether the lake raises waves: in rain, and in a storm **unless snow is what is falling**.
+     * A live thunderstorm can report measured snowfall (thundersnow); the lightning is right there
+     * and stays, but breaking waves under falling snow is what the renderer's own comment said
+     * could not happen, and until v5.8C it did (v5.8B comment audit).
+     */
+    fun wavesOnLake(raining: Boolean, stormActive: Boolean, snowing: Boolean): Boolean =
+        raining || (stormActive && !snowing)
 }

@@ -209,9 +209,9 @@ class StaleBudgetTest(unittest.TestCase):
         def patch(scratch: Path) -> None:
             path = scratch / "budget.md"
             text = path.read_text()
-            decoded = re.search(r"Perimetro spedito \(\d+ PNG[^)]*\): (\d+) B decodificati", text)
+            decoded = re.search(r"Shipped perimeter \(\d+ PNG[^)]*\): (\d+) B decoded", text)
             assert decoded is not None, "the perimeter line has to be there to be corrupted"
-            path.write_text(text.replace(f"{decoded.group(1)} B decodificati", "9999999 B decodificati", 1))
+            path.write_text(text.replace(f"{decoded.group(1)} B decoded", "9999999 B decoded", 1))
 
         problems = self._with_patched_budget(patch)
         self.assertEqual(1, len(problems), problems)
@@ -222,7 +222,7 @@ class StaleBudgetTest(unittest.TestCase):
         """A report that cannot be checked must not read as a report that checked out."""
         def patch(scratch: Path) -> None:
             path = scratch / "budget.md"
-            path.write_text("# Contabilita'\n")
+            path.write_text("# The neighbourhood's sprite bytes\n")
 
         problems = self._with_patched_budget(patch)
         self.assertEqual(1, len(problems), problems)

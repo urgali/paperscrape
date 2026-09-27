@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.paperscrape.livewallpaper.engine.AutoColorMode
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.SceneCustomization
@@ -20,6 +21,7 @@ import org.json.JSONObject
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -78,7 +80,7 @@ class ThemeCustomizationPersistenceTest {
     fun tidy() = runBlocking { wipe() }
 
     private suspend fun wipe() {
-        for (id in THEMES + listOf("sunset", CUSTOM_ID)) prefs.resetAllCategories(id)
+        for (id in THEMES + listOf("sunset", "desert", "autumn", CUSTOM_ID)) prefs.resetAllCategories(id)
         store.clearAllOverrides()
         for (entry in store.dataFlow.first().customThemes) store.deleteCustomTheme(entry.id)
         CustomThemeRegistry.update(store.dataFlow.first())
@@ -101,6 +103,58 @@ class ThemeCustomizationPersistenceTest {
         return CustomThemeRegistry.resolveActiveCustomization(
             themeId, s.pendingCustomization, s.pendingCustomizationThemeId, s.themeCustomizations,
         )
+    }
+
+    // ------------------------------------------------------------------ the two resets (v5.8C)
+
+    /**
+     * **The two reset rows of *Advanced & about*, on the real store** (v5.8C, the maintainer's
+     * decision of 2026-09-25). Edits made from the menus light the edits row and a saved version
+     * lights the saved row; a control moved and moved back lights nothing; each reset takes only
+     * what it names and leaves the other kind, and saved new themes, alone. Until v5.8C the one
+     * row there was counted only saved versions and reset only them.
+     */
+    @Test
+    fun theTwoResetsEachTakeOnlyWhatTheyName() = runBlocking {
+        customise("beach", 1)
+        customise("winter", 2)
+        // Touched and put back: a slider moved away from the default and returned to it.
+        val autumnDefault = defaultCustomizationFor("autumn").houses.density
+        prefs.setCategoryDensity(ObjectCategory.HOUSES, 0.9f, "autumn")
+        prefs.setCategoryDensity(ObjectCategory.HOUSES, autumnDefault, "autumn")
+        // A saved version of Desert, as "Replace with current" makes it.
+        val desert = CustomThemeEntry(
+            id = "desert", name = "My desert", theme = ThemeCatalog.byId("desert"),
+            layout = SceneObjectCatalog.layoutFor("desert", ThemeCatalog.byId("desert").accentColor),
+            customization = defaultCustomizationFor("desert").copy(hillsVariation = 0.3f),
+        )
+        store.setOverride("desert", desert)
+        CustomThemeRegistry.update(store.dataFlow.first())
+
+        fun state(s: WallpaperSettings, data: com.paperscrape.livewallpaper.engine.CustomThemeData) =
+            com.paperscrape.livewallpaper.ui.SettingsUiModel.themeResetState(ThemeCatalog.ALL, data.overrides, s.themeCustomizations)
+
+        val before = state(prefs.settingsFlow.first(), store.dataFlow.first())
+        assertEquals(listOf("Desert"), before.savedVersions)
+        assertEquals("a slider moved back must not count as an edit", listOf("winter", "beach"), before.currentEditIds)
+
+        // Reset the current edits: Beach and Winter go back to their defaults, Desert keeps its saved version.
+        prefs.resetCustomizations(before.currentEditIds.toSet())
+        assertEquals(defaultCustomizationFor("beach"), customizationOf("beach"))
+        assertEquals(defaultCustomizationFor("winter"), customizationOf("winter"))
+        val afterEdits = state(prefs.settingsFlow.first(), store.dataFlow.first())
+        assertEquals(emptyList<String>(), afterEdits.currentEdits)
+        assertEquals("the edits reset must not touch a saved version", listOf("Desert"), afterEdits.savedVersions)
+
+        // Edits again, then the saved-versions reset: the saved version goes, the edits stay.
+        customise("beach", 3)
+        val beachEdited = customizationOf("beach")
+        store.clearAllOverrides()
+        CustomThemeRegistry.update(store.dataFlow.first())
+        val afterSaved = state(prefs.settingsFlow.first(), store.dataFlow.first())
+        assertEquals(emptyList<String>(), afterSaved.savedVersions)
+        assertEquals("the saved reset must not touch the edits", listOf("beach"), afterSaved.currentEditIds)
+        assertEquals(beachEdited, customizationOf("beach"))
     }
 
     // ------------------------------------------------------------------ the reported defect
@@ -399,6 +453,87 @@ class ThemeCustomizationPersistenceTest {
         assertEquals("beach's night density leaked into city", expected, customizationOf("city"))
     }
 
+    // ------------------------------------------------------------ the palms switch is state too
+
+    /**
+     * The defect measured on the BV6600 in the v5.7 assessment (M1), in its own order: palms off
+     * on Beach, then one unrelated edit on Desert, which had never been touched. Desert lost its
+     * palms. `PALMS_ENABLED` was the one per-theme key `clearAllThemeCustomizationKeys` did not
+     * remove, so Beach's "off" was still in the flat keys when Desert became the theme under edit.
+     */
+    @Test
+    fun thePalmsSwitchDoesNotLeakIntoAnotherTheme() = runBlocking {
+        prefs.setPalmsEnabled(false, "beach")
+        assertFalse("the test turned nothing off", customizationOf("beach").palmsEnabled)
+
+        prefs.setCategoryDensity(ObjectCategory.HOUSES, 0.4f, "desert")
+
+        val expected = defaultCustomizationFor("desert").let {
+            it.copy(houses = it.houses.copy(density = 0.4f))
+        }
+        assertTrue("the test assumes Desert has palms by default", expected.palmsEnabled)
+        assertEquals("Beach's palms switch leaked into Desert", expected, customizationOf("desert"))
+        assertFalse("Beach lost its own choice", customizationOf("beach").palmsEnabled)
+    }
+
+    /**
+     * Resetting the scene takes the palms switch with it, and it stays gone after the next edit.
+     * The reset always *looked* right -- it drops the tag and the archive, so the resolver fell back
+     * to defaults -- and the surviving key came back with the first edit (photograph 408).
+     */
+    @Test
+    fun resettingTheSceneAlsoClearsThePalmsSwitch() = runBlocking {
+        prefs.setPalmsEnabled(false, "beach")
+        prefs.resetAllCategories("beach")
+        assertEquals("resetting beach did not reset beach", defaultCustomizationFor("beach"), customizationOf("beach"))
+
+        prefs.setCategoryDensity(ObjectCategory.BUILDINGS, 0.31f, "beach")
+        val expected = defaultCustomizationFor("beach").let {
+            it.copy(buildings = it.buildings.copy(density = 0.31f))
+        }
+        assertEquals("the palms came back off on the next edit", expected, customizationOf("beach"))
+    }
+
+    /** "Reset decorations to defaults" -- exactly the calls the Seasons screen makes -- turns them back on. */
+    @Test
+    fun resettingTheDecorationsBringsThePalmsBack() = runBlocking {
+        prefs.setPalmsEnabled(false, "beach")
+        for (category in listOf(
+            ObjectCategory.SNOWMEN, ObjectCategory.GIFTS, ObjectCategory.PENGUINS,
+            ObjectCategory.BUNNIES, ObjectCategory.EASTER_EGGS, ObjectCategory.PUMPKINS,
+        )) {
+            prefs.resetCategory(category, "beach")
+        }
+        prefs.resetSeasonalPalettes("beach")
+        prefs.resetSanta("beach")
+
+        assertTrue("the decorations reset left the palms off", customizationOf("beach").palmsEnabled)
+        assertEquals("the decorations reset left something else behind", defaultCustomizationFor("beach"), customizationOf("beach"))
+    }
+
+    // ------------------------------------------------- the automatic colour modes survive a return
+
+    /**
+     * The sequence measured on the BV6600 in the v5.7 assessment (M7): Autumn's hills on "Day
+     * sets night", one edit on Winter, back to Autumn and one unrelated edit there. The mode came
+     * back as "Both" -- MANUAL -- because the restore from the archive did not write it.
+     */
+    @Test
+    fun anAutomaticColourModeSurvivesEditingAnotherThemeAndComingBack() = runBlocking {
+        prefs.setHillsAutoMode(AutoColorMode.FROM_DAY, "autumn")
+        assertEquals(AutoColorMode.FROM_DAY, customizationOf("autumn").hillsAutoMode)
+
+        prefs.setStarsVisible(false, "winter")
+        prefs.setStarsVisible(true, "winter")
+        assertEquals("the archive itself lost the mode", AutoColorMode.FROM_DAY, customizationOf("autumn").hillsAutoMode)
+
+        val stars = customizationOf("autumn").stars.visible
+        prefs.setStarsVisible(!stars, "autumn")
+        prefs.setStarsVisible(stars, "autumn")
+
+        assertEquals("returning to Autumn lost \"Day sets night\"", AutoColorMode.FROM_DAY, customizationOf("autumn").hillsAutoMode)
+    }
+
     // ------------------------------------------------------------------ the writer is complete
 
     /**
@@ -419,7 +554,30 @@ class ThemeCustomizationPersistenceTest {
         prefs.setBirdsNight(true, "beach")
         prefs.setRainbowOpacity(0.77f, "beach")
         prefs.setSantaEnabled(true, "beach")
+        // The palms switch and every automatic day/night mode: the fields this round trip lost
+        // until v5.8 (`writeFlatCustomization` wrote no mode at all), and which this test never
+        // set, so it could not see them go. Both halves of each pair, on every category, and the
+        // nine pairs outside the category loop.
+        prefs.setPalmsEnabled(false, "beach")
+        for (category in ObjectCategory.entries) {
+            prefs.setCategoryAutoMode1(category, AutoColorMode.FROM_DAY, "beach")
+            prefs.setCategoryAutoMode2(category, AutoColorMode.FROM_NIGHT, "beach")
+        }
+        prefs.setHillsAutoMode(AutoColorMode.FROM_DAY, "beach")
+        prefs.setMountainAutoMode(true, AutoColorMode.FROM_NIGHT, "beach")
+        prefs.setMountainAutoMode(false, AutoColorMode.FROM_DAY, "beach")
+        prefs.setLakeAutoMode(AutoColorMode.FROM_NIGHT, "beach")
+        prefs.setSkyAutoModeHigh(AutoColorMode.FROM_DAY, "beach")
+        prefs.setSkyAutoModeLow(AutoColorMode.FROM_NIGHT, "beach")
+        prefs.setCloudsAutoMode(AutoColorMode.FROM_DAY, "beach")
+        prefs.setPrecipitationRainAutoMode(AutoColorMode.FROM_NIGHT, "beach")
+        prefs.setPrecipitationSnowAutoMode(AutoColorMode.FROM_DAY, "beach")
         val beach = customizationOf("beach")
+        // Not vacuous: the values being compared really are the non-default ones.
+        assertFalse("the palms switch was never set", beach.palmsEnabled)
+        assertEquals("the hills' mode was never set", AutoColorMode.FROM_DAY, beach.hillsAutoMode)
+        assertEquals("a category's mode was never set", AutoColorMode.FROM_NIGHT, beach.houses.autoMode2)
+        assertEquals("the snow's mode was never set", AutoColorMode.FROM_DAY, beach.precipitation.snowAutoMode)
 
         // Force the archive/restore cycle: leave beach, come back to it.
         prefs.setCategoryDensity(ObjectCategory.HOUSES, 0.93f, "winter")

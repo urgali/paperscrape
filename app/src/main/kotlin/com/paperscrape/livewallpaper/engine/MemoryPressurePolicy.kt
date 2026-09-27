@@ -47,8 +47,8 @@ internal enum class TrimAction {
  * A naive `if (level >= TRIM_MEMORY_RUNNING_CRITICAL)` would therefore throw away the whole cache
  * every time the user closes the settings screen. For a live wallpaper that is routine and
  * frequent, and the wallpaper carries on drawing throughout — so the next frame the user sees
- * would stall while 118 sprites are decoded again. Hence an explicit mapping per level rather
- * than a threshold comparison.
+ * would stall while the sprites it draws are decoded again. Hence an explicit mapping per level
+ * rather than a threshold comparison.
  */
 internal object MemoryPressurePolicy {
 
@@ -62,13 +62,6 @@ internal object MemoryPressurePolicy {
     const val TRIM_MEMORY_COMPLETE = 80
 
     /**
-     * @param level the value passed to `onTrimMemory`.
-     * @param anyEngineVisible whether any wallpaper engine is currently visible, i.e. whether a
-     *   frame is about to be drawn. Nothing else in this process draws, so when no engine is
-     *   visible a full release costs nothing until the wallpaper is shown again — and by then the
-     *   system has usually recovered the memory it was asking for.
-     */
-    /**
      * Whether a [TrimAction] should also drop the GPU copies — which is all or nothing.
      *
      * **ARC-11.** The call site said the GPU textures "follow the same policy" as the bitmaps, and
@@ -79,15 +72,28 @@ internal object MemoryPressurePolicy {
      * for.
      *
      * The distinction is what the pressure level means. `RUNNING_LOW` is "give some back if it is
-     * cheap", and for the GPU it is not, so the atlas stays. `RUNNING_CRITICAL` and everything above
-     * it mean the process is a kill candidate; there the re-upload is worth paying and the atlas
-     * goes. Nothing is visible in the `RELEASE_ALL` cases anyway, so there is no spike to pay.
+     * cheap", and for a visible engine's GPU copies it is not, so the atlas stays (with nothing
+     * visible it maps to `RELEASE_ALL` and goes). `RUNNING_CRITICAL` and everything above it mean
+     * the process is a kill candidate; there the re-upload is worth paying and the atlas goes.
+     * Nothing is visible in the `RELEASE_ALL` cases, and since v5.8C the render thread honours the
+     * drop while parked, on the context and surface it already holds ([GlRenderThread]'s hidden
+     * branch). Until then it waited for the next prepared frame, which only a visible engine
+     * reaches: the atlas stayed allocated all the while the process was a kill candidate and was
+     * dropped on the first visible frame, which paid the re-upload (v5.8B comment audit).
      */
     fun dropsGpuTextures(action: TrimAction): Boolean = when (action) {
         TrimAction.KEEP_ALL, TrimAction.TRIM_TO_HALF -> false
         TrimAction.TRIM_TO_QUARTER, TrimAction.RELEASE_ALL -> true
     }
 
+    /**
+     * @param level the value passed to `onTrimMemory`.
+     * @param anyEngineVisible whether any wallpaper engine is currently visible, i.e. whether a
+     *   frame is about to be drawn. The settings screen's previews draw from the same cache in this
+     *   process and are not counted, so when no engine is visible a full release costs the
+     *   wallpaper nothing until it is shown again (the previews re-decode) — and by then the system
+     *   has usually recovered the memory it was asking for.
+     */
     fun actionFor(level: Int, anyEngineVisible: Boolean): TrimAction = when (level) {
         // "Your UI went away." For a wallpaper the UI is the settings screen; the wallpaper
         // itself keeps drawing. Not a memory signal at all -- see the class doc.
@@ -106,8 +112,9 @@ internal object MemoryPressurePolicy {
         TRIM_MEMORY_RUNNING_CRITICAL ->
             if (anyEngineVisible) TrimAction.TRIM_TO_QUARTER else TrimAction.RELEASE_ALL
 
-        // The process is on the LRU kill list. Holding 30 MB of re-decodable bitmaps here is
-        // exactly what makes a live wallpaper a preferred victim.
+        // The process is on the LRU kill list. Holding re-decodable bitmaps here -- up to the whole
+        // ~42 MiB decoded set on the `Canvas` path -- is exactly what makes a live wallpaper a
+        // preferred victim.
         TRIM_MEMORY_BACKGROUND, TRIM_MEMORY_MODERATE, TRIM_MEMORY_COMPLETE -> TrimAction.RELEASE_ALL
 
         // Unknown or future level. Anything at or beyond BACKGROUND severity means the process is

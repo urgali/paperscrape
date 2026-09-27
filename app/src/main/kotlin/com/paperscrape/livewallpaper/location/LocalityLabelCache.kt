@@ -31,9 +31,10 @@ import kotlin.math.sqrt
  *    it re-associates. A threshold below that jitter would defeat the cache in exactly the mode
  *    that generates the most redundant lookups.
  *  - **It matches what the row actually displays.** The coordinates on this row are written by
- *    [Coordinates.formatCoarse], two decimals, which is about 1 km. Tying the cache to the same
- *    resolution means the cache can never hide a change the row would have shown — if the
- *    displayed number moves, the name is looked up again.
+ *    [Coordinates.formatCoarse], two decimals, which is about 1 km. Tying the cache to about the
+ *    same resolution keeps the two roughly in step, but does not lock them: a move under 1 km can
+ *    still change the displayed number (a rounding boundary crossed, or one longitude step away
+ *    from the equator, about 790 m at 45°) without a new lookup.
  *
  * The cost of the threshold is a stale name for someone who crosses a municipal boundary without
  * moving a kilometre. For a label under a settings toggle that is the right trade, and it is

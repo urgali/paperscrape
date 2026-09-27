@@ -96,11 +96,29 @@ object LiveWeatherSchedule {
         }
 
     /**
+     * Whether enough time has passed since the last attempt, given a monotonic elapsed reading.
+     *
+     * Stated here rather than inlined at the three call sites because the *clock* is the rule.
+     * Until v4.14 the service compared `System.currentTimeMillis()` against a wall-clock stamp,
+     * and a clock moved backwards -- a timezone edit, an NTP correction, a user setting the date --
+     * made the difference negative, so nothing was ever due again until the wall clock caught back
+     * up. `elapsedSince` must come from `SystemClock.elapsedRealtime()`, which counts since boot,
+     * includes deep sleep, and cannot go backwards.
+     *
+     * The negative case is still handled rather than assumed away, although nothing produces one
+     * today: the fresh-engine sentinel (`Long.MIN_VALUE / 4`) reads as "a long time ago" and is due
+     * through the ordinary comparison.
+     */
+    fun isAttemptDue(elapsedSinceLastMillis: Long, delayMillis: Long): Boolean =
+        elapsedSinceLastMillis < 0L || elapsedSinceLastMillis >= delayMillis
+
+    /**
      * How long after the last attempt the next one may be made.
      *
      * Zero consecutive transient failures is the normal cadence. After that the delay doubles from
      * [RETRY_BASE_MILLIS] and is capped at [normalIntervalMillis], so the schedule converges back
-     * to normal by itself instead of needing a separate "give up" rule:
+     * to normal by itself instead of needing a separate "give up" rule. With the weather loop's
+     * hourly interval:
      *
      * | consecutive transient failures | delay | attempt at |
      * |---|---|---|
@@ -117,22 +135,6 @@ object LiveWeatherSchedule {
      * A live wallpaper cannot afford a fixed short retry: an aeroplane, a tunnel or a dead Wi-Fi
      * network would turn it into a permanent 2-minute poll.
      */
-    /**
-     * Whether enough time has passed since the last attempt, given a monotonic elapsed reading.
-     *
-     * Stated here rather than inlined at the two call sites because the *clock* is the rule. Until
-     * v4.14 the service compared `System.currentTimeMillis()` against a wall-clock stamp, and a
-     * clock moved backwards -- a timezone edit, an NTP correction, a user setting the date -- made
-     * the difference negative, so nothing was ever due again until the wall clock caught back up.
-     * `elapsedSince` must come from `SystemClock.elapsedRealtime()`, which counts since boot,
-     * includes deep sleep, and cannot go backwards.
-     *
-     * The negative case is still handled rather than assumed away: the first pass after a fresh
-     * engine starts from a sentinel, and "a long time ago" must read as due.
-     */
-    fun isAttemptDue(elapsedSinceLastMillis: Long, delayMillis: Long): Boolean =
-        elapsedSinceLastMillis < 0L || elapsedSinceLastMillis >= delayMillis
-
     fun nextAttemptDelayMillis(consecutiveTransientFailures: Int, normalIntervalMillis: Long): Long {
         if (consecutiveTransientFailures <= 0) return normalIntervalMillis
         // Doubling in Long arithmetic, but the shift is bounded first: a counter that ran away
@@ -147,9 +149,57 @@ object LiveWeatherSchedule {
      *
      * A negative age -- the wall clock moved backwards between the fetch and now -- counts as
      * usable: the data is not old, the clock is wrong, and expiring perfectly good conditions
-     * because someone changed the time zone would be its own bug. (That the schedule reads the
-     * wall clock at all is a separate, known issue and is not this batch's.)
+     * because someone changed the time zone would be its own bug. (The attempt schedule is on
+     * `elapsedRealtime`, see [isAttemptDue]; only this expiry still reads the wall clock, because
+     * the snapshot's stamp is one.)
      */
+    /**
+     * Whether the loop fetches and draws live conditions at all: the switch is on **and** the scene
+     * follows real time -- the rule the settings screen states (`LiveWeatherUiState.canBeTurnedOn`:
+     * a fixed hour has no "now" to fetch for). One function so the engine and the screen cannot
+     * disagree about it again, as they did until v5.8C.
+     */
+    fun runs(enabled: Boolean, followRealTime: Boolean): Boolean = enabled && followRealTime
+
+    /**
+     * How far apart two positions may be and still be **the same place** to the weather: about one
+     * cell of the coarsest provider grid. [WeatherRequest.coordinate] records it -- Open-Meteo
+     * resolves to roughly an 11 km grid and the other two are no finer -- so within this distance
+     * the conditions for one position are the conditions for the other.
+     */
+    const val SAME_PLACE_KM = 11.0
+
+    /** The two positions are within [SAME_PLACE_KM] of each other (equirectangular; exact enough at this scale). */
+    fun isSamePlace(a: com.paperscrape.livewallpaper.location.DeviceLocationFix, b: com.paperscrape.livewallpaper.location.DeviceLocationFix): Boolean {
+        val kmPerDegree = 111.2
+        val dLat = (a.latitude - b.latitude) * kmPerDegree
+        val dLon = (a.longitude - b.longitude) * kmPerDegree * kotlin.math.cos(Math.toRadians((a.latitude + b.latitude) / 2.0))
+        return dLat * dLat + dLon * dLon <= SAME_PLACE_KM * SAME_PLACE_KM
+    }
+
+    /**
+     * The snapshot the loop holds after a fetch for [fetchedFor]: what it [fetched], or -- when
+     * the fetch produced nothing -- the one it [held], **unless that one was for another place**.
+     *
+     * A failed fetch keeps the last known-good conditions on screen ([LiveWeatherStatus.STALE]),
+     * which is right while they are this place's. After the user moves the Custom location, or the
+     * phone reports a new town, they are not: until v5.8C a failed first fetch for the new place
+     * left the old place's weather drawing until a later fetch succeeded -- minutes for a
+     * transient failure, up to an hour otherwise (v5.8B comment audit). Now the old place's
+     * conditions are dropped and the scene shows the theme's own until this place's arrive.
+     * [heldFor] is where [held] was fetched; returns the snapshot and where it is for.
+     */
+    fun heldAfterFetch(
+        held: LiveWeatherSnapshot?,
+        heldFor: com.paperscrape.livewallpaper.location.DeviceLocationFix?,
+        fetched: LiveWeatherSnapshot?,
+        fetchedFor: com.paperscrape.livewallpaper.location.DeviceLocationFix,
+    ): Pair<LiveWeatherSnapshot?, com.paperscrape.livewallpaper.location.DeviceLocationFix?> = when {
+        fetched != null -> fetched to fetchedFor
+        held != null && heldFor != null && !isSamePlace(heldFor, fetchedFor) -> null to null
+        else -> held to heldFor
+    }
+
     fun snapshotIsUsable(snapshot: LiveWeatherSnapshot?, nowMillis: Long): Boolean {
         if (snapshot == null) return false
         return nowMillis - snapshot.fetchedAtMillis < SNAPSHOT_MAX_AGE_MILLIS

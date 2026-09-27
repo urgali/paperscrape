@@ -4,8 +4,10 @@ package com.paperscrape.livewallpaper.engine
  * Which kinds of building can have someone looking out of a window.
  *
  * A building type is listed here only because its windows are already drawn at a size a bust reads
- * at. Nothing in this enum changes how a window looks -- see [WindowOccupants] for the boundary
- * this system deliberately does not cross.
+ * at. [WindowOccupants] never changes how a window looks -- see it for the boundary this system
+ * deliberately does not cross -- but the renderer does read the kind:
+ * `SceneObjectRenderer.drawNeighbourhoodBuilding` lights a non-house's glass only while it is open
+ * (see [BusinessHours]), and gives chimney smoke only to houses and a beacon only to towers.
  */
 internal enum class WindowBuildingKind {
     /** The small and large houses, the only two v4.0 ever populated. */
@@ -20,12 +22,13 @@ internal enum class WindowBuildingKind {
     /**
      * The school, and the only kind whose windows say anything about *who* is behind them.
      *
-     * It is street-level glass like the restaurant and the bar, so everything else about it is
-     * [COMMERCIAL]'s: it keeps business hours, its panes go dark when it closes, and its
-     * occupants leave one at a time across the closing fade. A value of its own is not about any
-     * of that -- it is about the one rule in [WindowOccupants.occupantAt] that reads the kind, and
-     * about keeping the restaurant and the bar out of it. A flag on [BuildingFamily] would have
-     * been a second axis for a question this one already answers.
+     * It is street-level glass like the restaurant and the bar, so its hours are [COMMERCIAL]'s:
+     * it keeps business hours, its panes go dark when it closes, and its occupants leave one at a
+     * time across the closing fade. A value of its own is about the two rules that read the kind
+     * -- [WindowOccupants.occupantAt] makes its occupants children and [WindowOccupants.rateFor]
+     * gives it [WindowOccupants.SCHOOL_RATE] -- and about keeping the restaurant and the bar out
+     * of both. A flag on [BuildingFamily] would have been a second axis for a question this one
+     * already answers.
      */
     SCHOOL,
 }
@@ -110,8 +113,8 @@ internal object WindowOccupants {
     const val HOUSE_RATE = 0.34f
 
     /**
-     * Commercial frontage is busier than a home during the day but has far fewer panes, so a
-     * slightly higher rate still yields only one or two figures per building.
+     * Commercial frontage is busier than a home during the day and has three panes, about as many
+     * as a house, so a slightly higher rate still yields only one or two figures per building.
      */
     const val COMMERCIAL_RATE = 0.40f
 
@@ -239,9 +242,9 @@ internal object WindowOccupants {
      * their own channels whatever the kind, so turning a building into a school swaps the age and
      * leaves the rest of the person standing there -- the same face, one age younger.
      *
-     * The three-argument overload below is the pre-v5.6 signature, kept because most of the scene
-     * has no opinion about the kind and because the test that pins "the kinds agree" needs a
-     * reading with no kind in it at all.
+     * The three-argument overload below is the pre-v5.6 signature, kept for the tests -- nothing in
+     * the scene calls it -- because the test that pins "the kinds agree" needs a reading with no
+     * kind in it at all.
      */
     fun occupantAt(seed: Int, buildingSeed: Int, windowIndex: Int, kind: WindowBuildingKind): WindowOccupant {
         val addr = address(buildingSeed, windowIndex)

@@ -12,8 +12,8 @@ artwork is regenerated.
 Two things are checked, and they are different in kind.
 
 **The arithmetic**, on synthetic PNGs in a temporary directory: the per-concept totals are the sum
-of the rows beneath them, the verdict against `BUDGET` flips at the boundary with the sign the
-reader acts on, and `uploaded_bytes` measures the ink box grown by one texel and clamped to the
+of the rows beneath them, the report passes no verdict of its own (v5.8B: `core.BUDGET` is gone),
+and `uploaded_bytes` measures the ink box grown by one texel and clamped to the
 canvas rather than the canvas itself -- which is the whole reason the two columns differ.
 
 **The agreement**, on the real tree: `report.budget_perimeter` re-derives `shipped_perimeter` from
@@ -102,7 +102,7 @@ class BudgetReportTest(unittest.TestCase):
     def test_both_files_are_written_and_the_json_is_what_was_returned(self):
         rep, on_disk, md = self._run({"house_a": (24, 24)})
         self.assertEqual(rep, on_disk)
-        self.assertIn("# Contabilita' dei concept", md)
+        self.assertIn("# The neighbourhood's sprite bytes", md)
 
     def test_the_concept_total_is_the_sum_of_its_rows(self):
         rep, _, _ = self._run({"house_a": (24, 24), "house_b": (36, 12), "bar_c": (60, 30)})
@@ -116,30 +116,46 @@ class BudgetReportTest(unittest.TestCase):
         self.assertIn("| house_a_q1 | 24x24 |", md)
         self.assertIn("| bar_c_q1 | 60x30 |", md)
 
-    def test_a_concept_under_the_ceiling_says_so_with_the_room_left(self):
-        rep, _, md = self._run({"house_a": (24, 24)})
-        decoded = rep["concepts"]["mix"]["decoded"]
-        self.assertIn(f"sotto il budget di {core.BUDGET - decoded:+d} B", md)
+    def test_the_report_measures_and_passes_no_verdict_of_its_own(self):
+        """v5.8B, item 138: `core.BUDGET` is gone, and the report says where the ceiling is.
 
-    def test_a_concept_over_the_ceiling_says_SOPRA_with_a_negative_margin(self):
-        """The case the report exists for, and the one no run on the real tree has produced."""
-        side = 1200  # 1200x1200x4 = 5.76 MB against a 4.26 MB ceiling
-        rep, _, md = self._run({"house_big": (side, side)})
-        decoded = rep["concepts"]["mix"]["decoded"]
-        self.assertGreater(decoded, core.BUDGET)
-        self.assertIn("SOPRA il budget di -", md)
-        self.assertIn(f"SOPRA il budget di {core.BUDGET - decoded:+d} B", md)
+        What stood here were two tests of the verdict -- under the ceiling and over it, printed in
+        Italian -- for a ceiling nothing read and the shipped set had been over since v5.0.
+        A report that prints a failure every release reads past teaches people to read past
+        failures; this one prints the measure and names the gate that judges it.
+        """
+        rep, _, md = self._run({"house_big": (1200, 1200)})
+        self.assertFalse(hasattr(core, "BUDGET"))
+        self.assertNotRegex(md, r"(?i)\b(over|under|above|below) the (budget|ceiling)\b")
+        self.assertIn("SpriteGeometryTest.decodedByteBudget", md)
+        self.assertIn(f"{rep['concepts']['mix']['decoded']} B decoded", md)
 
     def test_the_shipped_perimeter_counts_the_six_families_and_not_the_concept_pngs(self):
-        # 46 until v5.6F added the school's four layers. The number is pinned rather than
-        # derived because the point of the assertion is that the perimeter is read from the
+        # 46 until v5.6F added the school's four layers, and 50 until v5.8B, when the towers'
+        # 26 were added: the prefix list said `skyscraper` and the towers are `tower_*`, so the
+        # test's own name ("six families") was the one thing it did not check. The number is
+        # pinned rather than derived because the point is that the perimeter is read from the
         # shipped drawable set and not from whatever the concept run happened to draw.
         rep, _, md = self._run({"house_a": (24, 24)})
         perimeter = rep["shipped_perimeter"]
-        self.assertEqual(50, perimeter["files"])
-        self.assertIn(f"Perimetro spedito ({perimeter['files']} PNG", md)
+        self.assertEqual(76, perimeter["files"])
+        self.assertIn(f"Shipped perimeter ({perimeter['files']} PNG", md)
+        towers = [n for n in (p.stem for p in RUNTIME_DIR.glob("tower_*.png"))]
+        self.assertEqual(26, len(towers), "the towers are part of the perimeter")
         # The concept's own PNG is not in it: the perimeter is read from the shipped drawable set.
         self.assertNotEqual(perimeter["files"], rep["concepts"]["mix"]["files"])
+
+    def test_what_ships_is_what_the_generator_draws(self):
+        """The committed report, read: the shipped perimeter and the mix are the same bytes.
+
+        Only true since the perimeter counts all six families; with the towers missing, the two
+        figures in `budget.md` differed by 1 122 984 B and the report compared them as if they
+        were one thing over its budget.
+        """
+        data = json.loads((BUILDINGS_DIR / "budget.json").read_text())
+        mix = data["concepts"]["mix"]
+        self.assertEqual(mix["files"], data["shipped_perimeter"]["files"])
+        self.assertEqual(mix["decoded"], data["shipped_perimeter"]["decoded"])
 
 
 class PerimeterAgreementTest(unittest.TestCase):

@@ -75,11 +75,10 @@ import java.util.Locale
  *
  * Two windows of the same tier must never both claim a day. The cheap implementation is to let the
  * edit land and repair it afterwards, which means the invalid state exists — briefly in memory,
- * and on disk if the process dies in between. So a window opens a **draft**: the sliders move a
- * local copy, the conflict line updates as they move, and **Save is disabled while the draft
- * conflicts**. Nothing invalid is ever written. That is also why the sliders are
- * [PreferenceSlider]s rather than raw ones — a raw `Slider` here would put a disk write inside the
- * thumb's feedback loop, which this project already forbids for exactly that reason.
+ * and on disk if the process dies in between. So a window opens a **draft**: the two date fields
+ * edit a local copy, the conflict line updates as they are typed, and **Save is disabled while the
+ * draft conflicts**. Nothing that overlaps another dated window of its tier is ever written from
+ * here; Easter, which is computed, is exempt (see the Save button in `DatedWindowEditor`).
  */
 @Composable
 internal fun HolidayCalendarScreen(
@@ -183,11 +182,12 @@ internal fun HolidayCalendarScreen(
 }
 
 /**
- * Start and end for one dated window, as two day-of-year sliders.
+ * Start and end for one dated window, as two typed day/month fields (`DateEntry.kt` says why they
+ * are not sliders).
  *
- * A slider over the 366 month-days rather than a date picker, because a window has no year: it is
- * "the whole of October", not "October 2026". A `DatePicker` would have to invent a year to show,
- * and the first thing a user would do is wonder what happens the year after.
+ * Not a date picker either, because a window has no year: it is "the whole of October", not
+ * "October 2026". A `DatePicker` would have to invent a year to show, and the first thing a user
+ * would do is wonder what happens the year after.
  */
 @Composable
 private fun DatedWindowEditor(
@@ -295,8 +295,9 @@ private fun DatedWindowEditor(
             Button(
                 onClick = { draft?.let { onSave(it); onClose() } },
                 // The one gate that matters: neither an overlapping draft nor a draft that is not
-                // yet two dates is ever written, so the stored calendar cannot be in a state the
-                // rules would have to break a tie in.
+                // yet two dates is ever written, so no edit here leaves two dated windows of one
+                // tier sharing a day. Easter, being computed, is not checked, and wins any overlap
+                // by precedence.
                 enabled = draft != null && conflicts.isEmpty() && changed,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Save") }

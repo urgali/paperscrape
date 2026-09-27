@@ -34,8 +34,10 @@ class SettingsActivity : ComponentActivity() {
         customThemeStore = CustomThemeStore(applicationContext)
         updatePrefs = UpdatePrefs(applicationContext)
 
-        // BCK-06: finish an import the process was killed in the middle of, before anything in this
-        // screen reads the saved themes. Idempotent, and a no-op on every start but that one.
+        // BCK-06: finish an import the process was killed in the middle of. Launched alongside the
+        // first composition rather than before it, so the screen may show the old saved themes for
+        // a moment; the saved-theme flow re-emits once the pending write lands. Idempotent, and a
+        // no-op on every start but that one.
         lifecycleScope.launch {
             runCatching { BackupRepository(prefs, customThemeStore, BuildConfig.VERSION_NAME).finishPendingImport() }
         }
@@ -68,9 +70,10 @@ class SettingsActivity : ComponentActivity() {
         // see one of them stale. See `rememberCustomThemeData`.
 
         // **The notification's destination** (A3, v5.7D). A tap on "PaperScrape v5.7 is available"
-        // arrives here carrying the release tag, and the settings screen opens with the existing
-        // "Update available" dialog already showing -- so the user keeps all three choices the
-        // in-app prompt has always offered: install, remind me later, project page.
+        // arrives here carrying the release tag, and the settings screen checks again and opens the
+        // existing "Update available" dialog as soon as that check finds the release -- so the user
+        // keeps all three choices the in-app prompt has always offered: install, remind me later,
+        // project page.
         //
         // Read from `intent` in `onCreate` rather than from `onNewIntent`, which this Activity does
         // not override: the notification's PendingIntent carries FLAG_ACTIVITY_CLEAR_TOP, and this
@@ -149,7 +152,7 @@ class SettingsActivity : ComponentActivity() {
     /**
      * Asks for exactly the permission the chosen mode needs, and no more.
      *
-     * "Network / Cell" asks for `ACCESS_COARSE_LOCATION` and stops there -- asking for fine
+     * "Network" asks for `ACCESS_COARSE_LOCATION` and stops there -- asking for fine
      * location to serve a mode that will only ever read the network provider would be requesting
      * a capability the feature does not use. "GPS" asks for `ACCESS_FINE_LOCATION`, which the
      * system presents as the precise-location choice.

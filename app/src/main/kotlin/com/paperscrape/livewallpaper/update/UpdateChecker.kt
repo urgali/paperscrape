@@ -53,7 +53,7 @@ data class AppVersion(val major: Int, val minor: Int) : Comparable<AppVersion> {
 data class UpdateInfo(
     val tagName: String,      // e.g. "v1.1" -- the *latest* release, not necessarily the only new one
     val version: AppVersion,  // parsed from tagName, e.g. 1.1
-    val releasePageUrl: String, // GitHub release page — where "Update now" sends the user
+    val releasePageUrl: String, // GitHub release page: "Check project page", "Open release page"
     val releaseNotes: String?, // combined "what's new" across *every* release newer than the user's, not just the latest
     // The two files the release workflow publishes, when they are both there. Null means this
     // release cannot be installed from inside the app -- the user is sent to the release page
@@ -95,10 +95,16 @@ sealed interface UpdateCheckResult {
             /** No network, DNS failure, connection refused, or a timeout. */
             NO_CONNECTION,
 
-            /** A reply arrived and it was not 200: rate limiting, a renamed repo, an outage. */
+            /**
+             * A reply arrived and it was not 200 (rate limiting, a renamed repo, an outage), or it
+             * was too long to read.
+             */
             SERVER_ERROR,
 
-            /** A 200 whose body was not the JSON this expects. */
+            /**
+             * A 200 whose body was not the JSON this expects, or an installed version name that
+             * cannot be compared.
+             */
             UNREADABLE_RESPONSE,
         }
 
@@ -119,7 +125,8 @@ sealed interface UpdateCheckResult {
  * Checks the public GitHub Releases API for a newer version than the one currently installed.
  *
  * IMPORTANT: [OWNER]/[REPO] must match your actual GitHub repository, or this will either find
- * nothing (wrong repo = 404, fails silently) or compare against the wrong project entirely.
+ * nothing (wrong repo = 404: silent on the automatic checks, reported by the button as "GitHub
+ * didn't answer") or compare against the wrong project entirely.
  * Double check these two constants after forking/renaming the repo.
  */
 object UpdateChecker {
@@ -143,8 +150,9 @@ object UpdateChecker {
      *
      * Never throws: every failure is an [UpdateCheckResult.Unreachable] with a reason, so a caller
      * that wants to stay silent can, and a caller that has to answer the user can say something
-     * true. The two callers do exactly that -- `SettingsScreen`'s launch check acts on
-     * [UpdateCheckResult.Available] and ignores everything else, `AdvancedScreen`'s button reports
+     * true. The three callers do exactly that -- `SettingsScreen`'s check and the wallpaper
+     * engine's daily check act on [UpdateCheckResult.Available] and ignore the rest (the engine
+     * only retries sooner after [UpdateCheckResult.Unreachable]), `AdvancedScreen`'s button reports
      * all three.
      */
     suspend fun checkForUpdate(
@@ -222,8 +230,10 @@ object UpdateChecker {
             if (latest.version <= current) return@withContext UpdateCheckResult.UpToDate
 
             // Every release strictly newer than what the user has, newest first -- each one's
-            // own release-notes/vMAJOR.MINOR.md content (see .github/workflows/android-build.yml),
-            // so it's plain-language "what's new for you" text, not the technical CHANGELOG.md.
+            // own release body: release-notes/vMAJOR.MINOR.md (or a generic line when that file is
+            // missing) plus the workflow's short verification footer (see
+            // .github/workflows/android-build.yml), so it's plain-language "what's new for you"
+            // text, not the technical CHANGELOG.md.
             val newerReleases = parsed.filter { it.version > current }
                 .sortedByDescending { it.version }
             val combinedNotes = newerReleases
@@ -259,8 +269,9 @@ object UpdateChecker {
     /**
      * Returns [url] unchanged if it's a plain `https://github.com/...` (or `www.github.com`)
      * URL, or null otherwise. This is deliberately strict -- no subdomains, no other schemes --
-     * since the only legitimate use is opening a GitHub release page in a browser via
-     * `Intent.ACTION_VIEW`. GitHub's own API response is the input here; scoping this tightly
+     * since its outputs are only ever opened in a browser via `Intent.ACTION_VIEW` (release pages)
+     * or fetched by [ApkDownloader] (asset URLs, whose redirect off GitHub is followed and not
+     * checked). GitHub's own API response is the input here; scoping this tightly
      * means a compromised or malicious response (or a fork pointed at the wrong repo) can't
      * smuggle an unexpected URI scheme into that Intent.
      */

@@ -19,7 +19,8 @@ import kotlinx.coroutines.launch
 /**
  * Visibility, density, two day/night colour pairs and a reset for one object category.
  *
- * Unchanged from v2.8 in content and in every write it performs. What changed is *where* it is
+ * Unchanged from v2.8 in what it is for; since then it has gained the automatic day/night colour
+ * modes and the optional switch, label and night-twin slot below. What changed is *where* it is
  * shown: the six seasonal categories used to be expanded inline, one after another, on the single
  * "Seasonal Decorations" screen -- about sixty controls in one scroll, with each category's own
  * season named in a heading far above it. Each one now lives behind its season, reached
@@ -102,7 +103,7 @@ internal fun ObjectCategorySection(
     }
 }
 
-/** Visibility, day/night colour and density for one of the two mountain layers. Unchanged. */
+/** Visibility, day/night colour and density for one of the two mountain layers. */
 @Composable
 internal fun MountainLayerSection(
     title: String,

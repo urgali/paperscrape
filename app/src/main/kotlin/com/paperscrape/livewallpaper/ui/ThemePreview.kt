@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import com.paperscrape.livewallpaper.engine.CanvasSceneTarget
+import com.paperscrape.livewallpaper.engine.MountainSilhouette
 import com.paperscrape.livewallpaper.engine.PreviewItem
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneShape
@@ -29,7 +30,7 @@ import kotlin.math.sin
  * and no per-frame state: [ThemePreviewScenes.forTheme] builds a plain description once, kept
  * across recompositions by `remember`, and this composable replays it. Sprite bitmaps come from
  * the process-wide `SpriteCache` the settings preview already uses, so twelve cards decode one
- * shared set rather than twelve. The whole cost of a card is roughly twenty static blits, paid on
+ * shared set rather than twelve. The whole cost of a card is a fixed set of static blits, paid on
  * composition and on scroll, and nothing at rest.
  *
  * What it replaced was a sky gradient, a circle for the sun and a rectangle for the hills -- honest
@@ -48,8 +49,7 @@ internal fun ThemeScenePreview(
     val scene = remember(theme.id, resolved, forceNight) {
         ThemePreviewScenes.forTheme(theme, resolved, forceNight)
     }
-    // One blitter, one canvas adapter, one paint and one shape per preview, built once: nothing
-    // below allocates while drawing.
+    // One blitter, one canvas adapter, one paint and one shape per preview, built once.
     val blitter = remember(context) { SpriteBlitter(context) }
     val target = remember { CanvasSceneTarget() }
     val paint = remember { Paint(Paint.ANTI_ALIAS_FLAG) }
@@ -85,42 +85,26 @@ private fun drawScene(
     paint.color = scene.skyBottom
     target.drawRect(0f, horizon - 1f, w, h, paint)
 
+    // The sky's own dots: the stars, which stay above the town.
     for (dot in scene.dots) {
-        if (dot.y > horizon - 8f && dot.radius < 1f) continue // stars stay in the sky
+        if (dot.front) continue
+        if (dot.y > horizon - 8f) continue
         paint.color = dot.colour
         paint.alpha = dot.alpha
         target.drawCircle(dot.x, dot.y, dot.radius, paint)
         paint.alpha = 255
     }
 
-    for (item in scene.backdrop.filter { it.y < horizon }) drawItem(item, target, blitter)
+    for (item in scene.backdrop) if (item.y < horizon) drawItem(item, target, blitter)
 
+    // The wallpaper's own mountain, `MountainSilhouette`'s parabolic arch, standing on the ground
+    // line; the hills, drawn next, cover its foot. The card drew half-ellipses here, and dunes for
+    // the Desert, under a comment saying that was what the wallpaper drew; it draws neither.
+    val base = horizon + 2f
     for (peak in scene.peaks) {
         paint.color = peak.colour
-        if (!peak.dune) {
-            // A dome, not an alpine triangle. `PaperRenderer.drawMountains` paints half-ellipses,
-            // and the mountains are the largest shapes on the card: drawing them as spikes made
-            // the one object a user could compare at a glance the one that matched least. The
-            // oval is centred on the ground line so exactly its upper half shows, and the hills,
-            // drawn next, cover the rest.
-            val base = horizon + 2f
-            target.drawOval(
-                peak.x - peak.halfWidth, peak.peakY,
-                peak.x + peak.halfWidth, base + (base - peak.peakY),
-                paint,
-            )
-            continue
-        }
-        // A dune keeps its own silhouette -- shoulders rounded off, asymmetric -- because the
-        // desert's horizon is drawn by a different function in the scene too, and it is not a
-        // half-ellipse.
-        shape.reset()
-        shape.moveTo(peak.x - peak.halfWidth, horizon + 2f)
-        shape.lineTo(peak.x - peak.halfWidth * 0.55f, peak.peakY + (horizon - peak.peakY) * 0.35f)
-        shape.lineTo(peak.x, peak.peakY + (horizon - peak.peakY) * 0.15f)
-        shape.lineTo(peak.x + peak.halfWidth * 0.6f, peak.peakY + (horizon - peak.peakY) * 0.45f)
-        shape.lineTo(peak.x + peak.halfWidth, horizon + 2f)
-        shape.close()
+        // One polygon rather than the wallpaper's two halves: see `MountainSilhouette.whole`.
+        MountainSilhouette.whole(shape, peak.x, base, peak.halfWidth * 2f, base - peak.peakY)
         target.drawShape(shape, paint)
     }
 
@@ -150,7 +134,7 @@ private fun drawScene(
     // water reaches above the horizon they were painted under it and vanished.
     for (item in scene.water) drawItem(item, target, blitter)
 
-    for (item in scene.backdrop.filter { it.y >= horizon }) drawItem(item, target, blitter)
+    for (item in scene.backdrop) if (item.y >= horizon) drawItem(item, target, blitter)
     for (item in scene.items) drawItem(item, target, blitter)
 
     if (scene.hasRoad) {
@@ -167,9 +151,11 @@ private fun drawScene(
 
     for (item in scene.ground) drawItem(item, target, blitter)
 
-    // Snow and falling leaves are drawn over the scene, the way the real precipitation layer is.
+    // Rain, snow and falling leaves are drawn over the scene, the way the real precipitation layer
+    // is. They were told apart from the stars by radius, and rain and snow are smaller than a leaf,
+    // so they were painted in the sky pass and a snowy card snowed only behind the town.
     for (dot in scene.dots) {
-        if (dot.radius < 1f) continue
+        if (!dot.front) continue
         paint.color = dot.colour
         paint.alpha = dot.alpha
         target.drawCircle(dot.x, dot.y, dot.radius, paint)

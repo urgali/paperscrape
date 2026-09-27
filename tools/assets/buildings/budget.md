@@ -1,10 +1,12 @@
-# Contabilita' dei concept contro i due tetti (generata da build_fase3.py)
+# The neighbourhood's sprite bytes (written by build_neighbourhood.py --budget)
 
-Perimetro spedito (50 PNG, senza palma): 4267260 B decodificati, 4216152 B caricati (livello 0, ritaglio + 1 texel). Budget 4263156 B.
+Shipped perimeter (76 PNG, the six building families): 5390244 B decoded, 5326452 B uploaded (level 0, crop + 1 texel).
 
-## K1 mix: 76 PNG, 5390244 B decodificati (SOPRA il budget di -1127088 B), 5326452 B caricati
+No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, over the whole sprite set, which prints its margin -- and this perimeter's share of it -- on every build.
 
-| PNG | px | decodificati B | caricati B |
+## Concept 1, mix: 76 PNG, 5390244 B decoded, 5326452 B uploaded
+
+| PNG | px | decoded B | uploaded B |
 |---|---|---:|---:|
 | k1_ground_house_a_fx_q1 | 186x96 | 71424 | 70680 |
 | k1_ground_house_a_mg_q1 | 45x42 | 7560 | 7216 |

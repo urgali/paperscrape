@@ -131,7 +131,7 @@ downloads or installs without an explicit tap.
 
 Since v5.7 the app can also *tell* you a release exists: with both *Check for updates
 automatically* and *Notify me about new versions* switched on (both are off by default), the
-wallpaper checks at most once a day while it is on screen and posts a silent notification that
+wallpaper checks about once a day while it is on screen and posts a silent notification that
 opens the same update dialog. It never checks while another wallpaper is set, or while the
 wallpaper is out of sight.
 

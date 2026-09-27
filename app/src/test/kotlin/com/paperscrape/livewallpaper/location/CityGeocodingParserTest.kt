@@ -36,7 +36,7 @@ class CityGeocodingParserTest {
 
     @Test
     fun `a single match is read with its region and country`() {
-        val cities = CityGeocodingParser.parse(milanBody)
+        val cities = CityGeocodingParser.parse(milanBody)!!
         assertEquals(1, cities.size)
         val milan = cities.single()
         assertEquals("Milano", milan.name)
@@ -49,7 +49,7 @@ class CityGeocodingParserTest {
 
     @Test
     fun `every place sharing a name is returned, in the order the provider gave them`() {
-        val cities = CityGeocodingParser.parse(springfieldBody)
+        val cities = CityGeocodingParser.parse(springfieldBody)!!
         assertEquals(3, cities.size)
         assertTrue(cities.all { it.name == "Springfield" })
         assertEquals(listOf("Illinois", "Massachusetts", "Queensland"), cities.map { it.admin1 })
@@ -57,7 +57,7 @@ class CityGeocodingParserTest {
 
     @Test
     fun `results sharing a name are told apart by region and country`() {
-        val cities = CityGeocodingParser.parse(springfieldBody)
+        val cities = CityGeocodingParser.parse(springfieldBody)!!
         val lines = cities.map { it.disambiguation }
         assertEquals(lines.size, lines.toSet().size) // no two results read the same
         assertEquals("Illinois, Sangamon, United States", lines[0])
@@ -68,32 +68,34 @@ class CityGeocodingParserTest {
     fun `a known place with no region still identifies itself by country`() {
         val body = """{"results":[{"name":"Monaco","latitude":43.73333,"longitude":7.41667,
             "country":"Monaco","country_code":"MC"}]}"""
-        val city = CityGeocodingParser.parse(body).single()
+        val city = CityGeocodingParser.parse(body)!!.single()
         assertEquals("Monaco", city.disambiguation)
         assertEquals("Monaco, Monaco", city.label)
     }
 
     @Test
     fun `the stored label is the city and its country`() {
-        assertEquals("Milano, Italy", CityGeocodingParser.parse(milanBody).single().label)
+        assertEquals("Milano, Italy", CityGeocodingParser.parse(milanBody)!!.single().label)
     }
 
     @Test
     fun `coordinates are shown for verification, not as the headline`() {
-        assertEquals("45.464, 9.190", CityGeocodingParser.parse(milanBody).single().coordinatesText)
+        assertEquals("45.464, 9.190", CityGeocodingParser.parse(milanBody)!!.single().coordinatesText)
     }
 
     @Test
     fun `a response with no results parses to nothing rather than failing`() {
-        assertTrue(CityGeocodingParser.parse("""{"generationtime_ms":0.3}""").isEmpty())
-        assertTrue(CityGeocodingParser.parse("""{"results":[]}""").isEmpty())
+        assertTrue(CityGeocodingParser.parse("""{"generationtime_ms":0.3}""")!!.isEmpty())
+        assertTrue(CityGeocodingParser.parse("""{"results":[]}""")!!.isEmpty())
     }
 
     @Test
-    fun `an unreadable body parses to nothing rather than throwing`() {
-        assertTrue(CityGeocodingParser.parse("").isEmpty())
-        assertTrue(CityGeocodingParser.parse("<html>502 Bad Gateway</html>").isEmpty())
-        assertTrue(CityGeocodingParser.parse("""{"results":"unexpected"}""").isEmpty())
+    fun `an unreadable body is no answer at all, and does not throw`() {
+        // Not the provider's JSON at all: null, which `search` reports as Failed and does not
+        // cache (v5.8C) -- until then an empty list, "no such place", cached.
+        assertNull(CityGeocodingParser.parse(""))
+        assertNull(CityGeocodingParser.parse("<html>502 Bad Gateway</html>"))
+        assertTrue(CityGeocodingParser.parse("""{"results":"unexpected"}""")!!.isEmpty())
     }
 
     /**
@@ -107,21 +109,21 @@ class CityGeocodingParserTest {
             {"name":"Somewhere","latitude":1.5,"longitude":2.5,"country":"Testland"},
             {"name":"Impossible","latitude":95.0,"longitude":0.0,"country":"Testland"}
         ]}"""
-        val cities = CityGeocodingParser.parse(body)
+        val cities = CityGeocodingParser.parse(body)!!
         assertEquals(listOf("Somewhere"), cities.map { it.name })
     }
 
     @Test
     fun `a result without a name is dropped`() {
         val body = """{"results":[{"latitude":1.0,"longitude":2.0,"country":"Testland"}]}"""
-        assertTrue(CityGeocodingParser.parse(body).isEmpty())
+        assertTrue(CityGeocodingParser.parse(body)!!.isEmpty())
     }
 
     @Test
     fun `a region equal to the city name is not repeated in the disambiguation`() {
         val body = """{"results":[{"name":"Luxembourg","latitude":49.61,"longitude":6.13,
             "country":"Luxembourg","admin1":"Luxembourg"}]}"""
-        assertEquals("Luxembourg", CityGeocodingParser.parse(body).single().disambiguation)
+        assertEquals("Luxembourg", CityGeocodingParser.parse(body)!!.single().disambiguation)
     }
 
     // -- what a selection becomes ---------------------------------------------------------------
@@ -133,7 +135,7 @@ class CityGeocodingParserTest {
      */
     @Test
     fun `a selected city converts to the same three values a manual entry writes`() {
-        val city = CityGeocodingParser.parse(milanBody).single()
+        val city = CityGeocodingParser.parse(milanBody)!!.single()
         val latitude: Float = city.latitude.toFloat()
         val longitude: Float = city.longitude.toFloat()
         val label: String = city.label
@@ -152,7 +154,7 @@ class CitySearchCacheTest {
     @Test
     fun `a repeated search is answered without asking again`() {
         val cache = CitySearchCache()
-        val results = CityGeocodingParser.parse("""{"results":[{"name":"Oslo","latitude":59.91,"longitude":10.75}]}""")
+        val results = CityGeocodingParser.parse("""{"results":[{"name":"Oslo","latitude":59.91,"longitude":10.75}]}""")!!
         cache.put("Oslo", results)
         assertNotNull(cache.get("Oslo"))
         assertEquals(1, cache.get("Oslo")!!.size)

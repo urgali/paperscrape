@@ -11,8 +11,9 @@ import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
  * `useCustomLocation` -- and `WallpaperPrefs.setUseLocation` / `setUseCustomLocation` are what
  * enforce that only one of them is ever true. Three booleans-worth of states were expressed as
  * two switches whose subtitles each had to explain the other; this enum names the three states
- * the pair can actually be in, and [SettingsUiModel.locationFlags] maps back to exactly the same
- * pair of writes the two switches performed.
+ * the pair can actually be in, with the device state split by the stored positioning kind into
+ * GPS and NETWORK, and [SettingsUiModel.locationFlags] maps back to exactly the same pair of
+ * writes the two switches performed.
  */
 enum class LocationMode { OFF, GPS, NETWORK, CUSTOM }
 
@@ -118,11 +119,72 @@ data class LakeContentsUiState(
  * The translation layer between the settings UI's grouped choices and the preference flags that
  * have always backed them.
  *
- * Deliberately free of Compose and Android imports so the mapping is unit-testable on the JVM:
- * the reason the two segmented controls introduced in v2.9 cannot silently change behaviour is
- * that both directions of both mappings are pinned by `SettingsUiModelTest`.
+ * Deliberately free of Compose and Android imports so the mapping is unit-testable on the JVM.
+ * The read direction (`locationMode`, `seasonalPalette`) is what the screens use, and it is pinned
+ * by `SettingsUiModelTest`; the write direction (`locationFlags`, `deviceKindFor`,
+ * `seasonalPaletteFlags`) is pinned there too, but no screen calls it -- `WeatherTimeScreen` and
+ * `SeasonsScreen` write the preferences directly.
  */
+/**
+ * What the two reset rows of *Advanced & about* say and whether each can be pressed (v5.8C).
+ *
+ * **Two kinds of thing a user does to a built-in theme, and until v5.8C one button that counted
+ * only one of them.** A *saved version* is a copy made with "Replace with current" in the gallery
+ * (`CustomThemeData.overrides`); *current edits* are the changes made in World & scene and
+ * Seasons & decorations, which the app keeps per theme (`WallpaperSettings.themeCustomizations`)
+ * and which win over a saved version. The one button reset saved versions, and its line counted
+ * only them: a user who had edited two themes from the menus read "No built-in theme has your
+ * edits" beside a disabled button (assessment v5.7 row 4). The maintainer decided on 2026-09-25:
+ * two buttons, each saying what it resets, each with its own line and its own enabled state.
+ *
+ * Both lists are display names of built-in themes, in the gallery's order, so the line and the
+ * confirmation can name exactly what goes.
+ */
+data class ThemeResetUiState(
+    /** Built-in themes with a saved version ("Replace with current"), by display name. */
+    val savedVersions: List<String>,
+    /** Built-in themes with edits made in these settings that differ from what they would show without them. */
+    val currentEdits: List<String>,
+    /** The ids of [currentEdits], which is what the reset is handed. */
+    val currentEditIds: List<String> = emptyList(),
+)
+
 object SettingsUiModel {
+
+    /**
+     * Which built-in themes each reset would change.
+     *
+     * A theme counts as edited only if its current customization differs from what it would show
+     * with the edits gone -- its saved version's customization if it has one, otherwise its
+     * defaults -- so a control moved and moved back does not light the button, and a theme whose
+     * only change is a saved version is listed once, under saved versions. [themeCustomizations]
+     * is `WallpaperSettings.themeCustomizations`, which already folds in the theme under live edit.
+     */
+    fun themeResetState(
+        builtIns: List<com.paperscrape.livewallpaper.engine.SceneTheme>,
+        overrides: Map<String, com.paperscrape.livewallpaper.engine.CustomThemeEntry>,
+        themeCustomizations: Map<String, com.paperscrape.livewallpaper.engine.SceneCustomization>,
+        defaultFor: (String) -> com.paperscrape.livewallpaper.engine.SceneCustomization =
+            { com.paperscrape.livewallpaper.engine.defaultCustomizationFor(it) },
+    ): ThemeResetUiState {
+        val edited = builtIns.filter { theme ->
+            val current = themeCustomizations[theme.id] ?: return@filter false
+            current != (overrides[theme.id]?.customization ?: defaultFor(theme.id))
+        }
+        return ThemeResetUiState(
+            savedVersions = builtIns.filter { overrides.containsKey(it.id) }.map { it.displayName },
+            currentEdits = edited.map { it.displayName },
+            currentEditIds = edited.map { it.id },
+        )
+    }
+
+    /** "Autumn", "Autumn and Beach", "Autumn, Beach and Winter": how a line names its themes. */
+    fun namesInProse(names: List<String>): String = when (names.size) {
+        0 -> ""
+        1 -> names[0]
+        else -> names.dropLast(1).joinToString(", ") + " and " + names.last()
+    }
+
 
     /**
      * Reads the stored flags and the stored positioning kind as one mode.

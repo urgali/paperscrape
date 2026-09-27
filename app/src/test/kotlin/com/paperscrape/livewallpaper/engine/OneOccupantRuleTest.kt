@@ -181,7 +181,8 @@ class OneOccupantRuleTest {
             "SeatedOccupants.driverSkin(c.spec)",
             "SeatedOccupants.passengerKind(c.spec)",
             "SeatedOccupants.passengerSkin(c.spec)",
-            "SeatedOccupants.outfit(c.spec)",
+            "SeatedOccupants.driverOutfit(c.spec)",
+            "SeatedOccupants.passengerOutfit(c.spec)",
         )) {
             assertTrue("drawCar must take its occupants from $call", source.contains(call))
         }

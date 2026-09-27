@@ -61,7 +61,7 @@ class UnitFrameTest {
      * not.
      */
     private val frames = mapOf(
-        "car" to "1/3 px of car_body; 56 units is CAR_METRES_TALL",
+        "car" to "1/3 px of car_body; 53 units is CAR_METRES_TALL",
         "firetruck" to "1/3 px of firetruck_body; 68 units is FIRE_TRUCK_METRES_TALL",
         "bustCar" to "1/3 px of person_*_head_car, the shared 38x42 canvas",
         "bustWindow" to "1/3 px of person_*_head_window, the shared 49x57 canvas",

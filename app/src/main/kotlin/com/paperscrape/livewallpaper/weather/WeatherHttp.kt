@@ -8,14 +8,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * The one JSON GET both providers make.
+ * The one JSON GET all three providers make.
  *
  * Still `java.net.HttpURLConnection` rather than OkHttp/Retrofit, matching
- * [com.paperscrape.livewallpaper.update.UpdateChecker]: these two plus the updater are the only
- * network calls in the app, and adding a client library for them would grow the footprint for no
- * behaviour. What is shared here is only the transport -- status mapping to [WeatherFailure], the
- * timeouts, and closing the connection -- so that a second provider did not mean a second copy of
- * the same twenty lines.
+ * [com.paperscrape.livewallpaper.update.UpdateChecker],
+ * [com.paperscrape.livewallpaper.update.ApkDownloader] and
+ * [com.paperscrape.livewallpaper.location.CityGeocoder], the app's other network calls: adding a
+ * client library for them would grow the footprint for no behaviour. What is shared here is only
+ * the transport -- status mapping to [WeatherFailure], the timeouts, and closing the connection --
+ * so that a second provider did not mean a second copy of the same twenty lines.
  */
 internal object WeatherHttp {
 

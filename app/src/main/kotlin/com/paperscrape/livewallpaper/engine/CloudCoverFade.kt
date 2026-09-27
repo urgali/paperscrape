@@ -158,7 +158,7 @@ internal class CloudCoverFade(poolSize: Int) {
     }
 
     /**
-     * Whether any candidate is mid-fade.
+     * Whether any candidate is still drawn at all -- fully opaque or mid-fade.
      *
      * The cloud layer can only be declared absent -- which is what switches the rain's coverage
      * field to uniform -- once the last cloud of the previous sky has actually gone.

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""v5.0 fase 3 -- la meccanica del generatore (non artwork): carte, gruppi, resa SVG->PNG col
-rasterizzatore del progetto, scomposizione in fisso + maschere di peso sommate (come
-tools/generate_people_layers.py), ritaglio sulla griglia da 3 px, controllo di contenimento,
-tabella Kotlin a SLOT (pezzi impilati scelti per istanza), contabilita', compositore host.
+"""v5.0 phase 3 -- the generator's mechanics (not artwork): cards, groups, SVG->PNG rendering with
+the project's rasteriser, decomposition into fixed + summed weight masks (as in
+tools/generate_people_layers.py), cropping to the 3 px grid, containment check, SLOT-based Kotlin
+table (stacked pieces chosen per instance), accounting, host compositor.
 
-Il colore: ogni carta e' o un colore fisso (#RRGGBB), o `glass` (peso 1 sulla maschera del vetro),
-o `W(w, k)` = w * colore_muro + (1-w) * k: un PESO sul muro piu' un termine fisso. Cosi' un
-edificio ha UNA maschera muro (+ una vetro) qualunque numero di carte derivate abbia; la carta
-d'ombra di una carta e' la stessa sagoma spostata e mescolata a RELIEF_T verso DARK (la mano del
-progetto, misurata in misura_mano.py), e il suo termine scuro finisce nel livello fisso.
+Colour: every card is either a fixed colour (#RRGGBB), or `glass` (weight 1 on the glass mask),
+or `W(w, k)` = w * wall_colour + (1-w) * k: a WEIGHT on the wall plus a fixed term. So a
+building has ONE wall mask (+ one glass mask) however many derived cards it has; a card's shadow
+paper is the same silhouette offset and mixed by RELIEF_T towards DARK (the project's hand,
+measured in misura_mano.py), and its dark term ends up in the fixed layer.
 """
 from __future__ import annotations
 
@@ -32,9 +32,9 @@ sys.path.insert(0, str(TOOL_ROOT))
 from paperscrape_assets import raster  # noqa: E402
 
 UNIT = 3                       # SpriteBlitter.SPRITE_PIXELS_PER_UNIT
-DARK = "#2B2A33"               # l'inchiostro scuro della scena (persone, ombre) [M]
-RELIEF_T = 0.34                # carta d'ombra: mix(carta, DARK, 0.34) [M] persone
-M_PER_UNIT = 8.2 / 96.0        # metro comune: quello del ristorante (0.08542 m/u)
+DARK = "#2B2A33"               # the scene's dark ink (people, shadows) [M]
+RELIEF_T = 0.34                # shadow paper: mix(card, DARK, 0.34) [M] people
+M_PER_UNIT = 8.2 / 96.0        # common scale: the restaurant's (0.08542 m/u)
 
 FAMILIES = ("HOUSE_SMALL", "HOUSE_LARGE", "TOWER", "RESTAURANT", "BAR", "SCHOOL")
 #: The family reference height, in piece units, that `SceneVariant.spriteUnitsTall` is divided by.
@@ -50,17 +50,13 @@ UNITS_TALL = {"HOUSE_SMALL": 5.76 / M_PER_UNIT, "HOUSE_LARGE": 7.6 / M_PER_UNIT,
 #: but a school shows children and a restaurant and a bar must go on showing adults.
 KIND = {"HOUSE_SMALL": "HOUSE", "HOUSE_LARGE": "HOUSE", "TOWER": "SKYSCRAPER", "RESTAURANT": "COMMERCIAL",
         "BAR": "COMMERCIAL", "SCHOOL": "SCHOOL"}
-#: px per unita' sul BV6600 alle profondita' della schiera [M] fase 1c/2:
-#: ppu = m*45/u * (0.2565 + 0.4503*d) * 0.6 * spriteUnitsTall/unitsTall
-PPU = {"HOUSE_SMALL": 0.862 * 110 / UNITS_TALL["HOUSE_SMALL"], "HOUSE_LARGE": 0.862 * 145 / UNITS_TALL["HOUSE_LARGE"],
-       "TOWER": 0.8715 * 182 / UNITS_TALL["TOWER"], "RESTAURANT": 1.052, "BAR": 1.303 * 92 / UNITS_TALL["BAR"]}
-#: carta d'ombra (dx, dy): ~3 % dell'altezza, mai < 2 px sullo schermo, dy/dx ~ 1.35 [M] persone
-RELIEF = {"HOUSE_SMALL": (1.5, 2.0), "HOUSE_LARGE": (1.5, 2.0), "TOWER": (2.4, 3.2), "RESTAURANT": (1.9, 2.6), "BAR": (1.5, 2.0)}
-#: tremolio massimo per vertice ~1 px sullo schermo
-WOBBLE = {"HOUSE_SMALL": 0.7, "HOUSE_LARGE": 0.7, "TOWER": 1.1, "RESTAURANT": 0.9, "BAR": 0.75}
-CHAMFER = {"HOUSE_SMALL": 1.5, "HOUSE_LARGE": 1.5, "TOWER": 2.2, "RESTAURANT": 1.8, "BAR": 1.5}
+#: There are no per-family drawing tables here, and there should not be. Four stood in this spot
+#: until v5.8 -- pixels per unit, paper-shadow offset, vertex wobble and chamfer, one row per
+#: family -- and nothing read any of them: each drawing module sets its own sizes. v5.6 did not add
+#: the school to them, which is the trap they set (they looked like the place a new family is
+#: registered). Removed as item 137; the neighbourhood regenerates byte for byte without them.
 
-# palette fissa di famiglia (quella gia' in scena) [M] misura_mano.py
+# fixed family palette (the one already in the scene) [M] misura_mano.py
 CREAM, CREAM_U = "#F4E9D2", "#D8CDB8"
 RED, RED_U = "#E4623E", "#A54F3A"
 WOOD, WOOD_U = "#8C5A38", "#533217"
@@ -69,8 +65,8 @@ GREEN = "#3F8A4A"
 STONE, STONE_U = "#D4C6B0", "#9B9186"
 SNOW, SNOW_S, SNOW_L = "#DCE7EF", "#9FB0BD", "#FFFFFF"
 GLASS_DAY, GLASS_NIGHT = "#B9CBD9", "#FFE79A"
-TERRACOTTA = "#A9573F"       # la tegola: il rosso della vela portato verso il legno
-SLATE = "#4B5566"            # l'ardesia: l'inchiostro portato verso il vetro di giorno
+TERRACOTTA = "#A9573F"       # the roof tile: the sail's red brought towards the wood
+SLATE = "#4B5566"            # the slate: the ink brought towards the daytime glass
 INK_ROOF = "#1A1410"
 #: SCHOOL repeats COMMERCIAL's two values rather than aliasing them: the school is drawn from the
 #: same BUILDINGS colours the restaurant and the bar are, and `decompose` subtracts these exact
@@ -81,8 +77,19 @@ WALL_NIGHT = {"HOUSE": "#6B5F52", "COMMERCIAL": "#303842", "SKYSCRAPER": "#30384
 #: The shipped perimeter this accounting covers: every PNG of the six families. Duplicated in
 #: `paperscrape_assets.report.BUDGET_PERIMETER_PREFIXES`, which cannot import this module;
 #: `tests/test_budget.py` asserts the two selections agree on the real tree.
-PERIMETER_PREFIXES = ("house", "skyscraper", "restaurant", "bar", "school")
-BUDGET = 4_263_156
+#:
+#: **`tower`, not `skyscraper`** (v5.8B). The towers' PNGs are named `tower_*`, and the list said
+#: `skyscraper`, which matches no file: the "shipped perimeter" was five families and 50 PNGs, the
+#: 26 tower layers left out, while the concept it was compared with drew all six and 76.
+PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school")
+#: **There is no `BUDGET` here any more** (v5.8B, item 138). It was 4 263 156 B, set at v4.32 when
+#: the neighbourhood was being redrawn: the old neighbourhood's 3 400 236 B plus the 862 920 B then
+#: free under the whole sprite set's decoded-bytes gate (36 MiB at the time) -- the most the new one
+#: could weigh without breaking it. That gate (`SpriteGeometryTest.decodedByteBudget`, the whole
+#: set) has since been raised on the maintainer's word, to 43 MiB, and this copy of its old margin
+#: was never retired: the shipped mix has been over it since v5.0, and `budget.md` printed "SOPRA
+#: il budget" for eight releases while nothing read it. The one ceiling is the gate; this report
+#: measures, and `SpriteGeometryTest` prints the neighbourhood's share of the gate on every build.
 
 
 def _rgb(h):
@@ -105,7 +112,7 @@ def shade(c, t=RELIEF_T):
 
 @dataclass(frozen=True)
 class W:
-    """Una carta derivata dal muro: w * muro + (1 - w) * k."""
+    """A card derived from the wall: w * wall + (1 - w) * k."""
     w: float
     k: str = "#000000"
 
@@ -114,7 +121,7 @@ WALL = W(1.0)
 
 
 def paper_terms(fill):
-    """(peso muro, peso vetro, termine fisso rgb 0..255) di una carta."""
+    """A card's (wall weight, glass weight, fixed rgb term 0..255)."""
     if isinstance(fill, W):
         return fill.w, 0.0, tuple((1 - fill.w) * c for c in _rgb(fill.k))
     if fill == "glass":
@@ -127,7 +134,7 @@ def paper_colour(fill, bases):
     return _hex([wm * a + wg * b + c for a, b, c in zip(_rgb(bases["wall"]), _rgb(bases["glass"]), k)])
 
 
-# ------------------------------------------------------------------ geometria
+# ------------------------------------------------------------------ geometry
 def wobble(seed, i, amp):
     d = hashlib.sha256(f"{seed}:{i}".encode()).digest()
     return (d[0] / 255.0 - 0.5) * 2 * amp, (d[1] / 255.0 - 0.5) * 2 * amp
@@ -142,7 +149,7 @@ def rect(x0, y0, x1, y1):
 
 
 def chamfered(x0, y0, x1, y1, c=1.5, top_only=False):
-    """Rettangolo con gli angoli tagliati: le forbici non girano l'angolo del compasso."""
+    """Rectangle with its corners cut off: scissors do not go round a compass-drawn corner."""
     c = min(c, (x1 - x0) / 3, (y1 - y0) / 3)
     if top_only:
         return [(x0 + c, y0), (x1 - c, y0), (x1, y0 + c), (x1, y1), (x0, y1), (x0, y0 + c)]
@@ -150,7 +157,7 @@ def chamfered(x0, y0, x1, y1, c=1.5, top_only=False):
 
 
 def arch(x0, y0, x1, y1, c):
-    """Porta ad arco: un rettangolo con la testa a tre faccette."""
+    """Arched door: a rectangle with a three-facet head."""
     w = x1 - x0
     return [(x0, y0 + c), (x0 + w * 0.25, y0 + c * 0.25), (x0 + w * 0.5, y0), (x0 + w * 0.75, y0 + c * 0.25), (x1, y0 + c), (x1, y1), (x0, y1)]
 
@@ -161,12 +168,12 @@ def disc(cx, cy, r, n=16, seed="disc", amp=0.0):
 
 
 def half_disc(cx, cy, r, n=12):
-    """Cupola: mezzo disco che guarda in su, appoggiato sul diametro y = cy."""
+    """Dome: a half disc facing up, resting on the diameter y = cy."""
     return [(cx + r * math.cos(math.pi * i / n), cy - r * math.sin(math.pi * i / n)) for i in range(n + 1)]
 
 
 def scallops(x_from, x_to, y, depth, n):
-    """Orlo smerlato (lobi verso il basso) da x_from a x_to sulla riga y."""
+    """Scalloped edge (lobes pointing down) from x_from to x_to on the line y."""
     pts = []
     step = (x_to - x_from) / n
     for i in range(n):
@@ -188,12 +195,12 @@ def bbox(pts):
     return min(xs), min(ys), max(xs), max(ys)
 
 
-# ------------------------------------------------------------------ carte e gruppi
+# ------------------------------------------------------------------ cards and groups
 @dataclass
 class Part:
     points: list
     fill: object                    # W | "glass" | "#RRGGBB"
-    relief: tuple | None = None     # (dx, dy) carta d'ombra
+    relief: tuple | None = None     # (dx, dy) shadow paper
     opacity: float | None = None
 
 
@@ -203,9 +210,9 @@ class ContainmentError(Exception):
 
 @dataclass
 class Group:
-    """Carte rese in un solo PNG fisso + maschere (muro, vetro). Coordinate: spazio del pezzo
-    (x centrato, y <= 0, piede a 0). `face()` dichiara una faccia ospite; `add(..., host=...)`
-    dichiara che la carta poggia dentro quella faccia (contenimento) o vi si appoggia (`rests`)."""
+    """Cards rendered into a single fixed PNG + masks (wall, glass). Coordinates: piece space
+    (x centred, y <= 0, foot at 0). `face()` declares a host face; `add(..., host=...)`
+    declares that the card lies inside that face (containment) or rests on it (`rests`)."""
     name: str
     snow: bool = False
     parts: list = field(default_factory=list)
@@ -221,27 +228,27 @@ class Group:
         pts = cut(points, seed or f"{self.name}#{self._n}", amp) if amp > 0 else list(points)
         self.parts.append(Part(pts, fill, relief, opacity))
         if host is not None:
-            self.checks.append(("rests" if rests else "inside", bbox(points), host, margin, label or f"carta {self._n}"))
+            self.checks.append(("rests" if rests else "inside", bbox(points), host, margin, label or f"card {self._n}"))
         return pts
 
-    def declare(self, box, host, margin=1.5, label="apertura"):
-        """Un riquadro senza carta (finestra d'affaccio, davanzale) che deve stare nella faccia."""
+    def declare(self, box, host, margin=1.5, label="opening"):
+        """A box with no card (bay window, sill) that must stay inside the face."""
         self.checks.append(("inside", box, host, margin, label))
 
     def check(self):
-        """Il controllo di contenimento: fallisce (ContainmentError) se un pezzo esce dalla faccia."""
+        """The containment check: fails (ContainmentError) if a piece sticks out of its face."""
         for kind, (x0, y0, x1, y1), host, m, label in self.checks:
             if host not in self.faces:
-                raise ContainmentError(f"{self.name}: {label} dichiara la faccia '{host}' che non esiste")
+                raise ContainmentError(f"{self.name}: {label} declares face '{host}', which does not exist")
             hx0, hy0, hx1, hy1 = self.faces[host]
             if kind == "inside":
                 ok = x0 >= hx0 + m and x1 <= hx1 - m and y0 >= hy0 + m and y1 <= hy1 - m
-            else:   # rests: dentro in x, il piede dentro la faccia in y
+            else:   # rests: inside in x, the foot inside the face in y
                 ok = x0 >= hx0 + m and x1 <= hx1 - m and hy0 <= y1 <= hy1
             if not ok:
                 raise ContainmentError(
-                    f"{self.name}: {label} [{x0:.1f},{y0:.1f}]-[{x1:.1f},{y1:.1f}] esce dalla faccia '{host}' "
-                    f"[{hx0:.1f},{hy0:.1f}]-[{hx1:.1f},{hy1:.1f}] (margine {m})")
+                    f"{self.name}: {label} [{x0:.1f},{y0:.1f}]-[{x1:.1f},{y1:.1f}] leaves face '{host}' "
+                    f"[{hx0:.1f},{hy0:.1f}]-[{hx1:.1f},{hy1:.1f}] (margin {m})")
 
     def roles(self):
         out = []
@@ -268,8 +275,8 @@ class Group:
     def svg(self, bases, region=None):
         ox, oy, w, h = self.canvas()
         out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w * UNIT}" height="{h * UNIT}" viewBox="0 0 {w} {h}">',
-               f"<!-- v5.0 fase 3, {self.name}: carte con tremolio scritto nelle coordinate; sotto ogni carta la sua "
-               f"carta d'ombra spostata e mescolata al {int(RELIEF_T * 100)} % verso {DARK}. Generato da build_fase3.py. -->"]
+               f"<!-- v5.0 phase 3, {self.name}: cards with the wobble written into the coordinates; under each card its "
+               f"shadow paper, offset and mixed {int(RELIEF_T * 100)} % towards {DARK}. Generated by build_neighbourhood.py. -->"]
 
         def poly(pts, fill, extra=""):
             s = " ".join(f"{x - ox:.2f},{y - oy:.2f}" for x, y in pts)
@@ -326,7 +333,7 @@ def bases_for(kind, night=False):
 
 
 def decompose(g: Group, bases: dict, svg_dir: Path) -> list[Layer]:
-    """fisso = premoltiplicato - somma(peso * base); ricomposizione entro 2 livelli o si ferma."""
+    """fixed = premultiplied - sum(weight * base); recomposition within 2 levels or it stops."""
     g.check()
     art_svg = g.svg(bases)
     (svg_dir / f"{g.name}.svg").write_text(art_svg, encoding="utf-8")
@@ -344,7 +351,7 @@ def decompose(g: Group, bases: dict, svg_dir: Path) -> list[Layer]:
     for role, q in weights.items():
         fixed -= (q / 255.0)[:, :, None] * np.array(_rgb(bases[role]), dtype=np.float64)[None, None, :]
     if fixed.min() < -2.5 or (fixed - alpha[:, :, None]).max() > 2.5:
-        sys.exit(f"{g.name}: livello fisso fuori intervallo [{fixed.min():.2f}, {(fixed - alpha[:, :, None]).max():.2f}]")
+        sys.exit(f"{g.name}: fixed layer out of range [{fixed.min():.2f}, {(fixed - alpha[:, :, None]).max():.2f}]")
     safe = np.where(alpha > 0, alpha, 255.0)
     straight = np.clip(np.round(fixed / (safe / 255.0)[:, :, None]), 0, 255)
     fx = np.zeros_like(art, dtype=np.uint8)
@@ -355,7 +362,7 @@ def decompose(g: Group, bases: dict, svg_dir: Path) -> list[Layer]:
         back += (q / 255.0)[:, :, None] * np.array(_rgb(bases[role]), dtype=np.float64)[None, None, :]
     worst = float(np.abs(back - premul).max())
     if worst > 2.01:
-        sys.exit(f"{g.name}: ricomposizione fuori di {worst:.2f} livelli")
+        sys.exit(f"{g.name}: recomposition off by {worst:.2f} levels")
     layers = []
     arr, dx, dy = crop_grid(fx)
     layers.append(Layer("fx", "SNOW" if g.snow else "FIXED", arr, dx, dy))
@@ -368,18 +375,18 @@ def decompose(g: Group, bases: dict, svg_dir: Path) -> list[Layer]:
     return layers
 
 
-# ------------------------------------------------------------------ pezzi, slot, edifici
+# ------------------------------------------------------------------ pieces, slots, buildings
 @dataclass
 class Piece:
-    """Un pezzo impilabile: gruppi (carte) piu' cio' che i comportamenti vogliono sapere, tutto nello
-    spazio del pezzo (piede a y = 0). `height` e' di quanto sale la base del pezzo successivo."""
+    """A stackable piece: groups (cards) plus what the behaviours want to know, all in piece
+    space (foot at y = 0). `height` is how far the next piece's base rises."""
     name: str
     height: float
     groups: list = field(default_factory=list)     # (Group, x, y)
-    windows: list = field(default_factory=list)    # (x, y, w, h) affacci: busti
-    lights: list = field(default_factory=list)     # (x, y_sill, w) davanzali di Natale
-    lamps: list = field(default_factory=list)      # (x, y) luce del portico / negozio
-    stamps: list = field(default_factory=list)     # (Group, x, y) timbri (vetro) disegnati DOPO i corpi
+    windows: list = field(default_factory=list)    # (x, y, w, h) bays: busts
+    lights: list = field(default_factory=list)     # (x, y_sill, w) Christmas sills
+    lamps: list = field(default_factory=list)      # (x, y) porch / shop light
+    stamps: list = field(default_factory=list)     # (Group, x, y) stamps (glass) drawn AFTER the bodies
     smoke: tuple = (0.0, 0.0)
     beacon: tuple = (0.0, 0.0)
 
@@ -392,7 +399,7 @@ class Piece:
         return group
 
     def ordered(self):
-        """Corpi, poi timbri, poi neve: un timbro di vetro deve stare sopra il muro che lo ospita."""
+        """Bodies, then stamps, then snow: a glass stamp must sit above the wall that hosts it."""
         bodies = [t for t in self.groups if not t[0].snow]
         snows = [t for t in self.groups if t[0].snow]
         return bodies + self.stamps + snows
@@ -422,9 +429,9 @@ class Building:
         return UNITS_TALL[self.family]
 
 
-# ------------------------------------------------------------------ produzione
+# ------------------------------------------------------------------ production
 def build_concept(concept: str, buildings: dict, out: Path):
-    """Rende ogni gruppo una volta, scrive SVG/PNG; restituisce (tabella, pezzi, file)."""
+    """Renders each group once, writes SVG/PNG; returns (table, pieces, files)."""
     svg_dir, png_dir = out / concept / "svg", out / concept / "png"
     for d in (svg_dir, png_dir):
         d.mkdir(parents=True, exist_ok=True)
@@ -471,7 +478,7 @@ def build_concept(concept: str, buildings: dict, out: Path):
     return table, pieces, files
 
 
-# ------------------------------------------------------------------ contabilita'
+# ------------------------------------------------------------------ accounting
 def uploaded_bytes(path):
     # `with`, because `budget` calls this once per shipped PNG and the suite that arrived with
     # v5.5C runs it: 46 unclosed readers per call is 46 ResourceWarnings in the test output.
@@ -491,9 +498,11 @@ def budget(concepts, files_by: dict, out: Path):
             shipped[n[:-4]] = (size[0] * size[1] * 4, uploaded_bytes(RES / n))
     rep = {"shipped_perimeter": {"files": len(shipped), "decoded": sum(v[0] for v in shipped.values()),
                                  "uploaded_level0": sum(v[1] for v in shipped.values())}, "concepts": {}}
-    lines = ["# Contabilita' dei concept contro i due tetti (generata da build_fase3.py)", "",
-             f"Perimetro spedito ({len(shipped)} PNG, senza palma): {rep['shipped_perimeter']['decoded']} B decodificati, "
-             f"{rep['shipped_perimeter']['uploaded_level0']} B caricati (livello 0, ritaglio + 1 texel). Budget {BUDGET} B.", ""]
+    lines = ["# The neighbourhood's sprite bytes (written by build_neighbourhood.py --budget)", "",
+             f"Shipped perimeter ({len(shipped)} PNG, the six building families): {rep['shipped_perimeter']['decoded']} B decoded, "
+             f"{rep['shipped_perimeter']['uploaded_level0']} B uploaded (level 0, crop + 1 texel).", "",
+             "No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, over the whole "
+             "sprite set, which prints its margin -- and this perimeter's share of it -- on every build.", ""]
     for concept, (files, png_dir) in files_by.items():
         dec, up = 0, 0
         rows = []
@@ -504,8 +513,8 @@ def budget(concepts, files_by: dict, out: Path):
         q = concepts.index(concept) + 1
         rep["concepts"][concept] = {"files": len(files), "decoded": dec, "uploaded_level0": up,
                                     "per_file": {n: {"w": w, "h": h, "decoded": d, "uploaded": u} for n, w, h, d, u in rows}}
-        lines += [f"## K{q} {concept}: {len(files)} PNG, {dec} B decodificati ({'sotto' if dec <= BUDGET else 'SOPRA'} il budget di {BUDGET - dec:+d} B), {up} B caricati", "",
-                  "| PNG | px | decodificati B | caricati B |", "|---|---|---:|---:|"]
+        lines += [f"## Concept {q}, {concept}: {len(files)} PNG, {dec} B decoded, {up} B uploaded", "",
+                  "| PNG | px | decoded B | uploaded B |", "|---|---|---:|---:|"]
         lines += [f"| {n}_q{q} | {w}x{h} | {d} | {u} |" for n, w, h, d, u in rows]
         lines.append("")
     (out / "budget.json").write_text(json.dumps(rep, indent=1))
@@ -513,7 +522,7 @@ def budget(concepts, files_by: dict, out: Path):
     return rep
 
 
-# ------------------------------------------------------------------ compositore host (anteprima)
+# ------------------------------------------------------------------ host compositor (preview)
 def instance_fraction(tile_x, depth, salt):
     raw = tile_x * 7919.0 + depth * 7919.0 * 131.0 + salt
     return raw - math.floor(raw)
@@ -529,7 +538,7 @@ def shifted_colour(hexc, hue_deg, sat_lift):
 
 
 def stack_instance(table_entry, pieces, tile_x, depth):
-    """Riproduce la scelta del compositore Kotlin: (pezzo, baseY, primo indice finestra)."""
+    """Reproduces the Kotlin composer's choice: (piece, baseY, first window index)."""
     placed, base_y, wcount = [], 0.0, 0
     for si, s in enumerate(table_entry["slots"]):
         opt = min(int(instance_fraction(tile_x, depth, 3.7 * si + 11.3) * len(s["options"])), len(s["options"]) - 1)
@@ -545,9 +554,9 @@ def stack_instance(table_entry, pieces, tile_x, depth):
 
 
 def composite_instance(table_entry, pieces, png_dir, kind, night, winter, ppu, tile_x, depth, lit=None):
-    """Ricompone un'istanza come il compositore (fisso source-over, maschere sommate), alla
-    risoluzione autorata, poi la riduce alla scala dello schermo. Restituisce (rgba premult float,
-    ox_px, oy_px) con l'origine al piede dell'edificio."""
+    """Recomposes an instance the way the composer does (fixed source-over, summed masks), at the
+    authored resolution, then scales it down to screen scale. Returns (rgba premult float,
+    ox_px, oy_px) with the origin at the building's foot."""
     placed, hue = stack_instance(table_entry, pieces, tile_x, depth)
     wall = shifted_colour(WALL_NIGHT[kind] if night else WALL_DAY[kind], hue, table_entry["satLift"])
     glass = GLASS_NIGHT if night else GLASS_DAY
@@ -567,7 +576,7 @@ def composite_instance(table_entry, pieces, png_dir, kind, night, winter, ppu, t
     x0, y0 = math.floor(min(xs)) - 2, math.floor(min(ys)) - 2
     Wp, Hp = (math.ceil(max(xs)) + 2 - x0) * UNIT, (math.ceil(max(ys)) + 2 - y0) * UNIT
     buf = np.zeros((Hp, Wp, 4), dtype=np.float64)
-    # ombra a terra
+    # ground shadow
     yy, xx = np.mgrid[0:Hp, 0:Wp]
     cx, cy = (-x0) * UNIT, (-y0) * UNIT
     ell = ((xx - cx) / (sh * UNIT)) ** 2 + ((yy - cy) / (5 * UNIT)) ** 2 <= 1

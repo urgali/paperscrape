@@ -184,4 +184,20 @@ class LocationLabelFormatTest {
             LocationLabelResolver.format("München", null, null, "Deutschland"),
         )
     }
+
+    /**
+     * **The reverse lookup is sent a coarse position** (v5.8C, SEC-05): two decimals, the rounding
+     * the weather requests use, not the saved fix at full precision -- about a metre with GPS --
+     * which is what the platform geocoder was given until then (v5.8B comment audit).
+     */
+    @Test
+    fun `the place-name lookup rounds the position like the weather requests`() {
+        val (lat, lon) = LocationLabelResolver.lookupPosition(43.771_389_4, 11.254_167_2)
+        org.junit.Assert.assertEquals(43.77, lat, 1e-9)
+        org.junit.Assert.assertEquals(11.25, lon, 1e-9)
+        org.junit.Assert.assertEquals(
+            com.paperscrape.livewallpaper.weather.WeatherRequest.coordinate(43.771_389_4),
+            lat.toString(),
+        )
+    }
 }

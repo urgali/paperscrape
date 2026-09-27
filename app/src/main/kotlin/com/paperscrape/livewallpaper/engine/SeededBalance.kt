@@ -10,11 +10,12 @@ package com.paperscrape.livewallpaper.engine
  * produces a perfect distribution -- which is what v4.1's tests measured, and why they passed.
  *
  * But a wallpaper never draws millions of seeds. It draws **one**. The seed is the theme id's
- * hash, it never changes, and the street it produces is at most twelve people. A fair coin flipped
- * a handful of times clumps, and because the seed is frozen the clump is frozen with it: the
- * `beach` theme's six pedestrians came out five girls and a boy, every one of them on the darkest
- * skin tone, with no adult of either sex -- on every device, in every session, for ever. The value
- * was reachable; it simply never came up, and never would.
+ * hash, it never changes, and the street it produces is at most nine people (twelve under v4.1's
+ * independent group sizes). A fair coin flipped a handful of times clumps, and because the seed is
+ * frozen the clump is frozen with it: the `beach` theme's six pedestrians came out five girls and
+ * a boy, every one of them on the darkest skin tone, with no adult of either sex -- on every
+ * device, in every session, for ever. The value was reachable; it simply never came up, and never
+ * would.
  *
  * Independent draws also cannot express "at least one of each". Ten of the twelve built-in themes
  * were missing at least one of {adult male, adult female, boy, girl, a skin tone, a direction},

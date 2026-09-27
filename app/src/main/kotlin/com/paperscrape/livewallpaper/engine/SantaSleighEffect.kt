@@ -9,8 +9,9 @@ import kotlin.random.Random
  * the upper sky, dropping a little trail of falling gifts as it goes. Purely decorative and
  * self-contained, following the same "periodic event" pattern as [FireworkEffect].
  *
- * Drawn as a flat paper-cutout silhouette (matching the rest of the scene's art style) rather
- * than a detailed illustration — small, warm, and legible at wallpaper scale.
+ * The sleigh group itself is a sprite (`santa_sleigh_scene` / `santa_sleigh_trot`, alternating
+ * for the trot) that the caller blits through [draw]'s `spriteDraw`; only the falling gifts are
+ * drawn here.
  */
 class SantaSleighEffect {
 
@@ -43,11 +44,6 @@ class SantaSleighEffect {
     private val fallingGifts = mutableListOf<FallingGift>()
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 3f
-        color = 0xFF3D2B1F.toInt()
-    }
     private val giftBowShape = SceneShape(8)
 
     private val reindeerColor = 0xFF7A4B2E.toInt()
@@ -150,10 +146,11 @@ class SantaSleighEffect {
         }
     }
 
-    /** Combines a base ARGB color with an extra alpha multiplier. Used instead of
-     * `Canvas.saveLayer` for the edge fade -- saveLayer allocates an offscreen buffer on every
-     * call, which is expensive enough to cause visible stutter when done every frame while the
-     * sleigh is flying. Multiplying each paint's own alpha is essentially free by comparison. */
+    /** Combines a base ARGB color with an extra alpha multiplier, for the falling gifts' fade.
+     * Used instead of `Canvas.saveLayer`, which allocates an offscreen buffer on every call and
+     * is expensive enough to cause visible stutter when done every frame. Multiplying each
+     * paint's own alpha is essentially free by comparison. The sleigh's own edge fade reaches
+     * the caller as the blit alpha. */
     private fun fadeColor(color: Int, alpha: Float): Int {
         val baseAlpha = (color ushr 24) and 0xFF
         val newAlpha = (baseAlpha * alpha).toInt().coerceIn(0, 255)
@@ -174,7 +171,9 @@ class SantaSleighEffect {
      * frame only while actually flying and not fully faded out.
      */
     fun draw(canvas: SceneCanvas, elapsedSeconds: SceneTime, screenWidth: Float, spriteDraw: (x: Float, y: Float, dir: Float, alpha: Float) -> Unit) {
-        for (g in fallingGifts) {
+        // By index: a `for (g in fallingGifts)` builds an iterator every frame (v5.8C).
+        for (i in fallingGifts.indices) {
+            val g = fallingGifts[i]
             val progress = (g.age / g.fallDuration).coerceIn(0f, 1f)
             // Fades in quickly right after being thrown, stays solid through the flight, then
             // fades out over the last bit of the fall so it reads as "arriving" near the house

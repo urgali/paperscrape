@@ -206,4 +206,143 @@ class PeopleColoursTest {
             atDusk - atDawn > 500,
         )
     }
+
+    /**
+     * **The stratified deal reaches the street** (v5.8C): after every deal, the walkers of a
+     * stratum wear as many distinct tones as they can.
+     *
+     * `PedestrianPopulation` deals the base tones so that the m-th members of the groups carry all
+     * three between them; v4.30's per-walker rotation threw that away on the street (the v5.8B
+     * audit measured the four group leaders missing a tone 57 % of the time, the rate of
+     * independent rolls). Simulated here the way the renderer deals: walkers are re-dealt one at a
+     * time, on their own crossings, in an order the test does not control, through
+     * [PeopleColours.keepingSpread] -- after a first sight in each walker's arrival tone
+     * ([PeopleColours.firstSightTone]), as in the renderer. The spread must hold at first sight and
+     * after every deal, at every density `PeopleOcclusionTest` steps through. The old rule is run
+     * beside it on the same events, to show that this test would have caught the defect.
+     */
+    @Test
+    fun `a stratum keeps its tones spread while each walker changes colour on its own crossing`() {
+        val slots = PedestrianPopulation.GROUP_COUNT * PedestrianPopulation.MAX_GROUP_SIZE
+        var oldRuleBreaks = 0
+        var deals = 0
+        var changed = 0
+        var frozen = 0
+        val tally = IntArray(PeopleColours.SKIN.size)
+        for (theme in ThemeCatalog.ALL) {
+            val seed = theme.id.hashCode()
+            for (density in listOf(1f, 0.8f, 0.75f, 0.5f, 0.4f, 0.2f)) {
+                val people = PedestrianPopulation.build(
+                    seed, density, SceneSpace.PAVEMENT_NEAR_Y_FRACTION, SceneSpace.PAVEMENT_FAR_Y_FRACTION,
+                )
+                var present = 0
+                for (p in people) present = present or (1 shl (p.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + p.memberIndex))
+                val held = IntArray(slots) { PeopleColours.NO_TONE }
+                val old = IntArray(slots) { PeopleColours.NO_TONE }
+                val crossing = IntArray(slots)
+                val order = kotlin.random.Random(seed + (density * 100).toInt())
+                // First sight: every walker wears its arrival tone, as the renderer deals it -- a
+                // function of nobody else on the street, so a density change recolours nobody
+                // (PeopleOcclusionTest), and spread at every density.
+                for (p in people) {
+                    val a = p.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + p.memberIndex
+                    held[a] = PeopleColours.firstSightTone(p)
+                    old[a] = PeopleColours.toneIndex(p.skinIndex, seed, a, 0)
+                }
+                assertSpread(theme.id, people, held, "first sight at density $density")
+                val changes = IntArray(slots)
+                repeat(3_000) { step ->
+                    val p = people[order.nextInt(people.size)]
+                    val a = p.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + p.memberIndex
+                    // A walker's crossing only ever moves one way: forward for a walker going right,
+                    // backward for one going left (`crossingOf` multiplies by the direction).
+                    crossing[a] += if (p.direction > 0f) 1 else -1
+                    val before = held[a]
+                    held[a] = PeopleColours.keepingSpread(
+                        PeopleColours.toneIndex(p.skinIndex, seed, a, crossing[a]), a, held, present,
+                    )
+                    old[a] = PeopleColours.toneIndex(p.skinIndex, seed, a, crossing[a])
+                    deals++
+                    if (held[a] != before) { changed++; changes[a]++ }
+                    tally[held[a]]++
+                    assertSpread(theme.id, people, held, "deal $step")
+                    if (!spreadHolds(people, old)) oldRuleBreaks++
+                }
+                // No walker may be frozen in one colour: each must move a fair share of its deals.
+                for (p in people) {
+                    if (changes[p.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + p.memberIndex] < 3_000 / people.size / 5) frozen++
+                }
+            }
+        }
+        assertTrue("the old per-walker rotation must break the spread here, or this test proves nothing", oldRuleBreaks > deals / 10)
+        assertEquals("walkers that almost never change colour", 0, frozen)
+        assertTrue("walkers must still change colour on a good share of crossings: $changed of $deals", changed > deals / 3)
+        for ((tone, n) in tally.withIndex()) {
+            assertEquals("tone $tone share of $deals deals", 1.0 / 3, n.toDouble() / deals, 0.03)
+        }
+    }
+
+    /**
+     * The first-sight tone is the walker's own: the same at every density it is present at, over
+     * every theme. What `PeopleOcclusionTest` needs on the device -- more people must not recolour
+     * the ones already there -- checked here for every density step, not only the ones it renders.
+     */
+    @Test
+    fun `a walker is first seen in the same tone at every density`() {
+        var compared = 0
+        for (theme in ThemeCatalog.ALL) {
+            val seed = theme.id.hashCode()
+            val first = HashMap<Int, Int>()
+            for (step in 1..20) {
+                for (p in PedestrianPopulation.build(seed, step / 20f, SceneSpace.PAVEMENT_NEAR_Y_FRACTION, SceneSpace.PAVEMENT_FAR_Y_FRACTION)) {
+                    val a = p.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + p.memberIndex
+                    val tone = PeopleColours.firstSightTone(p)
+                    val seen = first.getOrPut(a) { tone }
+                    assertEquals("${theme.id} walker $a at density ${step / 20f}", seen, tone)
+                    compared++
+                }
+            }
+        }
+        assertTrue("walkers compared: $compared", compared > 500)
+    }
+
+    private fun spreadHolds(people: List<Pedestrian>, held: IntArray): Boolean {
+        for (m in 0 until PedestrianPopulation.MAX_GROUP_SIZE) {
+            val stratum = people.filter { it.memberIndex == m }
+            val tones = stratum.map { held[it.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + it.memberIndex] }.toSet()
+            // All three among the four leaders of a full street; never one tone among two or three.
+            val need = if (stratum.size >= PedestrianPopulation.GROUP_COUNT) 3 else minOf(2, stratum.size)
+            if (tones.size < need) return false
+        }
+        return true
+    }
+
+    private fun assertSpread(theme: String, people: List<Pedestrian>, held: IntArray, what: String) {
+        assertTrue("$theme, $what: a stratum lost a tone it could carry", spreadHolds(people, held))
+    }
+
+    /** And the renderer deals through it, holding the tone with the crossing. */
+    @Test
+    fun `the renderer passes every tone through keepingSpread`() {
+        val src = rendererSource()
+        assertTrue(src.contains("PeopleColours.keepingSpread("))
+        // ...except the first sight, which is the walker's own arrival tone (PeopleOcclusionTest).
+        val firstSight = src.substringAfter("if (personCrossing[walkStagger] == PeopleColours.UNDEALT) {").substringBefore("\n            }")
+        assertTrue("first sight must not read the street: $firstSight", firstSight.contains("PeopleColours.firstSightTone(person)") && !firstSight.contains("dealTone("))
+        val drawn = src.substringAfter("val colours = coloursFor(\n                walkStagger").substringBefore(")\n")
+        assertTrue("the walker must be drawn in its held tone: $drawn", drawn.contains("personTone[walkStagger]"))
+    }
+
+    private fun rendererSource(): String {
+        val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt"
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val candidate = java.io.File(dir, "$prefix$suffix")
+                if (candidate.isFile) return candidate.readText()
+            }
+            dir = dir.parentFile
+        }
+        error("could not locate $suffix")
+    }
 }

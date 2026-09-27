@@ -8,7 +8,8 @@ import org.json.JSONObject
  * The second provider, replacing Visual Crossing in v3.7. Like it, it **requires an API key** —
  * there is no anonymous tier — so without one it reports [WeatherFetchResult.MissingApiKey] and no
  * request is made at all. **No key is compiled into the app for this provider**: it is per-account
- * and metered, so it is the user's to enter and lives only in their own DataStore.
+ * and metered, so it is the user's to enter and lives in their own DataStore (and in a settings
+ * backup, if they export one).
  *
  * ### Why this one, and why it replaces Visual Crossing
  *
@@ -26,9 +27,10 @@ import org.json.JSONObject
  * free service is licensed for non-commercial use only, and this is the compliant way out for
  * anyone who needs one.
  *
- * OpenWeather was assessed and rejected: its current product line routes current conditions through
- * One Call 3.0, which requires a **credit card** on file even to use the free daily allowance.
- * Requiring a wallpaper's users to register a payment card is not a reasonable ask.
+ * OpenWeather was assessed and rejected in v3.7, because One Call 3.0 requires a **credit card** on
+ * file even to use the free daily allowance, and requiring a wallpaper's users to register a
+ * payment card is not a reasonable ask. It was added in v3.8 through the card-free
+ * `/data/2.5/weather` endpoint instead; see [OpenWeatherProvider].
  *
  * ### What it reports differently from Open-Meteo
  *
@@ -109,9 +111,11 @@ object WeatherApiComProvider : WeatherProvider {
      * answers something defensible for all 60 codes — no code may fall through to
      * [WeatherCondition.UNKNOWN] unless it genuinely describes no sky state this scene can draw.
      *
-     * Ordering matters. Thunder codes (1087, 1273..1282) win outright, including the two that also
-     * name snow: the scene draws one thing at a time and a thunderstorm is the headline. Frozen
-     * precipitation is then resolved before liquid, so "sleet" does not fall through to rain.
+     * Each code is listed exactly once, so the order of the branches has no effect; what decides
+     * is which list a code is in. Thunder codes (1087, 1273..1282) are thunder, including the two
+     * that also name snow: the scene draws one thing at a time and a thunderstorm is the headline.
+     * The sleet and freezing codes have lists of their own, so "sleet" does not fall through to
+     * rain.
      */
     internal fun condition(code: Int?): WeatherCondition = when (code) {
         null -> WeatherCondition.UNKNOWN

@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.prefs
 
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
+import com.paperscrape.livewallpaper.engine.toJsonString
 import java.io.File
 import java.util.Random
 import org.json.JSONArray
@@ -36,9 +37,27 @@ import org.junit.Test
  * ### What it does
  *
  * From one valid document per format, 20 000 mutations each: values replaced by NULL, empty
- * strings, lone surrogates, `NaN`, `Infinity`, integers past the `Int` range, arrays where objects
- * belong, 200 nested brackets, random truncations and a random character flipped. Every escaping
- * `Throwable` is counted and its first signature recorded under `build/reports/fuzz/`.
+ * strings, lone surrogates, `NaN`, `Infinity`, `1e300`, integers past the `Int` range, arrays where
+ * objects belong, 200 nested brackets, random truncations and a random character flipped -- and
+ * then, deterministically, **every number in the document** replaced in turn by `NaN`, `Infinity`
+ * and ±`1e300`. Every escaping `Throwable` is counted and its first signature recorded under
+ * `build/reports/fuzz/`.
+ *
+ * ### Accepted means writable (v5.8)
+ *
+ * "Never throws" was checked only up to the parser's `return`, and that is not where the app died.
+ * The v5.7 assessment closed the app on the BV6600 with a **173-byte backup** whose one house had
+ * `"scale":1e300`: finite as a `Double`, so the finiteness check let it through, infinite as the
+ * `Float` it became, so the import's own staging copy -- `CustomThemeData.toJsonString` -- threw
+ * `Forbidden numeric value: Infinity` a line later, outside any catch. So every document a parser
+ * accepts is now also **written back** here, the way the import is about to, and a throw there
+ * counts exactly like a throw in the parser. `1e300` joined the mutations, and the assessment's own
+ * file is pinned by name below.
+ *
+ * **And adding the value was not enough.** With the fix reverted, the structural pass still came
+ * back green: it reaches a number three objects deep about once in fifty thousand mutations, which
+ * is also why it had never found this. The numeric pass walks every leaf instead, and with the fix
+ * reverted it goes red (`consegna_v5_8a/registri`, mutation M3).
  *
  * ### The mutation control is not optional
  *
@@ -60,7 +79,7 @@ class ImportParserFuzzTest {
     /** Structural mutations applied to a valid document. */
     private fun mutate(node: Any?, rnd: Random, depth: Int = 0): Any? {
         if (depth > 6) return node
-        return when (rnd.nextInt(14)) {
+        return when (rnd.nextInt(15)) {
             0 -> JSONObject.NULL
             1 -> ""
             2 -> " ￿\uD800" // lone surrogate + non-character
@@ -74,6 +93,9 @@ class ImportParserFuzzTest {
             10 -> JSONArray(listOf(1, 2, 3))
             11 -> "x".repeat(4096)
             12 -> true
+            // Finite as a Double, infinite as a Float: the value the v5.7 assessment's 173-byte
+            // backup carried, and the one no other mutation here produces.
+            13 -> 1e300
             else -> when (node) {
                 is JSONObject -> {
                     val keys = node.keys().asSequence().toList()
@@ -170,10 +192,52 @@ class ImportParserFuzzTest {
             }
         }
 
+        // 3. every number in the document, replaced in turn by every hostile number (v5.8).
+        //
+        // The structural pass above replaces a node *or* descends into it, one level at a time, so
+        // a number three objects deep -- a house's density in a theme's customization -- is reached
+        // about once in fifty thousand mutations. That is how `"scale":1e300` went unfound: this
+        // fuzzer was already running when a 173-byte file closed the app. Walking the leaves makes
+        // reaching every number certain rather than likely.
+        var numbers = 0
+        for (path in numericLeaves(JSONObject(valid))) {
+            for (hostile in HOSTILE_NUMBERS) {
+                numbers++
+                val root = JSONObject(valid)
+                replaceAt(root, path, hostile)
+                val doc = root.toString()
+                try {
+                    parse(doc)
+                } catch (t: Throwable) {
+                    crashes++
+                    val sig = "NUMBER ${t::class.java.name}: ${t.message}"
+                    if (seen.add(sig)) log.append("\nESCAPED(number) $sig\n  at ${path.joinToString(".")} = $hostile\n")
+                }
+            }
+        }
+        log.append("\n# numeric pass: $numbers documents, one hostile number each\n")
+
         log.append("\n# TOTAL escaping throwables: $crashes  (distinct signatures: ${seen.size})\n")
         outDir.mkdirs()
         File(outDir, "fuzz_$name.txt").writeText(log.toString())
         return crashes
+    }
+
+    /** The path, key by key or index by index, to every number in [node]. */
+    private fun numericLeaves(node: Any?, prefix: List<Any> = emptyList()): List<List<Any>> = when (node) {
+        is JSONObject -> node.keys().asSequence().toList().flatMap { numericLeaves(node.opt(it), prefix + it) }
+        is JSONArray -> (0 until node.length()).flatMap { numericLeaves(node.opt(it), prefix + it) }
+        is Number -> listOf(prefix)
+        else -> emptyList()
+    }
+
+    private fun replaceAt(root: Any, path: List<Any>, value: Any) {
+        var node: Any = root
+        for (step in path.dropLast(1)) node = if (node is JSONObject) node.get(step as String) else (node as JSONArray).get(step as Int)
+        when (val last = path.last()) {
+            is String -> (node as JSONObject).put(last, value)
+            else -> (node as JSONArray).put(last as Int, value)
+        }
     }
 
     private fun validBackup(): String {
@@ -222,11 +286,73 @@ class ImportParserFuzzTest {
         ).toJsonString()
     }
 
+    /**
+     * Parses [raw] and, if the backup is accepted, writes it back the two ways the app does: the
+     * import's staging copy of the saved themes, and the whole document as "Export backup" would.
+     */
+    private fun parseAndWriteBackBackup(raw: String): Any {
+        val parsed = parseAppBackup(raw)
+        if (parsed is BackupParseResult.Ok) {
+            parsed.backup.customThemeData.toJsonString()
+            parsed.backup.toJsonString()
+        }
+        return parsed
+    }
+
+    /** The same for a shared theme: what the gallery holds after an accepted import is written back whole. */
+    private fun parseAndWriteBackThemeShare(raw: String): Any {
+        val parsed = parseThemeShare(raw)
+        if (parsed is ThemeParseResult.Ok) parsed.share.toJsonString()
+        return parsed
+    }
+
+    @Test
+    fun `the assessment's 173-byte backup is taken without closing the app`() {
+        // Byte for byte the file of assessment v5.7, registri/strumenti/prova_import_A_backup.json.
+        val raw = "{\"kind\":\"paperscrape-app-backup\",\"schemaVersion\":1,\"settings\":{}," +
+            "\"customThemeSchemaVersion\":1,\"customThemes\":[{\"layout\":{\"staticObjects\":" +
+            "[{\"type\":\"HOUSE\",\"scale\":1e300}]}}]}"
+        assertEquals("the fixture is not the assessment's file", 173, raw.toByteArray().size)
+        // It may be accepted (the one bad number falls back) or refused; what it may not do is throw.
+        parseAndWriteBackBackup(raw)
+    }
+
+    @Test
+    fun `a backup's own numbers fall back when they are not finite`() {
+        // The five settings numbers were read raw until v5.8: accepted, stored, and then refused by
+        // every export. They take the default now, as every number in the theme half already did.
+        //
+        // Numbers, not the strings "NaN" and "Infinity". Measured: this classpath's reference
+        // org.json answers `optDouble` on the string "NaN" with the default, where Android's reads
+        // it as NaN (see BCK-03 in CustomThemeData.kt) -- so a string here would pass on the JVM
+        // with the fix reverted, and did (mutation M4). ±1e300 is a number to both, and infinite
+        // only once it is a Float.
+        val raw = validBackup().let { JSONObject(it) }.apply {
+            getJSONObject("settings").apply {
+                put("fixedHour", 1e300)
+                put("scrollSpeed", -1e300)
+                put("customLocationLatitude", 1e300)
+                put("customLocationLongitude", -1e300)
+                put("parallaxStrength", 1e300)
+            }
+        }.toString()
+        val parsed = parseAppBackup(raw)
+        assertTrue("a readable backup was refused for one bad number", parsed is BackupParseResult.Ok)
+        val settings = (parsed as BackupParseResult.Ok).backup.settings
+        val defaults = WallpaperSettings()
+        assertEquals(defaults.fixedHour, settings.fixedHour)
+        assertEquals(defaults.scrollSpeed, settings.scrollSpeed)
+        assertEquals(defaults.customLocationLatitude, settings.customLocationLatitude)
+        assertEquals(defaults.customLocationLongitude, settings.customLocationLongitude)
+        assertEquals(defaults.parallaxStrength, settings.parallaxStrength)
+        parsed.backup.toJsonString()
+    }
+
     @Test
     fun `a mutated backup is refused, never thrown on`() {
         val valid = validBackup()
         assertTrue("the fixture itself must parse, or the fuzzer starts from nothing", parseAppBackup(valid) is BackupParseResult.Ok)
-        val crashes = fuzz("backup", valid) { parseAppBackup(it) }
+        val crashes = fuzz("backup", valid) { parseAndWriteBackBackup(it) }
         assertEquals(
             "parseAppBackup let a Throwable escape -- its call site has no catch, so this closes the " +
                 "settings screen while the user is restoring a backup. See build/reports/fuzz/fuzz_backup.txt",
@@ -239,7 +365,7 @@ class ImportParserFuzzTest {
     fun `a mutated shared theme is refused, never thrown on`() {
         val valid = validThemeShare()
         assertTrue("the fixture itself must parse, or the fuzzer starts from nothing", parseThemeShare(valid) is ThemeParseResult.Ok)
-        val crashes = fuzz("themeshare", valid) { parseThemeShare(it) }
+        val crashes = fuzz("themeshare", valid) { parseAndWriteBackThemeShare(it) }
         assertEquals(
             "parseThemeShare let a Throwable escape -- its call site has no catch, so this closes the " +
                 "theme gallery. See build/reports/fuzz/fuzz_themeshare.txt",
@@ -272,5 +398,13 @@ class ImportParserFuzzTest {
     private companion object {
         /** Fixed, so a failing run is replayable character for character. */
         const val SEED = 20260916L
+
+        /**
+         * What the numeric pass puts in place of each number: the two non-finite strings Android's
+         * `org.json` coerces (this classpath's reference implementation coerces them in `getDouble`
+         * only, and reads them as absent in `optDouble`), and the two values that are finite as a
+         * Double and infinite as a Float, which are numbers to both.
+         */
+        val HOSTILE_NUMBERS: List<Any> = listOf("NaN", "Infinity", 1e300, -1e300)
     }
 }

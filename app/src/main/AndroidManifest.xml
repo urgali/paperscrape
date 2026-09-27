@@ -4,7 +4,7 @@
     <!-- Location is optional and off by default. Two permissions because there are two
          separate modes, and the app asks for exactly the one the chosen mode needs:
 
-         COARSE  -> "Network / Cell": cell towers and Wi-Fi only, accurate to a neighbourhood,
+         COARSE  -> "Network": cell towers and Wi-Fi only, accurate to a neighbourhood,
                     which is all a weather grid cell needs. The GNSS receiver is never started.
          FINE    -> "GPS": only requested if the user picks that mode explicitly.
 
@@ -15,57 +15,91 @@
 
     <!-- The complete list of hosts this app contacts, and the only thing that starts each one.
          Kept as an inventory rather than a summary because it is a privacy disclosure, and a
-         summary is how the city-geocoding endpoint went unlisted for several releases. Every host
-         here is checked against the source by InternetInventoryTest, so this list cannot go stale
-         without a test going red.
+         summary is how the city-geocoding endpoint went unlisted for several releases.
+         InternetInventoryTest fails if a host written in the source is missing from this list, so
+         a new host cannot go unlisted without a test going red; it does not notice a host listed
+         here that is no longer contacted, nor anything said below about when each call is made.
 
          api.github.com               update.UpdateChecker, to read the public Releases list. No
                                       credentials, and nothing about the device is sent: it is a
                                       plain GET of a public page. THREE callers.
                                       1. the "Check for updates" button in Advanced and about,
                                          which always works;
-                                      2. only while "Check for updates automatically" is on (it
-                                         is off by default), once each time the settings screen
-                                         is opened;
+                                      2. while "Check for updates automatically" is on (it is
+                                         off by default), once each time the settings screen is
+                                         opened; and, whatever that switch says, when it is
+                                         opened by tapping an update notification;
                                       3. since v5.7D, and only while BOTH that switch and
-                                         "Notify me about new versions" are on, at most once
-                                         every 24 hours from the wallpaper engine's own loop.
+                                         "Notify me about new versions" are on, about once
+                                         every 24 hours from the wallpaper engine's own loop;
+                                         a check that fails is retried sooner (2, 4, 8 minutes
+                                         and so on, doubling up to 24 hours).
+                                         The timer lives in the running engine, in memory, so
+                                         a new engine (a restart, an update, another
+                                         wallpaper and back again) checks at once: "about", not "at
+                                         most" - three checks in fifteen minutes were measured
+                                         by switching wallpapers back and forth.
                                          That loop parks while the wallpaper is not on screen
                                          (ARC-02), so this is not a background timer and the app
                                          still starts nothing of its own while it is closed: a
                                          phone with PaperScrape installed but another wallpaper
                                          set never makes this call at all. Both switches off,
-                                         which is the default, and only caller 1 remains.
+                                         which is the default, and only caller 1 remains (and
+                                         caller 2 for an update notification posted before
+                                         they were turned off).
                                       With every switch off this host is contacted only when the
-                                      button is pressed.
-         www.github.com               update.ApkDownloader, only after the user taps "Download and
-                                      install": the release's APK and its SHA-256 file. Redirects
-                                      to any other host are refused (see sanitizeGitHubUrl), which
-                                      is why both spellings of the host are named here.
-         api.open-meteo.com           weather.OpenMeteoProvider, the default provider, at most once
-                                      an hour and only while Live Weather is on.
+                                      user asks: the button, or a tap on such a notification.
+         www.github.com               update.ApkDownloader, only after the user taps "Install
+                                      update" in the update dialog or "Download and install" in
+                                      Advanced and about: the release's APK and its SHA-256 file.
+                                      Only a github.com or www.github.com address is ever
+                                      requested (see sanitizeGitHubUrl), which is why both
+                                      spellings are named here. GitHub answers with a redirect,
+                                      and the download FOLLOWS it - the redirect's host is not
+                                      checked:
+         release-assets.githubusercontent.com
+                                      where the bytes of both files actually come from: the host
+                                      GitHub's redirect named on 2026-09-25, for the v5.7 APK
+                                      and for its SHA-256 file. GitHub chooses it and may
+                                      change it. The file is what is checked, not the host: its
+                                      SHA-256 and its signing certificate are verified before
+                                      Android's installer is ever handed it.
+         api.open-meteo.com           weather.OpenMeteoProvider, the default provider, about once
+                                      an hour and only while Live Weather is on, and again as
+                                      soon as the location, the provider or a key changes. Each
+                                      wallpaper engine keeps its own timer, so a new one - or the
+                                      system picker's preview, which is a second engine - fetches
+                                      at once, and a request that failed on the network is
+                                      retried sooner (2, 4, 8, 16, 32 minutes, then hourly).
          customer-api.open-meteo.com  the same provider, used instead when the user has entered a
                                       key. Same schedule.
          api.openweathermap.org       weather.OpenWeatherProvider, same schedule, only if the user
                                       selected this provider.
          api.weatherapi.com           weather.WeatherApiComProvider, same schedule, only if the
                                       user selected this provider.
-         geocoding-api.open-meteo.com location.CityGeocoder, only when the user types a city name
-                                      into Custom location and asks for it. Sends the typed text
-                                      and nothing else, and never on a timer.
+         geocoding-api.open-meteo.com location.CityGeocoder, only while the user types a city name
+                                      into Custom location: 500 ms after typing pauses (two
+                                      characters or more), or at once from the keyboard's search
+                                      key. Sends the typed text and nothing else, and never on a
+                                      recurring timer.
 
-         Weather and geocoding send a coarse latitude/longitude or a typed place name; no device
-         identifier, no account, no analytics. The wallpaper engine makes exactly two kinds of call,
-         both listed above and both on its own visible loop: the hourly weather fetch and, since
-         v5.7D, the daily update check. With Live Weather off and no update check enabled the app
-         uses the network not at all. -->
+         Weather and city search send a coarse latitude/longitude or a typed place name; the
+         place-name row also passes the saved position to the platform's own geocoder, which on
+         most devices looks it up over the network, rounded to two decimals like the weather
+         requests (v5.8C; it went unrounded before). No device identifier, no
+         account, no analytics. The wallpaper engine makes exactly two kinds of call, both listed
+         above and both on its own visible loop: the hourly weather fetch and, since v5.7D, the
+         daily update check. With Live Weather off and both update switches off, the app makes no
+         network call of its own except when the user asks for one: the update button, an update
+         download, a city search. The place-name row's platform lookup can still happen whenever
+         the settings screen shows a position. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Used only by Advanced & about -> Updates, and only after the user taps "Download and
-         install": the downloaded APK is handed to Android's own installer, which shows its own
-         confirmation. Nothing is installed silently, and the app never installs anything but an
-         APK it has just downloaded from its own GitHub release and verified against that
-         release's SHA-256. -->
+    <!-- Used only by Advanced & about -> Updates, and only after the user taps "Install update"
+         in the update dialog or "Download and install" there: the downloaded APK is handed to
+         Android's own installer, which shows its own confirmation. Nothing is installed silently,
+         and the app never installs anything but an APK it has just downloaded from its own GitHub
+         release and verified against that release's SHA-256. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Declared for the one notification this app posts: "a newer release is available", from
@@ -122,7 +156,8 @@
             android:theme="@style/Theme.PaperScrape"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density|fontScale|layoutDirection|locale|keyboardHidden" />
 
-        <!-- The launcher entry, in six flavours, of which exactly one is ever enabled.
+        <!-- The launcher entry, in six flavours, of which exactly one is enabled at rest (two for
+             the instant between enabling the new one and disabling the old).
              icon.SeasonalIcon says which, icon.LauncherIconSwitch does the enabling, and
              SeasonalIconManifestTest checks that this block and that enum still agree.
 

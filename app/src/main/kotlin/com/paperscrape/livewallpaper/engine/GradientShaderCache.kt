@@ -23,7 +23,9 @@ import androidx.core.graphics.ColorUtils
  *
  * Two things it is *not*, both checked rather than assumed. The hill layers' `-1, 0, +1` wrap-tile
  * loop looks like three copies of one gradient per frame, but its own culling `continue` rejects
- * two of the three at every scroll offset sampled, so only one copy is ever drawn. And scrolling
+ * two of the three at some scroll offsets and one of the three at others -- the -1 copy never
+ * passes, and for half of every wrap cycle the 0 and +1 copies both do -- and both use the same
+ * local-space gradient, so a second copy is a cache hit rather than a new gradient. And scrolling
  * changes nothing: the gradient is vertical and the scroll is horizontal, so a moving scene asks
  * for the same three gradients as a still one.
  *
@@ -51,7 +53,8 @@ internal class GradientShaderCache {
      * Comfortably above the number of distinct gradients live at once — measured at three for the
      * wallpaper (two linear, one radial) and one for a theme preview — so a frame never evicts an
      * entry it is about to need again, with room for the transient extras a dawn ramp produces.
-     * Constant memory: at most [CAPACITY] shaders per kind plus two `IntArray(80)`.
+     * Constant memory: at most [CAPACITY] shaders per kind plus two `IntArray(80)` and two
+     * `IntArray(16)`.
      */
     private val linearSlots = IntKeyLruSlots(CAPACITY)
     private val linearShaders = arrayOfNulls<LinearGradient>(CAPACITY)

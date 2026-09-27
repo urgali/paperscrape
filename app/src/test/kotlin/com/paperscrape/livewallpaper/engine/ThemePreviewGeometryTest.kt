@@ -71,16 +71,56 @@ class ThemePreviewGeometryTest {
     }
 
     /**
-     * The same theme and the same configuration produce the same scene wherever it is shown. The
-     * call site is not an input, which is what "one preview system" means in practice.
+     * The card is a pure function of what it is given: the same theme and customization build the
+     * same scene every time, on every theme, day and forced night. That is what lets the composable
+     * `remember` it and what makes "one preview system" mean anything.
+     *
+     * **This used to be called "both call sites get an identical scene for identical inputs"**, and
+     * it called the same function twice with the same arguments -- a tautology, which could not
+     * see the thing its name was about: the gallery passing a *different* customization from the
+     * one World & scene shows. It did, until v5.8B (the saved copy instead of the edits in
+     * progress). The name was the lie; what it checks is this, and the call sites are held by the
+     * next test.
      */
     @Test
-    fun `both call sites get an identical scene for identical inputs`() {
-        val theme = ThemeCatalog.byId("spring")
-        val customization = defaultCustomizationFor("spring")
-        val gallery = ThemePreviewScenes.forTheme(theme, customization)
-        val worldAndScene = ThemePreviewScenes.forTheme(theme, customization)
-        assertEquals(gallery, worldAndScene)
+    fun `the card is a pure function of its inputs`() {
+        for (theme in ThemeCatalog.ALL) {
+            val customization = defaultCustomizationFor(theme.id)
+            for (night in listOf(null, true, false)) {
+                assertEquals(
+                    theme.id,
+                    ThemePreviewScenes.forTheme(theme, customization, night),
+                    ThemePreviewScenes.forTheme(theme, customization, night),
+                )
+            }
+        }
+    }
+
+    /**
+     * The gallery's cards are given the customization the wallpaper would draw -- the same
+     * `CustomThemeRegistry.resolveActiveCustomization` the home and World & scene previews and the
+     * engine use -- and not the saved copy alone, which is what they had until v5.8B. Read from the
+     * screen's source, because the coupling is a Compose call site no JVM test can run.
+     */
+    @Test
+    fun `the gallery resolves each card's customization the way the wallpaper does`() {
+        val gallery = source("ui/ThemeGalleryScreen.kt")
+        assertTrue(gallery.contains("CustomThemeRegistry.resolveActiveCustomization("))
+        val cards = Regex("""ThemeCard\(\s*theme = [^,]+,\s*customization = ([^,]+),""").findAll(gallery).map { it.groupValues[1] }.toList()
+        assertEquals("both card grids", 2, cards.size)
+        assertTrue("every card takes the resolved customization: $cards", cards.all { it.startsWith("cardCustomization(") })
+    }
+
+    private fun source(path: String): String {
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val candidate = java.io.File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/$path")
+                if (candidate.isFile) return candidate.readText()
+            }
+            dir = dir.parentFile
+        }
+        error("could not locate $path")
     }
 
     /**

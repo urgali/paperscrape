@@ -15,7 +15,8 @@ import android.content.Context
  *
  * This is an interim arrangement, not the end state: the convention is a property of the asset, so
  * it belongs in the asset's own declared metadata. It cannot live there until the asset pipeline
- * exists (`ROADMAP.md`, Group 3), and until then the caller is the only place that knows.
+ * (`tools/assets/`) gives each asset declared metadata (`ARCHITECTURE.md` §3, Group 3), and until
+ * then the caller is the only place that knows.
  */
 enum class SpriteScale {
     /**
@@ -28,15 +29,17 @@ enum class SpriteScale {
     /**
      * Authored at literal on-screen pixel size, so the bitmap is blitted with no division of its
      * own -- at whatever scale the caller's surrounding `canvas.scale()` already established, the
-     * same way every raw-pixel procedural shape in the renderer works. Sun, moon, stars and birds.
-     * The sleigh belonged here until the V2 asset set redrew it on the authoring grid; it is now
-     * a [SCENE_UNITS] sprite scaled by its own call site.
+     * same way every raw-pixel procedural shape in the renderer works. Sun, moon and birds. (The
+     * star sparkle is a [SCENE_UNITS] sprite.) The sleigh belonged here until the V2 asset set
+     * redrew it on the authoring grid; it is now a [SCENE_UNITS] sprite scaled by its own call
+     * site.
      */
     CANVAS_PIXELS,
 }
 
 /**
- * The single sprite-blitting path: every sprite in the app is drawn through [draw] or [drawTinted].
+ * The single sprite-blitting path: every sprite in the app is drawn through [draw], [drawTinted] or
+ * [drawTintedAdded], and all three reach the canvas through one private `blit`.
  *
  * Both renderers used to carry their own copies of this, one pair of functions per scale
  * convention, which meant the same four-line blit existed six times over and the paint flags, the
@@ -69,7 +72,7 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
      * The pixels for [resId], decoded on first use.
      *
      * How often this is called is up to the backend: the `Canvas` backend needs it for every blit,
-     * the GPU backend once per sprite per GL context.
+     * the GPU backend once per sprite and detail level, and again after a trim or a lost context.
      */
     override fun bitmapFor(resId: Int): android.graphics.Bitmap = SpriteCache.get(context, resId)
 
@@ -126,8 +129,9 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
     /**
      * Same placement as [draw], with the sprite multiplied by [tintColor] and drawn at [alpha].
      *
-     * For sprites that are user-recolourable or theme-driven: house walls, tree canopies, clouds,
-     * the sun and the moon.
+     * For sprites that are user-recolourable or theme-driven: tree canopies, clouds, the moon,
+     * birds, the wave, car bodies and the seasonal props. House walls are layered masks and use
+     * [drawTintedAdded]; the sun is fixed art and uses [draw].
      */
     fun drawTinted(
         canvas: SceneCanvas,

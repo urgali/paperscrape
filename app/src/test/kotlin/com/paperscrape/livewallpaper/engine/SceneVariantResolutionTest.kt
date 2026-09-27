@@ -135,6 +135,20 @@ class SceneVariantResolutionTest {
             "every storefront must be reachable somewhere in the band",
             expected.keys, seen,
         )
+        // **The third reader, which this test's name promised and its body never looked at**
+        // (v5.8B): the layout pass. `SceneObjectCatalog.singleShopPerVariant` keeps one shop per
+        // band of the catalogue it builds; read back off every built-in layout, those kept shops
+        // must be exactly one restaurant, one school and one bar -- the variant the renderer
+        // resolves for each -- or a band the layout keeps a shop in draws some other family.
+        for (theme in ThemeCatalog.ALL) {
+            val shops = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).staticObjects
+                .filter { it.type == SceneObjectType.SKYSCRAPER && it.depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH }
+            assertEquals(
+                "${theme.id}: the shops its layout keeps, as the renderer draws them",
+                listOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR),
+                shops.sortedBy { it.depthFraction }.map { SceneObjectRenderer.variantFor(it) },
+            )
+        }
     }
 
     // --- The scale pipeline ---------------------------------------------------------------

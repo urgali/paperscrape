@@ -7,8 +7,8 @@ import android.opengl.GLES20
  *
  * One program covers both textured sprites and flat geometry, because a flat fill is a textured
  * quad sampling a 1x1 opaque white texture. That collapses what would otherwise be two programs and
- * two vertex streams into one, which means a batch is flushed only when the *texture* changes —
- * never because a solid shape happened to sit between two sprites.
+ * two vertex streams into one, which means a batch is flushed only when the *texture* changes or
+ * the vertex buffer fills — never because a solid shape happened to sit between two sprites.
  *
  * ## Colour semantics
  *
@@ -16,11 +16,12 @@ import android.opengl.GLES20
  * fragment shader combines them as
  *
  * ```
- * gl_FragColor = vec4(tex.rgb * v_Color.rgb, tex.a) * v_Color.a
+ * gl_FragColor = vec4(tex.rgb * v_Color.rgb, tex.a * step(0.0, v_Color.a)) * abs(v_Color.a)
  * ```
  *
- * which is exactly what `PorterDuffColorFilter(tint, MULTIPLY)` followed by `paint.alpha` produces
- * on the `Canvas` backend: the tint multiplies the sprite's own colour, the sprite's own alpha is
+ * and, for a positive vertex alpha (a negative one is an additive layer, see the shader), that is
+ * exactly what `PorterDuffColorFilter(tint, MULTIPLY)` followed by `paint.alpha` produces on the
+ * `Canvas` backend: the tint multiplies the sprite's own colour, the sprite's own alpha is
  * kept, and the blit alpha scales the result. Baked-in shading therefore survives the tint here for
  * the same reason it does there, and white remains the identity tint.
  *

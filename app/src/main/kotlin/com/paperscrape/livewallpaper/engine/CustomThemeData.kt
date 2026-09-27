@@ -8,9 +8,10 @@ import org.json.JSONObject
  * matches a [ThemeCatalog.ALL] id, e.g. "christmas") or a fully independent theme the user
  * created from scratch (its [id] looks like "custom:<token>").
  *
- * Both [theme] and [layout] are complete snapshots — everything needed to render the scene,
- * with no dependency on the original built-in definition. This is what makes "Reset to default"
- * trivial: it just deletes the override, and [ThemeCatalog.byId] naturally falls back to the
+ * Both [theme] and [layout] are complete snapshots — everything needed to render the scene
+ * except the seasonal-decoration slots, which [SceneObjectCatalog.layoutFor] deals from the
+ * entry's id at load, as it does for a built-in. This is what makes "Reset to default" trivial:
+ * it just deletes the override, and [ThemeCatalog.byId] naturally falls back to the
  * hardcoded built-in again.
  */
 data class CustomThemeEntry(
@@ -60,7 +61,7 @@ fun SceneTheme.toJson(): JSONObject = JSONObject().apply {
 private fun JSONArray.toIntArray(): IntArray = IntArray(length()) { getInt(it) }
 
 /**
- * A required number that is finite, or the document is malformed.
+ * A required number that is finite **as the `Float` it is stored as**, or the document is malformed.
  *
  * **BCK-03.** `org.json` coerces strings, so the literal `"NaN"` in a theme or backup file reads
  * back as [Double.NaN] from `getDouble`, and `Infinity` likewise. Nothing downstream checked: the
@@ -76,20 +77,28 @@ private fun JSONArray.toIntArray(): IntArray = IntArray(length()) { getInt(it) }
  */
 internal fun JSONObject.requireFinite(name: String): Float {
     val value = getDouble(name)
-    require(value.isFinite()) { "$name is not a finite number: $value" }
-    return value.toFloat()
+    // Checked after the narrowing, not before (v5.8). `1e300` is a finite Double and an infinite
+    // Float, so checking the Double let it through, and the value the app then held could not be
+    // written back: the next `JSONObject.put` -- the import's own staging copy -- threw
+    // "Forbidden numeric value: Infinity" from a coroutine with no catch, and the app closed. A
+    // 173-byte backup did it on the BV6600 (assessment v5.7, registri/72). NaN narrows to NaN, so
+    // one check still covers both.
+    val narrowed = value.toFloat()
+    require(narrowed.isFinite()) { "$name is not a finite 32-bit number: $value" }
+    return narrowed
 }
 
 /**
- * An optional number; anything non-finite reads as absent and takes [fallback].
+ * An optional number; anything that is not finite as a `Float` reads as absent and takes [fallback].
  *
  * The counterpart to [requireFinite] for fields that already have a default. A `"NaN"` density is
  * not a reason to refuse a whole backup — the file is still readable, that one value is not — so it
- * takes the default the field would have had if the key were missing.
+ * takes the default the field would have had if the key were missing. Checked after the narrowing
+ * for the reason [requireFinite] gives: `1e300` is finite until it becomes a `Float`.
  */
 internal fun JSONObject.optFinite(name: String, fallback: Float): Float {
-    val value = optDouble(name, fallback.toDouble())
-    return if (value.isFinite()) value.toFloat() else fallback
+    val narrowed = optDouble(name, fallback.toDouble()).toFloat()
+    return if (narrowed.isFinite()) narrowed else fallback
 }
 
 fun sceneThemeFromJson(json: JSONObject): SceneTheme = SceneTheme(
@@ -159,6 +168,9 @@ fun carObjectFromJson(json: JSONObject): CarObject = CarObject(
 fun SceneObjectLayout.toJson(): JSONObject = JSONObject().apply {
     put("staticObjects", JSONArray(staticObjects.map { it.toJson() }))
     put("cars", JSONArray(cars.map { it.toJson() }))
+    // Which density rule thinned these objects (v5.8C). Additive: a payload without it was
+    // written before the key existed, by an app that thinned with the grid.
+    put("densityScheme", densityScheme)
 }
 
 fun sceneObjectLayoutFromJson(json: JSONObject): SceneObjectLayout {
@@ -177,6 +189,9 @@ fun sceneObjectLayoutFromJson(json: JSONObject): SceneObjectLayout {
     return SceneObjectLayout(
         staticObjects = staticObjects,
         cars = SceneObjectCatalog.canonicaliseTraffic(cars),
+        // Absent means a layout saved before v5.8C, thinned by the grid: kept on it so it keeps
+        // every object it stored. See [DENSITY_SCHEME_GRID].
+        densityScheme = json.optInt("densityScheme", DENSITY_SCHEME_GRID),
     )
 }
 
@@ -197,18 +212,22 @@ fun ObjectVariantConfig.toJson(): JSONObject = JSONObject().apply {
 fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig): ObjectVariantConfig = ObjectVariantConfig(
     visible = json.optBoolean("visible", default.visible),
     density = json.optFinite("density", default.density),
-    // `optInt` with the default, exactly like every other colour in this file -- the mountains,
-    // the lake, the sky, the hills. These four read `getInt` until v5.3, and `getInt` **throws**
-    // when the key is present but is not an integer, where `optInt` falls back. That is the whole
-    // of the v5.3B audit's S2: a backup with `"colorDay1":"nope"` in it -- 129 bytes, and no
-    // attacker needed, just a truncated download -- threw out through `sceneCustomizationFromJson`
-    // and closed the settings screen, because both parsers' call sites are inside a Compose
-    // `scope.launch { }` with no catch. `ImportParserFuzzTest` is the check that found it and it
-    // stays: it went from 221 escaping throwables to 0 on these four lines alone.
+    // `optInt` with the default, like the mountains, the lake and the sky. These four read
+    // `getInt` until v5.3, and `getInt` **throws** when the key is present but is not an integer,
+    // where `optInt` falls back. That is the whole of the v5.3B audit's S2: a backup with
+    // `"colorDay1":"nope"` in it -- 129 bytes, and no attacker needed, just a truncated download
+    // -- threw out through `sceneCustomizationFromJson` and closed the settings screen, because
+    // both parsers' call sites are inside a Compose `scope.launch { }` with no catch.
+    // `ImportParserFuzzTest` is the check that found it and it stays: it went from 221 escaping
+    // throwables to 0 on these four lines alone.
     //
     // `optInt(name, fallback)` also drops the `has` guard, which was doing nothing the fallback
     // does not already do -- absent and unreadable now take the same path, which is the one the
     // document deserves either way.
+    //
+    // The hills and the bird colours did not, until v5.8C: `optInt` with no fallback turned a
+    // present but unreadable colour into 0, which is transparent. The theme and car colours use
+    // `getInt`, which throws inside the importers' `runCatching` -- a refused file, not a wrong one.
     colorDay1 = json.optInt("colorDay1", default.colorDay1),
     colorNight1 = json.optInt("colorNight1", default.colorNight1),
     colorDay2 = json.optInt("colorDay2", default.colorDay2),
@@ -365,8 +384,11 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         hillsVariation = json.optFinite("hillsVariation", defaults.hillsVariation),
         snowPiles = json.optFinite("snowPiles", defaults.snowPiles),
         leafPiles = json.optFinite("leafPiles", defaults.leafPiles),
-        hillsColorDay = if (json.has("hillsColorDay")) json.optInt("hillsColorDay") else defaults.hillsColorDay,
-        hillsColorNight = if (json.has("hillsColorNight")) json.optInt("hillsColorNight") else defaults.hillsColorNight,
+        // With the default as the fallback, like every colour around it: until v5.8C this was
+        // `has` + `optInt` with no fallback, so a present but unreadable colour imported as 0 --
+        // fully transparent hills (v5.8B comment audit).
+        hillsColorDay = json.optInt("hillsColorDay", defaults.hillsColorDay),
+        hillsColorNight = json.optInt("hillsColorNight", defaults.hillsColorNight),
         hillsAutoMode = AutoColorMode.fromStorageId(json.optString("hillsAutoMode", null)),
         mountainsFront = json.optJSONObject("mountainsFront")?.let {
             MountainLayerConfig(
@@ -404,7 +426,10 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
             val colors = if (colorsArray != null) {
                 (0 until colorsArray.length()).map { idx ->
                     val c = colorsArray.getJSONObject(idx)
-                    BirdColorWeight(c.optInt("color"), c.optFinite("weight", 0.25f))
+                    // The default colour of this slot as the fallback (v5.8C): `optInt` with none
+                    // turned an unreadable colour into 0, a transparent bird.
+                    val fallback = (defaults.birds.colors.getOrNull(idx) ?: defaults.birds.colors.first()).color
+                    BirdColorWeight(c.optInt("color", fallback), c.optFinite("weight", 0.25f))
                 }
             } else {
                 defaults.birds.colors
@@ -481,11 +506,17 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         } ?: defaults.rainbow,
         fallColorsEnabled = json.optBoolean("fallColorsEnabled", defaults.fallColorsEnabled),
         winterColorsEnabled = json.optBoolean("winterColorsEnabled", defaults.winterColorsEnabled),
-        // Absent from every payload written before the winter/Christmas split, so it falls back
-        // to the theme's own default rather than needing a schema step: a missing field is not a
-        // changed one. A saved Christmas theme therefore regains its lights; a saved Winter theme
-        // correctly does not get them.
-        christmasDecorationsEnabled = json.optBoolean("christmasDecorationsEnabled", defaults.christmasDecorationsEnabled),
+        // Absent from every payload written before the winter/Christmas split (v2.0), and every
+        // payload since writes it. Before the split "the lights hung off the winter flag"
+        // (RELEASE_HISTORY, v2.0), so such a payload's winter flag *is* its lights: a theme saved
+        // with the winter presentation on showed them and gets them back, one saved with it off
+        // showed none and gets none. Until v5.8C this fell back to [SceneCustomization.DEFAULT]
+        // (off), so a Christmas theme saved lit came back dark (v5.8B comment audit).
+        christmasDecorationsEnabled = if (json.has("christmasDecorationsEnabled")) {
+            json.optBoolean("christmasDecorationsEnabled", defaults.christmasDecorationsEnabled)
+        } else {
+            json.optBoolean("winterColorsEnabled", defaults.winterColorsEnabled)
+        },
         flowersEnabled = json.optBoolean("flowersEnabled", defaults.flowersEnabled),
         // Absent from every payload written before v5.1, and the default it falls back to is
         // `true` precisely so that a Beach or Desert theme saved before then keeps its palms
@@ -553,6 +584,32 @@ fun readCustomThemeSchemaVersion(raw: String?): Int? {
 }
 
 /**
+ * Runs the custom-theme migrations over a document that embeds `overrides` and `customThemes`.
+ *
+ * **BCK-07.** A whole-app backup carries theme entries written by `CustomThemeEntry.toJson`, the
+ * same shape the theme store holds, but the import path parsed them directly and never ran the
+ * store's migrations. Harmless while no breaking step exists after the backup format shipped, and
+ * silently wrong the first time one does: a version 2 payload restored into a version 4 app would
+ * be read as if it were version 4.
+ *
+ * The version a backup records is the one to migrate *from*. A backup that records none was written
+ * before this existed (v4.15), by an app whose theme schema was 3. It is read as current, not
+ * legacy: the legacy default of 0 would re-run `1 -> 2`, which divides every object's scale by its
+ * base scale a second time, so **that default would corrupt every backup in existence**. Nor is it
+ * current: backups exist since v4.3 and the field since v4.15, and schema 3 held for that whole
+ * span (3 -> 4 came with v4.20), so absent means **3** ([BACKUP_SCHEMA_BEFORE_THE_FIELD]). Until
+ * v5.8C it was read as current, which skipped `3 -> 4` and `4 -> 5`: such a backup restored its
+ * saved themes without the duplicate-storefront and duplicate-vehicle repair and without the
+ * school (v5.8B comment audit). `BackupAndThemeShareTest` pins both halves.
+ */
+/** The custom-theme schema of a backup that records none: see [migrateEmbeddedCustomThemes]. */
+const val BACKUP_SCHEMA_BEFORE_THE_FIELD = 3
+
+fun migrateEmbeddedCustomThemes(root: JSONObject, fromVersion: Int) {
+    migrateCustomThemeJson(root, fromVersion)
+}
+
+/**
  * Brings a parsed payload up to [CUSTOM_THEME_SCHEMA_VERSION], mutating [root] in place, and
  * returns the version the payload is at afterwards.
  *
@@ -566,25 +623,6 @@ fun readCustomThemeSchemaVersion(raw: String?): Int? {
  * older build, the fields it did not understand are not written back. That is accepted, and is
  * why this function is the single place a future migration must be registered.
  */
-/**
- * Runs the custom-theme migrations over a document that embeds `overrides` and `customThemes`.
- *
- * **BCK-07.** A whole-app backup carries theme entries written by `CustomThemeEntry.toJson`, the
- * same shape the theme store holds, but the import path parsed them directly and never ran the
- * store's migrations. Harmless while no breaking step exists after the backup format shipped, and
- * silently wrong the first time one does: a version 2 payload restored into a version 4 app would
- * be read as if it were version 4.
- *
- * The version a backup records is the one to migrate *from*. A backup that records none was written
- * before this existed, by an app whose theme schema was already at the current version -- the
- * legacy default of 0 would re-run `1 -> 2`, which divides every object's scale by its base scale a
- * second time, so **that default would corrupt every backup in existence**. Absent therefore means
- * current, not legacy, and `AppBackupSchemaTest` pins it.
- */
-fun migrateEmbeddedCustomThemes(root: JSONObject, fromVersion: Int) {
-    migrateCustomThemeJson(root, fromVersion)
-}
-
 private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
     // Payloads at or ahead of the current version are passed through untouched.
     if (fromVersion >= CUSTOM_THEME_SCHEMA_VERSION) return fromVersion
@@ -716,9 +754,9 @@ private fun addMissingSchool(objects: JSONArray?) {
  * (see [SceneSpace.BUILDING_TOWER_MAX_DEPTH]), so this changes what a building is drawn as and
  * nothing else about the theme -- not its colours, not its density, not how many buildings it has.
  *
- * Idempotent by construction: after it runs there is at most one shop per half-band, so a second
- * run finds nothing to move. That matters because a payload is migrated on every load until the
- * user next saves it.
+ * Idempotent by construction: after it runs there is at most one shop per third of the shop band,
+ * so a second run finds nothing to move. That matters because a payload is migrated on every load
+ * until the user next saves it.
  */
 private fun migrateDuplicateStorefronts(objects: JSONArray?) {
     if (objects == null) return

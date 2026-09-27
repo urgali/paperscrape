@@ -23,7 +23,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.activity.compose.rememberLauncherForActivityResult
-import android.net.Uri
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -32,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,9 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.R
 import com.paperscrape.livewallpaper.engine.CustomThemeData
+import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.prefs.AppBackup
 import com.paperscrape.livewallpaper.prefs.BackupImportError
 import com.paperscrape.livewallpaper.prefs.BackupParseResult
@@ -70,7 +74,7 @@ private const val SOURCE_URL = "https://github.com/urgali/paperscrape"
 
 /**
  * The settings that are about the app rather than about the wallpaper: custom-theme maintenance,
- * the update checker, and the version.
+ * updates and update notifications, the whole-app backup, and the version.
  *
  * In v2.8 these were the tail of the home screen, in the same scroll as the parallax slider and
  * the weather toggles. The theme gallery deliberately does *not* live here -- it is reached from
@@ -96,9 +100,8 @@ internal fun AdvancedScreen(
     /**
      * Puts the system's notification-permission dialog in front of the user, on API 33+ (A1, v5.7D).
      *
-     * Passed in from the Activity for the same reason `onRequestLocationPermission` is: a
-     * `registerForActivityResult` launcher has to be created before the Activity is started, so a
-     * composable cannot own one. It is only ever called when
+     * Passed in from the Activity, which registers it beside the location launcher behind
+     * `onRequestLocationPermission` (`SettingsActivity`). It is only ever called when
      * [com.paperscrape.livewallpaper.update.UpdateNotificationPolicy.mustAsk] says there is
      * something to ask for -- below API 33 there is no such permission, and asking would return a
      * result with no dialog, which reads exactly like a refusal.
@@ -117,13 +120,41 @@ internal fun AdvancedScreen(
      * project's only test device -- it can never become true, because there is no permission to
      * refuse. See `UpdateNotificationPolicy`.
      */
-    var notificationsBlocked by remember { mutableStateOf(false) }
+    var permissionRefused by remember { mutableStateOf(false) }
+    /**
+     * Whether the phone's settings have PaperScrape's notifications, or the update channel, switched
+     * off (`UpdateNotificationPolicy.blockedInPhoneSettings`, v5.8B). Read when the screen is
+     * composed and again every time it comes back to the front -- the way to change it is to leave
+     * for the phone's settings and return, so a value read once would be stale exactly when it
+     * matters.
+     */
+    var blockedInPhoneSettings by remember { mutableStateOf(UpdateNotifier.blockedInPhoneSettings(context)) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                blockedInPhoneSettings = UpdateNotifier.blockedInPhoneSettings(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     var showSaveDialog by remember { mutableStateOf(false) }
-    var confirmResetAll by remember { mutableStateOf(false) }
+    var confirmResetSaved by remember { mutableStateOf(false) }
+    var confirmResetEdits by remember { mutableStateOf(false) }
     var updateState by updateState
     var backupMessage by remember { mutableStateOf<String?>(null) }
-    var pendingImport by remember { mutableStateOf<Pair<Uri, AppBackup>?>(null) }
+    /** The text the preview read, and what it parsed to: Restore imports exactly this text. */
+    var pendingImport by remember { mutableStateOf<Pair<String, AppBackup>?>(null) }
     var confirmExport by remember { mutableStateOf(false) }
+
+    // Recomputed on every composition: both inputs are state the screen already collects, and it
+    // is a pass over twelve themes.
+    val resetState = SettingsUiModel.themeResetState(
+        builtIns = ThemeCatalog.ALL,
+        overrides = customThemeData.overrides,
+        themeCustomizations = settings.themeCustomizations,
+    )
 
     val backupRepository = remember(prefs, customThemeStore) {
         BackupRepository(prefs, customThemeStore, BuildConfig.VERSION_NAME)
@@ -148,7 +179,10 @@ internal fun AdvancedScreen(
     /**
      * Import is two steps on purpose: this launcher only *reads and validates*, and hands the
      * result to a confirmation dialog. Nothing is written until the user has seen what the file
-     * contains and said yes.
+     * contains and said yes; Restore then imports **the text this read**, not a second read of the
+     * file. Until v5.8C it re-opened the file and read it again with an unbounded `readText()`, so
+     * the `BoundedImport` cap held only for the preview, and a provider whose content changed
+     * between the two reads restored something the user never saw (v5.8B comment audit).
      */
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -158,18 +192,14 @@ internal fun AdvancedScreen(
             // Bounded: see BoundedImport for why an unbounded readText was a defect (BCK-04).
             val raw = BoundedImport.readText(context, uri)
             when (val parsed = backupRepository.preview(raw)) {
-                is BackupParseResult.Ok -> pendingImport = uri to parsed.backup
+                // `Ok` only ever comes from a text that was read: a null reads as `Failed`.
+                is BackupParseResult.Ok -> pendingImport = (raw ?: return@launch) to parsed.backup
                 is BackupParseResult.Failed -> backupMessage = describe(parsed.error)
             }
         }
     }
 
-    /**
-     * Downloads, verifies, and moves to whatever the verdict allows.
-     *
-     * Declared before it is used from the permission launcher below, because granting the
-     * permission has to be able to resume the same flow that sent the user to Settings.
-     */
+    /** Downloads, verifies, and moves to whatever the verdict allows. */
     suspend fun runDownload(info: UpdateInfo) {
         updateState = UpdateUiState.Downloading(-1)
         try {
@@ -186,20 +216,17 @@ internal fun AdvancedScreen(
             updateState = UpdateUiState.Verifying
             updateState = verifiedOrError(context, result)
         } catch (cancellation: CancellationException) {
-            // **ARC-08, and what is left of it.** The transfer itself still dies with the
-            // composition: rotate, or switch light/dark, mid-download and it starts again. Carrying
-            // it across would mean a process-scoped holder owning the job and the state, and the
-            // only ways to verify that rewiring are a Compose UI suite this project deliberately
-            // does not have (TST-03) and a network the test device does not have. The damage it
-            // would prevent is one re-tap on a few megabytes over an action the user just took;
-            // the damage a blind rewiring of the update flow could do is larger. Deferred with
-            // that trade written down, not overlooked.
+            // **ARC-08.** Rotation, light/dark and font-scale changes no longer kill the transfer:
+            // `SettingsActivity` handles those configuration changes itself (see
+            // `UpdateDownloadLifetimeTest`), so they do not cancel `scope`. Leaving the settings
+            // screen for real still cancels it, deliberately -- a user who backs out of an update
+            // has abandoned it.
             //
             // **The screen must never be left saying "Downloading..." with nothing running.**
             // `Downloading` and `Verifying` both disable the check row, so a state left behind by
             // a cancelled coroutine is not a cosmetic lie -- it is a dead end with no way out of
-            // it. Whatever cancelled this (leaving the screen, a recomposition, a configuration
-            // change), the state goes back to something the user can act on.
+            // it. Whatever cancels this -- now only the settings Activity going away -- the state
+            // goes back to something the user can act on.
             updateState = UpdateUiState.Available(info)
             throw cancellation
         }
@@ -229,8 +256,8 @@ internal fun AdvancedScreen(
         }
     }
 
-    // Arriving here from the update dialog's "Install update": start immediately, so that tap is
-    // the whole of the user's involvement until Android asks them to confirm.
+    // Arriving here from the update dialog's "Install update": start the download immediately, so
+    // the user's next tap is "Install", once the file is verified.
     //
     // **This used to hang every time, and the download was never the reason.** The effect was
     // keyed on `startInstallFor` and its own body called `onInstallStarted()`, which sets the
@@ -240,17 +267,24 @@ internal fun AdvancedScreen(
     // overwrote `Downloading(-1)`, and because `Downloading` disables the check row the screen had
     // no way forward. Two things keep that from coming back:
     //
-    //  1. the key is the tag, not the object, and clearing `pendingInstall` no longer changes it,
-    //     because the guard below -- not the key -- is what stops a second run;
+    //  1. the key is the tag, not the object. Clearing `pendingInstall` still changes it, to null,
+    //     and restarts the effect, harmlessly: the restarted effect finds nothing to start, and the
+    //     guard below -- not the key -- is what stops a second run for the same tag;
     //  2. the download itself runs in `scope`, which belongs to the settings screen and outlives
     //     this effect, so even a genuine key change cannot cut a transfer in half.
+    //
+    // The guard blocks a second run only while the first is still under way or done
+    // ([mayStartDownload]): until v5.8C it blocked any second run for the same tag, so after a
+    // failed download "Try again" found the release, re-opened the update dialog, and its "Install
+    // update" only closed it -- nothing started (v5.8B comment audit).
     var startedTag by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(startInstallFor?.tagName) {
         val info = startInstallFor ?: return@LaunchedEffect
-        if (startedTag == info.tagName) return@LaunchedEffect
-        startedTag = info.tagName
-        updateState = UpdateUiState.Available(info)
-        scope.launch { runDownload(info) }
+        if (mayStartDownload(updateState, startedTag, info.tagName)) {
+            startedTag = info.tagName
+            updateState = UpdateUiState.Available(info)
+            scope.launch { runDownload(info) }
+        }
         onInstallStarted()
     }
 
@@ -263,21 +297,39 @@ internal fun AdvancedScreen(
                 icon = Icons.Filled.Save,
                 onClick = { showSaveDialog = true },
             )
+            // **Two rows, because there are two things to reset** (v5.8C, the maintainer's decision
+            // of 2026-09-25). One row used to reset saved versions while its line counted only
+            // them, so a theme edited from the menus read "No built-in theme has your edits" beside
+            // a disabled button. Each row now names what it resets, lists the themes it would
+            // change, is enabled only when there is something, and confirms by naming it -- the
+            // form v5.7B gave World & scene's reset. See [ThemeResetUiState].
             SettingsRow(
-                title = "Reset all customised themes",
-                supporting = if (customThemeData.overrides.isEmpty()) {
-                    "No built-in theme has your edits"
+                title = "Reset saved versions of built-in themes",
+                supporting = if (resetState.savedVersions.isEmpty()) {
+                    "No built-in theme has a saved version"
                 } else {
-                    "${customThemeData.overrides.size} built-in themes have your edits"
+                    "Saved with Replace with current: ${SettingsUiModel.namesInProse(resetState.savedVersions)}"
                 },
                 icon = Icons.Outlined.Restore,
-                enabled = customThemeData.overrides.isNotEmpty(),
-                onClick = { confirmResetAll = true },
+                enabled = resetState.savedVersions.isNotEmpty(),
+                onClick = { confirmResetSaved = true },
+            )
+            SettingsRow(
+                title = "Reset current edits to built-in themes",
+                supporting = if (resetState.currentEdits.isEmpty()) {
+                    "No built-in theme has edits made in these settings"
+                } else {
+                    "Edited in these settings: ${SettingsUiModel.namesInProse(resetState.currentEdits)}"
+                },
+                icon = Icons.Outlined.Restore,
+                enabled = resetState.currentEdits.isNotEmpty(),
+                onClick = { confirmResetEdits = true },
             )
         }
         SettingsCaption(
-            "A customised theme keeps whatever it looked like when you saved it, even after app updates add " +
-                "new objects to that theme. If a theme seems to be missing things it should have, this fixes it.",
+            "A saved version keeps the look it had when you saved it. Edits made in World & scene or " +
+                "Seasons & decorations are kept per theme and show on top of it. Themes you saved as new " +
+                "themes are not touched by either reset.",
         )
 
         SettingsSectionHeader("Updates")
@@ -296,12 +348,19 @@ internal fun AdvancedScreen(
             // was repaired one round ago.
             SettingsSwitchRow(
                 title = stringResource(R.string.settings_update_notify_title),
-                supporting = when {
-                    !settings.automaticUpdateCheckEnabled ->
+                supporting = when (
+                    UpdateNotificationPolicy.notifyRowLine(
+                        automaticCheckEnabled = settings.automaticUpdateCheckEnabled,
+                        blocked = blockedInPhoneSettings,
+                        requestRefused = permissionRefused,
+                    )
+                ) {
+                    UpdateNotificationPolicy.NotifyRowLine.NEEDS_AUTOMATIC_CHECK ->
                         stringResource(R.string.settings_update_notify_needs_check)
-                    settings.updateNotificationsEnabled && notificationsBlocked ->
+                    UpdateNotificationPolicy.NotifyRowLine.BLOCKED ->
                         stringResource(R.string.settings_update_notify_blocked)
-                    else -> stringResource(R.string.settings_update_notify_subtitle)
+                    UpdateNotificationPolicy.NotifyRowLine.DESCRIPTION ->
+                        stringResource(R.string.settings_update_notify_subtitle)
                 },
                 icon = Icons.Outlined.Notifications,
                 enabled = settings.automaticUpdateCheckEnabled,
@@ -318,11 +377,12 @@ internal fun AdvancedScreen(
                     val permission = UpdateNotifier.notificationPermission(context)
                     if (UpdateNotificationPolicy.mustAsk(permission)) {
                         onRequestNotificationPermission { granted ->
-                            notificationsBlocked = !granted
+                            permissionRefused = !granted
+                            blockedInPhoneSettings = UpdateNotifier.blockedInPhoneSettings(context)
                             if (granted) scope.launch { prefs.setUpdateNotificationsEnabled(true) }
                         }
                     } else {
-                        notificationsBlocked = false
+                        permissionRefused = false
                         scope.launch { prefs.setUpdateNotificationsEnabled(true) }
                     }
                 },
@@ -464,13 +524,9 @@ internal fun AdvancedScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val uri = pendingImport?.first
+                    val raw = pendingImport?.first
                     pendingImport = null
                     scope.launch {
-                        val raw = runCatching {
-                            uri?.let { context.contentResolver.openInputStream(it) }
-                                ?.bufferedReader()?.use { it.readText() }
-                        }.getOrNull()
                         backupMessage = when (val result = backupRepository.import(raw)) {
                             is BackupRepository.ImportResult.Applied -> "Backup restored."
                             is BackupRepository.ImportResult.Refused -> describe(result.error)
@@ -495,42 +551,72 @@ internal fun AdvancedScreen(
         )
     }
 
-    if (confirmResetAll) {
+    if (confirmResetSaved) {
+        val names = SettingsUiModel.namesInProse(resetState.savedVersions)
         AlertDialog(
-            onDismissRequest = { confirmResetAll = false },
-            title = { Text("Reset all customised themes?") },
+            onDismissRequest = { confirmResetSaved = false },
+            title = { Text("Reset saved versions?") },
+            // The sentence that matters names the themes and what stays: a saved version goes,
+            // edits made in the settings stay (the other row resets those), saved new themes stay.
             text = {
                 Text(
-                    "This removes your custom version of every overridden built-in theme " +
-                        "(${customThemeData.overrides.size}) and restores each one's current default look. " +
-                        "Your independent custom themes are not affected.",
+                    "$names ${if (resetState.savedVersions.size == 1) "loses the version" else "lose the versions"} " +
+                        "you saved with Replace with current and ${if (resetState.savedVersions.size == 1) "goes" else "go"} " +
+                        "back to how the app draws ${if (resetState.savedVersions.size == 1) "it" else "them"}. " +
+                        "Edits made in World & scene or Seasons & decorations stay; the other reset removes " +
+                        "those. Themes you saved as new themes are not affected.",
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch { customThemeStore.clearAllOverrides() }
-                    confirmResetAll = false
-                }) { Text("Reset all") }
+                    confirmResetSaved = false
+                }) { Text("Reset") }
             },
-            dismissButton = { TextButton(onClick = { confirmResetAll = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmResetSaved = false }) { Text("Cancel") } },
+        )
+    }
+
+    if (confirmResetEdits) {
+        val names = SettingsUiModel.namesInProse(resetState.currentEdits)
+        AlertDialog(
+            onDismissRequest = { confirmResetEdits = false },
+            title = { Text("Reset current edits?") },
+            // Named by screen, like World & scene's own reset: the edits are everything those two
+            // screens change, and a list of objects would be wrong one decoration later.
+            text = {
+                Text(
+                    "Everything changed in World & scene and in Seasons & decorations for $names goes: " +
+                        "colours, densities, sky, weather effects and decorations. " +
+                        "${if (resetState.currentEdits.size == 1) "The theme goes" else "Each theme goes"} back to " +
+                        "its saved version if it has one, otherwise to how the app draws it. " +
+                        "Themes you saved as new themes are not affected.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val ids = resetState.currentEditIds.toSet()
+                    scope.launch { prefs.resetCustomizations(ids) }
+                    confirmResetEdits = false
+                }) { Text("Reset") }
+            },
+            dismissButton = { TextButton(onClick = { confirmResetEdits = false }) { Text("Cancel") } },
         )
     }
 }
 
 
 /**
- * Where the update flow has got to.
+ * Where the update flow currently is.
  *
- * CHECK -> DOWNLOAD -> VERIFY -> INSTALL, with every failure a state of its own rather than a
- * generic error: "no APK in that release", "checksum missing" and "checksum did not match" are
+ * CHECK -> DOWNLOAD -> VERIFY -> INSTALL, with every failure given its own message rather than a
+ * generic one: "no APK in that release", "checksum missing" and "checksum did not match" are
  * different problems with different answers, and flattening them into "update failed" is how a
  * user ends up retrying something that will never work.
  *
- * Nothing here advances on its own. Each step is a tap, including the last one, which hands the
- * file to Android's installer and its own confirmation.
- */
-/**
- * Where the update flow currently is.
+ * Verification follows the download on its own. Installing always starts from a tap on "Install",
+ * which hands the file to Android's installer and its own confirmation; when the install
+ * permission has to be granted first, the installer opens on the way back from granting it.
  *
  * `internal` rather than file-private since ARC-08: the state is owned by `SettingsScreen`, which
  * owns the coroutine scope the download runs in, so the type has to be visible there too.
@@ -575,14 +661,29 @@ internal sealed interface UpdateUiState {
  * nobody asked -- which is the whole reason the two outcomes had to become distinguishable rather
  * than the failure simply being reported everywhere.
  */
-private suspend fun checkForUpdate(onUpdateFound: (UpdateInfo) -> Unit): UpdateUiState =
-    when (val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)) {
-        is UpdateCheckResult.Available -> {
-            onUpdateFound(result.info)
-            UpdateUiState.Available(result.info)
-        }
-        UpdateCheckResult.UpToDate -> UpdateUiState.UpToDate
-        is UpdateCheckResult.Unreachable -> UpdateUiState.CheckFailed(result.reason)
+private suspend fun checkForUpdate(onUpdateFound: (UpdateInfo) -> Unit): UpdateUiState {
+    val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+    if (result is UpdateCheckResult.Available) onUpdateFound(result.info)
+    return updateStateFor(result)
+}
+
+/** What *Advanced & about* shows for a finished check: shared by its button and a tapped notification. */
+internal fun updateStateFor(result: UpdateCheckResult): UpdateUiState = when (result) {
+    is UpdateCheckResult.Available -> UpdateUiState.Available(result.info)
+    UpdateCheckResult.UpToDate -> UpdateUiState.UpToDate
+    is UpdateCheckResult.Unreachable -> UpdateUiState.CheckFailed(result.reason)
+}
+
+/**
+ * Whether "Install update" for [tag] may start a download now: always for a release not started
+ * yet, and for the one [startedTag] names only if its download is no longer under way or done --
+ * after a failure (an error, or a fresh check that found it again) it starts again.
+ */
+internal fun mayStartDownload(state: UpdateUiState, startedTag: String?, tag: String): Boolean =
+    startedTag != tag || when (state) {
+        is UpdateUiState.Downloading, UpdateUiState.Verifying,
+        is UpdateUiState.ReadyToInstall, is UpdateUiState.NeedsPermission -> false
+        else -> true
     }
 
 /**

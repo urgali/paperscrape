@@ -15,17 +15,22 @@ import java.util.concurrent.Executors
  *
  * ### When it looks, and why it is free when it does not
  *
- * Three moments, none of them a timer:
+ * Four moments, none of them a timer:
  *
- * 1. **[start]**, from the service's `onCreate` -- so the icon is right from the moment the
- *    wallpaper is running, with nothing for the user to open.
+ * 1. **[start]**, from the service's `onCreate` -- which registers the receiver but applies
+ *    nothing yet: the user's calendar arrives only with (3.), and until v5.8C this put the factory
+ *    calendar's icon on first, so a user whose moved window gives today a different icon saw it
+ *    switch at every service start and switch back a moment later (v5.8B comment audit). Nothing
+ *    is applied until the calendar is known ([IconApplyGate]).
  * 2. **`ACTION_DATE_CHANGED`**, which the platform broadcasts at local midnight. A receiver
  *    registered in code costs nothing until it fires: no alarm, no wakelock, no wake-up of its
  *    own, and nothing at all added to the 0.16 % of a core this process costs while invisible
  *    (v5.3B audit). `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` are in the same filter
  *    because "what day is it" can also change without midnight passing.
  * 3. **[onCalendarChanged]**, from the engine's settings collector -- the user moving a window on
- *    the Seasons screen is a change of date boundaries, and the icon follows those.
+ *    the Holiday calendar screen is a change of date boundaries, and the icon follows those.
+ * 4. **[refresh]**, each time an engine becomes visible -- a day may have turned over while it was
+ *    not drawing.
  *
  * A registered receiver is also why this is not a manifest receiver: `ACTION_DATE_CHANGED` is an
  * implicit broadcast, and manifest receivers for those have been refused since Android 8. The
@@ -40,13 +45,13 @@ import java.util.concurrent.Executors
  *
  * ### Never on the main thread
  *
- * All three of those moments arrive on the main thread -- a service's `onCreate`, an engine's
- * visibility callback, a receiver registered without a `Handler` -- and the work behind them is up
- * to six binder round trips to `PackageManager`. That is the main thread of a live wallpaper,
- * where the `Canvas` fallback posts its frames; the same reasoning that keeps a `DataStore` write
- * out of a slider's feedback loop keeps this off it. Everything runs on one single-thread
- * executor, which also means two triggers arriving together are serialised instead of racing to
- * write the same six component states.
+ * All of those moments arrive on the main thread -- a service's `onCreate`, an engine's
+ * visibility callback, the engine's settings collector, a receiver registered without a
+ * `Handler` -- and the work behind them is six `PackageManager` reads plus a write for each alias
+ * that changes. That is the main thread of a live wallpaper, where the `Canvas` fallback posts its
+ * frames; the same reasoning that keeps a `DataStore` write out of a slider's feedback loop keeps
+ * this off it. Everything runs on one single-thread executor, which also means two triggers
+ * arriving together are serialised instead of racing to write the same six component states.
  */
 class SeasonalIconController(private val context: Context) {
 
@@ -56,7 +61,7 @@ class SeasonalIconController(private val context: Context) {
     }
 
     /** Written and read only on [worker]; the trigger threads hand it over rather than share it. */
-    private var calendar: SeasonalCalendar = SeasonalCalendar.DEFAULT
+    private val gate = IconApplyGate()
     private var registered = false
 
     private val receiver = object : BroadcastReceiver() {
@@ -65,7 +70,10 @@ class SeasonalIconController(private val context: Context) {
         }
     }
 
-    /** Registers for the date broadcasts and applies today's icon straight away. */
+    /**
+     * Registers for the date broadcasts. Today's icon goes on with the first calendar the engine
+     * reports ([onCalendarChanged]), not before -- see (1.) above.
+     */
     fun start() {
         if (!registered) {
             val filter = IntentFilter().apply {
@@ -91,16 +99,12 @@ class SeasonalIconController(private val context: Context) {
 
     /** The user's calendar, as the engine reads it. Re-applies only when it actually changed. */
     fun onCalendarChanged(next: SeasonalCalendar) {
-        submit {
-            if (next == calendar) return@submit
-            calendar = next
-            applyNow()
-        }
+        submit { if (gate.onCalendar(next)) applyNow() }
     }
 
-    /** Re-reads today's date and puts the matching icon on, on [worker]. */
+    /** Re-reads today's date and puts the matching icon on, on [worker] -- once the calendar is known. */
     fun refresh() {
-        submit { applyNow() }
+        submit { if (gate.onRefresh()) applyNow() }
     }
 
     private fun submit(block: () -> Unit) {
@@ -109,6 +113,27 @@ class SeasonalIconController(private val context: Context) {
 
     /** The whole of the work, and the only thing that touches [PackageManager]. On [worker]. */
     private fun applyNow() {
-        LauncherIconSwitch.applyForDate(context, LocalDate.now(), calendar)
+        LauncherIconSwitch.applyForDate(context, LocalDate.now(), gate.calendar)
     }
+}
+
+/**
+ * When [SeasonalIconController] may put an icon on: only once it knows the user's calendar, and
+ * then on every refresh and on every change of calendar. Pure, so the rule is tested on the JVM.
+ */
+internal class IconApplyGate {
+    var calendar: SeasonalCalendar = SeasonalCalendar.DEFAULT
+        private set
+    private var known = false
+
+    /** The engine reported [next]: apply if it is the first report or a different calendar. */
+    fun onCalendar(next: SeasonalCalendar): Boolean {
+        if (known && next == calendar) return false
+        calendar = next
+        known = true
+        return true
+    }
+
+    /** A date broadcast or a visible engine: apply only with a known calendar. */
+    fun onRefresh(): Boolean = known
 }

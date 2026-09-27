@@ -6,8 +6,8 @@ import android.graphics.BitmapFactory
 import androidx.annotation.DrawableRes
 
 /**
- * Decodes each sprite resource once and caches the result, releasing it again only under real
- * memory pressure --
+ * Decodes each sprite resource once and caches the result, releasing it again under memory
+ * pressure or once the GPU backend has uploaded it ([release]) --
  * this is the whole point of the pilot sprite-rendering conversion aa asked for (houses,
  * buildings, trees, palm trees so far): decode the pixels once at asset-prep time (this app's own
  * `gen_sprites.py`, not committed -- only the resulting PNGs under `res/drawable-nodpi/` are),
@@ -18,8 +18,9 @@ import androidx.annotation.DrawableRes
  * A plain object rather than something tied to a particular renderer instance's lifecycle:
  * [Bitmap]s decoded from resources are immutable and resource IDs are stable for the whole
  * process, so there's no reason to re-decode when [SceneObjectRenderer] itself gets recreated
- * (e.g. on every theme switch, see `PaperRenderer`'s own `theme` setter). A wallpaper process can
- * also host a preview engine and the live engine at the same time, and both share this cache.
+ * (e.g. on every theme switch, see `PaperRenderer.syncObjectRendererWithTheme`). A wallpaper
+ * process can also host a preview engine and the live engine at the same time, and both share this
+ * cache.
  *
  * ## Memory pressure
  *
@@ -46,13 +47,14 @@ import androidx.annotation.DrawableRes
  *
  * Locking here is cheap in the case that matters. A steady frame is all cache *hits*, and an
  * uncontended monitor on a hit costs a biased/thin-lock acquire and no allocation; the expensive
- * path is the decode, which happens once per sprite for the life of the process.
+ * path is the decode, which happens once per sprite until the bitmap is released -- by an upload
+ * on the GPU path or by memory pressure -- and never on a steady frame.
  *
  * `drawable-nodpi` (not a density-specific bucket like `drawable-xxhdpi`) is deliberate -- these
  * sprites are drawn at a fixed "sprite pixels per unit" scale via an explicit `canvas.scale()` at
- * draw time (see each `drawXxx` function's own comment). Keeping the assets out of a density
- * bucket avoids
- * Android's automatic density upscaling working against that explicit scale.
+ * draw time (the single `canvas.scale()` in [SpriteBlitter]'s `blit`, for
+ * [SpriteScale.SCENE_UNITS]). Keeping the assets out of a density bucket avoids Android's automatic
+ * density upscaling working against that explicit scale.
  */
 object SpriteCache {
 
@@ -90,9 +92,9 @@ object SpriteCache {
     /**
      * Applies [MemoryPressurePolicy] for one `onTrimMemory` level.
      *
-     * @param anyEngineVisible whether any wallpaper engine is currently drawing. Nothing else in
-     *   this process draws, so with no visible engine a full release costs nothing until the
-     *   wallpaper is shown again.
+     * @param anyEngineVisible whether any wallpaper engine is currently drawing. The settings
+     *   screen's previews also draw from this cache, in this process, and are not counted; with no
+     *   visible engine a full release costs the wallpaper nothing until it is shown again.
      */
     @Synchronized
     fun onTrimMemory(level: Int, anyEngineVisible: Boolean) {

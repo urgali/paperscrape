@@ -8,14 +8,13 @@ package com.paperscrape.livewallpaper.engine
  * **It is raining, so every walker who can hold an umbrella is holding one.** No share, no draw, no
  * deal: [wantsUmbrella] is `raining && canHold`, and that is the whole of it.
  *
- * "Raining" is not decided here and is not decided twice. There is exactly one definition of it in
- * the engine -- `PaperRenderer.updateWeatherPredicates`, evaluated once at the top of the frame,
- * which reads the live forecast when there is one and the theme's own precipitation when there is
- * not -- and it arrives here through `SceneObjectRenderer.rainingNow`. It is the same predicate
- * `drawPrecipitation` paints rain on, which is what makes **snow not rain**: nothing is carried
- * through snow, because the one definition says snow is not rain and everything downstream of it
- * agrees by construction rather than by each draw path remembering to. Light rain, heavy rain and
- * a thunderstorm are all rain; that, too, is settled in that one place.
+ * "Raining" is not decided here. It is decided in `PaperRenderer.updateWeatherPredicates`,
+ * evaluated once at the top of the frame, which reads the live forecast when there is one and the
+ * theme's own precipitation when there is not, and it arrives here through
+ * `SceneObjectRenderer.rainingNow`. **Snow is not rain** there, so nothing is carried through snow.
+ * `drawPrecipitation` derives the same condition from the same inputs on its own, so the two paths
+ * agree -- but they are kept in step by hand, not by construction. Light rain, heavy rain and a
+ * thunderstorm are all rain in `updateWeatherPredicates`.
  *
  * ### Why "everybody", and what it replaces (v5.4, the maintainer's call)
  *
@@ -46,8 +45,8 @@ package com.paperscrape.livewallpaper.engine
  * All three are gone. The pose is drawn for both child families
  * (`build_carry_sprites.child_walker`, the adults' P1 at a child's proportions), `CARRY` has four
  * families, and `SceneObjectRenderer` hangs the canopy from a grip, a crown and a canopy scale that
- * are **per family** -- the children's grip is 34.9 units up and their canopy is drawn at 70 %, so
- * it is an umbrella their size and not their father's.
+ * are **per family** -- the children's grips are 34.9 (boy) and 33.9 (girl) units up and their
+ * canopy is drawn at 70 %, so it is an umbrella their size and not their father's.
  *
  * **Not one line of this file changed for that**, and that is the point of how [canHold] is
  * written: it reads `PeopleLayerTable.CARRY`'s own length, so the day the artwork existed the rule
@@ -105,9 +104,10 @@ internal object PedestrianCarry {
     /**
      * Whether this walker would have an umbrella up right now, if it were free to change.
      *
-     * [raining] is the renderer's single rain predicate -- exactly what `drawPrecipitation` paints
-     * rain on -- so **snow is not rain** and nobody carries anything through it. [canHold] is the
-     * artwork's limit and the only reason a walker in the rain would not be carrying.
+     * [raining] is the renderer's rain predicate (`PaperRenderer.rainingNow`), which matches the
+     * condition `drawPrecipitation` derives for itself -- so **snow is not rain** and nobody
+     * carries anything through it. [canHold] is the artwork's limit and the only reason a walker
+     * in the rain would not be carrying.
      */
     fun wantsUmbrella(raining: Boolean, canHold: Boolean): Boolean = raining && canHold
 
@@ -124,14 +124,15 @@ internal object PedestrianCarry {
     /**
      * The canopies, in the scene's own paint.
      *
-     * Five colours a paper wallpaper already contains -- the parasol's red, the gift ribbon's
-     * yellow, the lake's blue, the outline's near-black and the hedge's green -- so a street of
-     * umbrellas cannot drift out of the palette the rest of the frame is drawn in.
+     * Five colours: the scene's red, Santa's gift-ribbon yellow, the man's teal shirt and the
+     * outline's near-black -- four the wallpaper already prints, so a street of umbrellas stays in
+     * the palette the rest of the frame is drawn in -- and a leaf green of the canopies' own
+     * (#6D8F4F, printed nowhere else).
      *
      * **They carry more weight now than they did.** While only two adults in three carried, a
      * street's umbrellas were sparse and their colours were decoration; with every walker holding
      * one, these five are the only thing between the maintainer's rule and a row of identical
-     * canopies. See `V5_4E_REPORT.md` for the photograph that was taken to check it.
+     * canopies.
      */
     val PALETTE = intArrayOf(
         0xFFE4623E.toInt(),

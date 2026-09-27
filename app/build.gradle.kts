@@ -49,9 +49,9 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70. Ordinary bumps: one release, one step.
-        versionCode = 70
-        versionName = "5.7"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71. Ordinary bumps: one release, one step.
+        versionCode = 71
+        versionName = "5.8"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
@@ -229,6 +229,14 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // **Nine library files nothing in this app reads (v5.8).** The Kotlin standard library
+            // ships `kotlin/**/*.kotlin_builtins` for `kotlin-reflect`, which this app does not
+            // depend on, and kotlinx-coroutines ships `DebugProbesKt.bin` for its JVM debug agent,
+            // which cannot attach on Android. Measured on the published v5.7 APK: 13 199 B
+            // compressed, 55 735 B decompressed, and no reference to either name anywhere in
+            // `classes.dex` (assessment v5.7, C23; re-read with `dexdump` by v5.8A).
+            excludes += "/kotlin/**.kotlin_builtins"
+            excludes += "/DebugProbesKt.bin"
         }
     }
 
@@ -316,6 +324,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     testImplementation("junit:junit:4.13.2")
+
+    // The virtual clock `AwaitOnceTest` measures its timeouts on (`runTest`, v5.8). It asserted
+    // real elapsed time and failed once on a busy machine -- 5 337 ms against a 3 000 ms bound
+    // (item 143, `ROADMAP.md` row A12) -- which is how a gate teaches people to re-run until green. Test-only:
+    // it is never packaged into the APK, and it is the same library and version as the
+    // `kotlinx-coroutines-android` above, so it brings no new vendor to watch.
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 
     // `org.json` ships inside the Android framework, so at compile time it resolves against
     // android.jar. Local (JVM) unit tests run against the *mockable* android.jar instead, where

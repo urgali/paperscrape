@@ -5,10 +5,11 @@ package com.paperscrape.livewallpaper.engine
  *
  * ## Why a sprite needs more than one copy
  *
- * Every sprite is authored well above the size it is drawn at: the [SpriteBlitter.SPRITE_PIXELS_PER_UNIT]
- * oversample is deliberate, and on top of it the viewport scale and the ground plane's perspective
- * shrink it again. Measured on the device, an adult walker arrives on screen at about a seventh of
- * its authored size and a bust behind a window at between a seventh and a twenty-sixth.
+ * Every [SpriteScale.SCENE_UNITS] sprite is authored well above the size it is drawn at: the
+ * [SpriteBlitter.SPRITE_PIXELS_PER_UNIT] oversample is deliberate, and on top of it the viewport
+ * scale and the ground plane's perspective shrink it again. Measured on the device, an adult walker
+ * arrives on screen at about a seventh of its authored size and a bust behind a window at between a
+ * seventh and a twenty-sixth.
  *
  * A GPU asked to minify that far with one bilinear tap reads four texels out of the forty-nine or
  * more that fall inside the pixel, and *which* four depends on where the sprite happens to sit this
@@ -24,12 +25,12 @@ package com.paperscrape.livewallpaper.engine
  *
  * ## Why not GL mipmaps
  *
- * Three reasons, each sufficient on its own. Sprites share one [GlTextureAtlas] with a single
- * transparent texel between neighbours, and a generated mip level blends 2^L x 2^L blocks — at the
- * levels this scene actually reaches, a sprite would be mixed with whatever the packer put beside
- * it. `GL_TEXTURE_MAX_LEVEL`, which would cap the chain before that happens, does not exist in
- * OpenGL ES 2.0. And a standalone sprite texture is non-power-of-two, which ES 2.0 permits only
- * with a non-mipmapped minification filter.
+ * Three reasons, each sufficient on its own. Sprites share one [GlTextureAtlas] with a one-texel
+ * transparent border around each entry — two texels between neighbours — and a generated mip level
+ * blends 2^L x 2^L blocks: at the levels this scene actually reaches, a sprite would be mixed with
+ * whatever the packer put beside it. `GL_TEXTURE_MAX_LEVEL`, which would cap the chain before that
+ * happens, does not exist in OpenGL ES 2.0. And a standalone sprite texture is non-power-of-two,
+ * which ES 2.0 permits only with a non-mipmapped minification filter.
  *
  * Reducing on the CPU sidesteps all three, and it *shrinks* texture memory instead of adding the
  * third that a mip chain costs: a level-3 copy is a sixty-fourth of the texels.
@@ -52,8 +53,10 @@ package com.paperscrape.livewallpaper.engine
  * power of two to it, is **worse than doing nothing**: it trades a little flicker for a lot of blur.
  *
  * So the level is the one whose residual factor is nearest 0.5, which puts the residual in
- * `[1/(2*sqrt(2)), 1/sqrt(2)]` — the copy is always between 1.4x and 2.8x the drawn size, and is
- * never smaller than it.
+ * `[1/(2*sqrt(2)), 1/sqrt(2))` whenever the draw shrinks the sprite to less than `1/sqrt(2)` of its
+ * size and [MAX_LEVEL] is not reached: the copy is then between 1.4x and 2.8x the drawn size. A
+ * draw that shrinks it less than that samples level 0, the authored bitmap, which is then under
+ * 1.4x the drawn size, or smaller than it when the draw magnifies.
  */
 internal object SpriteDetailLevel {
 

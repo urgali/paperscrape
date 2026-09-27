@@ -26,11 +26,18 @@ internal object WeatherRequest {
      * back. What changes is only how precisely a request describes where its sender was standing.
      */
     fun coordinate(value: Double): String {
-        val rounded = round(value * 100.0) / 100.0
+        val rounded = coarse(value)
         // Kotlin renders -0.0 as "-0.0"; a coordinate has no signed zero and some parsers dislike
         // it. Everything else formats the way the providers' own docs write it.
         return if (rounded == 0.0) "0.0" else rounded.toString()
     }
+
+    /**
+     * A coordinate rounded the way it goes on the wire: two decimals. Shared with the place-name
+     * lookup (`LocationLabelResolver`), which since v5.8C sends the platform geocoder the same
+     * coarse position the weather requests do.
+     */
+    fun coarse(value: Double): Double = round(value * 100.0) / 100.0
 
     /**
      * An API key as a query-parameter value.

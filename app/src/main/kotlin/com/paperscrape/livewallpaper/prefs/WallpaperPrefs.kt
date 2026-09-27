@@ -46,8 +46,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 /**
- * The name of this store's file, shared with the instrumented recovery test so the test corrupts
- * the same bytes the app reads rather than a path it copied by hand.
+ * The name of this store's file, shared with the instrumented tests: the recovery test corrupts a
+ * scratch file carrying this name, and the persistence tests read the real one, rather than paths
+ * copied by hand.
  */
 internal const val WALLPAPER_PREFS_STORE_NAME = "paperscrape_prefs"
 
@@ -67,7 +68,7 @@ data class WallpaperSettings(
     val useLocationForSunTimes: Boolean = false,
     // Mutually exclusive with useLocationForSunTimes above -- a manually-entered fixed
     // coordinate instead of the phone's real GPS/network fix. Same downstream consumers (sunrise/
-    // sunset now, Live Weather once point 6 lands) read whichever of the two is actually active;
+    // sunset and Live Weather) read whichever of the two is actually active;
     // see WallpaperPrefs.setUseCustomLocation/setUseLocation for how the exclusivity is enforced.
     val useCustomLocation: Boolean = false,
     /**
@@ -104,7 +105,7 @@ data class WallpaperSettings(
     val weatherProviderId: String = WeatherProviderId.DEFAULT.storageId,
     /**
      * The user's WeatherAPI.com key. Never compiled in, never logged, never sent anywhere but
-     * WeatherAPI.com -- unlike Open-Meteo's, whose free tier makes a shipped key sensible.
+     * WeatherAPI.com.
      *
      * Kept apart from [liveWeatherApiKey] so that switching provider and back does not lose
      * either one.
@@ -131,7 +132,9 @@ data class WallpaperSettings(
      */
     val liveWeatherStatus: String = LiveWeatherStatus.OFF.storageId,
     /**
-     * Whether opening the settings screen may check GitHub for a new release.
+     * Whether the app may check GitHub for a new release on its own: when the settings screen
+     * opens, and -- together with [updateNotificationsEnabled] -- from the wallpaper engine's daily
+     * check.
      *
      * Off by default, and deliberately: the check used to run on every open, which is a network
      * request the user never asked for. The manual button is always available, so opting out costs
@@ -155,9 +158,10 @@ data class WallpaperSettings(
     // WallpaperPrefs.setResolvedGpsLocation whenever a fix arrives) -- separate from
     // customLocationLatitude/Longitude above, which the *user* entered directly and therefore
     // never needs a round trip through the wallpaper service to know. Settings reverse-geocodes
-    // whichever of the two is actually active into a city label (see SettingsScreen's
-    // LocationLabel composable) -- aa's own explicit ask was that both toggles show *which place*
-    // they resolved to, not just raw coordinates. Null until the very first GPS fix arrives.
+    // the device fix into a city label (see `LocationRow` in WeatherTimeScreen.kt); a custom
+    // location shows the label saved with it -- aa's own explicit ask was that both toggles show
+    // *which place* they resolved to, not just raw coordinates. Null until the very first GPS fix
+    // arrives.
     val resolvedGpsLatitude: Float? = null,
     val resolvedGpsLongitude: Float? = null,
     /**
@@ -165,15 +169,14 @@ data class WallpaperSettings(
      *
      * The fix is the fallback the whole device-location path leans on -- if the provider cannot
      * answer, the scene keeps using where the device last was rather than snapping to a default
-     * somewhere else. Knowing *when* is what makes that honest: the settings screen can say the
-     * position is an old one, and the engine can decide a saved fix is too old to be worth reusing
-     * instead of quietly trusting it forever.
+     * somewhere else. Nothing uses the timestamp yet: the engine reuses a saved fix with no expiry
+     * (`PaperWallpaperService.savedDeviceFix`), and the settings screen does not show its age.
      */
     val deviceFixTimestampMillis: Long = 0L,
     val fixedHour: Float = 18f, // used only when syncWithRealTime == false
-    val parallaxStrength: Float = 1f, // 0.5 .. 2.0 -- also labeled "Scroll Speed" in the UI's
-    // Scrolling section: one mechanism (how much the scenery shifts per unit of home-screen
-    // swipe) behind one slider, rather than two sliders that would fight over the same motion.
+    val parallaxStrength: Float = 1f, // 0.5 .. 2.0 -- "Parallax strength" in the UI's Motion
+    // section: how far near and far layers move relative to each other while scrolling, separate
+    // from the "Scroll speed" drift below.
     // Scroll behavior below is deliberately global (not per-theme), matching that same reference
     // -- these are interaction/engine preferences, not part of a theme's visual identity the way
     // hill colors or which decorations are visible are.
@@ -245,13 +248,12 @@ data class WallpaperSettings(
 }
 
 /** Object categories that can be individually customized (visibility, density, 2x day/night
- * colors). The first 5 are structural (houses/buildings/cars/parasols/trees); the rest are
- * seasonal decorations (snowmen, gifts, etc.) -- both groups are edited the same way, per-theme,
- * via [WallpaperSettings.pendingCustomization], just from two different settings screens ("Scene
- * Objects" and "Seasonal Decorations" respectively). The only real difference between the two
- * groups is their *default*: structural categories share one flat default everywhere (see
- * [SceneCustomization.DEFAULT]), while seasonal categories get a theme-specific starting point
- * (see [defaultCustomizationFor]) so e.g. Christmas still has snowmen out of the box. */
+ * colors). The first 6 are structural (houses/buildings/cars/parasols/trees, and people, which
+ * have no colour); the rest are seasonal decorations (snowmen, gifts, etc.) -- both groups are
+ * edited the same way, per-theme, via [WallpaperSettings.pendingCustomization], from the "World &
+ * scene" and "Seasons & decorations" screens respectively. Both take their starting point from
+ * [defaultCustomizationFor], which adjusts structural and seasonal categories per theme alike
+ * (e.g. City's dense towers, Christmas's snowmen). */
 enum class ObjectCategory {
     HOUSES, BUILDINGS, CARS, PARASOLS, TREES,
     // People are a category for visibility and density only. They have no colour: their artwork
@@ -268,11 +270,12 @@ internal const val THEME_CUSTOMIZATION_KEY_PREFIX = "theme_customization_"
 /**
  * `DataStore.edit`, but the write finishes even if the caller's scope is cancelled.
  *
- * **ARC-09.** Every preference write is launched from `rememberCoroutineScope()`, whose lifetime is
- * the composition. An Activity recreation -- a rotation, a light/dark switch, a font-size change --
- * cancels that scope, so a tap that landed in the same frame had its write cancelled halfway to
- * disk. DataStore's own write is transactional, so nothing was ever corrupted; the switch simply
- * bounced back, which reads as the app ignoring the user.
+ * **ARC-09.** Every preference write from a settings-screen control is launched from
+ * `rememberCoroutineScope()`, whose lifetime is the composition. An Activity recreation -- a
+ * rotation, a light/dark switch, a font-size change -- cancels that scope, so a tap that landed in
+ * the same frame had its write cancelled halfway to disk. DataStore's own write is transactional,
+ * so nothing was ever corrupted; the switch simply bounced back, which reads as the app ignoring
+ * the user.
  *
  * `NonCancellable` is the same instrument `BackupRepository` uses for the two writes that must not
  * be interrupted, and for the same reason. A preference write is a handful of bytes and completes
@@ -360,7 +363,7 @@ class WallpaperPrefs(private val context: Context) {
          * One theme's whole customization, as JSON, under a key named after that theme.
          *
          * Deliberately a JSON blob rather than ~60 more namespaced keys: the serialisation
-         * already exists, is versioned, is round-trip tested (`CustomThemeDataJsonTest`), and is
+         * already exists, is round-trip tested (`CustomThemeDataJsonTest`), and is
          * the same one `CustomThemeStore` persists saved themes with -- so a saved theme and a
          * customised built-in are the same bytes in two places rather than two formats to keep in
          * step. Purely additive: an install that has never written one simply has no such key.
@@ -522,8 +525,8 @@ class WallpaperPrefs(private val context: Context) {
     /**
      * The customization the flat scratch keys currently hold, read against [themeId]'s defaults.
      *
-     * Extracted from [settingsFlow] in v4.3 so that [switchPendingTheme] can *archive* the same
-     * value it would otherwise have thrown away. Nothing about what it reads changed.
+     * Extracted from [settingsFlow] in v4.3 so that [ensureFreshPendingTheme] can *archive* the
+     * same value it would otherwise have thrown away. Nothing about what it reads changed.
      */
     private fun readFlatCustomization(prefs: Preferences, themeId: String): SceneCustomization {
         val defaults = defaultCustomizationFor(themeId)
@@ -667,11 +670,18 @@ class WallpaperPrefs(private val context: Context) {
 
 
     /**
-     * Writes [c] into the flat scratch keys -- the exact inverse of [readFlatCustomization].
+     * Writes [c] into the flat scratch keys -- the inverse of [readFlatCustomization], key for key.
      *
-     * Its correctness is not argued from inspection: `ThemeCustomizationPersistenceTest` writes a
-     * fully non-default customization through this, reads it back through [readFlatCustomization]
-     * and asserts equality, so a field added to [SceneCustomization] and forgotten here fails.
+     * **It was not, until v5.8, and the test that was meant to say so could not.** It wrote none of
+     * the automatic day/night modes -- the two per category and the nine that live outside the
+     * loop -- so a theme restored from its archive came back with every pair on MANUAL, and the
+     * first edit after returning to it wrote that loss to disk: "Day sets night" on Autumn's hills
+     * turned back into "Both" and the night colour changed by itself (reproduced on a device,
+     * assessment v5.7 M7). `ThemeCustomizationPersistenceTest.everyCustomizationFieldSurvivesTheArchiveRoundTrip`
+     * writes a fully non-default customization, forces the archive/restore cycle and asserts
+     * equality; it never set a mode, which is why it stayed green. It now sets every one, so a
+     * field added to [SceneCustomization] and forgotten here fails there -- provided the test sets
+     * it too.
      */
     private fun MutablePreferences.writeFlatCustomization(c: SceneCustomization) {
         fun variant(category: ObjectCategory, config: ObjectVariantConfig) {
@@ -681,6 +691,8 @@ class WallpaperPrefs(private val context: Context) {
             this[Keys.colorNight1(category)] = config.colorNight1
             this[Keys.colorDay2(category)] = config.colorDay2
             this[Keys.colorNight2(category)] = config.colorNight2
+            this[Keys.autoMode1(category)] = config.autoMode1.storageId
+            this[Keys.autoMode2(category)] = config.autoMode2.storageId
         }
         variant(ObjectCategory.HOUSES, c.houses)
         variant(ObjectCategory.BUILDINGS, c.buildings)
@@ -704,11 +716,13 @@ class WallpaperPrefs(private val context: Context) {
         this[Keys.LEAF_PILES] = c.leafPiles
         this[Keys.HILLS_COLOR_DAY] = c.hillsColorDay
         this[Keys.HILLS_COLOR_NIGHT] = c.hillsColorNight
+        this[Keys.HILLS_AUTO_MODE] = c.hillsAutoMode.storageId
         for ((front, m) in listOf(true to c.mountainsFront, false to c.mountainsBack)) {
             this[Keys.mountainVisible(front)] = m.visible
             this[Keys.mountainDensity(front)] = m.density
             this[Keys.mountainColorDay(front)] = m.colorDay
             this[Keys.mountainColorNight(front)] = m.colorNight
+            this[Keys.mountainAutoMode(front)] = m.autoMode.storageId
         }
         this[Keys.LAKE_VISIBLE] = c.lake.visible
         this[Keys.LAKE_COLOR_DAY] = c.lake.colorDay
@@ -718,6 +732,7 @@ class WallpaperPrefs(private val context: Context) {
         this[Keys.LAKE_SAILBOATS_DENSITY] = c.lake.sailboatsDensity
         this[Keys.LAKE_DOLPHINS_VISIBLE] = c.lake.dolphinsVisible
         this[Keys.LAKE_DOLPHINS_DENSITY] = c.lake.dolphinsDensity
+        this[Keys.LAKE_AUTO_MODE] = c.lake.autoMode.storageId
         this[Keys.STARS_VISIBLE] = c.stars.visible
         this[Keys.STARS_DENSITY] = c.stars.density
         this[Keys.SKY_COLOR_DAY_HIGH] = c.sky.colorDayHigh
@@ -727,6 +742,8 @@ class WallpaperPrefs(private val context: Context) {
         this[Keys.SKY_COLOR_SUNRISE_LOW] = c.sky.colorSunriseLow
         this[Keys.SKY_COLOR_SUNSET_LOW] = c.sky.colorSunsetLow
         this[Keys.SKY_SUN_CLOUD_HEIGHT] = c.sky.sunCloudHeight
+        this[Keys.SKY_AUTO_MODE_HIGH] = c.sky.autoModeHigh.storageId
+        this[Keys.SKY_AUTO_MODE_LOW] = c.sky.autoModeLow.storageId
         this[Keys.SUN_VISIBLE] = c.sun.visible
         this[Keys.SUN_COLOR] = c.sun.color
         this[Keys.MOON_VISIBLE] = c.moon.visible
@@ -736,6 +753,7 @@ class WallpaperPrefs(private val context: Context) {
         this[Keys.CLOUDS_DENSITY] = c.clouds.density
         this[Keys.CLOUDS_COLOR_DAY] = c.clouds.colorDay
         this[Keys.CLOUDS_COLOR_NIGHT] = c.clouds.colorNight
+        this[Keys.CLOUDS_AUTO_MODE] = c.clouds.autoMode.storageId
         this[Keys.BIRDS_VISIBLE] = c.birds.visible
         this[Keys.BIRDS_DENSITY] = c.birds.density
         this[Keys.BIRDS_NIGHT] = c.birds.nightBirds
@@ -751,6 +769,8 @@ class WallpaperPrefs(private val context: Context) {
         this[Keys.PRECIPITATION_SNOW_COLOR_DAY] = c.precipitation.snowColorDay
         this[Keys.PRECIPITATION_SNOW_COLOR_NIGHT] = c.precipitation.snowColorNight
         this[Keys.PRECIPITATION_THUNDERSTORM] = c.precipitation.thunderstorm
+        this[Keys.PRECIPITATION_RAIN_AUTO_MODE] = c.precipitation.rainAutoMode.storageId
+        this[Keys.PRECIPITATION_SNOW_AUTO_MODE] = c.precipitation.snowAutoMode.storageId
         this[Keys.RAINBOW_VISIBLE] = c.rainbow.visible
         this[Keys.RAINBOW_OPACITY] = c.rainbow.opacity
         this[Keys.FALL_COLORS_ENABLED] = c.fallColorsEnabled
@@ -764,20 +784,6 @@ class WallpaperPrefs(private val context: Context) {
     }
 
 
-    /**
-     * Replaces every global preference and every per-theme customization in one transaction.
-     *
-     * Used by backup import, and by its own rollback. **One `edit` block**, so a reader either
-     * sees the whole previous state or the whole new one and never a mixture — which is the half
-     * of "atomic import" this store can guarantee on its own; the other half, keeping it in step
-     * with `CustomThemeStore`, is [BackupRepository]'s job.
-     *
-     * The flat scratch keys and their marker are cleared rather than restored: they are one
-     * theme's in-progress edit, the restored per-theme blobs are the truth, and carrying a stale
-     * scratch across a restore is exactly the confusion this release exists to remove. Runtime
-     * state a backup deliberately does not carry -- the resolved GPS fix, its timestamp, the live
-     * weather status line -- is left exactly as it is on this device.
-     */
     /**
      * [replaceAll], plus the saved-themes document the caller is about to apply to the other store.
      *
@@ -799,6 +805,20 @@ class WallpaperPrefs(private val context: Context) {
         context.dataStore.editDurably { it.remove(Keys.PENDING_IMPORT_THEMES) }
     }
 
+    /**
+     * Replaces every global preference and every per-theme customization in one transaction.
+     *
+     * Used by backup import, and by its own rollback. **One `edit` block**, so a reader either
+     * sees the whole previous state or the whole new one and never a mixture — which is the half
+     * of "atomic import" this store can guarantee on its own; the other half, keeping it in step
+     * with `CustomThemeStore`, is [BackupRepository]'s job.
+     *
+     * The flat scratch keys and their marker are cleared rather than restored: they are one
+     * theme's in-progress edit, the restored per-theme blobs are the truth, and carrying a stale
+     * scratch across a restore is exactly the confusion this release exists to remove. Runtime
+     * state a backup deliberately does not carry -- the resolved GPS fix, its timestamp, the live
+     * weather status line -- is left exactly as it is on this device.
+     */
     suspend fun replaceAll(
         settings: AppBackup.BackupSettings,
         themeCustomizations: Map<String, SceneCustomization>,
@@ -904,6 +924,12 @@ class WallpaperPrefs(private val context: Context) {
     suspend fun setOpenWeatherApiKey(apiKey: String) =
         context.dataStore.editDurably { it[Keys.OPEN_WEATHER_API_KEY] = apiKey }
 
+    suspend fun setAutomaticUpdateCheckEnabled(enabled: Boolean) =
+        context.dataStore.editDurably { it[Keys.AUTOMATIC_UPDATE_CHECK] = enabled }
+
+    suspend fun setUpdateNotificationsEnabled(enabled: Boolean) =
+        context.dataStore.editDurably { it[Keys.UPDATE_NOTIFICATIONS] = enabled }
+
     /**
      * Records whether Live Weather has fallen back to the theme's manual weather.
      *
@@ -912,12 +938,6 @@ class WallpaperPrefs(private val context: Context) {
      * only written when the value actually changes, or every evaluation of the weather loop would
      * wake every collector for nothing.
      */
-    suspend fun setAutomaticUpdateCheckEnabled(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.AUTOMATIC_UPDATE_CHECK] = enabled }
-
-    suspend fun setUpdateNotificationsEnabled(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.UPDATE_NOTIFICATIONS] = enabled }
-
     suspend fun setLiveWeatherStatus(status: LiveWeatherStatus) =
         context.dataStore.editDurably { it[Keys.LIVE_WEATHER_STATUS] = status.storageId }
 
@@ -969,8 +989,9 @@ class WallpaperPrefs(private val context: Context) {
     /** Puts every window back on its code-declared dates. */
     suspend fun resetSeasonalCalendar() = setSeasonalCalendar(SeasonalCalendar.DEFAULT)
 
-    // Every mutator below also stamps PENDING_CUSTOMIZATION_THEME_ID = forThemeId in the same
-    // atomic edit, so it's always unambiguous which theme the in-progress edit belongs to (see
+    // Every mutator below except resetAllCategories (which removes the tag) also stamps
+    // PENDING_CUSTOMIZATION_THEME_ID = forThemeId in the same atomic edit, so it's always
+    // unambiguous which theme the in-progress edit belongs to (see
     // CustomThemeRegistry.resolveActiveCustomization). This is how "scene object changes apply
     // live only to the current theme" is enforced -- other themes simply never match the tag.
 
@@ -1310,8 +1331,9 @@ class WallpaperPrefs(private val context: Context) {
         context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.RAINBOW_OPACITY] = opacity; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     /** Mutually exclusive with [setWinterColorsEnabled] -- turning Fall Colors on always turns
-     * Winter/Christmas Colors off in the same edit, same pattern PrecipitationConfig.type already
-     * uses for Rain vs Snow (see [SceneCustomization.fallColorsEnabled]'s own doc comment). */
+     * Winter Colors off in the same edit (Christmas decorations are untouched), same pattern
+     * PrecipitationConfig.type already uses for Rain vs Snow (see
+     * [SceneCustomization.fallColorsEnabled]'s own doc comment). */
     suspend fun setFallColorsEnabled(enabled: Boolean, forThemeId: String) =
         context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.FALL_COLORS_ENABLED] = enabled
@@ -1340,7 +1362,8 @@ class WallpaperPrefs(private val context: Context) {
         }
 
     /**
-     * Palms on or off, on the two themes that have any. Independent of every other flag.
+     * Palms on or off, wherever the layout places any (Beach, Desert, their saved copies, and
+     * shuffled themes that deal palms). Independent of every other flag.
      *
      * It does not touch TREES: turning palms off leaves the tree slots exactly as populated as
      * they were and changes which species fills them, so this is not a second way to empty the
@@ -1385,13 +1408,11 @@ class WallpaperPrefs(private val context: Context) {
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** Removes the override entirely (rather than forcing a fixed `false` like
-     * [setFallColorsEnabled]/[setWinterColorsEnabled]'s own reset does) so it falls back to
-     * [defaultCustomizationFor]'s per-theme dynamic default (`theme.hasSantaSleigh`) -- unlike
-     * Fall/Winter Colors, which are always off by default regardless of theme, Santa's default
-     * genuinely varies per theme (on for Christmas, off elsewhere), so "reset" has to mean "go
+    /** Removes the override entirely, so it falls back to [defaultCustomizationFor]'s per-theme
+     * default (`theme.hasSantaSleigh`: on for Christmas, off elsewhere) -- "reset" has to mean "go
      * back to whatever this theme's own default is", not "force off everywhere including
-     * Christmas". */
+     * Christmas". [resetSeasonalPalettes] does the same for the palettes and the other decoration
+     * switches, whose defaults also vary per theme. */
     suspend fun resetSanta(forThemeId: String) =
         context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it.remove(Keys.SANTA_ENABLED)
@@ -1399,13 +1420,17 @@ class WallpaperPrefs(private val context: Context) {
         }
 
     /**
-     * Clears the three seasonal presentation flags so they fall back to the theme's own defaults.
+     * Clears the seasonal flags -- the two palettes and the five decoration switches (Christmas
+     * lights, flowers, palms, Halloween, horror sky) -- so they fall back to the theme's own
+     * defaults. Santa has its own reset, [resetSanta].
      *
      * **Removes them rather than setting them false.** The Seasonal Decorations screen's "reset
      * everything to defaults" wrote `false` into Fall and Winter Colors, which was indistinguishable
      * from a default while every theme defaulted to off — and stopped being a reset the moment
      * Winter, Christmas, New Year and Autumn started defaulting to on. A reset has to mean "forget
-     * what I chose", not "choose off".
+     * what I chose", not "choose off". Palms are the case that shows it: they default to **on**, so
+     * a reset that skipped them left a Beach the user had turned palm-less without palms after
+     * "Reset decorations to defaults".
      */
     suspend fun resetSeasonalPalettes(forThemeId: String) =
         context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
@@ -1413,6 +1438,7 @@ class WallpaperPrefs(private val context: Context) {
             it.remove(Keys.WINTER_COLORS_ENABLED)
             it.remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
             it.remove(Keys.FLOWERS_ENABLED)
+            it.remove(Keys.PALMS_ENABLED)
             it.remove(Keys.HALLOWEEN_ENABLED)
             it.remove(Keys.HORROR_SKY_ENABLED)
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
@@ -1470,9 +1496,10 @@ class WallpaperPrefs(private val context: Context) {
      * in the context of *which theme* is currently being edited (as opposed to global settings
      * like scroll speed or Live Weather, which apply no matter which theme is active). Shared by
      * [ensureFreshPendingTheme] (called at the start of every per-theme setter, see its own doc
-     * comment for why) and [resetAllCategories] (the user-facing "reset everything" button) --
-     * both need the exact same "wipe every per-theme override" behavior, just triggered
-     * differently (automatically on a theme mismatch vs. manually via a button).
+     * comment for why), [resetAllCategories] (the "Reset this theme's scene to defaults" button)
+     * and [replaceAll] (a backup restore) -- all need the exact same "wipe every per-theme
+     * override" behavior, just triggered differently (automatically on a theme mismatch, manually
+     * via a button, or by a restore).
      */
     private fun MutablePreferences.clearAllThemeCustomizationKeys() {
         for (category in ObjectCategory.entries) {
@@ -1578,6 +1605,13 @@ class WallpaperPrefs(private val context: Context) {
         remove(Keys.WINTER_COLORS_ENABLED)
         remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
         remove(Keys.FLOWERS_ENABLED)
+        // The palms switch is per-theme scratch state like every flag around it -- written by a
+        // `forThemeId` setter, read by `readFlatCustomization`, archived and restored with the
+        // rest -- and it was the one per-theme key no function removed. Left behind, it survived
+        // every wipe here: Beach's "off" became Desert's the first time Desert was edited, a scene
+        // reset brought it back on the next edit, and a backup restore left it for the first
+        // post-restore edit to pick up. Measured on a device (assessment v5.7, M1).
+        remove(Keys.PALMS_ENABLED)
         remove(Keys.HALLOWEEN_ENABLED)
         remove(Keys.HORROR_SKY_ENABLED)
         remove(Keys.SANTA_ENABLED)
@@ -1585,20 +1619,22 @@ class WallpaperPrefs(private val context: Context) {
 
     /**
      * Called as the very first statement in every per-theme setter (`setXxxVisible`,
-     * `setHillsColorDay`, etc. -- anything taking a `forThemeId` parameter), inside the same
-     * DataStore edit transaction, before that setter applies its own specific field change.
+     * `setHillsColorDay`, etc. -- anything taking a `forThemeId` parameter except
+     * [resetAllCategories]), inside the same DataStore edit transaction, before that setter
+     * applies its own specific field change.
      *
      * The bug this fixes: aa reported that turning on Winter/Christmas Colors while on the Beach
-     * theme also turned the hills white. Root cause -- every one of this class's ~60 per-theme
+     * theme also turned the hills white. Root cause -- every one of this class's ~80 per-theme
      * setters writes its own one field *plus* `PENDING_CUSTOMIZATION_THEME_ID = forThemeId`, but
      * every other field (hills color, sky, precipitation, everything) is a single global flat
-     * DataStore key, not namespaced per theme. [WallpaperPrefs.settingsFlow] only ever falls back
-     * to a theme's defaults/saved entry while `PENDING_CUSTOMIZATION_THEME_ID` differs from the
-     * theme actually being viewed; the instant *any* setter fires for a *different* theme than
-     * whatever was last edited, that check starts passing again and every one of those stale
-     * flat fields -- last written for a *previous* theme, e.g. hills set white while editing the
-     * Christmas/Winter theme -- leaks straight into the newly "pending" theme, even though the
-     * edit being made only meant to touch one unrelated field (Winter Colors, in aa's report).
+     * DataStore key, not namespaced per theme. `CustomThemeRegistry.resolveActiveCustomization`
+     * only ever falls back to a theme's defaults/saved entry while `PENDING_CUSTOMIZATION_THEME_ID`
+     * differs from the theme actually being viewed; the instant *any* setter fires for a
+     * *different* theme than whatever was last edited, that check starts passing again and every
+     * one of those stale flat fields -- last written for a *previous* theme, e.g. hills set white
+     * while editing the Christmas/Winter theme -- leaks straight into the newly "pending" theme,
+     * even though the edit being made only meant to touch one unrelated field (Winter Colors, in
+     * aa's report).
      * This isn't specific to Winter Colors or to hills/Beach -- it's a general architectural gap
      * that could surface with any field, on any theme, the moment you edit a second theme after
      * customizing a first one.
@@ -1634,9 +1670,23 @@ class WallpaperPrefs(private val context: Context) {
         }
     }
 
-    /** Resets every object category (structural and seasonal alike -- both are per-theme scratch
-     * state now, see the [ObjectCategory] doc comment) back to defaults and clears the
-     * pending-edit tag entirely. */
+    /**
+     * Resets every theme in [themeIds] as [resetAllCategories] resets one, **in one write** (v5.8C):
+     * *Advanced & about*'s "Reset current edits to built-in themes". One transaction, so a crash
+     * half-way cannot leave some of the themes reset and the rest not.
+     */
+    suspend fun resetCustomizations(themeIds: Set<String>) = context.dataStore.editDurably { prefs ->
+        val pending = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID]
+        if (pending != null && pending in themeIds) {
+            prefs.clearAllThemeCustomizationKeys()
+            prefs.remove(Keys.PENDING_CUSTOMIZATION_THEME_ID)
+        }
+        for (id in themeIds) prefs.remove(Keys.themeCustomization(id))
+    }
+
+    /** Resets [forThemeId]'s whole customization to its defaults: removes its archive and -- only
+     * if the scratch space is this theme's -- clears every per-theme scratch key and the
+     * pending-edit tag. */
     suspend fun resetAllCategories(forThemeId: String) = context.dataStore.editDurably { prefs ->
         // Only if the scratch space is *this* theme's. Clearing it unconditionally would reset
         // whichever theme happened to be under live edit -- caught by

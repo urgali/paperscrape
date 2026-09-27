@@ -56,6 +56,13 @@ internal fun SeasonsScreen(
     customization: SceneCustomization,
     forThemeId: String,
     themeName: String,
+    /**
+     * Whether the layout this theme draws places any palm -- `SceneObjectLayout.hasPalmSlots`,
+     * asked by the caller of the same layout the wallpaper uses. The Palms switch is on by
+     * default everywhere and changes nothing where no palm stands, so counting it as "on" there
+     * reported a decoration on ten of the twelve built-ins that cannot show one.
+     */
+    themeHasPalms: Boolean,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
     onBack: () -> Unit,
@@ -162,18 +169,19 @@ internal fun SeasonsScreen(
             SeasonRow(Season.SPRING, Icons.Outlined.LocalFlorist, listOf(
                 "Flowers" to customization.flowersEnabled,
             )) { openSeason = Season.SPRING }
-            SeasonRow(Season.SUMMER, Icons.Outlined.WbSunny, listOf(
-                "Palms" to customization.palmsEnabled,
-            )) { openSeason = Season.SUMMER }
+            SeasonRow(
+                Season.SUMMER, Icons.Outlined.WbSunny, listOf("Palms" to customization.palmsEnabled),
+                unavailableSupporting = if (themeHasPalms) null else "Palms - none on this theme",
+            ) { openSeason = Season.SUMMER }
         }
 
         OutlinedButton(
             onClick = {
                 scope.launch {
-                    // Only the 6 seasonal categories plus the palettes and Santa -- byte for byte
-                    // the same reset v2.8 performed from this screen. resetAllCategories() would
-                    // also wipe this theme's houses/trees/etc, which is not what "reset" means
-                    // here; that one lives on World & scene.
+                    // Only what this screen shows: the 6 seasonal categories, the palettes and the
+                    // decoration switches (palms included since v5.8, see resetSeasonalPalettes),
+                    // and Santa. resetAllCategories() would also wipe this theme's houses/trees/etc,
+                    // which is not what "reset" means here; that one lives on World & scene.
                     for (category in listOf(
                         ObjectCategory.SNOWMEN, ObjectCategory.GIFTS,
                         ObjectCategory.PENGUINS, ObjectCategory.BUNNIES, ObjectCategory.EASTER_EGGS,
@@ -195,6 +203,7 @@ internal fun SeasonsScreen(
         SeasonDetailScreen(
             season = season,
             customization = customization,
+            themeHasPalms = themeHasPalms,
             forThemeId = forThemeId,
             prefs = prefs,
             scope = scope,
@@ -203,17 +212,24 @@ internal fun SeasonsScreen(
     }
 }
 
+/**
+ * One season's row. [unavailableSupporting], when given, replaces the count: it is for a season
+ * whose decorations cannot appear on this theme at all, where "1 on" would describe a switch
+ * position rather than anything the wallpaper draws.
+ */
 @Composable
 private fun SeasonRow(
     season: Season,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contents: List<Pair<String, Boolean>>,
+    unavailableSupporting: String? = null,
     onClick: () -> Unit,
 ) {
-    val onCount = contents.count { it.second }
+    val onCount = if (unavailableSupporting != null) 0 else contents.count { it.second }
     SettingsNavigationRow(
         title = season.title,
-        supporting = contents.joinToString(", ") { it.first } + if (onCount == 0) " - all off" else " - $onCount on",
+        supporting = unavailableSupporting
+            ?: (contents.joinToString(", ") { it.first } + if (onCount == 0) " - all off" else " - $onCount on"),
         icon = icon,
         supportingIsAccent = onCount > 0,
         onClick = onClick,
@@ -232,6 +248,7 @@ private fun SeasonRow(
 private fun SeasonDetailScreen(
     season: Season,
     customization: SceneCustomization,
+    themeHasPalms: Boolean,
     forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
@@ -307,10 +324,18 @@ private fun SeasonDetailScreen(
                 Season.HALLOWEEN -> "Halloween and Horror sky are independent of each other and of the palette."
                 Season.EASTER -> "Both are available on any theme, not only the Easter one."
                 Season.SPRING -> "Flowers are available on any theme, not only the Spring one."
-                // The one switch in this screen that is on out of the box, and the only one whose
-                // scope is two themes rather than all of them: no other layout places a palm, so
-                // on the other ten this changes nothing whichever way it is set.
-                Season.SUMMER -> "Only Beach and Desert have palms. On every other theme this changes nothing."
+                // The one switch in this screen that is on out of the box on every theme (the
+                // others are on only where a theme's own defaults put them), and the only one
+                // whose scope is not every theme: it changes something only where the layout
+                // places a palm -- Beach, Desert, a theme saved from either, a shuffled theme that
+                // dealt one.
+                // Said per theme, from the layout, because "only Beach and Desert" was false about
+                // a saved Beach, which keeps its palms under its own name.
+                Season.SUMMER -> if (themeHasPalms) {
+                    "This theme has palms. On a theme without any this switch changes nothing."
+                } else {
+                    "This theme has no palms, so this switch changes nothing here. Beach and Desert have them."
+                }
             },
         )
     }

@@ -6,8 +6,9 @@ package com.paperscrape.livewallpaper.engine
  * ### Why this exists
  *
  * `ThemePreviewScenes` builds its objects out of the same sprites, at the same offsets, as
- * `SceneObjectRenderer` — by hand. Its own doc says so: the offsets are *copied from
- * `SceneObjectRenderer`'s own draw functions*. That duplication is deliberate and mostly harmless,
+ * `SceneObjectRenderer` — by hand where it has no constant to read. Its own doc says so: the
+ * offsets *come from `SceneObjectRenderer`'s own draw functions -- read from its constants where it
+ * has them, copied where it does not*. That duplication is deliberate and mostly harmless,
  * because the preview is a flat 320x240 data description with no perspective, no candidate system
  * and no scroll, and rendering it through the wallpaper's renderer would mean giving it all three.
  *
@@ -18,9 +19,10 @@ package com.paperscrape.livewallpaper.engine
  * renderer's origin had been corrected at some point and the preview's copy had not moved with it.
  *
  * Rather than correct the copy and leave the next drift to chance, the tree's offsets are named
- * here and both callers read them. This is deliberately **only the tree**: it is the one place
- * drift was demonstrated, and hoisting all sixty-odd sprites would be a refactor of
- * `SceneObjectRenderer` that nothing has asked for and no evidence supports.
+ * here and both callers read them. This was deliberately **only the tree** at first: it was the
+ * one place drift was demonstrated, and hoisting all sixty-odd sprites would be a refactor of
+ * `SceneObjectRenderer` that nothing has asked for and no evidence supports. (The palm joined it
+ * in v5.1, see [PalmSpriteLayout].)
  *
  * ### The numbers were the renderer's, unchanged — until v4.21 redrew the tree
  *

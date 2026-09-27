@@ -379,13 +379,19 @@ class WindowOccupantsTest {
         assertTrue("every theme gave the same building", streets.distinct().size > 100)
     }
 
-    /** Occupants must not depend on the clock, or a face would flicker between frames. */
+    /**
+     * Occupants must not depend on the clock, or a face would flicker between frames.
+     *
+     * This used to call the rule, sleep 5 ms and call it again, which a rule reading the clock by
+     * the second or the minute passes (v5.8B). The file itself names no clock -- see
+     * [ClockFreeSource] -- and the same arguments give the same answer.
+     */
     @Test
     fun `occupancy does not depend on the clock`() {
+        assertEquals(emptyList<String>(), ClockFreeSource.clockReadsIn("engine/WindowOccupants.kt"))
         val before = (0 until 16).map {
             WindowOccupants.isOccupied(999, 100_003, it, 16, WindowBuildingKind.SKYSCRAPER)
         }
-        Thread.sleep(5)
         val after = (0 until 16).map {
             WindowOccupants.isOccupied(999, 100_003, it, 16, WindowBuildingKind.SKYSCRAPER)
         }

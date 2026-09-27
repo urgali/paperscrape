@@ -46,9 +46,10 @@ internal class CloudCoverage(private val columnCount: Int = DEFAULT_COLUMNS) {
     /**
      * When set, [at] reports full coverage everywhere regardless of [columns].
      *
-     * Used when the cloud layer is switched off entirely: turning clouds off must not also turn
-     * precipitation off, so the sky is treated as uniformly covered and intensity governs alone,
-     * exactly as it did before this class existed.
+     * Used whenever no cloud is drawn at all -- the cloud layer switched off, or a forecast that
+     * reports a clear sky: turning clouds off must not also turn precipitation off, so the sky is
+     * treated as uniformly covered and intensity governs alone, exactly as it did before this
+     * class existed.
      */
     private var uniform = false
 

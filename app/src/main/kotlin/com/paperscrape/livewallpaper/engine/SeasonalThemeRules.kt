@@ -8,8 +8,9 @@ import java.time.temporal.ChronoUnit
  * Maps a date to a themeId, for the optional "automatic theme by date" setting.
  *
  * Rules resolve to a plain [String] themeId — the same string [WallpaperPrefs] stores,
- * [ThemeCatalog.byId] resolves and [SceneObjectCatalog.layoutFor] lays out. Nothing here is
- * hardcoded to the built-in set, so a custom theme could be scheduled the same way.
+ * [ThemeCatalog.byId] resolves and [SceneObjectCatalog.layoutFor] lays out. The lookup takes any
+ * id, but the ids are [CalendarWindow]'s, which name built-in themes and cannot be re-pointed;
+ * scheduling a custom theme would be a new window in code.
  *
  * ### The dates are data, and the user owns them
  *
@@ -25,7 +26,8 @@ import java.time.temporal.ChronoUnit
  * It used to cover four windows and return `null` for the rest, leaving the caller on whatever the
  * user last picked by hand. That made "automatic" mean "automatic in December, at Easter and over
  * the summer", which is not a setting anybody can predict the behaviour of. **Every date now
- * resolves.**
+ * resolves** on the factory calendar; a user who drags a season boundary can still open a gap
+ * (see [themeForDate]).
  *
  * v5.1 made that true of the seasons themselves rather than of the table as a whole. The shipped
  * seasons covered 296 days and left 69 — all of October, all of December, 1–7 January — with no

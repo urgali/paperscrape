@@ -52,12 +52,14 @@ class FireworkEffect {
     }
 
     /**
-     * @param spriteDraw receives each live burst's centre, the scale to draw it at (0 at the
-     *   instant it goes off, 1 fully expanded) and its fade alpha (1 down to 0). Called once per
-     *   burst per frame, only while bursts are alive.
+     * @param spriteDraw receives each live burst's centre, the scale to draw it at ([MIN_SCALE],
+     *   0.15, at the instant it goes off, 1 fully expanded) and its fade alpha (1 down to 0).
+     *   Called once per burst per frame, only while bursts are alive.
      */
     fun draw(spriteDraw: (x: Float, y: Float, scale: Float, alpha: Float) -> Unit) {
-        for (b in bursts) {
+        // By index: a `for (b in bursts)` builds an iterator every frame (v5.8C).
+        for (i in bursts.indices) {
+            val b = bursts[i]
             val t = (b.age / MAX_AGE).coerceIn(0f, 1f)
             // The old particles started at the centre and ran outward, so the burst read as
             // opening rather than appearing. A scale that starts near zero reproduces that; the

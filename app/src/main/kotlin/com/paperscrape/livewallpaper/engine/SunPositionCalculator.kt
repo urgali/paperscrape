@@ -276,8 +276,9 @@ object SunPositionCalculator {
         // correct, not a fabricated fallback: cosHourAngle very negative (< -1) is polar
         // day (sun always up) and clamps to -1 -> acos(-1) = pi = a full 24h day arc; very
         // positive (> 1) is polar night (sun never rises) and clamps to +1 -> acos(1) = 0 = a
-        // zero-length day arc. Both collapse gracefully into [compute]'s existing
-        // `dayLength.coerceAtLeast(1f)` floor rather than needing separate handling here.
+        // zero-length day arc. Both are then answered explicitly just below, before any clock
+        // arithmetic: polar day as the literal (0, 24), polar night as (noon, noon), whose
+        // zero-length day [compute] floors to one hour.
         val clamped = cosHourAngle.coerceIn(-1.0, 1.0)
         val hourAngle = acos(clamped) // radians
 

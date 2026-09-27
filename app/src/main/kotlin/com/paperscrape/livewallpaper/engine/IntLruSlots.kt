@@ -14,7 +14,7 @@ package com.paperscrape.livewallpaper.engine
  * over one or two cache lines, which is far cheaper than the native object allocation it
  * replaces, and it keeps eviction order exact instead of approximate.
  *
- * Not thread-safe. Callers use it from the render thread only.
+ * Not thread-safe; its one owner, [TintFilterCache], serialises every call with its own lock.
  *
  * Deliberately free of Android types so it can be unit tested directly -- the cache built on top
  * of it holds `android.graphics` objects and therefore cannot be.

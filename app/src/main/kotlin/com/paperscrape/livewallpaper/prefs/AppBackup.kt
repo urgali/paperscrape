@@ -2,6 +2,8 @@ package com.paperscrape.livewallpaper.prefs
 
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.migrateEmbeddedCustomThemes
+import com.paperscrape.livewallpaper.engine.optFinite
+import com.paperscrape.livewallpaper.engine.BACKUP_SCHEMA_BEFORE_THE_FIELD
 import com.paperscrape.livewallpaper.engine.CUSTOM_THEME_SCHEMA_VERSION
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.SceneCustomization
@@ -36,8 +38,11 @@ import org.json.JSONObject
  * A complete backup contains the user's own **weather API keys** and, if they set one, their
  * **custom location**. That is the point — a backup that dropped them would not restore a working
  * app — but it makes the file worth protecting, and the export UI says so before writing it. The
- * keys are never logged, never printed by a test, and never included in any diagnostic output;
- * [toString] on this class is deliberately not overridden to dump them.
+ * keys are never logged, never printed by a test, and never included in any diagnostic output.
+ * [AppBackup] and [BackupSettings] are data classes, and until v5.8C their generated `toString`
+ * printed all three keys, as did a `BackupRepository.ImportResult.Applied` holding one (v5.8B
+ * comment audit: nothing printed one, but nothing stopped it). [BackupSettings] now writes its
+ * own `toString`, which says how long each key is and never what it is; the others print through it.
  *
  * ### Versioning
  *
@@ -93,7 +98,31 @@ data class AppBackup(
          * another version needs anyway. Empty string means the factory calendar.
          */
         val seasonalCalendarJson: String,
-    )
+    ) {
+        /**
+         * Every field but the three keys, which are shown only as their length: a data class's
+         * generated `toString` would print them, and [AppBackup]'s and
+         * `BackupRepository.ImportResult.Applied`'s print through this one. Written out by hand on
+         * purpose -- reflection would work in a debug build and print obfuscated names, and so fail
+         * to redact, in a minified one. A field added here and forgotten below is merely missing
+         * from a debug string, never leaked.
+         */
+        override fun toString(): String =
+            "BackupSettings(themeId=$themeId, syncWithRealTime=$syncWithRealTime, " +
+                "useLocationForSunTimes=$useLocationForSunTimes, useCustomLocation=$useCustomLocation, " +
+                "deviceLocationKind=$deviceLocationKind, customLocationLatitude=$customLocationLatitude, " +
+                "customLocationLongitude=$customLocationLongitude, customLocationLabel=$customLocationLabel, " +
+                "liveWeatherEnabled=$liveWeatherEnabled, liveWeatherApiKey=${redacted(liveWeatherApiKey)}, " +
+                "weatherProviderId=$weatherProviderId, weatherApiComApiKey=${redacted(weatherApiComApiKey)}, " +
+                "openWeatherApiKey=${redacted(openWeatherApiKey)}, " +
+                "automaticUpdateCheckEnabled=$automaticUpdateCheckEnabled, " +
+                "updateNotificationsEnabled=$updateNotificationsEnabled, fixedHour=$fixedHour, " +
+                "parallaxStrength=$parallaxStrength, scrollBackground=$scrollBackground, " +
+                "swipeScroll=$swipeScroll, scrollSpeed=$scrollSpeed, autoThemeByDate=$autoThemeByDate, " +
+                "seasonalCalendarJson=$seasonalCalendarJson)"
+
+        private fun redacted(key: String): String = if (key.isEmpty()) "<none>" else "<${key.length} characters, hidden>"
+    }
 
     companion object {
         /**
@@ -155,7 +184,10 @@ data class AppBackup(
         if (hasSecrets()) append(" — includes weather API keys")
     }
 
-    /** Whether this document carries anything the user would not want to share casually. */
+    /**
+     * Whether this document carries a weather API key. The custom location, the other sensitive
+     * content, is not counted.
+     */
     fun hasSecrets(): Boolean =
         settings.liveWeatherApiKey.isNotBlank() ||
             settings.weatherApiComApiKey.isNotBlank() ||
@@ -270,9 +302,10 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
             // until v5.3 -- the one unguarded call in either parser, and it happened to be the one
             // that reached the four `getInt`s of `objectVariantConfigFromJson`. Two independent
             // oversights lining up is what turned a wrong colour into a closed settings screen
-            // (v5.3B audit, S2). The colours are `optInt` now, so this catches nothing today; it
-            // is here so the next reader who adds a throwing accessor downstream gets a refused
-            // document instead of a vanished app.
+            // (v5.3B audit, S2). The colours are `optInt` now; what it still catches today is a
+            // `birds.colors` entry that is not an object (`getJSONObject` in
+            // `sceneCustomizationFromJson`), and it is here so the next reader who adds a throwing
+            // accessor downstream gets a refused document instead of a vanished app.
             customizations[id] = runCatching { sceneCustomizationFromJson(entry) }.getOrNull()
                 ?: return BackupParseResult.Failed(BackupImportError.Malformed("themeCustomizations.$id"))
         }
@@ -280,12 +313,13 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
 
     val overrides = HashMap<String, CustomThemeEntry>()
     // The embedded theme entries are in whatever schema the app that wrote this backup used. A
-    // backup written before the version was recorded came from an app already at the current
-    // schema, so absent means current -- see migrateEmbeddedCustomThemes for why the legacy
-    // default would corrupt those files rather than repair them.
+    // backup written before the version was recorded came from an app at schema 3 (backups since
+    // v4.3, the field since v4.15, 3 -> 4 only in v4.20), so absent means 3: not the legacy 0,
+    // which would re-run 1 -> 2 and corrupt every object's scale, and not current, which until
+    // v5.8C skipped the 3 -> 4 repair and the 4 -> 5 school. See migrateEmbeddedCustomThemes.
     migrateEmbeddedCustomThemes(
         root,
-        root.optInt("customThemeSchemaVersion", CUSTOM_THEME_SCHEMA_VERSION),
+        root.optInt("customThemeSchemaVersion", BACKUP_SCHEMA_BEFORE_THE_FIELD),
     )
 
     root.optJSONObject("overrides")?.let { obj ->
@@ -320,8 +354,12 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
                 useLocationForSunTimes = s.optBoolean("useLocationForSunTimes", defaults.useLocationForSunTimes),
                 useCustomLocation = s.optBoolean("useCustomLocation", defaults.useCustomLocation),
                 deviceLocationKind = s.optString("deviceLocationKind", defaults.deviceLocationKind.storageId),
-                customLocationLatitude = s.optDouble("customLocationLatitude", defaults.customLocationLatitude.toDouble()).toFloat(),
-                customLocationLongitude = s.optDouble("customLocationLongitude", defaults.customLocationLongitude.toDouble()).toFloat(),
+                // The five numbers here go through `optFinite` like every number in the theme half
+                // (v5.8). They were read raw, so a "NaN" or a 1e300 was accepted and stored in the
+                // preferences, and from then on every "Export backup" failed with "Could not save
+                // the backup: Forbidden numeric value" -- `JSONObject.put` refuses non-finite values.
+                customLocationLatitude = s.optFinite("customLocationLatitude", defaults.customLocationLatitude),
+                customLocationLongitude = s.optFinite("customLocationLongitude", defaults.customLocationLongitude),
                 customLocationLabel = s.optString("customLocationLabel", defaults.customLocationLabel),
                 liveWeatherEnabled = s.optBoolean("liveWeatherEnabled", defaults.liveWeatherEnabled),
                 liveWeatherApiKey = s.optString("liveWeatherApiKey", defaults.liveWeatherApiKey),
@@ -330,11 +368,11 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
                 openWeatherApiKey = s.optString("openWeatherApiKey", defaults.openWeatherApiKey),
                 automaticUpdateCheckEnabled = s.optBoolean("automaticUpdateCheckEnabled", defaults.automaticUpdateCheckEnabled),
                 updateNotificationsEnabled = s.optBoolean("updateNotificationsEnabled", defaults.updateNotificationsEnabled),
-                fixedHour = s.optDouble("fixedHour", defaults.fixedHour.toDouble()).toFloat(),
-                parallaxStrength = s.optDouble("parallaxStrength", defaults.parallaxStrength.toDouble()).toFloat(),
+                fixedHour = s.optFinite("fixedHour", defaults.fixedHour),
+                parallaxStrength = s.optFinite("parallaxStrength", defaults.parallaxStrength),
                 scrollBackground = s.optBoolean("scrollBackground", defaults.scrollBackground),
                 swipeScroll = s.optBoolean("swipeScroll", defaults.swipeScroll),
-                scrollSpeed = s.optDouble("scrollSpeed", defaults.scrollSpeed.toDouble()).toFloat(),
+                scrollSpeed = s.optFinite("scrollSpeed", defaults.scrollSpeed),
                 autoThemeByDate = s.optBoolean("autoThemeByDate", defaults.autoThemeByDate),
                 // Absent means the factory calendar, which is also what a backup taken before this
                 // field existed means. Both read back as the empty string.

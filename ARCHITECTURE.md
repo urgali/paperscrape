@@ -87,6 +87,7 @@ byte-identical pair**, and has not since the V2 asset library replaced the whole
 | File | Responsibility |
 |---|---|
 | `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed or the location did. |
+| `WallpaperEngineCensus.kt` | Whether this process is drawing the phone's wallpaper: its engines that are not a picker's preview, counted. The settings screen's top button reads it to say "PaperScrape is your wallpaper" (v5.8F). Counted from the engines rather than asked of `WallpaperManager.getWallpaperInfo()`, which names PaperScrape as soon as the system has opened a connection, engine or not (after a force-stop, over a blank home screen). |
 | `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains, hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
 | `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, buildings, trees, parasols, seasonal decorations), the road, cars and people. |
 | `SpriteBlitter.kt` | The single sprite-blitting path, shared by both renderers, plus the `SpriteScale` convention selector and the one definition of `SPRITE_PIXELS_PER_UNIT`. |
@@ -100,7 +101,7 @@ byte-identical pair**, and has not since the V2 asset library replaced the whole
 | `GlRenderThread.kt` | EGL context and surface lifecycle, the render loop, and the cross-thread event queue. |
 | `SceneTransform.kt` | The `save`/`restore`/`translate`/`scale`/`rotate` arithmetic, as pure testable code. |
 | `SpriteCache.kt` | Process-lifetime `Bitmap` cache keyed by resource id. |
-| `SceneObject.kt` | Scene object data model (`StaticSceneObject`, `CarObject`, `SceneObjectLayout`) and `SceneObjectCatalog`, which generates candidate slots per category. |
+| `SceneObject.kt` | Scene object data model (`StaticSceneObject`, `CarObject`, `SceneObjectLayout`) and `SceneObjectCatalog`, which generates candidate slots per category. Since v5.8F the twelve built-in streets place their three shops together (`planShopFrontages`, computed once per process and kept), so no spot of the street holds the same shop on more than a few themes; saved and mixed themes are not part of it. |
 | `SceneTheme.kt` | Theme data model and built-in theme catalog. |
 | `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, lake, birds config. |
 | `LiveWeatherSceneRules.kt` | Which layer's settings win while Live Weather is active — clouds and the lightning flash. Pure, because the defect it prevents is not a wrong value in any one layer but the layers disagreeing: precipitation ignored the theme's own switch under the forecast, clouds did not (rain from an empty sky), and the storm required no rain at all (a flash over a dry scene). Three layers, one rule. |
@@ -512,10 +513,31 @@ wash over all of it.
 
 ### Frame pacing and threading
 
-Each engine owns a `GlRenderThread`. The loop targets 33 ms (~30 fps) and subtracts
-the frame's own measured cost before sleeping, so the schedule stays near a steady
-cadence instead of accumulating drift. All animation is driven by measured
-`deltaSeconds`, so positions remain time-correct even when frames are late.
+Each engine owns a `GlRenderThread`. The loop draws about 30 frames a second, paced on the
+display's own refresh ticks (below); until those have been measured it sleeps 33 ms less the
+frame's own measured cost. All animation is driven by measured `deltaSeconds`, so positions
+remain time-correct even when frames are late.
+
+**The loop sleeps to the display's own clock** (v5.8C, `ROADMAP.md` row A15). A frame reaches the
+screen on a refresh tick; on the BV6600 two ticks are 32-32.5 ms (the panel runs at 61.45 Hz by
+SurfaceFlinger's own vsync model, while the platform reports 60), and the old `33 ms - cost` sleep
+slid one tick late every few frames: about one frame in ten stayed on screen for three ticks,
+~49 ms, in every build from v5.3 to v5.8B. Since v5.8C `GlRenderThread` sleeps to the tick
+`FramePacing` predicts from the grid `VsyncGrid` measures off `Choreographer` about once a second,
+the same whole number of ticks apart every frame (two at 60 Hz, three at 90, four at 120); with no
+fresh measurement it paces the old way. On this panel that is about 30.7 frames a second, 4 % more
+than the old loop drew.
+
+**Each frame also says when it should be shown** (v5.8D, `FramePacing.presentAt`,
+`eglPresentationTimeANDROID`): the next frame's tick less a quarter period, as the Android
+frame-pacing library does. Sleeping to the tick fixes when a frame starts, not which refresh shows
+it: without a time SurfaceFlinger takes the frame for the first refresh after it is queued, and on
+the BV6600 the GPU finishes it only 2-4 ms before that refresh, so a frame a little slower than usual
+waited a whole refresh more. With the time every frame waits for the later refresh, at one refresh
+more of latency. Measured on the BV6600 (perf build, Autumn, alternated runs): frames held 40 ms or
+more **6.7 % -> 2.9 %**, CPU **45.4 -> 46.3 %** of a core. The ~3 % left are compositions that
+SurfaceFlinger hands to the display's composer too late for their refresh; `FramePacing.presentAt`
+has the measurements and what is not known about them.
 
 It deliberately does **not** free-run at the display's refresh rate. `eglSwapBuffers`
 blocks on vsync, so an unpaced loop would render at 60, 90 or 120 Hz and do two to
@@ -1237,16 +1259,34 @@ plus the sprite parts the renderer itself blits for that object, at the renderer
 `ThemePreviewScenes.forTheme(theme, customization)` builds it, and every object in it is
 conditional on the same flag the wallpaper reads — `lake.visible`, `snowmen.visible`,
 `winterColorsEnabled`, `halloweenEnabled`, `mountainsFront.visible`, and so on — so a preview
-cannot contain something the scene would not. The gallery passes the customization a theme
-actually carries: `defaultCustomizationFor(id)` for an untouched built-in, the stored override for
-a customised one, the saved snapshot for a user theme.
+cannot contain something the scene would not. The gallery passes the customization the wallpaper
+would draw the theme with -- `CustomThemeRegistry.resolveActiveCustomization`, the engine's own
+resolution: an edit in progress, then the theme's own edits, then a saved copy, then the defaults.
+Until v5.8B it passed only the saved copy, so a theme edited from World & scene looked untouched in
+the gallery while the wallpaper drew the edits.
+
+**Colours and landscape come from the scene's own rules too** (v5.8B). The card is one real moment
+of the wallpaper's day -- `ThemePreviewScenes.cardPhase`: noon, midnight for the two night themes,
+19:00 for Sunset, whole hours the fixed-time slider can set -- and at that moment its sky is
+`SkyGradient` (the function `PaperRenderer.drawSky` paints with), its hills, mountains, water and
+building walls are blended on that moment's `dayBlend`, its road is `SceneObjectRenderer.roadColor`
+and appears only where `SceneObjectRenderer.drawsRoad` says the scene has one, its palms come from
+the layout's own slots (`hasPalmSlots`) and its mountains are `MountainSilhouette`'s parabolic arch.
+What this replaced computed all of it by itself: Sunset's sky from the theme's old `skyDusk` array
+(coral at the top, which the wallpaper never draws), a cold grey road on every card, palms by theme
+name (oaks for a theme saved from Beach), dunes for the Desert (the wallpaper has none), and a sky
+edit that never reached the card.
 
 It holds **no Android type beyond resource ids**, which is what makes "what does this theme's
 preview contain" a unit-testable question; `ThemePreviewSceneTest` pins the characteristic object
 of each of the twelve themes and, in both directions, that nothing a theme has switched off is
 drawn. `ThemePreviewTruthTest` (v5.7) compares each card with the scene the same customization
 builds: every family the scene draws is on the card, every boat and dolphin has its ink in the
-water, and nothing is more than half covered by what is drawn after it.
+water, nothing is more than half covered by what is drawn after it, (R4, v5.8B) the sky, hills,
+mountains, water and road are the wallpaper's own at the card's moment, and (R5, R6, v5.8E) every
+car body ends on the floor the card gives it, measured off its PNG, and a fir stands on a card only
+where `SceneObjectRenderer.drawsFirs` lets the wallpaper stand one -- on the built-ins, on
+customizations no built-in ships, and on a theme saved under a `custom:` id.
 
 Both places that show a preview -- the gallery card and the strip at the top of World & scene --
 go through `ThemePreviewGeometry` (one 4:3 shape, one uniform scale, no per-call-site crop or
@@ -1256,8 +1296,9 @@ scene passes `forceNight` to see night colours; the gallery never does.
 `ui/ThemePreview.kt` replays that description into a Compose `Canvas` through `CanvasSceneTarget`
 and the same `SpriteBlitter` the wallpaper uses. There is no GL context, no animation, no timer and
 no per-card bitmap: the description is built once and kept by `remember`, sprite pixels come from
-the process-wide `SpriteCache`, and a card costs roughly twenty static blits on composition and on
-scroll, and nothing at rest.
+the process-wide `SpriteCache`, and a card costs one static blit per sprite part it lists (the
+dealt buildings are most of them) on composition and on scroll, and nothing at rest. Rain, snow and falling leaves
+are painted over the whole card, as the wallpaper paints them; stars stay in the sky.
 
 ### The automatic-theme calendar
 
@@ -1462,9 +1503,13 @@ three tiers:
 
 Only `ObjectVariantConfig.visible` and `.density` can change *which* objects
 exist, because those are the only fields `keepCandidate` and the car selection
-(`CarSelection`, since v4.22) read. Everything else — all 48 category colours,
-the sky/stars/clouds/precipitation/rainbow/mountain/lake/bird sections, hill
-variation, the seasonal palette flags — is consumed at draw time.
+(`CarSelection`, since v4.22) read. One more field changes *what* a kept object
+is: `palmsEnabled`, which `palmSpeciesApplied` resolves when the static list is
+built, so it is compared too (since v5.8 -- before, flipping it on a running
+wallpaper changed nothing until something else rebuilt the list). Everything
+else — all 48 category colours, the sky/stars/clouds/precipitation/rainbow/
+mountain/lake/bird sections, hill variation, the seasonal palette flags — is
+consumed at draw time.
 `SceneCustomization.staticStructurallyEquals` and `.carsStructurallyEquals`
 encode that distinction as pure, allocation-free field comparisons (not a hash:
 a collision would silently skip a needed rebuild).

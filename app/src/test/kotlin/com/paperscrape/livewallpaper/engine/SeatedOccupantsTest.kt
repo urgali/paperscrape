@@ -109,33 +109,32 @@ class SeatedOccupantsTest {
     }
 
     /**
-     * **Both seats wear the same outfit index, and that is what keeps their colours apart.**
+     * **The two occupants of a car never wear the same colours, and all five outfits drive.**
      *
-     * The second outfit is the two adult families' garments exchanged, so index 0 puts the man in
-     * his own colour and the woman in hers, and index 1 puts each in the other's. Equal indices
-     * therefore give a man-and-woman car two different garments; opposite indices would give it the
-     * same garment twice, which is the uniformity the axis exists to remove. Asserted because a
-     * later pass "improving the variety" by flipping one of them would silently undo it.
+     * Asserted on the colours [PeopleColours] paints, not on the indices: until v5.8C this test
+     * modelled an outfit as "own family's garment or the other adult's", which the colours had
+     * stopped being in v4.30, so it stayed green while every car carried two people in one outfit
+     * and only two of the five outfits ever reached the road (v5.8B comment audit).
      */
     @Test
-    fun `an adult pair never wears the same garment`() {
-        var adultPairs = 0
+    fun `the two seats of a car never wear the same colours`() {
         for (spec in identities) {
-            val driver = SeatedOccupants.driverKind(spec)
-            val passenger = SeatedOccupants.passengerKind(spec)
-            if (passenger > 1) continue
-            adultPairs++
-            // Garment identity: which family's paint this seat is wearing. Outfit 0 is the seat's
-            // own family's, outfit 1 the other adult family's.
-            val outfit = SeatedOccupants.outfit(spec)
-            val driverGarment = if (outfit == 0) driver else 1 - driver
-            val passengerGarment = if (outfit == 0) passenger else 1 - passenger
+            val d = SeatedOccupants.driverOutfit(spec)
+            val p = SeatedOccupants.passengerOutfit(spec)
             assertTrue(
-                "slot ${SceneObjectCatalog.candidateIndexOf(spec)} dresses both adults in the same garment",
-                driverGarment != passengerGarment,
+                "slot ${SceneObjectCatalog.candidateIndexOf(spec)} dresses both seats alike (outfits $d and $p)",
+                PeopleColours.top(d) != PeopleColours.top(p) && PeopleColours.bottom(d) != PeopleColours.bottom(p),
             )
         }
-        assertTrue("no man-and-woman cars in the deal, so this asserts nothing", adultPairs > 0)
+        for ((seat, outfits) in listOf(
+            "driver" to identities.map { SeatedOccupants.driverOutfit(it) },
+            "passenger" to identities.map { SeatedOccupants.passengerOutfit(it) },
+        )) {
+            assertEquals(
+                "every one of the ${PeopleColours.OUTFIT_COUNT} outfits must reach the $seat's seat",
+                (0 until PeopleColours.OUTFIT_COUNT).toSet(), outfits.toSet(),
+            )
+        }
     }
 
     /** Every index the deals produce addresses a row that exists. */
@@ -144,7 +143,8 @@ class SeatedOccupantsTest {
         for (spec in identities) {
             assertTrue(SeatedOccupants.driverSkin(spec) in 0..2)
             assertTrue(SeatedOccupants.passengerSkin(spec) in 0..2)
-            assertTrue(SeatedOccupants.outfit(spec) in 0..1)
+            assertTrue(SeatedOccupants.driverOutfit(spec) in 0 until PeopleColours.OUTFIT_COUNT)
+            assertTrue(SeatedOccupants.passengerOutfit(spec) in 0 until PeopleColours.OUTFIT_COUNT)
         }
     }
 }

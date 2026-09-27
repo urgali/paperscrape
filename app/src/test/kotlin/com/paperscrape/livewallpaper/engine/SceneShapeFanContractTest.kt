@@ -19,23 +19,31 @@ import org.junit.Test
  * The claim was wrong about *which fill the hill uses*. It goes through
  * `drawVerticalGradientShape`, which tessellates columns to the base line and needs no such
  * property. This test holds both halves of that: the hill really is not star-shaped, so the rule is
- * load-bearing rather than vacuous, and the hill really does not reach the fan.
+ * load-bearing rather than vacuous, and the hill really does not reach the fan (since v5.8C not
+ * even through its shadow, which was removed -- see the hill case below).
  */
 class SceneShapeFanContractTest {
 
-    /** The wallpaper's hill ridge, rebuilt from `PaperRenderer.buildBaseHillPath`'s own maths. */
-    private fun hillRidge(): List<Pair<Float, Float>> {
-        val width = 2000f
-        val startX = -500f
-        val top = 400f
-        val height = 600f
+    /**
+     * The wallpaper's hill ridge, rebuilt from `PaperRenderer.buildBaseHillPath`'s own maths: the
+     * ridge **near the top** of the band (`top + height * frac`), where the renderer puts it -- the
+     * old model put it near the base and so tested a different polygon (v5.8B audit) -- with the
+     * theme's own phase, `(layerSeed(0) % 628) / 100`.
+     */
+    private fun hillRidge(themeId: String): List<Pair<Float, Float>> {
+        val screenWidth = 1080f
+        val width = screenWidth * 2f
+        val startX = -screenWidth * 0.5f
+        val top = 2424f * SceneSpace.HILL_LAYER_TOP_FRACTION
+        val height = 2424f * SceneSpace.HILL_LAYER_HEIGHT_FRACTION
         val amp = 0.09f
         val centerFraction = 0.13f
+        val phase = ((themeId.hashCode().toLong() * 31) % 628L) / 100f
         val points = mutableListOf(startX to top + height)
         for (i in 0..64) {
             val f = i / 64f
-            val heightFrac = centerFraction + amp * sin(f * 4f * PI.toFloat())
-            points += (startX + f * width) to (top + height - heightFrac * height)
+            val heightFrac = centerFraction + amp * sin(f * 4f * PI.toFloat() + phase)
+            points += (startX + f * width) to (top + height * heightFrac)
         }
         points += (startX + width) to (top + height)
         return points
@@ -84,12 +92,13 @@ class SceneShapeFanContractTest {
 
     @Test
     fun `the hill ridge is not star-shaped about its first vertex`() {
-        // The finding's own geometry. If this ever stops being true the rule below is vacuous and
-        // somebody should know.
-        assertFalse(
-            "a two-cycle sine ridge should not be star-shaped about its base-left corner",
-            isStarShapedAboutFirst(hillRidge()),
-        )
+        // Beach and Sunset are the two the phone's GPU was photographed spilling on (v5.8C).
+        for (themeId in listOf("beach", "sunset")) {
+            assertTrue(
+                "$themeId: the hill ridge must not be star-shaped, or the fan rule would be vacuous for it",
+                !isStarShapedAboutFirst(hillRidge(themeId)),
+            )
+        }
     }
 
     @Test
@@ -100,22 +109,29 @@ class SceneShapeFanContractTest {
         )
     }
 
+    /**
+     * **What this checks, and what its old version could not** (v5.8B, v5.8C). It used to count
+     * `drawShape(hill...)` and `drawShape(baseHill...)` and require zero -- but the renderer names
+     * the hill shape `path` (`val path = baseHillShapes[layer]`), so the pattern matched nothing
+     * whatever the code did, and the hill's shadow, which did reach the fan, passed. v5.8B read the
+     * variable's real name and pinned the shadow as the one known exception (`ROADMAP.md` A16);
+     * v5.8C removed the shadow, whose only visible pixels were the fan's spill, so now **no**
+     * `drawShape` in the hill loop may take the hill's shape.
+     */
     @Test
-    fun `the hill is drawn through the column-tessellated fill, not the fan`() {
+    fun `the hill is drawn only through the column-tessellated fill`() {
         val source = File(renderer()).readText()
-        val hill = source.substring(
-            source.indexOf("private fun buildBaseHillPath("),
+        val start = source.indexOf("private fun drawHillLayers(")
+        val body = source.substring(start, source.indexOf("\n    }\n", start))
+        val hillVariable = Regex("""val (\w+) = baseHillShapes\[""").find(body)?.groupValues?.get(1)
+        assertEquals("the hill shape's variable in drawHillLayers", "path", hillVariable)
+        assertTrue(
+            "the hill itself must be drawn with the gradient fill",
+            Regex("""drawVerticalGradientShape\(\s*$hillVariable\b""").containsMatchIn(body),
         )
-        // The call that draws what buildBaseHillPath builds. Read from the source because the
-        // coupling is "this shape goes to that fill", which no unit test of either side can see.
-        val drawsHill = Regex("""drawVerticalGradientShape\(""").containsMatchIn(source)
-        assertTrue("the hill must be drawn with the gradient fill", drawsHill)
-        assertEquals(
-            "no drawShape call may take a hill shape",
-            0,
-            Regex("""drawShape\(\s*(base)?[Hh]ill""").findAll(source).count(),
-        )
-        assertTrue("buildBaseHillPath must still exist", hill.isNotEmpty())
+        val onTheFan = Regex("""drawShape\(\s*$hillVariable\s*,\s*(\w+)""").findAll(body).map { it.groupValues[1] }.toList()
+        assertEquals("hill shapes filled as a fan", emptyList<String>(), onTheFan)
+        assertTrue("buildBaseHillPath must still exist", source.contains("private fun buildBaseHillPath("))
     }
 
     @Test

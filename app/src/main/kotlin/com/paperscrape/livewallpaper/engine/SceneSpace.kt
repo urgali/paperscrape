@@ -288,7 +288,10 @@ object SceneSpace {
         get() = CAR_SPEED_NEAR * perspectiveScaleAt(ROAD_LANE_FAR_Y_FRACTION) /
             perspectiveScaleAt(ROAD_LANE_NEAR_Y_FRACTION)
 
-    /** Walking speed at [PAVEMENT_NEAR_Y_FRACTION], in screen widths per second. */
+    /**
+     * Walking speed at [PAVEMENT_NEAR_Y_FRACTION], in ground tiles per second (a tile is two
+     * screen widths).
+     */
     const val PEDESTRIAN_SPEED_NEAR = 0.026f
 
     /**
@@ -325,9 +328,10 @@ object SceneSpace {
      *
      * 12.5% is deliberately short of what the impression alone would ask for. The road is laid out
      * in fractions of the screen and does not scale with this, so the objects standing on it grow
-     * into a fixed band: a car is 1.45 m, which was 58 px against a 67 px lane spacing and is now
-     * 65 px. Past this the near lane's traffic starts meeting the far lane's. Everything else
-     * grows upward from a ground line and has room.
+     * into a fixed band: a car was 1.45 m, which was 58 px against a 67 px lane spacing and became
+     * 65 px in v2.5 (the vehicle family has since moved to its own metre-per-unit,
+     * [CAR_UNIT_METRES]). Past this the near lane's traffic starts meeting the far lane's.
+     * Everything else grows upward from a ground line and has room.
      *
      * The lake keeps its own metric (`LAKE_PIXELS_PER_METRE`) and is deliberately not raised with
      * this: it is a band at the horizon, and growing its boats and dolphins in step with the
@@ -343,16 +347,17 @@ object SceneSpace {
      * for a second at a time on a screen held at arm's length, and a few of them were tuned away
      * from the physical value in v76.6 after a device pass, for legibility:
      *
-     * - **A person is 1.9 m, not 1.75.** At the physical height an adult was a readable silhouette
-     *   and no more; the scene is meant to have people in it, not people-shaped marks. Trimmed
-     *   from 2.0 in v76.7, where the foreground row read as slightly overscaled.
-     * - **A car is 1.45 m, not 1.55.** The V2 car sprite is stubby -- 100 units long against 48
-     *   tall, where a real car is nearer three to one -- so matching its height exactly made it
-     *   read as bulky next to a person. Taking it slightly under corrects the impression the
-     *   proportions of the artwork create.
-     * - **A tower is 17 m, not 20.** Physically defensible either way, but at 20 it dominated the
-     *   foreground it is supposed to sit behind.
-     * - **A tree is 9.8 m**, **a gift 0.95 m** and **a parasol 2.9 m**, all nudged up for presence.
+     * - **A person is 1.75 m.** v76.6 raised it for legibility (to 2.0 m, trimmed to 1.9 in
+     *   v76.7), and v4.3 put it back at the physical height because 1.9 m made the far-lane cars
+     *   read smaller than the people behind them -- see [PERSON_METRES_TALL].
+     * - **A car was 1.45 m, not 1.55**, in v76.6: the V2 car sprite was stubby, so matching its
+     *   height exactly made it read as bulky next to a person. Since v4.19 a car is
+     *   [CAR_UNIT_METRES] -- v4.18's 1.51 m over 50 units -- times its own units: 1.60 m for every
+     *   body (see [CarShell.metresTall]).
+     * - **A tower is 15.6 m over its 182-unit facade, not 20.** Physically defensible either way,
+     *   but at 20 it dominated the foreground it is supposed to sit behind.
+     * - **A tree is 9.479 m** and **a gift 0.905 m** (the drawn sizes of the 9.8 m and 0.95 m tuned
+     *   by eye), and **a parasol 2.9 m**, all nudged up for presence.
      * - **A rabbit is 0.9 m and an Easter egg 1.0 m**, well past life size. They are the Easter
      *   theme's two subjects and at their real heights neither could be made out at all.
      *
@@ -394,7 +399,10 @@ object SceneSpace {
         // the artwork rather than here.
         HOUSE_SMALL(5.76f, 110f),
 
-        /** Two storeys plus a roof; its door is 45 units on the same reading. */
+        /**
+         * Two or three storeys plus a roof (the storey slot repeats once or twice); its door is 45
+         * units on the same reading.
+         */
         HOUSE_LARGE(7.6f, 145f),
 
         /**
@@ -470,9 +478,9 @@ object SceneSpace {
         // the aerial `drawSkyscraperBuilding` strokes above the setback, and the rule at the top of
         // this enum excludes exactly that -- "a shop's height is its wall, not the top of the sign
         // hanging above it", which is why RESTAURANT declares 96 for a wall it draws at 96 and says
-        // nothing about its own hanging sign. Every other variant here matches its blits to the
-        // unit; the tower was the only one measuring an appendage, so it was drawing its 182 units
-        // of facade-plus-setback at 182/196 of the size 16.8 m asks for and reading as 15.6.
+        // nothing about its own hanging sign. The tower was the one variant measuring an
+        // appendage, so it was drawing its 182 units of facade-plus-setback at 182/196 of the size
+        // 16.8 m asks for and reading as 15.6.
         //
         // The metres-per-unit is untouched at 0.0857, so the scale `metres * pixelsPerMetre /
         // spriteUnitsTall` comes out at the same 3.857 px per unit it always has: **this changes no
@@ -550,10 +558,11 @@ object SceneSpace {
          * the size of a child anywhere else.
          *
          * It **draws 74** and declares 72: the two units are the turret cornice, which tops out at
-         * -73.5 and is rounded to the sprite grid at -74. Every other family varies around its
-         * declaration too (the tower by 5-15 %, the large house by up to 45 %), and this is the
-         * smallest variation in the set at 2.8 %. `BuildingHeightDeclarationTest` measures it off
-         * the blits rather than reading this paragraph.
+         * -73.5 and is rounded to the sprite grid at -74. The tower (5-15 %) and the large house
+         * (up to 45 %) vary around their declarations too, and the restaurant hits its own
+         * exactly; the school's 2.8 % is the smallest non-zero departure in the set.
+         * `BuildingHeightDeclarationTest` measures it off the blits rather than reading this
+         * paragraph.
          *
          * Between the restaurant's 4.78 m and the bar's 6.24 m, which is where its depth band puts
          * it: see [RESTAURANT_MAX_DEPTH].
@@ -685,20 +694,20 @@ object SceneSpace {
     /** Below this, and above [RESTAURANT_MAX_DEPTH], a shop is the school. Above it, the bar. */
     const val SCHOOL_MAX_DEPTH = BUILDING_TOWER_MAX_DEPTH + 2f * SHOP_BAND_THIRD
 
-    /**
+    /*
      * The vehicles, kept out of [SceneVariant] because they are placed by lane rather than by
      * depth and never appear in the static object list.
      *
-     * A car's governed height is roof to wheel contact, 48 local units; the fire engine's own
-     * body reaches 68 over the same wheel line.
+     * A car's governed height is roof to wheel contact, 53 local units on all three bodies
+     * ([CarShell.unitsTall]); the fire engine's own body reaches 68 over the same wheel line.
      */
     /**
      * **What one local unit of car artwork is worth in metres.** This, not a per-body height, is
      * the constant the vehicle family is built on since v4.19.
      *
      * v4.18 had one car, so a height in metres over a height in units said the same thing. v4.19
-     * ships three ([CarShell]) and they are deliberately *not* the same height: the compact
-     * stands 57 units, the saloon 56, the estate 57.8. Governing each one by its own
+     * shipped three ([CarShell]) and they were deliberately *not* the same height (57, 56 and 57.8
+     * units; since v5.6F all three stand 53). Governing each one by its own
      * metres-over-units would give each its own scale, and a unit would then mean a different
      * number of pixels on each body -- which is precisely how three drawings stop reading as one
      * set. Fixing the metre-per-unit instead makes every body, every wheel radius, every corner
@@ -715,11 +724,13 @@ object SceneSpace {
      * The saloon, kept as the family's reference pair for the height table and for every test
      * that compares a car against a pedestrian.
      *
-     * These are [CarShell.SALOON]'s own numbers, restated here because the height table is where
-     * the scene's sizes are read from. The other two bodies derive their metres the same way,
-     * through [CAR_UNIT_METRES]; see [CarShell.metresTall].
+     * [CarShell.SALOON]'s own numbers: 53 units since v5.6F lowered every body. The pair said 56
+     * until v5.8C, so the tests that size a car from it measured a 56-unit, 1.69 m car while the
+     * street drew 53-unit, 1.60 m bodies (v5.8B comment audit). [CAR_BASE_SCALE] does not depend on
+     * it -- the height cancels, and it is bit-identical at 53 and 56 -- and the bodies derive their
+     * metres through [CAR_UNIT_METRES]; see [CarShell.metresTall].
      */
-    const val CAR_SPRITE_UNITS_TALL = 56f
+    const val CAR_SPRITE_UNITS_TALL = 53f
     const val CAR_METRES_TALL = CAR_UNIT_METRES * CAR_SPRITE_UNITS_TALL
 
     /**
@@ -775,15 +786,16 @@ object SceneSpace {
      * comment was right and the number was not, and the 8.6% it added to every pedestrian was the
      * whole of the reported "cars look too small next to the people walking behind them". Nothing
      * else was wrong: measured on rendered frames, both draw paths reproduce this model to within
-     * a pixel of antialiasing, and `CAR_METRES_TALL` over [CAR_SPRITE_UNITS_TALL] is an honest
-     * roof-to-wheel-contact reading of the artwork.
+     * a pixel of antialiasing, and `CAR_METRES_TALL` over [CAR_SPRITE_UNITS_TALL] was then an
+     * honest roof-to-wheel-contact reading of the artwork (the v5.6F bodies stand 53 units, see
+     * [CAR_SPRITE_UNITS_TALL]).
      *
      * What the extra 8.6% did was invert one comparison. A car in the **far lane** stands nearer
      * the viewer than a pedestrian on the **far pavement**, so it must be drawn larger; at 1.9 m
      * the pedestrian won that comparison (62.7 reference px against the car's 61.1) and a car
      * with a person visible behind it read as a toy. At the documented 1.75 m the ordering is the
-     * one the ground plane implies -- 57.7 against 61.1 -- and `VehiclePedestrianScaleTest` fails
-     * if it ever inverts again.
+     * one the ground plane implies -- 57.7 against 61.1 then, and against 71.3 at today's
+     * [CAR_METRES_TALL] -- and `VehiclePedestrianScaleTest` fails if it ever inverts again.
      *
      * **v4.6: the busts behind a windscreen were not governed by this, and that was the rest of
      * the same report.** `CAR_HEAD_SCALE` sizes them against the glass, which is the right thing
@@ -818,9 +830,14 @@ object SceneSpace {
      */
     const val LAKE_PIXELS_PER_METRE = 21f
 
-    /** Bow to stern of the hull, over its 84 local units of content. */
+    /**
+     * Bow to stern of the hull, over the 81.3 local units its content spans (of the 82-unit
+     * `sailboat_hull` canvas). Until v5.8C the base scale divided by 84, so the boat was drawn
+     * about 3 % shorter than the 6.5 m it declares -- and the dolphin-to-sailboat ratio this metric
+     * exists to protect was off by as much (v5.8B comment audit).
+     */
     const val SAILBOAT_METRES_LONG = 6.5f
-    const val SAILBOAT_SPRITE_UNITS_LONG = 84f
+    const val SAILBOAT_SPRITE_UNITS_LONG = 81.3f
 
     /** Nose to fluke, over the 114.7 local units the body's content occupies. */
     const val DOLPHIN_METRES_LONG = 2.6f

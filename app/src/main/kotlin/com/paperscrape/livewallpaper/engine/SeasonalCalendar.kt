@@ -239,13 +239,10 @@ fun SeasonalCalendar.toJsonString(): String = JSONObject().apply {
 }.toString()
 
 /**
- * Reads a persisted calendar. **Anything unreadable reads as the factory calendar**, never as a
- * partial one.
- *
- * A malformed document here costs the user their date edits and leaves the wallpaper showing the
- * calendar it shipped with, which is a state they can see and redo. The alternative — keeping the
- * half of the document that parsed — would produce a calendar nobody chose, with gaps or overlaps
- * nothing else in the app expects.
+ * Reads a persisted calendar. **A document that cannot be read at all reads as the factory
+ * calendar.** Inside a readable document each window stands alone: a window whose dates do not
+ * parse keeps its factory span while the others keep theirs, and an out-of-range Easter offset is
+ * clamped.
  *
  * An unknown window key is skipped rather than refused: a document written by a newer build that
  * has a window this one does not must still yield its other windows.

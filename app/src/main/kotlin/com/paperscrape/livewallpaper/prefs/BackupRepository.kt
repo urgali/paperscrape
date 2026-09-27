@@ -59,7 +59,7 @@ class BackupRepository(
         data class Applied(val backup: AppBackup) : ImportResult
         data class Refused(val error: BackupImportError) : ImportResult
 
-        /** Both writes failed and the previous state was put back. Nothing changed. */
+        /** A write failed and the previous state was put back. Nothing changed. */
         data class RolledBack(val cause: Throwable) : ImportResult
 
         /** The rollback itself failed. The app is in a state the user must be told about. */
@@ -140,7 +140,9 @@ class BackupRepository(
      * Finishes an import the process died in the middle of, if there was one.
      *
      * Called at every entry point that reads the saved themes -- the wallpaper service and the
-     * settings screen -- so the inconsistent window closes before anything can observe it. Costs one
+     * settings screen. The service runs it before its collector, so the inconsistent window closes
+     * before the wallpaper draws from it; the settings screen runs it alongside its own collector
+     * and may show the old saved themes for a moment, until the pending write lands. Costs one
      * preference read when there is nothing to do, which is every start but the one after a kill.
      *
      * Idempotent by construction: it writes the staged document and then clears it, and writing the

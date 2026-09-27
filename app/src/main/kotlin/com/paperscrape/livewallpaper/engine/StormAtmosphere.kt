@@ -21,8 +21,8 @@ import kotlin.math.pow
  * visibly worse weather.
  *
  * Everything here is pure integer and float arithmetic returning primitives: no allocation, no
- * texture, no new draw call. The renderer calls [strength] once per frame and [dim] a handful of
- * times, on values it was already computing.
+ * texture, no new draw call. The renderer calls [strength] once for each layer it weathers (up to
+ * five times a frame) and [dim] a handful of times, on values it was already computing.
  */
 object StormAtmosphere {
 
@@ -128,7 +128,10 @@ object StormAtmosphere {
     /** How far a colour's luminance is pulled down at full strength. */
     private const val SKY_DARKENING = 0.42f
 
-    /** Clouds go further than the sky: a storm cloud is the darkest thing in a paper sky. */
+    /**
+     * Clouds darken further than the sky (though they grey less): a storm cloud is the darkest
+     * thing in a paper sky.
+     */
     private const val CLOUD_DESATURATION = 0.35f
     private const val CLOUD_DARKENING = 0.52f
 
@@ -151,7 +154,8 @@ object StormAtmosphere {
         val r = (color shr 16) and 0xFF
         val g = (color shr 8) and 0xFF
         val b = color and 0xFF
-        // Rec. 601 luma, the same weighting the rest of the app's colour work uses.
+        // Rec. 601 luma, the same weighting PaperRenderer's weather contrast work (rain, waterline,
+        // waves) uses.
         val luma = (r * 299 + g * 587 + b * 114) / 1000f
         val desaturate = desaturation * s
         val scale = 1f - darkening * s

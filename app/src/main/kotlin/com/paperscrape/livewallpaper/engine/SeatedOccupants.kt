@@ -1,7 +1,7 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * Who is in a car: which families, which skin tones, which outfit -- dealt, not hashed.
+ * Who is in a car: which families, which skin tones, which outfits -- dealt, not hashed.
  *
  * ### The defect this replaces
  *
@@ -38,7 +38,7 @@ package com.paperscrape.livewallpaper.engine
  */
 internal object SeatedOccupants {
 
-    /** Index into `personCarHeadSkinDrawables`: man, woman, boy, girl. */
+    /** Index into [PeopleLayerTable.CAR]'s families: man, woman, boy, girl. */
     const val MAN = 0
     const val WOMAN = 1
     const val BOY = 2
@@ -83,17 +83,30 @@ internal object SeatedOccupants {
     private val PASSENGER_SKIN = intArrayOf(1, 0, 2, 1, 0, 2, 1, 0, 2, 1)
 
     /**
-     * Which of the two adult outfits both seats wear -- five and five, and **the same index for
-     * both**, which is the point rather than an oversight.
+     * What the driver wears: each of the five [PeopleColours.OUTFITS] twice across the ten.
      *
-     * The second outfit is the other adult family's garment for that season, so the two indices are
-     * an exchange: at index 0 the man wears his teal and the woman her red, at index 1 the man
-     * wears her red and the woman his teal. Giving the two seats the *same* index therefore
-     * guarantees a man and a woman in one car are wearing two different colours; giving them
-     * opposite indices would guarantee they wear the same one, which is exactly the uniformity the
-     * axis exists to remove. Children have one outfit and ignore this.
+     * Until v5.8C there was one outfit table for both seats, holding only indices 0 and 1. That was
+     * right while an index meant "this family's garment or the other adult family's" -- the same
+     * index then put a man and a woman in two different colours -- and it stopped being right when
+     * v4.30 made the index an entry of the shared [PeopleColours.OUTFITS]: from then on the two
+     * occupants of every two-seat car wore identical colours, and only the teal and the red outfit
+     * ever appeared in traffic (found by the v5.8B comment audit). Now each seat has its own deal.
      */
-    private val OUTFIT = intArrayOf(0, 1, 1, 0, 0, 1, 1, 0, 0, 1)
+    private val DRIVER_OUTFIT = intArrayOf(
+        0, 1, // slot 0: near, far
+        2, 3, // slot 1
+        4, 0, // slot 2
+        1, 2, // slot 3
+        3, 4, // slot 4
+    )
+
+    /**
+     * What the passenger wears: the driver's deal moved on by two, so every outfit also appears
+     * twice here and **the passenger never wears the driver's outfit** -- the one-person-drawn-twice
+     * look the family rule exists to avoid. A child wears a dealt outfit like an adult, exactly as a
+     * child on the pavement does ([PeopleColours.outfit] deals all five to every family).
+     */
+    private val PASSENGER_OUTFIT = IntArray(DRIVER_OUTFIT.size) { (DRIVER_OUTFIT[it] + 2) % PeopleColours.OUTFIT_COUNT }
 
     fun driverKind(spec: CarObject): Int = DRIVER_KIND[SceneObjectCatalog.candidateIndexOf(spec)]
 
@@ -103,7 +116,9 @@ internal object SeatedOccupants {
 
     fun passengerSkin(spec: CarObject): Int = PASSENGER_SKIN[SceneObjectCatalog.candidateIndexOf(spec)]
 
-    fun outfit(spec: CarObject): Int = OUTFIT[SceneObjectCatalog.candidateIndexOf(spec)]
+    fun driverOutfit(spec: CarObject): Int = DRIVER_OUTFIT[SceneObjectCatalog.candidateIndexOf(spec)]
+
+    fun passengerOutfit(spec: CarObject): Int = PASSENGER_OUTFIT[SceneObjectCatalog.candidateIndexOf(spec)]
 
     /** Every deal, for the tests that check they are balanced and readable. */
     internal val DEALS: Map<String, IntArray> = mapOf(
@@ -111,6 +126,7 @@ internal object SeatedOccupants {
         "passenger family" to PASSENGER_KIND,
         "driver tone" to DRIVER_SKIN,
         "passenger tone" to PASSENGER_SKIN,
-        "outfit" to OUTFIT,
+        "driver outfit" to DRIVER_OUTFIT,
+        "passenger outfit" to PASSENGER_OUTFIT,
     )
 }

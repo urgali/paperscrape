@@ -2,7 +2,10 @@ package com.paperscrape.livewallpaper.engine
 
 import kotlin.random.Random
 
-/** The kind of object placed in the scene. Drives both drawing shape and reaction behavior. */
+/**
+ * The kind of object placed in the scene. Drives its drawing, its size and which customization
+ * category governs it.
+ */
 enum class SceneObjectType {
     CAR, HOUSE, TREE,
     // Seasonal / festive additions (step 2)
@@ -10,7 +13,7 @@ enum class SceneObjectType {
     // Easter theme additions (auto-theme-by-date feature)
     EASTER_EGG, BUNNY,
     // Standalone seasonal decorations, independent of any theme -- user-toggleable on any
-    // theme via the "Seasonal Decorations" screen (see SceneCustomization + SettingsScreen).
+    // theme via the "Seasons & decorations" screen (see SceneCustomization + SeasonsScreen).
     PUMPKIN,
 }
 
@@ -30,8 +33,8 @@ enum class SceneObjectType {
  * actual screen position and size.
  *
  * [tileFractionX] is the object's horizontal position expressed as a fraction (0..1) of the
- * object layer's own tiling width (screen width -- see [PaperRenderer.drawHillLayers] for why
- * this is deliberately narrower than the hill silhouette's own tile).
+ * object layer's own tiling width -- twice the screen width, the same period the hill silhouette
+ * tiles on (see [PaperRenderer.drawHillLayers]).
  *
  * [scale] is a **relative size variation around 1**, not a size. How big a house is supposed to be
  * is a property of houses and lives in [SceneSpace.SceneVariant]; this field only says whether
@@ -61,23 +64,25 @@ data class StaticSceneObject(
     }
 }
 
-/** The 4 vehicle types that can appear on the road: plain car, police car, taxi, fire truck.
+/**
+ * The 4 vehicle types that can appear on the road: plain car, police car, taxi, fire truck.
+ *
  * Only [PLAIN] is user-recolorable via the "Cars" category color pickers -- the other 3 use fixed,
  * real-world-associated colors, because a police car isn't "your theme's accent color", it's
- * black-and-white. Their sprites are drawn as finished, non-tintable art for that reason. */
-/**
- * The vehicles on the road.
+ * black-and-white. The police car and the taxi are the same tintable shells PLAIN uses, tinted
+ * with fixed constants in `drawCar` instead of the category colour; only the fire engine is
+ * finished, non-tintable art.
  *
  * [seatsTwo] is a property of the type rather than a list of exclusions at the call site, so a
  * vehicle added later gets the conservative answer by default rather than by somebody
  * remembering. rc2 called it `carriesPassengers` and it excluded the police car, because the
  * passenger could then be a child and a child in the back of a service vehicle reads as
- * something being wrong. rc5 seats two **adults** or nobody -- a child's frontal bust is too
- * wide across the shoulders to keep its pillar light, see
- * [SceneObjectRenderer.CAR_PASSENGER_X_UNITS] -- so the reason to exclude the police car is
- * gone: two officers in a patrol car is what a patrol car looks like. The fire engine keeps its
- * single seat, because its cab glass is 25 units and holds one head, not because of who is in
- * it.
+ * something being wrong. rc5 seated two **adults** or nobody, so the reason to exclude the police
+ * car went: two officers in a patrol car is what a patrol car looks like. Since v4.19 the
+ * passenger is any of the four families, children included (see [SeatedOccupants] and
+ * [SceneObjectRenderer.CAR_PASSENGER_X_UNITS]), and the police car still seats two. The fire
+ * engine keeps its single seat, because its cab glass is 19 units and holds one head, not because
+ * of who is in it.
  */
 enum class CarType(val seatsTwo: Boolean) {
     PLAIN(true),
@@ -106,6 +111,11 @@ data class CarObject(
 data class SceneObjectLayout(
     val staticObjects: List<StaticSceneObject>,
     val cars: List<CarObject>,
+    /**
+     * How [staticObjects] are thinned by density: [DENSITY_SCHEME_FRACTION] for every generated
+     * layout, and for a saved one whatever it was saved with (v5.8C; see [DENSITY_SCHEME_GRID]).
+     */
+    val densityScheme: Int = DENSITY_SCHEME_FRACTION,
 )
 
 /**
@@ -115,10 +125,10 @@ data class SceneObjectLayout(
  * structural, user-editable categories (houses, buildings, cars, umbrellas, trees) -- exactly
  * [CANDIDATES_PER_CATEGORY] candidate slots each, generated uniformly rather than hand-authored
  * per theme. Whether a theme ends up looking like a quiet village or a dense city is entirely
- * up to the user's density sliders in "Scene Objects", never baked into the theme itself.
+ * up to the user's density sliders in "World & scene", never baked into the theme itself.
  *
  * Seasonal decorations (snowmen, gifts, penguins, bunnies, Easter eggs, pumpkins) are
- * a *second*, independent customization surface -- "Seasonal Decorations", edited via
+ * a *second*, independent customization surface -- "Seasons & decorations", edited via
  * [SceneCustomization]'s snowmen/gifts/etc. fields -- generated the same uniform way by
  * [seasonalDecorationCandidates] but layered onto *every* theme in [layoutFor], not tied to any
  * one theme's identity. They default to off (see [SceneCustomization.DEFAULT]) so nothing
@@ -238,8 +248,10 @@ object SceneObjectCatalog {
      *
      * Both come from [SceneSpace] rather than being defined here: the road, its lanes, the ground
      * the houses stand on and the pavement in front of it are one geometry and cannot have two
-     * owners. The pair sits 0.035 of screen height apart, which is more than a car's own drawn
-     * height, so the two rows read as separate lanes instead of one band of overlapping vehicles.
+     * owners. The pair sits 0.028 of screen height apart
+     * ([SceneSpace.CANONICAL_LANE_SPACING_FRACTION]), about a car's own drawn height: two lanes a
+     * vehicle apart, so the road reads as a road rather than as a band the traffic sits inside
+     * (see [SceneSpace.ROAD_LANE_NEAR_Y_FRACTION]).
      */
     const val CAR_LANE_FAR_Y_FRACTION = SceneSpace.ROAD_LANE_FAR_Y_FRACTION
     const val CAR_LANE_NEAR_Y_FRACTION = SceneSpace.ROAD_LANE_NEAR_Y_FRACTION
@@ -286,7 +298,7 @@ object SceneObjectCatalog {
     internal fun builtinCarsFor(themeId: String, accentColor: Int): List<CarObject> =
         builtinLayoutFor(themeId, accentColor)?.cars.orEmpty()
 
-    // --- Uniform candidate generation for the 6 customizable categories --------------------
+    // --- Uniform candidate generation for the 5 structural categories ----------------------
 
     /**
      * Generates [CANDIDATES_PER_CATEGORY] candidate slots for one customizable category, spread
@@ -329,24 +341,6 @@ object SceneObjectCatalog {
     }
 
     /**
-     * Same as [generateStaticCandidates], but alternates candidates between two depth sub-bands
-     * instead of spreading all of them across one continuous range.
-     *
-     * Houses and buildings are placed the same way, from two bands rather than one: once with a
-     * far band (`RangeType.Top`, a band
-     * *behind* the tree zone, closer to the hill crest) and once with `RangeType.Bottom` (a band
-     * *in front of* the tree zone, closer to the road) -- `Scene.onSceneSizeChanged` computes
-     * `buildingRangeTop`/`buildingRangeBottom` as genuinely separate vertical spans that sandwich
-     * `treeRangeTop`/`treeRangeBottom` between them. The previous single-range version placed
-     * every house/building candidate in one narrow band, which read as flat and clustered instead
-     * of the layered "some houses behind the trees, some in front" depth the reference has.
-     *
-     * [backRange] is used for even indices, [frontRange] for odd -- so with density thinning
-     * (which keeps/drops each candidate independently by its own stable per-slot hash, see
-     * [SceneCustomization.keepCandidate]) both bands stay populated at any density setting rather
-     * than one draining before the other.
-     */
-    /**
      * One parasol per house, standing [PARASOL_SIDE_OFFSET] to its side rather than in its doorway.
      *
      * Derived from the houses instead of generated beside them, which is the whole point: the two
@@ -368,6 +362,19 @@ object SceneObjectCatalog {
         }
     }
 
+    /**
+     * Same as [generateStaticCandidates], but alternates candidates between two depth sub-bands
+     * instead of spreading all of them across one continuous range.
+     *
+     * Houses are placed from two bands rather than one: even candidates in [backRange], closer to
+     * the hill crest, and odd ones in [frontRange], closer to the road. The previous single-range
+     * version placed every house candidate in one narrow band, which read as flat and clustered
+     * instead of layered in depth.
+     *
+     * With density thinning (which keeps/drops each candidate independently by its own stable
+     * per-slot hash, see [SceneCustomization.keepCandidate]) both bands drain at the same expected
+     * rate as the density falls rather than one draining before the other.
+     */
     private fun generateSplitStaticCandidates(
         type: SceneObjectType,
         seed: Int,
@@ -401,8 +408,9 @@ object SceneObjectCatalog {
      * Lane comes from the candidate index rather than from the seed, so the *inventory* always
      * offers both lanes whatever the theme; direction follows from the lane, so the near lane
      * runs right and the far lane runs left and no two cars meet head-on in the same lane.
-     * `startDelaySeconds` already staggers same-lane candidates by ~3.6 s, which is what keeps
-     * them apart once they are no longer sharing one lane with everything else.
+     * `startDelaySeconds` already staggers same-lane candidates by a fifth of the loop (about
+     * 4.3 s in the near lane, 4.9 s in the far one), which is what keeps them apart once they are
+     * no longer sharing one lane with everything else.
      *
      * This used to claim both lanes are always *populated* whatever the density, and since v4.22
      * that is deliberately no longer true: the density slider maps to an explicit car count whose
@@ -455,9 +463,10 @@ object SceneObjectCatalog {
      *
      * **Since v5.5 it has nothing to do on a built-in theme**, because [CAR_TYPE_DEAL] holds one of
      * each special and a deal cannot produce a duplicate. It is kept, and kept in the call path,
-     * for two reasons: a custom or random layout may carry any list of types, and a cap that is
-     * asserted by `capSpecialsToOnePerType`'s own test is a cheaper guarantee than the reader's
-     * memory that the multiset upstream happens to be unique.
+     * for two reasons: `RandomSceneGenerator` rolls its types and calls it directly (a saved
+     * custom theme is capped on load by `CustomThemeData`'s `migrateDuplicateSpecialVehicles`),
+     * and a cap that is asserted by `capSpecialsToOnePerType`'s own test is a cheaper guarantee
+     * than the reader's memory that the multiset upstream happens to be unique.
      *
      * The cap belongs here rather than in the renderer because "how many of each type this theme
      * has" is decided exactly once, at generation, and every candidate of a theme shares the one
@@ -502,7 +511,7 @@ object SceneObjectCatalog {
         CarType.POLICE, CarType.TAXI, CarType.FIRE_TRUCK,
     )
 
-    /** Which entry of [CAR_TYPE_DEAL] candidate [slot] of [slotCount] gets. See [SilhouetteDeal]
+    /** Which entry of [CAR_TYPE_DEAL] each of [slotCount] candidates gets. See [SilhouetteDeal]
      *  for why the expression is `(rotation + rank) % size` and not a rank alone. */
     private fun dealtCarTypes(seed: Int, slotCount: Int): List<CarType> {
         val size = CAR_TYPE_DEAL.size
@@ -522,7 +531,7 @@ object SceneObjectCatalog {
     /** Where the type multiset starts, so a shorter inventory still varies by theme. */
     private const val CH_CAR_TYPE_ROTATION = 53
 
-    /** The uniform 6-category candidate set shared by every theme. [treeType] lets themes like
+    /** The uniform 5-category candidate set shared by every theme. [treeType] lets themes like
      * Beach use palm trees instead of plain trees for their "trees" category slots while still
      * sharing the same density/color customization (both map to the same category, see
      * [SceneCustomization]'s `configFor`).
@@ -535,12 +544,12 @@ object SceneObjectCatalog {
      * construction and asserts the margin in a test, so the cap has no reason to exist and the
      * full depth range is available:
      *
-     * - SKYSCRAPER (the buildings category): 0.0-0.80. Its far half draws towers and its near
-     *   half shop fronts -- see [SceneSpace.BUILDING_TOWER_MAX_DEPTH]. A four-metre bar has no
+     * - SKYSCRAPER (the buildings category): 0.0-0.80. Below 0.30 it draws towers and above it
+     *   shop fronts -- see [SceneSpace.BUILDING_TOWER_MAX_DEPTH]. A four-metre bar has no
      *   business on the skyline and a twenty-metre tower none among the front gardens.
-     * - HOUSE/PARASOL: split back/front via [generateSplitStaticCandidates] -- 0.28-0.48 behind
-     *   the tree zone, 0.62-0.95 in front of it, so houses sit at two clearly separated depths
-     *   rather than at one.
+     * - HOUSE: split back/front via [generateSplitStaticCandidates] -- 0.28-0.48 and 0.62-0.95 --
+     *   so houses sit at two clearly separated depths rather than at one; each PARASOL takes its
+     *   own house's depth ([parasolsBeside]).
      * - treeType: 0.18-1.0, spanning across (and slightly past, at both ends) both house bands so
      *   trees genuinely interleave with houses at every depth.
      */
@@ -549,30 +558,34 @@ object SceneObjectCatalog {
         accentColor: Int,
         treeType: SceneObjectType = SceneObjectType.TREE,
     ): SceneObjectLayout {
+        val staticObjects = SHOP_PLAN[themeId] ?: separateShopFrontages(streetBeforeShops(themeId, treeType))
+        val cars = generateCarCandidates(themeId.hashCode() + 6, accentColor)
+        return SceneObjectLayout(staticObjects = staticObjects, cars = cars)
+    }
+
+    /**
+     * Every static object of a generated street, the shops still at their generated slots.
+     *
+     * Each population's silhouettes are dealt across its own slots here, at generation, where the
+     * seed and the slot index are both in hand -- see [SilhouetteDeal] for why that is the only
+     * place it can happen. The commercial candidates are dealt *after* [singleShopPerVariant],
+     * because that pass is what settles which of them is a tower and which a shop front, and a
+     * building's catalogue follows from that. The shop plan moves only `tileFractionX` and so
+     * cannot disturb a deal.
+     */
+    private fun streetBeforeShops(themeId: String, treeType: SceneObjectType): List<StaticSceneObject> {
         val seed = themeId.hashCode()
-        val houseBack = 0.28f..0.48f
-        val houseFront = 0.62f..0.95f
-        // Each population's silhouettes are dealt across its own slots here, at generation, where
-        // the seed and the slot index are both in hand -- see [SilhouetteDeal] for why that is the
-        // only place it can happen. The commercial candidates are dealt *after*
-        // [singleShopPerVariant], because that pass is what settles which of them is a tower and
-        // which a shop front, and a building's catalogue follows from that. [separateShopFrontages]
-        // moves only `tileFractionX` and so cannot disturb a deal.
         val houses = SilhouetteDeal.dealtAcross(
-            generateSplitStaticCandidates(SceneObjectType.HOUSE, seed + 1, houseBack, houseFront),
+            generateSplitStaticCandidates(SceneObjectType.HOUSE, seed + 1, 0.28f..0.48f, 0.62f..0.95f),
             seed,
         )
-        val staticObjects = separateShopFrontages(
-            SilhouetteDeal.dealtAcross(
-                singleShopPerVariant(generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, 0.0f..0.80f)),
-                seed,
-            ) +
-                houses +
-                generateStaticCandidates(treeType, seed + 5, 0.18f..1.0f) +
-                parasolsBeside(houses, seed + 4),
-        )
-        val cars = generateCarCandidates(seed + 6, accentColor)
-        return SceneObjectLayout(staticObjects = staticObjects, cars = cars)
+        return SilhouetteDeal.dealtAcross(
+            singleShopPerVariant(generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, 0.0f..0.80f)),
+            seed,
+        ) +
+            houses +
+            generateStaticCandidates(treeType, seed + 5, 0.18f..1.0f) +
+            parasolsBeside(houses, seed + 4)
     }
 
     // ---- Shop-front visibility and identity (rc2, remetricated + deduplicated in rc3) --------
@@ -598,9 +611,9 @@ object SceneObjectCatalog {
     //    catalogue now emits ([singleShopPerVariant]); the surplus commercial candidates keep
     //    their slot and their category and become skyline towers instead.
 
-    /** The reference viewport the occlusion geometry is evaluated at: the device every visual
-     * judgement in this project is made on. The overlap *fractions* barely move with aspect
-     * ratio, but they are not exactly invariant, so the number in the rule names its frame. */
+    /** The reference viewport the occlusion geometry is evaluated at: 1080x2340, the OnePlus 6T
+     * the rule was first judged on. The overlap *fractions* barely move with aspect ratio, but
+     * they are not exactly invariant, so the number in the rule names its frame. */
     private const val REF_SCREEN_W = 1080f
     private const val REF_SCREEN_H = 2340f
 
@@ -658,12 +671,25 @@ object SceneObjectCatalog {
         }
     }
 
-    /** Drawn half-width of a variant, in its own sprite units, measured off the artwork. */
+    /**
+     * Half-width of a variant, in its own sprite units, as the occlusion pass models it. The
+     * school's and the tree's are measured off the current artwork (see their notes); the palm's
+     * is its crown's half-width about the crown's own centre (see its note).
+     * The two houses', the two shops' and the tower's are the wider side of the ink the shipped
+     * pieces draw, over every alternative of every slot (v5.8E, V3-01): 58.7 (small house), 77.1
+     * (large house), 52.7 (restaurant), 38.1 (bar) and 35.9 (tower). Until then they were 48, 75,
+     * 34, 34 and 45 -- the restaurant modelled 68 units wide where it draws 104 -- so the pass
+     * accepted fronts more covered than it computed: four restaurants at the twelve defaults broke
+     * the 40 %/no-trunk rule it believed they kept. With the true widths the restaurant stands clear
+     * only in the first third of the tile on every theme, which is why the shops are now placed by
+     * [planShopFrontages] rather than each on its own.
+     */
     private fun halfWidthUnits(variant: SceneSpace.SceneVariant): Float = when (variant) {
-        SceneSpace.SceneVariant.HOUSE_SMALL -> 48f
-        SceneSpace.SceneVariant.HOUSE_LARGE -> 75f
-        SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR -> 34f
-        SceneSpace.SceneVariant.TOWER -> 45f
+        SceneSpace.SceneVariant.HOUSE_SMALL -> 58.7f
+        SceneSpace.SceneVariant.HOUSE_LARGE -> 77.1f
+        SceneSpace.SceneVariant.RESTAURANT -> 52.7f
+        SceneSpace.SceneVariant.BAR -> 38.1f
+        SceneSpace.SceneVariant.TOWER -> 35.9f
         // v5.6F: the school's own ink reaches x -53.7..55.3 of a 110-unit canvas, and the family
         // draws at 1:1 (72 piece units to 72 variant units), so the wider side governs a
         // symmetric reach the same way the tree's and the palm's do. It is the widest thing on
@@ -672,9 +698,15 @@ object SceneObjectCatalog {
         // v4.21: 51, not 41. The "Quercia larga" crown is `tree_canopy`'s 101 units of content
         // blitted at -50, so it spans x -50..51 and the wider side governs a symmetric reach.
         SceneSpace.SceneVariant.TREE -> 51f
-        // v5.1, re-derived for the "Cocco" palm: the crown is a 56-unit canvas filled by its own
-        // content and blitted at -21, so it spans x -21..35 and the wider side governs a symmetric
-        // reach. It leans, which is why 28 and not half of 56.
+        // v5.1, for the "Cocco" palm: the crown is a 56-unit canvas blitted at -21, so it spans
+        // x -21..35 about the foot. It leans, so `CROWN_HALF_WIDTH` (28) is its half-width about
+        // the crown's own centre, 7 units right of the foot, not a reach about the foot.
+        // Not modelled, and why it is left so (v5.8D/E, V3-02): the ink of the lean side reaches
+        // 34 units right of the foot (SpriteOccluderTable.PALM_CROWN), so a palm the step-aside
+        // parked to a shop's LEFT would overhang the front by up to 6 units less the 4 px margin.
+        // The step-aside is the pass's last resort and runs on none of the twelve built-in layouts
+        // (0 of 12, measured with a probe in the branch), and mixed and saved themes never reach
+        // it, so no palm is ever put there. Model the lean here before a layout makes it run.
         SceneSpace.SceneVariant.PALM_TREE -> PalmSpriteLayout.CROWN_HALF_WIDTH
         else -> 0f
     }
@@ -711,8 +743,8 @@ object SceneObjectCatalog {
      *    at its least-covered uncrossed probe and every tree still touching the front is moved
      *    fully clear of it; houses are the street and never move, and parasols belong to their
      *    houses ([parasolsBeside]) so the probes route around their poles instead. The sweeps
-     *    run to a fixed point; ShopFrontVisibilityTest re-measures all twelve themes
-     *    independently.
+     *    repeat until one moves nothing, up to five; ShopFrontVisibilityTest re-measures all
+     *    twelve themes independently.
      */
     private fun separateShopFrontages(objects: List<StaticSceneObject>): List<StaticSceneObject> {
         val out = objects.toMutableList()
@@ -782,6 +814,154 @@ object SceneObjectCatalog {
             if (!moved) return out
         }
         return out
+    }
+
+    // ---- The shop plan (v5.8E, V3-01) --------------------------------------------------------
+    //
+    // Every built-in street is built on one skeleton: each category lays candidate i at slot
+    // (i + 0.5) / 10 and at a depth that grows with i, so on all twelve themes the far objects stand
+    // at the left of the tile and the near trees at the right. A shop placed on its own therefore
+    // lands where every other theme's lands: before this plan the bar stood in one spot on 12 of 12
+    // themes and the school on 8, and with the restaurant's true width 10 of 12 restaurants would
+    // have shared the one clear stretch at the left. The maintainer's condition for the width repair
+    // was that no more themes than before (4) put a shop in the same spot of the street.
+    //
+    // So the twelve streets place their shops together. Each shop may stand only where its front is
+    // clear against the street alone (the target tier if any probe reaches it, else the ceiling
+    // tier -- the same two rules as [separateShopFrontages]), a nearer shop never on a deeper one's
+    // front, and among those each theme takes the positions that the fewest other themes' same shop
+    // overlaps, then the ones nearest its generated slots. Themes take turns in [BUILT_IN_STREETS]'s
+    // order until none moves. Nothing else moves: houses, trees and parasols stay where the
+    // generator put them. `ShopFrontVisibilityTest` holds both the rules and the result: every front
+    // inside them, and no more than four themes putting a shop in one spot.
+
+    /** Every built-in street with its shops placed: theme id to its static objects. Computed once. */
+    private val SHOP_PLAN: Map<String, List<StaticSceneObject>> by lazy { planShopFrontages() }
+
+    /** A shop's half-width as a share of the tile, at the reference viewport. */
+    private fun halfTile(o: StaticSceneObject): Float =
+        halfWidthUnits(SceneObjectRenderer.variantFor(o)) * SceneObjectRenderer.effectiveScaleFor(o, REF_SCREEN_H) / (REF_SCREEN_W * 2f)
+
+    private fun circularGap(a: Float, b: Float): Float {
+        val d = (a - b).mod(1f)
+        return minOf(d, 1f - d)
+    }
+
+    /** Where [shop] may stand against [street] alone: the target tier if it has any probe, else the ceiling tier. */
+    private fun clearPositions(street: List<StaticSceneObject>, shop: StaticSceneObject): List<Float> {
+        val target = ArrayList<Float>()
+        val ceiling = ArrayList<Float>()
+        // [frontCrossed] and [frontCoverage] over this street, with the street's boxes measured once
+        // rather than at every probe: the street does not move while the shop is probed.
+        val nearer = street.filter { it.depthFraction > shop.depthFraction }
+        val boxes = nearer.flatMap { occluderBoxes(it) }
+        val members = nearer.mapNotNull { verticalMemberBox(it) }
+        for (k in 0 until 100) {
+            val candidate = shop.copy(tileFractionX = k * 0.01f)
+            val f = frontRect(candidate)
+            val cx = (f[0] + f[2]) / 2f
+            if (members.any { m -> val b = wrapBoxToward(m, cx); b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3] }) continue
+            val clipped = ArrayList<FloatArray>()
+            for (box in boxes) {
+                val b = wrapBoxToward(box, cx)
+                val l = maxOf(b[0], f[0]); val t = maxOf(b[1], f[1]); val r = minOf(b[2], f[2]); val bo = minOf(b[3], f[3])
+                if (r > l && bo > t) clipped.add(floatArrayOf(l, t, r, bo))
+            }
+            val covered = if (clipped.isEmpty()) 0f else unionArea(clipped) / ((f[2] - f[0]) * (f[3] - f[1]))
+            if (covered <= SHOP_TARGET_OCCLUSION) target += candidate.tileFractionX
+            else if (covered <= SHOP_MAX_OCCLUSION) ceiling += candidate.tileFractionX
+        }
+        return if (target.isNotEmpty()) target else ceiling
+    }
+
+    /** Whether the nearer shop's body, standing at its x, overlaps any of the deeper shop's front. */
+    private fun overlapsFront(nearer: StaticSceneObject, deeper: StaticSceneObject): Boolean {
+        val f = frontRect(deeper)
+        val b = wrapBoxToward(frontRect(nearer), (f[0] + f[2]) / 2f)
+        return b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3]
+    }
+
+    private fun planShopFrontages(): Map<String, List<StaticSceneObject>> {
+        class Street(val id: String, val objects: List<StaticSceneObject>, val shops: List<Int>, val clear: List<List<Float>>)
+        val streets = BUILT_IN_STREETS.map { (id, tree) ->
+            val objects = streetBeforeShops(id, tree)
+            val alone = objects.filterNot { isShop(it) }
+            val shops = objects.indices.filter { isShop(objects[it]) }.sortedBy { objects[it].depthFraction }
+            Street(id, objects, shops, shops.map { clearPositions(alone, objects[it]) })
+        }
+        val n = streets.size
+        val kinds = streets.maxOf { it.shops.size }
+        // x[t][j]: where theme t's j-th shop (deepest first) stands; NaN = not placed yet.
+        val x = Array(n) { FloatArray(kinds) { Float.NaN } }
+        // Nothing below depends on x but the position: a shop's half-width and whether a nearer shop's
+        // body reaches down over a deeper one's front are fixed per shop, so they are measured once.
+        val half = Array(n) { t -> FloatArray(streets[t].shops.size) { j -> halfTile(streets[t].objects[streets[t].shops[j]]) } }
+        val stacked = Array(n) { t ->
+            val sh = streets[t].shops.map { streets[t].objects[it].copy(tileFractionX = 0f) }
+            Array(sh.size) { j -> BooleanArray(sh.size) { k -> overlapsFront(sh[j], sh[k]) } }
+        }
+        fun crowd(t: Int, j: Int, at: Float): Int {
+            var c = 0
+            for (u in 0 until n) {
+                if (u == t || j >= streets[u].shops.size || x[u][j].isNaN()) continue
+                if (circularGap(at, x[u][j]) < half[t][j] + half[u][j]) c++
+            }
+            return c
+        }
+        /** Whether theme t's nearer shop j at [a] covers any of its deeper shop k's front at [b]. */
+        fun covers(t: Int, j: Int, a: Float, k: Int, b: Float) = stacked[t][j][k] && circularGap(a, b) < half[t][j] + half[t][k]
+        fun moved(t: Int, j: Int, at: Float) = circularGap(at, streets[t].objects[streets[t].shops[j]].tileFractionX)
+        /** Theme t's best (restaurant, school, bar) against everybody else's current choice. */
+        fun bestFor(t: Int): FloatArray? {
+            val st = streets[t]
+            var best: FloatArray? = null
+            var bestScore = intArrayOf(Int.MAX_VALUE, Int.MAX_VALUE)
+            var bestMove = Float.MAX_VALUE
+            fun extend(j: Int, chosen: FloatArray, crowds: IntArray) {
+                if (j == st.shops.size) {
+                    val score = intArrayOf(crowds.max(), crowds.sum())
+                    val move = chosen.indices.sumOf { moved(t, it, chosen[it]).toDouble() }.toFloat()
+                    if (score[0] < bestScore[0] || (score[0] == bestScore[0] && (score[1] < bestScore[1] ||
+                            (score[1] == bestScore[1] && move < bestMove)))) {
+                        bestScore = score; bestMove = move; best = chosen.copyOf()
+                    }
+                    return
+                }
+                // The nearer shops are chosen one at a time, each the least crowded of the probes that
+                // spare every deeper shop already chosen; only the deepest (the restaurant, whose
+                // clear stretches are the narrowest) is searched over all its probes.
+                val options = st.clear[j].filter { at -> (0 until j).none { k -> covers(t, j, at, k, chosen[k]) } }
+                if (options.isEmpty()) return
+                if (j == 0) {
+                    for (at in options) { chosen[0] = at; crowds[0] = crowd(t, 0, at); extend(1, chosen, crowds) }
+                } else {
+                    val at = options.minWith(compareBy<Float>({ crowd(t, j, it) }, { moved(t, j, it) }, { it }))
+                    chosen[j] = at; crowds[j] = crowd(t, j, at); extend(j + 1, chosen, crowds)
+                }
+            }
+            extend(0, FloatArray(st.shops.size), IntArray(st.shops.size))
+            return best
+        }
+        // First pass in order against the themes already placed, then rounds of best response until
+        // nobody moves (at most eight): each theme in turn re-takes its three shops against all the others.
+        for (round in 0..8) {
+            var changed = 0
+            for (t in 0 until n) {
+                val b = bestFor(t) ?: continue
+                if (b.indices.any { x[t][it] != b[it] }) { changed++; for (j in b.indices) x[t][j] = b[j] }
+            }
+            if (changed == 0) break
+        }
+        return streets.mapIndexed { t, st ->
+            if (st.shops.indices.any { x[t][it].isNaN() }) {
+                st.id to separateShopFrontages(st.objects)
+            } else {
+                st.id to st.objects.mapIndexed { i, o ->
+                    val j = st.shops.indexOf(i)
+                    if (j < 0) o else o.copy(tileFractionX = x[t][j])
+                }
+            }
+        }.toMap()
     }
 
     /**
@@ -1071,7 +1251,7 @@ object SceneObjectCatalog {
             // serves is "a door and a window stay clear for their whole height", and a box that
             // under-reports the foot would let a trunk park on a doorway.
             SceneSpace.SceneVariant.TREE -> floatArrayOf(x - 16f * s, g - 62f * s, x + 16f * s, g)
-            // v5.1: the leaning trunk's own canvas, x -10..16 at this origin. The strict reading
+            // v5.1: the leaning trunk's own canvas, x -8..13 at this origin. The strict reading
             // the TREE entry above argues for applies here too -- the spindle narrows above its
             // flared foot, and a box that under-reported the foot would let a trunk park on a
             // doorway.
@@ -1160,8 +1340,8 @@ object SceneObjectCatalog {
      * to -- these used to be hardcoded per theme (Christmas got snowmen+gifts, Easter got
      * eggs+bunnies, etc.) with no way to turn them off or use them anywhere else. They're now
      * exactly like the 5 uniform categories above: a fixed set of candidate slots per type, with
-     * visibility/density/color entirely controlled by the user via the "Seasonal Decorations"
-     * screen (separate from "Scene Objects", since these are opt-in extras rather than a
+     * visibility/density/color entirely controlled by the user via the "Seasons & decorations"
+     * screen (separate from "World & scene", since these are opt-in extras rather than a
      * structural part of every scene) -- see [SceneCustomization]. All default to *invisible*
      * so nothing changes for a
      * theme until the user explicitly turns something on -- but once turned on, it now shows up
@@ -1170,8 +1350,7 @@ object SceneObjectCatalog {
      *
      * These are the smallest objects in the scene -- a rabbit is half a metre tall -- so they are
      * placed across the near half of the band (0.45-1.0) where the perspective still gives them
-     * enough size to read as themselves. Balloons are the exception and sit far back (0.05-0.45),
-     * because a twenty-metre envelope drawn at the front of the scene would fill the frame.
+     * enough size to read as themselves.
      */
     private fun seasonalDecorationCandidates(themeId: String): List<StaticSceneObject> {
         val seed = themeId.hashCode()
@@ -1188,23 +1367,29 @@ object SceneObjectCatalog {
 
     /** Returns null (rather than an empty layout) for unknown ids, so [layoutFor] can tell the
      * difference between "not a built-in id" and "a built-in id with an intentionally empty scene". */
-    private fun builtinLayoutFor(themeId: String, accentColor: Int): SceneObjectLayout? = when (themeId) {
-        "sunset" -> uniformCandidates(themeId, accentColor)
-        "autumn" -> uniformCandidates(themeId, accentColor)
-        "winter" -> uniformCandidates(themeId, accentColor)
-        // Palms, not broadleaf woodland. The tree *type* is a property of the theme's layout, so
-        // this is the same knob Beach already uses rather than a special case in the renderer.
-        "desert" -> uniformCandidates(themeId, accentColor, treeType = SceneObjectType.PALM_TREE)
-        "christmas" -> uniformCandidates(themeId, accentColor)
-        "new_year" -> uniformCandidates(themeId, accentColor)
-        "beach" -> uniformCandidates(themeId, accentColor, treeType = SceneObjectType.PALM_TREE)
-        "city" -> uniformCandidates(themeId, accentColor)
-        "tundra" -> uniformCandidates(themeId, accentColor)
-        "easter" -> uniformCandidates(themeId, accentColor)
-        // Broadleaf woodland, which the Halloween flag then strips to bare branches. Palms have
-        // no dead variant and would go on standing in leaf through the whole presentation.
-        "halloween" -> uniformCandidates(themeId, accentColor)
-        "spring" -> uniformCandidates(themeId, accentColor)
-        else -> null
+    private fun builtinLayoutFor(themeId: String, accentColor: Int): SceneObjectLayout? {
+        val treeType = BUILT_IN_STREETS.firstOrNull { it.first == themeId }?.second ?: return null
+        return uniformCandidates(themeId, accentColor, treeType)
     }
+
+    /**
+     * The twelve built-in streets, in the order the shop plan visits them, with the tree each plants:
+     * palms, not broadleaf woodland, on Desert and Beach (the tree *type* is a property of the
+     * layout, not a special case in the renderer); Halloween's broadleaf woodland is stripped to
+     * bare branches by its flag.
+     */
+    private val BUILT_IN_STREETS: List<Pair<String, SceneObjectType>> = listOf(
+        "sunset" to SceneObjectType.TREE,
+        "autumn" to SceneObjectType.TREE,
+        "winter" to SceneObjectType.TREE,
+        "desert" to SceneObjectType.PALM_TREE,
+        "christmas" to SceneObjectType.TREE,
+        "new_year" to SceneObjectType.TREE,
+        "beach" to SceneObjectType.PALM_TREE,
+        "city" to SceneObjectType.TREE,
+        "tundra" to SceneObjectType.TREE,
+        "easter" to SceneObjectType.TREE,
+        "halloween" to SceneObjectType.TREE,
+        "spring" to SceneObjectType.TREE,
+    )
 }

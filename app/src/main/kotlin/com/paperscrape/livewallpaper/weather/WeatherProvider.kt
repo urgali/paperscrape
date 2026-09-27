@@ -47,8 +47,9 @@ enum class WeatherProviderId(
  *
  * A provider's whole job is "coordinates in, [WeatherObservation] out". It owns its endpoint, its
  * query parameters and its response shape, and nothing else: not the schedule, not the cache, not
- * the preferences, not the renderer. [WeatherRepository] is what knows which one is selected and
- * what to do with the answer.
+ * the preferences, not the renderer. The engine reads which one is selected and hands it to
+ * [WeatherRepository], which picks the provider object; [LiveWeatherSchedule] decides what to do
+ * with the answer.
  */
 interface WeatherProvider {
 

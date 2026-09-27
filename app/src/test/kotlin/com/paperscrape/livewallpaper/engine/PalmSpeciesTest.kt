@@ -144,6 +144,40 @@ class PalmSpeciesTest {
         assertFalse(read.palmsEnabled)
     }
 
+    @Test
+    fun `the settings screen counts the switch only where the layout places a palm`() {
+        // `SeasonsScreen` reads `hasPalmSlots` off the same layout the wallpaper draws, to stop
+        // reporting "Palms - 1 on" on the ten built-ins where no palm can appear.
+        val withPalms = ThemeCatalog.ALL
+            .filter { SceneObjectCatalog.layoutFor(it.id, it.accentColor).hasPalmSlots() }
+            .map { it.id }
+            .toSet()
+        assertEquals(setOf("beach", "desert"), withPalms)
+    }
+
+    @Test
+    fun `a theme saved from Beach keeps its palms, so the question is asked of the layout`() {
+        // A list of theme ids would say "no palms" about a saved Beach, which the wallpaper draws
+        // with palms -- photographed in the v5.7 assessment as "MiaSpiaggia" (foto 532).
+        val beach = ThemeCatalog.byId("beach")
+        val saved = com.paperscrape.livewallpaper.ui.snapshotEntry(
+            targetId = "custom:palm-test",
+            targetName = "Palm test",
+            sourceThemeId = "beach",
+            pendingCustomization = defaultCustomizationFor("beach"),
+            pendingCustomizationThemeId = null,
+        )
+        try {
+            CustomThemeRegistry.update(CustomThemeData(customThemes = listOf(saved)))
+            assertTrue(
+                "a theme saved from Beach reports no palms",
+                SceneObjectCatalog.layoutFor(saved.id, beach.accentColor).hasPalmSlots(),
+            )
+        } finally {
+            CustomThemeRegistry.update(CustomThemeData.EMPTY)
+        }
+    }
+
     /** Whether any item in the scene blits [resId]. */
     private fun ThemePreviewScene.contains(resId: Int): Boolean =
         (backdrop + items + cars + ground).any { item -> item.parts.any { it.resId == resId } }

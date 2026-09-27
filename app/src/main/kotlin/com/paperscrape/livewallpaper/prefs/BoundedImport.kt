@@ -26,14 +26,20 @@ import java.io.Reader
  */
 internal object BoundedImport {
 
-    /** The largest document either importer will read. See the class comment for why this size. */
+    /**
+     * The largest document [readText] will read. See the class comment for why this size.
+     *
+     * It holds for the bytes a backup restore applies too: since v5.8C Restore imports the text
+     * the preview read instead of reading the file a second time, unbounded.
+     */
     const val MAX_IMPORT_CHARS = 4_000_000
 
     /**
      * The document's text, or `null` if it cannot be opened or is longer than [MAX_IMPORT_CHARS].
      *
-     * Reads one character past the limit deliberately: a file of exactly the limit is accepted, and
-     * one character more is refused, without ever holding more than the limit plus one.
+     * A file of exactly the limit is accepted and one character more is refused:
+     * [com.paperscrape.livewallpaper.readAtMost] reads in 8 KiB chunks and refuses before appending
+     * past the limit.
      */
     fun readText(context: Context, uri: Uri): String? = runCatching {
         context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { readBounded(it) }

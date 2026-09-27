@@ -71,8 +71,12 @@ class VehiclePedestrianScaleTest {
         // saloon's; the other two derive their metres from the same constant, so a unit is the
         // same pixel on all three and CAR_BASE_SCALE stays a single number.
         assertEquals(0.0302f, SceneSpace.CAR_UNIT_METRES, 0.0001f)
-        assertEquals(56f, SceneSpace.CAR_SPRITE_UNITS_TALL, 0.0001f)
-        assertEquals(1.6912f, SceneSpace.CAR_METRES_TALL, 0.0001f)
+        // The reference pair is the saloon the street draws (53 units, 1.60 m), not the 56-unit
+        // body v5.6F retired: until v5.8C it said 56, and every test sizing a car from it measured
+        // a car nobody draws (v5.8B comment audit).
+        assertEquals(CarShell.SALOON.unitsTall, SceneSpace.CAR_SPRITE_UNITS_TALL, 0f)
+        assertEquals(53f, SceneSpace.CAR_SPRITE_UNITS_TALL, 0.0001f)
+        assertEquals(1.6006f, SceneSpace.CAR_METRES_TALL, 0.0001f)
         assertEquals(2.9f, SceneSpace.FIRE_TRUCK_METRES_TALL, 0.0001f)
         assertEquals(68f, SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL, 0.0001f)
         // Each body's metres are its own units times the shared constant, and none of them may

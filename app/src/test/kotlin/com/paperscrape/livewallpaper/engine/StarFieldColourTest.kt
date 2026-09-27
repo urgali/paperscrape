@@ -69,4 +69,22 @@ class StarFieldColourTest {
         }
         error("could not locate src/main/res/drawable-nodpi")
     }
+
+    /**
+     * **The sparkle goes to the largest stars** (v5.8C). It went to every fifth by index, whatever
+     * its size, so the smallest stars -- which the sprite was enlarged precisely not to be drawn at
+     * -- carried it as often as the largest (v5.8B comment audit). Same count as before.
+     */
+    @Test
+    fun `the sparkles are the largest fifth of the field, as many as before`() {
+        val rnd = java.util.Random(7)
+        for (n in listOf(1, 4, 5, 6, 35, 70)) {
+            val radii = FloatArray(n) { 2.4f + rnd.nextFloat() * 3.2f }
+            val sparkles = PaperRenderer.starSparkleIndices(radii)
+            assertEquals("count for $n stars", (0 until n).count { it % PaperRenderer.STAR_SPARKLE_EVERY == 0 }, sparkles.size)
+            val smallestSparkle = sparkles.minOf { radii[it] }
+            val largestPoint = radii.indices.filter { it !in sparkles }.maxOfOrNull { radii[it] } ?: Float.NEGATIVE_INFINITY
+            org.junit.Assert.assertTrue("a point is larger than a sparkle ($n stars)", largestPoint <= smallestSparkle)
+        }
+    }
 }

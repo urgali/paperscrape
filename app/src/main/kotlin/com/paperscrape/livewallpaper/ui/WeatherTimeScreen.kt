@@ -64,14 +64,18 @@ import kotlinx.coroutines.launch
  * theme, which is why they are one destination of their own rather than a heading inside
  * "World & scene".
  *
- * Nothing here is a new preference. What changed in v2.9 is the shape of two of them:
+ * None of this was a new preference in v2.9 (the weather provider, its two extra keys and the
+ * GPS/Network split came later). What v2.9 changed is the shape of two of them:
  *
  * - The two mutually exclusive location switches ("phone location" / "custom location"), whose
  *   titles differed by three words and whose subtitles each had to explain the other, are one
- *   three-way choice. See [SettingsUiModel] for the mapping; the writes are the same two setters.
+ *   three-way choice then, four-way now (Off / GPS / Network / Custom).
+ *   [SettingsUiModel.locationMode] reads the stored flags into it; the writes, made inline below,
+ *   are `setUseLocation`, `setUseCustomLocation` and `setDeviceLocation`.
  * - Live Weather, the location choice and the API key used to be *inside* the "Follow real time"
  *   branch, so switching the clock to a fixed hour removed them from the screen with no
- *   explanation. They now stay put and go disabled, with the reason stated. Disabled is exactly
+ *   explanation. They now stay put: Live Weather and the location choice go disabled with the
+ *   reason stated, and the API keys, under Advanced, stay editable. Disabled is exactly
  *   what v2.8 already did to Live Weather when no location was set, so no state that was
  *   previously unreachable becomes reachable.
  */
@@ -220,10 +224,9 @@ internal fun WeatherTimeScreen(
                     //
                     // Deliberately silent about whether the forecast is currently in effect: that
                     // is what the status banner immediately below reports, from what the engine
-                    // actually did, and it is not the same question as whether the switch could be
-                    // turned back on. (The two genuinely differ -- the fetch loop does not consult
-                    // "Follow real time" at all, so Live Weather keeps running over a frozen clock
-                    // even though this screen will not let it be switched on in that state.)
+                    // actually did. (Since v5.8C the fetch loop obeys "Follow real time" too --
+                    // `LiveWeatherSchedule.runs` -- so a frozen clock stops Live Weather rather than
+                    // leaving it running behind this screen's back.)
                     settings.liveWeatherEnabled && !liveWeather.canBeTurnedOn ->
                         "On. Switching it off here hands clouds and rain back to this theme's own " +
                             "settings; switching it back on needs the scene to follow real time, " +
@@ -267,12 +270,18 @@ internal fun WeatherTimeScreen(
                 // that is entirely in the key -- and for OpenWeather the key is very often not
                 // even wrong, just not yet active, which is the one thing this banner has to be
                 // able to tell them.
+                //
+                // What happens next is what the loop does, not what it used to be described as
+                // doing (v5.8): a rejection is not transient, so the loop keeps its normal hourly
+                // interval and asks again -- which is exactly what lets a key that was merely not
+                // yet active start working on its own -- and REJECTED_API_KEY does not drive the
+                // scene, so the theme's own weather is what shows (LiveWeatherSchedule.decide).
                 LiveWeatherStatus.REJECTED_API_KEY -> SettingsBanner(
                     text = "${provider.displayName} rejected this API key. Check that it is " +
                         "correct - and if you have only just created it, a new key can take a " +
                         "couple of hours to become active, which looks exactly like a wrong one. " +
-                        "Nothing more is fetched until it is accepted; the scene is showing the " +
-                        "last conditions it had, or this theme's own weather.",
+                        "Until it is accepted the scene runs on this theme's own weather, and " +
+                        "PaperScrape tries the key again about once an hour.",
                     isError = true,
                 )
                 LiveWeatherStatus.NO_LOCATION -> SettingsBanner(
@@ -294,11 +303,15 @@ internal fun WeatherTimeScreen(
                     "Real conditions are driving this scene's clouds and precipitation, so their " +
                         "screens are read-only. Their colours stay editable.",
                 )
-                // OFF while the switch is on means the engine has not reported yet -- either it
-                // has not had a chance, or the prerequisites are missing and it never will. Both
-                // are "the theme's own weather is what you are looking at", which is the opposite
-                // of what this branch used to say: it was grouped with OK and claimed the forecast
-                // was in charge and the controls locked, in a state where neither was true.
+                // OFF while the switch is on means no wallpaper engine has reported yet: the
+                // preview never publishes, and the home-screen engine only does once it is
+                // visible again. Missing prerequisites are not reported this way (no location is
+                // NO_LOCATION), but until a report arrives the theme's own weather is what you are
+                // looking at, which is the opposite of what this branch used to say: it was
+                // grouped with OK and claimed the forecast was in charge and the controls locked,
+                // in a state where neither was true. The second message blames the prerequisites,
+                // and since v5.8C that is true: the fetch loop does not run without them
+                // (`LiveWeatherSchedule.runs`), so the theme's own weather really is on screen.
                 LiveWeatherStatus.OFF -> SettingsBanner(
                     if (liveWeather.canBeTurnedOn) {
                         "Waiting for the first forecast. Until it arrives the scene is on this " +
@@ -335,8 +348,10 @@ internal fun WeatherTimeScreen(
         SettingsGroup {
             SettingsNavigationRow(
                 title = "Open-Meteo API key",
+                // There is no built-in key: v5.3 stopped shipping one (OpenMeteoProvider.resolveApiKey
+                // says why). A blank key is Open-Meteo's free, keyless service, which works.
                 supporting = if (settings.liveWeatherApiKey.isBlank()) {
-                    "Optional - using the app's built-in key"
+                    "Optional - using Open-Meteo's free service, no key needed"
                 } else {
                     "Using your own key"
                 },
@@ -395,8 +410,10 @@ internal fun WeatherTimeScreen(
  * OpenWeather's key. Required, like WeatherAPI.com's: there is no anonymous tier, so without one
  * the provider makes no request at all and the settings screen says so.
  *
- * Stored in this install's own DataStore and sent only to OpenWeather. Nothing about it is compiled
- * into the app, written to the build, or logged -- the field is masked here for the same reason.
+ * Stored in this install's own DataStore, sent over the network only to OpenWeather, and copied
+ * into an app backup only when the user exports one (the export row says so). Nothing about it is
+ * compiled into the app, written to the build, or logged -- the field is masked here for the same
+ * reason.
  */
 @Composable
 private fun OpenWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
@@ -740,9 +757,10 @@ private fun ManualCoordinateFields(
                     onApply(parsedLat!!, parsedLon!!, labelText)
                     // aa reported that applying a manual location gave no confirmation it had
                     // actually taken effect. A Toast is the right fit here specifically because
-                    // the row above is a *persistent* on-screen confirmation (reverse-geocoding
-                    // these same coordinates) -- the Toast is the immediate "yes, that tap
-                    // registered" feedback, the row is the lasting proof once resolved.
+                    // the row above is a *persistent* on-screen confirmation (the selected-location
+                    // row, showing these same coordinates and the label typed with them) -- the
+                    // Toast is the immediate "yes, that tap registered" feedback, the row is the
+                    // lasting proof.
                     Toast.makeText(context, "Location applied", Toast.LENGTH_SHORT).show()
                 }
             },
@@ -766,21 +784,11 @@ private sealed interface CitySearchUiState {
 private const val SEARCH_DEBOUNCE_MS = 500L
 
 /**
- * Optional user-entered Open-Meteo API key for Live Weather (see
- * [com.paperscrape.livewallpaper.weather.OpenMeteoProvider.resolveApiKey]). Blank is a perfectly
- * valid, fully-supported state: Open-Meteo's free tier needs no key at all, so this exists purely
- * as an upgrade path for a user who wants Open-Meteo's higher-limit customer endpoint under their
- * own account, not a requirement to make Live Weather work. That is why it is one level down,
- * under "Advanced", rather than in the main flow where v2.8 put it.
- *
- * It used to be described as taking "priority over the app's own baked-in key". v5.3 removed that
- * baked-in key -- it shipped readable in the dex -- so this is now the only key there is.
- */
-/**
  * WeatherAPI.com's key, which unlike Open-Meteo's is **required**: there is no anonymous tier, so
  * without one the provider makes no request at all and the settings screen says so.
  *
- * The key is stored in this install's own DataStore and sent only to WeatherAPI.com. Nothing
+ * The key is stored in this install's own DataStore, sent over the network only to WeatherAPI.com,
+ * and copied into an app backup only when the user exports one (the export row says so). Nothing
  * about it is compiled into the app, written to the build, or logged -- the field is masked here
  * for the same reason.
  */
@@ -814,13 +822,24 @@ private fun WeatherApiComApiKeyScreen(apiKey: String, onApply: (String) -> Unit,
     }
 }
 
+/**
+ * Optional user-entered Open-Meteo API key for Live Weather (see
+ * [com.paperscrape.livewallpaper.weather.OpenMeteoProvider.resolveApiKey]). Blank is a perfectly
+ * valid, fully-supported state: Open-Meteo's free tier needs no key at all, so this exists purely
+ * as an upgrade path for a user who wants Open-Meteo's higher-limit customer endpoint under their
+ * own account, not a requirement to make Live Weather work. That is why it is one level down,
+ * under "Advanced", rather than in the main flow where v2.8 put it.
+ *
+ * It used to be described as taking "priority over the app's own baked-in key". v5.3 removed that
+ * baked-in key -- it shipped readable in the dex -- so this is now the only key there is.
+ */
 @Composable
 private fun LiveWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
     var text by remember(apiKey) { mutableStateOf(apiKey) }
     SettingsFormSubScreen(title = "Open-Meteo API key", onBack = onBack) {
         Text(
-            "Optional: your own Open-Meteo API key. Leave blank to use the app's built-in key (or " +
-                "Open-Meteo's free tier if none is built in) -- entering your own always takes priority.",
+            "Optional: your own Open-Meteo API key, for Open-Meteo's higher-limit service. Leave blank " +
+                "to use the free service, which needs no key. A key you enter here always takes priority.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

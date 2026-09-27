@@ -113,15 +113,18 @@ class PeopleTrafficDepthTest {
         // v4.19: the reference saloon grew from 50 to 56 local units and from 1.51 m to 1.6912 m,
         // so a far-lane car's roof stands higher and the overlap the old draw order would have
         // cost is correspondingly larger. Re-measured, not relaxed.
+        // v5.8C: re-measured again, and smaller, because the reference pair now describes the
+        // saloon the street actually draws -- 53 units, 1.60 m since v5.6F -- where it still said
+        // 56 (v5.8B comment audit). 0.0135 / 32 px was the 56-unit car nobody draws.
         assertEquals(
             "the deepest figure's feet, below a far-lane car's roof, in fractions of screen height",
-            0.0135f,
+            0.0119f,
             overlap,
             0.0015f,
         )
         assertEquals(
             "which on a 2400 px screen is this many pixels of pedestrian over car",
-            32f,
+            28.5f,
             overlap * SceneSpace.REFERENCE_SCREEN_HEIGHT_PX,
             4f,
         )

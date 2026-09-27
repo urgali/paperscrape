@@ -100,7 +100,10 @@ sealed interface InstallVerdict {
     /** A different app. Installing it would not be an update of this one. */
     data class WrongPackage(val found: String, val expected: String) : InstallVerdict
 
-    /** Same or older than what is installed. Android would reject it, and it is not an update. */
+    /**
+     * Same or older than what is installed. Android would refuse an older one, and neither is an
+     * update.
+     */
     data class NotNewer(val found: Long, val installed: Long) : InstallVerdict
 
     /**
@@ -131,7 +134,7 @@ object ApkSafety {
      *   matching pair and reaches the user's install prompt described as verified. Android will
      *   refuse to *install* a differently-signed update, so the practical outcome was a confusing
      *   failure at the last step rather than a silent compromise -- but "the OS will catch it" is
-     *   not the same as checking, and the check costs one `PackageManager` call.
+     *   not the same as checking, and the check costs two `PackageManager` calls.
      */
     fun verdict(
         expectedPackage: String,

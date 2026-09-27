@@ -9,7 +9,8 @@ import org.json.JSONObject
  * The third provider, added in v3.8 alongside [WeatherApiComProvider]. Like it, it **requires an API
  * key** — there is no anonymous tier — so without one it reports [WeatherFetchResult.MissingApiKey]
  * and no request is made. **No key is compiled into the app**: it is per-account and metered, so it
- * is the user's to enter and lives only in their own DataStore.
+ * is the user's to enter and lives in their own DataStore (and in a settings backup, if they
+ * export one).
  *
  * ### Why `/data/2.5/weather` and not One Call
  *

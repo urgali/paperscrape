@@ -147,8 +147,8 @@ internal enum class CarShell(
      * The v4.19 concept pass drew it the same 108 units as the saloon, so the estate was not
      * visibly the longer car it is supposed to be. §2 of the brief asked for the extra length in
      * front **and** behind: the nose went -58 -> -66 and the tail 50 -> 58, which is 124 units
-     * against the saloon's 108 -- **14.81% longer**, measured on the shipped artwork by
-     * `VehicleShellGeometryTest` rather than declared here.
+     * against the saloon's 108 -- **14.81% longer**; `VehiclePedestrianScaleTest` asserts the
+     * declared lengths keep it at least 10 % longer.
      *
      * Its glass sprite spans three panes; [paneWidthUnits] spans **two**. The cabin runs
      * -30..28 and seats both occupants; the load bay's own window runs 33..57 and is not cabin

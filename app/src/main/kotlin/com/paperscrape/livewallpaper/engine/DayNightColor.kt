@@ -7,9 +7,10 @@ import kotlin.math.pow
 /**
  * Which half of a day/night colour pair the user owns, and which half the app works out.
  *
- * Stored by [storageId] for the same reason [PrecipitationType] and `WeatherProviderId` are: an
- * enum's declaration order is not a storage format, and a pair whose mode silently changed meaning
- * because someone inserted a constant would repaint a scene nobody touched.
+ * Stored by [storageId] for the same reason `WeatherProviderId` is (and [PrecipitationType] is
+ * stored by name rather than by ordinal): an enum's declaration order is not a storage format, and
+ * a pair whose mode silently changed meaning because someone inserted a constant would repaint a
+ * scene nobody touched.
  */
 enum class AutoColorMode(val storageId: String) {
 
@@ -68,8 +69,10 @@ enum class AutoColorMode(val storageId: String) {
  *
  * So the rule is stated from the requirement instead, and the requirement is a short list: a night
  * colour must read as night, must stay recognisably the colour the user picked, must not collapse
- * to grey or to black, and white must go clearly darker *and* cooler. That is a design brief, and
- * it was settled by looking at the result on a device rather than by a curve fit.
+ * to grey or to black, and white must go clearly darker *and* cooler. That is a design brief; the
+ * lightness factor was then anchored on the one class of authored pairs that shares a single
+ * intent -- the built-in themes' night hills -- rather than on a fit across all of them (see
+ * [NIGHT_LIGHTNESS_FACTOR]).
  *
  * CIELAB is the space that makes it expressible. `L*` is perceptual lightness, so halving it halves
  * how light the colour looks — which HSL's `L` does not, being a channel average. Hue and chroma
@@ -86,12 +89,11 @@ enum class AutoColorMode(val storageId: String) {
 object DayNightColor {
 
     /**
-     * Night perceptual lightness as a fraction of day: **half**.
+     * Night perceptual lightness as a fraction of day: **0.28**.
      *
-     * Not fitted, for the reason above. Half of `L*` is the point at which white stops reading as a
-     * grey object and starts reading as a lit surface in the dark, checked on a physical device
-     * against the two cases that were reported: snow-white hills on the Christmas theme, and bright
-     * red houses. Lower crushes mid-tones towards black; higher is where v4.12 already was.
+     * Anchored on the built-in themes' own night hills rather than fitted across every authored
+     * pair: at 0.28 of `L*` a derived night hill lands where the artists put theirs (L* 8..32,
+     * `DayNightColorTest`), and white lands on a dark, cool grey rather than a mid one.
      */
     const val NIGHT_LIGHTNESS_FACTOR = 0.28f
 
@@ -185,7 +187,7 @@ object DayNightColor {
     /**
      * Lab back to a packed colour, reducing chroma until it fits inside sRGB.
      *
-     * The bisection runs a fixed 16 times, so this is branch-predictable and allocation-free, and
+     * The bisection runs a fixed 16 times (each step allocates one `Triple` in [linearRgb]), and
      * it is reached once per colour per settings change rather than per frame.
      */
     internal fun toSrgb(lightness: Float, a: Float, b: Float, alpha: Int): Int {
@@ -317,7 +319,7 @@ object DayNightColor {
  * copy for drawing. That is the whole of the reversibility guarantee: switching a pair back to
  * [AutoColorMode.MANUAL] restores the values the user last chose, because nothing ever overwrote
  * them. It is also why archiving a pending edit (`WallpaperPrefs.readFlatCustomization`, which
- * `switchPendingTheme` archives) must stay upstream of this call, and does.
+ * `ensureFreshPendingTheme` archives) must stay upstream of this call, and does.
  */
 fun SceneCustomization.withResolvedDayNightColors(): SceneCustomization = copy(
     houses = houses.resolved(),

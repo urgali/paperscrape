@@ -13,7 +13,7 @@ import com.paperscrape.livewallpaper.engine.toJsonString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/** Shared with the instrumented recovery test, which corrupts this exact file. */
+/** Shared with the instrumented recovery test, which corrupts a scratch file named after it. */
 internal const val CUSTOM_THEME_STORE_NAME = "paperscrape_custom_themes"
 
 // Its own file and its own handler, so a corrupt theme blob costs the user their saved themes and
@@ -24,7 +24,8 @@ private val Context.customThemeDataStore by preferencesDataStore(
 )
 
 /**
- * Persists two things, both editable from the "Manage Themes" screen:
+ * Persists two things, edited mostly from the "Themes" screen (a few actions live on "Advanced &
+ * about" and "World & scene"):
  *  - overrides: a user-saved replacement for one of the built-in themes (e.g. their own
  *    "christmas"), which [com.paperscrape.livewallpaper.engine.ThemeCatalog.byId] prefers over
  *    the hardcoded default. Removing an override is exactly "Reset to default".
@@ -112,14 +113,15 @@ open class CustomThemeStore(private val context: Context) {
     /**
      * Replaces every saved theme at once -- both overrides and standalone themes.
      *
-     * Backup import's half of the two-store write, and its own rollback. The whole blob is one
-     * DataStore value, so this is a single atomic replacement by construction.
+     * Backup import's rollback. (The import itself writes the staged bytes through
+     * [replaceAllJson], which this delegates to.) The whole blob is one DataStore value, so this is
+     * a single atomic replacement by construction.
      *
-     * **`open`, and this one method only** (v4.6): [BackupRepository]'s rollback path is only
+     * **`open`** (v4.6), **like [replaceAllJson]**: [BackupRepository]'s rollback path is only
      * reachable when one of the two stores fails, and there is no honest way to make a real
-     * DataStore fail on demand. The instrumented test overrides this to throw. The class is `open`
-     * for the same reason and for nothing else -- it is not an extension point, and the app has
-     * exactly one implementation.
+     * DataStore fail on demand. The instrumented test overrides [replaceAllJson], which both this
+     * and the import reach, to throw. The class is `open` for the same reason and for nothing else
+     * -- it is not an extension point, and the app has exactly one implementation.
      */
     open suspend fun replaceAll(data: CustomThemeData) {
         replaceAllJson(data.toJsonString())

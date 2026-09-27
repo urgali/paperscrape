@@ -5,8 +5,9 @@ import com.paperscrape.livewallpaper.engine.PrecipitationType
 /**
  * A fetched snapshot of real conditions at one location, in the renderer's vocabulary.
  *
- * [com.paperscrape.livewallpaper.engine.PaperRenderer] is the only consumer and never sees a
- * provider's response shape, a WMO code or an icon slug -- the same separation
+ * [com.paperscrape.livewallpaper.engine.PaperRenderer] is the only consumer that draws it
+ * ([LiveWeatherSchedule] reads only its age) and never sees a provider's response shape, a WMO
+ * code or an icon slug -- the same separation
  * [com.paperscrape.livewallpaper.location.DeviceLocationFix] keeps between "where is the device"
  * and what that is used for.
  */

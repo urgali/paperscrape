@@ -262,4 +262,40 @@ class UpdateNotificationPolicyTest {
         assertFalse(UpdateNotificationPolicy.isTransient(UpdateCheckResult.UpToDate))
         assertFalse("no check was made on this pass", UpdateNotificationPolicy.isTransient(null))
     }
+
+    // -- the "switched off in your phone's settings" line (A13, v5.8B) ---------------------------
+
+    @Test
+    fun `below Android 13 the app's own notification switch is what blocks, and nothing else`() {
+        // The BV6600's case, and the one this phone can show: App info -> Notifications -> off.
+        val permission = UpdateNotificationPolicy.permissionFor(29, granted = false)
+        assertTrue(UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = false, channelTurnedOff = false))
+        assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = true, channelTurnedOff = false))
+        assertTrue("the channel alone", UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = true, channelTurnedOff = true))
+    }
+
+    @Test
+    fun `on Android 13 a permission not yet granted is not reported as switched off in settings`() {
+        // areNotificationsEnabled is false there before the first grant; turning the switch on asks,
+        // so the screen must not tell a new user their settings have it off.
+        val notAsked = UpdateNotificationPolicy.permissionFor(33, granted = false)
+        assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(notAsked, appNotificationsEnabled = false, channelTurnedOff = false))
+        assertTrue("the channel still counts", UpdateNotificationPolicy.blockedInPhoneSettings(notAsked, appNotificationsEnabled = false, channelTurnedOff = true))
+        val granted = UpdateNotificationPolicy.permissionFor(34, granted = true)
+        assertTrue("granted, then switched off in the app's page", UpdateNotificationPolicy.blockedInPhoneSettings(granted, appNotificationsEnabled = false, channelTurnedOff = false))
+        assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(granted, appNotificationsEnabled = true, channelTurnedOff = false))
+    }
+
+    @Test
+    fun `the blocked line appears whenever the phone blocks, switch on or off`() {
+        // What stood before could never be reached: it needed the switch on and a refusal a moment
+        // ago, and a refusal leaves the switch off.
+        val line = UpdateNotificationPolicy::notifyRowLine
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.BLOCKED, line(true, true, false))
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.BLOCKED, line(true, false, true))
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.DESCRIPTION, line(true, false, false))
+        // The automatic check off greys the row and explains that first, blocked or not.
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.NEEDS_AUTOMATIC_CHECK, line(false, true, false))
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.NEEDS_AUTOMATIC_CHECK, line(false, false, true))
+    }
 }

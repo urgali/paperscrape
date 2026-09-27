@@ -454,4 +454,54 @@ class LiveWeatherScheduleTest {
         assertEquals(LiveWeatherStatus.OK, afterFetch.status)
         assertSame(fresh, afterFetch.snapshotForScene)
     }
+
+    /**
+     * **After a move, a failed fetch does not leave the old place's weather drawing** (v5.8C).
+     * Until then the loop kept whatever it held, so moving the Custom location from Milan to
+     * Naples and failing the first fetch drew Milan's sky until a later fetch succeeded (v5.8B
+     * comment audit). A failure at the same place still keeps the last known-good conditions:
+     * that is [LiveWeatherStatus.STALE]'s whole point, and a GPS fix a few metres off is not a move.
+     */
+    @Test
+    fun `a failed fetch keeps this place's conditions and drops another place's`() {
+        val milan = com.paperscrape.livewallpaper.location.DeviceLocationFix(45.46, 9.19)
+        val milanJitter = com.paperscrape.livewallpaper.location.DeviceLocationFix(45.4605, 9.1903)
+        val monza = com.paperscrape.livewallpaper.location.DeviceLocationFix(45.58, 9.27)   // ~15 km
+        val naples = com.paperscrape.livewallpaper.location.DeviceLocationFix(40.85, 14.27)
+        val held = snapshotAt(1_000L)
+        val fresh = snapshotAt(2_000L)
+        assertEquals(fresh to naples, LiveWeatherSchedule.heldAfterFetch(held, milan, fresh, naples))
+        assertEquals(held to milan, LiveWeatherSchedule.heldAfterFetch(held, milan, null, milanJitter))
+        assertEquals(null to null, LiveWeatherSchedule.heldAfterFetch(held, milan, null, naples))
+        assertEquals(null to null, LiveWeatherSchedule.heldAfterFetch(held, milan, null, monza))
+        assertEquals(null to null, LiveWeatherSchedule.heldAfterFetch(null, null, null, naples))
+        assertTrue(LiveWeatherSchedule.isSamePlace(milan, milanJitter))
+        assertFalse(LiveWeatherSchedule.isSamePlace(milan, monza))
+    }
+
+    /**
+     * **Live Weather runs only over a scene that follows real time** (v5.8C), the rule the
+     * settings screen states; until then the loop never read the clock setting, so a frozen hour
+     * went on fetching and drawing the sky while the screen said "Not running" (v5.8B audit). The
+     * engine's loop must take every one of its decisions from [LiveWeatherSchedule.runs].
+     */
+    @Test
+    fun `live weather runs only when switched on over a scene that follows real time`() {
+        assertTrue(LiveWeatherSchedule.runs(enabled = true, followRealTime = true))
+        assertFalse(LiveWeatherSchedule.runs(enabled = true, followRealTime = false))
+        assertFalse(LiveWeatherSchedule.runs(enabled = false, followRealTime = true))
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        var src: String? = null
+        while (dir != null && src == null) {
+            for (prefix in listOf("", "app/")) {
+                val f = java.io.File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/engine/PaperWallpaperService.kt")
+                if (f.isFile) src = f.readText()
+            }
+            dir = dir.parentFile
+        }
+        val loop = src!!.substringAfter("LiveWeatherSchedule.runs(settings.liveWeatherEnabled, settings.syncWithRealTime)").substringBefore("maybeCheckForUpdate()")
+        assertFalse("the loop must not read the raw switch any more:\n$loop", loop.contains("settings.liveWeatherEnabled"))
+        assertTrue(loop.contains("enabled = liveWeatherRuns"))
+        assertTrue(loop.contains("if (liveWeatherRuns && fix != null"))
+    }
 }

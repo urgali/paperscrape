@@ -42,9 +42,12 @@ class CustomThemeDataJsonTest {
 
     private fun sampleLayout() = SceneObjectLayout(
         staticObjects = listOf(
-            StaticSceneObject(SceneObjectType.HOUSE, depthFraction = 0.12f, tileFractionX = 0.2f, scale = 0.8f),
+            // Dealt silhouettes, not the UNDEALT default: until v5.8B every object here was
+            // undealt, so a writer that dropped `silhouette` read back exactly what it was given and
+            // this file could not see the defect v5.5 shipped (saved themes back on the old hash).
+            StaticSceneObject(SceneObjectType.HOUSE, depthFraction = 0.12f, tileFractionX = 0.2f, scale = 0.8f, silhouette = 3),
             StaticSceneObject(SceneObjectType.TREE, depthFraction = 0.65f, tileFractionX = 0.71f, scale = 1.15f),
-            StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = 0.03f, tileFractionX = 0.94f),
+            StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = 0.03f, tileFractionX = 0.94f, silhouette = 1),
         ),
         cars = listOf(
             CarObject(
@@ -105,6 +108,7 @@ class CustomThemeDataJsonTest {
             assertEquals("staticObjects[$i].depthFraction", e.depthFraction, a.depthFraction, 0.0001f)
             assertEquals("staticObjects[$i].tileFractionX", e.tileFractionX, a.tileFractionX, 0.0001f)
             assertEquals("staticObjects[$i].scale", e.scale, a.scale, 0.0001f)
+            assertEquals("staticObjects[$i].silhouette", e.silhouette, a.silhouette)
         }
         assertEquals("cars size", expected.cars.size, actual.cars.size)
         expected.cars.forEachIndexed { i, e ->
@@ -573,5 +577,41 @@ class CustomThemeDataJsonTest {
             SceneCustomization.DEFAULT,
             restored.overrides.getValue("christmas").customization,
         )
+    }
+
+    /**
+     * **A customization saved before the winter/Christmas split keeps its lights** (v5.8C). Before
+     * v2.0 the lights hung off the winter flag, so a payload with no `christmasDecorationsEnabled`
+     * reads its winter flag as its lights; one written since reads its own. Until v5.8C absence meant
+     * off, so a Christmas theme saved lit came back dark (v5.8B comment audit).
+     */
+    @Test
+    fun `a pre-split customization reads its winter flag as its lights`() {
+        fun parsed(winter: Boolean, christmas: Boolean?): SceneCustomization {
+            val json = defaultCustomizationFor("christmas").toJson()
+            json.put("winterColorsEnabled", winter)
+            if (christmas == null) json.remove("christmasDecorationsEnabled") else json.put("christmasDecorationsEnabled", christmas)
+            return sceneCustomizationFromJson(json)
+        }
+        org.junit.Assert.assertTrue("saved lit before the split: lights", parsed(winter = true, christmas = null).christmasDecorationsEnabled)
+        org.junit.Assert.assertFalse("saved unlit before the split: no lights", parsed(winter = false, christmas = null).christmasDecorationsEnabled)
+        org.junit.Assert.assertFalse("written since the split: its own flag", parsed(winter = true, christmas = false).christmasDecorationsEnabled)
+        org.junit.Assert.assertTrue("written since the split: its own flag", parsed(winter = false, christmas = true).christmasDecorationsEnabled)
+    }
+
+    /**
+     * **An unreadable hill or bird colour falls back to the default, not to transparent** (v5.8C):
+     * `optInt` with no fallback turned `"hillsColorDay": "nope"` into 0.
+     */
+    @Test
+    fun `an unreadable hill or bird colour reads as the default`() {
+        val json = defaultCustomizationFor("beach").toJson()
+        json.put("hillsColorDay", "nope")
+        json.put("hillsColorNight", "nope")
+        json.getJSONObject("birds").getJSONArray("colors").getJSONObject(0).put("color", "nope")
+        val back = sceneCustomizationFromJson(json)
+        assertEquals(SceneCustomization.DEFAULT.hillsColorDay, back.hillsColorDay)
+        assertEquals(SceneCustomization.DEFAULT.hillsColorNight, back.hillsColorNight)
+        assertEquals(SceneCustomization.DEFAULT.birds.colors[0].color, back.birds.colors[0].color)
     }
 }

@@ -3,10 +3,11 @@ package com.paperscrape.livewallpaper.engine
 /**
  * Whether a walking figure is drawn with an adult or a child sprite.
  *
- * Independent of [PersonSex] by construction: the two are read from different
- * [CandidateNoise] channels, so an adult is no more likely to be male than female and a group
- * containing an adult is no more likely to contain a boy than a girl. v4.0 could not express that
- * -- see [PedestrianPopulation] for what it did instead.
+ * Independent of [PersonSex] by construction: both are read back off one stratified deal of the
+ * four kinds `[man, woman, boy, girl]` on `CH_KIND`, so each is 50/50 and their joint is 25%, an
+ * adult is no more likely to be male than female and a group containing an adult is no more likely
+ * to contain a boy than a girl. v4.0 could not express that -- see [PedestrianPopulation] for what
+ * it did instead.
  */
 internal enum class PersonAge { ADULT, CHILD }
 
@@ -24,7 +25,10 @@ internal enum class PersonSex { MALE, FEMALE }
  * returns the list already sorted by it.
  */
 internal data class Pedestrian(
-    /** Which group this figure belongs to. Stable across frames; used only for addressing. */
+    /**
+     * Which group this figure belongs to. Stable across frames; used for addressing and as the
+     * draw-order tie-break.
+     */
     val groupIndex: Int,
     /** Position within the group, `0 until groupSize`. */
     val memberIndex: Int,
@@ -33,17 +37,17 @@ internal data class Pedestrian(
     /**
      * Index into the shipped skin palette -- the **base** of the tone, not the whole of it.
      *
-     * Dealt as a stratified rank rather than as an independent roll, and that is a property worth
-     * keeping: the four members of a stratum carry all three tones between them, so every street
-     * carries a spread however few people are on it. An independent roll reaches every tone too
-     * and is heavily biased in the small, which is what produced a boy-less `beach` before the
-     * ranks came in.
+     * Dealt as a stratified rank rather than as an independent roll: the four members of a
+     * stratum carry all three tones between them. An independent roll reaches every tone too and
+     * is heavily biased in the small, which is what produced a boy-less `beach` before the ranks
+     * came in.
      *
-     * **Since v4.30 this is rotated by the walker's crossing** (`PeopleColours.tone`), so the deal
-     * moves instead of being held for the life of the theme. A rotation is a bijection: figures on
-     * one crossing keep exactly the spread this dealt them, and no tone is ever favoured. What it
-     * cannot preserve is the spread *between* figures once they are on different crossings -- and
-     * that is the point of re-dealing rather than a cost of it.
+     * **Since v4.30 this is rotated by the walker's crossing** (`PeopleColours.toneIndex`), so the
+     * deal moves instead of being held for the life of the theme. A rotation per walker is a
+     * bijection over the tones for that walker, so no tone is ever favoured, but on its own it
+     * does not keep the spread across figures; since v5.8C the renderer deals every rotated tone
+     * through `PeopleColours.keepingSpread`, which does -- the walkers of a stratum are first seen in
+     * their [arrivalSkinIndex] and wear as many distinct tones as they can after every deal.
      */
     val skinIndex: Int,
     /** `+1` walking right, `-1` walking left. Read from its own channel; determines nothing else. */
@@ -61,6 +65,21 @@ internal data class Pedestrian(
      * v4.0 defect this field exists to close.
      */
     val depth: Float,
+    /**
+     * The tone this walker is **first seen** in (`PeopleColours.firstSightTone`), before any
+     * crossing has rotated it: its place, among the walkers of its stratum, in the order the groups
+     * arrive as the People density rises, rotated by the stratum's seeded offset.
+     *
+     * The groups arrive in a fixed order (ascending `CandidateThreshold.of`; the fallback group is
+     * the first of them), so the walkers present at any density are a prefix of that order, and a
+     * prefix of `r, r+1, r+2, r` carries two tones among two or three walkers and all three among
+     * four -- the spread `PeopleColours.keepingSpread` then keeps. [skinIndex] ranks the stratum
+     * in a seeded order instead, which a thinner street can cut into a pair of one tone (`autumn`
+     * at 50 %). And it is a function of the theme and the walker only, never of who else is
+     * present, so raising the density recolours nobody already on the street (`PeopleOcclusionTest`;
+     * v5.8C, found on the device when the first deal went through `keepingSpread`).
+     */
+    val arrivalSkinIndex: Int,
 ) {
     /**
      * Index into the four shipped sprite sets, `[man, woman, boy, girl]`.
@@ -111,7 +130,8 @@ internal data class Pedestrian(
  * Groups, not candidates. The pool still holds [GROUP_COUNT] slots so that density keeps the
  * linear/monotone/stable contract [CandidateThreshold] guarantees for every category, but each
  * surviving slot now yields a *group* of one to three people, and every attribute is read from its
- * own [CandidateNoise] channel:
+ * own [CandidateNoise] channel, except age and sex, which are read together off one four-kind deal
+ * (`CH_KIND`):
  *
  *  - group size, direction and row are per-group;
  *  - age, sex and skin are per-member, addressed by `groupIndex * MAX_GROUP_SIZE + memberIndex`.
@@ -144,11 +164,11 @@ internal object PedestrianPopulation {
     /**
      * How many skin tones the artwork can express.
      *
-     * Three, and every one of them exists as real artwork for every character: 96 sprite variants
-     * generated by `tools/generate_skin_variants.py`, which moves the single flat colour each
-     * character's skin is painted in and verifies that every other colour keeps its exact pixel
-     * mask. Clothes, hair, eyes, outlines, proportions, poses and animation are therefore
-     * identical across the tone axis rather than merely intended to be.
+     * Three, drawn at the blit rather than shipped as artwork: each person is fixed art plus one
+     * weight mask per colourable region, and the skin region is tinted with one of the three
+     * `PeopleColours.SKIN` tones (`tools/generate_skin_variants.py`'s `TONES`), so clothes, hair,
+     * eyes, outlines, proportions, poses and animation are identical across the tone axis by
+     * construction.
      *
      * All three are shipped PaperScrape paint -- the woman's, the man's and the boy's own skin
      * colours -- so the palette is the artwork's own and the variants cannot drift out of style.
@@ -163,8 +183,9 @@ internal object PedestrianPopulation {
      * express more. The follow-up batch made the artwork, so the constant is now the real count.
      *
      * **Not a user setting, and deliberately not one.** No preference, slider, DataStore key or
-     * UI control selects a tone; the only input is [CH_SKIN] on the seed. `SkinToneTest` fails if
-     * a preference for it ever appears.
+     * UI control selects a tone; the only inputs are the seed ([CH_SKIN], [CH_SKIN_ROTATION]) and
+     * the walker's crossing (`PeopleColours.toneIndex`). `SkinToneAssetsTest` fails if a preference
+     * for it ever appears.
      */
     const val SKIN_TONE_COUNT = 3
 
@@ -207,9 +228,10 @@ internal object PedestrianPopulation {
     /**
      * How many of the four group slots take the first of a two-valued attribute.
      *
-     * Two, so direction, row, age and sex each split the pool exactly in half. This is the whole
-     * of "both directions always occur" and "an adult of each sex always occurs": it is a property
-     * of the arithmetic rather than something a seed has to be lucky enough to produce.
+     * Two, so direction and row each split the pool exactly in half. This is the whole of "both
+     * directions always occur" on a full street: it is a property of the arithmetic rather than
+     * something a seed has to be lucky enough to produce. (Age and sex are split by the four-kind
+     * deal, see [ADULT_KINDS].)
      */
     private const val HALF_OF_POOL = GROUP_COUNT / 2
 
@@ -260,14 +282,17 @@ internal object PedestrianPopulation {
         val sizeRotation = (CandidateNoise.value(seed, 0, CH_SIZE_ROTATION) * MAX_GROUP_SIZE)
             .toInt().coerceIn(0, MAX_GROUP_SIZE - 1)
         val people = ArrayList<Pedestrian>(GROUP_COUNT * MAX_GROUP_SIZE)
+        // Sizes are dealt from {1, 2, 3} across the four slots rather than rolled per slot, so a
+        // full street always shows a lone walker, a pair and a trio instead of, as `autumn` and
+        // `christmas` did, four groups that happen to be only ones and threes. All four up front:
+        // the arrival tone of a walker reads the sizes of the groups that are not present too.
+        val sizes = IntArray(GROUP_COUNT) { g -> 1 + (sizeRotation + rankAmongGroups(seed, CH_GROUP_SIZE, g)) % MAX_GROUP_SIZE }
         for (g in 0 until GROUP_COUNT) {
             if (!CandidateThreshold.isPresent(g, density, THRESHOLD_OFFSET, fallbackIndex)) continue
-            // Sizes are dealt from {1, 2, 3} across the four slots rather than rolled per slot, so
-            // a street always shows a lone walker, a pair and a trio instead of, as `autumn` and
-            // `christmas` did, four groups that happen to be only ones and threes.
-            val size = 1 + (sizeRotation + rankAmongGroups(seed, CH_GROUP_SIZE, g)) % MAX_GROUP_SIZE
-            // Direction is its own rank, read from its own channel. It is deliberately used for
-            // nothing else in this function: that is the whole of `direction != composition`.
+            val size = sizes[g]
+            // Direction is its own rank, read from its own channel. It deliberately decides nothing
+            // about who is in the group -- only which way it walks and so which side its members
+            // trail on: that is the whole of `direction != composition`.
             // Two groups walk each way, which is what `tundra` -- ten people, all rightward --
             // could not manage when each group flipped its own coin.
             val direction = if (rankAmongGroups(seed, CH_DIRECTION, g) < HALF_OF_POOL) 1f else -1f
@@ -282,17 +307,19 @@ internal object PedestrianPopulation {
                 // children, two male and two female, and carry all three tones between them.
                 val addr = g * MAX_GROUP_SIZE + m
                 // One rank, four kinds, four slots: each stratum deals `[man, woman, boy, girl]`
-                // out whole, so every street carries an adult of each sex and a child of each sex
-                // however few people it has. Age and sex are read back off that deal, which makes
-                // them *exactly* independent -- each is 50/50 and their joint is 25% by
-                // construction -- where two separate half-and-half deals left the pairing to
-                // chance and produced a boy-less `beach`, `autumn` and `easter`.
+                // out whole, so a full street carries an adult of each sex and a child of each
+                // sex, and a thinner one never repeats a kind among its leaders. Age and sex are
+                // read back off that deal, which makes them *exactly* independent -- each is 50/50
+                // and their joint is 25% by construction -- where two separate half-and-half
+                // deals left the pairing to chance and produced a boy-less `beach`, `autumn` and
+                // `easter`.
                 val kind = rankAmongMembers(seed, CH_KIND, g, m)
                 val age = if (kind < ADULT_KINDS) PersonAge.ADULT else PersonAge.CHILD
                 val sex = if (kind % 2 == 0) PersonSex.MALE else PersonSex.FEMALE
                 val skinRotation = (CandidateNoise.value(seed, m, CH_SKIN_ROTATION) * SKIN_TONE_COUNT)
                     .toInt().coerceIn(0, SKIN_TONE_COUNT - 1)
                 val skin = (skinRotation + rankAmongMembers(seed, CH_SKIN, g, m)) % SKIN_TONE_COUNT
+                val arrivalSkin = (skinRotation + arrivalRank(g, m, sizes)) % SKIN_TONE_COUNT
                 // Members trail the group's anchor along its own direction of travel, so a group
                 // walking left is not mirrored into walking backwards.
                 val spread = CandidateNoise.range(seed, addr, CH_MEMBER_OFFSET, 0.6f, 1.4f)
@@ -326,6 +353,7 @@ internal object PedestrianPopulation {
                     // The feet's ground line, and nothing else. Not the index, not the group, not
                     // the order of creation.
                     depth = row,
+                    arrivalSkinIndex = arrivalSkin,
                 )
             }
         }
@@ -333,6 +361,22 @@ internal object PedestrianPopulation {
         // means the result does not depend on that guarantee either.
         people.sortWith(compareBy({ it.depth }, { it.groupIndex }, { it.memberIndex }))
         return people
+    }
+
+    /**
+     * Member [m] of group [g]'s place among the m-th members of all four groups -- the groups whose
+     * size reaches it, present or not -- in the order the groups arrive as the density rises
+     * (ascending threshold, the group index breaking a tie). See [Pedestrian.arrivalSkinIndex].
+     */
+    private fun arrivalRank(g: Int, m: Int, sizes: IntArray): Int {
+        val mine = CandidateThreshold.of(g, THRESHOLD_OFFSET)
+        var rank = 0
+        for (other in 0 until GROUP_COUNT) {
+            if (other == g || sizes[other] <= m) continue
+            val theirs = CandidateThreshold.of(other, THRESHOLD_OFFSET)
+            if (theirs < mine || (theirs == mine && other < g)) rank++
+        }
+        return rank
     }
 
     /**
@@ -351,7 +395,8 @@ internal object PedestrianPopulation {
      * chosen -- and must not be, or size would bias composition -- so the pool an attribute is
      * dealt across has to be one that exists whatever the sizes turn out to be. The four leaders
      * always exist, so dealing across them guarantees the balance where it is always visible;
-     * strata 1 and 2 are dealt the same way among however many groups reach them.
+     * strata 1 and 2 are dealt across the same four slots, and only the groups that reach them
+     * show their share.
      *
      * The address is `g * MAX_GROUP_SIZE + m`, exactly v4.1's.
      */

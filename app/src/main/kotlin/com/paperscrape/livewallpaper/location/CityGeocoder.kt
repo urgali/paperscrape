@@ -57,10 +57,14 @@ data class GeocodedCity(
 sealed interface CitySearchResult {
     data class Found(val cities: List<GeocodedCity>) : CitySearchResult
 
-    /** The provider answered, and knows no place by that name. */
+    /** The provider knows no place by that name, or the query is too short to ask about. */
     data object NoMatches : CitySearchResult
 
-    /** Nothing was learned: offline, timeout, an error response, an unreadable body. */
+    /**
+     * Nothing was learned: offline, timeout, an error response, an over-long body, or a 200 whose
+     * body is not the provider's JSON at all (a captive portal's page, a proxy's error) -- which
+     * until v5.8C was reported, and cached, as [NoMatches].
+     */
     data object Failed : CitySearchResult
 }
 
@@ -75,16 +79,18 @@ object CityGeocodingParser {
 
     /**
      * Returns the places in the body, skipping any entry without usable coordinates rather than
-     * failing the whole search for one bad row. An unparseable body yields an empty list, which
-     * the caller reports as [CitySearchResult.Failed] rather than as "no such city": those two
-     * must not look alike to the user.
+     * failing the whole search for one bad row, or **null when the body is not a JSON object at
+     * all** -- so the caller can tell "the provider knows no such place" (an empty list) from
+     * "nothing readable came back" (null). Until v5.8C both were an empty list, and a captive
+     * portal's page was reported and cached as "no match" (v5.8B comment audit).
      */
-    fun parse(body: String): List<GeocodedCity> {
-        val results = try {
-            JSONObject(body).optJSONArray("results")
+    fun parse(body: String): List<GeocodedCity>? {
+        val root = try {
+            JSONObject(body)
         } catch (_: Exception) {
-            null
-        } ?: return emptyList()
+            return null
+        }
+        val results = root.optJSONArray("results") ?: return emptyList()
 
         val cities = mutableListOf<GeocodedCity>()
         for (index in 0 until results.length()) {
@@ -146,7 +152,7 @@ class CitySearchCache(private val maxEntries: Int = 8) {
  * **Open-Meteo's own geocoding API**, which is the same provider Live Weather already uses. That
  * choice is the point: it needs no API key (like the weather endpoint, and unlike Google's
  * Geocoding API or Mapbox), it adds no library, and it reuses
- * [com.paperscrape.livewallpaper.weather.WeatherRepository]'s exact networking style --
+ * [com.paperscrape.livewallpaper.weather.WeatherHttp]'s exact networking style --
  * `HttpURLConnection`, fixed timeouts, every failure becoming a value rather than an exception.
  * The app still has no HTTP client dependency and still ships no secret.
  *
@@ -155,8 +161,9 @@ class CitySearchCache(private val maxEntries: Int = 8) {
  * Play services, and returns results whose region fields are inconsistently populated -- which is
  * exactly the information a user needs to tell three Springfields apart.
  *
- * Reverse geocoding stays on the platform [LocationLabelResolver]: it runs offline where a device
- * supports it and needs no network at all, so there is no reason to move it.
+ * Reverse geocoding stays on the platform [LocationLabelResolver]: it needs no key and adds no host
+ * of this app's own (the platform's geocoder does the lookup, over the network on most devices),
+ * so there is no reason to move it.
  */
 object CityGeocoder {
 
@@ -204,8 +211,9 @@ object CityGeocoder {
             val body = connection.inputStream.bufferedReader().use { it.readAtMost(MAX_HTTP_BODY_CHARS) }
                 ?: return@withContext CitySearchResult.Failed
             // An empty "results" array and an absent one are the same answer from this provider:
-            // it knows no such place. Only a failure to reach or read it is Failed.
-            val cities = CityGeocodingParser.parse(body)
+            // it knows no such place. A body that is not JSON at all is not an answer, so it is
+            // Failed and is not cached: trying the same text again asks again.
+            val cities = CityGeocodingParser.parse(body) ?: return@withContext CitySearchResult.Failed
             cache.put(trimmed, cities)
             if (cities.isEmpty()) CitySearchResult.NoMatches else CitySearchResult.Found(cities)
         } catch (_: Exception) {

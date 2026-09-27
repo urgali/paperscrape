@@ -7,7 +7,8 @@ import java.util.concurrent.atomic.AtomicReference
  * [SceneObjectCatalog.layoutFor] can consult it synchronously.
  *
  * Filled from outside (see [com.paperscrape.livewallpaper.engine.PaperWallpaperService] and
- * `SettingsActivity`, both of which collect `CustomThemeStore.dataFlow` and call [update]) --
+ * `rememberCustomThemeData` in `SettingsScreen.kt`, both of which collect
+ * `CustomThemeStore.dataFlow` and call [update]) --
  * this object itself has no knowledge of DataStore/Context, keeping the engine package free of
  * Android persistence concerns.
  *
@@ -27,9 +28,12 @@ object CustomThemeRegistry {
      * the open settings screen, which is the normal way a user edits a theme) one store write
      * bumped the generation twice and `SceneObjectRenderer` rebuilt itself twice for one change.
      *
-     * `CustomThemeData` is a data class, so the comparison is structural and a second collector
-     * delivering the identical document is free. That is the whole fix: the generation counts
-     * *changes*, not deliveries, which is what every reader of it already assumed.
+     * `CustomThemeData` is a data class, so the comparison is structural -- except that
+     * [SceneTheme] compares by id alone, so a saved theme whose colours or display name alone
+     * changed does not bump the generation (its only reader, the object renderer, uses neither)
+     * -- and a second collector delivering the identical document is free. That is the whole
+     * fix: the generation counts *changes*, not deliveries, which is what every reader of it
+     * already assumed.
      */
     fun update(data: CustomThemeData) {
         val previous = current.getAndSet(data)
@@ -38,10 +42,11 @@ object CustomThemeRegistry {
     }
 
     /**
-     * Increments every time [update] is called. Anything that caches rendering state keyed by
-     * theme id (e.g. [PaperRenderer]'s hill-path cache, [SceneObjectRenderer]'s layout cache)
-     * must also key on this, because overriding/resetting a built-in theme changes what that
-     * *same* id resolves to without the id itself changing -- an id-only cache would miss it.
+     * Increments every time [update] publishes a document different from the one it held.
+     * Anything that caches rendering state derived from a saved theme and keyed by theme id (e.g.
+     * [PaperRenderer]'s object renderer, built from [SceneObjectCatalog.layoutFor]) must also key
+     * on this, because overriding/resetting a built-in theme changes what that *same* id resolves
+     * to without the id itself changing -- an id-only cache would miss it.
      */
     fun generation(): Int = generationCounter.get()
 
@@ -99,6 +104,6 @@ object CustomThemeRegistry {
         return stored.withResolvedDayNightColors()
     }
 
-    /** The customization a saved entry carries, if this id names one. Used to seed a fresh edit. */
+    /** The customization a saved entry carries, if this id names one. */
     fun savedCustomizationFor(themeId: String): SceneCustomization? = entryFor(themeId)?.customization
 }

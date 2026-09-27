@@ -67,8 +67,10 @@ class SkinToneTest {
     fun `the dealt base does not depend on the clock`() {
         // The deal is reproducible; what the figure *wears* is the deal rotated by its crossing,
         // and that does move with the clock. See this class's own doc.
+        // Not "call, sleep 5 ms, call again", which a rule reading the clock by the second passes
+        // (v5.8B): the file that deals the base names no clock ([ClockFreeSource]).
+        assertEquals(emptyList<String>(), ClockFreeSource.clockReadsIn("engine/PedestrianPopulation.kt"))
         val before = build(4242).map { it.skinIndex }
-        Thread.sleep(5)
         assertEquals(before, build(4242).map { it.skinIndex })
     }
 

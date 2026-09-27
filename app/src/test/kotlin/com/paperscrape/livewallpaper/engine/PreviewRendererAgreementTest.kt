@@ -269,9 +269,16 @@ class PreviewRendererAgreementTest {
      * v5.0 removed the thing those fixes were guarding. A building is no longer a list of
      * literals in two places; it is a stack dealt from one table by one composer, and the preview
      * calls that composer. So the property is no longer "these particular numbers match" but the
-     * stronger one underneath it: **for the same identity the two sides produce the same parts at
-     * the same coordinates**, every part, every family, every deal -- which is what this asserts.
-     * There is no copy left to drift, and if somebody writes one, this fails.
+     * one underneath it: **every building on the card is a stack the composer deals for the
+     * identity the card declares**, every part, every family -- which is what this asserts. There
+     * is no copy of the stacking left to drift, and if somebody writes one, this fails.
+     *
+     * **What it does not show, and its name used to claim** (v5.8B): "the deal the wallpaper
+     * would deal". Since v5.5 the wallpaper deals a building from the silhouette the generator
+     * recorded on the object (`NeighbourhoodComposer.deal(family, spec, ...)`), and deals from the
+     * position only for an undealt one; the card always deals from a position it picks for a
+     * picture (`PreviewIdentity`, left alone by decision). So the card's stacks are real stacks of
+     * the table, built the wallpaper's way, and not the particular stacks any theme's street shows.
      */
     private fun expectedParts(
         variant: SceneSpace.SceneVariant,
@@ -328,7 +335,7 @@ class PreviewRendererAgreementTest {
         .toSet()
 
     @Test
-    fun `every building the gallery draws is the deal the wallpaper would deal`() {
+    fun `every building the gallery draws is a deal the composer makes for its declared identity`() {
         var checked = 0
         for (theme in ThemeCatalog.ALL) {
             val customization = defaultCustomizationFor(theme.id)
@@ -370,7 +377,10 @@ class PreviewRendererAgreementTest {
             val c = defaultCustomizationFor(theme.id)
             val scene = ThemePreviewScenes.forTheme(ThemeCatalog.byId(theme.id), c)
             val night = c.horrorSkyEnabled || ThemeCatalog.byId(theme.id).hasFireworks
-            val dayBlend = if (night) 0f else 1f
+            // The card's own moment of the day, which since v5.8B is a real one: noon, midnight,
+            // or Sunset's hour before sunset -- where a wall is between its two
+            // colours exactly as the wallpaper's is at that minute.
+            val dayBlend = ThemePreviewScenes.cardPhase(ThemeCatalog.byId(theme.id), night).dayBlend
             val allowed = listOf(
                 SceneObjectType.HOUSE to c.houses,
                 SceneObjectType.SKYSCRAPER to c.buildings,
@@ -386,7 +396,7 @@ class PreviewRendererAgreementTest {
                     val tint = part.tint ?: continue
                     // The glass masks carry the window ramp, not the wall; they are the two
                     // constants every window in the scene reads.
-                    if (tint == SceneObjectRenderer.windowGlassColor(if (night) 1f else 0f)) continue
+                    if (tint == SceneObjectRenderer.windowGlassColor(1f - dayBlend)) continue
                     assertTrue(
                         "theme ${theme.id}: a wall mask is tinted ${Integer.toHexString(tint)}, " +
                             "which is neither of its category's two colours",

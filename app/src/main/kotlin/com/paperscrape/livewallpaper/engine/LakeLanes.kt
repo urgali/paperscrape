@@ -49,9 +49,10 @@ internal object LakeLanes {
      * For everything that stays on the water that is just its lane, and [heightAboveLane] is zero.
      * It is not zero for a dolphin in mid-leap, and that is the whole of the v3.1 fix: sorting an
      * airborne animal by the lane it left reads its depth from a point its body is no longer at.
-     * A sail stands roughly four lane widths above its own waterline while lanes are one lane
-     * width apart, so a dolphin a single lane nearer than a sailboat -- painted after it,
-     * correctly, by lane -- crossed the sail in mid-air.
+     * A sail stands several lane widths above its own waterline (about four when v3.1 measured
+     * it, roughly seven to nine with today's lake geometry) while lanes are one lane width
+     * apart, so a dolphin a single lane nearer than a sailboat -- painted after it, correctly, by
+     * lane -- crossed the sail in mid-air.
      *
      * Ordering by the base instead makes one rule cover both: a dolphin recedes as it rises, drops
      * behind the boat whose waterline it has climbed past, and comes back in front as it lands.
@@ -65,9 +66,10 @@ internal object LakeLanes {
      * Fills [order] with `0 until count`, sorted so that the smallest [depths] value comes first:
      * far to near, which is the order the water has to be painted in.
      *
-     * Insertion sort over at most [LANE_COUNT] entries, writing into arrays the renderer owns, so
-     * a frame costs no allocation -- this runs inside the draw path. It is stable, so two things
-     * at exactly the same height keep a fixed order rather than flickering between frames.
+     * Insertion sort over at most [LANE_COUNT] + [PaperRenderer.WAVE_POOL] entries (boats,
+     * dolphins and waves), writing into arrays the renderer owns, so a frame costs no allocation
+     * -- this runs inside the draw path. It is stable, so two things at exactly the same height
+     * keep a fixed order rather than flickering between frames.
      */
     fun orderByDepth(depths: FloatArray, count: Int, order: IntArray) {
         for (i in 0 until count) order[i] = i

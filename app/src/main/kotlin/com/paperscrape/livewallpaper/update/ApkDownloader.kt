@@ -1,5 +1,7 @@
 package com.paperscrape.livewallpaper.update
 
+import com.paperscrape.livewallpaper.MAX_HTTP_BODY_CHARS
+import com.paperscrape.livewallpaper.readAtMost
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.pm.PackageInfo
@@ -22,7 +24,7 @@ import kotlin.coroutines.coroutineContext
  * Which part of the update the flow is in right now.
  *
  * Downloading and verifying are two different waits and the second is not instant: after the last
- * byte arrives there is still a digest to compare and a 2 MB package to parse before anything can
+ * byte arrives there is still a digest to compare and a ~3 MB package to parse before anything can
  * be offered to the installer. Reporting both means the UI can stop claiming to be downloading
  * something it has already finished downloading.
  */
@@ -45,7 +47,7 @@ sealed interface UpdateDownloadResult {
     data object NoApkAsset : UpdateDownloadResult
 
     /**
-     * The APK is there but its checksum file is not.
+     * The APK is there but its checksum file is not, or holds no readable hash.
      *
      * A hard stop, not a warning. The alternative is installing a file whose integrity nothing
      * established, which is the one thing this whole path exists to avoid.
@@ -64,7 +66,7 @@ sealed interface UpdateDownloadResult {
  * offered to the system installer.
  *
  * Uses `HttpURLConnection` and no new library, the same as [UpdateChecker] and
- * [com.paperscrape.livewallpaper.weather.WeatherRepository]: the app still has no HTTP client
+ * [com.paperscrape.livewallpaper.weather.WeatherHttp]: the app still has no HTTP client
  * dependency. The download goes to the app's own cache directory, which means the system can
  * reclaim it and a failed or abandoned attempt costs nothing permanent.
  */
@@ -81,7 +83,10 @@ object ApkDownloader {
     private fun updateCacheDir(context: Context): File =
         File(context.cacheDir, "updates").apply { mkdirs() }
 
-    /** Clears any previously downloaded APK. Called before a download and after an install hand-off. */
+    /**
+     * Clears any previously downloaded APK. Called before a download and when a downloaded file is
+     * rejected; the file handed to the installer stays until the next download.
+     */
     fun clearCache(context: Context) {
         updateCacheDir(context).listFiles()?.forEach { it.delete() }
     }
@@ -92,7 +97,8 @@ object ApkDownloader {
      * The checksum comes first deliberately: if it is missing there is no point spending a user's
      * data on an APK that could not be installed anyway.
      *
-     * [onPhase] is called from a background dispatcher; callers marshal to the UI.
+     * [onPhase] is called from a background dispatcher, so it must be safe to call from there; the
+     * Advanced screen writes Compose snapshot state, which is.
      */
     suspend fun downloadAndVerify(
         context: Context,
@@ -150,7 +156,9 @@ object ApkDownloader {
         return try {
             connection = open(url)
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
-            connection.inputStream.bufferedReader().use { it.readText() }
+            // Bounded like every other body this app reads (SEC-03): a checksum file is one line,
+            // and until v5.8C this was the one HTTP body still read with no cap at all.
+            connection.inputStream.bufferedReader().use { it.readAtMost(MAX_HTTP_BODY_CHARS) }
         } catch (_: Exception) {
             null
         } finally {
@@ -161,7 +169,7 @@ object ApkDownloader {
     /**
      * Streams the download to [target] while hashing it in the same pass, and returns the digest.
      *
-     * Hashing as the bytes arrive rather than re-reading the finished file keeps a ~19 MB APK from
+     * Hashing as the bytes arrive rather than re-reading the finished file keeps a ~3 MB APK from
      * being read twice, and means the digest describes exactly what was written.
      */
     private suspend fun downloadHashing(url: String, target: File, onPhase: (DownloadPhase) -> Unit): String? {
@@ -179,8 +187,9 @@ object ApkDownloader {
                 target.outputStream().use { output ->
                     val buffer = ByteArray(BUFFER_BYTES)
                     while (true) {
-                        // Cancelling the screen cancels the transfer; a partial file is deleted by
-                        // the caller's next attempt, which clears the cache first.
+                        // Cancelling the screen cancels the transfer; the partial file is
+                        // deleted on the way out (below), and the next attempt clears the
+                        // cache first anyway.
                         coroutineContext.ensureActive()
                         // `< 0` rather than `<= 0`: `InputStream.read` returns 0 only for a
                         // zero-length buffer, and treating 0 as end-of-stream would have turned a

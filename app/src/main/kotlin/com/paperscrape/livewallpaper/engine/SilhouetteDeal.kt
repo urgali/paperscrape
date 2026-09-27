@@ -156,9 +156,9 @@ internal object SilhouetteDeal {
      * A house's catalogue does **not** depend on its family, which is what keeps this free of the
      * circularity the one-catalogue decision would otherwise create: the family is read off the
      * dealt silhouette, so it cannot also be an input to choosing one. A commercial building's
-     * does depend on its depth -- `SceneObjectRenderer.variantFor` decides tower/restaurant/bar
-     * that way and will go on deciding it that way, because a four-metre bar has no business on
-     * the skyline whatever a seed says.
+     * does depend on its depth -- `SceneObjectRenderer.variantFor` decides
+     * tower/restaurant/school/bar that way and will go on deciding it that way, because a
+     * four-metre bar has no business on the skyline whatever a seed says.
      */
     fun catalogueFor(spec: StaticSceneObject): List<Silhouette>? = when (spec.type) {
         SceneObjectType.HOUSE -> HOUSES
@@ -205,8 +205,8 @@ internal object SilhouetteDeal {
     /**
      * [candidates] with each slot's silhouette recorded on it.
      *
-     * Slots are numbered **within their own catalogue** -- the eight towers of a theme are slots
-     * 0..7 of the tower catalogue and its one bar is slot 0 of the bar catalogue -- so each
+     * Slots are numbered **within their own catalogue** -- the seven towers of a theme are slots
+     * 0..6 of the tower catalogue and its one bar is slot 0 of the bar catalogue -- so each
      * population's deal is independent of how many of the others there happen to be. Types with no
      * catalogue pass through untouched and keep [StaticSceneObject.UNDEALT].
      */

@@ -75,8 +75,11 @@ class RealThemeSilhouetteDistributionTest {
      * Pinned as literals so a repair cannot buy variety by standing more houses on the street.
      * `city` keeps 3 of 10 because it is the one theme that lowers the Houses density, to 0.3.
      */
+    // v5.8C: autumn 5 -> 4. The density threshold reads a real fraction since then (item 134,
+    // `DensityResolutionTest`), and of autumn's houses the one on the step 0.65 cuts through fell
+    // above the cut; no other theme's count moved, and no house appeared anywhere.
     private val keptHouseCounts = mapOf(
-        "sunset" to 8, "autumn" to 5, "winter" to 7, "desert" to 7,
+        "sunset" to 8, "autumn" to 4, "winter" to 7, "desert" to 7,
         "christmas" to 6, "new_year" to 5, "beach" to 9, "city" to 3,
         "tundra" to 6, "easter" to 9, "halloween" to 7, "spring" to 9,
     )

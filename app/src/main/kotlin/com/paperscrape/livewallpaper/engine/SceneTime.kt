@@ -27,7 +27,8 @@ import kotlin.math.sin
  *  - **Linear cycles**, `(t * rate + offset) % 1`. These wrap seamlessly only if `P * rate` is a
  *    whole number. Their rates are **not** fixed constants: cloud drift, precipitation fall speed,
  *    bird drift and lake decoration speed all derive their rate from a per-candidate random value
- *    (for example `0.03f + rnd.nextFloat() * 0.02f`). For an arbitrary real rate, no `P` exists.
+ *    (for example `CandidateNoise.range(seed, i, CH_SPEED, 0.03f, 0.05f)`). For an arbitrary
+ *    real rate, no `P` exists.
  *
  * So any global wrap would leave every cloud, raindrop, bird and leaf jumping to a new position at
  * the wrap instant. Per-effect wrapping would work but means one accumulator per effect, which is
@@ -37,11 +38,12 @@ import kotlin.math.sin
  *
  * Accumulate in `Double` and **bound at the point of use** rather than at the accumulator.
  *
- * A `Double` accumulated by ~0.033 per frame does not stall until roughly 9 million years, so the
- * accumulator itself needs no bound. Every read then goes through one of the helpers below, each
- * of which performs its arithmetic in double precision and only narrows to `Float` *after* the
- * operation that bounds the result — `sin`, a modulo, or an integer frame index. The value handed
- * to the renderer is therefore always small, and its precision never depends on uptime.
+ * A `Double` accumulated by ~0.033 per frame does not stall until roughly 18 million years
+ * (2^49 s), so the accumulator itself needs no bound. Every read then goes through one of the
+ * helpers below, each of which performs its arithmetic in double precision and only narrows to
+ * `Float` *after* the operation that bounds the result — `sin`, a modulo, or an integer frame
+ * index. The value handed to the renderer is therefore always small, and its precision never
+ * depends on uptime.
  *
  * This is the same mistake, and the same fix, as the one already documented for
  * `PaperRenderer.scrollProgress`: never narrow an unbounded accumulator to `Float`; narrow the

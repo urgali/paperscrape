@@ -3,8 +3,9 @@ package com.paperscrape.livewallpaper.weather
 /**
  * The single door between the wallpaper engine and whichever weather service is selected.
  *
- * The pipeline is `provider -> normalised WeatherObservation -> repository -> scene`, and this is
- * the only step that knows a provider was chosen at all. Providers know nothing about
+ * The pipeline is `provider -> normalised WeatherObservation -> repository -> scene`. The engine
+ * reads which provider is selected, and its key, from settings and hands both in; this is the only
+ * step that turns that id into a provider object. Providers know nothing about
  * preferences, scheduling or the renderer; the engine knows nothing about endpoints or response
  * shapes.
  *

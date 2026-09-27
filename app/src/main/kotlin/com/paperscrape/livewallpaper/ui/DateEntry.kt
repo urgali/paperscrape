@@ -110,8 +110,8 @@ private fun reachableEntries(text: String): Set<String> {
 /**
  * The [MonthDay] [text] names, or `null` if it does not name one.
  *
- * Day first, month second. `null` covers both "not finished" and "finished and not a date"; the
- * caller separates them with [isDateEntryComplete], because they deserve different treatment on
+ * Day first, month second. `null` covers both "not a date yet" and "never going to be one"; the
+ * caller separates them with [isDateEntryRejected], because they deserve different treatment on
  * screen and the same treatment for Save.
  */
 internal fun parseDateEntry(text: String): MonthDay? {

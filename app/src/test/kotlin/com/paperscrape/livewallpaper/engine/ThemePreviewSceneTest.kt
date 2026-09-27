@@ -90,9 +90,10 @@ class ThemePreviewSceneTest {
         assertFalse(scene.contains(R.drawable.tree_canopy))
         assertTrue(scene.contains(R.drawable.moon_jack_o_lantern))
         assertTrue(scene.contains(R.drawable.pumpkin_body))
-        // HORROR_SKY_TOP_DAY / HORROR_SKY_LOW_NIGHT, not the theme's own sky.
-        assertEquals(0xFF07060A.toInt(), scene.skyTop)
-        assertEquals(0xFFB03A06.toInt(), scene.skyBottom)
+        // HORROR_SKY_TOP_NIGHT / HORROR_SKY_LOW_NIGHT, not the theme's own sky: the horror sky
+        // makes this a night card.
+        assertEquals(PaperRenderer.HORROR_SKY_TOP_NIGHT, scene.skyTop)
+        assertEquals(PaperRenderer.HORROR_SKY_LOW_NIGHT, scene.skyBottom)
     }
 
     @Test
@@ -124,12 +125,13 @@ class ThemePreviewSceneTest {
     }
 
     @Test
-    fun `desert has palms and dunes but no water`() {
+    fun `desert has palms and mountains but no water`() {
+        // Mountains and not dunes: the wallpaper has no desert branch and draws the Desert's two
+        // mountain layers exactly as every other theme's, so the card does too (v5.8B).
         val scene = sceneFor("desert")
         assertFalse(scene.hasLake)
         assertTrue(scene.contains(R.drawable.palmtree_fronds))
         assertTrue(scene.peaks.isNotEmpty())
-        assertTrue("desert's horizon must be dunes", scene.peaks.all { it.dune })
     }
 
     @Test
@@ -192,12 +194,25 @@ class ThemePreviewSceneTest {
     }
 
     @Test
-    fun `sunset shows its own dusk sky`() {
+    fun `sunset shows the wallpaper's own sky an hour before sunset`() {
+        // This test used to assert `theme.skyDusk`, the array the wallpaper stopped reading when the
+        // six editable sky colours arrived -- so it pinned the card to a sky the wallpaper never
+        // draws, and would have stayed green through any change to the wallpaper's sky. What it
+        // pins now is the wallpaper's own rule at the card's moment.
         val theme = ThemeCatalog.byId("sunset")
+        val customization = defaultCustomizationFor("sunset")
         val scene = sceneFor("sunset")
-        assertEquals(theme.skyDusk.first(), scene.skyTop)
-        assertEquals(theme.skyDusk.last(), scene.skyBottom)
+        val phase = SunPositionCalculator.compute(ThemePreviewScenes.CARD_DUSK_HOUR)
+        assertTrue("the sun is still up on the card", phase.isSunVisible)
+        assertEquals(SkyGradient.top(customization.sky, phase.dayBlend), scene.skyTop)
+        assertEquals(SkyGradient.bottom(customization.sky, phase.dayBlend, phase.progress), scene.skyBottom)
         assertTrue(scene.contains(R.drawable.sun_body))
+        // And the coral the card used to show is a colour the wallpaper's sky never reaches, at
+        // any minute of the day: that is what made it a lie rather than a choice of hour.
+        for (minute in 0 until 24 * 60) {
+            val p = SunPositionCalculator.compute(minute / 60f)
+            assertTrue("minute $minute", SkyGradient.top(customization.sky, p.dayBlend) != theme.skyDusk.first())
+        }
     }
 
     // -- nothing a theme does not have ----------------------------------------------------------

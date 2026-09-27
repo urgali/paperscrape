@@ -142,8 +142,9 @@ internal object CandidateThreshold {
      *
      * Without this rule a small pool shows *nothing* at a low but non-zero setting -- a category
      * the user has enabled and turned down would look switched off rather than sparse. It matters
-     * for the four-candidate pools (sailboats, dolphins, mountains) and the six-candidate one
-     * (birds); the large pools effectively never reach it.
+     * for the small pools -- the three waves, the four-candidate pools (sailboats, dolphins,
+     * mountains, pedestrian groups) and the six-candidate one (birds); the large pools effectively
+     * never reach it.
      *
      * Returns as soon as any candidate qualifies, so in the common case this exits after a few
      * iterations and only walks the whole pool in the rare case where the rule actually applies.

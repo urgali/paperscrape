@@ -1,13 +1,16 @@
 package com.paperscrape.livewallpaper.engine
 
 /**
- * The two lifecycle rules the GL backend's correctness rests on, extracted so they can be tested.
+ * The lifecycle rules the GL backend's correctness rests on -- which thread a surface goes to, when
+ * a context is rebuilt, when a trim may run and when an EGL surface may be reused -- extracted so
+ * they can be tested.
  *
  * They used to be spelled out inline in `PaperEngine`'s surface callbacks and in
- * [GlRenderThread]'s frame loop, where nothing could reach them, and both were wrong in a way that
- * only shows up on a device that happens to destroy and recreate a wallpaper surface -- which is
- * exactly the kind of rule that stays wrong. Same reason `LiveWeatherInputs` and
- * `LiveWeatherSchedule` are pure objects rather than code inside the service.
+ * [GlRenderThread]'s frame loop, where nothing could reach them, and each was wrong in a way
+ * that only shows up on a device that happens to destroy and recreate a wallpaper surface or lose
+ * a GL context -- which is exactly the kind of rule that stays wrong. Same reason
+ * `LiveWeatherInputs` and `LiveWeatherSchedule` are pure objects rather than code inside the
+ * service.
  */
 internal object GlLifecyclePolicy {
 

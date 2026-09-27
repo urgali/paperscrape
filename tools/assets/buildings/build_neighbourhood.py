@@ -8,7 +8,7 @@ every piece, writes the PNGs into `res/drawable-nodpi`, writes the table the eng
 and writes the registry entries that describe them -- the four outputs that have to agree, from
 one run, so they cannot drift apart.
 
-**The colour rule, which is the whole of the colour system.** Every tinted surface descends from
+**The colour rule, which is the whole of the colour system.** Every wall surface descends from
 `SceneCustomization.colorFor(spec, dayBlend)`, that is from one of the two user-editable colours
 of the object's category (HOUSES for the two houses; BUILDINGS for the tower, the restaurant and
 the bar, which share them). There is no per-instance hue and no colour of a piece's own: each
@@ -56,7 +56,7 @@ FAMILY_NOTES = {
         "        // ground line against the 72 it declares -- the two are the turret cornice and the grid\n"
         "        // margin, and `BuildingHeightDeclarationTest` measures the ratio rather than trusting\n"
         "        // this sentence. Its `WindowBuildingKind` is its own: a school is street-level glass\n"
-        "        // like the two shops, and it is the only one of the three that shows children.\n"
+        "        // like the two shops, and the only one of the three whose windows show only children.\n"
     ),
 }
 # ---- the derivations, all of them functions of the wall (report v5.0 SS3) -------------------
@@ -69,8 +69,8 @@ vocab.DOOR = W(0.40, DARK)         # door: 60 % towards the ink
 vocab.CHIMNEY = W(0.60, DARK)      # chimney, box: 40 % towards the ink
 vocab.SIDE = None
 vocab.TOP = None
-import k1_scatola, k2_profilo, school   # noqa: E402  (they import the constants already substituted)
-k2_profilo.W_TIER2 = W(0.90, WHITE)
+import k1_box, k2_profile, school   # noqa: E402  (they import the constants already substituted)
+k2_profile.W_TIER2 = W(0.90, WHITE)
 
 HERE = Path(__file__).resolve().parent
 TABLE_KT = core.REPO / "app/src/main/kotlin/com/paperscrape/livewallpaper/engine/NeighbourhoodTable.kt"
@@ -94,7 +94,7 @@ SOURCE_REASON = (
 
 def families(house_roofs_small=("gable", "mansard"),
              house_roofs_large=("gable", "mansard", "turret"),
-             bar_figures=("insegna", "smusso"),
+             bar_figures=("signboard", "chamfer"),
              crowns=("spire", "dome")):
     """The mix the maintainer chose: houses from «Scatola», tower and shops from «Profilo».
 
@@ -104,16 +104,16 @@ def families(house_roofs_small=("gable", "mansard"),
     parameters stay so the next person to ask "what would dropping one give us" can measure it
     instead of estimating it.
     """
-    k1 = k1_scatola.pieces()
+    k1 = k1_box.pieces()
     hs_roofs = [k1["roof_" + r + "_a"] for r in house_roofs_small]
     hl_roofs = [k1["roof_" + r + "_b"] for r in house_roofs_large]
-    bars = {"insegna": k2_profilo.b_insegna, "smusso": k2_profilo.b_smusso}
-    crown = {"spire": k2_profilo.crown_spire, "dome": k2_profilo.crown_dome}
+    bars = {"signboard": k2_profile.b_signboard, "chamfer": k2_profile.b_chamfer}
+    crown = {"spire": k2_profile.crown_spire, "dome": k2_profile.crown_dome}
     return {
         "HOUSE_SMALL": Building("HOUSE_SMALL", [Slot([k1["gh_a"]]), Slot([k1["sh_a"]], 0, 1), Slot(hs_roofs)], 30.0, [0.0], 0.0),
         "HOUSE_LARGE": Building("HOUSE_LARGE", [Slot([k1["gh_b"]]), Slot([k1["sh_b"]], 1, 2), Slot(hl_roofs)], 42.0, [0.0], 0.0),
-        "TOWER": Building("TOWER", [Slot([k2_profilo.tower_body()]), Slot([crown[c]() for c in crowns])], 35.0, [0.0], 0.0),
-        "RESTAURANT": Building("RESTAURANT", [Slot([k2_profilo.r_padiglione()])], 50.0, [0.0], 0.0),
+        "TOWER": Building("TOWER", [Slot([k2_profile.tower_body()]), Slot([crown[c]() for c in crowns])], 35.0, [0.0], 0.0),
+        "RESTAURANT": Building("RESTAURANT", [Slot([k2_profile.r_pavilion()])], 50.0, [0.0], 0.0),
         "BAR": Building("BAR", [Slot([bars[b]() for b in bar_figures])], 33.0, [0.0], 0.0),
         # v5.6F. One figure and one deal, like the restaurant: `SilhouetteDeal` enumerates a
         # catalogue of exactly one for it, which is what keeps `indexFor` off the rotation it
@@ -184,10 +184,11 @@ import com.paperscrape.livewallpaper.R
  *   declared coordinates, so a porch light and a bust in a window do not have to be re-found from
  *   the artwork.
  *
- * **Every tinted surface descends from one of the two editable colours of the object's category.**
- * A card is `w * wall + (1 - w) * k` with `k` only ink or white, and `w` is baked into the wall
- * mask; so there is no colour variant in this set and no colour of a piece's own. See the script's
- * own doc comment.
+ * **Every wall surface descends from one of the two editable colours of the object's category**;
+ * the glass mask takes the scene's fixed day/night glass colour
+ * (`SceneObjectRenderer.windowGlassColor`). A card is `w * wall + (1 - w) * k` with `k` only ink
+ * or white, and `w` is baked into the wall mask; so there is no colour variant in this set and no
+ * colour of a piece's own. See the script's own doc comment.
  */
 internal enum class PartRole {{ FIXED, SNOW, WALL_MASK, GLASS_MASK, LAMP, OCCUPANTS }}
 

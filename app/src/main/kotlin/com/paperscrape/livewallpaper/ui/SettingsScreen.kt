@@ -56,13 +56,16 @@ import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneTheme
+import com.paperscrape.livewallpaper.engine.hasPalmSlots
 import com.paperscrape.livewallpaper.engine.CalendarWindow
 import com.paperscrape.livewallpaper.engine.EasterSpan
 import com.paperscrape.livewallpaper.engine.SeasonalCalendar
 import com.paperscrape.livewallpaper.engine.SeasonalThemeRules
 import com.paperscrape.livewallpaper.engine.coverage
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
+import com.paperscrape.livewallpaper.engine.WallpaperEngineCensus
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
@@ -80,8 +83,9 @@ import kotlinx.coroutines.launch
  * v2.8 had one home screen holding every wallpaper preference inline plus two full-screen
  * dialogs; the home screen alone was about four and a half screens of scrolling, and weather had
  * no section of its own -- it lived inside "Behavior" and disappeared entirely when "Follow real
- * time" was switched off. Each destination below owns one kind of decision, and the home screen
- * owns none of them: it says which theme is showing, who chose it, and where everything else is.
+ * time" was switched off. Each destination below owns one kind of decision; the home screen keeps
+ * only the theme choice itself -- which theme is showing, whether the calendar picks it (the
+ * "Automatic theme by date" switch), a random shuffle -- and says where everything else is.
  */
 private enum class SettingsDestination { HOME, THEME_GALLERY, WEATHER, SEASONS, CALENDAR, WORLD, ADVANCED }
 
@@ -153,9 +157,9 @@ fun SettingsScreen(
      * the tap is the request, exactly as the button in *Advanced & about* is, and both are the user
      * asking rather than the app volunteering.
      *
-     * The tag itself is not used to build the dialog -- the check that follows produces the real
-     * [UpdateInfo], with release notes and assets. Carrying it rather than a bare flag is what lets
-     * the notification for the release be taken out of the shade when its dialog opens.
+     * Only its presence is tested; the tag itself is not used -- the check that follows produces
+     * the real [UpdateInfo], with release notes and assets, and the notification is cancelled by
+     * the tag that check returns.
      */
     openUpdateForTag: String? = null,
 ) {
@@ -187,17 +191,19 @@ fun SettingsScreen(
      * HOME, going through that door and coming back landed on the settings home: the screen the
      * user had been on was gone, and the one back press they expected to undo the tap undid two.
      *
-     * One field rather than a back stack because the only screen with two doors is this one; a
-     * stack would be machinery for a case that does not exist. It is set on every route *into*
-     * WORLD, including the home one, so it can never be left pointing at a screen the user did
-     * not come from.
+     * One field rather than a back stack because this is the only screen with a second door on
+     * another sub-screen. Advanced & about has a second door too, the update dialog's "Install
+     * update", which can open over any screen; back from there always goes home. It is set on every
+     * route *into* WORLD, including the home one, so it can never be left pointing at a screen the
+     * user did not come from.
      */
     var worldOpenedFrom by remember { mutableStateOf(SettingsDestination.HOME) }
 
     // Checked once each time this screen is composed -- which is once per app launch, since
     // `SettingsActivity` holds the composition across every configuration change it can (see its
-    // `configChanges`) -- and only while the opt-in below is on. Never as a background or
-    // recurring check: this is an in-app-only prompt, not a system notification.
+    // `configChanges`) -- and again whenever the opt-in below is switched on. It runs only while
+    // that opt-in is on, or when a tapped update notification asks for it (A3). Never as a
+    // background or recurring check: this is an in-app-only prompt, not a system notification.
     //
     // The keyed `LaunchedEffect` below is what runs it, **not** `LaunchedEffect(Unit)`, which is
     // what this comment used to claim. The key matters: `settings` arrives from a flow with a
@@ -207,12 +213,14 @@ fun SettingsScreen(
     var showSnoozeChoice by remember { mutableStateOf(false) }
     // Set when the update dialog's "Install update" is tapped: Advanced & about opens with this
     // release already being downloaded, so the one tap starts the flow rather than dropping the
-    // user on a screen where they have to find it and start it again.
+    // user on a screen where they have to find it and start it again. A second tap for the same
+    // release starts again once the first download has failed (`mayStartDownload`, v5.8C).
     var pendingInstall by remember { mutableStateOf<UpdateInfo?>(null) }
 
     // **No automatic check.** Opening the settings screen used to reach the network every time,
     // which is a request the user never made, for a feature they may not want. The check now runs
-    // only if they have opted in, and the manual button in Advanced works whether they have or not.
+    // only if they have opted in (or tapped an update notification, below), and the manual button
+    // in Advanced works whether they have or not.
     // Held here rather than read inside the effect: `LocalContext` is a composition local and the
     // effect's body is a coroutine that outlives the composition pass that started it.
     val screenContext = LocalContext.current
@@ -222,12 +230,21 @@ fun SettingsScreen(
         val askedByNotification = openUpdateForTag != null
         if (!askedByNotification && !settings.automaticUpdateCheckEnabled) return@LaunchedEffect
         val snooze = updatePrefs.readSnoozeState()
-        // Deliberately only the one outcome. A check nobody asked for has nothing to say about a
-        // network that was not there -- the button in Advanced & about is what reports that (see
-        // `AdvancedScreen.checkForUpdate`), and reporting it here would turn opening the settings
-        // screen on a train into an error message.
-        val update = (UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME) as? UpdateCheckResult.Available)
-            ?.info ?: return@LaunchedEffect
+        // Deliberately only the one outcome for a check nobody asked for: it has nothing to say
+        // about a network that was not there, and reporting it would turn opening the settings
+        // screen on a train into an error message. A tapped notification **did** ask, so there the
+        // other outcomes are shown too -- Advanced & about with "could not check" or "up to date",
+        // the same state its own button reports (v5.8C; until then an offline tap showed nothing
+        // at all, and the notification looked broken).
+        val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+        val update = (result as? UpdateCheckResult.Available)?.info
+        if (update == null) {
+            if (askedByNotification) {
+                updateState.value = updateStateFor(result)
+                destination = SettingsDestination.ADVANCED
+            }
+            return@LaunchedEffect
+        }
         // The same rule the engine's notification consults, read from one place so the two cannot
         // drift -- see UpdateNotificationPolicy.isSnoozed, which is this expression moved.
         val isSnoozedForThisVersion = UpdateNotificationPolicy.isSnoozed(
@@ -291,14 +308,19 @@ fun SettingsScreen(
             )
 
             // Directly under the preview, as it has always been: applying the wallpaper never
-            // requires scrolling past anything.
+            // requires scrolling past anything. The label says what the phone is showing (assessment
+            // v5.7, row 13: it used to invite a user to set a wallpaper they had just set); see
+            // [WallpaperEngineCensus] for why it counts the engines rather than asking WallpaperManager.
+            // The tap does the same either way -- the system's preview, where it can be set again,
+            // which is also the way back when the home screen is blank after a force-stop.
+            val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
             Button(
                 onClick = onApplyWallpaper,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 16.dp, top = 16.dp),
             ) {
-                Text("Set as wallpaper")
+                Text(if (isTheWallpaper) "PaperScrape is your wallpaper" else "Set as wallpaper")
             }
 
             SettingsSectionHeader("Theme")
@@ -379,7 +401,7 @@ fun SettingsScreen(
             SettingsGroup {
                 SettingsNavigationRow(
                     title = "Advanced & about",
-                    supporting = "Custom themes, updates, version ${BuildConfig.VERSION_NAME}",
+                    supporting = "Custom themes, updates, backup, version ${BuildConfig.VERSION_NAME}",
                     icon = Icons.Filled.Tune,
                     onClick = { destination = SettingsDestination.ADVANCED },
                 )
@@ -426,6 +448,11 @@ fun SettingsScreen(
             customization = customization,
             forThemeId = effectiveThemeId,
             themeName = effectiveTheme.displayName,
+            // Keyed on `customThemeData` for the reason given where it is read: a saved theme's
+            // layout comes from the registry, which Compose cannot see.
+            themeHasPalms = remember(effectiveThemeId, customThemeData) {
+                SceneObjectCatalog.layoutFor(effectiveThemeId, effectiveTheme.accentColor).hasPalmSlots()
+            },
             prefs = prefs,
             scope = scope,
             onBack = { destination = SettingsDestination.HOME },
@@ -612,7 +639,8 @@ private fun themeRowSummary(themeName: String, customThemeData: CustomThemeData)
  * The one-line summary under "Holiday calendar".
  *
  * Names the count of moved windows rather than today's window: the row is about the calendar's
- * shape, and the row above it already says which theme today resolved to.
+ * shape, and, while the automatic switch is on, the row above it already says what today resolved
+ * to.
  */
 private fun calendarRowSummary(calendar: SeasonalCalendar): String {
     val moved = calendar.spans.size + if (calendar.easter != EasterSpan.FACTORY) 1 else 0

@@ -43,6 +43,7 @@ import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneObjectLayout
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
+import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
 import com.paperscrape.livewallpaper.engine.keepCandidate
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
@@ -72,7 +73,8 @@ import android.net.Uri
  *
  * - the automatic switch is repeated at the top of this screen, because this is where the choice
  *   it overrides is being made. It is the same preference as the home screen's row, not a copy;
- * - a card is badged "Today" when the calendar picked it and outlined when it is the user's own
+ * - a card is badged "Today" when it is the theme showing right now (the calendar's pick, or the
+ *   user's own when the calendar is not choosing) and outlined when it is the user's own
  *   selection, so "selected" and "showing right now" stop being the same word.
  */
 @Composable
@@ -153,12 +155,24 @@ internal fun ThemeGalleryScreen(
                 "whenever you turn it off.",
         )
 
+        // What each card shows is what the wallpaper would draw for that theme: the same
+        // resolution the engine makes (an edit in progress, then the theme's own edits, then a
+        // saved copy, then the defaults). The card used to take only the saved copy, so a theme
+        // edited from World & scene or Seasons looked untouched here while the wallpaper drew the
+        // edits.
+        fun cardCustomization(id: String) = CustomThemeRegistry.resolveActiveCustomization(
+            id,
+            settings.pendingCustomization,
+            settings.pendingCustomizationThemeId,
+            settings.themeCustomizations,
+        )
+
         SettingsSectionHeader("Built-in")
         ThemeGrid(items = ThemeCatalog.ALL) { builtin ->
             val overrideEntry = customThemeData.overrides[builtin.id]
             ThemeCard(
                 theme = overrideEntry?.theme ?: builtin,
-                customization = overrideEntry?.customization,
+                customization = cardCustomization(builtin.id),
                 selected = settings.themeId == builtin.id,
                 showingToday = effectiveThemeId == builtin.id,
                 isCustomized = overrideEntry != null,
@@ -203,7 +217,7 @@ internal fun ThemeGalleryScreen(
             ThemeGrid(items = customThemeData.customThemes) { entry ->
                 ThemeCard(
                     theme = entry.theme,
-                    customization = entry.customization,
+                    customization = cardCustomization(entry.id),
                     selected = settings.themeId == entry.id,
                     showingToday = effectiveThemeId == entry.id,
                     isCustomized = false,
@@ -232,7 +246,10 @@ internal fun ThemeGalleryScreen(
                 )
             }
         }
-        SettingsCaption("Saving a new theme and resetting customised ones live in Advanced & about.")
+        SettingsCaption(
+            "Saving a new theme, and resetting the saved versions or the current edits of built-in " +
+                "themes, live in Advanced & about.",
+        )
     }
 
     renameTarget?.let { entry ->
@@ -342,7 +359,7 @@ private fun <T> ThemeGrid(items: List<T>, content: @Composable (T) -> Unit) {
 @Composable
 private fun ThemeCard(
     theme: SceneTheme,
-    customization: SceneCustomization?,
+    customization: SceneCustomization,
     selected: Boolean,
     showingToday: Boolean,
     isCustomized: Boolean,
@@ -360,7 +377,7 @@ private fun ThemeCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(4f / 3f)
+                .aspectRatio(ThemePreviewGeometry.ASPECT_RATIO)
                 .clip(RoundedCornerShape(14.dp))
                 .border(
                     width = if (selected) 3.dp else 1.dp,
@@ -492,7 +509,11 @@ internal fun snapshotEntry(
         themeCustomizations = themeCustomizations,
     )
     val layout = SceneObjectLayout(
-        staticObjects = rawLayout.staticObjects.filter { activeCustomization.keepCandidate(it) },
+        // Thinned by the rule the source layout is drawn with, and saved with that rule (v5.8C):
+        // a generated layout is thinned by the density fraction, and a saved one keeps the rule it
+        // was saved with -- so what is saved is exactly what was standing on screen.
+        staticObjects = rawLayout.staticObjects.filter { activeCustomization.keepCandidate(it, rawLayout.densityScheme) },
+        densityScheme = rawLayout.densityScheme,
         // **The cars are saved whole, and deliberately not filtered.** (v4.3)
         //
         // A layout is an *inventory*; a customization is the *view* of it. For every other

@@ -10,9 +10,9 @@ package com.paperscrape.livewallpaper.engine
  * and the only way to be sure it cannot is not to hash at all.
  *
  * **Why not generalise [IntLruSlots] instead.** That class is the one [TintFilterCache] runs on, in
- * the hottest loop in the renderer, with a single-`Int` key it compares in one instruction. Widening
- * it would make every tint lookup pay for four comparisons it does not need. Two small classes cost
- * less than one general one here.
+ * the `Canvas` backend's per-blit path, with a single-`Int` key it compares in one instruction.
+ * Widening it would make every tint lookup pay for four comparisons it does not need. Two small
+ * classes cost less than one general one here.
  *
  * Everything else matches [IntLruSlots] exactly: fixed capacity, exact LRU eviction, a linear scan
  * rather than a hash probe, and no allocation on any path. Keys are passed as scalars for the same

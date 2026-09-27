@@ -24,10 +24,11 @@ import com.paperscrape.livewallpaper.R
  *   declared coordinates, so a porch light and a bust in a window do not have to be re-found from
  *   the artwork.
  *
- * **Every tinted surface descends from one of the two editable colours of the object's category.**
- * A card is `w * wall + (1 - w) * k` with `k` only ink or white, and `w` is baked into the wall
- * mask; so there is no colour variant in this set and no colour of a piece's own. See the script's
- * own doc comment.
+ * **Every wall surface descends from one of the two editable colours of the object's category**;
+ * the glass mask takes the scene's fixed day/night glass colour
+ * (`SceneObjectRenderer.windowGlassColor`). A card is `w * wall + (1 - w) * k` with `k` only ink
+ * or white, and `w` is baked into the wall mask; so there is no colour variant in this set and no
+ * colour of a piece's own. See the script's own doc comment.
  */
 internal enum class PartRole { FIXED, SNOW, WALL_MASK, GLASS_MASK, LAMP, OCCUPANTS }
 
@@ -369,7 +370,7 @@ internal object NeighbourhoodTable {
         // ground line against the 72 it declares -- the two are the turret cornice and the grid
         // margin, and `BuildingHeightDeclarationTest` measures the ratio rather than trusting
         // this sentence. Its `WindowBuildingKind` is its own: a school is street-level glass
-        // like the two shops, and it is the only one of the three that shows children.
+        // like the two shops, and the only one of the three whose windows show only children.
         SceneSpace.SceneVariant.SCHOOL to BuildingFamily(
             72.0f, 40.0f, WindowBuildingKind.SCHOOL,
             listOf(

@@ -19,8 +19,9 @@ import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 object LiveWeatherInputs {
 
     /**
-     * True when the next fetch would use different inputs from the last one, so the cached
-     * hourly timer must be ignored and a request made now.
+     * True when any setting a fetch can depend on has changed (the switch, the provider, or any
+     * provider's key, including one that is not selected), so the cached hourly timer must be
+     * ignored and a request made now.
      *
      * Switching the feature on is the obvious case. Switching provider is the same thing by
      * another route -- the conditions on screen came from a service the user has just stopped

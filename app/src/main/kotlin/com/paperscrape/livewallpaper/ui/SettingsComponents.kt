@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import com.paperscrape.livewallpaper.engine.AutoColorMode
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -66,14 +66,16 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.paperscrape.livewallpaper.engine.AutoColorMode
 
 // ---------------------------------------------------------------------------------------------
 // Structure
 //
 // One vocabulary for every settings screen: a section header, a rounded group that holds rows,
-// and rows that are either navigation, a switch, or read-only status. Grouping is what replaced
+// and rows that are navigation, a switch, a slider, or read-only status. Grouping is what replaced
 // v2.8's single 20 dp-spaced column, and the container colour is what replaced its dividers --
 // see `DESIGN_NOTES.md` on the Material 3 scope being the settings UI only.
 // ---------------------------------------------------------------------------------------------
@@ -250,9 +252,11 @@ internal fun SettingsBanner(text: String, modifier: Modifier = Modifier, isError
 /**
  * A single-choice segmented button row.
  *
- * Used for the two places where a set of mutually exclusive booleans is really one choice --
- * location source and seasonal palette. It writes nothing itself; see [SettingsUiModel] for the
- * mapping back to the preferences those choices have always been stored as.
+ * Used wherever one of a few mutually exclusive options is really one choice -- the location
+ * source, the weather provider, the seasonal palette, rain or snow, and the preview's day or night
+ * (`grep -rn 'SettingsSegmentedChoice(' ui/` lists them). It writes nothing itself: each caller
+ * maps the index back to its own preference or state in its own `onSelect`; [SettingsUiModel]
+ * reads the stored flags back into the selected index for the location source and the palette.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -270,17 +274,35 @@ internal fun SettingsSegmentedChoice(
                 onClick = { onSelect(index) },
                 enabled = enabled,
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                // **No check mark (v5.8B, the maintainer's decision of 2026-09-25).** The chosen
+                // segment is the filled one. Material 1.4.0 measures the label with the button's
+                // whole content width and only then shifts it right by the check mark (icon and
+                // label get the same constraints in `SegmentedButtonContentMeasurePolicy`), so at
+                // 360 dp a long chosen name did not fit beside it at any readable size: v5.7 and
+                // v5.8A drew "Open-Met..." and "OpenWeat..." for the provider in use.
+                icon = {},
             ) {
                 // One line, ellipsised. A segmented button gives its label a fixed share of the
                 // width and does not clip it: a label too long for its share wraps and draws
                 // outside the control's own outline, over its neighbours' borders. Adding a third
                 // weather provider is what found that; bounding it here is what stops the fourth
                 // finding it again.
+                //
+                // **Every label shrinks to fit (v5.8).** Ellipsised alone they could not be read: at
+                // 360 dp the BV6600 drew "Netwo...", "Open-Met..." and "OpenWeat..." (assessment
+                // v5.7, photo 203). A label that fits keeps labelLarge exactly as before; one that
+                // does not steps down half a point at a time, down to labelSmall -- Material's own
+                // smallest label size -- and is cut only if even that is too wide.
                 Text(
                     label,
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = MaterialTheme.typography.labelSmall.fontSize,
+                        maxFontSize = MaterialTheme.typography.labelLarge.fontSize,
+                        stepSize = 0.5.sp,
+                    ),
                 )
             }
         }
@@ -290,15 +312,17 @@ internal fun SettingsSegmentedChoice(
 /**
  * Trailing space under the last row of a scrolling screen.
  *
- * One spacer, used by every settings screen, sized by [SettingsInsets.bottomSpacing] from the
- * inset the activity measured -- rather than each screen carrying a padding of its own, which is
- * how the last row ended up half under the gesture bar on some of them and not others.
+ * One spacer, used by every settings screen, a fixed [SettingsInsets.BOTTOM_BREATHING_ROOM] --
+ * the inset the activity measured is spent on the dialog's height instead (see [SettingsInsets])
+ * -- rather than each screen carrying a padding of its own, which is how the last row ended up
+ * half under the gesture bar on some of them and not others.
  */
 @Composable
 internal fun SettingsBottomSpacer() {
-    // A constant. The system inset is reserved by the screen's Scaffold, outside the scroll
-    // container, so this is only the gap between the last row and that reservation -- see
-    // SettingsInsets for why the reservation moved out of here.
+    // A constant. The system bars are accounted for outside the scroll container -- in a dialog
+    // by the height its content is given and by the Scaffold's own insets where the dialog window
+    // has any, on the home screen by its Scaffold -- so this is only the gap between the last row
+    // and the bottom edge; see SettingsInsets for why the reservation moved out of here.
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -377,8 +401,8 @@ internal fun SettingsSubScreen(
 
 /**
  * The same shell for the leaf screens that are a form rather than a list -- every Scene Objects
- * category, every decoration's options. Identical to what those screens have always used: 16 dp
- * padding, 12 dp between controls.
+ * category, every decoration's options, and the three weather API key screens. Identical to what
+ * those screens have always used: 16 dp padding, 12 dp between controls.
  */
 @Composable
 internal fun SettingsFormSubScreen(
@@ -406,8 +430,8 @@ internal fun SectionTitle(text: String) {
 }
 
 /**
- * The switch row used inside form screens (Scene Objects categories and decoration options),
- * where controls are laid out directly rather than in a [SettingsGroup].
+ * The switch row used inside the Scene Objects form screens, where controls are laid out
+ * directly rather than in a [SettingsGroup].
  */
 @Composable
 internal fun SettingSwitchRow(
@@ -437,7 +461,7 @@ internal fun SettingSwitchRow(
 }
 
 // ---------------------------------------------------------------------------------------------
-// Colour editing -- unchanged behaviour, moved here so every screen can reach it
+// Colour editing -- shared here so every screen can reach it
 // ---------------------------------------------------------------------------------------------
 
 internal data class ColorEditTarget(val label: String, val color: Int, val onChange: (Int) -> Unit)
@@ -504,6 +528,8 @@ internal fun DayNightColorPair(
                 selected = mode == value,
                 onClick = { onModeChange(value) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                // No check mark, as on every segmented row (see [SettingsSegmentedChoice]).
+                icon = {},
             ) { Text(label, style = MaterialTheme.typography.labelSmall) }
         }
     }
@@ -727,10 +753,15 @@ private fun HueStrip(hue: Float, onChange: (Float) -> Unit, modifier: Modifier =
  * delay. The thumb also had a disk round trip inside its own feedback loop, which is what made
  * the sliders feel like they stuck near the ends of the track rather than following the finger.
  *
- * The in-flight value lives in local state for the duration of the drag only, so there is no
- * lasting duplicate of the preference. [label] receives the value actually being displayed, so a
- * caption like "Density: 42%" keeps updating live while dragging even though nothing is written
- * until the finger lifts.
+ * The in-flight value lives in local state for the duration of the drag, and the committed value
+ * only until the preference catches up with it, so there is no lasting duplicate of the preference
+ * -- and a caller that transforms the value before writing it says how, in [storedAs], so the
+ * slider waits for what will actually come back. Until v5.8C the three callers that transform it
+ * (Sun/Cloud Height, the two business-hours sliders) never caught up: their local copy stayed until
+ * the slider left composition, and later changes to the stored value made elsewhere were not shown
+ * (v5.8B comment audit). [label] receives
+ * the value actually being displayed, so a caption like "Density: 42%" keeps updating live while
+ * dragging even though nothing is written until the finger lifts.
  *
  * See [SliderDragState] for the handover rules and why the local value is not dropped the instant
  * the drag ends.
@@ -744,6 +775,13 @@ internal fun PreferenceSlider(
     steps: Int = 0,
     enabled: Boolean = true,
     label: (@Composable (Float) -> Unit)? = null,
+    /**
+     * What a committed value comes back as through the preference: identity for a caller that
+     * writes it unchanged, the caller's own transform otherwise -- the quarter-hour of the business
+     * hours, the fraction-to-height-and-back of Sun/Cloud Height. The slider holds its local copy
+     * until exactly that value arrives, and shows it meanwhile.
+     */
+    storedAs: (Float) -> Float = { it },
 ) {
     var inFlight by remember { mutableStateOf<Float?>(null) }
     var awaitingCommit by remember { mutableStateOf<Float?>(null) }
@@ -761,8 +799,9 @@ internal fun PreferenceSlider(
         onValueChange = { inFlight = it },
         onValueChangeFinished = {
             val settled = inFlight
-            if (SliderDragState.shouldCommit(value, settled) && settled != null) {
-                awaitingCommit = settled
+            val expected = settled?.let(storedAs)
+            if (SliderDragState.shouldCommit(value, expected) && settled != null) {
+                awaitingCommit = expected
                 onCommit(settled)
             }
             inFlight = null

@@ -86,12 +86,28 @@ object UpdateNotifier {
         )
 
     /**
+     * Whether the phone's settings stop PaperScrape's notifications right now -- see
+     * [UpdateNotificationPolicy.blockedInPhoneSettings] for what counts. Read by the settings
+     * screen whenever it is shown, and by [post], so a release is not recorded as notified while
+     * nothing can appear.
+     */
+    fun blockedInPhoneSettings(context: Context): Boolean {
+        val manager = NotificationManagerCompat.from(context)
+        return UpdateNotificationPolicy.blockedInPhoneSettings(
+            permission = notificationPermission(context),
+            appNotificationsEnabled = manager.areNotificationsEnabled(),
+            channelTurnedOff = manager.getNotificationChannelCompat(CHANNEL_ID)?.importance ==
+                NotificationManagerCompat.IMPORTANCE_NONE,
+        )
+    }
+
+    /**
      * Creates the channel if it is not there, which is safe to call as often as one likes.
      *
-     * Called before every post rather than once at startup, deliberately: the engine and the
-     * settings screen are two independent entry points and neither can assume the other ran. The
-     * platform treats a repeat creation as a no-op, and it will not raise an existing channel's
-     * importance — a user who has turned this down stays turned down.
+     * Called before every post rather than once at startup: posting happens only in the wallpaper
+     * engine's loop, and nothing else creates the channel. The platform treats a repeat creation
+     * as a no-op, and it will not raise an existing channel's importance — a user who has turned
+     * this down stays turned down.
      */
     fun ensureChannel(context: Context) {
         val channel = NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_LOW)
@@ -106,14 +122,18 @@ object UpdateNotifier {
      *
      * The return value is the whole reason this is not a `Unit` function: the caller records the tag
      * as notified, and recording a tag whose notification was dropped would silence that release
-     * forever. `false` means nothing was posted — either the permission is denied, or the platform
-     * refused. Both are the same outcome for the caller and neither throws.
+     * forever. `false` means nothing was posted — the permission is denied, the phone's settings
+     * have PaperScrape's notifications or this channel switched off ([blockedInPhoneSettings]), or
+     * the platform refused. All are the same outcome for the caller and none throws. Until v5.8B a
+     * switched-off app or channel returned `true`: the platform drops such a post silently, so the
+     * release was recorded as notified and never shown when the user switched them back on.
      *
      * [currentVersionName] goes in the body rather than the title because the title has to read on
      * a lock screen in one glance, and "which version am I on" is the second question, not the first.
      */
     fun post(context: Context, tagName: String, currentVersionName: String): Boolean {
         if (!UpdateNotificationPolicy.mayPost(notificationPermission(context))) return false
+        if (blockedInPhoneSettings(context)) return false
         ensureChannel(context)
 
         // FLAG_IMMUTABLE is mandatory from API 31 and available from 23, so it is unconditional
@@ -146,9 +166,9 @@ object UpdateNotifier {
             NotificationManagerCompat.from(context).notify(tagName, NOTIFICATION_ID, notification)
             true
         } catch (_: SecurityException) {
-            // The documented throw when POST_NOTIFICATIONS is missing on API 33+. Reaching it means
-            // the permission was revoked between the check above and this line, which is a race the
-            // platform allows; treating it as "not posted" is the whole handling it needs.
+            // Defensive. A post without POST_NOTIFICATIONS is normally dropped silently rather
+            // than thrown (see UpdateNotificationPolicy.mayPost), so this is not the expected path;
+            // should the platform throw here, it counts as "not posted".
             false
         }
     }

@@ -13,16 +13,18 @@ package com.paperscrape.livewallpaper.engine
  *
  * A stack of pieces chosen per instance is a much larger thing to copy by hand than a snow cap,
  * so it is not copied. The table is one source, the stacking arithmetic is this file, and the two
- * callers differ only in what they *are*: the wallpaper deals from the building's own position in
- * the scene, the preview from the position it declares for a picture. Give both the same position
- * and they deal the same silhouette, which is what the agreement test now asserts.
+ * callers differ only in what they *are*: the wallpaper deals the silhouette the generator recorded
+ * on the object (its position only when nobody dealt it), the preview from the position it
+ * declares for a picture. Give the position overload the same identity from both sides and they
+ * deal the same silhouette, which is what the agreement test now asserts.
  *
  * ### The deal
  *
- * One alternative per slot and one repeat count, both from the object's own stable identity --
- * never from a random source and never from the frame. Two neighbours differ because their
- * positions differ; the same building is the same building on every frame, in every session, and
- * after a reinstall. That is the property the golden scenes rest on.
+ * One alternative per slot and one repeat count, both from the object's own stable identity (the
+ * silhouette the generator dealt it, see [SilhouetteDeal], or for an undealt object its position),
+ * never from a random source and never from the frame. The same building is the same building on
+ * every frame, in every session, and after a reinstall. That is the property the golden scenes
+ * rest on.
  */
 internal object NeighbourhoodComposer {
 
@@ -52,8 +54,9 @@ internal object NeighbourhoodComposer {
         var size: Int = 0
             internal set
 
-        /** How many windows the whole building has, which is the denominator every per-window
-         *  behaviour (busts, Christmas strings) is spread over. */
+        /** How many windows the whole building has, which is the denominator the window busts
+         *  are dealt over. (Christmas strings are spread over the building's light sills, which
+         *  the renderer counts separately.) */
         var windowCount: Int = 0
             internal set
 

@@ -141,14 +141,20 @@ object CarSelection {
      *
      * A mask rather than a filtered list because the renderer keeps a runtime per *inventory*
      * entry and only toggles whether it draws — see `SceneObjectRenderer`'s car membership sync.
-     * The mask is [selectionRanks] compared against [countFor], stated once here so the two
-     * expressions cannot drift.
+     * The mask is [selectionRanks] compared against [countFor] through [isKept], the one
+     * rank-against-count rule, which `SceneObjectRenderer` applies to its per-inventory runtimes
+     * too (`buildCarRuntimes`, and per frame in `update`). Until v5.8B the renderer re-stated the
+     * comparison instead of calling it, so every test of the cars a density keeps was a test of
+     * this copy and not of the one that draws.
      */
     fun keptMask(cars: List<CarObject>, density: Float, themeSeed: Int): BooleanArray {
         val ranks = selectionRanks(cars, themeSeed)
         val n = countFor(density, cars.size)
-        return BooleanArray(cars.size) { ranks[it] < n }
+        return BooleanArray(cars.size) { isKept(ranks[it], n) }
     }
+
+    /** Whether the car of selection rank [rank] drives when [count] cars do: the lowest ranks do. */
+    fun isKept(rank: Int, count: Int): Boolean = rank < count
 
     /**
      * The car density in force at [dayBlend], linearly between the day and night settings.
@@ -181,7 +187,9 @@ object CarSelection {
 }
 
 /**
- * The cars of [cars] this configuration keeps on the road, in inventory order.
+ * The cars of [cars] this configuration keeps at full daylight (its day density), in inventory
+ * order. Only the tests call it; the renderer applies the same [CarSelection.isKept] per runtime,
+ * per frame, on the day/night blend.
  *
  * The set-level replacement for the per-candidate `keepCar` threshold — see [CarSelection] for
  * why membership cannot be decided one candidate at a time. [themeSeed] is the theme id's hash,

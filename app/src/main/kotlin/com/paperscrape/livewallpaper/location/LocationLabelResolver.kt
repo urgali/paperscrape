@@ -4,6 +4,7 @@ import android.content.Context
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
+import com.paperscrape.livewallpaper.weather.WeatherRequest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,10 +12,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 
 /**
- * Turns a lat/long into a short human-readable label ("Florence", "Florence, Italy" if the city
- * name alone is ambiguous-sounding, etc.) for display in Settings next to the two location
- * toggles -- aa's own request was explicit: both the GPS toggle and the custom-location toggle
- * need to visibly confirm *which* place they actually resolved to, not just show raw coordinates.
+ * Turns a lat/long into a short human-readable label ("Florence, Italy"; just the place, or just
+ * the country, when only one is known or the two are the same word) for display in Settings next
+ * to the two location toggles -- aa's own request was explicit: both the GPS toggle and the
+ * custom-location toggle need to visibly confirm *which* place they actually resolved to, not just
+ * show raw coordinates.
  *
  * [Geocoder.getFromLocation] got a new listener-based overload in API 33 (the old synchronous one
  * is now deprecated, and was always technically allowed to block on network I/O even before that)
@@ -32,11 +34,23 @@ object LocationLabelResolver {
      */
     private const val LOOKUP_TIMEOUT_MILLIS = 6_000L
 
+    /**
+     * The position the lookup is made with: two decimals, about a kilometre, the rounding the
+     * weather requests use ([WeatherRequest.coarse], SEC-05). The platform geocoder looks the
+     * position up over the network on most devices, and until v5.8C it was sent the saved fix at
+     * full precision -- about a metre with GPS -- while the manifest's disclosure promised that only
+     * coarse coordinates leave the device (v5.8B comment audit). A place name needs no more than
+     * the neighbourhood.
+     */
+    internal fun lookupPosition(latitude: Double, longitude: Double): Pair<Double, Double> =
+        WeatherRequest.coarse(latitude) to WeatherRequest.coarse(longitude)
+
     /** Returns null if geocoding fails, times out, or no result comes back (offline, no geocoder
      * service available on this device, coordinates over open ocean, etc.) -- callers should fall
      * back to showing the raw lat/long themselves in that case, never leave a permanent spinner. */
-    suspend fun resolveCityLabel(context: Context, latitude: Double, longitude: Double): String? {
+    suspend fun resolveCityLabel(context: Context, rawLatitude: Double, rawLongitude: Double): String? {
         if (!Geocoder.isPresent()) return null
+        val (latitude, longitude) = lookupPosition(rawLatitude, rawLongitude)
         val geocoder = Geocoder(context, Locale.getDefault())
         val address = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

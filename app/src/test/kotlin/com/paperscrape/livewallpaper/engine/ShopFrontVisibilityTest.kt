@@ -1,5 +1,8 @@
 package com.paperscrape.livewallpaper.engine
 
+import com.paperscrape.livewallpaper.R
+import java.io.File
+import javax.imageio.ImageIO
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -67,7 +70,11 @@ class ShopFrontVisibilityTest {
     // when the shop band was divided in three -- there are three storefronts to place in six
     // candidate depths now, and the bar takes the nearest of them. A nearer shop is a larger shop
     // with fewer things in front of it, so the worst reading falls; the criterion did not move.
-    private val INK_WORST = 0.3125f
+    // v5.8E: 0.375, halloween's restaurant, measured for the first time with the buildings' true
+    // widths (V3-01) on the shops the plan placed. Higher than 0.3125 because the fronts are now as
+    // wide as they are drawn -- the old reading divided by a restaurant two thirds its real width --
+    // and still inside the criterion, with 2.5 points of margin.
+    private val INK_WORST = 0.375f
 
     @Test
     fun `no shop front is covered beyond forty percent of its whole area on any built-in theme`() {
@@ -312,15 +319,16 @@ class ShopFrontVisibilityTest {
         o.type == SceneObjectType.SKYSCRAPER && o.depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH
 
     private fun halfWidthPx(o: StaticSceneObject): Float {
-        val units = when (SceneObjectRenderer.variantFor(o)) {
-            SceneSpace.SceneVariant.HOUSE_SMALL -> 48f
-            SceneSpace.SceneVariant.HOUSE_LARGE -> 75f
-            SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR -> 34f
-            SceneSpace.SceneVariant.TOWER -> 45f
-            // v5.6F: the school's ink spans -53.7..55.3 of its 110-unit canvas and the family
-            // draws at 1:1, so the wider side governs. Typed a second time here for the reason
-            // the tree's entry gives.
-            SceneSpace.SceneVariant.SCHOOL -> 56f
+        val v = SceneObjectRenderer.variantFor(o)
+        val units = when (v) {
+            // v5.8E (V3-01): the six buildings are measured off their PNGs here, not typed. Both this
+            // file and the catalogue typed 48 / 75 / 34 / 34 / 45 for the houses, the shops and the
+            // tower -- the restaurant 68 units wide where it draws 104 -- so the two copies agreed and a
+            // covered front passed on both sides. The catalogue keeps literals; this measures the ink.
+            SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
+            SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
+            SceneSpace.SceneVariant.TOWER, SceneSpace.SceneVariant.SCHOOL,
+            -> inkHalfWidth(v)
             // v4.21: re-measured off `tree_canopy` at its blit origin -- 101 units of content at
             // -50 spans x -50..51. Read from the artwork here as it is read from the artwork in
             // the catalogue, and deliberately not imported from it: the whole point of this file
@@ -331,6 +339,25 @@ class ShopFrontVisibilityTest {
             else -> 0f
         }
         return units * SceneObjectRenderer.effectiveScaleFor(o, refH)
+    }
+
+    /**
+     * The wider side of the ink a building family draws, in its variant's units: every part of every
+     * alternative of every slot (snow, lamps and window busts excluded, as for the height), its PNG's
+     * alpha bounding box at 3 px a piece unit, put through the part's own x, then scaled by
+     * `spriteUnitsTall / unitsTall` as the renderer scales a piece.
+     */
+    private fun inkHalfWidth(v: SceneSpace.SceneVariant): Float = INK_HALF.getOrPut(v) {
+        val f = NeighbourhoodTable.FAMILIES.getValue(v)
+        var left = 0f
+        var right = 0f
+        for (slot in f.slots) for (piece in slot.options) for (part in piece.parts) {
+            if (part.res == 0 || part.role == PartRole.SNOW || part.role == PartRole.LAMP || part.role == PartRole.OCCUPANTS) continue
+            val (l, r) = inkColumns(part.res) ?: continue
+            left = minOf(left, part.x + l / 3f)
+            right = maxOf(right, part.x + r / 3f)
+        }
+        maxOf(-left, right) * (v.spriteUnitsTall / f.unitsTall)
     }
 
     private fun frontRect(shop: StaticSceneObject, onInk: Boolean = false): FloatArray {
@@ -463,5 +490,73 @@ class ShopFrontVisibilityTest {
             }
         }
         return covered.toFloat() / (n * n)
+    }
+
+    /**
+     * The condition the maintainer set for the width repair (V3-01, 2026-09-26): **no more built-in
+     * themes than before may put a shop in the same spot of the street -- at most four.** "The same
+     * spot" is one point of the tile that the most themes' fronts of that storefront all cover, at
+     * the reference viewport and at the drawn width measured above. Before the plan the counts were
+     * restaurant 4, school 8, bar 12 (the bar stood in one spot on every theme); with the true widths
+     * and no plan, 10, 7 and 12.
+     */
+    @Test
+    fun `no more than four built-in themes put a shop in the same spot of the street`() {
+        val fronts = themes.flatMap { themeId ->
+            SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).staticObjects.filter { isShop(it) }
+                .map { Triple(SceneObjectRenderer.variantFor(it), themeId, it.tileFractionX to halfWidthPx(it) / tile) }
+        }
+        for (variant in listOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR)) {
+            val mine = fronts.filter { it.first == variant }
+            assertEquals("one $variant per theme", themes.size, mine.size)
+            var worst = 0
+            var where = ""
+            for (k in 0 until 2000) {
+                val p = k / 2000f
+                val over = mine.filter { (_, _, xw) ->
+                    val d = (p - xw.first).mod(1f)
+                    minOf(d, 1f - d) < xw.second
+                }
+                if (over.size > worst) {
+                    worst = over.size
+                    where = "at %.3f: ".format(p) + over.joinToString { it.second }
+                }
+            }
+            assertTrue("$worst themes put the $variant in one spot ($where)", worst <= 4)
+        }
+    }
+
+    private companion object {
+        private val INK_HALF = HashMap<SceneSpace.SceneVariant, Float>()
+
+        private val NAMES: Map<Int, String> = R.drawable::class.java.fields
+            .filter { it.type == Int::class.javaPrimitiveType }
+            .associate { it.getInt(null) to it.name }
+
+        /** First and one-past-last column with any ink, in PNG pixels. */
+        fun inkColumns(resId: Int): Pair<Int, Int>? {
+            val file = File(DRAWABLES, "${NAMES.getValue(resId)}.png")
+            val image = ImageIO.read(file) ?: return null
+            var left = Int.MAX_VALUE
+            var right = Int.MIN_VALUE
+            for (y in 0 until image.height) for (x in 0 until image.width) {
+                if ((image.getRGB(x, y) ushr 24) == 0) continue
+                if (x < left) left = x
+                if (x > right) right = x
+            }
+            return if (left > right) null else left to right + 1
+        }
+
+        val DRAWABLES: File by lazy {
+            var dir: File? = File(".").absoluteFile
+            while (dir != null) {
+                for (prefix in listOf("", "app/")) {
+                    val candidate = File(dir, "${prefix}src/main/res/drawable-nodpi")
+                    if (candidate.isDirectory) return@lazy candidate
+                }
+                dir = dir.parentFile
+            }
+            error("could not locate src/main/res/drawable-nodpi")
+        }
     }
 }

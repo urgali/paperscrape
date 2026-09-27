@@ -20,13 +20,15 @@ package com.paperscrape.livewallpaper.engine
  *
  * ### Cost of the linear scan
  *
- * [find] scans the key array. With ~118 sprites that is a scan over a contiguous `IntArray` — a
- * couple of cache lines — against the alternative of an allocation plus a hash. Growth doubles the
+ * [find] scans the key array. On the `Canvas` path that is at most the ~420-sprite set — a couple
+ * of KB of contiguous `IntArray` — and on the GPU path, where uploads release entries, a handful:
+ * either way against the alternative of an allocation plus a hash. Growth doubles the
  * arrays, which allocates, but only a handful of times over the life of the process and never on a
  * steady-state frame.
  *
- * Not thread-safe, **and it does not need to be**: every path into it is inside a `@Synchronized`
- * method of [SpriteCache], which is the object that owns it and the only one that holds a reference.
+ * Not thread-safe, **and it does not need to be**: every mutating path into it is inside a
+ * `@Synchronized` method of [SpriteCache] (only the two diagnostic getters read it unlocked), which
+ * is the object that owns it and the only one that holds a reference.
  *
  * ARC-12: this used to say "rendering and memory callbacks both arrive on the main looper", which
  * stopped being true when rendering moved to a per-engine render thread -- up to three threads reach
@@ -48,11 +50,17 @@ internal class SpriteCacheIndex(initialCapacity: Int = 32) {
     var size: Int = 0
         private set
 
-    /** Total bytes of everything currently indexed. `Long` because 118 sprites is ~32 MB today. */
+    /**
+     * Total bytes of everything currently indexed. `Long` for headroom; the whole set decodes to
+     * ~42 MiB today (`SpriteGeometryTest.decodedByteBudget` prints it).
+     */
     var totalBytes: Long = 0L
         private set
 
-    /** Highest [totalBytes] reached since the last [clear]. Useful for diagnostics and tests. */
+    /**
+     * Highest [totalBytes] reached over this index's life; [clear] does not reset it. Useful for
+     * diagnostics and tests.
+     */
     var peakBytes: Long = 0L
         private set
 
@@ -130,7 +138,10 @@ internal class SpriteCacheIndex(initialCapacity: Int = 32) {
         return -1
     }
 
-    /** Forgets everything. Backing arrays are kept, so this allocates nothing. */
+    /**
+     * Forgets everything. Backing arrays are kept; only the free list is reallocated, once, if the
+     * key arrays have grown past it.
+     */
     fun clear() {
         for (position in 0 until size) {
             val slot = order[position]

@@ -479,6 +479,21 @@ class SpriteGeometryTest {
                 decodedByteBudget / 1048576L, decodedByteBudget - total, spriteNames().size,
             ),
         )
+        // **And the neighbourhood's share of it** (v5.8B, item 138), read off the table the engine
+        // deals buildings from rather than off a list of name prefixes. The building generator
+        // kept a ceiling of its own for these PNGs, `core.BUDGET`, which was this gate's margin at
+        // v4.32 frozen into a second number; nothing read it and the shipped set had been over it
+        // since v5.0. It is gone, and this line is what it was for: the figure, on every build.
+        val neighbourhood = NeighbourhoodTable.FAMILIES.values
+            .flatMap { family -> family.slots.flatMap { slot -> slot.options.flatMap { piece -> piece.parts } } }
+            .map { it.res }.filter { it != 0 }.toSet()
+            .map { drawableName(it) }
+        val neighbourhoodBytes = neighbourhood.sumOf { name -> pngSize(name).let { (w, h) -> w.toLong() * h * 4L } }
+        println(
+            "of which the neighbourhood (six building families): %d B in %d PNGs, %.1f %% of the set".format(
+                neighbourhoodBytes, neighbourhood.size, 100.0 * neighbourhoodBytes / total,
+            ),
+        )
         assertTrue(
             "the sprite set decodes to $total bytes, past the $decodedByteBudget budget. Raising " +
                 "the budget is a decision about what the `Canvas` path holds resident and about " +
@@ -564,6 +579,11 @@ class SpriteGeometryTest {
             )
         }
     }
+
+    /** The drawable's file name, from its generated `R` id. */
+    private fun drawableName(res: Int): String =
+        com.paperscrape.livewallpaper.R.drawable::class.java.fields
+            .first { it.type == Int::class.javaPrimitiveType && it.getInt(null) == res }.name
 
     private fun spriteNames(): List<String> {
         val names = drawableDir.listFiles { file -> file.name.endsWith(".png") }

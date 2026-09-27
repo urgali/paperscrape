@@ -52,7 +52,7 @@ object UpdateNotificationPolicy {
     const val RUNTIME_PERMISSION_SDK = 33
 
     /**
-     * How long the engine's loop waits between two update checks: **24 hours**, derived.
+     * The normal wait between two update checks in the engine's loop: **24 hours**, derived.
      *
      * Written as a multiple of [WEATHER_REFRESH_INTERVAL_MS] for the same reason
      * [com.paperscrape.livewallpaper.weather.LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS] is — the
@@ -67,11 +67,13 @@ object UpdateNotificationPolicy {
      * coarsest cadence that still feels like "it told me", and the finest that is defensible for a
      * process the user did not ask to have running.
      *
-     * **What this is not.** It is not a promise of one check per day: the loop parks while the
-     * wallpaper is invisible (ARC-02), so a device whose wallpaper is rarely on screen checks
-     * rarely, and a user who has the app installed but another wallpaper set is never checked at
-     * all. That limit was stated to the maintainer before the decision and accepted with it; the
-     * manual button in *Advanced & about* is what those users have.
+     * **What this is not.** It is not a promise of one check per day. It can be more: every rebind
+     * of the wallpaper checks at once, and a failed check is retried from two minutes, doubling up
+     * to this. It can be less: the loop parks while the wallpaper is invisible (ARC-02), so a
+     * device whose wallpaper is rarely on screen checks rarely, and a user who has another
+     * wallpaper set is never checked by this loop (only by the settings screen's own check, when
+     * they open it). That limit was stated to the maintainer before the decision and accepted with
+     * it; the manual button in *Advanced & about* is what those users have.
      */
     const val UPDATE_CHECK_INTERVAL_MILLIS = 24 * WEATHER_REFRESH_INTERVAL_MS
 
@@ -110,6 +112,52 @@ object UpdateNotificationPolicy {
      */
     fun mustAsk(permission: NotificationPermission): Boolean =
         permission == NotificationPermission.DENIED
+
+    /**
+     * Whether the phone's own settings are what stops PaperScrape's notifications: the app's
+     * notifications switched off, or the *Update available* channel turned off.
+     *
+     * [appNotificationsEnabled] is `NotificationManagerCompat.areNotificationsEnabled`, which on API
+     * 33+ is also false while the permission has merely not been granted yet. That is not "switched
+     * off in your settings" -- turning the switch on asks for it -- so with the permission
+     * [NotificationPermission.DENIED] only the channel counts here, and the request and its answer
+     * say the rest ([notifyRowLine]'s `requestRefused`). Below API 33, and on 33+ once granted,
+     * [appNotificationsEnabled] false is exactly the user's switch in the app's notification page.
+     */
+    fun blockedInPhoneSettings(
+        permission: NotificationPermission,
+        appNotificationsEnabled: Boolean,
+        channelTurnedOff: Boolean,
+    ): Boolean = channelTurnedOff || (!appNotificationsEnabled && permission != NotificationPermission.DENIED)
+
+    /** Which line *Notify me about new versions* shows under its title. */
+    enum class NotifyRowLine {
+        /** "Turn on the automatic check above first": the row is greyed and this is why. */
+        NEEDS_AUTOMATIC_CHECK,
+
+        /** "Notifications are switched off for PaperScrape in your phone's settings...". */
+        BLOCKED,
+
+        /** What the switch does. */
+        DESCRIPTION,
+    }
+
+    /**
+     * The row's line, from what the settings screen knows when it draws.
+     *
+     * The blocked line used to need the switch on **and** a permission request just refused, and a
+     * refusal leaves the switch off, so it could never appear: somebody who had blocked
+     * PaperScrape's notifications in the phone's settings read the promise of a notification that
+     * would not come. It now follows [blocked] -- [blockedInPhoneSettings], read by the screen
+     * whenever it is shown -- with or without the switch on, because "nothing would appear" is true
+     * of both; and a refusal of the permission dialog a moment ago ([requestRefused]) still says so.
+     */
+    fun notifyRowLine(automaticCheckEnabled: Boolean, blocked: Boolean, requestRefused: Boolean): NotifyRowLine =
+        when {
+            !automaticCheckEnabled -> NotifyRowLine.NEEDS_AUTOMATIC_CHECK
+            blocked || requestRefused -> NotifyRowLine.BLOCKED
+            else -> NotifyRowLine.DESCRIPTION
+        }
 
     /**
      * Whether "remind me later" is still suppressing this exact release.

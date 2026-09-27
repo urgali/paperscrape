@@ -58,6 +58,27 @@ class HostileNumberImportTest {
         }
     }
 
+    /**
+     * The value BCK-03 let through (v5.8): finite as a Double, infinite as the Float it is stored as.
+     *
+     * Both readers checked the Double and then narrowed it, so `1e300` passed and became Infinity,
+     * and the next `JSONObject.put` of it threw -- a 173-byte backup closed the app on the BV6600
+     * (assessment v5.7). A real JSON number on purpose: this classpath's reference org.json reads
+     * the *string* "NaN" as absent in `optDouble` (Android's reads it as NaN), so the optional-field
+     * test above falls back here even without the check, and only a number reaches the check itself.
+     */
+    @Test
+    fun `a number finite as a Double and infinite as a Float is not finite either`() {
+        val json = JSONObject("""{"big":1e300,"small":-1e300}""")
+        for (field in listOf("big", "small")) {
+            assertEquals("optional $field must take the default", 0.5f, json.optFinite(field, 0.5f), 1e-6f)
+            val thrown = runCatching { json.requireFinite(field) }.exceptionOrNull()
+            assertTrue("a required $field must be refused, not passed on", thrown is IllegalArgumentException)
+        }
+        // And the largest Float is still a Float: the check is about infinity, not about size.
+        assertEquals(Float.MAX_VALUE, JSONObject("""{"m":${Float.MAX_VALUE.toDouble()}}""").requireFinite("m"))
+    }
+
     @Test
     fun `an optional field keeps working exactly as before for valid and missing values`() {
         // Backward compatibility, stated as a test: every payload written before this change must

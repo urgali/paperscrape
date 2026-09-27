@@ -15,8 +15,9 @@ import android.graphics.RectF
  *
  *  - the settings screen's live preview draws onto a Compose `Canvas`, where there is no EGL surface
  *    and no GL context to draw into;
- *  - it is the fallback when EGL initialisation fails, so a device that cannot give the wallpaper a
- *    GL context still gets a wallpaper rather than a black screen.
+ *  - it is the fallback when GL is given up on -- EGL never initialised, or a working context
+ *    failed past [GlLifecyclePolicy.MAX_CONTEXT_REBUILDS] rebuilds -- so a device that cannot give
+ *    the wallpaper a GL context still gets a wallpaper rather than a black screen.
  *
  * The instance is reused across frames and re-pointed at each frame's canvas with [bind], so no
  * per-frame allocation is introduced by the indirection.
@@ -100,7 +101,7 @@ class CanvasSceneTarget : SceneCanvas {
         paint: Paint,
     ) {
         scratchRect.set(cx - radius, cy - radius, cx + radius, cy + radius)
-        wedgePath.reset()
+        wedgePath.rewind() // rewind, not reset: keeps the native storage between wedges (v5.8C)
         wedgePath.moveTo(cx, cy)
         wedgePath.arcTo(scratchRect, startAngle, sweepAngle, false)
         wedgePath.close()

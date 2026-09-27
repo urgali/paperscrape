@@ -31,6 +31,25 @@ import org.junit.Test
  *   because a card is a single hour and the scene is all of them.
  * - **R2, place.** Every boat and every dolphin has its ink inside the water band.
  * - **R3, sight.** Nothing is more than half covered by something drawn after it.
+ * - **R4, colour and landscape** (v5.8B). The card is one real moment of the wallpaper's day, and
+ *   every colour it paints the landscape with is the wallpaper's own rule at that moment: the sky
+ *   from [SkyGradient], the hills, the mountains and the water blended on the moment's `dayBlend`,
+ *   the road from `SceneObjectRenderer.roadColor` -- and there only when
+ *   `SceneObjectRenderer.drawsRoad` says the scene has one. R1 to R3 held the objects to the scene
+ *   and left all of this to the card, and the card had drifted: Sunset's sky coral where the
+ *   wallpaper is never coral, the road a cold grey the wallpaper does not use, dunes on the Desert,
+ *   and a sky edit that never reached the card at all.
+ * - **R5, the floor** (v5.8E, V3-47). A card car's body ends on the floor the card gives it,
+ *   `PREVIEW_CAR_FLOOR_DROP` below its ground line, measured off the body's PNG. The constant that
+ *   placed them still described the v4.19 bodies, and all 24 cars of the twelve cards stood 1.75
+ *   card units above it.
+ * - **R6, the species** (v5.8E, V3-48). A card shows a fir only where the wallpaper can stand one
+ *   (`SceneObjectRenderer.drawsFirs`). R1 counts a fir as a tree, so it passed Tundra's card, which
+ *   drew a fir for its sparse wood while its wallpaper draws snowy oaks.
+ *
+ * The runs cover the twelve built-ins, customizations no built-in ships (including every
+ * landscape colour edited), and **a theme saved under a `custom:` id**, which is where the card's
+ * old rule -- palms by theme name -- said oaks while the wallpaper drew palms.
  *
  * ### The measurement
  *
@@ -271,6 +290,8 @@ class ThemePreviewTruthTest {
                 (beach to defaultCustomizationFor("beach").copy(palmsEnabled = false)),
             "beach with its sea turned off" to
                 (beach to defaultCustomizationFor("beach").let { it.copy(lake = it.lake.copy(visible = false)) }),
+            "tundra with the Christmas decorations on" to
+                (tundra to defaultCustomizationFor("tundra").copy(christmasDecorationsEnabled = true)),
             "tundra with the night birds its flock does not have" to
                 (tundra to defaultCustomizationFor("tundra").let { it.copy(birds = it.birds.copy(nightBirds = true)) }),
             "spring with no houses and no people" to
@@ -365,6 +386,36 @@ class ThemePreviewTruthTest {
         return out
     }
 
+    /**
+     * R5: every car on the card ends where the card says its floor is. The fire appliance is not a
+     * car body and stands at the renderer's own two origins instead, so it is not asked.
+     */
+    private fun checkFloor(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?): List<String> {
+        val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
+        val out = mutableListOf<String>()
+        for (item in scene.cars) {
+            for (part in item.parts) {
+                if (!nameOf(part.resId).startsWith("car_body_")) continue
+                val ink = inkOf(part.resId) ?: continue
+                val floor = item.y + item.scale * (part.oy + ink.bottom)
+                val declared = item.y + item.scale * ThemePreviewScenes.PREVIEW_CAR_FLOOR_DROP
+                if (kotlin.math.abs(floor - declared) > CARD_FLOOR_TOLERANCE_UNITS) {
+                    out += "$label: R5 the ${nameOf(part.resId)} at x=%.0f ends at %.2f, %.2f card units %s the floor the card gives it (%.2f)"
+                        .format(item.x, floor, kotlin.math.abs(floor - declared), if (floor < declared) "above" else "below", declared)
+                }
+            }
+        }
+        return out
+    }
+
+    /** R6: no fir on a card whose wallpaper stands none. */
+    private fun checkSpecies(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?): List<String> {
+        val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
+        val firs = drawOrder(scene).count { item -> item.parts.any { nameOf(it.resId).startsWith("tree_fir") } }
+        if (firs == 0 || SceneObjectRenderer.drawsFirs(c)) return emptyList()
+        return listOf("$label: R6 the card shows $firs fir(s) and the wallpaper stands none (no Christmas decorations)")
+    }
+
     // ------------------------------------------------------------------------------- the checks
 
     @Test
@@ -410,6 +461,37 @@ class ThemePreviewTruthTest {
     }
 
     @Test
+    fun `R5 every card car ends on the floor the card gives it`() {
+        val fails = mutableListOf<String>()
+        var cars = 0
+        for ((theme, c) in builtIns()) {
+            fails += checkFloor(theme.id, theme, c, null)
+            cars += ThemePreviewScenes.forTheme(theme, c).cars.count { item -> item.parts.any { nameOf(it.resId).startsWith("car_body_") } }
+        }
+        // Two per card: a rule that found no car body to measure would pass over nothing.
+        assertEquals("the car bodies R5 measured on the twelve cards", 24, cars)
+        report(fails)
+    }
+
+    @Test
+    fun `R6 a card shows a fir only where its wallpaper can stand one`() {
+        val fails = mutableListOf<String>()
+        for ((theme, c) in builtIns()) {
+            fails += checkSpecies(theme.id, theme, c, null)
+            fails += checkSpecies("${theme.id} (forced night)", theme, c, true)
+        }
+        for ((label, pair) in custom()) fails += checkSpecies(label, pair.first, pair.second, null)
+        report(fails)
+        // And the rule is not vacuous: the one built-in with the decorations on does draw its fir.
+        val christmas = ThemeCatalog.byId("christmas")
+        assertTrue(
+            "Christmas's card has no fir, so R6 is only ever asked about cards without one",
+            drawOrder(ThemePreviewScenes.forTheme(christmas, defaultCustomizationFor("christmas")))
+                .any { item -> item.parts.any { nameOf(it.resId).startsWith("tree_fir") } },
+        )
+    }
+
+    @Test
     fun `the three rules hold on the night the World and scene strip can force`() {
         val fails = mutableListOf<String>()
         for ((theme, c) in builtIns()) {
@@ -417,6 +499,7 @@ class ThemePreviewTruthTest {
             fails += checkFamilies(label, theme, c, true)
             fails += checkWater(label, theme, c, true)
             fails += checkVisible(label, theme, c, true)
+            fails += checkFloor(label, theme, c, true)
         }
         report(fails)
     }
@@ -429,6 +512,7 @@ class ThemePreviewTruthTest {
             fails += checkFamilies(label, theme, c, null)
             fails += checkWater(label, theme, c, null)
             fails += checkVisible(label, theme, c, null)
+            fails += checkFloor(label, theme, c, null)
         }
         report(fails)
     }
@@ -453,6 +537,177 @@ class ThemePreviewTruthTest {
         )
     }
 
+    /** A theme saved from Beach, the way `snapshotEntry` saves one: its layout, a `custom:` id. */
+    private fun <T> withSavedBeach(block: (SceneTheme, SceneCustomization) -> T): T {
+        val beach = ThemeCatalog.byId("beach")
+        val id = "custom:truth-test-beach"
+        val entry = CustomThemeEntry(
+            id = id,
+            name = "Saved beach",
+            theme = beach.copy(id = id, displayName = "Saved beach"),
+            layout = SceneObjectCatalog.layoutFor("beach", beach.accentColor),
+            customization = defaultCustomizationFor("beach"),
+        )
+        CustomThemeRegistry.update(CustomThemeData.EMPTY.copy(customThemes = listOf(entry)))
+        try {
+            return block(entry.theme, entry.customization)
+        } finally {
+            CustomThemeRegistry.update(CustomThemeData.EMPTY)
+        }
+    }
+
+    /** Every landscape colour the card paints, moved off its default, on one theme. */
+    private fun editedLandscape(): Pair<SceneTheme, SceneCustomization> {
+        val autumn = ThemeCatalog.byId("autumn")
+        val c = defaultCustomizationFor("autumn")
+        return autumn to c.copy(
+            sky = c.sky.copy(
+                colorDayHigh = 0xFF123456.toInt(), colorDayLow = 0xFF654321.toInt(),
+                colorNightHigh = 0xFF0A0B0C.toInt(), colorNightLow = 0xFF1C1D1E.toInt(),
+                colorSunriseLow = 0xFFAA0011.toInt(), colorSunsetLow = 0xFF11AA00.toInt(),
+            ),
+            hillsColorDay = 0xFF778899.toInt(), hillsColorNight = 0xFF112233.toInt(),
+            mountainsBack = c.mountainsBack.copy(visible = true, colorDay = 0xFF405060.toInt(), colorNight = 0xFF102030.toInt()),
+            mountainsFront = c.mountainsFront.copy(visible = true, colorDay = 0xFF506070.toInt(), colorNight = 0xFF203040.toInt()),
+            lake = c.lake.copy(visible = true, colorDay = 0xFF2080C0.toInt(), colorNight = 0xFF102040.toInt()),
+        )
+    }
+
+    /**
+     * R4: the landscape of the card is the wallpaper's own at the card's moment.
+     *
+     * "The card's moment" is itself held to the wallpaper: it must be what
+     * `SunPositionCalculator.compute` gives for a clock hour, not a blend made up for a picture.
+     */
+    private fun checkLandscape(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?): List<String> {
+        val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
+        val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
+        val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
+        val phase = ThemePreviewScenes.cardPhase(theme, night)
+        val out = mutableListOf<String>()
+        // A whole hour, because that is what the fixed-time slider can set: the card's moment is
+        // one a user can put the wallpaper at and compare.
+        val hours = (0 until 24).map { it.toFloat() }
+        if (hours.none { SunPositionCalculator.compute(it) == phase }) {
+            out += "$label: R4 the card's moment is no hour the fixed-time slider can set"
+        }
+        val d = phase.dayBlend
+        fun blend(night: Int, day: Int) = SceneColour.blendArgb(night, day, d)
+        fun hex(v: Int) = "%08X".format(v)
+        fun same(what: String, expected: Int, actual: Int) {
+            if (expected != actual) out += "$label: R4 $what is ${hex(actual)} on the card, ${hex(expected)} in the wallpaper"
+        }
+        if (c.horrorSkyEnabled) {
+            same("the sky's top", SkyGradient.horrorTop(d), scene.skyTop)
+            same("the sky's horizon", SkyGradient.horrorBottom(d), scene.skyBottom)
+        } else {
+            same("the sky's top", SkyGradient.top(c.sky, d), scene.skyTop)
+            same("the sky's horizon", SkyGradient.bottom(c.sky, d, phase.progress), scene.skyBottom)
+        }
+        same("the hills", blend(c.hillsColorNight, c.hillsColorDay), scene.groundColour)
+        if (c.lake.visible) same("the water", blend(c.lake.colorNight, c.lake.colorDay), scene.lake.colour)
+        val mountainColours = buildSet {
+            if (c.mountainsBack.visible) add(blend(c.mountainsBack.colorNight, c.mountainsBack.colorDay))
+            if (c.mountainsFront.visible) add(blend(c.mountainsFront.colorNight, c.mountainsFront.colorDay))
+        }
+        for (peak in scene.peaks) {
+            if (peak.colour !in mountainColours) out += "$label: R4 a mountain is ${hex(peak.colour)}, which neither layer is"
+        }
+        if (mountainColours.isNotEmpty() && scene.peaks.isEmpty()) out += "$label: R4 the scene has mountains and the card none"
+        val road = SceneObjectRenderer.drawsRoad(layout, c)
+        if (road != scene.hasRoad) out += "$label: R4 the scene ${if (road) "has" else "has no"} road and the card ${if (scene.hasRoad) "has" else "has no"} road"
+        if (road) same("the road", SceneObjectRenderer.roadColor(d), scene.roadColour)
+        for (star in scene.dots.filter { !it.front }) {
+            same("a star", PaperRenderer.STAR_POINT_COLOR, star.colour)
+        }
+        val palms = scene.items.any { item -> item.parts.any { nameOf(it.resId).startsWith("palmtree_") } }
+        val scenePalms = layout.hasPalmSlots() && c.palmsEnabled && c.trees.visible
+        if (palms != scenePalms) out += "$label: R4 the scene ${if (scenePalms) "has" else "has no"} palms and the card ${if (palms) "has" else "has no"}"
+        return out
+    }
+
+    @Test
+    fun `R4 the card's sky, hills, mountains, water and road are the wallpaper's`() {
+        val fails = mutableListOf<String>()
+        for ((theme, c) in builtIns()) {
+            fails += checkLandscape(theme.id, theme, c, null)
+            fails += checkLandscape("${theme.id} (forced night)", theme, c, true)
+        }
+        for ((label, pair) in custom()) fails += checkLandscape(label, pair.first, pair.second, null)
+        val (autumn, edited) = editedLandscape()
+        fails += checkLandscape("autumn with every landscape colour edited", autumn, edited, null)
+        fails += checkLandscape("autumn with every landscape colour edited (forced night)", autumn, edited, true)
+        val noCars = defaultCustomizationFor("autumn").let { it.copy(cars = it.cars.copy(visible = false)) }
+        fails += checkLandscape("autumn with its cars switched off", autumn, noCars, null)
+        report(fails)
+    }
+
+    @Test
+    fun `the six rules hold on a theme saved under a custom id`() {
+        val fails = withSavedBeach { theme, c ->
+            val label = "a theme saved from Beach"
+            checkFamilies(label, theme, c, null) + checkWater(label, theme, c, null) +
+                checkVisible(label, theme, c, null) + checkLandscape(label, theme, c, null) +
+                checkFloor(label, theme, c, null) + checkSpecies(label, theme, c, null)
+        }
+        report(fails)
+    }
+
+    @Test
+    fun `an edited sky reaches the card`() {
+        // The whole of D1 in one case: the card used to paint every day sky from the theme's old
+        // arrays, so an edit to the six sky colours never showed on it.
+        val (autumn, edited) = editedLandscape()
+        val scene = ThemePreviewScenes.forTheme(autumn, edited)
+        assertEquals(0xFF123456.toInt(), scene.skyTop)
+        assertEquals(0xFF654321.toInt(), scene.skyBottom)
+    }
+
+    @Test
+    fun `rain and snow are painted over the card, stars behind it`() {
+        val winter = ThemeCatalog.byId("winter")
+        val c = defaultCustomizationFor("winter")
+        assertTrue("winter snows by default", c.precipitation.visible)
+        val snow = ThemePreviewScenes.forTheme(winter, c).dots
+        assertTrue(snow.isNotEmpty() && snow.all { it.front })
+        val stars = ThemePreviewScenes.forTheme(winter, c, forceNight = true).dots.filter { !it.front }
+        assertTrue("a night card has stars in the sky pass", stars.isNotEmpty())
+    }
+
+    @Test
+    fun `the wallpaper paints its sky, road and mountains through the rules R4 holds the card to`() {
+        // R4 compares the card with SkyGradient, roadColor/drawsRoad and MountainSilhouette. That is
+        // only a comparison with the wallpaper if the wallpaper paints with them, so the renderers'
+        // own source is read: a copy of the arithmetic reappearing there would make R4 a comparison
+        // of the card with itself.
+        val renderer = source("engine/PaperRenderer.kt")
+        val drawSky = renderer.substring(renderer.indexOf("private fun drawSky("), renderer.indexOf("private fun drawStars("))
+        for (call in listOf("SkyGradient.top(", "SkyGradient.bottom(", "SkyGradient.horrorTop(", "SkyGradient.horrorBottom(")) {
+            assertTrue("drawSky no longer calls $call", drawSky.contains(call))
+        }
+        assertTrue("drawSky computes a blend of its own again", !drawSky.contains("blendColor("))
+        val soft = renderer.substring(renderer.indexOf("private fun drawSoftMountain("))
+            .let { it.substring(0, it.indexOf("\n    }\n") + 6) }
+        assertTrue(soft.contains("MountainSilhouette.leftHalf(") && soft.contains("MountainSilhouette.rightHalf("))
+        val objects = source("engine/SceneObjectRenderer.kt")
+        val drawRoad = objects.substring(objects.indexOf("private fun drawRoad("))
+            .let { it.substring(0, it.indexOf("\n    }\n") + 6) }
+        assertTrue("drawRoad no longer asks drawsRoad", drawRoad.contains("drawsRoad(layout, customization)"))
+        assertTrue("drawRoad no longer paints roadColor", drawRoad.contains("roadColor(dayBlend)"))
+    }
+
+    private fun source(path: String): String {
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val candidate = File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/$path")
+                if (candidate.isFile) return candidate.readText()
+            }
+            dir = dir.parentFile
+        }
+        error("could not locate $path")
+    }
+
     private fun report(fails: List<String>) {
         assertTrue(
             "${fails.size} place(s) where the card does not say what the scene does:\n" +
@@ -469,6 +724,13 @@ class ThemePreviewTruthTest {
          * `UnitFrameTest` resolves a `LAKE_` prefix to the lake sprite's own units.
          */
         const val CARD_WATERLINE_TOLERANCE_UNITS = 1f
+
+        /**
+         * How far a car body's last row of ink may miss its floor: a twentieth of a card unit, which
+         * is float rounding and not a pixel (the card is 316 px for 320 units on the BV6600). The
+         * error R5 exists for was 1.75.
+         */
+        const val CARD_FLOOR_TOLERANCE_UNITS = 0.05f
         val WATER_FAMILIES = setOf("SAILBOAT", "DOLPHIN")
 
         /** The families whose one job is to be seen: a star or a snowflake is not one of them. */

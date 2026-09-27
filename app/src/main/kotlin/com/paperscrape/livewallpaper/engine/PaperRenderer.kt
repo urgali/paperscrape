@@ -14,11 +14,13 @@ import kotlin.random.Random
  *  - a vertical sky gradient that blends across day/night phases
  *  - a scattering of stars (visible at night only, twinkling)
  *  - a sun or moon disc following an arc across the sky
- *  - N layers of "paper" hills, each with its own parallax speed and a soft drop shadow,
- *    which together create the classic layered paper-cutout look.
+ *  - one layer of "paper" hills with its own parallax speed and a soft drop shadow (there used
+ *    to be three; see `layerCount`).
  *
- * The renderer is stateless between frames except for the star field, which is generated
- * once per screen size and reused (so stars don't jump around every frame).
+ * The renderer keeps state between frames: the scroll accumulator, the cloud-cover fade, the
+ * lightning timer, the wave slots and the firework and sleigh effects, plus caches -- the star
+ * field (generated once per screen size and star density, so stars don't jump around every
+ * frame) and the hill silhouettes.
  *
  * No longer applies a paper-grain texture (removed in v58): a real-device test found it made
  * colors read noticeably duller/grayer than what the user actually picked (the whole point of
@@ -83,20 +85,6 @@ class PaperRenderer(
         }
 
     /**
-     * One layer's parallax shift, already wrapped into `(-tileWidth, 0]`.
-     *
-     * The multiplication and the wrap both happen in `Double`, and only the wrapped result — which
-     * is always smaller than one tile — is narrowed to `Float`. That ordering is the whole point:
-     * [scrollProgress] grows without bound, and the previous code narrowed it to `Float` *before*
-     * multiplying, so the same precision cliff the `Double` accumulator was introduced to avoid was
-     * reintroduced at the point of use. Scrolling would quantise into steps after roughly the same
-     * timescale as the old `Float` time base.
-     *
-     * Wrapping [scrollProgress] itself is not an option: every layer multiplies it by a different
-     * parallax factor and by the user-set [parallaxStrength], which is continuous over `0.5..2`, so
-     * no wrap period can be a whole number of tiles for all of them at once.
-     */
-    /**
      * The candidate seed for one effect in the current theme.
      *
      * [EffectId] values are small consecutive ordinals so that their threshold offsets can be
@@ -111,6 +99,20 @@ class PaperRenderer(
     private fun seedFor(effectOrdinal: Int): Int =
         theme.id.hashCode() xor (effectOrdinal * -0x61c88647)
 
+    /**
+     * One layer's parallax shift, already wrapped into `(-tileWidth, 0]`.
+     *
+     * The multiplication and the wrap both happen in `Double`, and only the wrapped result — which
+     * is always smaller than one tile — is narrowed to `Float`. That ordering is the whole point:
+     * [scrollProgress] grows without bound, and the previous code narrowed it to `Float` *before*
+     * multiplying, so the same precision cliff the `Double` accumulator was introduced to avoid was
+     * reintroduced at the point of use. Scrolling would quantise into steps after roughly the same
+     * timescale as the old `Float` time base.
+     *
+     * Wrapping [scrollProgress] itself is not an option: every layer multiplies it by a different
+     * parallax factor and by the user-set [parallaxStrength], which is continuous over `0.5..2`, so
+     * no wrap period can be a whole number of tiles for all of them at once.
+     */
     private fun wrappedScrollShift(parallax: Double, tileWidth: Float): Float {
         var shift = (-scrollProgress * screenWidth * parallax) % tileWidth
         if (shift > 0.0) shift -= tileWidth
@@ -170,9 +172,10 @@ class PaperRenderer(
 
     // **Where the light is, this frame.** The water is a mirror since v4.26, so it has to know
     // three things the sky already worked out: whether a body was drawn at all, whether it was the
-    // sun or the moon, and where. Written by [drawSky] and [drawCelestialBody], read by [drawLake],
-    // which runs after both in the same frame -- the scene is composed front to back in one pass on
-    // one thread, so this is a value handed forward, not shared state.
+    // sun or the moon, and where. Written by [drawSky] and [drawCelestialBody], read by [drawLake]
+    // (mirror, waterline, waves) and [drawPrecipitation], which all run after both in the same
+    // frame -- the scene is composed back to front in one pass on one thread, so this is a value
+    // handed forward, not shared state.
     private var celestialShownNow = false
     private var celestialIsSunNow = false
     private var celestialCxNow = 0f
@@ -192,18 +195,15 @@ class PaperRenderer(
      * The shared sprite-blitting path (see [SpriteBlitter]), also used by [SceneObjectRenderer].
      *
      * This renderer is the only one that draws in **both** scale conventions, so every call site
-     * here names the one its sprite was authored in: the terrain sub-group (dolphin, sailboat) and
-     * the clouds are [SpriteScale.SCENE_UNITS]; the sky sub-group (sun, moon, stars, birds) and the
-     * sleigh are [SpriteScale.CANVAS_PIXELS]. Passing the wrong one is a silent
+     * here names the one its sprite was authored in: the terrain sub-group (dolphin, splash,
+     * sailboat, waves), the clouds, the stars, the rainbow, the lightning bolt, the firework and
+     * the sleigh are [SpriteScale.SCENE_UNITS]; the sun, the moon and the birds are
+     * [SpriteScale.CANVAS_PIXELS]. Passing the wrong one is a silent
      * [SpriteBlitter.SPRITE_PIXELS_PER_UNIT]x size error, which is exactly why it is spelled out at
      * the call rather than implied by which of several similarly named helpers is in scope.
      */
     private val sprites = SpriteBlitter(context)
 
-    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = 0x22000000
-    }
     private val precipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val lightningPaint = Paint()
     private val leafPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -212,8 +212,8 @@ class PaperRenderer(
      * The paint the point stars are drawn with.
      *
      * Its own field rather than a shared one, and hoisted rather than built per star: [drawStars]
-     * touches it sixty-odd times a frame and building a `Paint` on a draw path is the allocation
-     * `AI_PROJECT_RULES.md` 5.1 forbids.
+     * touches it once per point star -- 56 of the 70 in a full field, per tile copy drawn -- and
+     * building a `Paint` on a draw path is the allocation `AI_PROJECT_RULES.md` 5.1 forbids.
      */
     private val starPointPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -221,7 +221,7 @@ class PaperRenderer(
     }
 
     // Lightning flash state -- a tiny, self-contained timer/fade in the same spirit as
-    // [continuousScrollPhase] above, not a whole separate Effect class like [FireworkEffect]
+    // [continuousScrollAccum] above, not a whole separate Effect class like [FireworkEffect]
     // (that one manages a *pool* of independent bursts with their own particle geometry; this is
     // a single global screen-wide overlay with one number to fade, not worth the extra class).
     private var lightningTimer = 4f + Random.nextFloat() * 6f
@@ -276,8 +276,8 @@ class PaperRenderer(
     private var stars: List<Star> = emptyList()
     private var cachedStarsDensity = -1f
 
-    // Cached, unshifted hill silhouettes — one per layer, rebuilt only when the theme or screen
-    // size changes (see rebuildHillPathsIfNeeded). Parallax is then applied purely via
+    // Cached, unshifted hill silhouettes — one per layer, rebuilt only when the theme, the screen
+    // size or [hillsVariation] changes (see rebuildHillPathsIfNeeded). Parallax is then applied via
     // canvas.translate() at draw time, which is essentially free, instead of recomputing every
     // control point with fresh Random() calls on every single frame. That per-frame rebuild was
     // the main source of stutter during home-screen swipes, when CPU is already busy with the
@@ -369,16 +369,17 @@ class PaperRenderer(
     // each band independently colored/darkened and independently (and much more wildly) random,
     // was what read as "3 overlapping colors" instead of one cohesive hillside.
     private val layerCount = 1
-    private val parallaxFactors = floatArrayOf(0.15f)
+    private val parallaxFactors = floatArrayOf(HILL_PARALLAX)
     private val heightFractions = floatArrayOf(SceneSpace.HILL_LAYER_HEIGHT_FRACTION)
     private val yOffsets = floatArrayOf(SceneSpace.HILL_LAYER_TOP_FRACTION) // top of each layer, as fraction of height
 
     /** The single Y line (as a fraction of screen height) below which the *farthest* hill layer
-     * is guaranteed solid paper at every x, regardless of how [buildBaseHillPath]'s per-segment
-     * randomness rolls -- i.e. [SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION] applied to layer 0's own band, the exact same
-     * "always-covered" fraction already derived and proven for object row placement. [drawMountains]
-     * and [updateLakeBandY] both anchor to this so mountains/lake always connect directly into the
-     * hills with no gap, at every x -- see [drawMountains]'s own doc comment for the reasoning. */
+     * is guaranteed solid paper at every x, wherever [buildBaseHillPath]'s sine wave (0.13 +/-
+     * 0.09 of the band) puts the top edge -- i.e. [SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION]
+     * applied to layer 0's own band, the exact same "always-covered" fraction already derived and
+     * proven for object row placement. [drawMountains] and [updateLakeBandY] both anchor to this so
+     * mountains/lake always connect directly into the hills with no gap, at every x -- see
+     * [drawMountains]'s own doc comment for the reasoning. */
     private val hillGuaranteedTopFraction = SceneSpace.GROUND_SOLID_TOP_Y_FRACTION
 
     companion object {
@@ -430,7 +431,7 @@ class PaperRenderer(
          * ### Why metres, and not pixels at some reference height (v4.5)
          *
          * Everything else in the scene declares a real size and lets [SceneSpace] turn it into
-         * pixels: a house is 5.76 m, a car 1.45 m, an adult 1.75 m. v4.4 put precipitation on the
+         * pixels: a house is 5.76 m, a car 1.69 m, an adult 1.75 m. v4.4 put precipitation on the
          * viewport scale but left it expressed as pixels-at-a-reference-height, and a pixel count
          * cannot be checked against anything -- so the magnitude went unnoticed. Measured on a
          * 1080x2424 frame, a v4.4 raindrop was **1.52 m long, 1.15 times the height of the
@@ -461,8 +462,9 @@ class PaperRenderer(
 
         /**
          * A flake is measured as a diameter, and judged against a head rather than a child: it is
-         * a disc, so its mass reads by area. At 0.30 m the largest flake is just under one head
-         * (a head is roughly 0.23 m); v4.4's 0.60 m was two.
+         * a disc, so its mass reads by area. At 0.30 m the largest flake is about 1.3 heads across
+         * (a head is roughly 0.23 m; `PrecipitationScaleTest` allows up to 1.35); v4.4's 0.60 m was
+         * over two and a half.
          *
          * Halved from v4.4 rather than reduced to the pre-v4.4 0.20 m, because snow was the half
          * of this that already read on a device: at 0.13-0.30 m over the new pool it keeps
@@ -472,7 +474,10 @@ class PaperRenderer(
         const val SNOW_DIAMETER_MIN_METRES = 0.13f
         const val SNOW_DIAMETER_MAX_METRES = 0.30f
 
-        /** How far a flake drifts sideways as it falls. Scaled with the flake it belongs to. */
+        /**
+         * How far a flake drifts sideways as it falls. Scaled with the viewport in metres, like the
+         * flakes; every flake sways by the same distance whatever its size.
+         */
         const val SNOW_SWAY_METRES = 0.31f
 
         /** How far past the bottom edge a drop keeps falling before it wraps. */
@@ -603,7 +608,7 @@ class PaperRenderer(
 
         /**
          * How far the two papers of a wave stand off the water in Rec. 601 luma, **derived and not
-         * chosen** -- `WaveContrastTest` sweeps the eight themes that show a lake x 288 five-minute
+         * chosen** -- `WaveContrastTest` sweeps the three themes that show a lake x 288 five-minute
          * steps x three weathers = 2 592 situations and fails if these drift from what it derives.
          *
          * The pair below is the **floor**: the v4.22 rule puts a gate halfway between a measured
@@ -613,7 +618,8 @@ class PaperRenderer(
          * from the gradient underneath.
          *
          * What the renderer *aims* at is [WaveTint.gapAt], which carries the night end up to the
-         * signal; see that function for why, and `DESIGN_NOTES` 16 for the photograph that asked.
+         * signal; see that function for why, and `DESIGN_NOTES` 17 ("The sea moves in bad weather")
+         * for the photograph that asked.
          */
         const val WAVE_BODY_LUMA_GAP = 24.9f
         const val WAVE_FOAM_LUMA_GAP = 34.9f
@@ -654,6 +660,13 @@ class PaperRenderer(
         // read them, and `SpriteTintClassTest` now asserts the property from the artwork's side.
 
         /**
+         * Opacity at the centre of the sun/moon's ambient glow, falling to 0 at its outer radius.
+         * It was the first stop of the `RadialGradient` this replaced; the falloff is unchanged,
+         * only where the number is written down.
+         */
+        const val CELESTIAL_GLOW_CENTRE_ALPHA = 90
+
+        /**
          * The four cloud depth tiers: farther tiers drift slower, sit higher and draw smaller;
          * nearer tiers the reverse. Four tiers of their own rather than reusing this file's
          * mountain/hill layer identities, which carry no
@@ -663,13 +676,6 @@ class PaperRenderer(
          * they were: the arrays are fixed data and were being allocated on every frame the cloud
          * layer is visible. Values and index order are unchanged.
          */
-        /**
-         * Opacity at the centre of the sun/moon's ambient glow, falling to 0 at its outer radius.
-         * It was the first stop of the `RadialGradient` this replaced; the falloff is unchanged,
-         * only where the number is written down.
-         */
-        const val CELESTIAL_GLOW_CENTRE_ALPHA = 90
-
         private val CLOUD_TIER_PARALLAX = floatArrayOf(0.035f, 0.05f, 0.065f, 0.08f)
         private val CLOUD_TIER_Y_OFFSET = floatArrayOf(-0.02f, 0f, 0.015f, 0.03f)
         private val CLOUD_TIER_SIZE_MULTIPLIER = floatArrayOf(0.85f, 0.95f, 1.05f, 1.15f)
@@ -865,21 +871,13 @@ class PaperRenderer(
         const val LIGHTNING_VEIL_MAX_ALPHA = 180f
 
         /**
-         * The horror sky's four corners: near-black overhead, hard orange at the horizon.
-         *
-         * Flat paper colours, not a photographic gradient -- the orange is one saturated tone and
-         * the black is one, with the blend between them doing all the work. The day pair is
-         * lighter than the night pair only enough to keep sunrise and sunset legible; this sky is
-         * meant to look wrong at noon, which is the point of it.
-         */
-        /**
          * What the carved moon is multiplied by, in place of the theme's own moon colour.
          *
          * The sprite stays a colourless mask -- `SpriteTintClassTest` requires that of every
          * tintable sprite, and multiplying one hue by another compounds them -- so the orange has
-         * to arrive at the blit. What the artwork carries instead is *luminance*: three concentric
-         * paper rings, dark at the rim and bright at the centre, which this colour turns into a
-         * warm lantern without a gradient, a glow or a second draw call.
+         * to arrive at the blit. What the artwork carries instead is one flat light tone with the
+         * face cut out of it, which this colour turns into a flat orange lantern without a
+         * gradient, a glow or a second draw call.
          *
          * Fixed rather than derived from the theme. A carved lantern is orange in the same way a
          * pumpkin is; letting a theme's cool moon colour through would produce a blue jack-o'-
@@ -887,6 +885,14 @@ class PaperRenderer(
          */
         const val HALLOWEEN_MOON_COLOUR = 0xFFFF8C2A.toInt()
 
+        /**
+         * The horror sky's four corners: near-black overhead, hard orange at the horizon.
+         *
+         * Flat paper colours, not a photographic gradient -- the orange is one saturated tone and
+         * the black is one, with the blend between them doing all the work. The day pair is
+         * lighter than the night pair only enough to keep sunrise and sunset legible; this sky is
+         * meant to look wrong at noon, which is the point of it.
+         */
         const val HORROR_SKY_TOP_NIGHT = 0xFF07060A.toInt()
         const val HORROR_SKY_TOP_DAY = 0xFF1A1020.toInt()
         const val HORROR_SKY_LOW_NIGHT = 0xFFB03A06.toInt()
@@ -895,11 +901,12 @@ class PaperRenderer(
         /**
          * The dolphin's re-entry splash: how long it lasts and how it is timed.
          *
-         * The leap is `sin(2*PI*(f*t + phase))` and the animal is drawn only while that is
-         * positive, so it meets the water again at the instant the cycle's fraction passes 0.5.
-         * [SPLASH_WINDOW_CYCLES] is how much of the cycle after that instant the splash occupies
-         * -- 6% of a 0.9 Hz cycle, about a fifteenth of a second at each end of it. That is short
-         * enough to read as an impact rather than as a second object in the lake.
+         * The leap is `sin(DOLPHIN_LEAP_RATE * t + phase * 6.28)` -- a rate in radians per second,
+         * one cycle every ~7 s -- and the animal is drawn only while that is positive, so it meets
+         * the water again at the instant the cycle's fraction passes 0.5. [SPLASH_WINDOW_CYCLES] is
+         * how much of the cycle after that instant the splash occupies -- 6% of that ~7 s cycle,
+         * about 0.42 s at each crossing. That is short enough to read as an impact rather than as
+         * a second object in the lake.
          *
          * **Nothing is stored to make this work.** The trigger is the same phase the leap is drawn
          * from, so there is no per-dolphin splash state to allocate, update or lose across a
@@ -966,23 +973,52 @@ class PaperRenderer(
         const val SANTA_TROT_FRAMES_PER_SECOND = 4.5f
 
         /**
-         * Centres the 90x24 bird on its own position, in canvas pixels.
-         *
-         * The sprite is authored at its on-screen size, so there is no divisor here and none is
-         * wanted: the 90 px width *is* the wingspan. (REN-07: this said 90x42, which was the canvas
-         * before the strip was cropped to one bird.)
-         */
-        /**
-         * How far a dolphin rises out of the water at the top of its arc, and how far it noses
-         * up and down along it.
-         */
-        /**
          * One star in this many is drawn with the sparkle sprite; the rest are points.
          *
          * Five keeps roughly a dozen sparkles in a full field, which is enough for the sky to
          * read as having bright stars in it without the field looking like a repeated motif.
          */
         const val STAR_SPARKLE_EVERY = 5
+
+        /**
+         * Which of these stars sparkle: the `ceil(n / STAR_SPARKLE_EVERY)` largest -- as many as
+         * "every fifth by index" gave, so the count is unchanged. Ties go to the lower index.
+         */
+        /**
+         * How fast each far layer slides while the scene scrolls, as a fraction of the scroll:
+         * slower the farther it is. The back mountains, the front mountains, then the lake -- whose
+         * far edge the front mountains stand on and whose near edge goes behind the hills, so it
+         * takes the middle of the two -- then the one hill layer.
+         */
+        /** The four leaf colours; a constant rather than an array built every frame (v5.8C). */
+        private val FALLING_LEAF_PALETTE = intArrayOf(
+            0xFFD2691E.toInt(), // orange
+            0xFFB5451B.toInt(), // rust red
+            0xFFE0A93A.toInt(), // gold/yellow
+            0xFF8F3B1B.toInt(), // deep brown-red
+        )
+
+        /** How much each hill layer is darkened towards black; one layer, not darkened. */
+        private val HILL_LAYER_DARKEN = floatArrayOf(0f)
+
+        /** How far each hill tile reaches past its own edges, so two copies overlap at the seam. */
+        const val HILL_TILE_SEAM_OVERLAP_PX = 1f
+
+        const val MOUNTAINS_BACK_PARALLAX = 0.04f
+        const val MOUNTAINS_FRONT_PARALLAX = 0.08f
+        const val HILL_PARALLAX = 0.15f
+        const val LAKE_PARALLAX = (MOUNTAINS_FRONT_PARALLAX + HILL_PARALLAX) / 2f
+
+        /** [x] folded into `[0, tileWidth)`: the position of the copy of a repeating thing that lies in the first tile. */
+        internal fun foldIntoTile(x: Float, tileWidth: Float): Float {
+            val r = x % tileWidth
+            return if (r < 0f) r + tileWidth else r
+        }
+
+        internal fun starSparkleIndices(radii: FloatArray): Set<Int> {
+            val n = (radii.size + STAR_SPARKLE_EVERY - 1) / STAR_SPARKLE_EVERY
+            return radii.indices.sortedWith(compareByDescending<Int> { radii[it] }.thenBy { it }).take(n).toSet()
+        }
 
         /**
          * The cream the sparkle art is drawn in, so a point and a sparkle are the same star.
@@ -1014,6 +1050,10 @@ class PaperRenderer(
          */
         const val STAR_POINT_RADIUS_SCALE = 0.55f
 
+        /**
+         * How far a dolphin noses up and down along its arc; how far it rises is
+         * [SceneSpace.DOLPHIN_LEAP_METRES].
+         */
         const val DOLPHIN_LEAP_TILT_DEGREES = 26f
 
         /**
@@ -1235,7 +1275,7 @@ class PaperRenderer(
     private fun regenerateStars() {
         val rnd = Random(42)
         val count = (70 * sceneCustomization.stars.density.coerceIn(0f, 1f)).toInt()
-        stars = List(count) { index ->
+        val placed = List(count) {
             Star(
                 x = rnd.nextFloat() * screenWidth,
                 y = rnd.nextFloat() * screenHeight * 0.55f,
@@ -1243,21 +1283,30 @@ class PaperRenderer(
                 // small for the new sparkle sprite to read as anything but a blur).
                 radius = 2.4f + rnd.nextFloat() * 3.2f,
                 phase = rnd.nextFloat() * 6.28f,
-                // Every fifth star is a sparkle; the rest are points. See [drawStars].
-                sparkle = index % STAR_SPARKLE_EVERY == 0,
+                sparkle = false,
             )
         }
+        // One star in [STAR_SPARKLE_EVERY] is a sparkle, and it is **the largest ones**: the few
+        // brighter stars of a night sky, and the sizes the sparkle sprite was enlarged to read at.
+        // Until v5.8C it was every fifth by index, whatever its size, so some of the smallest stars
+        // carried it while some of the largest were plain points (v5.8B comment audit). Same count,
+        // same positions and sizes: only which stars sparkle moved.
+        val sparkles = starSparkleIndices(FloatArray(count) { placed[it].radius })
+        stars = placed.mapIndexed { i, star -> if (i in sparkles) star.copy(sparkle = true) else star }
         cachedStarsDensity = sceneCustomization.stars.density
     }
 
     // ---- The weather this frame is actually in, evaluated once at the top of the frame ---------
     //
-    // Three draw paths now need the same two answers -- the rain's own drawing, the umbrella in a
-    // pedestrian's hand and the waves on the lake -- and each of them reading the customization
-    // and the live override for itself is how they would come to disagree. "Raining" is exactly
-    // the predicate `drawPrecipitation` paints rain on, which is the point: **snow is not rain**,
-    // so nobody carries an umbrella in the snow and no wave crosses a frozen lake.
+    // Two draw paths read these answers -- the umbrella in a pedestrian's hand and the waves on
+    // the lake -- and each of them reading the customization and the live override for itself is
+    // how they would come to disagree. "Raining" is the predicate `drawPrecipitation` paints rain
+    // on (that function still derives it for itself): **snow is not rain**, so nobody carries an
+    // umbrella in the snow, and snow raises no waves -- not even in a live thundersnow, where the
+    // lightning still flashes but the lake stays calm under the falling snow
+    // ([LiveWeatherSceneRules.wavesOnLake]; until v5.8C the storm alone raised them, v5.8B audit).
     private var rainingNow = false
+    private var snowingNow = false
     private var rainIntensityNow = 0f
     /** The storm gate the lightning already uses, so the two cannot disagree about a thunderstorm. */
     private var stormActiveNow = false
@@ -1281,9 +1330,11 @@ class PaperRenderer(
         }
         if (live != null) {
             rainingNow = live.precipitationType == PrecipitationType.RAIN && live.precipitationIntensity > 0f
+            snowingNow = live.precipitationType == PrecipitationType.SNOW && live.precipitationIntensity > 0f
             rainIntensityNow = if (rainingNow) live.precipitationIntensity else 0f
         } else {
             rainingNow = precip.visible && precip.intensity > 0f && precip.type == PrecipitationType.RAIN
+            snowingNow = precip.visible && precip.intensity > 0f && precip.type == PrecipitationType.SNOW
             rainIntensityNow = if (rainingNow) precip.intensity else 0f
         }
         stormActiveNow = LiveWeatherSceneRules.stormActive(
@@ -1333,7 +1384,7 @@ class PaperRenderer(
     private fun gatherWaves(from: Int, top: Float, bandHeight: Float, dayBlend: Float, elapsedSeconds: SceneTime): Int {
         var count = from
         // A thunderstorm is a full sea; plain rain scales the pool by how hard it is raining.
-        val waveDensity = if (stormActiveNow) 1f else rainIntensityNow
+        val waveDensity = if (stormActiveNow && !snowingNow) 1f else rainIntensityNow
         val effectOffset = CandidateThreshold.offsetFor(EffectId.LAKE_SPARKLES)
         val fallbackIndex = CandidateThreshold.fallbackIndexFor(waveDensity, WAVE_POOL, effectOffset)
         val waveSeed = seedFor(EffectId.LAKE_SPARKLES) xor 0x7A7
@@ -1387,10 +1438,75 @@ class PaperRenderer(
         canvas.restore()
     }
 
+    /** The canvas and clock of the frame being drawn, for the two effect lambdas below; null between frames. */
+    private var effectCanvas: SceneCanvas? = null
+    private var effectElapsed = SceneTime(0.0)
+
+    /** Built once: see the comment where the effects are drawn. */
+    private val drawFireworkBurst: (Float, Float, Float, Float) -> Unit = { x, y, burstScale, alpha ->
+        val canvas = effectCanvas
+        if (canvas != null) {
+            // `firework` is 240x240 with a SPRITE_CENTRE anchor -- 80x80 local units, so the
+            // origin is -40 on both axes and the sprite's own centre lands on the burst point.
+            // [FIREWORK_REACH_UNITS] over that half-width is the scale at which a fully expanded
+            // burst reaches the radius the old particle spray did.
+            canvas.save()
+            canvas.translate(x, y)
+            val s = burstScale * FIREWORK_REACH_UNITS / FIREWORK_SPRITE_HALF_UNITS
+            canvas.scale(s, s)
+            sprites.draw(
+                canvas,
+                R.drawable.firework,
+                -FIREWORK_SPRITE_HALF_UNITS,
+                -FIREWORK_SPRITE_HALF_UNITS,
+                SpriteScale.SCENE_UNITS,
+                (alpha * 255).toInt().coerceIn(0, 255),
+            )
+            canvas.restore()
+        }
+    }
+
+    /** Built once, like [drawFireworkBurst]. */
+    private val drawSleigh: (Float, Float, Float, Float) -> Unit = { x, y, dir, alpha ->
+        val canvas = effectCanvas
+        if (canvas != null) {
+            val elapsedSeconds = effectElapsed
+            // The sleigh was a 1563x434 raw-pixel sprite reduced by a historical 130/680 divisor
+            // and anchored at (-283,+244) -- an origin inherited from a 2040x840 canvas that was
+            // 60 % transparent. The V2 redraw put it on the authoring grid, which makes it a
+            // SCENE_UNITS sprite and retires both numbers. **The manifest's SCENE_UNITS is right
+            // and the shipped call site's CANVAS_PIXELS was the stale half**; the manifest's
+            // declared anchor is taken as given here.
+            //
+            // The canvas this paragraph used to quote -- 624x168, content box 598px wide -- is two
+            // canvases out of date: `santa_sleigh_scene` is 594x123 px since v4.19's crop. See
+            // [SANTA_SLEIGH_SCALE] for the current geometry and for why the X origin is
+            // deliberately not the content's centre.
+            canvas.save()
+            canvas.translate(x, y)
+            canvas.scale(dir * SANTA_SLEIGH_SCALE, SANTA_SLEIGH_SCALE)
+            // Two frames, alternating on the same clock the walking people use. The team stopped
+            // moving its legs when the whole group became one sprite: a single bitmap cannot
+            // bend, so the trot has to be a second drawing rather than a transform. The two
+            // reindeer are drawn in opposite leg phases within each frame, so the pair never
+            // steps in unison.
+            val trotting = elapsedSeconds.frameIndex(SANTA_TROT_FRAMES_PER_SECOND, 0f, 2) == 1
+            sprites.draw(
+                canvas,
+                if (trotting) R.drawable.santa_sleigh_trot else R.drawable.santa_sleigh_scene,
+                SANTA_SLEIGH_ORIGIN_X_UNITS, SANTA_SLEIGH_ORIGIN_Y_UNITS,
+                SpriteScale.SCENE_UNITS,
+                (alpha * 255).toInt().coerceIn(0, 255),
+            )
+            canvas.restore()
+        }
+    }
+
     fun draw(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime, deltaSeconds: Float) {
         updateWeatherPredicates(deltaSeconds)
-        // One direction only, per explicit request -- full screen-width drift every ~25s at
-        // scrollSpeed=1.0;
+        // One direction only, per explicit request -- scrollProgress advances one unit (a screen
+        // width at parallax 1.0) every ~25 s at scrollSpeed=1.0, and each layer moves that times
+        // its own parallax (the hills, at 0.15, take ~167 s per screen width);
         // scrollSpeed=0 freezes it. Safe to let this grow unbounded now that hills and objects
         // share one wrap period (see scrollProgress's own doc comment) -- no bound needed here
         // the way the old oscillating version required one.
@@ -1402,12 +1518,12 @@ class PaperRenderer(
         // That reasoning was wrong: it's only seamless for a layer whose *own* parallax factor
         // happens to equal exactly 1.0, since only then does `scrollProgress`'s own wrap period
         // (2.0 units) correspond to that layer's actual `tileWidth` in pixels. Every other layer
-        // -- hills at 0.15/0.35/0.6, mountains/clouds at 0.04-0.08, the lake at 0.25, sky/stars at
-        // parallaxFactors[0] -- has a *different* effective wrap period in pixels, so forcibly
-        // resetting the shared accumulator made every one of them jump by a different, nonzero
-        // amount at the exact same instant: a visible, synchronized "the whole scene just reset"
-        // glitch every ~time it takes scrollProgress to reach 2.0 (well within a few minutes at
-        // typical scroll speeds) -- exactly the reported bug. Each layer's own `% tileWidth`
+        // -- the hills at 0.15, mountains at 0.04/0.08, clouds at 0.035-0.08, the lake at 0.25,
+        // sky/stars at parallaxFactors[0] -- has a *different* effective wrap period in pixels, so
+        // forcibly resetting the shared accumulator made every one of them jump by a different,
+        // nonzero amount at the exact same instant: a visible, synchronized "the whole scene just
+        // reset" glitch every ~time it takes scrollProgress to reach 2.0 (well within a few minutes
+        // at typical scroll speeds) -- exactly the reported bug. Each layer's own `% tileWidth`
         // already wraps correctly and seamlessly no matter how large the raw accumulator gets, so
         // it doesn't need an artificial reset here at all. [continuousScrollAccum] being a Double
         // (see its own doc comment) is what actually keeps that true across realistic uptimes --
@@ -1501,57 +1617,16 @@ class PaperRenderer(
 
         val fireworksEnabled = theme.hasFireworks && dayPhase.dayBlend < 0.35f
         fireworkEffect.update(deltaSeconds, fireworksEnabled, screenWidth.toFloat(), screenHeight.toFloat())
-        fireworkEffect.draw { x, y, burstScale, alpha ->
-            // `firework` is 240x240 with a SPRITE_CENTRE anchor -- 80x80 local units, so the
-            // origin is -40 on both axes and the sprite's own centre lands on the burst point.
-            // [FIREWORK_REACH_UNITS] over that half-width is the scale at which a fully expanded
-            // burst reaches the radius the old particle spray did.
-            canvas.save()
-            canvas.translate(x, y)
-            val s = burstScale * FIREWORK_REACH_UNITS / FIREWORK_SPRITE_HALF_UNITS
-            canvas.scale(s, s)
-            sprites.draw(
-                canvas,
-                R.drawable.firework,
-                -FIREWORK_SPRITE_HALF_UNITS,
-                -FIREWORK_SPRITE_HALF_UNITS,
-                SpriteScale.SCENE_UNITS,
-                (alpha * 255).toInt().coerceIn(0, 255),
-            )
-            canvas.restore()
-        }
+        // The two effects draw through member lambdas reading [effectCanvas] and [effectElapsed],
+        // not through lambdas written here: a lambda that captures `canvas` is a new object on
+        // every frame, which AI_PROJECT_RULES 5.1 forbids on the frame path (v5.8C; v5.8B audit).
+        effectCanvas = canvas
+        effectElapsed = elapsedSeconds
+        fireworkEffect.draw(drawFireworkBurst)
 
         santaSleighEffect.update(deltaSeconds, sceneCustomization.santaEnabled, screenWidth.toFloat(), screenHeight.toFloat())
-        santaSleighEffect.draw(canvas, elapsedSeconds, screenWidth.toFloat()) { x, y, dir, alpha ->
-            // The sleigh was a 1563x434 raw-pixel sprite reduced by a historical 130/680 divisor
-            // and anchored at (-283,+244) -- an origin inherited from a 2040x840 canvas that was
-            // 60 % transparent. The V2 redraw put it on the authoring grid, which makes it a
-            // SCENE_UNITS sprite and retires both numbers. **The manifest's SCENE_UNITS is right
-            // and the shipped call site's CANVAS_PIXELS was the stale half**; the manifest's
-            // declared anchor is taken as given here.
-            //
-            // The canvas this paragraph used to quote -- 624x168, content box 598px wide -- is two
-            // canvases out of date: `santa_sleigh_scene` is 594x123 px since v4.19's crop. See
-            // [SANTA_SLEIGH_SCALE] for the current geometry and for why the X origin is
-            // deliberately not the content's centre.
-            canvas.save()
-            canvas.translate(x, y)
-            canvas.scale(dir * SANTA_SLEIGH_SCALE, SANTA_SLEIGH_SCALE)
-            // Two frames, alternating on the same clock the walking people use. The team stopped
-            // moving its legs when the whole group became one sprite: a single bitmap cannot
-            // bend, so the trot has to be a second drawing rather than a transform. The two
-            // reindeer are drawn in opposite leg phases within each frame, so the pair never
-            // steps in unison.
-            val trotting = elapsedSeconds.frameIndex(SANTA_TROT_FRAMES_PER_SECOND, 0f, 2) == 1
-            sprites.draw(
-                canvas,
-                if (trotting) R.drawable.santa_sleigh_trot else R.drawable.santa_sleigh_scene,
-                SANTA_SLEIGH_ORIGIN_X_UNITS, SANTA_SLEIGH_ORIGIN_Y_UNITS,
-                SpriteScale.SCENE_UNITS,
-                (alpha * 255).toInt().coerceIn(0, 255),
-            )
-            canvas.restore()
-        }
+        santaSleighEffect.draw(canvas, elapsedSeconds, screenWidth.toFloat(), drawSleigh)
+        effectCanvas = null
 
         // Precipitation and its lightning flash are the closest things in the whole scene --
         // real rain/snow reads as being right in front of the "camera", in front of even houses
@@ -1588,7 +1663,8 @@ class PaperRenderer(
      * report, and the theme's own manual rain slider is a *scene setting* rather than a statement
      * about the weather, so it does not darken the sky: a user who turns rain on for a sunny theme
      * asked for rain on a sunny theme. One property read and a handful of multiplies, evaluated
-     * once per frame rather than per drawn element.
+     * by each layer that needs it (up to five times a frame: sky, sun, clouds, the lake's glitter
+     * and glow) rather than per drawn element.
      */
     private fun stormStrength(): Float {
         val live = liveWeatherOverride ?: return 0f
@@ -1607,16 +1683,11 @@ class PaperRenderer(
     private fun drawSky(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase) {
         val sky = sceneCustomization.sky
         // Blend night -> twilight -> day using dayBlend, with a twilight bump near the
-        // terminator -- same shape as before, just driven by the 6 user-editable colors instead
-        // of the old 4-array theme.sky*/skyDawn/skyDusk model. Only the bottom gets a dedicated
-        // sunrise/sunset color (the near-horizon warm glow); the top blends day<->night directly,
-        // since in reality the upper sky doesn't shift much across a sunrise/sunset.
-        val twilightWeight = (1f - kotlin.math.abs(dayPhase.dayBlend * 2f - 1f)).coerceIn(0f, 1f)
-        val top = blendColor(sky.colorNightHigh, sky.colorDayHigh, dayPhase.dayBlend.coerceIn(0f, 1f))
-
-        val twilightBottomColor = if (dayPhase.progress < 0.5f) sky.colorSunriseLow else sky.colorSunsetLow
-        val nightToTwilightBot = blendColor(sky.colorNightLow, twilightBottomColor, dayPhase.dayBlend.coerceIn(0f, 1f))
-        val bottom = blendColor(nightToTwilightBot, sky.colorDayLow, (dayPhase.dayBlend - twilightWeight * 0.3f).coerceIn(0f, 1f))
+        // terminator, driven by the 6 user-editable colors. The rule lives in [SkyGradient]
+        // because the gallery card paints its sky with it too: two copies of it are how the card
+        // came to show a sky this function never draws.
+        val top = SkyGradient.top(sky, dayPhase.dayBlend)
+        val bottom = SkyGradient.bottom(sky, dayPhase.dayBlend, dayPhase.progress)
 
         // The horror sky overrides the six user colours rather than editing them, so turning it
         // off gives the palette back exactly as it was. It keeps the day/night blend so the scene
@@ -1625,17 +1696,16 @@ class PaperRenderer(
         // overhead and a hard orange at the horizon. Two flat bands and a gradient between them
         // is what the rest of the sky already is; nothing here is a new drawing technique.
         if (sceneCustomization.horrorSkyEnabled) {
-            val lift = dayPhase.dayBlend.coerceIn(0f, 1f)
-            val horrorTop = blendColor(HORROR_SKY_TOP_NIGHT, HORROR_SKY_TOP_DAY, lift)
-            val horrorBottom = blendColor(HORROR_SKY_LOW_NIGHT, HORROR_SKY_LOW_DAY, lift)
+            val horrorTop = SkyGradient.horrorTop(dayPhase.dayBlend)
+            val horrorBottom = SkyGradient.horrorBottom(dayPhase.dayBlend)
             // **Recorded before the early return, not after it.** These two fields mean "the sky
-            // this frame actually drew", and three things downstream read them: the water's mirror,
-            // the struck waterline and the precipitation's derived colour. The horror branch used to
-            // return without writing them, so with the horror sky on they held whatever a previous
-            // frame left -- zero on the first frame, which is transparent black. A lake turned on
-            // under a horror sky therefore mirrored a colour that was never computed. The flag is
-            // independent of the theme (`DESIGN_NOTES.md` §16), so this is reachable in any theme,
-            // not only Halloween.
+            // this frame actually drew", and four things downstream read them: the water's mirror,
+            // the struck waterline, the waves' two tints and the precipitation's derived colour.
+            // The horror branch used to return without writing them, so with the horror sky on they
+            // held whatever a previous frame left -- zero on the first frame, which is transparent
+            // black. A lake turned on under a horror sky therefore mirrored a colour that was never
+            // computed. The flag is independent of the theme (`DESIGN_NOTES.md` §16), so this is
+            // reachable in any theme, not only Halloween.
             skyTopColorNow = horrorTop
             skyHorizonColorNow = horrorBottom
             canvas.drawVerticalGradientRect(
@@ -1663,11 +1733,11 @@ class PaperRenderer(
     }
 
     /**
-     * Sprite-blit conversion (batch 4 part 3): a star is a blitted texture -- a 4-pointed sparkle
-     * for most, a plain small dot for the rest -- rather than a plain filled circle. Bumped the
-     * radius
-     * range too (was 1-2.8px, a barely-visible dot at any size -- too small for the sparkle
-     * shape to read as anything but a blur) so the new shape actually shows.
+     * Sprite-blit conversion (batch 4 part 3), later split: a star is either a plain point (a
+     * filled circle, four in five of them) or, for one in [STAR_SPARKLE_EVERY], a blitted
+     * 4-pointed sparkle. Bumped the radius range too (was 1-2.8px, a barely-visible dot at any
+     * size -- too small for the sparkle shape to read as anything but a blur) so the new shape
+     * actually shows.
      */
     private fun drawStars(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         if (!sceneCustomization.stars.visible) return
@@ -1680,7 +1750,8 @@ class PaperRenderer(
         //
         // The look is better for it, not merely cheaper: a real night sky is mostly points with a
         // few brighter stars in it, and seventy identical rotating sparkles read as a pattern.
-        // The sparkles that remain are the largest ones, so what was legible before still is.
+        // The sparkles that remain are the largest fifth of the field ([starSparkleIndices];
+        // until v5.8C every fifth by index, whatever its size).
         for (star in stars) {
             val twinkle = 0.5f + 0.5f * elapsedSeconds.sinAt(1.5f, star.phase)
             val alpha = (255 * visibility * twinkle).toInt().coerceIn(0, 255)
@@ -1706,9 +1777,9 @@ class PaperRenderer(
             // v73.7, which made it three times too large and hung it off the star's lower right,
             // because v72's 64px artwork -- which was a raw-pixel sprite, and correct as one --
             // was replaced with a 3x redraw in v73 without the call site following. **The V2
-            // manifest declares this sprite CANVAS_PIXELS, which is that same defect written
-            // down**; the call site is the source of truth here and the manifest was corrected to
-            // agree with it, not the other way round.
+            // manifest declared this sprite CANVAS_PIXELS, which was that same defect written
+            // down**; the call site is the source of truth here and the manifest has been corrected
+            // to SCENE_UNITS to agree with it, not the other way round.
             //
             // Untinted, like the sun and for the same reason: V2 declares the sparkle fixed art
             // and draws it in cream with a warmer core, so `theme.starColor` no longer reaches
@@ -1773,11 +1844,11 @@ class PaperRenderer(
             canvas.translate(cx, cy)
             val s = radius / 120f
             canvas.scale(s, s)
-            // Aesthetic-pass batch 4 addition, simplified in batch 5: an 8-ray sunburst behind
-            // the disc. Originally also had 2 translucent concentric rings here, but on-device
-            // testing showed they could read as a second, separate pale disc next to the sun
-            // (mistaken for a moon) rather than a soft glow -- removed, the existing
-            // RadialGradient glow above already provides the ambient falloff on its own.
+            // Aesthetic-pass batch 4 addition, simplified in batch 5: a sunburst behind the disc
+            // (a ring since v4.23, see below). Originally also had 2 translucent concentric rings
+            // here, but on-device testing showed they could read as a second, separate pale disc
+            // next to the sun (mistaken for a moon) rather than a soft glow -- removed, the
+            // drawRadialGlow above already provides the ambient falloff on its own.
             //
             // sun_glow.png is 396x396 and its ring sits 154..166px from its own centre, so as a
             // raw-pixel sprite it covers 396 local units and has to be anchored at -396/2 for
@@ -1823,13 +1894,13 @@ class PaperRenderer(
     }
 
     /**
-     * Sprite-blit conversion (batch 4 part 3): the moon is one of 8 hand-drawn phase silhouettes
-     * (new, crescent, half, gibbous, full -- the waning half reusing the waxing shapes rotated
-     * 180°) rather than an ellipse-width approximation computed at runtime. Replaces the old
-     * "half-disc + variable-width
-     * terminator ellipse" geometric technique with 4 baked shapes (crescent/half/gibbous/full)
-     * reused the same way for the waning side via a 180° rotation. Thresholds on `illuminated`
-     * (already computed below, unchanged from the old technique) pick between the buckets.
+     * Sprite-blit conversion (batch 4 part 3): the moon is one of 4 hand-drawn phase silhouettes
+     * (crescent, half, gibbous, full -- the waning half reusing them rotated 180°, a new moon
+     * drawing only the dark disc) rather than an ellipse-width approximation computed at runtime.
+     * Replaces the old "half-disc + variable-width terminator ellipse" geometric technique with 4
+     * baked shapes (crescent/half/gibbous/full) reused the same way for the waning side via a 180°
+     * rotation. Thresholds on `illuminated` (already computed below, unchanged from the old
+     * technique) pick between the buckets.
      */
     private fun drawMoonWithPhase(
         canvas: SceneCanvas,
@@ -1949,13 +2020,6 @@ class PaperRenderer(
     }
 
     /**
-     * Two independent background silhouette layers, drawn behind the hills with their own
-     * (much slower than any hill layer) parallax rate. Deliberately kept entirely separate from
-     * the hill/object row-placement system ([SceneSpace.groundYFraction]) --
-     * these are simple, non-interactive backdrop shapes with no placement-safety concerns of
-     * their own, so there was no reason to risk touching that already-tuned geometry to add them.
-     */
-    /**
      * An ambient flock of birds crossing the sky -- independent of the hill/object
      * row-placement system (birds fly, they aren't anchored to any terrain row), with their own
      * gentle drift and wing-flap animation. Each bird's color is a stable weighted-random pick
@@ -2001,8 +2065,9 @@ class PaperRenderer(
             // had stopped being a three-bird strip as an instruction to place it three times, and
             // drew a flock at a third of the size. The shipped 420x65 sprite was never three
             // birds: it was one wide gull, and the historical `15f / 70f` divisor brought its
-            // 420 px down to a 90 px wingspan on screen. The V2 bird is 90 px wide, so it is
-            // blitted at its own size and reaches exactly the wingspan the old one did.
+            // 420 px down to a 90 px wingspan on screen. The bird has been a 51x21 px sprite since
+            // v4.26, blitted at its own size, so its wingspan is about 48 px on screen -- roughly
+            // half the old gull's 90.
             //
             // The origin centres the sprite on the flip axis, because the wing-flap is a vertical
             // mirror and mirroring about anything but the bird's own centre makes it hop.
@@ -2022,6 +2087,12 @@ class PaperRenderer(
         }
     }
 
+    /** See [CloudBand], which owns this arithmetic now that three layers depend on it agreeing. */
+    private fun cloudBandTopFor(screenHeight: Int, sunCloudHeight: Float): Float =
+        CloudBand.topFor(screenHeight, sunCloudHeight)
+
+    private fun cloudBandHeightFor(screenHeight: Int): Float = CloudBand.heightFor(screenHeight)
+
     /**
      * Puffy clouds drifting slowly across the upper sky. Same independent-candidate-pool
      * approach as [drawMountains]/[drawBirds] (own parallax, own density filter, no interaction
@@ -2040,11 +2111,10 @@ class PaperRenderer(
      * The second is about shape, not count. A full sky is a handful of large lobed masses
      * overlapping into one continuous band, not many small separate puffs across several rows --
      * an earlier attempt went the other way (36 small candidates across 3 stacked rows) and read
-     * as a texture rather than as cloud. Fewer, larger candidates in a single row close the gaps
-     * at high density because each one is bigger and overlaps its neighbours more, not because
-     * there are more of them.
-     */
-    /**
+     * as a texture rather than as cloud. Larger, heavily overlapping candidates in one band (41 of
+     * them, over four depth tiers) close the gaps at high density because each one is bigger and
+     * overlaps its neighbours more.
+     *
      * Cloud placement: a count that scales with the density setting, and four depth tiers assigned
      * in rotation by index rather than one shared depth for all of them.
      *
@@ -2058,21 +2128,11 @@ class PaperRenderer(
      *
      * The depth-tier *variety* is the part that matters visually and is kept: 4 tiers below, each
      * with its own parallax, size and vertical offset.
+     *
+     * Live Weather override: while it drives the scene, the forecast's (eased) cover is the
+     * density and the theme's own Clouds toggle is not consulted -- the same rule precipitation
+     * follows (see `LiveWeatherSceneRules.cloudDensity`).
      */
-    /**
-     * Live Weather override: only blends into the *density* when the theme's own Clouds toggle
-     * is already on -- unlike precipitation (a much stronger "is it raining or not" weather
-     * signal), whether a given theme shows clouds *at all* is treated as an artistic per-theme
-     * decision aa is free to keep off (e.g. a deliberately clear desert theme), so Live Weather
-     * only adjusts how many clouds show once that decision has already opted in, not whether any
-     * appear.
-     */
-    /** See [CloudBand], which owns this arithmetic now that three layers depend on it agreeing. */
-    private fun cloudBandTopFor(screenHeight: Int, sunCloudHeight: Float): Float =
-        CloudBand.topFor(screenHeight, sunCloudHeight)
-
-    private fun cloudBandHeightFor(screenHeight: Int): Float = CloudBand.heightFor(screenHeight)
-
     private fun drawClouds(
         canvas: SceneCanvas,
         dayPhase: SunPositionCalculator.DayPhase,
@@ -2119,7 +2179,8 @@ class PaperRenderer(
 
         // aa reported clouds too small and, even at 100% density, not actually covering the sky.
         // A full sky is ~41 heavily-overlapping clouds spread evenly across the *whole* width,
-        // overlapping enough to form a solid blanket. The radius (68f*scale) was already right;
+        // overlapping enough to form a solid blanket. The size (the 266-unit cloud_body sprite at
+        // 0.72-1.44 scale) was already right;
         // the count now goes to 41 too (was capped at 36) now that
         // [drawPuffyCloud] is a cheap sprite blit instead of 4 per-frame Path.op booleans -- see
         // this function's own doc comment above for why that cap no longer needs to exist.
@@ -2163,14 +2224,18 @@ class PaperRenderer(
             val ownDrift = elapsedSeconds.cycle(driftSpeed, phase) * tileWidth
             val baseX = tileFractionX * tileWidth + wrappedShift + ownDrift
 
-            for (tileOffset in -1..1) {
-                var x = baseX + tileOffset * tileWidth
-                // Fold the extra drift-based wrap back into a single tileWidth period too.
-                x %= tileWidth * 2f
-                if (x > tileWidth) x -= tileWidth * 2f
-                // Margin widened from 120f to 160f to match the bigger r=68f base radius (was
-                // 45f) -- otherwise clouds crossing the screen edge get culled before their
-                // outermost lobe (up to ~2.1r from center) finishes drawing.
+            // The cloud repeats every tile width. Its copies are the one folded into [0, tileWidth)
+            // and the one a tile to its left; a tile is two screens wide, so no third copy can
+            // reach the screen. Until v5.8C three offsets were folded modulo *two* tile widths,
+            // which whenever baseX > 0 put two of them on the same x: about a third of the clouds
+            // on screen were blitted twice at one spot, with heavier feathered edges than the rest
+            // and a fade running at 1-(1-a)^2 instead of a (v5.8B comment audit).
+            val folded = foldIntoTile(baseX, tileWidth)
+            for (copy in 0..1) {
+                val x = folded - copy * tileWidth
+                // Cull margin of 160f * scale: wider than the sprite's own half-width
+                // (CLOUD_CONTENT_HALF_UNITS, 133 units x scale), so a cloud crossing the screen
+                // edge is never culled while any of it is still on screen.
                 if (x < -160f * scale || x > screenWidth + 160f * scale) continue
                 drawPuffyCloud(canvas, x, laneY, scale, cloudAlpha)
                 // **A cloud that is fading contributes its whole geometry to the rain field, not
@@ -2197,10 +2262,11 @@ class PaperRenderer(
      * `Cloud` class blits a real texture, see this delivery's own CHANGELOG entry), *and* the
      * single biggest per-frame cost this file had among the still-vector-drawn categories --
      * up to 36 candidates/frame each doing 4 boolean path operations was exactly the kind of
-     * cost the sprite-blit pilot was meant to eliminate. Mottling, the soft under-shading, and
-     * the thin darker rim (previously a runtime clip+shadow+stroke sequence) are now baked into
-     * `cloud_body.png` at generation time instead (`gen_cloud_sprite.py`, kept in chat, not
-     * committed) -- same "bake it into the sprite" convention batches 1-3 established.
+     * cost the sprite-blit pilot was meant to eliminate. The runtime clip+shadow+stroke sequence
+     * is gone: the look now lives in `cloud_body.png`, generated from the committed
+     * `tools/assets/sources/svg/cloud_body.svg` (v4.26 "Batuffolo": one lobed mass with a single
+     * vertical tone ramp and a feathered edge) -- same "bake it into the sprite" convention
+     * batches 1-3 established.
      */
     private fun drawPuffyCloud(canvas: SceneCanvas, cx: Float, cy: Float, scale: Float, alpha: Int) {
         canvas.save()
@@ -2214,19 +2280,20 @@ class PaperRenderer(
     }
 
     /**
-     * A decorative paper-cutout rainbow arc, 7 concentric stroked bands. Anchored to the exact
-     * same base-Y fraction [drawMountains] derives its own base from
-     * ([SceneSpace.GROUND_SOLID_TOP_Y_FRACTION]) so it visually "grows" out of the
-     * same horizon band mountains sit on, then is drawn *before* mountains/hills in [draw]'s call
-     * order so their silhouettes naturally occlude the rainbow's base -- exactly like a real
-     * rainbow appears to rise from behind distant terrain rather than floating in front of it.
+     * A decorative paper-cutout rainbow arc: the `rainbow_arc` sprite, six concentric bands.
+     * Anchored to [SceneSpace.GROUND_SOLID_TOP_Y_FRACTION], the base [drawMountains] uses when no
+     * lake is shown (with a lake the mountains stand on the water's top edge instead), so it
+     * visually "grows" out of the horizon band, then is drawn *before* mountains/hills in
+     * [draw]'s call order so their silhouettes naturally occlude the rainbow's base -- exactly like
+     * a real rainbow appears to rise from behind distant terrain rather than floating in front of
+     * it.
      *
      * **Now a sprite.** It was seven stroked `drawArc` bands plus seven highlight arcs, with two
      * `RectF`s allocated per band per frame, and the reason given for keeping it procedural was
      * that its size is derived from `screenWidth` rather than fixed in sprite units, so a
      * fixed-resolution PNG would need its own dynamic-scale path. That path is three lines --
      * a `save`/`scale`/`restore` around the blit -- and the V2 asset set supplies `rainbow_arc`
-     * as a five-band arc whose base sits on its own bottom edge. The bands were hardcoded
+     * as a six-band arc whose base sits on its own bottom edge. The bands were hardcoded
      * constants here, so nothing user-facing moves into the artwork; what leaves the frame loop
      * is 14 arc strokes and 14 `RectF` allocations.
      */
@@ -2262,10 +2329,11 @@ class PaperRenderer(
 
     /**
      * Falling rain or snow, the closest thing in the whole scene (see [draw]'s call order --
-     * this is drawn dead last). Uses the same stateless deterministic-candidate approach as
-     * [drawBirds]/[drawClouds] (no per-drop state to manage between frames): each candidate's
-     * fall position is purely a function of [elapsedSeconds], wrapping smoothly from top to
-     * bottom, so drops never need to be spawned/removed from a live list.
+     * only the falling leaves and the lightning flash are drawn after it). Uses the same stateless
+     * deterministic-candidate approach as [drawBirds]/[drawClouds] (no per-drop state to manage
+     * between frames): each candidate's fall position is purely a function of [elapsedSeconds],
+     * wrapping smoothly from top to bottom, so drops never need to be spawned/removed from a live
+     * list.
      *
      * aa reported drops/flakes reading as falling "from above" rather than out of the clouds.
      * Two things fix that, and both are about where a drop begins rather than how it falls: a
@@ -2425,10 +2493,9 @@ class PaperRenderer(
      * from empty space" mistake [drawPrecipitation] had before its own origin was fixed against
      * the clouds -- meaning leaves crossed the *entire* screen height (sky, clouds, everything)
      * before ever reaching tree level, with zero relationship to where any tree canopy actually
-     * is. Moved the origin down to the hill band's own top edge (`yOffsets[0]`, the same
-     * constant [drawHillLayers] itself uses) -- trees sit within the hill's ground band and their
-     * canopies extend a bit above their own base, so starting right at the hill top reads as
-     * "coming off the trees poking above the hill line" instead of falling out of open sky.
+     * is. Each leaf now starts at the crown it belongs to (`SceneObjectRenderer.leafSourceY` /
+     * `leafSourceX`), one of the crowns actually on screen, rather than at one height across the
+     * whole width.
      * Falls only as far as **its own tree's ground line**, which is as far as an actual falling
      * leaf travels before it lands. It used to fall to one global `screenHeight * 0.88` instead --
      * below both traffic lanes -- so leaves from every tree, however far back it stood, drifted
@@ -2440,12 +2507,7 @@ class PaperRenderer(
         // conversion is purely about removing the per-frame Random. Every candidate is still
         // drawn, in the same order, with values in the same ranges.
         val seed = seedFor(EffectId.FALLING_LEAVES)
-        val palette = intArrayOf(
-            0xFFD2691E.toInt(), // orange
-            0xFFB5451B.toInt(), // rust red
-            0xFFE0A93A.toInt(), // gold/yellow
-            0xFF8F3B1B.toInt(), // deep brown-red
-        )
+        val palette = FALLING_LEAF_PALETTE
         // **Every leaf comes off a crown that is actually on screen.**
         //
         // It used to start at one height across the whole width -- `xFraction * screenWidth` at a
@@ -2468,12 +2530,13 @@ class PaperRenderer(
         // in exactly the frames the visible set changed -- the "scene rebuilds on swipe" report.
         // The time base was never the problem; `elapsedSeconds` runs straight through a swipe.
         //
-        // Now each visible crown derives [FALLING_LEAVES_PER_TREE] candidates from its own stable
-        // identity ([SceneObjectRenderer.leafSourceId]), so a leaf's phase, speed, drift and
-        // colour are functions of *its tree* and nothing else. While a tree is on screen its
-        // leaves fall undisturbed however the viewport moves; when it scrolls off, its leaves go
-        // with it -- they were only ever drawn over it. Still stateless: same noise, same
-        // channels, re-evaluated from the clock every frame, nothing stored between frames.
+        // Now each visible crown derives [SceneObjectRenderer.leafSourceLeafCount] candidates
+        // (3-13, by its drawn size) from its own stable identity
+        // ([SceneObjectRenderer.leafSourceId]), so a leaf's phase, speed, drift and colour are
+        // functions of *its tree* and nothing else. While a tree is on screen its leaves fall
+        // undisturbed however the viewport moves; when it scrolls off, its leaves go with it --
+        // they were only ever drawn over it. Still stateless: same noise, same channels,
+        // re-evaluated from the clock every frame, nothing stored between frames.
         val fallSpeed = 0.06f
         for (source in 0 until sources) {
             val id = objectRenderer.leafSourceId[source]
@@ -2534,7 +2597,8 @@ class PaperRenderer(
 
 
     /** Advances the thunderstorm's lightning timer/fade. Only ticks (and can fire) while [enabled]
-     * -- when precipitation is off, not raining, or the storm toggle is off, the flash simply
+     * -- when there is no storm (with Live Weather on, the forecast reports none; otherwise the
+     * theme's precipitation is off, not rain, or its storm toggle is off), the flash simply
      * fades out and stops, it never fires while disabled. [lightningStrikesEnabled] is the same
      * "can fire" gate seen from the other side: the weather says whether there is a storm, that
      * says whether anything is allowed to roll a strike out of it. */
@@ -2572,9 +2636,10 @@ class PaperRenderer(
         // The sprite hangs from its own top edge, so the scale that gives it the rolled height is
         // that height over 84, and the origin centres it on the rolled x.
         //
-        // The y is read from [cloudBandTopFor] rather than from a constant of its own: a bolt is
-        // born inside the cloud band, past its midpoint, so its head is behind cloud and only the
-        // fork below is seen. The old fixed 0.08 of screen height put it above the band entirely.
+        // The y is read from [CloudBand.lightningOriginY] rather than from a constant of its own:
+        // a bolt is born inside the cloud band, past its midpoint, so its head is behind cloud and
+        // only the fork below is seen. The old fixed 0.08 of screen height put it above the band
+        // entirely.
         val boltHeight = screenHeight * lightningBoltHeightFraction
         val scale = boltHeight / LIGHTNING_BOLT_HEIGHT_UNITS
         val boltTop = CloudBand.lightningOriginY(screenHeight, sceneCustomization.sky.sunCloudHeight)
@@ -2592,43 +2657,49 @@ class PaperRenderer(
         canvas.restore()
     }
 
+    /**
+     * Two independent background silhouette layers, drawn behind the hills with their own
+     * (much slower than any hill layer) parallax rate. Deliberately kept entirely separate from
+     * the hill/object row-placement system ([SceneSpace.groundYFraction]) --
+     * these are simple, non-interactive backdrop shapes with no placement-safety concerns of
+     * their own, so there was no reason to risk touching that already-tuned geometry to add them.
+     */
     private fun drawMountains(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase) {
         // v47 anchored this to the farthest hill layer's absolute *best*-case peak (fraction
         // 0.15 -- the highest point buildBaseHillPath's random top edge can ever reach). That's
-        // backwards: 0.15 is only reached at a couple of x positions per screen (the actual
-        // top edge is redrawn per-segment with an independent random roll each time, ranging
-        // anywhere from 0.15 down to 0.75) -- so anchoring the *fixed* mountain/lake base line to
-        // the shallowest possible point left a real gap of bare sky beneath it at almost every x,
-        // wherever the hill's own wavy edge happened to dip lower that frame. The anchor has to be
-        // the hill's *worst-case-covered* line -- the deepest its top edge can ever reach -- not
-        // its peak, or the gap reopens at whichever column dips furthest.
-        // [SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION] is exactly that same "always-solid, whatever the roll"
-        // fraction already derived and proven for object row placement -- reusing it here (instead
-        // of inventing a second, inconsistent constant) guarantees mountains/lake always connect
-        // directly into the hills with zero gap, at every x. Verified with a rendered mock of both
-        // the old and new anchor before this edit.
+        // backwards: 0.15 is only reached at a couple of x positions per screen (the top edge
+        // then was redrawn per-segment with an independent random roll, ranging anywhere from
+        // 0.15 down to 0.75; it is now a sine at 0.13 +/- 0.09 of the band) -- so anchoring the
+        // *fixed* mountain/lake base line to the shallowest possible point left a real gap of bare
+        // sky beneath it at almost every x, wherever the hill's own wavy edge happened to dip lower
+        // that frame. The anchor has to be the hill's *worst-case-covered* line -- the deepest its
+        // top edge can ever reach -- not its peak, or the gap reopens at whichever column dips
+        // furthest. [SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION] is exactly that same "always-solid,
+        // whatever the roll" fraction already derived and proven for object row placement --
+        // reusing it here (instead of inventing a second, inconsistent constant) guarantees
+        // mountains/lake always connect directly into the hills with zero gap, at every x. Verified
+        // with a rendered mock of both the old and new anchor before this edit.
         val effectiveBaseYFraction =
             if (updateLakeBandY()) lakeBandTopY / screenHeight else hillGuaranteedTopFraction
 
         // Sized in one normalized unit -- screen *height*, in portrait -- rather than guessed per
-        // layer: back mountains get a height in `[0.8,1.2] * 0.15` and a width in
-        // `[0.8,1.2] * 0.25` of that unit (which equals screen height in portrait -- see
-        // `SceneBase.setupScreenSizes()`). The previous version of this comment converted that
-        // 0.25/0.15≈1.67 width:height ratio into PaperScrape's own widthFraction-of-*screen-width*
-        // convention by reusing the *old* (too-tall) 0.60/0.29≈2.07 ratio -- which was wrong,
-        // baked in the exact same error that made the old mountains too tall, and produced
-        // mountains far narrower than they should be (the reported "too narrow" bug). Fixed by
-        // computing width the same way height already is -- as a fraction of screenHeight, so
-        // both are fractions of the *same* unit
-        // -- removing the error-prone width-of-screenWidth conversion entirely rather than
-        // re-deriving it correctly by hand. `widthOfHeightFraction` below is `sx`'s own average
-        // (0.25 back, 0.175 front, the front layer scaled by 0.7) directly, no conversion needed.
+        // layer: back mountains get a height in `[0.75,1.25] * 0.15` and a width in
+        // `[0.75,1.25] * 0.25` of that unit (the reference app used [0.8,1.2]). The previous
+        // version of this comment converted that 0.25/0.15≈1.67 width:height ratio into
+        // PaperScrape's own widthFraction-of-*screen-width* convention by reusing the *old*
+        // (too-tall) 0.60/0.29≈2.07 ratio -- which was wrong, baked in the exact same error that
+        // made the old mountains too tall, and produced mountains far narrower than they should be
+        // (the reported "too narrow" bug). Fixed by computing width the same way height already is
+        // -- as a fraction of screenHeight, so both are fractions of the *same* unit -- removing
+        // the error-prone width-of-screenWidth conversion entirely rather than re-deriving it
+        // correctly by hand. `widthOfHeightFraction` below is `sx`'s own average (0.25 back, 0.175
+        // front, the front layer scaled by 0.7) directly, no conversion needed.
         drawMountainLayer(
-            canvas, dayPhase, sceneCustomization.mountainsBack, parallaxFactor = 0.04f, seedSalt = EffectId.MOUNTAINS_BACK,
+            canvas, dayPhase, sceneCustomization.mountainsBack, parallaxFactor = MOUNTAINS_BACK_PARALLAX, seedSalt = EffectId.MOUNTAINS_BACK,
             baseYFraction = effectiveBaseYFraction, peakHeightFraction = 0.15f, widthOfHeightFraction = 0.25f,
         )
         drawMountainLayer(
-            canvas, dayPhase, sceneCustomization.mountainsFront, parallaxFactor = 0.08f, seedSalt = EffectId.MOUNTAINS_FRONT,
+            canvas, dayPhase, sceneCustomization.mountainsFront, parallaxFactor = MOUNTAINS_FRONT_PARALLAX, seedSalt = EffectId.MOUNTAINS_FRONT,
             baseYFraction = effectiveBaseYFraction + 0.015f, peakHeightFraction = 0.105f, widthOfHeightFraction = 0.175f,
         )
     }
@@ -2706,72 +2777,36 @@ class PaperRenderer(
      * `t = x²` since that's `√t`'s own inverse) -- points naturally bunch up near the peak where
      * the curve bends fastest, giving a properly round tip at the same segment count.
      *
-     * **Batch 4 aesthetic pass**: filled as two halves sharing the exact same peak/base points
-     * (so there's no seam) rather than one flat-color fill. A mountain is vertex-coloured
-     * geometry rather than a sprite -- there is nothing to convert to a blit here -- but
-     * a flat single-color silhouette read noticeably flatter than every sprite-converted object
-     * elsewhere in the scene now carries its own baked-in "paper fold" shading. A left face
-     * lightened and a right face darkened (a fixed light-from-upper-left convention, same side
-     * every other shaded element in this file already assumes) sells the same folded-paper look
-     * procedurally instead, at effectively no extra per-frame cost.
+     * **Batch 4 aesthetic pass**, since reverted: the silhouette is still built as two halves
+     * sharing the exact same peak/base points (so there's no seam), but both are filled in the
+     * layer's own colour -- see "One colour per mountain" in the body for why the
+     * lightened/darkened fold was removed.
      */
     private fun drawSoftMountain(canvas: SceneCanvas, cx: Float, baseY: Float, width: Float, height: Float) {
-        val halfWidth = width / 2f
-        val segments = 16 // up from 8 -- see this function's doc comment for why
-        val peakX = cx
-        val peakY = baseY - height
-
-        mountainShape.reset()
-        mountainShape.moveTo(cx - halfWidth, baseY)
-        for (i in segments downTo 0) {
-            val xFrac = i / segments.toFloat() // 1=base, 0=peak -- fraction of *width*, not height
-            val t = xFrac * xFrac // inverse of width=√t
-            val y = baseY - height * (1f - t)
-            val x = cx - halfWidth * xFrac
-            mountainShape.lineTo(x, y)
-        }
-        // Close via the *vertical center axis* (peak straight down to (cx, baseY)), not a
-        // diagonal straight back to the base-left point -- that diagonal was today's actual bug
-        // ("invisible triangle with two stripes around it"): this parabola bulges out sharply
+        // The outline is [MountainSilhouette]'s, which the gallery card draws with as well; 16
+        // segments per half (up from 8 -- see this function's doc comment for why).
+        //
+        // Each half closes via the *vertical center axis* (peak straight down to (cx, baseY)), not a
+        // diagonal straight back to the base-left point -- that diagonal was the bug the report
+        // called "invisible triangle with two stripes around it": this parabola bulges out sharply
         // near the base (x moves fastest right where the curve bends fastest, per this
         // function's own doc comment on why segments are width-spaced), so a straight line from
         // peak to base-left cuts far inside the curve at every mid-height, leaving only a thin
-        // crescent between that diagonal and the curve actually filled -- most of the intended
-        // half-mountain area sat *outside* the polygon (background showing through) instead of
-        // inside it. Verified with a rendered mock of both the broken and fixed geometry before
-        // this edit. The vertical axis is the curve's own true bisector (peakX = cx by
-        // construction), so this closes the shape exactly at the mountain's real center line.
-        mountainShape.lineTo(cx, baseY)
-        mountainShape.close()
+        // crescent between that diagonal and the curve actually filled. The vertical axis is the
+        // curve's own true bisector, so this closes the shape exactly at the mountain's center line.
+        //
         // **One colour per mountain.** The two halves used to be lightened and darkened by 10 %
         // and 8 % to fake a paper fold, and against the V2 palette that reads as two different
         // mountains meeting at a hard vertical seam rather than as one shaded shape -- the split
         // runs straight down the peak, which is exactly where a fold would not be. The silhouette
         // is drawn in the layer's own colour and the only division left is the one the hills make
         // by overlapping it, which is the division the scene is built on.
+        MountainSilhouette.leftHalf(mountainShape, cx, baseY, width, height)
         canvas.drawShape(mountainShape, mountainPaint)
-
-        mountainShape.reset()
-        mountainShape.moveTo(peakX, peakY)
-        for (i in 0..segments) {
-            val xFrac = i / segments.toFloat() // 0=peak, 1=base
-            val t = xFrac * xFrac
-            val y = baseY - height * (1f - t)
-            val x = cx + halfWidth * xFrac
-            mountainShape.lineTo(x, y)
-        }
-        mountainShape.lineTo(cx, baseY) // same center-axis fix as the left half, mirrored
-        mountainShape.close()
+        MountainSilhouette.rightHalf(mountainShape, cx, baseY, width, height)
         canvas.drawShape(mountainShape, mountainPaint)
     }
 
-    /**
-     * A body of water, drawn as its own independent horizontal band -- positioned in the
-     * "middle distance" (y 0.58-0.78 of screen height at full [LakeConfig.height]) safely apart
-     * from the road/house zone (which stays above [SceneSpace.roadTopYFraction], capping around
-     * y=0.86) so it never visually competes with houses, cars, or the road. Same independent,
-     * safety-geometry-free approach as [drawMountains].
-     */
     /**
      * The lake's current top Y in pixels, valid only when [updateLakeBandY] last returned `true`.
      *
@@ -2788,9 +2823,9 @@ class PaperRenderer(
 
     /** Recomputes [lakeBandTopY]/[lakeBandBottomY], returning whether the lake is visible at all.
      *
-     * Shared by [drawLake] and [drawMountains]: the mountains' base is computed as
-     * `max(hillsReference, waterTopIfLakesOn)` rather than being a fixed guess independent of
-     * wherever the water actually is. `false` means the
+     * Shared by [drawLake] and [drawMountains]: the mountains' base is the water's top edge when
+     * the lake is on and the hills' own reference otherwise, rather than being a fixed guess
+     * independent of wherever the water actually is. `false` means the
      * lake isn't visible and callers fall back to their own hill-only reference; the two fields
      * are then stale and must not be read. */
     private fun updateLakeBandY(): Boolean {
@@ -2822,6 +2857,13 @@ class PaperRenderer(
         return true
     }
 
+    /**
+     * A body of water, drawn as its own independent horizontal band -- positioned in the
+     * "middle distance" (y 0.544-0.704 of screen height at full [LakeConfig.height]) safely apart
+     * from the road/house zone (the road starts at [SceneSpace.roadTopYFraction], about 0.818) so
+     * it never visually competes with houses, cars, or the road. Same independent,
+     * safety-geometry-free approach as [drawMountains].
+     */
     private fun drawLake(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
         if (!updateLakeBandY()) return
         val top = lakeBandTopY
@@ -2832,10 +2874,12 @@ class PaperRenderer(
         // The lake used to be drawn at fixed absolute screen coordinates, entirely independent of
         // scrollProgress -- meaning it stayed dead still while hills/houses scrolled past it, a
         // real bug (reported as "buildings feel tied to the ground, everything else feels almost
-        // frozen while the terrain moves under it"). Given a parallax factor between the mid and
-        // near hill layers' own rates (0.35/0.6), matching roughly where the lake sits vertically
-        // among them.
-        val lakeParallax = (0.25f * parallaxStrength).coerceAtMost(1f)
+        // frozen while the terrain moves under it"). Its factor is [LAKE_PARALLAX], between the
+        // front mountains standing on its far edge and the hills in front of it. Until v5.8C it
+        // was 0.25, faster than those hills: while scrolling the water's sparkles (the only part
+        // of the band this shift moves) slid past the hills in front of them, and the lake read
+        // as nearer than the land before it (v5.8B comment audit).
+        val lakeParallax = (LAKE_PARALLAX * parallaxStrength).coerceAtMost(1f)
         val lakeWrapped = wrappedScrollShift(lakeParallax.toDouble(), screenWidth.toFloat())
 
         canvas.save()
@@ -2879,7 +2923,7 @@ class PaperRenderer(
             )
         }
         // The waves join the same pass, keyed by their waterline said in the boat's convention.
-        if (rainingNow || stormActiveNow) lakeItems = gatherWaves(lakeItems, top, bandHeight, dayPhase.dayBlend, elapsedSeconds)
+        if (LiveWeatherSceneRules.wavesOnLake(rainingNow, stormActiveNow, snowingNow)) lakeItems = gatherWaves(lakeItems, top, bandHeight, dayPhase.dayBlend, elapsedSeconds)
         LakeLanes.orderByDepth(lakeItemDepth, lakeItems, lakeDrawOrder)
         for (n in 0 until lakeItems) {
             val slot = lakeDrawOrder[n]
@@ -2921,13 +2965,14 @@ class PaperRenderer(
      * which draws the copies that reach the screen side by side under one translate.
      *
      * **The water is a mirror, and that is the whole of it (v4.26, concept S1 "Specchio").** It is
-     * one vertical gradient from the sky's own horizon colour at the far edge into the theme's lake
-     * colour at the near edge, plus the drifting sparkle glints the band has carried since v46, and
-     * nothing else: no bands, no ripple lines, no waves. Three ways of drawing the surface were
-     * photographed on the device -- a mirror, a long swell and rows of illustrator's strokes -- and
-     * the mirror was chosen: at the height this band is actually drawn, waves read as stripes, and
-     * the light's path ([drawLakeGlitter]) already gives the surface everything it needs to say it
-     * is water rather than a painted rectangle.
+     * one vertical gradient from a tone 55% of the way to the sky's horizon colour
+     * ([LAKE_MIRROR_SKY_SHARE]) at the far edge into the theme's lake colour at the near edge, plus
+     * the drifting sparkle glints the band has carried since v46, and nothing else: no bands, no
+     * ripple lines (the v4.28 waves are separate items laid on it in rain and storms). Three ways
+     * of drawing the surface were photographed on the device -- a mirror, a long swell and rows of
+     * illustrator's strokes -- and the mirror was chosen: at the height this band is actually
+     * drawn, waves read as stripes, and the light's path ([drawLakeGlitter]) already gives the
+     * surface everything it needs to say it is water rather than a painted rectangle.
      *
      * **The top edge is a flat straight line, and must stay one.** An earlier version made it wavy
      * to blend the lake's far edge into the hills' silhouette -- but once the lake moved to sit
@@ -2949,10 +2994,11 @@ class PaperRenderer(
     /**
      * The cut edge of the water, struck along the top of the band.
      *
-     * See [WATERLINE_MIN_LUMA_GAP] for why the lake needs one and where 19 comes from. The colour
+     * See [WATERLINE_MIN_LUMA_GAP] for why the lake needs one and where 14.5 comes from. The colour
      * is derived per frame rather than declared: the water's own surface tone is carried toward
      * black or white -- whichever is *away* from the sky -- by exactly the fraction that puts it
-     * [WATERLINE_MIN_LUMA_GAP] of luma clear of the sky at the horizon, and no further. A theme
+     * [WATERLINE_MIN_LUMA_GAP] of luma clear of the sky immediately above the shore ([skyAbove] at
+     * the band's top), and no further. A theme
      * whose water is already that far clear gets `t = 0`, which is the water's own colour and
      * therefore no visible line at all: the edge appears only where it is needed, and it is never
      * louder than the gap requires.
@@ -3023,15 +3069,19 @@ class PaperRenderer(
      *
      * **Not the horizon colour**, and the difference is the whole reason this function exists. The
      * sky is one gradient from `skyTopColorNow` at y = 0 to `skyHorizonColorNow` at the bottom of
-     * the *screen*, and the water's top edge sits well above that: on Tundra it is at 0.58 of the
-     * screen, where the sky is 25 units of luma away from the colour at the bottom. Deriving the
+     * the *screen*, and the water's top edge sits well above that: on Tundra it is at 0.664 of the
+     * screen (0.704 - 0.16 x 0.25). The figures that follow were measured when it sat at 0.58,
+     * where the sky was 25 units of luma away from the colour at the bottom. Deriving the
      * edge against the wrong end of the gradient produced a line that sat *between* the sky and the
      * water instead of clear of both -- measured at the shore: sky 225.1, line 228.8, water 232.9.
      */
     private fun skyAbove(y: Float): Int =
         ColorUtils.blendARGB(skyTopColorNow, skyHorizonColorNow, (y / screenHeight).coerceIn(0f, 1f))
 
-    /** Rec. 601 luma, the weighting [StormAtmosphere.dim] and the rest of the app's colour work use. */
+    /**
+     * Rec. 601 luma, the weighting [StormAtmosphere.dim] and this renderer's contrast work (rain,
+     * waterline, waves) use; SceneColour's night shading uses Rec. 709.
+     */
     private fun rec601Luma(color: Int): Float {
         val r = (color shr 16) and 0xFF
         val g = (color shr 8) and 0xFF
@@ -3059,8 +3109,10 @@ class PaperRenderer(
         ripplePaint.alpha = 255
     }
 
-    /** One scratch shape, reused for every sliver of the light's path: the draw path allocates
-     * nothing per frame (AI_PROJECT_RULES 5.1). */
+    /** One scratch shape, reused for every sliver of the light's path, so the glitter allocates
+     * nothing per frame (AI_PROJECT_RULES 5.1). Until v5.8C the frame path as a whole still
+     * allocated every frame -- the falling-leaves palette, [hillLayerColor]'s array and the lambdas
+     * handed to the firework and sleigh effects (v5.8B comment audit); all three are fields now. */
     private val lakeScratchShape = SceneShape(8)
 
     /**
@@ -3229,7 +3281,8 @@ class PaperRenderer(
             // The lane is the right depth for everything that stays on the water, and v3.0's
             // far-to-near pass over it is not in question here -- two overlapping hulls read
             // correctly. What it could not answer is that these sprites are not the same height:
-            // a sail stands about four lane widths above its own waterline while lanes are one
+            // a sail stands several lane widths above its own waterline (about four when v3.1
+            // measured it, roughly seven to nine with today's lake geometry) while lanes are one
             // lane width apart, so a dolphin one lane nearer than a sailboat -- painted after it,
             // correctly, by lane -- crossed that sail in mid-air. It did not read as "in front":
             // it read as a dolphin flying through a sail.
@@ -3349,8 +3402,8 @@ class PaperRenderer(
             if (splashProgress >= 0f) {
                 canvas.save()
                 canvas.translate(x, y)
-                // Sized against the animal that made it, so a far dolphin throws a small
-                // splash and a near one a larger, and the two can only be wrong together.
+                // Sized against the animal that made it -- the same DOLPHIN_BASE_SCALE -- so the
+                // two can only be wrong together.
                 val splashScale = SceneSpace.DOLPHIN_BASE_SCALE * lakeScale
                 canvas.scale(splashScale, splashScale)
                 sprites.draw(
@@ -3379,8 +3432,8 @@ class PaperRenderer(
             // to the right of it, so its foot sat on top of the deck planking off to one side
             // and the two pieces read as separate objects floating together. Drawn first, the
             // hull's own gunwale covers the foot of the sail and the mast reads as stepped
-            // into the deck; the origin centres the sail's 70 units of content on the hull's
-            // 84, so the mast stands amidships instead of aft.
+            // into the deck; the origin centres the sail's ~60 units of content over the hull's
+            // 82, so the mast stands amidships instead of aft.
             //
             // The two origins keep the relationship v76.4 established between them -- the
             // mast amidships, the sail's foot behind the gunwale -- and are shifted together
@@ -3452,13 +3505,13 @@ class PaperRenderer(
 
             // Batch 4 aesthetic pass: a subtle vertical gradient (lighter near the wavy top
             // ridge, settling to the exact configured color by ~35% down the layer) instead of
-            // one flat fill -- same "paper catching light at the fold" idea as the mountains'
-            // two-face split just above, adapted for a continuous wavy shape where a left/right
-            // split doesn't apply. Built once per layer (not per tile-offset copy below) since
-            // layerTop/layerHeight don't change across those copies and only X gets translated.
-            // The hillside is flat vertex-coloured geometry, same as the mountains -- there is
-            // no texture to convert here, so this is a procedural stand-in for the same visual
-            // effect batches 1-3's baked sprite mottling gives everything else.
+            // one flat fill -- the "paper catching light at the fold" idea the mountains' two-face
+            // split once had (since removed there), adapted for a continuous wavy shape where a
+            // left/right split doesn't apply. Built once per layer (not per tile-offset copy below)
+            // since layerTop/layerHeight don't change across those copies and only X gets
+            // translated. The hillside is flat vertex-coloured geometry, same as the mountains --
+            // there is no texture to convert here, so this is a procedural stand-in for the same
+            // visual effect batches 1-3's baked sprite mottling gives everything else.
             val hillHighlight = ColorUtils.blendARGB(color, 0xFFFFFFFF.toInt(), 0.12f)
             val gradientBottom = layerTop + layerHeight * 0.35f
 
@@ -3482,12 +3535,10 @@ class PaperRenderer(
                 // range, after translation, falls entirely outside the visible screen.
                 if (offsetShift + 1.5f * screenWidth < 0f || offsetShift - 0.5f * screenWidth > screenWidth) continue
 
-                canvas.save()
-                canvas.translate(offsetShift, 6f)
-                shadowPaint.alpha = 30
-                canvas.drawShape(path, shadowPaint)
-                canvas.restore()
-
+                // No shadow pass (v5.8C). A black alpha-30 copy of this shape used to be drawn
+                // 6 px lower first, and the opaque fill below covered all of it -- except, on the
+                // GPU, the slivers its fan spilled above the ridge where the wave dips, which were
+                // the only part of it anyone could see (v5.8B audit, ROADMAP A16). See [SceneShape].
                 canvas.save()
                 canvas.translate(offsetShift, 0f)
                 canvas.drawVerticalGradientShape(
@@ -3498,10 +3549,20 @@ class PaperRenderer(
         }
     }
 
+    /** With [layerCount] now 1, this always darkens by 0 (layer index 0) -- i.e. it's a pass-
+     * through to the single user-picked color, not actually darkening anything. Kept as a
+     * function (rather than inlined away) only so a future reintroduction of multiple layers has
+     * an obvious place to restore per-layer darkening, without it silently doing nothing today. */
+    private fun hillLayerColor(baseColor: Int, layer: Int): Int {
+        val darkenAmount = HILL_LAYER_DARKEN.getOrElse(layer) { 0f }
+        return ColorUtils.blendARGB(baseColor, 0xFF000000.toInt(), darkenAmount)
+    }
+
     /**
      * Builds one hill layer's skyline as a true sine wave, wide enough to cover two
      * screen-widths, anchored at the wrappedShift=0 reference position. The skyline is
-     * `(1 - amp) + amp * sin(f * 4π)`: a perfectly smooth, perfectly periodic wave (2 full cycles
+     * `centerFraction + amp * sin(f * 4π + phase)` (0.13 +/- 0.09 x hillsVariation, the phase
+     * taken from the theme's seed): a perfectly smooth, perfectly periodic wave (2 full cycles
      * across one hill tile), not independent random rolls per segment smoothed with bezier
      * curves. The previous per-segment-random approach, even after narrowing its range in the
      * v49 pass, could still land two adjacent segments' rolls asymmetrically and read as an
@@ -3514,22 +3575,8 @@ class PaperRenderer(
      * ([SceneSpace.HILL_SOLID_TOP_DEPTH_FRACTION]'s own derivation depends on this range staying put) at
      * `hillsVariation = 1`: `0.13 ± 0.09`. Parallax scrolling is applied later via
      * canvas.translate() rather than baked into the path coordinates, so this only needs to run
-     * once per theme/size change instead of every frame.
+     * once per theme, size or [hillsVariation] change instead of every frame.
      */
-    /** Derives one of the 3 hill layers' shade from a single user-chosen base color -- farther
-     * layers stay closer to the base color, nearer layers blend progressively toward black,
-     * matching the app's existing "farther = lighter" depth convention (and closely approximating
-     * the ratios each built-in theme's own original hand-authored 3-color palette already used,
-     * e.g. sunset's day palette darkens by roughly 10%/25% from its farthest to nearest layer). */
-    /** With [layerCount] now 1, this always darkens by 0 (layer index 0) -- i.e. it's a pass-
-     * through to the single user-picked color, not actually darkening anything. Kept as a
-     * function (rather than inlined away) only so a future reintroduction of multiple layers has
-     * an obvious place to restore per-layer darkening, without it silently doing nothing today. */
-    private fun hillLayerColor(baseColor: Int, layer: Int): Int {
-        val darkenAmount = floatArrayOf(0f).getOrElse(layer) { 0f }
-        return ColorUtils.blendARGB(baseColor, 0xFF000000.toInt(), darkenAmount)
-    }
-
     private fun buildBaseHillPath(path: SceneShape, layer: Int, top: Float, height: Float) {
         path.reset()
         val width = screenWidth * 2f
@@ -3544,23 +3591,36 @@ class PaperRenderer(
         val maxAmpFraction = 0.09f
         val amp = maxAmpFraction * v
         // A small per-layer/theme phase offset so a theme with (hypothetically, in the future)
-        // more than one layer doesn't render every layer's wave perfectly in sync -- harmless
-        // no-op today since layerCount is 1, kept for that reason (same spirit as hillLayerColor).
+        // more than one layer doesn't render every layer's wave perfectly in sync -- with
+        // layerCount 1 it no longer de-syncs anything, but it still shifts the one wave by a
+        // per-theme phase, so each theme gets its own hill line.
         val phase = (layerSeed(layer) % 628L) / 100f
 
-        path.moveTo(startX, top + height)
+        // One pixel of overlap past each end of the tile (v5.8C): two copies of this shape meet
+        // at the tile edge, and on the `Canvas` backend both anti-aliased edges covered the same
+        // pixel column by half, so a faint line of whatever is behind the hills showed through at
+        // the seam whenever the scroll put it on screen. The black shadow drawn under the hills
+        // used to half-fill that line; with the shadow gone (item 5) it has to be closed here.
+        // The ridge is periodic over the tile, so the extra points carry the end samples' own
+        // heights, and the 64 samples themselves are where they always were.
+        val seam = HILL_TILE_SEAM_OVERLAP_PX
+        path.moveTo(startX - seam, top + height)
+        path.lineTo(startX - seam, top + height * (centerFraction + amp * sin(phase)))
         // 2 full sine cycles per tile, matching the reference exactly, and sampled densely (64
         // points) for a smooth curve -- cheap here since this whole path is cached and only
-        // rebuilt on theme/size change, not per frame.
+        // rebuilt on a theme, size or [hillsVariation] change, not per frame.
         val samples = 64
+        var lastY = top + height
         for (i in 0..samples) {
             val f = i / samples.toFloat()
             val heightFrac = centerFraction + amp * sin(f * 4f * kotlin.math.PI.toFloat() + phase)
             val x = startX + f * width
             val y = top + height * heightFrac
             path.lineTo(x, y)
+            lastY = y
         }
-        path.lineTo(startX + width, top + height)
+        path.lineTo(startX + width + seam, lastY)
+        path.lineTo(startX + width + seam, top + height)
         path.close()
     }
 }

@@ -85,7 +85,7 @@ interface SceneCanvas {
         alpha: Int,
     )
 
-    /** A rectangle filled with a vertical two-stop gradient. The sky. */
+    /** A rectangle filled with a vertical two-stop gradient. The sky, and the lake band. */
     fun drawVerticalGradientRect(
         left: Float,
         top: Float,
@@ -97,7 +97,7 @@ interface SceneCanvas {
 
     /**
      * A radial falloff disc: [color] at [centerAlpha] in the middle, the same colour at alpha 0 at
-     * [radius]. The sun/moon's ambient glow.
+     * [radius]. The sun/moon's ambient glow, and its reflection on the lake.
      */
     fun drawRadialGlow(cx: Float, cy: Float, radius: Float, color: Int, centerAlpha: Int)
 
@@ -111,10 +111,11 @@ interface SceneCanvas {
      * sprite's own baked-in colours, unchanged".
      *
      * The pixels are fetched through [source] rather than passed in, and that indirection is the
-     * point: the GPU backend needs them only the first time it sees a sprite, because after the
-     * upload the texture knows the sprite's own dimensions. Passing a decoded `Bitmap` here would
-     * force a synchronised cache lookup on every blit of every frame to recover a width and a
-     * height that had not changed since the first one.
+     * point: the GPU backend needs them only the first time it draws a sprite at a given detail
+     * level (and again after a trim or a lost context), because after the upload the texture knows
+     * the sprite's own dimensions. Passing a decoded `Bitmap` here would force a synchronised cache
+     * lookup on every blit of every frame to recover a width and a height that had not changed
+     * since the first one.
      */
     fun drawSprite(
         resId: Int,
@@ -146,8 +147,9 @@ interface SceneCanvas {
  *
  * Deliberately narrow, and deliberately *pull*-shaped. Backends differ in how often they need the
  * pixels at all: the `Canvas` backend needs them for every blit, the GPU backend needs them once
- * per sprite for the life of the GL context. A push-shaped interface — handing a `Bitmap` to
- * `drawSprite` — would make the more expensive of those two the cost everyone pays.
+ * per sprite and detail level, until a trim or a lost context empties the atlas. A push-shaped
+ * interface — handing a `Bitmap` to `drawSprite` — would make the more expensive of those two the
+ * cost everyone pays.
  */
 interface SpriteSource {
 
@@ -167,8 +169,9 @@ interface SpriteSource {
 /**
  * A closed polygon, built the way a `Path` is but retaining its vertices.
  *
- * The renderers build three shapes: the hill silhouette (a sine ridge over a flat base), a
- * mountain's two faces (a parabolic face over a base), and the sleigh's falling-gift bow triangles.
+ * The renderers build four shapes: the hill silhouette (a sine ridge over a flat base), a
+ * mountain's two faces (a parabolic face over a base), the lake's glitter diamonds, and the
+ * sleigh's falling-gift bow triangles.
  *
  * **The GPU backend has two fills, and only one of them needs the star-shaped property** (REN-02).
  * [SceneCanvas.drawShape] fills a fan from vertex 0, which is correct precisely when the polygon is
@@ -177,15 +180,20 @@ interface SpriteSource {
  * "true for all three by construction" -- and correctly called it false: the hill's ridge is two
  * full sine cycles, so a fan from its base-left corner runs above the crest where the wave dips.
  *
- * What the sentence got wrong was which fill the hill uses. **The hill has never reached the fan.**
- * It is drawn through the gradient path, which is column-tessellated for a different reason of its
- * own (see that method), and the two shapes that do reach the fan are single-peaked: a mountain
- * face, and a triangle. The multi-peaked ridge that is not star-shaped lives in `ThemePreview`,
- * which is typed to `CanvasSceneTarget` and cannot reach a GPU fan at all.
- *
- * So the rule this class relies on is narrower than it claimed and is actually held.
- * `SceneShapeFanContractTest` pins it: the hill is not star-shaped, the hill does not go through
- * `drawShape`, and the shapes that do are.
+ * The hill goes through the gradient path, which is column-tessellated for a different reason of
+ * its own (see that method), and since v5.8C it is the only way the hill is drawn. Until then the
+ * hill loop also drew a *shadow* with `drawShape(path, shadowPaint)` -- black at alpha 30, 6 px
+ * lower -- which reached the fan: on the GPU, where the ridge dips, the fan spilled thin dark
+ * slivers above the hill (up to 3.5 px on a 1080x2424 phone, on Beach and Sunset; under a pixel on
+ * the BV6600), found by the v5.8B comment audit and photographed on the phone's GPU in v5.8C. The
+ * shadow was otherwise never seen on either backend: drawn 6 px below the ridge and then covered
+ * by the opaque fill, every pixel of it that could show was the spill. So it was removed rather
+ * than moved to the column fill, which would have drawn an invisible polygon at the cost of a
+ * visible one. The shapes that still reach the fan are a mountain face, a triangle and the lake's
+ * glitter diamond, each star-shaped about its first vertex; the preview's own multi-peaked ridge
+ * in `ThemePreview` is typed to `CanvasSceneTarget` and cannot reach a GPU fan at all.
+ * `SceneShapeFanContractTest` pins it: the hill is not star-shaped on the themes the audit named,
+ * and no `drawShape` in the hill loop takes the hill's shape.
  *
  * Vertices accumulate into a growable `FloatArray` that is reused across [reset] calls, so a shape
  * rebuilt every frame (the mountains) allocates only until it has reached its high-water mark.
@@ -246,12 +254,13 @@ class SceneShape(initialCapacity: Int = 96) {
     /**
      * The equivalent `Path`, built once per mutation.
      *
-     * Only the `Canvas` backend calls this. `Path.reset()` keeps the object's allocation, so a shape
-     * rebuilt per frame still allocates nothing here after the first build.
+     * Only the `Canvas` backend calls this. `rewind()`, not `reset()`: both empty the path, but
+     * `reset()` also releases its native storage, so a shape rebuilt per frame re-allocated its
+     * native path here until v5.8C (v5.8B comment audit); `rewind()` keeps it for the next build.
      */
     internal fun asPath(): Path {
         if (!pathValid) {
-            path.reset()
+            path.rewind()
             if (pointCount > 0) {
                 path.moveTo(xs[0], ys[0])
                 for (i in 1 until pointCount) path.lineTo(xs[i], ys[i])

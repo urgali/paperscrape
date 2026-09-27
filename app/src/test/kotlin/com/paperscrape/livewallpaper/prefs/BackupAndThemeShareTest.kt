@@ -123,7 +123,7 @@ class BackupAndThemeShareTest {
      * every object in every saved theme. Absent therefore means *current*.
      */
     @Test
-    fun `a backup written before the field existed is read as current, not as legacy`() {
+    fun `a backup written before the field existed is not migrated from legacy`() {
         val json = JSONObject(backup().toJsonString())
         json.remove("customThemeSchemaVersion")
         val parsed = parseAppBackup(json.toString())
@@ -141,6 +141,40 @@ class BackupAndThemeShareTest {
             }
         }
     }
+
+    /**
+     * **And it is not read as current either** (v5.8C): absent means schema 3, the one every app
+     * that wrote such a backup was at (backups since v4.3, the field since v4.15, 3 -> 4 in v4.20),
+     * so the 3 -> 4 repair and the 4 -> 5 school run. Read as current -- as it was until v5.8C --
+     * a street saved without its school came back without it, where the same street kept in the
+     * store is given one (v5.8B comment audit).
+     */
+    @Test
+    fun `a backup written before the field existed gets the steps after schema 3`() {
+        val json = JSONObject(backup().toJsonString())
+        json.remove("customThemeSchemaVersion")
+        val objects = json.getJSONObject("overrides").getJSONObject("christmas")
+            .getJSONObject("layout").getJSONArray("staticObjects")
+        // Take the school out: the shape of a street saved before v5.6.
+        var removed = 0
+        for (i in objects.length() - 1 downTo 0) {
+            val o = com.paperscrape.livewallpaper.engine.staticSceneObjectFromJson(objects.getJSONObject(i))
+            if (isSchool(o)) { objects.remove(i); removed++ }
+        }
+        assertEquals("the fixture must have had exactly one school to take out", 1, removed)
+        val parsed = parseAppBackup(json.toString())
+        assertTrue(parsed is BackupParseResult.Ok)
+        val back = (parsed as BackupParseResult.Ok).backup.customThemeData.overrides.getValue("christmas")
+        assertEquals(
+            "an unversioned backup's street must be given the school the store would give it",
+            1, back.layout.staticObjects.count { isSchool(it) },
+        )
+    }
+
+    private fun isSchool(o: com.paperscrape.livewallpaper.engine.StaticSceneObject) =
+        o.type == com.paperscrape.livewallpaper.engine.SceneObjectType.SKYSCRAPER &&
+            com.paperscrape.livewallpaper.engine.SceneObjectRenderer.variantFor(o) ==
+            com.paperscrape.livewallpaper.engine.SceneSpace.SceneVariant.SCHOOL
 
     @Test
     fun `a backup that declares an older theme schema is migrated on the way in`() {
@@ -368,37 +402,65 @@ class BackupAndThemeShareTest {
         assertEquals(source.theme.accentColor, back.theme.accentColor)
     }
 
-    /** Every field of a customization, not a sample of them. */
+    /**
+     * Every field of a customization, not a sample of them.
+     *
+     * **Until v5.8B this moved 22 fields and left the rest at Beach's defaults** -- the snow and
+     * leaf piles, the business hours, the night densities, every automatic colour mode, the sky,
+     * sun, moon, clouds, lake, birds, stars, rain and rainbow. The reader rebuilds a missing field
+     * from those same defaults, so a writer that dropped any of them passed: the name promised
+     * "every field" and the assertion could only see the 22. Now [movedEverywhere] moves every leaf
+     * of the whole tree off its default, by reflection over the data classes, so a field added
+     * later is moved too without anybody remembering to list it; and the test first checks that
+     * no leaf is left where it started.
+     */
     @Test
     fun `every scene customization property survives a theme round trip`() {
-        val everything = defaultCustomizationFor("beach").copy(
-            houses = ObjectVariantConfig(false, 0.11f, 1, 2, 3, 4),
-            buildings = ObjectVariantConfig(true, 0.22f, 5, 6, 7, 8),
-            cars = ObjectVariantConfig(false, 0.33f, 9, 10, 11, 12),
-            parasols = ObjectVariantConfig(true, 0.44f, 13, 14, 15, 16),
-            people = ObjectVariantConfig(false, 0.55f, 17, 18, 19, 20),
-            peopleNightDensity = 0.66f,
-            trees = ObjectVariantConfig(true, 0.77f, 21, 22, 23, 24),
-            snowmen = ObjectVariantConfig(true, 0.12f, 25, 26, 27, 28),
-            gifts = ObjectVariantConfig(true, 0.13f, 29, 30, 31, 32),
-            penguins = ObjectVariantConfig(true, 0.14f, 33, 34, 35, 36),
-            bunnies = ObjectVariantConfig(true, 0.15f, 37, 38, 39, 40),
-            easterEggs = ObjectVariantConfig(true, 0.16f, 41, 42, 43, 44),
-            pumpkins = ObjectVariantConfig(true, 0.17f, 45, 46, 47, 48),
-            hillsVariation = 0.88f,
-            hillsColorDay = 101,
-            hillsColorNight = 102,
-            fallColorsEnabled = true,
-            winterColorsEnabled = true,
-            christmasDecorationsEnabled = true,
-            flowersEnabled = true,
-            halloweenEnabled = true,
-            horrorSkyEnabled = true,
-            santaEnabled = true,
-        )
+        val start = defaultCustomizationFor("beach")
+        val everything = movedEverywhere(start)
+        val unmoved = leavesEqual(start, everything, "customization")
+        assertTrue("these fields were not moved, so the round trip cannot see them go: $unmoved", unmoved.isEmpty())
         val share = ThemeShare.of("beach", "Everything", everything, "4.3", 0L)
         val back = (parseThemeShare(share.toJsonString()) as ThemeParseResult.Ok).share
-        assertEquals(everything, back.customization)
+        assertEquals("fields that did not survive: ${leavesDiffering(everything, back.customization, "customization")}", everything, back.customization)
+    }
+
+    /** A copy of [value] with every leaf moved to a different valid value, recursively. */
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Any> movedEverywhere(value: T): T = when (value) {
+        is Boolean -> (!value) as T
+        // Within [0, 1] either way, and never onto a value a reader would clamp or snap: 0.05 of a
+        // density, a colour weight or an hour is inside every range the settings use.
+        is Float -> (if (value < 0.5f) value + 0.05f else value - 0.05f) as T
+        is Int -> (value xor 0x00030507) as T
+        is Enum<*> -> value.javaClass.enumConstants.let { it[(value.ordinal + 1) % it.size] } as T
+        is List<*> -> value.map { movedEverywhere(it!!) } as T
+        else -> {
+            val type = value.javaClass
+            val fields = type.declaredFields.filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic }
+            val constructor = type.declaredConstructors.first { c ->
+                c.parameterCount == fields.size && c.parameterTypes.toList() == fields.map { it.type }
+            }
+            fields.forEach { it.isAccessible = true }
+            constructor.isAccessible = true
+            constructor.newInstance(*fields.map { movedEverywhere(it.get(value)) }.toTypedArray()) as T
+        }
+    }
+
+    /** The leaves where [a] and [b] are equal (for the "every field moved" check). */
+    private fun leavesEqual(a: Any, b: Any, path: String): List<String> = leaves(a, b, path, equal = true)
+
+    /** The leaves where [a] and [b] differ (for the failure message). */
+    private fun leavesDiffering(a: Any, b: Any, path: String): List<String> = leaves(a, b, path, equal = false)
+
+    private fun leaves(a: Any, b: Any, path: String, equal: Boolean): List<String> = when {
+        a is Boolean || a is Float || a is Int || a is Enum<*> -> if ((a == b) == equal) listOf(path) else emptyList()
+        a is List<*> && b is List<*> ->
+            if (a.size != b.size) (if (equal) emptyList() else listOf("$path.size"))
+            else a.indices.flatMap { leaves(a[it]!!, b[it]!!, "$path[$it]", equal) }
+        else -> a.javaClass.declaredFields
+            .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic }
+            .flatMap { f -> f.isAccessible = true; leaves(f.get(a), f.get(b), "$path.${f.name}", equal) }
     }
 
     /** The file must be shareable without sharing anything about its author. */
@@ -619,5 +681,36 @@ class BackupAndThemeShareTest {
         )
         assertEquals(AppBackup.DOCUMENT_KIND, backupJson.getString("kind"))
         assertEquals(ThemeShare.DOCUMENT_KIND, themeJson.getString("kind"))
+    }
+
+    /**
+     * **A backup never prints the user's keys** (v5.8C). The generated `toString` of the data
+     * classes printed all three; nothing logged one, but a log line or an assertion message that
+     * interpolated a backup, its settings or an `ImportResult.Applied` would have (v5.8B audit).
+     */
+    @Test
+    fun `a backup and everything holding one print the keys only as their length`() {
+        val secrets = listOf("SECRETOMKEY1234", "SECRETWAKEY5678", "SECRETOWKEY9012")
+        val backup = AppBackup.from(
+            WallpaperSettings(
+                themeId = "beach",
+                liveWeatherApiKey = secrets[0],
+                weatherApiComApiKey = secrets[1],
+                openWeatherApiKey = secrets[2],
+            ),
+            com.paperscrape.livewallpaper.engine.CustomThemeData(),
+            "5.8",
+            0L,
+        )
+        for (printed in listOf(
+            backup.toString(),
+            backup.settings.toString(),
+            BackupRepository.ImportResult.Applied(backup).toString(),
+        )) {
+            for (secret in secrets) {
+                org.junit.Assert.assertFalse("a key was printed: $secret", printed.contains(secret))
+            }
+            org.junit.Assert.assertTrue("the rest must still be printed: $printed", printed.contains("themeId=beach"))
+        }
     }
 }

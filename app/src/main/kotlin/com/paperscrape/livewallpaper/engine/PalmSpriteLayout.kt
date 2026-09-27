@@ -64,13 +64,16 @@ internal object PalmSpriteLayout {
     const val CROWN_Y = -82f
 
     /**
-     * The crown's own content in object space, which is where everything hung on it is placed.
+     * The crown's canvas in object space, which is where everything hung on it is placed.
      *
-     * The canvas is filled by the drawing, so blitted at ([CROWN_X], [CROWN_Y]) it occupies
-     * x -21..35 and y -82..-34: centre (7, -58), half extents 28 x 24. **The centre is not over
-     * the trunk**, and that is the consequence of the lean that reaches furthest — the Christmas
-     * lights, the falling-leaf source and the occlusion box all read it, and a crown centred on
-     * the pivot would have put all three half a crown to the left of the leaves.
+     * The canvas is the drawing plus a transparent guard, so blitted at ([CROWN_X], [CROWN_Y]) the
+     * canvas occupies x -21..35 and y -82..-34: centre (7, -58), half extents 28 x 24 (the live
+     * crown's ink is -18.3..34 by -78.3..-38.7, see `SpriteOccluderTable.PALM_CROWN`). **The
+     * centre is not over the trunk**, and that is the consequence of the lean that reaches
+     * furthest — the Christmas lights and the falling-leaf source read it, and the layout pass's
+     * reach reads [CROWN_HALF_WIDTH]; the occlusion box reads the measured ink in
+     * `SpriteOccluderTable.PALM_CROWN` instead. A crown centred on the pivot would have put the
+     * lights and the leaves half a crown to the left of the fronds.
      */
     const val CROWN_CENTRE_X = 7f
     const val CROWN_CENTRE_Y = -58f

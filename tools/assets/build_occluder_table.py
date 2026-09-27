@@ -273,8 +273,9 @@ HEADER = '''package com.paperscrape.livewallpaper.engine
  * a coverage becomes a smaller rectangle -- because that is a judgement and not a measurement, and
  * it is the half of the independence worth keeping.
  *
- * `SpriteOccluderTableFreshnessTest` re-measures every figure below straight from the PNG, in
- * Kotlin, without the generator -- so this table cannot fall behind a redraw in silence. That is
+ * `SpriteOccluderTableFreshnessTest` re-measures every sprite figure below straight from the PNG,
+ * in Kotlin, without the generator, and checks the parasol fan against its own geometry -- so
+ * this table cannot fall behind a redraw in silence. That is
  * not a hypothetical: `tools/assets/reports/runtime-inventory.json` carried the pre-v5.1 palm for
  * the whole of v5.1 and nothing said so.
  *
@@ -282,12 +283,13 @@ HEADER = '''package com.paperscrape.livewallpaper.engine
  *
  * [contentLeft], [contentTop], [contentRight], [contentBottom] are the drawing's own ink bounding
  * box in **object units at the blit origin** -- the canvas's transparent guard margin excluded,
- * which is the first thing the old box got wrong. [coverage] is the share of that box carrying
- * ink, counting a pixel as ink at any alpha above zero.
+ * which is the first thing the old box got wrong. [InkBox.rowMax] and [InkBox.columnMax] are the
+ * fullest row and column as shares of that box, counting a pixel as ink at any alpha above zero;
+ * the box's overall coverage is only recorded in a comment beside it.
  */
 internal object SpriteOccluderTable {
 
-    /** One drawing's ink: its box in object units, and how much of that box it fills. */
+    /** One drawing's ink: its box in object units, and the fullest row and column of that box. */
     internal class InkBox(
         val contentLeft: Float,
         val contentTop: Float,

@@ -126,7 +126,11 @@ class ColourCoinTest {
     @Test
     fun `the coin does not decide which objects stand`() {
         val total = ThemeCatalog.ALL.sumOf { standing(it.id).size }
-        assertEquals("objects wearing a colour pair that stand at the twelve defaults", 300, total)
+        // 300 until v5.8C; 295 since the density threshold reads a real fraction (item 134,
+        // `DensityResolutionTest`): five objects on the step 0.65 cuts through went -- a house, a
+        // tree, a palm and two gifts -- and none appeared. This test is about the coin, which
+        // still decides no object's presence, as the loop below shows.
+        assertEquals("objects wearing a colour pair that stand at the twelve defaults", 295, total)
         // And recolouring every category leaves the same set standing, object for object.
         for (theme in ThemeCatalog.ALL) {
             val c = defaultCustomizationFor(theme.id)

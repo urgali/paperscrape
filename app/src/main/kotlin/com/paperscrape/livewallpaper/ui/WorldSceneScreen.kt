@@ -55,10 +55,12 @@ import kotlinx.coroutines.launch
 /**
  * Everything the scene is made of, plus how it moves.
  *
- * The fifteen categories and their sub-screens are v2.8's "Scene Objects", unchanged in content
- * and in every write. What changed: they are grouped the way the scene is built (sky, landscape,
- * things that move) instead of listed in arrival order with a divider after each row; each row
- * reports its own state, so the scene is readable without opening fifteen screens; and the four
+ * The fifteen categories and their sub-screens grew out of v2.8's "Scene Objects", and later
+ * releases have added to them (automatic colour modes, business hours, night densities, the
+ * lake-gated boat controls). What changed: they are grouped the way the scene is built (sky,
+ * landscape, things that move) instead of listed in arrival order with a divider after each row;
+ * most rows report their own state (Sky, Cities, Hills and Mountains describe their contents
+ * instead), so the scene is readable without opening fifteen screens; and the four
  * scrolling controls that used to sit between the weather settings and the version number on the
  * home screen now live here, under Motion, labelled as what they are -- global, not per-theme.
  */
@@ -206,11 +208,12 @@ internal fun WorldSceneScreen(
                 title = "Lake",
                 // **N4 (v5.7C): the one of the five silent rows that has a state to report.**
                 // The screen's own intent is that "each row reports its own state", and ten of
-                // the fifteen do. Lake is the row that mattered: with the lake off, the screen
-                // below it shows four boat-and-dolphin controls, so a row that only said "Water,
-                // sailboats and dolphins" was the reason that screen read as broken. Sky, Cities,
-                // Hills and Mountains are deliberately left as they are -- none of them has a
-                // single on/off to report, and inventing one would be worse than a description.
+                // the fifteen did before this one; with it, eleven do. Lake is the row that
+                // mattered: with the lake off, the screen below it shows four boat-and-dolphin
+                // controls, so a row that only said "Water, sailboats and dolphins" was the reason
+                // that screen read as broken. Sky, Cities, Hills and Mountains are deliberately
+                // left as they are -- none of them has a single on/off to report, and inventing
+                // one would be worse than a description.
                 supporting = lakeRowSummary(customization.lake),
                 icon = Icons.Outlined.Waves,
                 onClick = { activeSection = "lake" },
@@ -290,8 +293,10 @@ internal fun WorldSceneScreen(
             // Named by **season**, not by object, and deliberately. `resetAllCategories` removes
             // every customization key this theme has, which on the decorations side is more than
             // the six `ObjectCategory` values -- it also takes `halloweenEnabled`,
-            // `horrorSkyEnabled`, `christmasLightsEnabled`, `santaEnabled`, `flowersEnabled`,
-            // `palmsEnabled` and the two palette flags. A list of objects would therefore be both
+            // `horrorSkyEnabled`, `christmasDecorationsEnabled`, `santaEnabled`, `flowersEnabled`,
+            // `palmsEnabled` and the two palette flags. (`palmsEnabled` only since v5.8: until then
+            // `clearAllThemeCustomizationKeys` skipped it, and the reset's "off" came back on the
+            // theme's next edit.) A list of objects would therefore be both
             // wrong today and one decoration away from being wrong again; the six seasons are the
             // whole of that screen and cannot go stale.
             text = {
@@ -308,10 +313,12 @@ internal fun WorldSceneScreen(
                     scope.launch {
                         prefs.resetAllCategories(forThemeId)
                         // "Reset everything to defaults" clearing only the in-progress scratch
-                        // edit wasn't enough on its own: resolveActiveCustomization() checks a
-                        // *saved* override for this theme *before* the scratch space, so if this
-                        // built-in theme was ever overridden, the reset appeared to do nothing at
-                        // all -- the saved override kept winning. Clear that too, if one exists.
+                        // edit wasn't enough on its own: resolveActiveCustomization() falls back
+                        // to a *saved* override for this theme once the scratch space and the
+                        // theme's archived edit are gone -- which is exactly what the reset
+                        // removes -- so if this built-in theme was ever overridden, the reset
+                        // appeared to do nothing at all: the saved override came straight back.
+                        // Clear that too, if one exists.
                         if (customThemeData.overrides.containsKey(forThemeId)) {
                             customThemeStore.clearOverride(forThemeId)
                         }
@@ -371,7 +378,7 @@ private fun lakeRowSummary(lake: LakeConfig): String {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Category screens -- unchanged from v2.8 apart from the shell they are drawn in
+// Category screens -- v2.8's, in the new shell, plus what later releases added to them
 // ---------------------------------------------------------------------------------------------
 
 @Composable
@@ -427,7 +434,7 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
             "How high the sun and moon's arc rises across the sky.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        // Shown as a plain 0-100%, like every other slider, and mapped onto the arc-height range
+        // Shown as a plain 0-100%, like the density sliders, and mapped onto the arc-height range
         // the renderer has always used. The stored value keeps its own scale, so nothing saved
         // needs migrating -- what changed is that the slider no longer prints an internal number
         // as if it were a percentage, which is what made "60%" look like it was near the middle
@@ -438,6 +445,7 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
             onCommit = { fraction ->
                 scope.launch { prefs.setSkySunCloudHeight(sunCloudHeightForFraction(fraction), forThemeId) }
             },
+            storedAs = { fraction -> sunCloudHeightFraction(sunCloudHeightForFraction(fraction)) },
             valueRange = 0f..1f,
         )
     }
@@ -504,10 +512,11 @@ private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: Strin
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Clouds", onBack) {
         // Live Weather (Weather & time) fully drives cloud density from real conditions while a
-        // forecast is actually in effect -- see PaperRenderer.drawClouds' own doc comment on
-        // exactly how that override works. Visibility/density read-only *then*, so a manual edit
-        // can't silently do nothing (or worse, look like it worked and then get overwritten on the
-        // next hourly fetch); colors stay editable since Live Weather never touches those.
+        // forecast is actually in effect -- see LiveWeatherSceneRules.cloudDensity (and the inline
+        // comment at the top of PaperRenderer.drawClouds) on exactly how that override works.
+        // Visibility/density read-only *then*, so a manual edit can't silently do nothing (or
+        // worse, look like it worked and then get overwritten on the next hourly fetch); colors
+        // stay editable since Live Weather never touches those.
         //
         // v3.1: "then", not "whenever the switch is on". With the switch on but no forecast in
         // effect -- no location, no API key, a fetch that failed with nothing cached -- this
@@ -553,8 +562,9 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
     val precip = customization.precipitation
     SettingsFormSubScreen("Rain and snow", onBack) {
         // See CloudsSubScreen's own comment on this same pattern -- Live Weather fully drives
-        // visibility/type/intensity/thunderstorm here (PaperRenderer.drawPrecipitation's own doc
-        // comment), so those controls are read-only while it is on. Colors stay editable.
+        // visibility/type/intensity here (PaperRenderer.drawPrecipitation's own doc comment) and
+        // thunderstorm (LiveWeatherSceneRules.stormActive), so those controls are read-only while
+        // a forecast is actually in effect. Colors stay editable.
         if (liveWeatherDriving) {
             Text(
                 "Live Weather is driving rain/snow/thunderstorm from real conditions right now. Turn Live Weather off in Weather & time to set this manually.",
@@ -664,12 +674,14 @@ private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: Strin
                 label = { shown -> Text("Open from: ${formatHour(shown)}", style = MaterialTheme.typography.bodyMedium) },
                 value = customization.businessOpenHour,
                 onCommit = { committed -> scope.launch { prefs.setBusinessOpenHour(quantiseToQuarterHour(committed), forThemeId) } },
+                storedAs = ::quantiseToQuarterHour,
                 valueRange = 0f..24f,
             )
             PreferenceSlider(
                 label = { shown -> Text("Until: ${formatHour(shown)}", style = MaterialTheme.typography.bodyMedium) },
                 value = customization.businessCloseHour,
                 onCommit = { committed -> scope.launch { prefs.setBusinessCloseHour(quantiseToQuarterHour(committed), forThemeId) } },
+                storedAs = ::quantiseToQuarterHour,
                 valueRange = 0f..24f,
             )
             Text(

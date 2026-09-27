@@ -12,10 +12,12 @@ package com.paperscrape.livewallpaper.engine
  * it was also taller than the entire cloud layer. aa reported both halves of that from a live
  * render: "i fulmini sono giganti e escono dalla cima del cielo".
  *
- * Duplicating the band arithmetic in three call sites is what let one of them drift, so it is
- * written once here and the bolt's origin is *derived* from it rather than sitting beside it. Pure
- * float arithmetic on primitives -- no allocation, no Android type, and testable, which is the other
- * half of why it moved out of the renderer.
+ * Duplicating the band arithmetic in three call sites is what let one of them drift, so the band's
+ * top and height are written once here and the bolt's origin is *derived* from them rather than
+ * sitting beside them; the rain still adds the half-height at its own call site, and
+ * [precipitationOriginY] states the same line for the tests. Pure float arithmetic on primitives
+ * -- no allocation, no Android type, and testable, which is the other half of why it moved out of
+ * the renderer.
  */
 object CloudBand {
 
@@ -38,9 +40,9 @@ object CloudBand {
      * The clouds follow the sun: a low arc puts them low in the sky, a high one lifts them toward
      * the top. v2.11 computed `0.08 + (1 - height) * 0.15`, which over the whole slider moved the
      * band by 0.075 of screen height -- about 7 % -- and read on a device as a control that did
-     * nothing. The band now spans a range the eye can actually see, while landing within a few
-     * pixels of the old position at the default height (0.42), so existing scenes are not
-     * rearranged by the fix.
+     * nothing. The band now spans a range the eye can actually see, while landing within about
+     * 2 % of screen height (0.150 against 0.167) of the old position at the default height (0.42),
+     * so existing scenes are not rearranged by the fix.
      *
      * Stays clear of the horizon at every setting: the lowest band top is 0.31 and the band is
      * 0.16 tall, ending at 0.47 against a horizon at 0.62.

@@ -9,7 +9,8 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * The four colours the app has always been built on. Every role below is derived from these by
- * lightening or darkening within the same hue family -- no new identity is introduced.
+ * lightening or darkening within the same hue family, except tertiary (the wallpaper's own day
+ * sky) and error (a warm brick) -- no new identity is introduced.
  *
  * `PaperOrange` and `PaperOrangeDark` are the wallpaper's own sunset hills (`SceneTheme.SUNSET`
  * uses exactly these two values in `hillColorsDay`), `PaperCream` is the paper stock the settings
@@ -27,7 +28,7 @@ private val PaperNight = Color(0xFF1B1B2F)
  * remaining roles fell back to Material 3's baseline palette -- which is violet. Switch tracks,
  * inactive slider tracks, containers, dialog surfaces and every "variant" role therefore rendered
  * off-brand next to the cream and orange the app actually is. Each value below is a tone of the
- * four constants above:
+ * four constants above, except tertiary (the wallpaper's own sky) and error (a warm brick):
  *
  * - **primary family** -- `PaperOrangeDark` itself, with a light tint of it as the container.
  * - **secondary family** -- the same hue desaturated, so secondary containers read as paper rather

@@ -32,18 +32,18 @@ SHEET_CELL = 150
 SHEET_LABEL_HEIGHT = 16
 
 
-#: The four name prefixes `buildings/core.py`'s `budget` counts as its "shipped perimeter",
+#: The five name prefixes (the two houses share `house`) `buildings/core.py`'s `budget` counts as its "shipped perimeter",
 #: and the suffix it excludes. Duplicated from there rather than imported, because
 #: `buildings/` is a standalone script directory that imports its own modules by bare name and
 #: cannot be imported from inside this package without a `sys.path` edit at call time.
 #: `tests/test_budget.py` asserts the two selections agree on the real tree, so the duplicate
 #: is a checked one rather than a remembered one.
-BUDGET_PERIMETER_PREFIXES = ("house", "skyscraper", "restaurant", "bar", "school")
+BUDGET_PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school")
 BUDGET_PERIMETER_EXCLUDES = "_q"
 
-#: `Perimetro spedito (46 PNG, senza palma): 3480876 B decodificati, 3435092 B caricati ...`
+#: `Shipped perimeter (76 PNG, the six building families): 5390244 B decoded, 5326452 B uploaded ...`
 _BUDGET_MD_PERIMETER = re.compile(
-    r"Perimetro spedito \((\d+) PNG[^)]*\): (\d+) B decodificati, (\d+) B caricati"
+    r"Shipped perimeter \((\d+) PNG[^)]*\): (\d+) B decoded, (\d+) B uploaded"
 )
 
 

@@ -291,4 +291,49 @@ class SettingsUiModelTest {
             assertFalse(liveWeather(enabled = false, status = status).drivingTheScene)
         }
     }
+
+    // ---- the two reset rows (v5.8C) ----------------------------------------------------------
+
+    /**
+     * **Each reset row counts what it resets** (v5.8C, the maintainer's decision of 2026-09-25).
+     * The one row there was counted only saved versions, so a user who had edited two themes from
+     * the menus read "No built-in theme has your edits" beside a disabled button (assessment v5.7
+     * row 4).
+     */
+    @Test
+    fun `edits made from the menus light the edits row, saved versions light the saved row`() {
+        val themes = com.paperscrape.livewallpaper.engine.ThemeCatalog.ALL
+        fun defaults(id: String) = com.paperscrape.livewallpaper.engine.defaultCustomizationFor(id)
+        val autumnSaved = com.paperscrape.livewallpaper.engine.CustomThemeEntry(
+            id = "autumn", name = "My autumn",
+            theme = com.paperscrape.livewallpaper.engine.ThemeCatalog.byId("autumn"),
+            layout = com.paperscrape.livewallpaper.engine.SceneObjectLayout(emptyList(), emptyList()),
+            customization = defaults("autumn").copy(hillsVariation = 0.4f),
+        )
+        val state = SettingsUiModel.themeResetState(
+            builtIns = themes,
+            overrides = mapOf("autumn" to autumnSaved),
+            themeCustomizations = mapOf(
+                "beach" to defaults("beach").copy(hillsVariation = 0.2f),          // edited
+                "winter" to defaults("winter"),                                    // touched, moved back
+                "autumn" to autumnSaved.customization,                             // the saved version itself
+                "desert" to defaults("desert").let { it.copy(stars = it.stars.copy(visible = !it.stars.visible)) }, // edited
+            ),
+        )
+        assertEquals(listOf("Autumn"), state.savedVersions)
+        assertEquals(listOf("Desert", "Beach"), state.currentEdits)   // the gallery's order
+        assertEquals(listOf("desert", "beach"), state.currentEditIds)
+
+        val none = SettingsUiModel.themeResetState(themes, emptyMap(), emptyMap())
+        assertEquals(emptyList<String>(), none.savedVersions)
+        assertEquals(emptyList<String>(), none.currentEdits)
+    }
+
+    @Test
+    fun `a line names its themes the way a sentence would`() {
+        assertEquals("", SettingsUiModel.namesInProse(emptyList()))
+        assertEquals("Autumn", SettingsUiModel.namesInProse(listOf("Autumn")))
+        assertEquals("Autumn and Beach", SettingsUiModel.namesInProse(listOf("Autumn", "Beach")))
+        assertEquals("Autumn, Beach and Winter", SettingsUiModel.namesInProse(listOf("Autumn", "Beach", "Winter")))
+    }
 }

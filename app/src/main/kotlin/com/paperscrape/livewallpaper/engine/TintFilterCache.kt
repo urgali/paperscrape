@@ -32,11 +32,12 @@ import android.graphics.PorterDuffColorFilter
  * If a second mode is ever needed, it must become part of the cache key — a filter is defined by
  * colour *and* mode, and silently reusing one across modes would be a rendering bug.
  *
- * Thread-safe, and it has to be: this is a process-wide object and a process can host two engines
- * with a render thread each. ARC-12: this used to say "not thread-safe, used only from the render
- * thread", which was false in both halves -- every entry point below is `@Synchronized`, and
- * [GradientShaderCache]'s own comment already said so from the other side. Unlike [SpriteCache], whose contents are
- * immutable and safe to share.
+ * Thread-safe: every entry point below is `@Synchronized`. Today every caller is on the main
+ * thread -- the `Canvas` backend (fallback loop and settings previews) and `onTrimMemory` --
+ * because the GPU backend tints in the vertex colour and never reaches this; the lock is cheap
+ * insurance for a process-wide object. ARC-12: this used to say "not thread-safe, used only from
+ * the render thread", which was false in both halves -- [GradientShaderCache]'s own comment
+ * already said so from the other side.
  */
 object TintFilterCache {
 

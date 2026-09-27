@@ -4,6 +4,7 @@ import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLContext
 import android.opengl.EGLDisplay
+import android.opengl.EGLExt
 import android.opengl.EGLSurface
 import android.view.SurfaceHolder
 
@@ -17,22 +18,34 @@ import android.view.SurfaceHolder
  * rest of the engine has to respect: **scene state is now mutated from a different thread than it is
  * read from.** The answer here is not a lock around the renderer but [queueEvent]: preference,
  * theme, weather and offset changes arrive as runnables executed on this thread between frames, so
- * the scene is only ever touched by the thread that draws it. `SpriteCache`'s deliberate lack of
- * synchronisation therefore stays sound, for the same reason it was sound before — one thread
- * touches it — rather than by accident.
+ * the scene is only ever touched by the thread that draws it. `SpriteCache` is the exception: it is
+ * shared by every engine's render thread and by the main thread's memory trim, so it takes its own
+ * lock (see its own doc).
  *
  * ## Pacing
  *
- * The loop targets [FRAME_INTERVAL_MS] and subtracts the frame's own measured cost before sleeping,
- * matching what the `Canvas` loop did. It deliberately does **not** free-run at the display's
- * refresh rate: `eglSwapBuffers` blocks on vsync, so an unpaced loop would render at 60, 90 or 120 Hz
- * and do two to four times the work of the renderer it replaces.
+ * Every frame starts on one of the display's refresh ticks, and the next one the same number of
+ * ticks later: the loop sleeps to the tick [FramePacing.nextTick] predicts from the grid
+ * [VsyncGrid] measures, about 30 frames a second. It used to sleep `33 ms - cost`, which is not
+ * the display's clock, and every few frames it slid one tick late and that frame stayed on screen
+ * half as long again -- see [FramePacing]. Until a grid has been measured (the first second, and
+ * the first second after the loop parked) it paces that old way. It deliberately does **not**
+ * free-run at the display's refresh rate, which would render at 60, 90 or 120 Hz and do two to
+ * four times the work for motion this slow.
+ *
+ * A frame's time is its tick's, not the moment the thread woke up: the scene then advances by
+ * exactly the interval the display will show it for. Each swap also says when the frame should be
+ * shown ([FramePacing.presentAt], `eglPresentationTimeANDROID`, where the display offers it), so
+ * the compositor shows every frame on the same refresh relative to its tick whatever it cost.
  *
  * ## Failure
  *
- * Every EGL step is checked, and any failure reports [Callbacks.onGlUnavailable] exactly once and
- * parks the thread. The engine then falls back to the `Canvas` path, so a device that cannot give
- * this process a GL context still renders a wallpaper.
+ * A failed frame is first answered by rebuilding the EGL state -- up to
+ * [GlLifecyclePolicy.MAX_CONTEXT_REBUILDS] times, and only if a frame has ever been drawn -- and a
+ * failed swap rebuilds or drops the surface; only when [GlLifecyclePolicy.shouldRebuildContext] says
+ * no does the thread report [Callbacks.onGlUnavailable], exactly once, and park. The engine then
+ * falls back to the `Canvas` path, so a device that cannot give this process a GL context still
+ * renders a wallpaper.
  */
 internal class GlRenderThread(
     private val callbacks: Callbacks,
@@ -45,7 +58,10 @@ internal class GlRenderThread(
         /** Called on the render thread once per frame, between `beginFrame` and `endFrame`. */
         fun onGlDrawFrame(target: SceneCanvas, deltaSeconds: Float)
 
-        /** Called on the render thread when GL cannot be used at all. */
+        /**
+         * Called on the render thread when GL is given up on: it never initialised, or it stopped
+         * working and could not be rebuilt.
+         */
         fun onGlUnavailable()
     }
 
@@ -100,6 +116,14 @@ internal class GlRenderThread(
     private var currentWidth = 0
     private var currentHeight = 0
     private var lastFrameNanos = 0L
+
+    private val vsync = VsyncGrid()
+
+    /** The tick the frame being drawn was started on; 0 when it was not started on one. */
+    private var anchorTickNanos = 0L
+
+    /** Whether this display offers `EGL_ANDROID_presentation_time`; read once, when EGL starts. */
+    private var presentationTimeSupported = false
 
     // --- Calls from the main thread ----------------------------------------------------------
 
@@ -163,9 +187,11 @@ internal class GlRenderThread(
     // --- Render thread -----------------------------------------------------------------------
 
     override fun run() {
+        vsync.start()
         try {
             loop()
         } finally {
+            vsync.quit()
             releaseEgl()
         }
     }
@@ -201,6 +227,19 @@ internal class GlRenderThread(
                 continue
             }
             if (!visible || unavailableReported) {
+                // A trim asked for while hidden is honoured now, not on the next visible frame
+                // (v5.8C). Memory pressure arrives exactly while nothing is drawing -- screen off,
+                // an app in front -- and until then the atlas page and every standalone texture
+                // stayed allocated for as long as the process was a kill candidate, to be dropped
+                // on the first visible frame, where the re-upload is the one cost nobody wanted
+                // (v5.8B comment audit). The context is made current on the surface it already
+                // has; nothing is created for the purpose.
+                if (!unavailableReported && trimRequested && makeCurrentWhileHidden(currentHolder) &&
+                    GlLifecyclePolicy.mayApplyTrim(trimRequested, framePrepared = true)
+                ) {
+                    trimRequested = false
+                    target.trimTextures()
+                }
                 idle()
                 continue
             }
@@ -218,15 +257,29 @@ internal class GlRenderThread(
                 target.trimTextures()
             }
             hadWorkingContext = true
-            drawFrame()
+            drawFrame(if (anchorTickNanos != 0L) anchorTickNanos else frameStart, anchorTickNanos)
             pace(frameStart)
         }
     }
 
+    /**
+     * Makes the context current for a trim while the wallpaper is hidden. Without a context or a
+     * usable target nothing was ever uploaded, so there is nothing to give back and the request
+     * is dropped; otherwise the surface this window already has is used.
+     */
+    private fun makeCurrentWhileHidden(holder: SurfaceHolder): Boolean {
+        if (eglContext == EGL14.EGL_NO_CONTEXT || !target.isUsable) {
+            trimRequested = false
+            return false
+        }
+        return ensureEglSurface(holder) && EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)
+    }
+
     private fun idle() {
         // Time no longer accumulates while parked, so the first frame after resuming must not be
-        // handed the whole idle period as its delta.
+        // handed the whole idle period as its delta -- nor start on a tick from before it parked.
         lastFrameNanos = 0L
+        anchorTickNanos = 0L
         synchronized(lock) {
             if (!exitRequested && eventQueue.isEmpty()) {
                 try {
@@ -266,13 +319,19 @@ internal class GlRenderThread(
         return currentWidth > 0 && currentHeight > 0
     }
 
-    private fun drawFrame() {
-        val now = System.nanoTime()
-        val delta = if (lastFrameNanos == 0L) 0f else ((now - lastFrameNanos) / 1_000_000_000f)
-        lastFrameNanos = now
+    private fun drawFrame(frameTimeNanos: Long, frameTickNanos: Long) {
+        val delta = if (lastFrameNanos == 0L) 0f else ((frameTimeNanos - lastFrameNanos) / 1_000_000_000f)
+        lastFrameNanos = frameTimeNanos
         target.beginFrame()
         callbacks.onGlDrawFrame(target, delta.coerceIn(0f, 0.5f))
         target.endFrame()
+        // Every frame, the time it should reach the screen -- or "as soon as it is ready" when there
+        // is no grid: the request stays on the surface until replaced (FramePacing.presentAt).
+        if (presentationTimeSupported) {
+            EGLExt.eglPresentationTimeANDROID(
+                eglDisplay, eglSurface, FramePacing.presentAt(vsync.current(System.nanoTime()), frameTickNanos),
+            )
+        }
         if (!EGL14.eglSwapBuffers(eglDisplay, eglSurface)) {
             when (EGL14.eglGetError()) {
                 EGL14.EGL_CONTEXT_LOST -> {
@@ -286,15 +345,25 @@ internal class GlRenderThread(
         }
     }
 
+    /**
+     * Sleeps to the tick the next frame starts on, or -- with no grid measured yet -- for what is
+     * left of [FramePacing.FALLBACK_INTERVAL_MS] after this frame's cost, as the loop always did.
+     */
     private fun pace(frameStartNanos: Long) {
-        val costMs = (System.nanoTime() - frameStartNanos) / 1_000_000L
-        val sleepMs = FRAME_INTERVAL_MS - costMs
-        if (sleepMs > 0) {
-            try {
-                sleep(sleepMs)
-            } catch (_: InterruptedException) {
-                currentThread().interrupt()
-            }
+        val now = System.nanoTime()
+        val plan = FramePacing.plan(vsync.current(now), anchorTickNanos, frameStartNanos, now)
+        // On a grid, sleep to the tick itself (the clock has moved while planning); without one,
+        // the old `33 ms - cost`, unchanged.
+        sleepNanos(if (plan.anchorTickNanos != 0L) plan.anchorTickNanos - System.nanoTime() else plan.sleepNanos)
+        anchorTickNanos = plan.anchorTickNanos
+    }
+
+    private fun sleepNanos(nanos: Long) {
+        if (nanos <= 0L) return
+        try {
+            sleep(nanos / 1_000_000L, (nanos % 1_000_000L).toInt())
+        } catch (_: InterruptedException) {
+            currentThread().interrupt()
         }
     }
 
@@ -340,6 +409,8 @@ internal class GlRenderThread(
             eglDisplay = EGL14.EGL_NO_DISPLAY
             return false
         }
+        presentationTimeSupported =
+            EGL14.eglQueryString(eglDisplay, EGL14.EGL_EXTENSIONS)?.contains("EGL_ANDROID_presentation_time") == true
 
         // Multisampling first, then the same config without it. The scene draws circles, arcs and
         // thin strokes that `Canvas` antialiases analytically and GL does not, so MSAA is what keeps
@@ -467,9 +538,6 @@ internal class GlRenderThread(
     }
 
     private companion object {
-        /** ~30 fps, the cadence the scene was tuned at. */
-        const val FRAME_INTERVAL_MS = 33L
-
         /** How long an idle render thread parks before re-checking its inputs. */
         const val IDLE_WAIT_MS = 200L
         const val MSAA_SAMPLES = 4

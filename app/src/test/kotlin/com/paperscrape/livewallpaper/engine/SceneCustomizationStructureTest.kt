@@ -162,6 +162,17 @@ class SceneCustomizationStructureTest {
     }
 
     @Test
+    fun `changing the palms switch is structural for static objects and not for cars`() {
+        // The switch changes which species a kept tree slot is, and that is decided once, when
+        // the static runtime list is built (`palmSpeciesApplied`). Until v5.8 this comparison
+        // did not read it, so turning the palms off on a running wallpaper changed nothing until
+        // something else rebuilt the scene -- measured on a device (assessment v5.7, M1).
+        val mutated = base.copy(palmsEnabled = !base.palmsEnabled)
+        assertFalse("the palms switch must rebuild the static objects", base.staticStructurallyEquals(mutated))
+        assertTrue("the palms switch must not restart cars", base.carsStructurallyEquals(mutated))
+    }
+
+    @Test
     fun `changing hills variation is not structural`() {
         val mutated = base.copy(hillsVariation = base.hillsVariation / 2f + 0.25f)
         assertTrue(base.staticStructurallyEquals(mutated))
@@ -223,20 +234,48 @@ class SceneCustomizationStructureTest {
 
     @Test
     fun `structural comparison agrees with keepCandidate and keepCar`() {
-        // The comparison is only meaningful if it predicts the filters it stands in for.
-        val layout = SceneObjectCatalog.layoutFor("christmas", 0xFFE07A5F.toInt())
-        for ((name, mutate) in colourMutations) {
-            val mutated = mutate(base)
-            assertEquals(
-                "colour change to $name must not change which static objects render",
-                layout.staticObjects.filter { base.keepCandidate(it) },
-                layout.staticObjects.filter { mutated.keepCandidate(it) },
+        // The comparison stands in for the filters: whenever it says "equal", the scene must keep
+        // the same objects -- and draw the same species in a palm slot -- or a change reaches the
+        // settings and never the running wallpaper, which is what the Palms switch did in v5.7.
+        //
+        // **Until v5.8B this test called neither comparison.** It ran the colour mutations through
+        // `keepCandidate` and `keptCars` and asserted the filters did not move, which is true of
+        // colours whatever `staticStructurallyEquals` says, so the name promised an agreement it
+        // never checked -- and the palm switch, missing from the comparison, passed it. Now every
+        // mutation family, on every built-in, is run through both comparisons, and each "equal" is
+        // checked against what the engine really keeps: `keepCandidate` plus `palmSpeciesApplied`
+        // for the static objects, and for the cars `CarSelection.countFor` at both ends of the day
+        // (the engine rebuilds its cars only on a visibility flip and counts the rest per frame).
+        val palms = "palms" to { c: SceneCustomization -> c.copy(palmsEnabled = !c.palmsEnabled) }
+        val nightCars = "cars at night" to { c: SceneCustomization -> c.copy(carsNightDensity = c.carsNightDensity / 2f + 0.1f) }
+        val mutations = densityMutations + visibilityMutations + colourMutations + palms + nightCars
+        var equalStatic = 0
+        var equalCars = 0
+        for (theme in ThemeCatalog.ALL) {
+            val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
+            val start = defaultCustomizationFor(theme.id)
+            fun standing(c: SceneCustomization) =
+                layout.staticObjects.filter { c.keepCandidate(it) }.map { c.palmSpeciesApplied(it) }
+            fun traffic(c: SceneCustomization) = Triple(
+                c.cars.visible,
+                CarSelection.countFor(c.cars.density, layout.cars.size),
+                CarSelection.countFor(c.carsNightDensity, layout.cars.size),
             )
-            assertEquals(
-                "colour change to $name must not change which cars render",
-                base.keptCars(layout.cars, "christmas".hashCode()),
-                mutated.keptCars(layout.cars, "christmas".hashCode()),
-            )
+            for ((name, mutate) in mutations) {
+                val mutated = mutate(start)
+                if (start.staticStructurallyEquals(mutated)) {
+                    equalStatic++
+                    assertEquals("${theme.id}, $name: called equal, so the same objects must stand", standing(start), standing(mutated))
+                }
+                if (start.carsStructurallyEquals(mutated)) {
+                    equalCars++
+                    assertEquals("${theme.id}, $name: called equal, so the same traffic must run", traffic(start), traffic(mutated))
+                }
+            }
         }
+        // Both comparisons must have said "equal" often enough for the check to mean something: the
+        // colour mutations alone are eleven per theme.
+        assertTrue("static comparisons called equal: $equalStatic", equalStatic >= 11 * ThemeCatalog.ALL.size)
+        assertTrue("car comparisons called equal: $equalCars", equalCars >= 11 * ThemeCatalog.ALL.size)
     }
 }

@@ -3,8 +3,9 @@ package com.paperscrape.livewallpaper.weather
 /**
  * What a provider says the sky is doing, in this app's own vocabulary rather than any provider's.
  *
- * This is the normalisation boundary: Open-Meteo's WMO integers and WeatherAPI.com's numeric
- * condition codes both arrive here, and nothing downstream ever sees either. Every field
+ * This is the normalisation boundary: Open-Meteo's WMO integers, WeatherAPI.com's numeric
+ * condition codes and OpenWeather's condition ids all arrive here, and nothing downstream ever sees
+ * any of them. Every field
  * is nullable because "the provider did not report this" and "the provider reported zero" are
  * different facts and the mapping in [WeatherSnapshotMapper] depends on telling them apart -- a
  * provider that omits `showers` must not be read as one reporting no showers.

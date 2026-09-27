@@ -50,10 +50,16 @@ internal class GlTextureAtlas(
 
     private val scratch = IntArray(1)
 
-    /** True once the backing texture exists. Allocated on first use, not at context creation. */
+    /**
+     * True once the backing texture exists. Allocated on first use -- in practice when
+     * `GlSceneTarget.onContextCreated` packs the white pixel.
+     */
     val isAllocated: Boolean get() = textureHandle != 0
 
-    /** How many of the atlas's rows the shelves have reached into, for diagnostics only. */
+    /**
+     * How many of the atlas's rows the skyline has reached into ([AtlasPacker.occupiedHeight]), for
+     * diagnostics only.
+     */
     val rowsUsed: Int get() = packer.occupiedHeight
 
     /** How many entries are packed, for diagnostics only. */
@@ -67,10 +73,10 @@ internal class GlTextureAtlas(
      * limit with a sprite that had not had those dimensions for several releases: it said "the
      * sleigh alone is 1563x434", and `santa_sleigh_scene` is 594x123 px — the crop recorded in
      * `SANTA_CROP_REPORT.md`, which landed in v4.19. The largest single dimension anywhere in the
-     * set is `cloud_body`, and **0 of 305 sprites exceed [maxEntryDimension] on either axis**.
-     * Over a twelve-theme walk at full density, 33 000 frames and 314 entries, the dimension
-     * rejection fired **0 times**; what fired was the space rejection, and v4.29 fixed the packer
-     * that was causing it.
+     * set is `cloud_body`, and **0 of the 421 sprites shipped at v5.8 exceed [maxEntryDimension] on
+     * either axis** (305 when v4.29 measured it). Over a twelve-theme walk at full density, 33 000
+     * frames and 314 entries, the dimension rejection fired **0 times**; what fired was the space
+     * rejection, and v4.29 fixed the packer that was causing it.
      *
      * The original reasoning still holds for a sprite that *did* exceed it, which is why the branch
      * stays. A single 1024-square entry is 4 MiB of texels — a quarter of the whole atlas — and
@@ -175,9 +181,11 @@ internal class GlTextureAtlas(
          * halves failed by v4.29:
          *
          * - **the figure had rotted.** It is not re-typed here, because re-typing is how it rotted:
-         *   `SpriteDrawScaleTest.uploadedTexelBudget` measures what the set really uploads and
-         *   fails when it moves, and `SpriteGeometryTest.decodedByteBudget` measures what it
-         *   decodes. Read them, not this paragraph.
+         *   `SpriteDrawScaleTest.uploadedTexelBudget` bounds from the host what the whole set would
+         *   upload (every sprite at its largest drawn scale -- not a scene, and not this page's
+         *   fill) and fails when that bound passes its ceiling, and
+         *   `SpriteGeometryTest.decodedByteBudget` measures what it decodes. Read them, not this
+         *   paragraph.
          * - **"a fraction of it" was measured and is false.** Walking the twelve themes at their
          *   *own defaults*, clear weather, the atlas saturated on the **fifth** theme and spilled
          *   sprites into standalone textures for the rest of the session. 1024 was probed in the
