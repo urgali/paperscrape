@@ -32,7 +32,7 @@ import org.junit.runner.RunWith
  *
  * ### v4.21 re-derived it against the new crown, and tightened it
  *
- * The "Quercia larga" replaced both sprites, so every count and row index this file used to name
+ * The "Broad Oak" replaced both sprites, so every count and row index this file used to name
  * was measured off artwork that no longer ships. Rather than re-tune the sample rows until they
  * passed, the assertions were restated as **properties of the pair**, each one measured from
  * whatever crown and cap are shipped:

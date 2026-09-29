@@ -180,9 +180,9 @@ class PrePassSixThemeMigrationTest {
      * a shape the migration has no business understanding, and each must leave that entry as it
      * found it while still repairing the healthy theme beside it.
      *
-     * That the *reader* is separately all-or-nothing about a malformed entry is true, pre-existing,
-     * and not silently repaired here: making a partial read succeed would let the next save drop
-     * the damaged theme for good. It is recorded in `BACKLOG_v4_20.md` instead.
+     * The *reader* was separately all-or-nothing about a malformed entry until v5.9A (item 18,
+     * `BACKLOG_v4_20.md`); it now reads entry by entry and keeps the one that fails, byte for byte,
+     * which the next test and `UnreadableSavedThemeTest` hold.
      */
     @Test
     fun `a malformed entry does not stop the migration repairing the rest`() {
@@ -210,20 +210,27 @@ class PrePassSixThemeMigrationTest {
     }
 
     /**
-     * A whole document of the wrong shape is survivable too, and stays "nothing saved".
+     * A damaged entry is survivable end to end: the read never throws, and the entry is either read
+     * or kept.
      *
-     * The end-to-end half of the same property, at the only granularity the reader offers.
+     * The end-to-end half of the same property. Until v5.9A the reader's only answer to a damaged
+     * entry was `CustomThemeData.EMPTY`, and this test accepted it; now the entry that fails is
+     * carried and written back as it was, so the document it came from must come out of a
+     * read-and-write with that entry's text still in it (item 18).
      */
     @Test
-    fun `a damaged entry leaves the store readable as empty rather than crashing`() {
+    fun `a damaged entry is read or kept, and never costs the store`() {
         for ((name, damage) in DAMAGE) {
             val root = JSONObject(CustomThemeData(customThemes = listOf(entry())).toJsonString())
             root.put("schemaVersion", 3)
-            damage(root.getJSONArray("customThemes").getJSONObject(0))
+            val damaged = root.getJSONArray("customThemes").getJSONObject(0)
+            damage(damaged)
             val loaded = customThemeDataFromJsonString(root.toString())
+            if (loaded.customThemes.size == 1) continue
+            assertTrue("$name: a damaged entry that does not read is not shown", loaded.customThemes.isEmpty())
             assertTrue(
-                "$name: reading a damaged store must degrade, never throw",
-                loaded == CustomThemeData.EMPTY || loaded.customThemes.size == 1,
+                "$name: a damaged entry that does not read must be kept, not dropped",
+                loaded.toJsonString().contains(damaged.toString()),
             )
         }
     }

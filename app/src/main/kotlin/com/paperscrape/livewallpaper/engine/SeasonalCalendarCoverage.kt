@@ -38,8 +38,8 @@ data class CalendarConflict(val day: MonthDay, val windows: List<CalendarWindow>
  *
  * **Gaps are reported, not forbidden.** [SeasonalThemeRules.themeForDate] answers `null` for an
  * uncovered day and the caller falls back to the theme the user picked by hand, so a gap costs the
- * automatic setting a day rather than breaking anything. Whether the screen should let a user make
- * one is a question for the screen; this function only says where they are.
+ * automatic setting a day rather than breaking anything. The screen lets a user make one (the
+ * maintainer's decision, v5.1) and says so; this function only says where they are.
  */
 fun SeasonalCalendar.coverage(): CalendarCoverage {
     val uncovered = ArrayList<MonthDay>()

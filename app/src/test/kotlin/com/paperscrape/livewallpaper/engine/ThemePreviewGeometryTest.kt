@@ -111,6 +111,25 @@ class ThemePreviewGeometryTest {
         assertTrue("every card takes the resolved customization: $cards", cards.all { it.startsWith("cardCustomization(") })
     }
 
+    /**
+     * **The three places a preview is shown all take the scene's own shape** (inventory I-88,
+     * v5.9F). The settings home card was 16:9 until then and cut the bottom quarter of the scene
+     * off -- the road, the cars, the decorations on the ground -- while the gallery and the World &
+     * scene strip showed it whole. Read from the screens' source, because each is a Compose call
+     * site no JVM test can run: the card's `aspectRatio` is the only thing that decides its crop.
+     */
+    @Test
+    fun `the home card, the gallery and the World and scene strip are all four by three`() {
+        val home = source("ui/SettingsScreen.kt").substringAfter("private fun HomeThemePreview(")
+            .substringBefore("ThemeScenePreview(")
+        assertTrue("the home card: $home", home.contains(".aspectRatio(ThemePreviewGeometry.ASPECT_RATIO)"))
+        for (screen in listOf("ui/SettingsScreen.kt", "ui/ThemeGalleryScreen.kt", "ui/WorldSceneScreen.kt")) {
+            val code = source(screen)
+            assertTrue("$screen shows a preview at the scene's shape", code.contains(".aspectRatio(ThemePreviewGeometry.ASPECT_RATIO)"))
+            assertTrue("$screen crops a preview to 16:9", !code.contains("aspectRatio(16f / 9f)"))
+        }
+    }
+
     private fun source(path: String): String {
         var dir: java.io.File? = java.io.File(".").absoluteFile
         while (dir != null) {

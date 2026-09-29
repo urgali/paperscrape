@@ -3,6 +3,9 @@ package com.paperscrape.livewallpaper.engine
 import android.graphics.Bitmap
 import android.opengl.GLES20
 import android.opengl.GLUtils
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
+import androidx.core.graphics.set
 
 /**
  * Where each sprite lives on the GPU: which texture, which rectangle of it, and how big it is.
@@ -267,7 +270,7 @@ internal class GlTextureCache {
             val width = SpriteDetailLevel.reduced(bitmap.width, step)
             val height = SpriteDetailLevel.reduced(bitmap.height, step)
             if (width == current.width && height == current.height) break
-            val next = Bitmap.createScaledBitmap(current, width, height, true)
+            val next = current.scale(width, height, filter = true)
             if (current !== bitmap) current.recycle()
             current = next
         }
@@ -309,8 +312,8 @@ internal class GlTextureCache {
      * inventing one would put a file in `res/` that only this line would ever read.
      */
     fun registerWhitePixel(key: Int): Int {
-        val bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-        bitmap.setPixel(0, 0, WHITE)
+        val bitmap = createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        bitmap[0, 0] = WHITE
         val index = register(key, 0, bitmap)
         bitmap.recycle()
         return index

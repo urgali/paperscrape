@@ -258,7 +258,7 @@ class VehiclePedestrianScaleTest {
                 carHead, SceneObjectRenderer.HEAD_CAR_HEAD_UNITS * SceneObjectRenderer.CAR_OCCUPANT_SCALE,
                 0.0001f,
             )
-            // v5.6F: 0.322 on all three, because «Ritaglio» stands all three bodies at 53 units
+            // v5.6F: 0.322 on all three, because «Cut-out» stands all three bodies at 53 units
             // and the head did not move -- a lower car with the same occupant is a slightly larger
             // share of it. The band's top goes to 0.33 with that measurement; it is a guard
             // against an occupant becoming absurd, not a target, and what it guards has not
@@ -395,7 +395,7 @@ class VehiclePedestrianScaleTest {
         assertEquals("the pane's top", -12f, SceneObjectRenderer.CAR_GLASS_TOP_Y_UNITS, 0.001f)
         assertEquals("the sill", 13f, SceneObjectRenderer.CAR_SILL_Y_UNITS, 0.002f)
         // The discs are drawn last, in front of everything, so a pane that reached below their
-        // crowns would be a window with a wheel across it. «Ritaglio» lands exactly on that line
+        // crowns would be a window with a wheel across it. «Cut-out» lands exactly on that line
         // rather than above it -- sill 13, wheel crown 37 - 24 = 13 -- which is what a low slab on
         // big wheels looks like and is why this is `<=` and not `<`.
         assertTrue(
@@ -507,7 +507,7 @@ class VehiclePedestrianScaleTest {
      *
      * This method was called *"each pane is its own sprite, and the sprite is the pane"* until
      * v5.6F and asserted the two widths were equal, which was true while the glass was an overlay
-     * stuck on top of the shell. «Ritaglio» puts it behind: the sheet is grown half a unit past
+     * stuck on top of the shell. «Cut-out» puts it behind: the sheet is grown half a unit past
      * every edge of the hole so the cut edge of the body paper lands on glass rather than on a
      * seam, and the canvas carries another half unit. So the sprite is exactly two units wider
      * than the cabin pane on the two bodies whose glazing *is* the cabin, and wider still on the

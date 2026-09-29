@@ -58,6 +58,7 @@ import com.paperscrape.livewallpaper.engine.RandomSceneGenerator
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneTheme
+import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
 import com.paperscrape.livewallpaper.engine.hasPalmSlots
 import com.paperscrape.livewallpaper.engine.CalendarWindow
 import com.paperscrape.livewallpaper.engine.EasterSpan
@@ -333,7 +334,7 @@ fun SettingsScreen(
                 )
                 SettingsSwitchRow(
                     title = "Automatic theme by date",
-                    supporting = "The calendar picks a theme for every day of the year, overriding your own pick",
+                    supporting = SettingsUiModel.autoThemeLine(settings.seasonalCalendar, overridingYourPick = true),
                     icon = Icons.Filled.Event,
                     checked = settings.autoThemeByDate,
                     onCheckedChange = { scope.launch { prefs.setAutoThemeByDate(it) } },
@@ -577,8 +578,14 @@ fun SettingsScreen(
  *
  * v2.8 drew the same preview with no label at all, so the one question the screen exists to
  * answer -- which theme am I looking at -- was answered only indirectly, by a caption under a
- * switch further down. The artwork itself is unchanged in this release; a more representative
- * preview is separate, separately-approved work.
+ * switch further down.
+ *
+ * **4:3, the shape the scene is composed at** ([ThemePreviewGeometry.ASPECT_RATIO]), like the
+ * gallery's cards and the World & scene strip. It was 16:9 until v5.9F, which showed only the top
+ * 180 of the scene's 240 units: the road, the cars, the gifts, pumpkins and eggs on the ground
+ * were cut off and the people showed only their heads (inventory I-88; changed on the maintainer's
+ * decision of 2026-09-28, after the photograph of the two). The card is a sixth of a screen taller,
+ * and the top button still fits on the first screen.
  */
 @Composable
 private fun HomeThemePreview(theme: SceneTheme, customization: SceneCustomization, pickedByDate: Boolean) {
@@ -586,7 +593,7 @@ private fun HomeThemePreview(theme: SceneTheme, customization: SceneCustomizatio
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .aspectRatio(16f / 9f),
+            .aspectRatio(ThemePreviewGeometry.ASPECT_RATIO),
         shape = RoundedCornerShape(16.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {

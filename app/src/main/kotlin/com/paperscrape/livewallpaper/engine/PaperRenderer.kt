@@ -559,7 +559,7 @@ class PaperRenderer(
         const val LAKE_SPARKLE_POOL_SIZE = 5
 
         /**
-         * **The water is a mirror (v4.26, concept S1 "Specchio").**
+         * **The water is a mirror (v4.26, concept S1 "Mirror").**
          *
          * How far the surface is carried toward the sky's own horizon colour at the far edge of
          * the band. The near edge stays the theme's lake colour, so the band is one vertical ramp
@@ -636,10 +636,9 @@ class PaperRenderer(
         /**
          * How far under a sailboat's own depth key its visible waterline sits, in boat units.
          *
-         * A sailboat is keyed by its placement point and `drawSailboat` hangs the hull 8 units
-         * below that, 17 units tall, so the hull meets the water 25 units under the key. A wave is
-         * keyed by its base, which *is* its waterline, and the two can only be compared once they
-         * are said in the same convention -- see [gatherWaves].
+         * A sailboat is placed by its placement point and `drawSailboat` hangs the hull 8 units
+         * below that, 17 units tall, so the hull meets the water 25 units under it -- which is where
+         * [LakeLanes.visibleWaterline] keys the boat (v5.9B; v4.28 lifted the waves by it instead).
          */
         const val SAILBOAT_HULL_WATERLINE_UNITS = 25f
 
@@ -865,8 +864,8 @@ class PaperRenderer(
          * It is left alone all the same. This batch corrects effects that are the wrong *size*
          * against the world, and a veil has no size to be wrong -- it is the whole frame by
          * construction, as a real flash is. Nothing measured shows it disproportionate to
-         * anything; it is strong, which is a different claim and a decision for the maintainer
-         * rather than a defect for this batch to fix. The frames are in the report.
+         * anything; it is strong, which is a different claim, and the maintainer decided on
+         * 2026-09-28 to keep it as it is.
          */
         const val LIGHTNING_VEIL_MAX_ALPHA = 180f
 
@@ -1363,7 +1362,7 @@ class PaperRenderer(
      * hull that was plainly further away. It is the sail-and-dolphin defect of v3.1 in a new pair,
      * and [LakeLanes] already holds its answer -- one pass, one key, sorted by base.
      *
-     * ### The key, and why it is not the wave's own base
+     * ### The key: where each thing meets the water
      *
      * The three categories do not share a reference point. A sailboat's key is its *placement*
      * point and `drawSailboat` hangs the hull [SAILBOAT_HULL_WATERLINE_UNITS] below it, so the boat
@@ -1374,12 +1373,12 @@ class PaperRenderer(
      * is therefore its base **lifted by the boat's own hull offset**, so wave and hull are compared
      * waterline to waterline.
      *
-     * That keeps all three properties `LakeLanesTest` fixes: boats are untouched, nothing is ever
-     * pulled *forward* (the lift is never negative, so a wave only ever moves back), and one key
-     * still orders everything. Against a dolphin the comparison is off by the difference between
-     * the boat's convention and the dolphin's -- about 16 px on the reference device, item 82 of
-     * `BACKLOG_v4_28.md`; the sail is the large thing a wave can be seen to cut, which is why it
-     * is the boat's convention that was adopted here.
+     * That is how v4.28 left it, and against a dolphin the comparison stayed off by the difference
+     * between the boat's convention and the dolphin's -- item 84 of `BACKLOG_v4_28.md` (the comment
+     * here used to say 82, and about 16 px). **Since v5.9B nothing is lifted:** every kind is keyed
+     * by where its own drawing meets the water, [LakeLanes.visibleWaterline] -- the boat moved down to
+     * its hull instead of the wave moving up to the boat's key, so a wave and a boat compare exactly
+     * as they did, and a dolphin now compares with both in the same frame.
      */
     private fun gatherWaves(from: Int, top: Float, bandHeight: Float, dayBlend: Float, elapsedSeconds: SceneTime): Int {
         var count = from
@@ -1402,8 +1401,6 @@ class PaperRenderer(
 
         val waveBase = WAVE_METRES_LONG * SceneSpace.LAKE_PIXELS_PER_METRE / WAVE_UNITS_WIDE *
             SceneSpace.sceneScale(screenHeight.toFloat())
-        val waveHullLift = SAILBOAT_HULL_WATERLINE_UNITS * SceneSpace.SAILBOAT_BASE_SCALE *
-            SceneSpace.sceneScale(screenHeight.toFloat())
         for (i in 0 until WAVE_POOL) {
             val waveWanted = waveDensity > 0f && CandidateThreshold.isPresent(i, waveDensity, effectOffset, fallbackIndex)
             val waveLane = waveLaneMax * (0.42f + 0.5f * (i + CandidateNoise.value(waveSeed, i, CandidateNoise.CH_Y)) / WAVE_POOL)
@@ -1423,7 +1420,7 @@ class PaperRenderer(
             lakeItemPhase[count] = 0f
             lakeItemIsDolphin[count] = false
             lakeItemIsWave[count] = true
-            lakeItemDepth[count] = LakeLanes.depthOf(laneY = waveY, heightAboveLane = waveHullLift)
+            lakeItemDepth[count] = LakeLanes.visibleWaterline(LakeLanes.Kind.WAVE, waveY, 0f, screenHeight.toFloat())
             count++
         }
         return count
@@ -2030,8 +2027,8 @@ class PaperRenderer(
      * mirror flip of `sy`'s sign every few frames rather than a continuously-bent curve --
      * replaced the old
      * per-frame quad-bezier wing path with a single baked "wings up" sprite, vertically flipped
-     * for the "wings down" half of the flap cycle via the same sign-flip trick the reference
-     * itself uses, instead of a separate second frame.
+     * for the "wings down" half of the flap cycle by the sign of `sy`, instead of a separate
+     * second frame: one texture, and the flip costs nothing.
      */
 
     private fun drawBirds(canvas: SceneCanvas, dayPhase: SunPositionCalculator.DayPhase, elapsedSeconds: SceneTime) {
@@ -2258,13 +2255,12 @@ class PaperRenderer(
     /**
      * Sprite-blit conversion (batch 4 part 2) -- replaces the old per-frame `Path.op(UNION)` of
      * 5 primitives (+ a clip, a translated shadow fill, and a stroke) with a single tinted
-     * bitmap blit. This one is a genuine architectural match to the reference too (its own
-     * `Cloud` class blits a real texture, see this delivery's own CHANGELOG entry), *and* the
-     * single biggest per-frame cost this file had among the still-vector-drawn categories --
-     * up to 36 candidates/frame each doing 4 boolean path operations was exactly the kind of
-     * cost the sprite-blit pilot was meant to eliminate. The runtime clip+shadow+stroke sequence
+     * bitmap blit. The clouds were the single biggest per-frame cost this file had among the
+     * still-vector-drawn categories -- up to 36 candidates/frame each doing 4 boolean path
+     * operations was exactly the kind of cost the sprite-blit pilot was meant to eliminate. The
+     * runtime clip+shadow+stroke sequence
      * is gone: the look now lives in `cloud_body.png`, generated from the committed
-     * `tools/assets/sources/svg/cloud_body.svg` (v4.26 "Batuffolo": one lobed mass with a single
+     * `tools/assets/sources/svg/cloud_body.svg` (v4.26 "Puff": one lobed mass with a single
      * vertical tone ramp and a feathered edge) -- same "bake it into the sprite" convention
      * batches 1-3 established.
      */
@@ -2408,9 +2404,10 @@ class PaperRenderer(
         val skyLumaAtHorizon = rec601Luma(skyAbove(precipHorizonY))
         val skyLumaLow = kotlin.math.min(skyLumaAtFallStart, skyLumaAtHorizon)
         val skyLumaHigh = kotlin.math.max(skyLumaAtFallStart, skyLumaAtHorizon)
-        // One colour for the whole fall, clear of the whole band -- see [standOffFromSky] for the
-        // argument that no per-height correction can be continuous.
-        precipPaint.color = standOffFromSky(themeColour, dropLuma, skyLumaLow, skyLumaHigh, neededColourGap)
+        // One colour for the whole fall, clear of the whole band -- see
+        // [PrecipitationContrast.standOffFromSky] for the argument that no per-height correction
+        // can be continuous.
+        precipPaint.color = PrecipitationContrast.standOffFromSky(themeColour, dropLuma, skyLumaLow, skyLumaHigh, neededColourGap)
         // Every size below is a scene metre turned into pixels for this viewport, the same
         // conversion every object in the scene goes through. See the constants' own doc.
         val metrePx = SceneSpace.pixelsPerMetre(screenHeight.toFloat())
@@ -2684,7 +2681,7 @@ class PaperRenderer(
 
         // Sized in one normalized unit -- screen *height*, in portrait -- rather than guessed per
         // layer: back mountains get a height in `[0.75,1.25] * 0.15` and a width in
-        // `[0.75,1.25] * 0.25` of that unit (the reference app used [0.8,1.2]). The previous
+        // `[0.75,1.25] * 0.25` of that unit. The previous
         // version of this comment converted that 0.25/0.15≈1.67 width:height ratio into
         // PaperScrape's own widthFraction-of-*screen-width* convention by reusing the *old*
         // (too-tall) 0.60/0.29≈2.07 ratio -- which was wrong, baked in the exact same error that
@@ -2742,9 +2739,9 @@ class PaperRenderer(
             val tileFractionX = (i + 0.5f) / MOUNTAIN_POOL_SIZE +
                 (CandidateNoise.value(seed, i, CandidateNoise.CH_X) - 0.5f) * (1f / MOUNTAIN_POOL_SIZE) * 0.5f
             val heightJitter = CandidateNoise.range(seed, i, CandidateNoise.CH_HEIGHT, 0.75f, 1.25f)
-            // Reference randomizes sx/sy independently per candidate (two separate rand() calls,
-            // both over the same [0.8,1.2] range) -- not just height, which is all this used to
-            // jitter, giving every mountain of a given layer identical width.
+            // Width and height are jittered independently per candidate, on two noise channels
+            // over the same range: jittering the height alone, which is all this used to do,
+            // gave every mountain of a given layer an identical width.
             val widthJitter = CandidateNoise.range(seed, i, CandidateNoise.CH_WIDTH, 0.75f, 1.25f)
             val baseX = tileFractionX * tileWidth + wrappedShift
             val width = baseWidth * widthJitter
@@ -2760,12 +2757,8 @@ class PaperRenderer(
     }
 
     /**
-     * A rounded, parabolic-arch mountain silhouette -- measured directly from the reference
-     * app's own "parabola" sprite (`land1.png`, top-left): sampled its width at 15 heights from
-     * peak to base (this time with the crop wide enough not to clip the base, after an earlier
-     * measurement pass clipped it) and confirmed it closely follows `width ∝ √(fraction from
-     * peak)`, i.e. a genuine parabola (matching the sprite's own name) -- accurate to within ~1-2%
-     * of the real sprite at every sampled point, so the *curve* itself was never the problem.
+     * A rounded, parabolic-arch mountain silhouette: its width follows `width ∝ √(fraction from
+     * peak)`, a genuine parabola, so the *curve* itself was never the problem.
      *
      * What *did* need fixing: this used to sample that curve at points evenly spaced by *height*
      * (`t = i/segments`), but `√t` has infinite slope at `t=0` -- the width changes fastest right
@@ -2922,7 +2915,7 @@ class PaperRenderer(
                 seedSalt = EffectId.DOLPHINS, isDolphin = true,
             )
         }
-        // The waves join the same pass, keyed by their waterline said in the boat's convention.
+        // The waves join the same pass, keyed like everything on it by where they meet the water.
         if (LiveWeatherSceneRules.wavesOnLake(rainingNow, stormActiveNow, snowingNow)) lakeItems = gatherWaves(lakeItems, top, bandHeight, dayPhase.dayBlend, elapsedSeconds)
         LakeLanes.orderByDepth(lakeItemDepth, lakeItems, lakeDrawOrder)
         for (n in 0 until lakeItems) {
@@ -2964,7 +2957,7 @@ class PaperRenderer(
      * One screen-width-wide copy of the water, offset horizontally by [xOffset] -- see [drawLake],
      * which draws the copies that reach the screen side by side under one translate.
      *
-     * **The water is a mirror, and that is the whole of it (v4.26, concept S1 "Specchio").** It is
+     * **The water is a mirror, and that is the whole of it (v4.26, concept S1 "Mirror").** It is
      * one vertical gradient from a tone 55% of the way to the sky's horizon colour
      * ([LAKE_MIRROR_SKY_SHARE]) at the far edge into the theme's lake colour at the near edge, plus
      * the drifting sparkle glints the band has carried since v46, and nothing else: no bands, no
@@ -3015,53 +3008,6 @@ class PaperRenderer(
         ripplePaint.style = Paint.Style.FILL
         ripplePaint.color = ColorUtils.blendARGB(surface, if (away > 0f) 0xFFFFFFFF.toInt() else 0xFF000000.toInt(), t)
         canvas.drawRect(0f, top, screenWidth.toFloat(), top + WATERLINE_THICKNESS_PX, ripplePaint)
-    }
-
-    /**
-     * [base] carried toward white or black until it is [neededGap] of luma clear of **every** sky
-     * between [skyLumaLow] and [skyLumaHigh], by exactly enough and no further.
-     *
-     * The same shape as [drawWaterline] and for the same reason: a hairline drawn on a surface that
-     * moves cannot have a fixed colour, and the honest fix is to state the separation it needs and
-     * derive the colour from it. [neededGap] is a gap on the *colour*, already divided by the alpha
-     * the stroke is painted at, so what the eye is given is [PRECIPITATION_MIN_LUMA_GAP].
-     *
-     * ### Why one colour for the whole fall, and not one per height
-     *
-     * A drop crosses a gradient, so the obvious answer is to correct it against the sky at its own
-     * height. **That answer cannot exist.** The sky's luma is monotone down the fall and the drop's
-     * is constant, so whenever the two are close the sky crosses the drop somewhere inside it: above
-     * the crossing the drop is the brighter of the two, below it the darker. A correction that
-     * clears the gap everywhere must therefore sit above the sky at one end of the fall and below it
-     * at the other, and those two branches never meet — any such function has a step in it. A step
-     * means lighter-than-sky rain above one line and darker-than-sky rain below it, in the same
-     * frame, which is a worse artefact than the one being fixed. One colour per frame is the only
-     * form that is both continuous and clear of the whole band, and what it costs is that a height
-     * where the rain was already fine is carried along with the height where it was not.
-     *
-     * The direction is the cheaper of the two, priced by how far each has to carry the colour. A
-     * drop already clear of the whole band returns [base] unchanged and is therefore bit-identical
-     * to what v4.26 drew — which is what lets the golden set move only on the scenes where the sky
-     * and the rain actually collided.
-     */
-    private fun standOffFromSky(
-        base: Int,
-        baseLuma: Float,
-        skyLumaLow: Float,
-        skyLumaHigh: Float,
-        neededGap: Float,
-    ): Int {
-        if (baseLuma >= skyLumaHigh + neededGap || baseLuma <= skyLumaLow - neededGap) return base
-        val whiteTarget = skyLumaHigh + neededGap
-        val blackTarget = skyLumaLow - neededGap
-        val whiteSpan = 255f - baseLuma
-        val blackSpan = -baseLuma
-        val tWhite = if (whiteSpan <= 0f) Float.MAX_VALUE else (whiteTarget - baseLuma) / whiteSpan
-        val tBlack = if (blackSpan >= 0f) Float.MAX_VALUE else (blackTarget - baseLuma) / blackSpan
-        val towardWhite = tWhite <= tBlack
-        val t = (if (towardWhite) tWhite else tBlack).coerceIn(0f, 1f)
-        if (t <= 0f) return base
-        return ColorUtils.blendARGB(base, if (towardWhite) 0xFFFFFFFF.toInt() else 0xFF000000.toInt(), t)
     }
 
     /**
@@ -3295,9 +3241,18 @@ class PaperRenderer(
             //  - boats are untouched, so no boat can ever fall behind a farther anything;
             //  - a dolphin's depth only ever *decreases*, so nothing is pulled forward;
             //  - a farther dolphin cannot pass a nearer one, since climb is never negative.
-            lakeItemDepth[count] = LakeLanes.depthOf(
-                laneY = y,
+            //
+            // **v5.9B: said where each drawing meets the water** ([LakeLanes.visibleWaterline]). A
+            // boat is keyed at its hull, 25 of its units below this point, and a dolphin in the air at
+            // its belly, 29 of its own units below its body's centre -- under water only its splash
+            // shows, standing on the lane. Boats among themselves keep their order (all moved alike);
+            // the climb still only ever moves an animal back; and a dolphin now compares with a boat
+            // and a wave where their drawings are, instead of 16.9 px off (item 84, inventory I-02).
+            lakeItemDepth[count] = LakeLanes.visibleWaterline(
+                kind = if (isDolphin) LakeLanes.Kind.DOLPHIN else LakeLanes.Kind.SAILBOAT,
+                placementY = y,
                 heightAboveLane = if (isDolphin) dolphinClimb(phase, elapsedSeconds) else 0f,
+                screenHeight = screenHeight.toFloat(),
             )
             count++
         }
@@ -3606,9 +3561,9 @@ class PaperRenderer(
         val seam = HILL_TILE_SEAM_OVERLAP_PX
         path.moveTo(startX - seam, top + height)
         path.lineTo(startX - seam, top + height * (centerFraction + amp * sin(phase)))
-        // 2 full sine cycles per tile, matching the reference exactly, and sampled densely (64
-        // points) for a smooth curve -- cheap here since this whole path is cached and only
-        // rebuilt on a theme, size or [hillsVariation] change, not per frame.
+        // 2 full sine cycles per tile, sampled densely (64 points) for a smooth curve -- cheap
+        // here since this whole path is cached and only rebuilt on a theme, size or
+        // [hillsVariation] change, not per frame.
         val samples = 64
         var lastY = top + height
         for (i in 0..samples) {

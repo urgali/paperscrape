@@ -5,16 +5,16 @@ Run from ``tools/assets`` with the pinned venv:
 
     /home/bober/.venvs/paperscrape-assets/bin/python concepts/people/build_carry_concepts.py
 
-Concept B "Rilievo" as shipped (``build_people_concepts.walker_rilievo``, style ``rilievo_occhi``)
+Concept B "Relief" as shipped (``build_people_concepts.walker_relief``, style ``relief_eyes``)
 draws both arms as a straight limb from the shoulder to the hand that swings -5 / 0 / +5 units
 across the three walk frames. This script draws the same figure with the **near arm bent** and a
 handle in its hand, as a pose "carrying an object" that any object could hang from -- an umbrella
 today, a bag or a suitcase tomorrow. The far arm keeps swinging. Children are not drawn: the
 proposal is that only adults carry.
 
-    pose 1 "alzato"    forearm raised, the hand at cheek height ahead of the face; fixed on all frames
-    pose 2 "al petto"  forearm across the chest, the hand at chest height; fixed on all frames
-    pose 3 "oscilla"   pose 1, but the elbow and the hand follow the walk swing by 0.6 of it
+    pose 1 "raised"    forearm raised, the hand at cheek height ahead of the face; fixed on all frames
+    pose 2 "chest"     forearm across the chest, the hand at chest height; fixed on all frames
+    pose 3 "swinging"  pose 1, but the elbow and the hand follow the walk swing by 0.6 of it
 
 The canvas is the shipped one: the 41x85 authoring canvas trimmed by the same (1,1) offset to
 39x84, so the shipped anchor (-19.5, -84) and every other walk frame stay co-registered. The
@@ -49,15 +49,15 @@ _spec = importlib.util.spec_from_file_location("skin", REPO / "tools" / "generat
 skin_tool = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(skin_tool)
 
-STYLE = "rilievo_occhi"
+STYLE = "relief_eyes"
 HANDLE = "#5B4A3E"
 TRIM = (1, 1)            # the shipped family's trim: 41x85 -> 39x84, origin +(1,1)
 CANVAS = (39, 84)
-POSES = {1: "alzato", 2: "petto", 3: "oscilla"}
+POSES = {1: "raised", 2: "chest", 3: "swinging"}
 
 
 def walker(kind: str, season: str, frame: int, pose: int | None) -> tuple[Sprite, dict]:
-    """``walker_rilievo`` verbatim, except the near arm when ``pose`` is given. Returns the sprite
+    """``walker_relief`` verbatim, except the near arm when ``pose`` is given. Returns the sprite
     and, for a carrying pose, the hand centre and the handle top in untrimmed units."""
     name = f"person_{kind}_{season}_walk{frame}" if pose is None else f"person_{kind}_{season}_carry{pose}{frame}"
     s = Sprite(name, 41, 85)

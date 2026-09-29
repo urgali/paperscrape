@@ -433,7 +433,7 @@ class BackupAndThemeShareTest {
         // density, a colour weight or an hour is inside every range the settings use.
         is Float -> (if (value < 0.5f) value + 0.05f else value - 0.05f) as T
         is Int -> (value xor 0x00030507) as T
-        is Enum<*> -> value.javaClass.enumConstants.let { it[(value.ordinal + 1) % it.size] } as T
+        is Enum<*> -> value.javaClass.enumConstants!!.let { it[(value.ordinal + 1) % it.size] } as T
         is List<*> -> value.map { movedEverywhere(it!!) } as T
         else -> {
             val type = value.javaClass
@@ -460,7 +460,7 @@ class BackupAndThemeShareTest {
             else a.indices.flatMap { leaves(a[it]!!, b[it]!!, "$path[$it]", equal) }
         else -> a.javaClass.declaredFields
             .filter { !java.lang.reflect.Modifier.isStatic(it.modifiers) && !it.isSynthetic }
-            .flatMap { f -> f.isAccessible = true; leaves(f.get(a), f.get(b), "$path.${f.name}", equal) }
+            .flatMap { f -> f.isAccessible = true; leaves(f.get(a)!!, f.get(b)!!, "$path.${f.name}", equal) }
     }
 
     /** The file must be shareable without sharing anything about its author. */

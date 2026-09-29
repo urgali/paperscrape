@@ -8,7 +8,8 @@ Colour: every card is either a fixed colour (#RRGGBB), or `glass` (weight 1 on t
 or `W(w, k)` = w * wall_colour + (1-w) * k: a WEIGHT on the wall plus a fixed term. So a
 building has ONE wall mask (+ one glass mask) however many derived cards it has; a card's shadow
 paper is the same silhouette offset and mixed by RELIEF_T towards DARK (the project's hand,
-measured in misura_mano.py), and its dark term ends up in the fixed layer.
+measured by a working script kept outside the repository; [M] marks its values), and its dark
+term ends up in the fixed layer.
 """
 from __future__ import annotations
 
@@ -56,7 +57,7 @@ KIND = {"HOUSE_SMALL": "HOUSE", "HOUSE_LARGE": "HOUSE", "TOWER": "SKYSCRAPER", "
 #: the school to them, which is the trap they set (they looked like the place a new family is
 #: registered). Removed as item 137; the neighbourhood regenerates byte for byte without them.
 
-# fixed family palette (the one already in the scene) [M] misura_mano.py
+# fixed family palette (the one already in the scene) [M]
 CREAM, CREAM_U = "#F4E9D2", "#D8CDB8"
 RED, RED_U = "#E4623E", "#A54F3A"
 WOOD, WOOD_U = "#8C5A38", "#533217"
@@ -87,8 +88,8 @@ PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school")
 #: free under the whole sprite set's decoded-bytes gate (36 MiB at the time) -- the most the new one
 #: could weigh without breaking it. That gate (`SpriteGeometryTest.decodedByteBudget`, the whole
 #: set) has since been raised on the maintainer's word, to 43 MiB, and this copy of its old margin
-#: was never retired: the shipped mix has been over it since v5.0, and `budget.md` printed "SOPRA
-#: il budget" for eight releases while nothing read it. The one ceiling is the gate; this report
+#: was never retired: the shipped mix has been over it since v5.0, and `budget.md` printed "over
+#: budget" for eight releases while nothing read it. The one ceiling is the gate; this report
 #: measures, and `SpriteGeometryTest` prints the neighbourhood's share of the gate on every build.
 
 

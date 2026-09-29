@@ -65,7 +65,7 @@ object GlGolden {
      *
      * **Nothing here is guessed.** Each threshold was chosen after rendering all three scenes on an
      * Android 17 emulator under two very different GL drivers -- the host-GPU translator and
-     * `swiftshader_indirect`, which is what CI uses -- and against two deliberately broken versions
+     * `swiftshader_indirect` -- and against two deliberately broken versions
      * of the shipped backend. Percentages are the share of the 360x800 frame whose maximum channel
      * delta reaches the stated level:
      *
@@ -752,7 +752,7 @@ object GlGolden {
      *
      * **What this costs, stated exactly rather than overstated.** *Nothing that was not already
      * spent.* The cross-driver observation was given up in v4.26 and ratified in v4.27
-     * (`BACKLOG_v4_27.md` item 78, which stays open because only a second GPU vendor closes it).
+     * (`BACKLOG_v4_27.md` item 78, closed as a decision in v5.4: only a second GPU vendor could meet it).
      * What v5.0 actually gives up is the *last reason to keep item 56 open* — and that reason had
      * been void for three releases, because the thing it protected was already gone.
      *

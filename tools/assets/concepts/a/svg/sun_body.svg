@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
   <!--
-    Concept A "Strati" - v4.23 fase 1. Il sole eseguito con la ricetta della
-    Quercia larga: quattro strati di carta incollati leggermente fuori centro,
-    la luce spostata in alto a sinistra come sul colmo del cuscino di fogliame.
-    Nessun contorno, nessuna ombra portata: la profondita' e' tutta nello
-    scarto fra gli strati. Fixed-art, colori finali.
-    Disco r=102 centrato (120,120) come lo sprite spedito: stessa tela 240,
-    stesso contentBox (18,18,222,222), stessa origine al sito di chiamata.
+    Concept A "Layers" - v4.23 phase 1. The sun made with the recipe of the
+    Broad Oak: four layers of paper glued slightly off centre,
+    the light shifted to the upper left as on the top of the foliage cushion.
+    No outline, no cast shadow: all the depth is in the
+    offset between the layers. Fixed art, final colours.
+    Disc r=102 centred on (120,120) like the shipped sprite: the same 240 canvas,
+    the same contentBox (18,18,222,222), the same origin at the call site.
   -->
   <circle cx="120" cy="120" r="102" fill="#DC8428"/>
   <circle cx="115" cy="115" r="88"  fill="#F0A03C"/>

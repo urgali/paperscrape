@@ -57,10 +57,12 @@ PPU = 3.0
 #: know which one a given theme will pick and the box has to hold for all of them. The palm's three
 #: crowns share one origin and one canvas; the oak's two share `TreeSpriteLayout.CANOPY_*`.
 #:
-#: `tree_fir` is **not** here, and that is a pre-existing gap this pass did not widen: a fir stands
-#: in a leafy tree's place under the same `SceneVariant.TREE`, it is a whole tree rather than a
-#: crown on a trunk, and the shipped box has never described it. Declaring it would move the box
-#: for a shape the maintainer has not been shown -- V5_2A_REPORT.md section 8 carries it as found.
+#: `tree_fir` is **not** here, and that stays: a fir stands in a leafy tree's place under the same
+#: `SceneVariant.TREE`, it is a whole tree rather than a crown on a trunk, and the shipped box has
+#: never described it (V5_2A_REPORT.md section 8 found it). Declaring it would move the box, and
+#: with it the shops of every theme; on Christmas, the one theme with firs by default, no shop
+#: front is hidden by one (3, 0 and 9 %, measured on the phone in v5.8F), and the maintainer decided
+#: on 2026-09-28 to leave it (inventory I-97).
 FAMILIES = {
     "PALM_CROWN": {
         "sprites": ["palmtree_fronds", "palmtree_fronds_dead", "palmtree_fronds_frost"],

@@ -1,35 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="294" height="114" viewBox="2 0 98 38">
   <!--
-    v4.21: la neve adagiata sul colmo largo della "Quercia larga". Uno strato SOPRA
-    l'albero, mai l'albero tinto di bianco - la ragione che DESIGN_NOTES da' per ogni
-    altra calotta.
+    v4.21: the snow lying on the broad top of the "Broad Oak". A layer ON TOP OF
+    the tree, never the tree tinted white - the reason DESIGN_NOTES gives for every
+    other cap.
 
-    **Il bordo superiore non e' disegnato: e' ritagliato.** La maschera di clip qui
-    sotto e' la copia esatta dei cerchi di `tree_canopy` (fasce bassa, media, alta e
-    luce - tutte quelle che possono definire la sagoma, non le sole superiori: le
-    fasce interne sono spostate in alto a sinistra e sporgono di mezza unita' sul
-    fianco alto-sinistro, che a 3 px per unita' basta a far divergere la colonna
-    opaca di un pixel). Cosi' la calotta ripete la corona **per costruzione** invece
-    che per taratura a mano, e `TreeArtworkAlignmentTest` non puo' passare per un
-    pixel: la calotta e' un sottoinsieme della corona a ogni riga, e coincide con
-    essa ovunque il proprio disegno copra tutta la larghezza.
+    **The upper edge is not drawn: it is cut out.** The clip mask
+    below is the exact copy of the circles of `tree_canopy` (the low, middle and high bands and
+    the light - every one that can define the silhouette, not only the upper ones: the
+    inner bands are shifted to the upper left and stand out by half a unit on the
+    upper-left flank, which at 3 px per unit is enough to move the opaque
+    column by one pixel). So the cap repeats the crown **by construction** instead
+    of by hand tuning, and `TreeArtworkAlignmentTest` cannot come out one
+    pixel off: the cap is a subset of the crown on every row, and coincides with
+    it wherever its own drawing covers the whole width.
 
-    Tela e ORIGINE sono quelle della chioma - stessa viewBox x=2, stesso y=0, blit
-    alla stessa (-50,-80) - come impone `TreeSpriteLayout`: calotta e corona non
-    possono scivolare l'una sull'altra. Altezza e lato destro sono rifilati al
-    contenuto (38 unita' contro le 66 della chioma, 98 di larghezza contro 101);
-    resta il margine di 6 unita' a SINISTRA, ed e' quello a portare l'origine
-    condivisa. Toglierlo vorrebbe dire dare alla calotta un'origine derivata invece
-    che uguale - si puo' fare, costa una sessantina di KB di memoria decodificata in
-    meno, e non e' stato fatto in v4.21 perche' l'uguaglianza e' una guardia con una
-    storia: e' la deriva anteprima/renderer che v3.7 ha dovuto correggere.
+    Canvas and ORIGIN are the crown's - the same viewBox x=2, the same y=0, blitted
+    at the same (-50,-80) - as `TreeSpriteLayout` requires: cap and crown cannot
+    slide over one another. The height and the right side are trimmed to the
+    content (38 units against the crown's 66, 98 wide against 101);
+    the 6-unit margin on the LEFT stays, and it is what carries the shared
+    origin. Removing it would mean giving the cap a derived origin instead
+    of an equal one - it can be done, for 8 208 B less decoded memory (v5.9C),
+    and it was not done in v4.21 because the equality is a guard with a history:
+    it is the preview/renderer drift that v3.7 had to correct. Closed without
+    doing it on 2026-09-27 (ROADMAP A41).
 
-    Se la chioma viene ridisegnata, questa maschera va ricopiata dalla chioma nuova
-    nello stesso passaggio: le due si ri-derivano insieme, mai una sola.
+    If the crown is redrawn, this mask has to be copied again from the new crown
+    in the same pass: the two are re-derived together, never one alone.
   -->
   <defs>
     <clipPath id="crown">
-      <!-- fascia bassa -->
+      <!-- low band -->
       <circle cx="16" cy="46" r="14"/>
       <circle cx="34" cy="50" r="15"/>
       <circle cx="53" cy="51" r="15"/>
@@ -42,7 +43,7 @@
       <circle cx="35" cy="16" r="14"/>
       <circle cx="55" cy="13" r="13"/>
       <circle cx="72" cy="17" r="12"/>
-      <!-- fascia media -->
+      <!-- middle band -->
       <circle cx="17" cy="42.5" r="12.5"/>
       <circle cx="34" cy="46" r="13.5"/>
       <circle cx="53" cy="47" r="13.5"/>
@@ -55,7 +56,7 @@
       <circle cx="34.5" cy="14.5" r="12.5"/>
       <circle cx="54.5" cy="11.5" r="11.5"/>
       <circle cx="70.5" cy="15.5" r="10.5"/>
-      <!-- fascia alta -->
+      <!-- high band -->
       <circle cx="26" cy="26" r="11"/>
       <circle cx="44" cy="21.5" r="13"/>
       <circle cx="63" cy="22.5" r="12"/>
@@ -63,14 +64,14 @@
       <circle cx="34" cy="12.5" r="10"/>
       <circle cx="53" cy="9.5" r="9.5"/>
       <circle cx="69" cy="13.5" r="8.5"/>
-      <!-- luce sul colmo -->
+      <!-- light on the top -->
       <circle cx="38" cy="10.5" r="7"/>
       <circle cx="50" cy="7.8" r="6.5"/>
       <circle cx="30" cy="17" r="6"/>
     </clipPath>
   </defs>
   <g clip-path="url(#crown)">
-    <!-- ombra fredda della neve: l'orlo che la stacca dal fogliame -->
+    <!-- the snow's cold shadow: the rim that lifts it off the foliage -->
     <path d="M -2,0 L 106,0 L 106,28
              C 100,33 95,34 91,31
              C 88,36 82,37 78,33.5
@@ -80,7 +81,7 @@
              C 33,38.5 26,38 23,34
              C 19,36.5 13,35 11,30.5
              C 7,32.5 3,30.5 1,26 L -2,24 Z" fill="#9FB0BD"/>
-    <!-- il corpo della neve -->
+    <!-- the body of the snow -->
     <path d="M -2,-2 L 106,-2 L 106,25.5
              C 100,30.5 95,31.5 91,28.5
              C 88,33.5 82,34.5 78,31
@@ -90,7 +91,7 @@
              C 33,36 26,35.5 23,31.5
              C 19,34 13,32.5 11,28
              C 7,30 3,28 1,23.5 L -2,21.5 Z" fill="#DCE7EF"/>
-    <!-- la luce piena sul colmo -->
+    <!-- the full light on the top -->
     <path d="M -2,-4 L 106,-4 L 106,18
              C 99,23 92,24 87,20.5
              C 82,25 74,25.5 69,21.5

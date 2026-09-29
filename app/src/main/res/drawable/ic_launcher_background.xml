@@ -38,7 +38,7 @@
     <!-- Hill behind the town -->
     <path android:fillColor="#FF3E8F68"
         android:pathData="M0,62 L18,50 L40,44 L62,46 L84,40 L108,52 L108,108 L0,108 Z" />
-    <!-- Ground (Paper Orange, the same as brand_primary) -->
+    <!-- Ground (Paper Orange, #F2A65A) -->
     <path android:fillColor="#FFF2A65A"
         android:pathData="M0,66 H108 V108 H0 Z" />
     <!-- Road surface -->

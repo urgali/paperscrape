@@ -71,7 +71,7 @@ class PeopleGoldenTest {
         )
 
         /** [PAVEMENT] again, carrying the derived density gate instead of the shared limit --
-         * the v4.22 Fase 5 metric for item 29. Function, not val: [SettingsGates] documents the
+         * the v4.22 Phase 5 metric for item 29. Function, not val: [SettingsGates] documents the
          * derivation and the gate reads clearer built at its use site. */
         fun pavementDensityGate() = GoldenFocus(
             left = PAVEMENT.left, top = PAVEMENT.top, right = PAVEMENT.right, bottom = PAVEMENT.bottom,
@@ -123,7 +123,7 @@ class PeopleGoldenTest {
 
     /** A thinned street. Density this low selects a single group.
      *
-     * Since v4.22 the frame also carries the **density gate** (Fase 5, item 29): the same
+     * Since v4.22 the frame also carries the **density gate** (Phase 5, item 29): the same
      * pavement rectangle asserted a second time at [SettingsGates.PEOPLE_DENSITY_GATE], the
      * derived limit that a density regression — measured, not assumed — cannot pass. The scene's
      * own [PAVEMENT] focus keeps the limit it always had; the gate is an *additional* assertion

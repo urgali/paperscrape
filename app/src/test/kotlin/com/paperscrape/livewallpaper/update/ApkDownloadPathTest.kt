@@ -192,8 +192,8 @@ class ApkDownloadPathTest {
      * What this pins is the *outcome*: `Failed` rather than `ChecksumMismatch`, and no partial file
      * left behind. It does **not** prove the explicit `downloaded != total` guard runs -- a
      * mutation that removes that guard leaves this test green, because `HttpURLConnection` detects
-     * the premature end of a fixed-length body and throws first. The guard is kept as the backstop
-     * for a transport that ends a body quietly, and is honestly unproven here.
+     * the premature end of a fixed-length body and throws first. The guard is the backstop for a
+     * transport that ends a body quietly, and the next test is the one that reaches it.
      */
     @Test
     fun `a truncated body fails rather than reporting a corrupt release`() {
@@ -205,6 +205,29 @@ class ApkDownloadPathTest {
             UpdateDownloadResult.Failed,
             result,
         )
+        assertFalse("a partial file must not survive", target().exists())
+    }
+
+    /**
+     * The backstop itself (v5.9G): a transport that promises N bytes, hands over N/2 and then ends
+     * the stream as if nothing were wrong -- the one case `HttpURLConnection` never produces on a
+     * real socket, which is why the test above cannot reach the guard. Here only the explicit
+     * `downloaded != total` check stands between half an APK and the checksum comparison, which
+     * would report `ChecksumMismatch`, "the release is corrupt", for what is a failed download.
+     *
+     * A fake connection, which the class KDoc rules out for everything else, because this is the
+     * one thing a real socket cannot express. It is reached through a URL scheme of its own
+     * ([QuietTransport]), so the production code opens it exactly as it opens a real one.
+     */
+    @Test
+    fun `a transport that ends a fixed-length body quietly fails rather than reporting a corrupt release`() {
+        val body = givenApk()
+        QuietTransport.body = body.copyOf(body.size / 2)
+        QuietTransport.declared = body.size.toLong()
+        val result = runBlocking {
+            ApkDownloader.downloadAndVerifyTo(QuietTransport.URL_TEXT, checksumUrl(), target()) { }
+        }
+        assertEquals("a quietly short transfer is a failed download, not a checksum mismatch", UpdateDownloadResult.Failed, result)
         assertFalse("a partial file must not survive", target().exists())
     }
 
@@ -286,6 +309,37 @@ class ApkDownloadPathTest {
     private fun assertArrayEquals(expected: ByteArray, actual: ByteArray) {
         assertEquals("downloaded size", expected.size, actual.size)
         assertTrue("downloaded bytes differ from what the server sent", expected.contentEquals(actual))
+    }
+}
+
+/**
+ * A `quiet://` URL whose connection declares [declared] bytes and hands over [body], then ends the
+ * stream without an error: the transport the guard in `ApkDownloader.downloadHashing` exists for.
+ *
+ * Registered once per JVM through `URL.setURLStreamHandlerFactory`, which answers only for its own
+ * scheme, so `http` and every other protocol keep the JDK's own handlers.
+ */
+private object QuietTransport {
+    const val URL_TEXT = "quiet://updates/PaperScrape-v9.9.apk"
+
+    @Volatile var body = ByteArray(0)
+
+    @Volatile var declared = 0L
+
+    private val handler = object : java.net.URLStreamHandler() {
+        override fun openConnection(u: java.net.URL): java.net.URLConnection =
+            object : java.net.HttpURLConnection(u) {
+                override fun connect() = Unit
+                override fun disconnect() = Unit
+                override fun usingProxy() = false
+                override fun getResponseCode() = HTTP_OK
+                override fun getContentLengthLong() = declared
+                override fun getInputStream(): java.io.InputStream = java.io.ByteArrayInputStream(body)
+            }
+    }
+
+    init {
+        java.net.URL.setURLStreamHandlerFactory { protocol -> if (protocol == "quiet") handler else null }
     }
 }
 

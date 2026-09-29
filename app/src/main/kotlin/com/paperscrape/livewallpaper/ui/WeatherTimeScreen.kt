@@ -754,7 +754,7 @@ private fun ManualCoordinateFields(
         Button(
             onClick = {
                 if (isValid) {
-                    onApply(parsedLat!!, parsedLon!!, labelText)
+                    onApply(parsedLat, parsedLon, labelText)
                     // aa reported that applying a manual location gave no confirmation it had
                     // actually taken effect. A Toast is the right fit here specifically because
                     // the row above is a *persistent* on-screen confirmation (the selected-location
@@ -831,7 +831,8 @@ private fun WeatherApiComApiKeyScreen(apiKey: String, onApply: (String) -> Unit,
  * under "Advanced", rather than in the main flow where v2.8 put it.
  *
  * It used to be described as taking "priority over the app's own baked-in key". v5.3 removed that
- * baked-in key -- it shipped readable in the dex -- so this is now the only key there is.
+ * baked-in key -- it shipped readable in the dex -- so this is now the only key there is, and since
+ * v5.9G the line under the field says what it is used instead of: the free service.
  */
 @Composable
 private fun LiveWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, onBack: () -> Unit) {
@@ -839,7 +840,7 @@ private fun LiveWeatherApiKeyScreen(apiKey: String, onApply: (String) -> Unit, o
     SettingsFormSubScreen(title = "Open-Meteo API key", onBack = onBack) {
         Text(
             "Optional: your own Open-Meteo API key, for Open-Meteo's higher-limit service. Leave blank " +
-                "to use the free service, which needs no key. A key you enter here always takes priority.",
+                "to use the free service, which needs no key. A key you enter here is used instead of the free service.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

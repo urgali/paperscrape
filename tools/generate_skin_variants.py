@@ -99,7 +99,7 @@ GARMENT_EDGE_DEPTH = 2
 #
 # **This map is not decoration: without it this script cannot run at all.** v4.19 deleted four of
 # the sources the loop below requires and did not tell the loop, so `generate_skin_variants.py`
-# has been exiting on `sorgente mancante: person_man_summer_head_car.png` ever since -- the tool
+# has been exiting on `source missing: person_man_summer_head_car.png` ever since -- the tool
 # the registry points at for regenerating variants could not regenerate anything. Recorded in
 # BACKLOG_v4_20.md as found during that pass.
 #
@@ -148,7 +148,7 @@ SHADE_MAX_T = 0.6
 def shade_family(rgb, alpha, base):
     """``base`` and every flat colour of this sprite that is ``base`` shaded, as (colour, t).
 
-    B "Rilievo" draws an under-paper beneath every piece and a darker far leg and far hand, so a
+    B "Relief" draws an under-paper beneath every piece and a darker far leg and far hand, so a
     character's skin is not one flat colour any more -- it is three. Moving only the lightest left
     the darker two behind and, worse, moved the anti-aliased band *around* them, so a far leg came
     out with the old tone inside and the new tone in its outline. The recolour has to know the
@@ -311,9 +311,9 @@ def verify(source, variant, base):
     a = np.array(source)
     b = np.array(variant)
     if a.shape != b.shape:
-        return "dimensioni diverse"
+        return "different dimensions"
     if not np.array_equal(a[:, :, 3], b[:, :, 3]):
-        return "canale alpha modificato"
+        return "alpha channel modified"
     rgb = a[:, :, :3].astype(np.float64)
     family = shade_family(rgb, a[:, :, 3], base)
     moved = [c for c, _ in family]
@@ -325,10 +325,10 @@ def verify(source, variant, base):
         after = np.all(b[:, :, :3] == c, axis=2)
         lost = int(np.count_nonzero(before & ~after))
         if lost:
-            return f"colore non-pelle {tuple(int(v) for v in c)}: {lost} pixel perduti"
+            return f"non-skin colour {tuple(int(v) for v in c)}: {lost} pixels lost"
     outside = changed_outside(a, b, family)
     if outside:
-        return f"{outside} pixel cambiati fuori dal bordo della famiglia di tinte"
+        return f"{outside} pixels changed outside the edge of the tone family"
     return None
 
 
@@ -350,7 +350,7 @@ def changed_outside(a, b, family):
 
 def main():
     if not RES.is_dir():
-        sys.exit(f"{RES} non trovata -- esegui dalla radice del repo")
+        sys.exit(f"{RES} not found -- run from the repository root")
     written = 0
     for kind, skin in SKIN_BASE.items():
         for season in SEASONS:
@@ -361,23 +361,23 @@ def main():
                 if not src.is_file():
                     heir = RETIRED_BASES.get(stem)
                     if heir is None:
-                        sys.exit(f"sorgente mancante: {src}")
+                        sys.exit(f"source missing: {src}")
                     suffix, tone_index = heir
                     src = RES / f"{stem}_{suffix}.png"
                     # The heir is the retired base's own pixels, so the colour to move away from
                     # is the tone the heir carries, not the character's original skin.
                     base = TONES[tone_index]
                     if not src.is_file():
-                        sys.exit(f"erede dichiarato ma mancante: {src}")
+                        sys.exit(f"heir declared but missing: {src}")
                 for index, tone in enumerate(TONES):
                     source, out = recolour(src, base, tone)
                     problem = verify(source, out, base)
                     if problem:
-                        sys.exit(f"{src.name} tono {index}: {problem}")
+                        sys.exit(f"{src.name} tone {index}: {problem}")
                     out.save(RES / f"{stem}_skin{index}.png", optimize=True)
                     written += 1
                 written += write_outfit_variants(kind, season, variant, src, base)
-    print(f"{written} varianti scritte, tutte verificate")
+    print(f"{written} variants written, all verified")
 
 
 def write_outfit_variants(kind, season, variant, src, skin_base):
@@ -415,17 +415,17 @@ def write_outfit_variants(kind, season, variant, src, skin_base):
     _, dressed, _ = recolour_family(source, garment, replacement, region=region)
     problem = verify(source, dressed, garment)
     if problem:
-        sys.exit(f"{src.name} secondo completo: {problem}")
+        sys.exit(f"{src.name} second outfit: {problem}")
     outside = (np.array(dressed) != pixels).any(axis=2) & ~region
     if outside.any():
-        sys.exit(f"{src.name} secondo completo: {int(outside.sum())} pixel fuori dal vestito")
+        sys.exit(f"{src.name} second outfit: {int(outside.sum())} pixels outside the garment")
     written = 0
     stem = f"person_{kind}_{season}_{variant}_{OUTFIT_SUFFIX}"
     for index, tone in enumerate(TONES):
         toned_source, out, _ = recolour_family(dressed, skin_base, tone)
         problem = verify(toned_source, out, skin_base)
         if problem:
-            sys.exit(f"{stem} tono {index}: {problem}")
+            sys.exit(f"{stem} tone {index}: {problem}")
         out.save(RES / f"{stem}_skin{index}.png", optimize=True)
         written += 1
     return written

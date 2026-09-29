@@ -88,10 +88,6 @@ class CanvasSceneTarget : SceneCanvas {
         require().drawOval(left, top, right, bottom, paint)
     }
 
-    override fun drawArc(oval: RectF, startAngle: Float, sweepAngle: Float, paint: Paint) {
-        require().drawArc(oval, startAngle, sweepAngle, false, paint)
-    }
-
     override fun drawWedge(
         cx: Float,
         cy: Float,

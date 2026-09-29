@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.prefs
 
 import com.paperscrape.livewallpaper.engine.CustomThemeEntry
+import com.paperscrape.livewallpaper.engine.addMissingSchool
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneObjectLayout
@@ -167,6 +168,10 @@ fun parseThemeShare(raw: String?): ThemeParseResult {
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("theme"))
     val layoutJson = root.optJSONObject("layout")
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("layout"))
+    // A street exported before v5.6 has no school; it gets the one the store gives a theme it saved
+    // then (`addMissingSchool`, inventory I-93). Guarded like the store's step: a street that cannot
+    // be read whole is left as it came, and the line below decides whether it imports.
+    runCatching { addMissingSchool(layoutJson.optJSONArray("staticObjects")) }
     val layout = runCatching { sceneObjectLayoutFromJson(layoutJson) }.getOrNull()
         ?: return ThemeParseResult.Failed(ThemeImportError.Malformed("layout"))
     val name = root.optString("name").takeIf { it.isNotBlank() }

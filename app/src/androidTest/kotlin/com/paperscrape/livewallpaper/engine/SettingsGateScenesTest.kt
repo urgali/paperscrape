@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * The frames on which this release's settings can fail, and the gates that stand on them
- * (v4.22 Fase 5, closing `BACKLOG_v4_21.md` item 29 for the traffic and the shops).
+ * (v4.22 Phase 5, closing `BACKLOG_v4_21.md` item 29 for the traffic and the shops).
  *
  * ### Why these scenes exist
  *
@@ -41,7 +41,7 @@ class SettingsGateScenesTest {
     companion object {
 
         /**
-         * The road band, derived from the lane geometry (the same derivation the v4.22 Fase 1
+         * The road band, derived from the lane geometry (the same derivation the v4.22 Phase 1
          * report carries): the tarmac strip spans the two lanes plus the shoulder margin --
          * `(0.834 - 0.01624) * 800 = 654` down to `(0.862 + 0.01624) * 800 = 703` -- and the
          * band opens upward to clear the tallest vehicle, the 2.9 m fire engine at the far

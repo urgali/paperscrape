@@ -79,7 +79,7 @@ class SeasonalIconManifestTest {
                 Regex("""android:roundIcon="@mipmap/([a-z_0-9]+)"""").find(aliasBlock(icon))?.groupValues?.get(1))
             assertTrue(
                 "$icon points at @mipmap/$res, which does not exist",
-                walkUpOrNull("src/main/res/mipmap-anydpi-v26/$res.xml") != null,
+                walkUpOrNull("src/main/res/mipmap-anydpi/$res.xml") != null,
             )
         }
     }
@@ -89,7 +89,7 @@ class SeasonalIconManifestTest {
         // The layer this device cannot draw. See the class comment.
         for (icon in SeasonalIcon.entries) {
             val res = Regex("""android:icon="@mipmap/([a-z_0-9]+)"""").find(aliasBlock(icon))!!.groupValues[1]
-            val xml = walkUp("src/main/res/mipmap-anydpi-v26/$res.xml").readText()
+            val xml = walkUp("src/main/res/mipmap-anydpi/$res.xml").readText()
             for (layer in listOf("background", "foreground", "monochrome")) {
                 val drawable = Regex("""<$layer android:drawable="@drawable/([a-z_0-9]+)" */>""")
                     .find(xml)?.groupValues?.get(1)

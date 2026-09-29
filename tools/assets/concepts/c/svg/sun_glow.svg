@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
   <!--
-    Concept C "Traforo" - v4.23 fase 1. Niente gradiente e niente raggi
-    appesi: l'alone e' una linea di taglio - un anello sottile perforato
-    (24 trattini fra r=150 e r=158, dentro l'anello 150..198 documentato al
-    sito di chiamata), come il tratteggio che le forbici stanno per seguire.
-    Il falloff ambientale attorno al disco lo da' gia' drawRadialGlow del
-    renderer; questo sprite aggiunge solo la firma grafica, discreta.
+    Concept C "Fretwork" - v4.23 phase 1. No gradient and no hanging
+    rays: the halo is a cutting line - a thin perforated ring
+    (24 dashes between r=150 and r=158, inside the 150..198 ring documented at the
+    call site), like the dashed line the scissors are about to follow.
+    The ambient falloff around the disc is already given by the renderer's
+    drawRadialGlow; this sprite adds only the graphic signature, discreetly.
   -->
   <g fill="#F7CE64" opacity="0.55">
     <polygon points="347.5,186.0 347.5,210.0 355.5,210.7 355.5,185.3"/>

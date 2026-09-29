@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
   <!--
-    Concept A "Strati" - v4.23 fase 1. La risposta piu' diretta alla nota del
-    maintainer: i raggi non ci sono piu'. Resta il solo alone radiale, che
-    DESIGN_NOTES sanziona esplicitamente per il bagliore del sole; l'ambiente
-    attorno al disco lo da' gia' drawRadialGlow del renderer. Stessa tela
-    396x396 e stessa origine (-198) dello sprite spedito.
+    Concept A "Layers" - v4.23 phase 1. The most direct answer to the
+    maintainer's note: the rays are gone. Only the radial halo is left, which
+    DESIGN_NOTES explicitly sanctions for the sun's glow; the ambience
+    around the disc is already given by the renderer's drawRadialGlow. The same
+    396x396 canvas and the same origin (-198) as the shipped sprite.
   -->
   <defs>
     <radialGradient id="g_sunglow_a">

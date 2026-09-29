@@ -30,7 +30,7 @@ import com.paperscrape.livewallpaper.R
  *
  * ### v5.6F: three cards, and the pane stops being the sprite
  *
- * «Ritaglio» builds a car the way the reference photograph does: a sheet of glass **behind** a
+ * «Cut-out» builds a car the way the reference photograph does: a sheet of glass **behind** a
  * sheet of body paper with the panes cut out of it, and two whole discs glued **in front**. Two
  * consequences reach this file, and both are declarations that used to be one number and are now
  * two:
@@ -82,7 +82,7 @@ internal enum class CarShell(
      * cabins.
      *
      * The percentages below were measured on the v4.19 cabins, which were narrower than
-     * «Ritaglio»'s: the saloon's pane went from 59 units of sprite to a 59-unit hole with a unit
+     * «Cut-out»'s: the saloon's pane went from 59 units of sprite to a 59-unit hole with a unit
      * of sheet behind each edge, and the compact's from 62 to 68. The offset is kept because the
      * asymmetry it corrects is still there -- the police livery still bands the lower glass of the
      * saloon and of no other body -- and because changing it would move the driver of every police
@@ -116,7 +116,7 @@ internal enum class CarShell(
     /**
      * A — the Compact: 92 units, the shortest, cab-forward with a hatch tail.
      *
-     * It was "the shortest and the tallest" until v5.6F, and it is not any more: «Ritaglio» is a
+     * It was "the shortest and the tallest" until v5.6F, and it is not any more: «Cut-out» is a
      * low slab and all three bodies stand 53 units, roof -16 to the road at 37. The three heights
      * that used to differ -- 57, 56, 57.8 -- were a difference nothing measured and nothing saw.
      */

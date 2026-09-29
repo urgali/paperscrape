@@ -96,6 +96,27 @@ class ThemePreviewSceneTest {
         assertEquals(PaperRenderer.HORROR_SKY_LOW_NIGHT, scene.skyBottom)
     }
 
+    /**
+     * **The card draws the sun as the wallpaper does: the two drawings untinted** (inventory I-05,
+     * v5.9F). The wallpaper gives *Sun Color* to the ambient glow only and blits `sun_glow` and
+     * `sun_body` as they are drawn (`PaperRenderer.drawCelestialBody`); the card tinted both, so a
+     * blue pick showed an orange sun with a blue halo on the wallpaper and a near-black one on the
+     * card (photographed on the BV6600 in v5.9E). Asserted on every day card, with a cold colour.
+     */
+    @Test
+    fun `the card's sun is never tinted, whatever Sun Color says`() {
+        for (theme in ThemeCatalog.ALL) {
+            val base = defaultCustomizationFor(theme.id)
+            // Halloween's card shows the carved moon whatever the hour, so its sun is never drawn.
+            if (base.halloweenEnabled) continue
+            val c = base.copy(sun = SunConfig(visible = true, color = 0xFF2060FF.toInt()))
+            val sun = ThemePreviewScenes.forTheme(theme, c, forceNight = false).backdrop.flatMap { it.parts }
+                .filter { it.resId == R.drawable.sun_body || it.resId == R.drawable.sun_glow }
+            assertEquals("${theme.id}: both drawings on the card", 2, sun.size)
+            assertTrue("${theme.id}: ${sun.map { it.tint }}", sun.all { it.tint == null })
+        }
+    }
+
     @Test
     fun `the carved moon is tinted orange rather than with the theme's moon colour`() {
         val moon = sceneFor("halloween").backdrop

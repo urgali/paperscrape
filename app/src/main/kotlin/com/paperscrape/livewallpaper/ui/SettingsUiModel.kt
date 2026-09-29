@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.ui
 
+import com.paperscrape.livewallpaper.engine.coverage
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 
@@ -177,6 +178,36 @@ object SettingsUiModel {
             currentEditIds = edited.map { it.id },
         )
     }
+
+    /**
+     * The line under *Automatic theme by date*, on the home screen ([overridingYourPick]) and in the
+     * gallery, and the gallery's caption under it ([autoThemeCaption]).
+     *
+     * **A calendar may have a gap** -- a stretch no season covers, which the maintainer allowed in
+     * v5.1 and the calendar screen names with its dates -- and on those days the wallpaper shows the
+     * theme picked by hand, unless a holiday covers them (`SeasonalThemeRules.themeForDate` answers
+     * null). Until v5.9F both lines were fixed text saying the calendar picks a theme "for every day
+     * of the year", which a gap makes false (inventory I-06). The count is the calendar row's own,
+     * the days no season covers (`SeasonalCalendar.coverage`).
+     */
+    fun autoThemeLine(calendar: com.paperscrape.livewallpaper.engine.SeasonalCalendar, overridingYourPick: Boolean): String {
+        val gaps = calendar.coverage().uncoveredDays.size
+        val overriding = if (overridingYourPick) ", overriding your own pick" else ""
+        if (gaps == 0) return "The calendar picks a theme for every day of the year$overriding"
+        val days = if (gaps == 1) "the day" else "the $gaps days"
+        return "The calendar picks a theme for every day a season or a holiday covers$overriding. " +
+            "On $days no season covers, your own pick shows unless a holiday covers them"
+    }
+
+    /** The gallery's caption under the switch; see [autoThemeLine]. */
+    fun autoThemeCaption(calendar: com.paperscrape.livewallpaper.engine.SeasonalCalendar): String =
+        if (calendar.coverage().hasGaps) {
+            "While this is on, the calendar picks the theme on the days it covers. The theme you choose " +
+                "below is the one used on the other days, and whenever you turn it off."
+        } else {
+            "While this is on, the calendar picks the theme. The theme you choose below is the one used " +
+                "whenever you turn it off."
+        }
 
     /** "Autumn", "Autumn and Beach", "Autumn, Beach and Winter": how a line names its themes. */
     fun namesInProse(names: List<String>): String = when (names.size) {

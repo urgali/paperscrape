@@ -145,15 +145,6 @@ object LiveWeatherSchedule {
     }
 
     /**
-     * Whether a snapshot is recent enough to draw, per [SNAPSHOT_MAX_AGE_MILLIS].
-     *
-     * A negative age -- the wall clock moved backwards between the fetch and now -- counts as
-     * usable: the data is not old, the clock is wrong, and expiring perfectly good conditions
-     * because someone changed the time zone would be its own bug. (The attempt schedule is on
-     * `elapsedRealtime`, see [isAttemptDue]; only this expiry still reads the wall clock, because
-     * the snapshot's stamp is one.)
-     */
-    /**
      * Whether the loop fetches and draws live conditions at all: the switch is on **and** the scene
      * follows real time -- the rule the settings screen states (`LiveWeatherUiState.canBeTurnedOn`:
      * a fixed hour has no "now" to fetch for). One function so the engine and the screen cannot
@@ -200,6 +191,15 @@ object LiveWeatherSchedule {
         else -> held to heldFor
     }
 
+    /**
+     * Whether a snapshot is recent enough to draw, per [SNAPSHOT_MAX_AGE_MILLIS].
+     *
+     * A negative age -- the wall clock moved backwards between the fetch and now -- counts as
+     * usable: the data is not old, the clock is wrong, and expiring perfectly good conditions
+     * because someone changed the time zone would be its own bug. (The attempt schedule is on
+     * `elapsedRealtime`, see [isAttemptDue]; only this expiry still reads the wall clock, because
+     * the snapshot's stamp is one.)
+     */
     fun snapshotIsUsable(snapshot: LiveWeatherSnapshot?, nowMillis: Long): Boolean {
         if (snapshot == null) return false
         return nowMillis - snapshot.fetchedAtMillis < SNAPSHOT_MAX_AGE_MILLIS

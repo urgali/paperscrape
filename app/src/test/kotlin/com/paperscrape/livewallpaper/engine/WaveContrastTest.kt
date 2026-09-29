@@ -58,9 +58,9 @@ class WaveContrastTest {
      * shipped constants*, reproduced rather than asserted from memory so the derivation can be
      * checked. What the shape that actually ships does to this number is measured separately, in
      * `the shipped shape stands over more of the band than the derivation assumed`, and it is
-     * larger: that is item 83 of `BACKLOG_v4_28.md` and it is not fixed here, because raising the
-     * day gate would change every daytime frame the maintainer approved from the phase-3
-     * photographs, and no photograph exists of the raised one.
+     * larger: that is item 83 of `BACKLOG_v4_28.md`, left as it is on the maintainer's decision of
+     * 2026-09-28 (inventory I-82), because raising the day gate would change every daytime frame he
+     * approved from the phase-3 photographs.
      */
     private val derivationBandFraction = 0.15f
 
@@ -291,11 +291,11 @@ class WaveContrastTest {
      * derivation above assumed.**
      *
      * The gates come from a floor measured with the phase-2 wave on Beach, where a wave covers
-     * 0.15 of the band. WA3 "Tubo" is taller, and two of the three themes that draw a lake draw a
+     * 0.15 of the band. WA3 "Tube" is taller, and two of the three themes that draw a lake draw a
      * much shallower one -- so on those the wave stands over more than half the water and the
      * gradient under it varies by more than the gate it is asked to beat. This test does not fix
-     * that; it pins the numbers so the situation cannot quietly get worse, and `BACKLOG_v4_28.md`
-     * item 83 carries the decision, which needs photographs rather than arithmetic.
+     * that; it pins the numbers so the situation cannot quietly get worse. Item 83's question was
+     * answered on 2026-09-28 from the first photograph of a small lake: the wave stays (I-82).
      *
      * Only three built-in themes show a lake by default, which is also why the sweep is 2 592
      * situations and not more: 3 themes x 288 five-minute steps x 3 weathers.
@@ -326,8 +326,8 @@ class WaveContrastTest {
             worstFloor <= 33.5f,
         )
         assertTrue(
-            "this test exists because the local floor exceeds the day gate; if it stops doing so, " +
-                "item 83 is closed and this test should say so instead",
+            "this test exists because the local floor exceeds the day gate (item 83, kept on the " +
+                "maintainer's decision of 2026-09-28); if it stops doing so, this test should say so instead",
             worstFloor > PaperRenderer.WAVE_BODY_LUMA_GAP,
         )
     }

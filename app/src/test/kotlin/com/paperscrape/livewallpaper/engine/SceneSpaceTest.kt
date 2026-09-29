@@ -328,7 +328,7 @@ class SceneSpaceTest {
             SceneSpace.SceneVariant.BAR.metresTall > SceneSpace.SceneVariant.RESTAURANT.metresTall,
         )
         assertTrue(
-            "and both shops are shorter than a large house, which is a question about the artwork",
+            "and both shops are shorter than a large house, as drawn and kept so (decided 2026-09-28)",
             SceneSpace.SceneVariant.BAR.metresTall < SceneSpace.SceneVariant.HOUSE_LARGE.metresTall,
         )
         // **The margin is 1.90, and it always was.** This asked for 2.0 and passed on a TOWER that

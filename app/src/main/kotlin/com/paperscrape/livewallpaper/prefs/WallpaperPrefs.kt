@@ -169,8 +169,10 @@ data class WallpaperSettings(
      *
      * The fix is the fallback the whole device-location path leans on -- if the provider cannot
      * answer, the scene keeps using where the device last was rather than snapping to a default
-     * somewhere else. Nothing uses the timestamp yet: the engine reuses a saved fix with no expiry
-     * (`PaperWallpaperService.savedDeviceFix`), and the settings screen does not show its age.
+     * somewhere else. Nothing reads the timestamp: the engine reuses a saved fix with no expiry
+     * (`PaperWallpaperService.savedDeviceFix`), and the settings screen does not show its age -- both
+     * kept so on the maintainer's decision of 2026-09-28 (inventory I-89), because a place does not
+     * move and the settings already name it. It is still written with every fix.
      */
     val deviceFixTimestampMillis: Long = 0L,
     val fixedHour: Float = 18f, // used only when syncWithRealTime == false
@@ -305,7 +307,7 @@ class WallpaperPrefs(private val context: Context) {
         val CARS_NIGHT_DENSITY = floatPreferencesKey("cars_night_density")
 
         /**
-         * The business hours (Fase 4). Absent keys read as the [SceneCustomization] defaults:
+         * The business hours (Phase 4). Absent keys read as the [SceneCustomization] defaults:
          * toggle off, which renders identically to the feature not existing.
          */
         val BUSINESS_HOURS_ENABLED = booleanPreferencesKey("business_hours_enabled")

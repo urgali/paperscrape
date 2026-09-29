@@ -294,9 +294,9 @@ class PrecipitationContrastTest {
     /**
      * **The correction reaches the gap everywhere, and stops there.**
      *
-     * This is `PaperRenderer.standOffFromSky`'s own arithmetic run over every situation and every
-     * height. It also pins what the correction *costs*: how much of the sweep it touches at all,
-     * and how far it is allowed to move the colour the user picked.
+     * This is `PrecipitationContrast.standOffFromSky` -- the function the renderer calls -- run over
+     * every situation and every height. It also pins what the correction *costs*: how much of the
+     * sweep it touches at all, and how far it is allowed to move the colour the user picked.
      */
     @Test
     fun `the corrected rain clears the gap on every sky, and the theme's colour survives it`() {
@@ -417,21 +417,26 @@ class PrecipitationContrastTest {
     }
 
     /**
-     * The arithmetic above is a restatement, so this is what ties it to the renderer.
+     * The function above is the renderer's own, so this is what ties the renderer to it.
      *
-     * Without it every assertion in this file would keep passing over a `drawPrecipitation` that had
-     * stopped deriving anything: it would be asserting about its own copy. Read back out of the
+     * The sweeps call [PrecipitationContrast.standOffFromSky], which is what `drawPrecipitation`
+     * calls; without this test they would keep passing over a `drawPrecipitation` that had stopped
+     * calling it, or that had grown a private rule of its own beside it. Read back out of the
      * source, the way `LakeContrastTest` reads the waterline.
      */
     @Test
     fun `the renderer actually derives the colour it is measured on`() {
         val source = File(repoRoot(), "app/src/main/kotlin/com/paperscrape/livewallpaper/engine/PaperRenderer.kt").readText()
-        assertTrue("standOffFromSky is gone from the renderer", source.contains("private fun standOffFromSky("))
+        assertTrue(
+            "the renderer has a standOffFromSky of its own again, so the function this file measures " +
+                "is not the one it draws with",
+            !source.contains("fun standOffFromSky("),
+        )
         val body = source.substringAfter("private fun drawPrecipitation(").substringBefore("\n    }")
         assertTrue(
-            "drawPrecipitation no longer calls standOffFromSky, so the drop's colour is a constant " +
-                "again and every number in this file is about nothing",
-            body.contains("standOffFromSky(themeColour, dropLuma, skyLumaLow, skyLumaHigh, neededColourGap)"),
+            "drawPrecipitation no longer calls PrecipitationContrast.standOffFromSky, so the drop's " +
+                "colour is a constant again and every number in this file is about nothing",
+            body.contains("PrecipitationContrast.standOffFromSky(themeColour, dropLuma, skyLumaLow, skyLumaHigh, neededColourGap)"),
         )
         assertTrue(
             "drawPrecipitation no longer divides the gap by the alpha it draws at, so the gap this " +
@@ -450,6 +455,26 @@ class PrecipitationContrastTest {
             source.substringAfter("if (sceneCustomization.horrorSkyEnabled) {")
                 .substringBefore("\n            return").contains("skyTopColorNow = horrorTop"),
         )
+    }
+
+    /**
+     * **No test measures a copy of the rule** (v5.9C, inventory row I-46).
+     *
+     * Until v5.9C this file restated `standOffFromSky` and measured the restatement, because the
+     * function was private to the renderer: a change to the renderer's rule left every sweep above
+     * green. The rule is one function now, and this keeps it one -- a `fun standOffFromSky(` written
+     * anywhere under `src/test` is a second definition again.
+     */
+    @Test
+    fun `no test keeps a copy of standOffFromSky`() {
+        // A declaration, at the start of a line: the strings this file itself searches for are not.
+        val declaration = Regex("""^\s*(?:private\s+|internal\s+)?fun\s+standOffFromSky\(""", RegexOption.MULTILINE)
+        val copies = File(repoRoot(), "app/src/test").walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .filter { declaration.containsMatchIn(it.readText()) }
+            .map { it.name }
+            .toList()
+        assertEquals("these tests define their own standOffFromSky", emptyList<String>(), copies)
     }
 
     /**
@@ -480,38 +505,11 @@ class PrecipitationContrastTest {
 
     // ------------------------------------------------------------------ colour arithmetic
 
-    /**
-     * `PaperRenderer.standOffFromSky`, restated.
-     *
-     * Not called: it is private to a class that needs a `Context`, and reaching it would mean
-     * making the renderer testable, which is `ROADMAP.md` B5. What must not be restated is the
-     * project's own decisions, and those are read back out of `PaperRenderer` above.
-     */
-    private fun standOffFromSky(
-        base: Int,
-        baseLuma: Float,
-        skyLumaLow: Float,
-        skyLumaHigh: Float,
-        neededGap: Float,
-    ): Int {
-        if (baseLuma >= skyLumaHigh + neededGap || baseLuma <= skyLumaLow - neededGap) return base
-        val whiteTarget = skyLumaHigh + neededGap
-        val blackTarget = skyLumaLow - neededGap
-        val whiteSpan = 255f - baseLuma
-        val blackSpan = -baseLuma
-        val tWhite = if (whiteSpan <= 0f) Float.MAX_VALUE else (whiteTarget - baseLuma) / whiteSpan
-        val tBlack = if (blackSpan >= 0f) Float.MAX_VALUE else (blackTarget - baseLuma) / blackSpan
-        val towardWhite = tWhite <= tBlack
-        val t = (if (towardWhite) tWhite else tBlack).coerceIn(0f, 1f)
-        if (t <= 0f) return base
-        return blendARGB(base, if (towardWhite) 0xFFFFFFFF.toInt() else 0xFF000000.toInt(), t)
-    }
-
     /** What the renderer draws for [s]: one colour for the whole fall. */
     private fun drawnFor(base: Int, s: Situation, neededGap: Float): Int {
         val a = luma(s.skyAt(fallTopFraction))
         val b = luma(s.skyAt(horizonFraction))
-        return standOffFromSky(base, luma(base), minOf(a, b), maxOf(a, b), neededGap)
+        return PrecipitationContrast.standOffFromSky(base, luma(base), minOf(a, b), maxOf(a, b), neededGap)
     }
 
     private fun repoRoot(): File {

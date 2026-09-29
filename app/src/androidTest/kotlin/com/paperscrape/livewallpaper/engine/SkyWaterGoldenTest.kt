@@ -41,7 +41,7 @@ class SkyWaterGoldenTest {
          * Read from [CloudBand] rather than measured off a frame: the band moves with the sun-arc
          * setting, and a rectangle written as pixels would stop containing the clouds the first
          * time that default changed. The 24 px of headroom is the blur's own reach past the
-         * geometry, which C1 "Batuffolo" has and the v4.25 cloud did not.
+         * geometry, which C1 "Puff" has and the v4.25 cloud did not.
          */
         fun cloudBand(gate: Double): GoldenFocus {
             val top = CloudBand.topFor(SceneGolden.HEIGHT, DEFAULT_SUN_CLOUD_HEIGHT)

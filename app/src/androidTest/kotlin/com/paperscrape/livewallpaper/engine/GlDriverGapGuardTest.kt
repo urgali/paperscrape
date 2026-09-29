@@ -50,7 +50,7 @@ import org.junit.runner.RunWith
  * **The cross-driver reading was given up in v4.26, not here.** The OnePlus 6T is gone; the
  * committed file and the running driver have been the same machine for six releases, so this test
  * has been measuring a difference with no source since then. `BACKLOG_v4_27.md` item 78 says so in
- * as many words, and it stays open: it is a condition, and only a second GPU vendor closes it.
+ * as many words; v5.4 closed it as a decision (`BACKLOG_v5_1.md` item 78): only a second GPU vendor could meet it.
  *
  * **It will keep reading ~0 until such a device exists, and none is coming from here.** The
  * maintainer's personal phone is where an update is proved, not a test device. A reading other than

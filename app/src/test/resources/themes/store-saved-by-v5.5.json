@@ -1,0 +1,571 @@
+{
+ "schemaVersion": 4,
+ "overrides": {},
+ "customThemes": [
+  {
+   "id": "custom:1790193721363",
+   "name": "Salvato55",
+   "theme": {
+    "id": "custom:1790193721363",
+    "displayName": "Salvato55",
+    "skyNight": [
+     -16052690,
+     -15000774
+    ],
+    "skyDawn": [
+     -24963,
+     -10850
+    ],
+    "skyDay": [
+     -9517313,
+     -3280897
+    ],
+    "skyDusk": [
+     -34215,
+     -13941
+    ],
+    "hillColorsDay": [
+     -874918,
+     -2522833,
+     -4889315
+    ],
+    "hillColorsNight": [
+     -13751723,
+     -14606780,
+     -15329997
+    ],
+    "sunColor": -7248,
+    "moonColor": -1052673,
+    "starColor": -1,
+    "accentColor": -31406,
+    "hasFireworks": false,
+    "hasSantaSleigh": false
+   },
+   "layout": {
+    "staticObjects": [
+     {
+      "type": "SKYSCRAPER",
+      "depthFraction": 0,
+      "tileFractionX": 0.0364326611161232,
+      "scale": 1.078029751777649,
+      "silhouette": 1
+     },
+     {
+      "type": "SKYSCRAPER",
+      "depthFraction": 0.17777778208255768,
+      "tileFractionX": 0.2711968421936035,
+      "scale": 1.076062560081482,
+      "silhouette": 1
+     },
+     {
+      "type": "SKYSCRAPER",
+      "depthFraction": 0.2666666805744171,
+      "tileFractionX": 0.36395376920700073,
+      "scale": 0.97672438621521,
+      "silhouette": 0
+     },
+     {
+      "type": "SKYSCRAPER",
+      "depthFraction": 0.03750000149011612,
+      "tileFractionX": 0.4688020944595337,
+      "scale": 1.0738757848739624,
+      "silhouette": 1
+     },
+     {
+      "type": "SKYSCRAPER",
+      "depthFraction": 0.444444477558136,
+      "tileFractionX": 0.49312204122543335,
+      "scale": 0.9341614842414856,
+      "silhouette": 0
+     },
+     {
+      "type": "SKYSCRAPER",
+      "depthFraction": 0.7111111283302307,
+      "tileFractionX": 0.05118119716644287,
+      "scale": 0.9691216349601746,
+      "silhouette": 1
+     },
+     {
+      "type": "HOUSE",
+      "depthFraction": 0.2800000011920929,
+      "tileFractionX": 0.025687217712402344,
+      "scale": 0.9865977168083191,
+      "silhouette": 6
+     },
+     {
+      "type": "HOUSE",
+      "depthFraction": 0.6200000047683716,
+      "tileFractionX": 0.13058894872665405,
+      "scale": 1.0391473770141602,
+      "silhouette": 5
+     },
+     {
+      "type": "HOUSE",
+      "depthFraction": 0.32999998331069946,
+      "tileFractionX": 0.2181929498910904,
+      "scale": 1.0619560480117798,
+      "silhouette": 9
+     },
+     {
+      "type": "HOUSE",
+      "depthFraction": 0.7024999856948853,
+      "tileFractionX": 0.3344182074069977,
+      "scale": 1.0025875568389893,
+      "silhouette": 3
+     },
+     {
+      "type": "HOUSE",
+      "depthFraction": 0.3799999952316284,
+      "tileFractionX": 0.4654253423213959,
+      "scale": 1.034688115119934,
+      "silhouette": 2
+     },
+     {
+      "type": "HOUSE",
+      "depthFraction": 0.7849999666213989,
+      "tileFractionX": 0.5657214522361755,
+      "scale": 1.073563575744629,
+      "silhouette": 8
+     },
+     {
+      "type": "HOUSE",
+      "depthFraction": 0.8675000071525574,
+      "tileFractionX": 0.7568779587745667,
+      "scale": 0.9328737258911133,
+      "silhouette": 4
+     },
+     {
+      "type": "HOUSE",
+      "depthFraction": 0.949999988079071,
+      "tileFractionX": 0.9809377789497375,
+      "scale": 1.0226209163665771,
+      "silhouette": 7
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.18000000715255737,
+      "tileFractionX": 0.06607861816883087,
+      "scale": 0.9406077861785889,
+      "silhouette": -1
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.2711111307144165,
+      "tileFractionX": 0.16134336590766907,
+      "scale": 1.031937599182129,
+      "silhouette": -1
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.36222222447395325,
+      "tileFractionX": 0.22288337349891663,
+      "scale": 1.0060240030288696,
+      "silhouette": -1
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.4533333480358124,
+      "tileFractionX": 0.3437577188014984,
+      "scale": 1.023422122001648,
+      "silhouette": -1
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.5444444417953491,
+      "tileFractionX": 0.43898069858551025,
+      "scale": 0.9687358140945435,
+      "silhouette": -1
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.635555624961853,
+      "tileFractionX": 0.5338788032531738,
+      "scale": 1.0318547487258911,
+      "silhouette": -1
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.7266666889190674,
+      "tileFractionX": 0.6205548644065857,
+      "scale": 1.020902395248413,
+      "silhouette": -1
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.8177778124809265,
+      "tileFractionX": 0.782854437828064,
+      "scale": 1.0116147994995117,
+      "silhouette": -1
+     },
+     {
+      "type": "TREE",
+      "depthFraction": 0.9088888764381409,
+      "tileFractionX": 0.8482333421707153,
+      "scale": 1.0049818754196167,
+      "silhouette": -1
+     },
+     {
+      "type": "PARASOL",
+      "depthFraction": 0.7024999856948853,
+      "tileFractionX": 0.2794182002544403,
+      "scale": 1.0165281295776367,
+      "silhouette": -1
+     },
+     {
+      "type": "PARASOL",
+      "depthFraction": 0.3799999952316284,
+      "tileFractionX": 0.5204253196716309,
+      "scale": 0.9936423301696777,
+      "silhouette": -1
+     },
+     {
+      "type": "PARASOL",
+      "depthFraction": 0.4300000071525574,
+      "tileFractionX": 0.6773679256439209,
+      "scale": 1.0332216024398804,
+      "silhouette": -1
+     },
+     {
+      "type": "PARASOL",
+      "depthFraction": 0.8675000071525574,
+      "tileFractionX": 0.7018779516220093,
+      "scale": 0.9565531015396118,
+      "silhouette": -1
+     },
+     {
+      "type": "PARASOL",
+      "depthFraction": 0.47999998927116394,
+      "tileFractionX": 0.8883448839187622,
+      "scale": 0.9352044463157654,
+      "silhouette": -1
+     },
+     {
+      "type": "PARASOL",
+      "depthFraction": 0.949999988079071,
+      "tileFractionX": 0.9259377717971802,
+      "scale": 1.0270997285842896,
+      "silhouette": -1
+     }
+    ],
+    "cars": [
+     {
+      "laneYFraction": 0.8619999885559082,
+      "speedFraction": 0.07500000298023224,
+      "startDelaySeconds": 0.30000001192092896,
+      "color": -31406,
+      "reverse": false,
+      "type": "TAXI"
+     },
+     {
+      "laneYFraction": 0.8339999914169312,
+      "speedFraction": 0.06485507637262344,
+      "startDelaySeconds": 0.30000001192092896,
+      "color": -31406,
+      "reverse": true,
+      "type": "PLAIN"
+     },
+     {
+      "laneYFraction": 0.8619999885559082,
+      "speedFraction": 0.07500000298023224,
+      "startDelaySeconds": 0.6200000047683716,
+      "color": -31406,
+      "reverse": false,
+      "type": "PLAIN"
+     },
+     {
+      "laneYFraction": 0.8339999914169312,
+      "speedFraction": 0.06485507637262344,
+      "startDelaySeconds": 0.6200000047683716,
+      "color": -31406,
+      "reverse": true,
+      "type": "FIRE_TRUCK"
+     },
+     {
+      "laneYFraction": 0.8619999885559082,
+      "speedFraction": 0.07500000298023224,
+      "startDelaySeconds": 0.9399999976158142,
+      "color": -31406,
+      "reverse": false,
+      "type": "PLAIN"
+     },
+     {
+      "laneYFraction": 0.8339999914169312,
+      "speedFraction": 0.06485507637262344,
+      "startDelaySeconds": 0.9399999976158142,
+      "color": -31406,
+      "reverse": true,
+      "type": "PLAIN"
+     },
+     {
+      "laneYFraction": 0.8619999885559082,
+      "speedFraction": 0.07500000298023224,
+      "startDelaySeconds": 1.2599999904632568,
+      "color": -31406,
+      "reverse": false,
+      "type": "PLAIN"
+     },
+     {
+      "laneYFraction": 0.8339999914169312,
+      "speedFraction": 0.06485507637262344,
+      "startDelaySeconds": 1.2599999904632568,
+      "color": -31406,
+      "reverse": true,
+      "type": "POLICE"
+     },
+     {
+      "laneYFraction": 0.8619999885559082,
+      "speedFraction": 0.07500000298023224,
+      "startDelaySeconds": 1.5799999237060547,
+      "color": -31406,
+      "reverse": false,
+      "type": "PLAIN"
+     },
+     {
+      "laneYFraction": 0.8339999914169312,
+      "speedFraction": 0.06485507637262344,
+      "startDelaySeconds": 1.5799999237060547,
+      "color": -31406,
+      "reverse": true,
+      "type": "PLAIN"
+     }
+    ]
+   },
+   "customization": {
+    "houses": {
+     "visible": true,
+     "density": 0.6499999761581421,
+     "colorDay1": -792880,
+     "colorNight1": -9740462,
+     "colorDay2": -1452345,
+     "colorNight2": -10728891,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "buildings": {
+     "visible": true,
+     "density": 0.6499999761581421,
+     "colorDay1": -12235945,
+     "colorNight1": -14276047,
+     "colorDay2": -10720648,
+     "colorNight2": -13617086,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "cars": {
+     "visible": true,
+     "density": 1,
+     "colorDay1": -874918,
+     "colorNight1": -4889315,
+     "colorDay2": -9459492,
+     "colorNight2": -12751980,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "parasols": {
+     "visible": true,
+     "density": 0.6499999761581421,
+     "colorDay1": -36797,
+     "colorNight1": -4894674,
+     "colorDay2": -525572,
+     "colorNight2": -5327688,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "people": {
+     "visible": true,
+     "density": 1,
+     "colorDay1": 0,
+     "colorNight1": 0,
+     "colorDay2": 0,
+     "colorNight2": 0,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "peopleNightDensity": 1,
+    "carsNightDensity": 1,
+    "businessHoursEnabled": false,
+    "businessOpenHour": 9,
+    "businessCloseHour": 20,
+    "trees": {
+     "visible": true,
+     "density": 0.6499999761581421,
+     "colorDay1": -7691684,
+     "colorNight1": -12629462,
+     "colorDay2": -12607893,
+     "colorNight2": -14398924,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "snowmen": {
+     "visible": false,
+     "density": 0.5,
+     "colorDay1": -525572,
+     "colorNight1": -5327688,
+     "colorDay2": -1379334,
+     "colorNight2": -6576208,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "gifts": {
+     "visible": false,
+     "density": 0.5,
+     "colorDay1": -4111301,
+     "colorNight1": -8770778,
+     "colorDay2": -11563073,
+     "colorNight2": -13410691,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "penguins": {
+     "visible": false,
+     "density": 0.5,
+     "colorDay1": -13749960,
+     "colorNight1": -15066080,
+     "colorDay2": -12960185,
+     "colorNight2": -14473685,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "bunnies": {
+     "visible": false,
+     "density": 0.5,
+     "colorDay1": -528410,
+     "colorNight1": -5265508,
+     "colorDay2": -1518140,
+     "colorNight2": -6517897,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "easterEggs": {
+     "visible": false,
+     "density": 0.5,
+     "colorDay1": -1530172,
+     "colorNight1": -6526334,
+     "colorDay2": -5842712,
+     "colorNight2": -9792608,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "pumpkins": {
+     "visible": false,
+     "density": 0.5,
+     "colorDay1": -1540050,
+     "colorNight1": -6530529,
+     "colorDay2": -3053025,
+     "colorNight2": -7715051,
+     "autoMode1": "manual",
+     "autoMode2": "manual"
+    },
+    "hillsVariation": 1,
+    "snowPiles": 0,
+    "leafPiles": 0,
+    "hillsColorDay": -874918,
+    "hillsColorNight": -13751723,
+    "hillsAutoMode": "manual",
+    "mountainsFront": {
+     "visible": true,
+     "density": 0.5,
+     "colorDay": -11751556,
+     "colorNight": -5651784,
+     "autoMode": "manual"
+    },
+    "mountainsBack": {
+     "visible": true,
+     "density": 0.5,
+     "colorDay": -12677272,
+     "colorNight": -7362916,
+     "autoMode": "manual"
+    },
+    "lake": {
+     "visible": false,
+     "colorDay": -13653800,
+     "colorNight": -14726564,
+     "height": 0.33000001311302185,
+     "sailboatsVisible": true,
+     "sailboatsDensity": 0.30000001192092896,
+     "dolphinsVisible": true,
+     "dolphinsDensity": 0.30000001192092896,
+     "autoMode": "manual"
+    },
+    "birds": {
+     "visible": true,
+     "density": 0.5,
+     "nightBirds": false,
+     "colors": [
+      {
+       "color": -1,
+       "weight": 0.4000000059604645
+      },
+      {
+       "color": -13749700,
+       "weight": 0.30000001192092896
+      },
+      {
+       "color": -1550769,
+       "weight": 0.15000000596046448
+      },
+      {
+       "color": -11563073,
+       "weight": 0.15000000596046448
+      }
+     ]
+    },
+    "stars": {
+     "visible": true,
+     "density": 1
+    },
+    "sky": {
+     "colorDayHigh": -9517313,
+     "colorDayLow": -3280897,
+     "colorNightHigh": -16052690,
+     "colorNightLow": -15000774,
+     "colorSunriseLow": -10850,
+     "colorSunsetLow": -13941,
+     "sunCloudHeight": 0.41999998688697815,
+     "autoModeHigh": "manual",
+     "autoModeLow": "manual"
+    },
+    "sun": {
+     "visible": true,
+     "color": -7248
+    },
+    "moon": {
+     "visible": true,
+     "color": -1052673,
+     "realisticPhases": true
+    },
+    "clouds": {
+     "visible": true,
+     "density": 0.4000000059604645,
+     "colorDay": -1,
+     "colorNight": -11905688,
+     "autoMode": "manual"
+    },
+    "precipitation": {
+     "visible": false,
+     "type": "RAIN",
+     "intensity": 0.5,
+     "rainColorDay": -8408096,
+     "rainColorNight": -12624776,
+     "snowColorDay": -1,
+     "snowColorNight": -4668208,
+     "thunderstorm": false,
+     "rainAutoMode": "manual",
+     "snowAutoMode": "manual"
+    },
+    "rainbow": {
+     "visible": false,
+     "opacity": 0.800000011920929
+    },
+    "fallColorsEnabled": false,
+    "winterColorsEnabled": false,
+    "christmasDecorationsEnabled": false,
+    "flowersEnabled": false,
+    "palmsEnabled": true,
+    "halloweenEnabled": false,
+    "horrorSkyEnabled": false,
+    "santaEnabled": false
+   }
+  }
+ ]
+}

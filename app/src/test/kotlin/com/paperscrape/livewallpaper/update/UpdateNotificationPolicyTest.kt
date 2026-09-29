@@ -268,22 +268,96 @@ class UpdateNotificationPolicyTest {
     @Test
     fun `below Android 13 the app's own notification switch is what blocks, and nothing else`() {
         // The BV6600's case, and the one this phone can show: App info -> Notifications -> off.
+        // Whatever the saved switch says: below 33 there is no permission to tell two cases apart.
         val permission = UpdateNotificationPolicy.permissionFor(29, granted = false)
-        assertTrue(UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = false, channelTurnedOff = false))
-        assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = true, channelTurnedOff = false))
-        assertTrue("the channel alone", UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = true, channelTurnedOff = true))
+        for (switchOn in listOf(false, true)) {
+            assertTrue(UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = false, channelTurnedOff = false, notifySwitchOn = switchOn))
+            assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = true, channelTurnedOff = false, notifySwitchOn = switchOn))
+            assertTrue("the channel alone", UpdateNotificationPolicy.blockedInPhoneSettings(permission, appNotificationsEnabled = true, channelTurnedOff = true, notifySwitchOn = switchOn))
+        }
     }
 
     @Test
     fun `on Android 13 a permission not yet granted is not reported as switched off in settings`() {
         // areNotificationsEnabled is false there before the first grant; turning the switch on asks,
-        // so the screen must not tell a new user their settings have it off.
+        // so the screen must not tell a new user their settings have it off. The switch is off:
+        // the row asks before it stores "on".
         val notAsked = UpdateNotificationPolicy.permissionFor(33, granted = false)
-        assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(notAsked, appNotificationsEnabled = false, channelTurnedOff = false))
-        assertTrue("the channel still counts", UpdateNotificationPolicy.blockedInPhoneSettings(notAsked, appNotificationsEnabled = false, channelTurnedOff = true))
+        assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(notAsked, appNotificationsEnabled = false, channelTurnedOff = false, notifySwitchOn = false))
+        assertTrue("the channel still counts", UpdateNotificationPolicy.blockedInPhoneSettings(notAsked, appNotificationsEnabled = false, channelTurnedOff = true, notifySwitchOn = false))
         val granted = UpdateNotificationPolicy.permissionFor(34, granted = true)
-        assertTrue("granted, then switched off in the app's page", UpdateNotificationPolicy.blockedInPhoneSettings(granted, appNotificationsEnabled = false, channelTurnedOff = false))
-        assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(granted, appNotificationsEnabled = true, channelTurnedOff = false))
+        for (switchOn in listOf(false, true)) {
+            assertTrue("granted, then switched off in the app's page", UpdateNotificationPolicy.blockedInPhoneSettings(granted, appNotificationsEnabled = false, channelTurnedOff = false, notifySwitchOn = switchOn))
+            assertFalse(UpdateNotificationPolicy.blockedInPhoneSettings(granted, appNotificationsEnabled = true, channelTurnedOff = false, notifySwitchOn = switchOn))
+        }
+    }
+
+    /**
+     * **Inventory I-54, the maintainer's check of 2026-09-28 on Android 16.** From Android 13,
+     * switching PaperScrape's notifications off in the phone's settings takes the permission away
+     * (`NotificationManagerService.setNotificationsEnabledForPackage` revokes `POST_NOTIFICATIONS`),
+     * so the phone reports DENIED and notifications disabled while *Notify me about new versions*
+     * stays on as saved. The row read the normal line there -- *"Puts a quiet notification in the
+     * shade…"* -- and promised a notification that would not come. It must read the blocked line,
+     * at every level from 33 up, and only while the switch is on: with it off the same two facts
+     * are the not-yet-asked state above.
+     */
+    @Test
+    fun `on Android 13 and later, notifications switched off in the phone's settings are said, with the switch on`() {
+        for (sdk in listOf(33, 34, 35, 36, 37)) {
+            val revoked = UpdateNotificationPolicy.permissionFor(sdk, granted = false)
+            val blocked = UpdateNotificationPolicy.blockedInPhoneSettings(
+                revoked, appNotificationsEnabled = false, channelTurnedOff = false, notifySwitchOn = true,
+            )
+            assertTrue("API $sdk: switched off in the phone's settings, switch on", blocked)
+            assertEquals(
+                "API $sdk: the line under the switch",
+                UpdateNotificationPolicy.NotifyRowLine.BLOCKED,
+                UpdateNotificationPolicy.notifyRowLine(automaticCheckEnabled = true, blocked = blocked, requestRefused = false),
+            )
+            // The same phone with the switch off is a user who never asked: the normal line.
+            val notAsked = UpdateNotificationPolicy.blockedInPhoneSettings(
+                revoked, appNotificationsEnabled = false, channelTurnedOff = false, notifySwitchOn = false,
+            )
+            assertFalse("API $sdk: not asked yet", notAsked)
+            assertEquals(
+                UpdateNotificationPolicy.NotifyRowLine.DESCRIPTION,
+                UpdateNotificationPolicy.notifyRowLine(automaticCheckEnabled = true, blocked = notAsked, requestRefused = false),
+            )
+        }
+    }
+
+    /**
+     * And the screen hands the policy the switch **as saved**, read at each composition rather than
+     * once, so turning the switch off in the app moves the line at once. A source check, because the
+     * screen is Compose and cannot run here -- the same reason `FramePacingTest` reads
+     * `GlRenderThread.kt`.
+     */
+    @Test
+    fun `the settings screen decides with the saved switch`() {
+        val screen = source("ui/AdvancedScreen.kt")
+        assertTrue(
+            "AdvancedScreen must pass the saved switch to the blocked rule",
+            screen.contains("blocked = phoneNotifications.blocks(notifySwitchOn = settings.updateNotificationsEnabled)"),
+        )
+        val notifier = source("update/UpdateNotifier.kt")
+        assertTrue(
+            "a post is only attempted with the switch on, and must be judged so",
+            notifier.contains("phone.blocks(notifySwitchOn = true)"),
+        )
+    }
+
+    private fun source(path: String): String {
+        val suffix = "src/main/kotlin/com/paperscrape/livewallpaper/$path"
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        while (dir != null) {
+            for (prefix in listOf("", "app/")) {
+                val f = java.io.File(dir, "$prefix$suffix")
+                if (f.isFile) return f.readText()
+            }
+            dir = dir.parentFile
+        }
+        error("source not found: $suffix")
     }
 
     @Test

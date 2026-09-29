@@ -52,6 +52,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -565,9 +566,9 @@ internal fun ColorPickerDialog(
         android.graphics.Color.colorToHSV(initialColor, hsv)
         hsv
     }
-    var hue by remember { mutableStateOf(initialHsv[0]) }
-    var saturation by remember { mutableStateOf(initialHsv[1]) }
-    var brightness by remember { mutableStateOf(initialHsv[2]) }
+    var hue by remember { mutableFloatStateOf(initialHsv[0]) }
+    var saturation by remember { mutableFloatStateOf(initialHsv[1]) }
+    var brightness by remember { mutableFloatStateOf(initialHsv[2]) }
     var hexInput by remember { mutableStateOf(colorToHex(initialColor)) }
 
     fun updateFromHsv(h: Float, s: Float, v: Float) {

@@ -175,7 +175,7 @@ private fun drawItem(item: PreviewItem, target: CanvasSceneTarget, blitter: Spri
                 blitter.drawTinted(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.tint, part.alpha)
             }
         } else {
-            blitter.draw(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.alpha)
+            blitter.draw(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.alpha, part.shade)
         }
     }
     target.restore()

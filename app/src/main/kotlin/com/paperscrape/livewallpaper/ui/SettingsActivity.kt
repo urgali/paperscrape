@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
+import android.annotation.SuppressLint
 import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Intent
@@ -143,7 +144,11 @@ class SettingsActivity : ComponentActivity() {
      * and without a dialog, and the result is `false` -- which the caller would read as a refusal
      * and would switch the feature back off on every Android 8 to 12 device, this project's test
      * phone among them.
+     *
+     * `InlinedApi` is suppressed for that reason: `POST_NOTIFICATIONS` is a String constant the
+     * compiler copies in, so naming it below API 33 cannot fail, and this is never called there.
      */
+    @SuppressLint("InlinedApi")
     private fun requestNotificationPermission(onResult: (Boolean) -> Unit) {
         pendingNotificationCallback = onResult
         requestNotificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)

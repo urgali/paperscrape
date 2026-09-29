@@ -10,12 +10,14 @@ import org.junit.Test
  *
  * ### Why this exists rather than a golden
  *
- * A golden cannot see this defect. The whole-frame tolerance is 0.2% of a 360x800 frame — 576
- * pixels — and every pedestrian in the scene changing height by two pixels moves fewer than that;
- * measured, the entire people population resizing by 8.6% moved about 250. The goldens were run
- * against the fix and **passed**, which is a fact about their tuning rather than about the change.
- * What is needed here is a measurement, not a comparison: render the scene, find each figure, and
- * check its height against what [SceneSpace] says it should be.
+ * A golden could not see this defect when it was found. The whole-frame tolerance was then 0.2% of
+ * a 360x800 frame — 576 pixels — and every pedestrian in the scene changing height by two pixels
+ * moves fewer than that; measured, the entire people population resizing by 8.6% moved about 250.
+ * The goldens were run against the fix and **passed**, which was a fact about their tuning rather
+ * than about the change. Since v4.31 the tolerance is zero (`SceneGolden.MAX_DIFFERING_FRACTION`),
+ * so a golden would now fail -- and still not say which figure is the wrong size. What is needed
+ * here is a measurement, not a comparison: render the scene, find each figure, and check its
+ * height against what [SceneSpace] says it should be.
  *
  * ### How the figures are isolated
  *

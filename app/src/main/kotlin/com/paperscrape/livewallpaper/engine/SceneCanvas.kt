@@ -3,7 +3,6 @@ package com.paperscrape.livewallpaper.engine
 import android.graphics.Bitmap
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.RectF
 
 /**
  * The drawing surface the scene renderers draw onto, independent of which backend actually
@@ -48,9 +47,6 @@ interface SceneCanvas {
     fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint)
 
     fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint)
-
-    /** A stroked arc, matching `Canvas.drawArc(oval, start, sweep, useCenter = false, paint)`. */
-    fun drawArc(oval: RectF, startAngle: Float, sweepAngle: Float, paint: Paint)
 
     /**
      * A filled circular sector: the pie slice between [startAngle] and `startAngle + sweepAngle`.

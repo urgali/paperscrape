@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
   <!--
-    Concept B "Forbici" - v4.23 fase 1. I raggi non tolti ma domati: dodici
-    petali di carta a punta arrotondata - base stretta a 148, ventre a 172,
-    punta smussata a 196 - al posto degli otto triangoli acuminati. Restano
-    nell'anello 150..198 dal centro che il sito di chiamata documenta. L'alone
-    radiale resta ma piu' basso (0.40/0.16), perche' la corolla porta gia'
-    presenza sua.
+    Concept B "Scissors" - v4.23 phase 1. The rays not removed but tamed: twelve
+    paper petals with rounded tips - a narrow base at 148, the belly at 172,
+    a blunted tip at 196 - in place of the eight sharp triangles. They stay
+    inside the 150..198 ring from the centre that the call site documents. The radial
+    halo stays, but lower (0.40/0.16), because the corolla already carries
+    a presence of its own.
   -->
   <defs>
     <radialGradient id="g_sunglow_b">

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Lint findings that are true of the code and not a defect of the project, each suppressed here
+     with its reason and by exact path, so the next finding of the same kind is still reported
+     (v5.9C, inventory row I-11). Suppressions that belong to one line of code are at that line. -->
+<lint>
+    <!-- Sixteen un-suffixed people bases. No code draws them: the engine blits each shape's _fx
+         layer and its four region masks. They ship in the source tree because they are the drawing
+         of record: PeopleLayerAssetTest checks that every shape's layers recompose to exactly this
+         picture. The release build shrinks resources, and none of the sixteen is in the published
+         v5.8 APK's resource table (read with aapt2 on 2026-09-27), so no user downloads them. -->
+    <issue id="UnusedResources">
+        <ignore path="src/main/res/drawable-nodpi/person_boy_summer_head_window.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_boy_summer_walk0.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_boy_summer_walk1.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_boy_summer_walk2.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_boy_winter_head_window.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_boy_winter_walk0.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_boy_winter_walk1.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_boy_winter_walk2.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_girl_summer_head_car.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_girl_summer_head_window.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_girl_winter_head_car.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_girl_winter_head_window.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_man_summer_head_window.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_man_winter_head_window.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_woman_summer_head_window.png" />
+        <ignore path="src/main/res/drawable-nodpi/person_woman_winter_head_window.png" />
+    </issue>
+    <!-- The system picker's thumbnail (ROADMAP A20, direction B) is 256 dp against the 200 dp lint
+         allows an icon. It is not an icon: the picker draws it once, centre-cropped at 75 dp, and a
+         smaller canvas would re-draw the picture the maintainer chose. -->
+    <issue id="VectorRaster">
+        <ignore path="src/main/res/drawable/wallpaper_thumbnail.xml" />
+    </issue>
+</lint>

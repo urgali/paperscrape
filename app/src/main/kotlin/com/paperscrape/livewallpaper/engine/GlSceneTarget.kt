@@ -2,7 +2,6 @@ package com.paperscrape.livewallpaper.engine
 
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.RectF
 import android.opengl.GLES20
 import android.opengl.Matrix
 import java.nio.ByteBuffer
@@ -418,38 +417,6 @@ internal class GlSceneTarget : SceneCanvas {
             triangle(cx, cy, prevX, prevY, x, y)
             prevX = x
             prevY = y
-        }
-    }
-
-    override fun drawArc(oval: RectF, startAngle: Float, sweepAngle: Float, paint: Paint) {
-        val cx = oval.centerX()
-        val cy = oval.centerY()
-        val rx = oval.width() * 0.5f
-        val ry = oval.height() * 0.5f
-        val half = paint.strokeWidth * 0.5f
-        if (!beginSolid(paint)) return
-        val segments = segmentsFor(if (rx > ry) rx else ry)
-        ensureRoom(segments * 6)
-        val start = startAngle * DEG_TO_RAD
-        val sweep = sweepAngle * DEG_TO_RAD
-        val step = sweep / segments
-        var prevOuterX = cx + (rx + half) * cos(start)
-        var prevOuterY = cy + (ry + half) * sin(start)
-        var prevInnerX = cx + (rx - half) * cos(start)
-        var prevInnerY = cy + (ry - half) * sin(start)
-        for (i in 1..segments) {
-            val angle = start + step * i
-            val cs = cos(angle)
-            val sn = sin(angle)
-            val outerX = cx + (rx + half) * cs
-            val outerY = cy + (ry + half) * sn
-            val innerX = cx + (rx - half) * cs
-            val innerY = cy + (ry - half) * sn
-            quad(prevInnerX, prevInnerY, prevOuterX, prevOuterY, outerX, outerY, innerX, innerY)
-            prevOuterX = outerX
-            prevOuterY = outerY
-            prevInnerX = innerX
-            prevInnerY = innerY
         }
     }
 

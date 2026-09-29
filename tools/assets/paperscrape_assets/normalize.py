@@ -39,10 +39,10 @@ further left than the others. The union is the box that keeps every member
 registered against every other while still removing the padding they all share.
 
 Sprites that share an origin *value* are not a group. `tree_canopy` and
-`tree_canopy_snowcap` are both blitted at (-45,-84), but from two separate call
-sites with their own literals, so each takes its own trim and its own
-compensation. A group is defined by one call site serving many sprites, not by
-two call sites agreeing on a number.
+`tree_canopy_snowcap` are both blitted at `TreeSpriteLayout`'s (-50,-80), but from
+two separate call sites, so each would take its own trim and its own compensation.
+A group is defined by one call site serving many sprites, not by two call sites
+agreeing on a number.
 
 What this module does not do
 ----------------------------
@@ -156,7 +156,9 @@ def co_registered_groups(names: set[str]) -> list[Group]:
 
 #: Sprites this normalisation deliberately leaves alone. Each entry is a decision
 #: with a reason, not an oversight: an empty exclusion list would be a claim that
-#: every sprite can be normalised, which is not true.
+#: every sprite can be normalised, which is not true. Every entry names a sprite that
+#: ships: a reason for a sprite that is gone is a reason nobody can check, and
+#: `test_normalize.ShippedSetTest` fails on one.
 EXCLUSIONS: tuple[Exclusion, ...] = (
     Exclusion(
         "palmtree_fronds",
@@ -169,8 +171,8 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "and the reason it is here is now a real one. Its margin IS the registration: all three "
         "crowns are drawn around one DECLARED_ATTACHMENT at (84, 78) px, which is where the "
         "blades converge and which drawPalmTree blits negated, so cropping to the ink would move "
-        "the crown against the trunk and against the other two crowns. The same crop car_lights "
-        "refuses, for the same reason.",
+        "the crown against the trunk and against the other two crowns. The same registration crop "
+        "pumpkin_face refuses, for the same reason.",
     ),
     Exclusion(
         "wave_tube_body",
@@ -180,7 +182,7 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "registration. It is that the artwork is byte-identical to the PNG the maintainer "
         "approved from the phase-3 photographs, and a crop trades that provenance plus an origin "
         "compensation with a device look attached for 12 672 decoded bytes across the pair. The "
-        "same trade tree_canopy_snowcap records above, at a fifth of the size.",
+        "same trade the two trees' shared origin made (ROADMAP A41, 2026-09-27), at a third of the size.",
     ),
     Exclusion(
         "wave_tube_crest",
@@ -191,23 +193,6 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "Shares tree_fir's 78x122 canvas so the two blit at one origin. The snow only touches the "
         "tiers' shoulders, so its own ink is a fraction of the tree; cropping to it would separate "
         "the layer from the tree it lies on.",
-    ),
-    Exclusion(
-        "car_lights",
-        "A registration crop: the overlay is authored in the shell's own local coordinates and "
-        "its margins are the lamp housings' surround, which is exactly what keeps the lit lamp "
-        "inside its housing at night. Cropping to the ink would move the viewBox minimum, which "
-        "IS the blit origin.",
-    ),
-    Exclusion(
-        "car_lights_day",
-        "The day twin of car_lights: same viewBox, same registration arithmetic, unlit colours "
-        "(rc4). The same crop that would break the lit overlay would break this one.",
-    ),
-    Exclusion(
-        "skyscraper_wall_lit",
-        "Shares skyscraper_wall's 90x150 canvas and is blitted at the same origin, so the night "
-        "facade lands exactly on the day one. Its ink is only the lit panes.",
     ),
     *(
         Exclusion(

@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
   <!--
-    Concept C "Traforo" - v4.23 fase 1. La scintilla con il cuore FORATO: un
-    rombo ritagliato al centro, il cielo passa nel mezzo. Alla dimensione
-    massima della scintilla (16-20 px) il foro si legge come un punto scuro
-    vivo; nelle scintille piccole scompare e resta la sagoma di sempre.
-    Crema dei punti-stella del renderer.
+    Concept C "Fretwork" - v4.23 phase 1. The sparkle with its heart CUT THROUGH: a
+    rhombus cut out at the centre, the sky passes through the middle. At the sparkle's
+    largest size (16-20 px) the hole reads as a lively dark
+    point; on the small sparkles it disappears and the usual silhouette remains.
+    The cream of the renderer's star points.
   -->
   <path fill-rule="evenodd" fill="#FBF4E6"
         d="M 90 3 L 103.5 76.5 L 177 90 L 103.5 103.5 L 90 177 L 76.5 103.5 L 3 90 L 76.5 76.5 Z

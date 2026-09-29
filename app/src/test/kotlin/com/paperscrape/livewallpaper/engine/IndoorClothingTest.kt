@@ -20,7 +20,7 @@ import org.junit.Test
  * worked, and it hid something: indoors the answer was **always** 0, so the winter column of the
  * window table named twelve recolours no draw path could ever select, and the enum made that look
  * like a choice being made rather than a column that could not be reached. That is
- * `BACKLOG_v4_25.md` item 57, open since v4.25 and reported as a defect twice by two readers.
+ * `BACKLOG_v4_25.md` item 57, open from v4.25 to v4.30 and reported as a defect twice by two readers.
  *
  * v4.30 retired the four winter window shapes and the column with them: `PeopleLayerTable.WINDOW`
  * has one season, so the question is no longer asked of a window bust at all. What is left to

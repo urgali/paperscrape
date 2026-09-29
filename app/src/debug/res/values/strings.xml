@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The debug build's name, and only the debug build's: the one the instrumented tests install, and
+     the one a maintainer puts beside the published app to try a repair on a phone this project does
+     not have. With the same name as the published app the phone's app list, its notification
+     settings and the wallpaper picker show two entries called PaperScrape, and a check made on the
+     wrong one proves nothing. The release and perf builds keep app_name from src/main. -->
+<resources>
+    <string name="app_name">PaperScrape debug</string>
+</resources>

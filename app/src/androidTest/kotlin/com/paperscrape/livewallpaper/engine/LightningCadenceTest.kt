@@ -46,7 +46,7 @@ class LightningCadenceTest {
          * 120 seconds of storm at the golden warm-up cadence, which is about fifteen strikes and
          * **cannot** be zero: the longest the shipped roll defers one is 12 s.
          *
-         * The release A/B of v5.0 Fase 0 ran this at `-e lightningFrames 2000` — 500 s, about
+         * The release A/B of v5.0 Phase 0 ran this at `-e lightningFrames 2000` — 500 s, about
          * sixty strikes — on the release before the change and on the release after it. That is
          * what the argument is for: the suite pays for the gate, and a measurement pays for itself.
          */

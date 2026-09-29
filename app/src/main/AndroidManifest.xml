@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Location is optional and off by default. Two permissions because there are two
          separate modes, and the app asks for exactly the one the chosen mode needs:
@@ -17,8 +18,8 @@
          Kept as an inventory rather than a summary because it is a privacy disclosure, and a
          summary is how the city-geocoding endpoint went unlisted for several releases.
          InternetInventoryTest fails if a host written in the source is missing from this list, so
-         a new host cannot go unlisted without a test going red; it does not notice a host listed
-         here that is no longer contacted, nor anything said below about when each call is made.
+         a new host cannot go unlisted without a test going red, and if a host listed here is no
+         longer contacted (v5.9B); it does not check anything said below about when calls are made.
 
          api.github.com               update.UpdateChecker, to read the public Releases list. No
                                       credentials, and nothing about the device is sent: it is a
@@ -49,12 +50,16 @@
                                          they were turned off).
                                       With every switch off this host is contacted only when the
                                       user asks: the button, or a tap on such a notification.
-         www.github.com               update.ApkDownloader, only after the user taps "Install
+         github.com                   update.ApkDownloader, only after the user taps "Install
                                       update" in the update dialog or "Download and install" in
-                                      Advanced and about: the release's APK and its SHA-256 file.
-                                      Only a github.com or www.github.com address is ever
-                                      requested (see sanitizeGitHubUrl), which is why both
-                                      spellings are named here. GitHub answers with a redirect,
+                                      Advanced and about: the release's APK and its SHA-256 file,
+                                      at the github.com addresses the Releases list gives. The
+                                      release page and the project page are github.com addresses
+                                      too, but those are handed to the phone's browser, which is
+                                      what opens them.
+         www.github.com               the same download, if the Releases list ever gave this
+                                      spelling: sanitizeGitHubUrl accepts exactly these two hosts
+                                      and refuses every other. GitHub answers with a redirect,
                                       and the download FOLLOWS it - the redirect's host is not
                                       checked:
          release-assets.githubusercontent.com
@@ -131,17 +136,30 @@
          default does not. One line, no measurable risk removed, and it is now a declaration rather
          than an inherited default that changes underneath the app. (v5.3B audit, S3.)
 
+         enableOnBackInvokedCallback is read from API 33 and dataExtractionRules from API 31, and
+         both are ignored below, which is what lint's UnusedAttribute says and why it is ignored on
+         this element: below those levels nothing needs them.
+
+         allowBackup="false", fullBackupContent and dataExtractionRules say one thing: nothing of
+         the app's leaves the phone through Android, not to the cloud and not to a new phone. The
+         first two govern up to Android 11; from 12 the rules file does, because allowBackup alone
+         does not stop the transfer to a new phone on some manufacturers' devices
+         (res/xml/data_extraction_rules.xml has the reason and the decision).
+
          Note for the next editor: an XML comment may not contain a double hyphen, which is why
          this file's comments use colons and full stops where the Kotlin ones use dashes. -->
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/full_backup_content"
         android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.PaperScrape"
         android:supportsRtl="true"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="true"
+        tools:ignore="UnusedAttribute">
 
         <!-- Settings / preview activity, shown from the system wallpaper picker and from whichever
              of the launcher aliases below is enabled.

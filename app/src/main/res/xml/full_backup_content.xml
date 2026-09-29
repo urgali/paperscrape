@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same rule as data_extraction_rules.xml, in the format Android 11 and lower reads: nothing of
+     PaperScrape's is copied off the phone. android:allowBackup="false" already turns the backup off
+     there; this file says so in the form lint asks for when minSdk is below 31, so the two versions
+     of Android read one decision (inventory I-99, the maintainer's decision of 2026-09-28). Note for
+     the next editor: an XML comment may not contain a double hyphen. -->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+    <exclude domain="device_root" path="." />
+    <exclude domain="device_file" path="." />
+    <exclude domain="device_database" path="." />
+    <exclude domain="device_sharedpref" path="." />
+</full-backup-content>

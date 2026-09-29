@@ -1,10 +1,11 @@
-# People concepts for v4.25 — three proposals, not shipped
+# People concepts for v4.25 — three proposals; B shipped
 
 Three candidate redraws of the whole people family, built for the size they are actually
 seen at: an adult walker is **37 px tall on the BV6600** (measured on a captured frame),
-a child about 28, a bust in a car about 15 and a bust at a window about 8. Nothing here is
-installed in `res/drawable-nodpi/`; the choice is the maintainer's, made by looking at the
-full-frame captures.
+a child about 28, a bust in a car about 15 and a bust at a window about 8. The maintainer chose
+B `relief` with the suggestion of a face, from photographs taken at real size on the device
+(v4.25, `RELEASE_HISTORY.md`), and `build_people_concepts.py` in its style `relief_eyes` is
+still what draws every person that ships (`CLAUDE.md` §4).
 
 `build_people_concepts.py` writes every source and renders it through the project's own
 rasteriser (`paperscrape_assets.raster`, probe verified). Each concept directory holds the
@@ -14,7 +15,7 @@ rasteriser (`paperscrape_assets.raster`, probe verified). Each concept directory
 
 - **The shipped canvases**: walk 123×255, window bust 159×171, car bust 141×132. Same
   `SCENE_UNITS` convention, same `CONTENT_BOTTOM_CENTRE` anchors, same `FIXED_ART` class,
-  so no call site, no constant and no byte of the 29 MiB decoded budget moves.
+  so no call site, no constant and no byte of the decoded budget (29 MiB then) moves.
 - **Cut edges**: every shape is a polygon with a small deterministic wobble written into
   its coordinates — the rule the sky adopted in v4.23.
 - **No feature thinner than three units.** The GL backend minifies with one bilinear tap
@@ -27,9 +28,9 @@ rasteriser (`paperscrape_assets.raster`, probe verified). Each concept directory
 
 ## The three directions
 
-| | A `stampino` | B `rilievo` | C `bambola` |
+| | A `stencil` | B `relief` | C `doll` |
 |---|---|---|---|
-| Idea | the least paper that still reads as a person | stacked papers, the Quercia larga's recipe | a frontal paper doll with a face |
+| Idea | the least paper that still reads as a person | stacked papers, the Broad Oak's recipe | a frontal paper doll with a face |
 | Pieces per walker | 3–4 (+ hair, feet) | 6–8, each with an under-paper shadow | 6–7 |
 | View | three-quarter, facing +x | three-quarter, facing +x | frontal |
 | Face | none | none | two eyes, 3.6 units |

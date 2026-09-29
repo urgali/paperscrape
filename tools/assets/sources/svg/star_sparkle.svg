@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
   <!--
-    Fase 2 / Parte A - concept B, la scintilla RIDISEGNATA per la configurazione 1
-    (s = radius/16: 10-13 px reali invece di 6). Il B del giro 1a era un otto-vertici a
-    lati dritti, con una vita di ~12 unita' (13% del raggio) che a quella scala si
-    riduce a una croce di un pixel. Qui la vita e' PIENA (24-28 unita', 27-31%: la carta
-    non si taglia piu' sottile), le quattro punte restano diseguali (N 82, E 78, S 74,
-    O 76, le stesse di B) e l'asse di ciascuna e' ruotato di +/-1-2.5 gradi, i lati sono
-    CONCAVI a due segmenti con un vertice di mezzo che rientra di ~6 unita' e tremolio
-    +/-1.5: sedici vertici scritti, non generati a runtime. Niente ombra (di notte il
-    cielo dietro e' gia' scuro). Tela 180x180 invariata, SCENE_UNITS, FIXED_ART; crema
-    #FBF4E6 della scintilla spedita.
+    Phase 2 / Part A - concept B, the sparkle REDRAWN for configuration 1
+    (s = radius/16: 10-13 real px instead of 6). Round 1a's B was an eight-vertex shape with
+    straight sides, with a waist of ~12 units (13% of the radius) that at that scale
+    shrinks to a one-pixel cross. Here the waist is FULL (24-28 units, 27-31%: the paper
+    is no longer cut thinner), the four points stay unequal (N 82, E 78, S 74,
+    W 76, the same as B's) and the axis of each is rotated by +/-1-2.5 degrees, the sides are
+    CONCAVE, in two segments with a middle vertex set in by ~6 units and a wobble of
+    +/-1.5: sixteen written vertices, not generated at runtime. No shadow (at night the
+    sky behind is already dark). 180x180 canvas unchanged, SCENE_UNITS, FIXED_ART; the cream
+    #FBF4E6 of the shipped sparkle.
   -->
   <polygon points="92.1,8.0 99.2,47.8 108.4,71.6 129.8,78.8 168.0,87.3 128.6,96.6 107.0,107.0 95.5,126.7 86.8,163.9 77.9,128.2 70.2,109.8 49.4,98.8 14.0,91.3 51.7,83.1 72.3,72.3 81.2,48.5" fill="#FBF4E6"/>
 </svg>

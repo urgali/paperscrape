@@ -194,6 +194,18 @@ def cmd_validate(_: argparse.Namespace) -> int:
         f"{len(specs) - with_source} recorded as gaps"
     )
     print(f"anchors: {with_anchor} determined, {len(specs) - with_anchor} undetermined")
+    # The two sprite counts BACKLOG_v4_24.md item 54 asked to be printed rather than written into a
+    # document, counted from the sets the normaliser itself defines: the sprites a lookup table
+    # chooses among, which share one origin per group and are cropped together, and the ones it
+    # leaves uncropped on purpose, each with its reason in `normalize.EXCLUSIONS`.
+    names = {s.name for s in specs}
+    lookup_groups = normalize.co_registered_groups(names)
+    kept_margin = sorted(normalize.excluded_names() & names)
+    print(
+        f"normalisation: {sum(len(g.members) for g in lookup_groups)} sprites in "
+        f"{len(lookup_groups)} lookup groups, cropped together; {len(kept_margin)} left uncropped "
+        f"on purpose"
+    )
     gaps = [v for v in variants if not v.must_differ]
     print(
         f"variants: {len(variants)} groups checked against the shipped bytes, "

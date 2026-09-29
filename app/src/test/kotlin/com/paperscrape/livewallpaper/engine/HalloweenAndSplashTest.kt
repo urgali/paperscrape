@@ -215,7 +215,7 @@ class HalloweenAndSplashTest {
     }
 
     private fun arc(seconds: Float, phase: Float): Float =
-        kotlin.math.sin(seconds * PaperRenderer.DOLPHIN_LEAP_RATE + phase * 6.28f).toFloat()
+        kotlin.math.sin(seconds * PaperRenderer.DOLPHIN_LEAP_RATE + phase * 6.28f)
 
     private fun splashProgress(seconds: Float, phase: Float): Float? {
         val since = cyclePosition(seconds, phase) - 0.5f

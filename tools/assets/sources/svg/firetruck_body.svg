@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="300" height="159" viewBox="-50 -25 100 53">
 <!--
-v5.6F «Ritaglio» - fire engine, fixed art. Ground y=37; wheel discs r 11 at x -34, 9.325, 34, drawn in code in front of this paper; what is baked here is the crescent each one casts on it. The cab window is the hole in the even-odd outline, y -13..6; the sheet behind it is grown half a unit so no seam opens along the cut.
+v5.6F «Cut-out» - fire engine, fixed art. Ground y=37; wheel discs r 11 at x -34, 9.325, 34, drawn in code in front of this paper; what is baked here is the crescent each one casts on it. The cab window is the hole in the even-odd outline, y -13..6; the sheet behind it is grown half a unit so no seam opens along the cut.
 -->
 <clipPath id="shell"><path clip-rule="evenodd" d="M-49.00 27.00 L-49.00 4.00 L-47.00 1.00 L-40.00 -1.00 L-36.00 -4.00 L-32.00 -13.00 L-30.00 -16.00 L-2.00 -16.00 L-2.00 -24.00 L46.00 -24.00 L49.00 -21.00 L49.00 27.00 Z M-32.90 6.00 L-33.38 5.41 L-29.72 -12.41 L-29.00 -13.00 L-4.60 -13.00 L-4.00 -12.40 L-4.00 5.40 L-4.60 6.00 Z"/></clipPath>
 <clipPath id="cg"><polygon points="-33.10,6.40 -33.75,5.62 -30.15,-12.62 -29.20,-13.40 -4.40,-13.40 -3.60,-12.60 -3.60,5.60 -4.40,6.40"/></clipPath>

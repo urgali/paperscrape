@@ -858,8 +858,10 @@ class PaperWallpaperService : WallpaperService() {
             // smoothly during a swipe rather than looking frozen -- only the parallax shift itself
             // is suppressed. On the GPU backend requestRedraw is a no-op: the queued offset lands
             // on the render thread's next paced frame (about 30 a second).
-            // Known gap (v5.8B audit): on the GPU backend, the normal path, a swipe therefore moves
-            // the parallax only at the render loop's cadence, up to one frame behind the finger.
+            // On the GPU backend, the normal path, a swipe therefore moves the parallax only at the
+            // render loop's cadence, up to one frame behind the finger, and the presentation time
+            // adds two refreshes (`FramePacing.presentAt`). No phone this project has sends offsets,
+            // so none of it can be seen or measured here (ROADMAP A56, closed by decision).
             if (visible) requestRedraw()
         }
 
@@ -921,10 +923,12 @@ class PaperWallpaperService : WallpaperService() {
          * second path is tested -- `GlLifecyclePolicyTest` pins `(true, 3) -> false` -- so the
          * code was right and only this sentence was wrong. `BACKLOG_v4_31.md` item 110.
          *
-         * It matters because this is the surface `BACKLOG_v4_30.md` item 103's +13.6 % lands on,
-         * and that item described the blast radius with the *other* half of the truth -- "the
-         * fallback the wallpaper takes after MAX_CONTEXT_REBUILDS EGL failures", which misses the
-         * device that never had GL at all. Both halves are here now.
+         * It matters because this is the surface `BACKLOG_v4_30.md` item 103's cost lands on (+13.6 %
+         * at v4.30; re-measured on the BV6600 on 2026-09-27, v5.9D: +5 %, about 3 ms of a 60 ms
+         * crowded frame at the phone's own size), and that item described the blast radius with
+         * the *other* half of the truth -- "the fallback the wallpaper takes after
+         * MAX_CONTEXT_REBUILDS EGL failures", which misses the device that never had GL at all.
+         * Both halves are here now.
          *
          * The scene state is untouched by this: the same renderer keeps drawing, through the
          * other backend.

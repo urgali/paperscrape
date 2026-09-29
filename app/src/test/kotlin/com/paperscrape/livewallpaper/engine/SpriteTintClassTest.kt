@@ -17,7 +17,8 @@ import org.junit.Test
  * colour, pure white, across every opaque pixel, and their call sites passed no tint on the
  * stated grounds that the colours were baked in. White is the `MULTIPLY` identity, so the
  * wallpaper showed white silhouettes drifting on the lake. v74.1 repaired it by supplying the
- * colour at the blit. A second sprite had the same defect and was still open as D-6.
+ * colour at the blit. A second sprite, `balloon_basket`, had the same defect and stayed open as
+ * D-6 until the balloon stopped shipping.
  *
  * The second is the mirror image, and it is what the V2 asset set would have caused if the call
  * sites had been left alone: finished art multiplied by a constant is not a recolouring, it is

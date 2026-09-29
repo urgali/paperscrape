@@ -30,7 +30,7 @@ package com.paperscrape.livewallpaper.engine
  * exactly what it drew before and no golden was regenerated; what moved was only the preview.
  *
  * **v4.21 is the first release that moves them**, because the artwork itself was redrawn: the
- * "Quercia larga" replaces an octagon on a straight rod with a scalloped cushion on a stocky
+ * "Broad Oak" replaces an octagon on a straight rod with a scalloped cushion on a stocky
  * forked trunk. Every offset here is re-derived from the new sprites' own content boxes, stated
  * below beside each one, and the goldens moved with them — attributed region by region rather
  * than regenerated on faith. The point of the object is unchanged and is now load-bearing in a

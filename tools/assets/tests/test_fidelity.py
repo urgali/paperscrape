@@ -215,8 +215,11 @@ class ShippedAgainstSourceTest(unittest.TestCase):
     """What the pinned toolchain does and does not reproduce, across the set.
 
     The shipped PNGs were rendered by the V2 library's own rasteriser, and the
-    pinned one resolves partially covered pixels differently. That is defect D-7,
-    and this class is what bounds it rather than leaving it as an adjective.
+    pinned one resolved partially covered pixels differently. That was defect D-7,
+    closed, and this class is the bound its closure rests on. Today
+    `reports/fidelity.json` records every compared sprite as `PIXEL_IDENTICAL`, a
+    largest alpha difference of 0, so both bounds hold with room to spare and stay
+    as the guard.
 
     The bound that matters is a *shape* bound, and it is criterion-independent:
     no sprite has a pixel that is solid in one rendering and empty in the other,
@@ -229,9 +232,9 @@ class ShippedAgainstSourceTest(unittest.TestCase):
 
     #: Half of 255, rounded down: a disagreement this large would mean the two
     #: rasterisers do not agree about which side of a pixel's centre an edge falls
-    #: on, which is a geometry difference rather than a coverage one. The measured
-    #: worst case across the set is 121, on a single pixel of `rainbow_arc`'s
-    #: shallowest stroke edge.
+    #: on, which is a geometry difference rather than a coverage one. When D-7 was
+    #: closed the worst case across the set was 121, on a single pixel of
+    #: `rainbow_arc`'s shallowest stroke edge; `reports/fidelity.json` now records 0.
     MAX_COVERAGE_DELTA = 127
 
     @classmethod

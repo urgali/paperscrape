@@ -1455,7 +1455,7 @@
     "kind": "svg",
     "file": "bird_body.svg"
    },
-   "notes": "Redrawn in v4.28 as concept B1 \"Rondine\" -- a deep forked tail, sickle wings swept back, a small head and a short beak. The canvas, the origin and the call site are v4.26's: 51x21 CANVAS_PIXELS, **flap axis canvas row 15**, blitted at BIRD_SPRITE_ORIGIN_Y_PX -15 and mirrored about that row for the down-stroke. What changed is legibility at the 42 px the bird actually reaches: v4.26's \"Colomba\" raised both wings forward, and at that size the two humps were the largest shape in the outline and read as a fanned tail, so the eye turned the animal round. The facing was never wrong -- v4.27 measured that and `bird-facing` pins it -- so nothing here is mirrored; the largest shape simply moved behind the head. Head and beak point +x, the only direction birds drift."
+   "notes": "Redrawn in v4.28 as concept B1 \"Swallow\" -- a deep forked tail, sickle wings swept back, a small head and a short beak. The canvas, the origin and the call site are v4.26's: 51x21 CANVAS_PIXELS, **flap axis canvas row 15**, blitted at BIRD_SPRITE_ORIGIN_Y_PX -15 and mirrored about that row for the down-stroke. What changed is legibility at the 42 px the bird actually reaches: v4.26's \"Dove\" raised both wings forward, and at that size the two humps were the largest shape in the outline and read as a fanned tail, so the eye turned the animal round. The facing was never wrong -- v4.27 measured that and `bird-facing` pins it -- so nothing here is mirrored; the largest shape simply moved behind the head. Head and beak point +x, the only direction birds drift."
   },
   {
    "name": "bunny_body",
@@ -1559,7 +1559,7 @@
     "kind": "svg",
     "file": "car_body_compact.svg"
    },
-   "notes": "v5.6F \u00abRitaglio\u00bb: one sheet of paper with the window holes cut out of it (evenodd), the wheel's shadow crescent baked into the mask, and no arches -- the discs are drawn in front of the paper. 44 units of canvas against v4.19's 51: the roof came down to -16 and the floor up to 26."
+   "notes": "v5.6F \u00abCut-out\u00bb: one sheet of paper with the window holes cut out of it (evenodd), the wheel's shadow crescent baked into the mask, and no arches -- the discs are drawn in front of the paper. 44 units of canvas against v4.19's 51: the roof came down to -16 and the floor up to 26."
   },
   {
    "name": "car_body_estate",
@@ -1585,7 +1585,7 @@
     "kind": "svg",
     "file": "car_body_estate.svg"
    },
-   "notes": "v5.6F \u00abRitaglio\u00bb: the same, on C's 124-unit plan; the third pane over the load bay is a hole in the paper like the other two."
+   "notes": "v5.6F \u00abCut-out\u00bb: the same, on C's 124-unit plan; the third pane over the load bay is a hole in the paper like the other two."
   },
   {
    "name": "car_body_saloon",
@@ -1611,7 +1611,7 @@
     "kind": "svg",
     "file": "car_body_saloon.svg"
    },
-   "notes": "v5.6F \u00abRitaglio\u00bb: the same three-card construction as the compact, on B's 108-unit plan. Still the fixed shell of the police car."
+   "notes": "v5.6F \u00abCut-out\u00bb: the same three-card construction as the compact, on B's 108-unit plan. Still the fixed shell of the police car."
   },
   {
    "name": "car_lamp_front",
@@ -1637,7 +1637,7 @@
     "kind": "svg",
     "file": "car_lamp_front.svg"
    },
-   "notes": "v4.19: amber front lens, SHARED by the three shells and the fire engine. Redrawn in v5.6F for \u00abRitaglio\u00bb: same 6x4-unit canvas, no housing seat behind it."
+   "notes": "v4.19: amber front lens, SHARED by the three shells and the fire engine. Redrawn in v5.6F for \u00abCut-out\u00bb: same 6x4-unit canvas, no housing seat behind it."
   },
   {
    "name": "car_lamp_front_lit",
@@ -1663,7 +1663,7 @@
     "kind": "svg",
     "file": "car_lamp_front_lit.svg"
    },
-   "notes": "v4.19: the same lens lit. Redrawn in v5.6F for \u00abRitaglio\u00bb."
+   "notes": "v4.19: the same lens lit. Redrawn in v5.6F for \u00abCut-out\u00bb."
   },
   {
    "name": "car_lamp_rear",
@@ -1689,7 +1689,7 @@
     "kind": "svg",
     "file": "car_lamp_rear.svg"
    },
-   "notes": "v4.19: red rear lens, SHARED by the three shells and the fire engine. Redrawn in v5.6F for \u00abRitaglio\u00bb."
+   "notes": "v4.19: red rear lens, SHARED by the three shells and the fire engine. Redrawn in v5.6F for \u00abCut-out\u00bb."
   },
   {
    "name": "car_lamp_rear_lit",
@@ -1715,7 +1715,7 @@
     "kind": "svg",
     "file": "car_lamp_rear_lit.svg"
    },
-   "notes": "v4.19: the same lens lit. Redrawn in v5.6F for \u00abRitaglio\u00bb."
+   "notes": "v4.19: the same lens lit. Redrawn in v5.6F for \u00abCut-out\u00bb."
   },
   {
    "name": "car_window_compact",
@@ -1741,7 +1741,7 @@
     "kind": "svg",
     "file": "car_window_compact.svg"
    },
-   "notes": "v5.6F \u00abRitaglio\u00bb: the glass is a sheet BEHIND the body paper, seen through the holes, with a shadow band along the top and front edge of each hole -- which is what says the glass is behind. Three panes; the canvas carries half a unit of margin, so its blit origin (-28,-13) is not the pane's own top (-12)."
+   "notes": "v5.6F \u00abCut-out\u00bb: the glass is a sheet BEHIND the body paper, seen through the holes, with a shadow band along the top and front edge of each hole -- which is what says the glass is behind. Three panes; the canvas carries half a unit of margin, so its blit origin (-28,-13) is not the pane's own top (-12)."
   },
   {
    "name": "car_window_estate",
@@ -1767,7 +1767,7 @@
     "kind": "svg",
     "file": "car_window_estate.svg"
    },
-   "notes": "v5.6F \u00abRitaglio\u00bb: three panes, the third over the load bay. Only the cabin pane is measured against the occupant criteria."
+   "notes": "v5.6F \u00abCut-out\u00bb: three panes, the third over the load bay. Only the cabin pane is measured against the occupant criteria."
   },
   {
    "name": "car_window_saloon",
@@ -1793,7 +1793,7 @@
     "kind": "svg",
     "file": "car_window_saloon.svg"
    },
-   "notes": "v5.6F \u00abRitaglio\u00bb: two panes with a 3.5-unit paper pillar between them, in place of the drawn seat back the cars carried until v5.5."
+   "notes": "v5.6F \u00abCut-out\u00bb: two panes with a 3.5-unit paper pillar between them, in place of the drawn seat back the cars carried until v5.5."
   },
   {
    "name": "cloud_body",
@@ -1819,7 +1819,7 @@
     "kind": "svg",
     "file": "cloud_body.svg"
    },
-   "notes": "Redrawn in v4.26 as concept C1 \"Batuffolo\": one mass of four large round lobes over a wide low base, with no cut edge and no second sheet. Its tone is a single vertical ramp inside the one shape (white at the crown to #DEDEDE at the base) and the silhouette is feathered by a 1.5-unit Gaussian blur, so the edge is a passage of alpha rather than a line. A cloud is atmosphere, not an object standing on the ground -- DESIGN_NOTES 4.1 -- which is what lets it carry a gradient. Canvas and content box unchanged, so CloudCoverage.CLOUD_CONTENT_HALF_UNITS still reads 133."
+   "notes": "Redrawn in v4.26 as concept C1 \"Puff\": one mass of four large round lobes over a wide low base, with no cut edge and no second sheet. Its tone is a single vertical ramp inside the one shape (white at the crown to #DEDEDE at the base) and the silhouette is feathered by a 1.5-unit Gaussian blur, so the edge is a passage of alpha rather than a line. A cloud is atmosphere, not an object standing on the ground -- DESIGN_NOTES 4.1 -- which is what lets it carry a gradient. Canvas and content box unchanged, so CloudCoverage.CLOUD_CONTENT_HALF_UNITS still reads 133."
   },
   {
    "name": "dolphin_body",
@@ -1845,7 +1845,7 @@
     "kind": "svg",
     "file": "dolphin_body.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": five papers -- body, belly, dorsal, pectoral and flukes -- each over an under-paper offset 5.5 units. **The two body tones are derived, not chosen**: LakeContrastTest measures every water the eleven dolphin-drawing themes paint and holds the animal above a gate derived by the v4.22 method. The v4.25 back (#4A6A84) sat at CIELab dE 5.2 from the water in its worst case and vanished at night and in a storm; it is now #A19A9C at dE 26.1. Faces +x, the only way lake decorations drift. v4.31 cropped the 4x6 px of leading padding the redraw left inside the canvas -- 345x174 to 342x168 -- and compensated DOLPHIN_ORIGIN_X/Y_UNITS by the (1, 2) units removed, to (-56.3, -27); no drawn pixel moved. This note used to claim the v4.26 content was placed so the old (-57.3, -29) still landed the animal on its leap point. Measured in v4.31: it does not, and did not. The content centre is (57.167, 28.0) units and the origin puts it (+0.87, +1.0) units off the leap point. Moving the animal onto it is an artwork decision, open as item 105."
+   "notes": "Redrawn in v4.26 as concept B \"Relief\": five papers -- body, belly, dorsal, pectoral and flukes -- each over an under-paper offset 5.5 units. **The two body tones are derived, not chosen**: LakeContrastTest measures every water the eleven dolphin-drawing themes paint and holds the animal above a gate derived by the v4.22 method. The v4.25 back (#4A6A84) sat at CIELab dE 5.2 from the water in its worst case and vanished at night and in a storm; it is now #A19A9C at dE 26.1. Faces +x, the only way lake decorations drift. v4.31 cropped the 4x6 px of leading padding the redraw left inside the canvas -- 345x174 to 342x168 -- and compensated DOLPHIN_ORIGIN_X/Y_UNITS by the (1, 2) units removed, to (-56.3, -27); no drawn pixel moved. This note used to claim the v4.26 content was placed so the old (-57.3, -29) still landed the animal on its leap point. Measured in v4.31: it does not, and did not. The content centre is (57.167, 28.0) units and that origin put it (+0.87, +1.0) units off the leap point. v5.0 moved the animal onto it (BACKLOG_v5_0.md items 108 and 115): the origin is now (-57.167, -29) on a 342x171 canvas, and DolphinLeapOriginTest measures it against the alpha channel."
   },
   {
    "name": "easteregg_pattern",
@@ -1918,7 +1918,7 @@
     "kind": "svg",
     "file": "firetruck_body.svg"
    },
-   "notes": "v5.6F \u00abRitaglio\u00bb: red paper with the cab glass cut out of it, the cream band and the three doors as cards with their own shadow paper, and three discs in front. 104x60 units at origin (-51,-26)."
+   "notes": "v5.6F \u00abCut-out\u00bb: red paper with the cab glass cut out of it, the cream band and the three doors as cards with their own shadow paper, and three discs in front. 104x60 units at origin (-51,-26)."
   },
   {
    "name": "firetruck_ladder",
@@ -1944,7 +1944,7 @@
     "kind": "svg",
     "file": "firetruck_ladder.svg"
    },
-   "notes": "v4.19: the ladder over the appliance's body. Redrawn in v5.6F for \u00abRitaglio\u00bb on the same 50x7-unit canvas."
+   "notes": "v4.19: the ladder over the appliance's body. Redrawn in v5.6F for \u00abCut-out\u00bb on the same 50x7-unit canvas."
   },
   {
    "name": "firework",
@@ -3036,7 +3036,7 @@
     "kind": "svg",
     "file": "moon_crescent.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Forbici\", 40 vertices like the rest of the family. The lit limb is cut, not arced: the v76.1 note this entry used to carry described an SVG arc (`A52 34 0 0 0` corrected to `A20 34 0 0 0`, which had bulged past the canvas and been clipped flat on the device) that belonged to the retired artwork and no longer exists in the source. Same canvas, convention and anchor."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\", 40 vertices like the rest of the family. The lit limb is cut, not arced: the v76.1 note this entry used to carry described an SVG arc (`A52 34 0 0 0` corrected to `A20 34 0 0 0`, which had bulged past the canvas and been clipped flat on the device) that belonged to the retired artwork and no longer exists in the source. Same canvas, convention and anchor."
   },
   {
    "name": "moon_full",
@@ -3062,7 +3062,7 @@
     "kind": "svg",
     "file": "moon_full.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Forbici\": 40 vertices, 9 degrees per facet, which is the step the whole moon family uses. Same canvas, convention and anchor as the artwork it replaces."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\": 40 vertices, 9 degrees per facet, which is the step the whole moon family uses. Same canvas, convention and anchor as the artwork it replaces."
   },
   {
    "name": "moon_gibbous",
@@ -3088,7 +3088,7 @@
     "kind": "svg",
     "file": "moon_gibbous.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Forbici\", 40 vertices like the rest of the family. The terminator is cut, not arced: the v76.1 note this entry used to carry described an SVG arc (`A20 34 0 1 0` corrected to `A18 34 0 0 1`) that belonged to the retired artwork and no longer exists in the source. Same canvas, convention and anchor."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\", 40 vertices like the rest of the family. The terminator is cut, not arced: the v76.1 note this entry used to carry described an SVG arc (`A20 34 0 1 0` corrected to `A18 34 0 0 1`) that belonged to the retired artwork and no longer exists in the source. Same canvas, convention and anchor."
   },
   {
    "name": "moon_half",
@@ -3114,7 +3114,7 @@
     "kind": "svg",
     "file": "moon_half.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Forbici\", 40 vertices like the rest of the family. Same canvas, convention and anchor as the artwork it replaces."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\", 40 vertices like the rest of the family. Same canvas, convention and anchor as the artwork it replaces."
   },
   {
    "name": "moon_jack_o_lantern",
@@ -3140,7 +3140,7 @@
     "kind": "svg",
     "file": "moon_jack_o_lantern.svg"
    },
-   "notes": "Halloween moon, redrawn for v4.23 from concept B \"Forbici\", variant zucca/minima. Still carved rather than painted -- the face is cut out of the disc with an even-odd path, so the sky shows through the eyes, the nose and the grin, which is the same paper-cutout move as the rest of the library and the reason it still reads at 48 px across. It shares CELESTIAL_DISC_ORIGIN_UNITS with the sun and the phases, so its canvas has to match theirs exactly, and it does."
+   "notes": "Halloween moon, redrawn for v4.23 from concept B \"Scissors\", variant pumpkin/minimal. Still carved rather than painted -- the face is cut out of the disc with an even-odd path, so the sky shows through the eyes, the nose and the grin, which is the same paper-cutout move as the rest of the library and the reason it still reads at 48 px across. It shares CELESTIAL_DISC_ORIGIN_UNITS with the sun and the phases, so its canvas has to match theirs exactly, and it does."
   },
   {
    "name": "palmtree_fronds",
@@ -3166,7 +3166,7 @@
     "kind": "svg",
     "file": "palmtree_fronds.svg"
    },
-   "notes": "The coconut palm's living crown, redrawn from scratch in v5.1 from concept A \"Cocco\". Seven broad lens-shaped blades that arch and fall, each a card with its own paper shadow and a lighter fold along its back, and three coconuts under the convergence. The canvas is 56x48 units because the blades fall BELOW the attachment point, which the 40x40 canvas this replaces had no room for. Its two alternatives share this canvas and this origin."
+   "notes": "The coconut palm's living crown, redrawn from scratch in v5.1 from concept A \"Coconut\". Seven broad lens-shaped blades that arch and fall, each a card with its own paper shadow and a lighter fold along its back, and three coconuts under the convergence. The canvas is 56x48 units because the blades fall BELOW the attachment point, which the 40x40 canvas this replaces had no room for. Its two alternatives share this canvas and this origin."
   },
   {
    "name": "palmtree_fronds_dead",
@@ -10524,7 +10524,7 @@
     "kind": "svg",
     "file": "police_lightbar.svg"
    },
-   "notes": "v4.19: the bar on the police saloon's roof. Redrawn in v5.6F for \u00abRitaglio\u00bb on the same 20x6-unit canvas."
+   "notes": "v4.19: the bar on the police saloon's roof. Redrawn in v5.6F for \u00abCut-out\u00bb on the same 20x6-unit canvas."
   },
   {
    "name": "police_stripe",
@@ -10784,7 +10784,7 @@
     "kind": "svg",
     "file": "sailboat_hull.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": the hull and its deck stripe each over an offset under-paper. Bow at +x -- the sheer rises from 4.6 units at the stern to the prow at row 0. v4.31 cropped the 8 px of leading padding -- 252x51 to 246x51, an 82x17-unit canvas -- and compensated the blit origin by the 2 units removed, to (-40, 8); no drawn pixel moved. The **y** origin is untouched, which is what SAILBOAT_HULL_WATERLINE_UNITS derives its 25 from."
+   "notes": "Redrawn in v4.26 as concept B \"Relief\": the hull and its deck stripe each over an offset under-paper. Bow at +x -- the sheer rises from 4.6 units at the stern to the prow at row 0. v4.31 cropped the 8 px of leading padding -- 252x51 to 246x51, an 82x17-unit canvas -- and compensated the blit origin by the 2 units removed, to (-40, 8); no drawn pixel moved. The **y** origin is untouched, which is what SAILBOAT_HULL_WATERLINE_UNITS derives its 25 from."
   },
   {
    "name": "sailboat_sail",
@@ -10810,7 +10810,7 @@
     "kind": "svg",
     "file": "sailboat_sail.svg"
    },
-   "notes": "Redrawn in v4.26 as concept B \"Rilievo\": mast, mainsail, band, boom and jib, each over an offset under-paper. Jib forward (+x), mainsail aft. Foot at row 57 so the boom sits on the deck. v4.31 cropped the 27 px of leading and 4 px of trailing padding -- 210x180 to 180x180, a 60x60-unit canvas -- and compensated the blit origin by the 9 units removed, to (-26, -50); no drawn pixel moved. The mast was at x=43 of 70 units and is at x=34 of 60."
+   "notes": "Redrawn in v4.26 as concept B \"Relief\": mast, mainsail, band, boom and jib, each over an offset under-paper. Jib forward (+x), mainsail aft. Foot at row 57 so the boom sits on the deck. v4.31 cropped the 27 px of leading and 4 px of trailing padding -- 210x180 to 180x180, a 60x60-unit canvas -- and compensated the blit origin by the 9 units removed, to (-26, -50); no drawn pixel moved. The mast was at x=43 of 70 units and is at x=34 of 60."
   },
   {
    "name": "santa_sleigh_scene",
@@ -11096,7 +11096,7 @@
     "kind": "svg",
     "file": "star_sparkle.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Forbici\", for the doubled sprite scale that release also ships (PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR went 32 -> 16): a full waist of 24-28 units against the old ~12, four unequal points (N 82, E 78, S 74, O 76) and concave two-segment sides. The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\", for the doubled sprite scale that release also ships (PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR went 32 -> 16): a full waist of 24-28 units against the old ~12, four unequal points (N 82, E 78, S 74, W 76) and concave two-segment sides. The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it."
   },
   {
    "name": "sun_body",
@@ -11122,7 +11122,7 @@
     "kind": "svg",
     "file": "sun_body.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Forbici\": a disc cut with scissors rather than struck with a compass -- a faceted rim with a hand-cut wobble, and the paper's own cream. Same 240x240 canvas, same CANVAS_PIXELS convention and same SPRITE_CENTRE anchor as the artwork it replaces, so CELESTIAL_DISC_ORIGIN_UNITS and every call site are unchanged."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\": a disc cut with scissors rather than struck with a compass -- a faceted rim with a hand-cut wobble, and the paper's own cream. Same 240x240 canvas, same CANVAS_PIXELS convention and same SPRITE_CENTRE anchor as the artwork it replaces, so CELESTIAL_DISC_ORIGIN_UNITS and every call site are unchanged."
   },
   {
    "name": "sun_glow",
@@ -11148,7 +11148,7 @@
     "kind": "svg",
     "file": "sun_glow.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Forbici\", variant alone/v2_rifinita/c: a compass-struck ring at full opacity with a warmed gradient (0.55 #FBE289 / 0.28 #F0A03C). Same 396x396 canvas and same contentBox as the artwork it replaces, so SUN_GLOW_ORIGIN_UNITS (-198) is unchanged and the ray ring still sits outside the disc's 120 units."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\", variant halo/v2_refined/c: a compass-struck ring at full opacity with a warmed gradient (0.55 #FBE289 / 0.28 #F0A03C). Same 396x396 canvas and same contentBox as the artwork it replaces, so SUN_GLOW_ORIGIN_UNITS (-198) is unchanged and the ray ring still sits outside the disc's 120 units."
   },
   {
    "name": "taxi_checker",
@@ -11174,7 +11174,7 @@
     "kind": "svg",
     "file": "taxi_checker.svg"
    },
-   "notes": "v4.19: the chequer band, 40 units, the same width as the police stripe and for the same reason. Redrawn in v5.6F for \u00abRitaglio\u00bb."
+   "notes": "v4.19: the chequer band, 40 units, the same width as the police stripe and for the same reason. Redrawn in v5.6F for \u00abCut-out\u00bb."
   },
   {
    "name": "taxi_sign",
@@ -11200,7 +11200,7 @@
     "kind": "svg",
     "file": "taxi_sign.svg"
    },
-   "notes": "v4.19: the sign on the taxi's roof. Redrawn in v5.6F for \u00abRitaglio\u00bb on the same 14x6-unit canvas."
+   "notes": "v4.19: the sign on the taxi's roof. Redrawn in v5.6F for \u00abCut-out\u00bb on the same 14x6-unit canvas."
   },
   {
    "name": "tower_bay_fx",
@@ -11902,7 +11902,7 @@
     "kind": "svg",
     "file": "tree_canopy.svg"
    },
-   "notes": "v4.21 'Quercia larga': cuscino di fogliame piu' largo che alto (101x66 u contro 82x74), orlo smerlato, tre fasce orizzontali di carta piu' la luce sul colmo. Sostituisce l'ottagono su tronco dritto che leggeva come un lecca-lecca. Tela rifilata al contenuto, viewBox a x=2. Chioma e calotta si ri-derivano insieme: la maschera di clip di tree_canopy_snowcap e' la copia dei cerchi di questo file."
+   "notes": "v4.21 'Broad Oak': a cushion of foliage wider than it is tall (101x66 u against 82x74), a scalloped rim, three horizontal bands of paper plus the light on the top. It replaces the octagon on a straight trunk that read as a lollipop. Canvas trimmed to the content, viewBox at x=2. Crown and cap are re-derived together: the clip mask of tree_canopy_snowcap is the copy of this file's circles."
   },
   {
    "name": "tree_canopy_snowcap",
@@ -11928,7 +11928,7 @@
     "kind": "svg",
     "file": "tree_canopy_snowcap.svg"
    },
-   "notes": "v4.21: neve sul colmo della 'Quercia larga'. Il bordo superiore non e' disegnato ma RITAGLIATO sulla sagoma della chioma - la clipPath copia tutti i cerchi di tree_canopy, non solo i superiori, perche' le fasce interne sono spostate in alto a sinistra e sporgono di mezza unita'. Cosi' la calotta ripete la corona per costruzione: zero pixel fuori dalla corona, e le prime 94 righe di 114 hanno la stessa prima e ultima colonna opaca. Tela e origine della chioma (viewBox x=2, y=0, blit -50/-80): non possono scivolare l'una sull'altra. Se la chioma cambia, questa maschera si ricopia nello stesso passaggio. Lato destro e fondo rifilati al contenuto in v4.21; le 6 unita' di margine a sinistra restano perche' sono l'origine condivisa con la chioma (SNOWCAP_X == CANOPY_X)."
+   "notes": "v4.21: snow on the top of the 'Broad Oak'. The upper edge is not drawn but CUT OUT along the crown's silhouette - the clipPath copies every circle of tree_canopy, not only the upper ones, because the inner bands are shifted to the upper left and stand out by half a unit. So the cap repeats the crown by construction: zero pixels outside the crown, and the first 94 rows of 114 have the same first and last opaque column. The crown's canvas and origin (viewBox x=2, y=0, blit -50/-80): the two cannot slide over one another. If the crown changes, this mask is copied again in the same pass. Right side and bottom trimmed to the content in v4.21; the 6 units of margin on the left stay because they are the origin shared with the crown (SNOWCAP_X == CANOPY_X)."
   },
   {
    "name": "tree_dead_branches",
@@ -11954,7 +11954,7 @@
     "kind": "svg",
     "file": "tree_dead_branches.svg"
    },
-   "notes": "v4.21: corona di Halloween della 'Quercia larga' - le due braccia della forcella proseguono in rami nodosi che si allargano quanto si allargava il cuscino. Sta sulla TELA DELLA CHIOMA (303x198, stessa origine di blit) anche se il disegno ne occupa 83 unita' di 101: i rami sono naturalmente piu' stretti del fogliame, e la tela condivisa e' cio' che garantisce che incontrino il tronco dove lo incontravano le foglie. Il margine trasparente e' dichiarato, non spreco. Arte fissa nei bruni del tronco. Lato destro rifilato al contenuto in v4.21; le 11 unita' di margine a sinistra restano perche' sono l'origine condivisa con la chioma (DEAD_BRANCHES_X == CANOPY_X)."
+   "notes": "v4.21: the Halloween crown of the 'Broad Oak' - the two arms of the fork carry on into knotty branches that spread as far as the cushion spread. It sits on the CROWN'S CANVAS (303x198, the same blit origin) although the drawing takes 83 units of its 101: branches are naturally narrower than foliage, and the shared canvas is what guarantees that they meet the trunk where the leaves met it. The transparent margin is declared, not waste. Fixed art in the trunk's browns. Right side trimmed to the content in v4.21; the 11 units of margin on the left stay because they are the origin shared with the crown (DEAD_BRANCHES_X == CANOPY_X)."
   },
   {
    "name": "tree_fir",
@@ -11980,7 +11980,7 @@
     "kind": "svg",
     "file": "tree_fir.svg"
    },
-   "notes": "v4.21: l'abete della 'Quercia larga' - tozzo e largo come la latifoglia accanto a cui sta, tre falde piene tagliate quasi dritte, ciascuna con la sua inclinazione, come carta tagliata a mano libera. Stella in punta (quattro punte, la stessa lingua delle altre proposte, allargata a 6.5x7.5 mezze diagonali per le proporzioni di questa scocca). 122 unita' come la latifoglia: una sola famiglia metro-per-unita' governa entrambe."
+   "notes": "v4.21: the fir of the 'Broad Oak' - squat and broad like the broadleaf it stands beside, three full tiers cut almost straight, each with its own tilt, like paper cut freehand. A star on the tip (four points, the same language as the other proposals, widened to 6.5x7.5 half-diagonals for the proportions of this body). 122 units like the broadleaf: a single metres-per-unit family governs both."
   },
   {
    "name": "tree_fir_snow",
@@ -12006,7 +12006,7 @@
     "kind": "svg",
     "file": "tree_fir_snow.svg"
    },
-   "notes": "v4.21: neve sulle spalle delle tre falde, con la stessa lieve inclinazione di ciascuna. Tela rifilata al contenuto (viewBox 14 10 56 78 nel frame di tree_fir), quindi ha ORIGINE DI BLIT PROPRIA (-28,-112) contro la (-40,-122) dell'abete: le due si ricavano dalla stessa viewBox e vanno mosse insieme. Il rifilo recupera 211 680 B, la voce piu' grossa del budget v4.21."
+   "notes": "v4.21: snow on the shoulders of the three tiers, with the same slight tilt as each of them. Canvas trimmed to the content (viewBox 14 10 56 78 in tree_fir's frame), so it has a BLIT ORIGIN OF ITS OWN (-28,-112) against the fir's (-40,-122): the two are derived from the same viewBox and have to be moved together. The trim recovers 211 680 B, the largest item of the v4.21 budget."
   },
   {
    "name": "tree_trunk",
@@ -12032,7 +12032,7 @@
     "kind": "svg",
     "file": "tree_trunk.svg"
    },
-   "notes": "v4.21: tronco tozzo della 'Quercia larga' - sagoma unica, base svasata, forcella a V le cui braccia entrano nel cuscino di fogliame, doppio piede radicale, banda d'ombra sul fianco destro. 32x62 u contro i 10x44 del fuso dritto precedente."
+   "notes": "v4.21: the squat trunk of the 'Broad Oak' - a single silhouette, a flared base, a V fork whose arms enter the foliage cushion, a double root foot, a shadow band on the right flank. 32x62 u against the 10x44 of the straight shaft before it."
   },
   {
    "name": "umbrella_canopy",
@@ -12058,7 +12058,7 @@
     "kind": "svg",
     "file": "umbrella_canopy.svg"
    },
-   "notes": "v4.28 canopy U1 \"Alta\": a round dome of six alternating panels, 48x24 units. One blit in the walker's own transform, so it mirrors with the figure and costs nothing per season, family or tone. Tintable: the colour is picked per pedestrian from SceneObjectRenderer.UMBRELLA_PALETTE. The handle is a rectangle drawn in code from the hand to the crown -- the parasol pole's recipe -- so the same pose can carry any object later without new artwork."
+   "notes": "v4.28 canopy U1 \"Tall\": a round dome of six alternating panels, 48x24 units. One blit in the walker's own transform, so it mirrors with the figure and costs nothing per season, family or tone. Tintable: the colour is picked per pedestrian from SceneObjectRenderer.UMBRELLA_PALETTE. The handle is a rectangle drawn in code from the hand to the crown -- the parasol pole's recipe -- so the same pose can carry any object later without new artwork."
   },
   {
    "name": "water_splash0",
@@ -12136,7 +12136,7 @@
     "kind": "svg",
     "file": "wave_tube_body.svg"
    },
-   "notes": "v4.28 wave WA3 \"Tubo\", the body: the face under the lip, with the hollow beneath it. 120x44 units, the steep face to +x (the direction of travel) and the long back to -x. Tinted per frame to the luma WaveTint derives from the water under it -- see PaperRenderer.WAVE_BODY_LUMA_GAP and WaveContrastTest."
+   "notes": "v4.28 wave WA3 \"Tube\", the body: the face under the lip, with the hollow beneath it. 120x44 units, the steep face to +x (the direction of travel) and the long back to -x. Tinted per frame to the luma WaveTint derives from the water under it -- see PaperRenderer.WAVE_BODY_LUMA_GAP and WaveContrastTest."
   },
   {
    "name": "wave_tube_crest",
@@ -12162,7 +12162,7 @@
     "kind": "svg",
     "file": "wave_tube_crest.svg"
    },
-   "notes": "v4.28 wave WA3 \"Tubo\", the foam: the lip curling forward into a tube and the spray thrown ahead of it. Same 120x44 canvas as wave_tube_body so the two blit at one origin. Always the lighter of the two papers -- see WaveTint.foamLuma."
+   "notes": "v4.28 wave WA3 \"Tube\", the foam: the lip curling forward into a tube and the spray thrown ahead of it. Same 120x44 canvas as wave_tube_body so the two blit at one origin. Always the lighter of the two papers -- see WaveTint.foamLuma."
   }
  ],
  "retiredBases": {}

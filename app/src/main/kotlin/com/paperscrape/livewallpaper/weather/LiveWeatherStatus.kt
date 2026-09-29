@@ -41,8 +41,8 @@ enum class LiveWeatherStatus(val storageId: String) {
      *
      * The sibling of [MISSING_API_KEY], and separated from [FAILED]/[STALE] for the reason
      * [WeatherHttp.statusToFailure] already gives for classifying 401 apart from a transport
-     * error: the service was reached, it gave a definite answer, and no amount of waiting or
-     * retrying changes it -- only the user can. Collapsing it into [FAILED] is what made a
+     * error: the service was reached and gave a definite answer, and retrying sooner does not
+     * change it, so the loop keeps its hourly interval. Collapsing it into [FAILED] is what made a
      * rejected key report itself as *"could not be reached"*, which says the opposite of what
      * happened and sends the user looking at their connection instead of at their key.
      *
@@ -51,7 +51,8 @@ enum class LiveWeatherStatus(val storageId: String) {
      * active -- so a user who has just signed up, pasted a perfectly correct key and turned the
      * provider on gets a 401 for a key that is not wrong, merely not live yet. Open-Meteo needs no
      * key at all and WeatherAPI.com's works the moment it is issued, which is why this only ever
-     * bit OpenWeather in practice.
+     * bit OpenWeather in practice -- and the hourly retry is what lets such a key start working on
+     * its own, with nothing for the user to do.
      */
     REJECTED_API_KEY("rejected_api_key"),
 

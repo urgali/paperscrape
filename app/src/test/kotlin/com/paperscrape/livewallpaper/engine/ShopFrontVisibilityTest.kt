@@ -376,7 +376,7 @@ class ShopFrontVisibilityTest {
         val g = refH * SceneSpace.groundYFraction(o.depthFraction)
         val x = o.tileFractionX * tile
         return when (v) {
-            // v4.21 "Quercia larga": stem 32x62 u at (-16,-62). The crown is no longer a literal
+            // v4.21 "Broad Oak": stem 32x62 u at (-16,-62). The crown is no longer a literal
             // here -- see `crowns` below.
             SceneSpace.SceneVariant.TREE ->
                 crowns(SpriteOccluderTable.TREE_CROWN, x, g, s) +

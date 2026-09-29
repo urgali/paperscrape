@@ -44,9 +44,9 @@ class SpriteCanvasConventionTest {
     /** Sprites whose transparent margin is deliberate because an anchor is measured against it. */
     private val marginIsLoadBearing = setOf(
         // **v4.28 puts `bird_body` back here, and the reason is the opposite of v4.26's.** v4.26
-        // removed it because concept A "Colomba" filled its 51x21 canvas, so the flap axis -- canvas
+        // removed it because concept A "Dove" filled its 51x21 canvas, so the flap axis -- canvas
         // row 15, which `BIRD_SPRITE_ORIGIN_Y_PX -15` blits against -- was carried by the drawing
-        // itself. B1 "Rondine" is a swallow: a forked tail and swept-back wings do not reach the
+        // itself. B1 "Swallow" is a swallow: a forked tail and swept-back wings do not reach the
         // canvas corners, and trimming the canvas onto them would move row 15 and with it the axis
         // the wing-beat mirrors about. The margin is the registration, exactly as it is for the
         // moons, so it is declared rather than trimmed away.
@@ -61,12 +61,6 @@ class SpriteCanvasConventionTest {
         // the two register exactly; the eyes and the grin sit well inside the fruit, so the margin
         // around them is the body it is cut into and is as load-bearing as any anchor here.
         "pumpkin_face",
-        // v4.20. A registration crop: the overlay is authored in the shell's own coordinates and
-        // its margin is the lamp housings' surround, which is what keeps a lit lamp inside its
-        // housing at night.
-        "car_lights",
-        // rc4. The day twin of car_lights: same viewBox, same registration, unlit colours.
-        "car_lights_day",
         "star_sparkle",
         "sun_body",
         "sun_glow",
@@ -195,7 +189,7 @@ class SpriteCanvasConventionTest {
         // carrying frames and the twenty-four walking ones already do. The pose's 34 region masks
         // do not reach an edge and cannot; see the exemption above.
         // 214 in v5.6F, and it falls for two reasons that are both constructions rather than
-        // waste. The seven «Ritaglio» vehicle sheets left the count: a body is drawn a unit inside
+        // waste. The seven «Cut-out» vehicle sheets left the count: a body is drawn a unit inside
         // its canvas so the cut edge's wobble has room, and a glass sheet is drawn a unit *outside*
         // the hole it fills so no seam opens behind the paper -- see `VEHICLE_SHEET`. The school
         // put three back: its fixed art, its wall mask and its snow cap each reach an edge of the
@@ -236,7 +230,7 @@ class SpriteCanvasConventionTest {
          * exemption as the neighbourhood's.** Every vehicle sprite is authored in one coordinate
          * system -- the road at y=37, the nose and tail at the body's own half-length -- and every
          * one of them is blitted at its own viewBox minimum, so sixteen PNGs and about thirty
-         * constants in `CarShell` and `SceneObjectRenderer` all read the same numbers. «Ritaglio»
+         * constants in `CarShell` and `SceneObjectRenderer` all read the same numbers. «Cut-out»
          * is what put a margin round them: a body's shell is drawn a unit inside its canvas so the
          * cut edge's wobble has room, and a glass sheet is *deliberately* half a unit larger than
          * the hole it fills on every side plus half a unit of canvas, because the sheet lies behind

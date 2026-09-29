@@ -12,10 +12,11 @@ import org.junit.Test
  * `SceneObjectRenderer.draw` ran the vehicle loop and *then* `drawPeople`, so a walking figure was
  * painted over the traffic. That is wrong for every arrangement the app can reach -- the pavement
  * rows are 0.795 and 0.807, the lanes 0.834 and 0.862 -- and it was only invisible because the two
- * have to coincide in x before anything shows. Measured across the shipped catalogue before the
- * fix: the deepest figure the generator produces stands **0.0100 of screen height below a far-lane
- * car's roof line**, which is 24 px on a 2400 px screen and 32 px against a police light bar, and
- * it painted its shoes across the roof whenever a car passed behind it.
+ * have to coincide in x before anything shows. Measured across the shipped catalogue when the
+ * order was fixed (v4.6): the deepest figure the generator produces stood **0.0100 of screen height
+ * below a far-lane car's roof line**, 24 px on a 2400 px screen and 32 px against a police light
+ * bar, and it painted its shoes across the roof whenever a car passed behind it. The cars have
+ * grown since, and the test below holds today's figure: 0.0119, 28.5 px.
  *
  * ### Why this is arithmetic and not a golden
  *

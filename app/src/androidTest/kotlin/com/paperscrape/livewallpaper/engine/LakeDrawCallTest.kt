@@ -3,7 +3,6 @@ package com.paperscrape.livewallpaper.engine
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.RectF
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertTrue
@@ -53,10 +52,6 @@ class LakeDrawCallTest {
 
         override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) {
             calls++; delegate.drawOval(left, top, right, bottom, paint)
-        }
-
-        override fun drawArc(oval: RectF, startAngle: Float, sweepAngle: Float, paint: Paint) {
-            calls++; delegate.drawArc(oval, startAngle, sweepAngle, paint)
         }
 
         override fun drawWedge(cx: Float, cy: Float, radius: Float, startAngle: Float, sweepAngle: Float, paint: Paint) {

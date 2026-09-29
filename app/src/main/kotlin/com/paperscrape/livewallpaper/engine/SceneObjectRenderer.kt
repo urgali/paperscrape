@@ -232,6 +232,13 @@ class SceneObjectRenderer(
 
     companion object {
 
+        /**
+         * The penguin's belly, one of the two colours that never belonged to a sprite (see
+         * `penguinBellyColor`). Here rather than in the instance so the gallery card paints the
+         * same white: it carried a copy, `#F7FAFC`, until v5.9G.
+         */
+        const val PENGUIN_BELLY_COLOR = 0xFFF3F7FB.toInt()
+
         /** The road's asphalt by day and by night; [roadColor] blends the two on the day ramp. */
         const val ROAD_COLOR_DAY = 0xFF5B5650.toInt()
         const val ROAD_COLOR_NIGHT = 0xFF29271F.toInt()
@@ -360,53 +367,6 @@ class SceneObjectRenderer(
         // The stale doc comment on the old count claimed people had no density setting; they have
         // had one (`config.density` plus `peopleNightDensity`) since well before this release.
 
-        const val SMALL_HOUSE_WINDOWS = 2
-        const val LARGE_HOUSE_WINDOWS = 4
-        const val BAR_WINDOWS = 3
-        const val RESTAURANT_WINDOWS = 2
-
-        const val RESTAURANT_UPPER_WINDOW_LEFT_X = -42f
-        const val RESTAURANT_UPPER_WINDOW_RIGHT_X = 20f
-        const val RESTAURANT_UPPER_WINDOW_Y = -82f
-
-        const val RESTAURANT_AWNING_X = -46f
-        const val RESTAURANT_AWNING_Y = -53f
-        const val RESTAURANT_SIGN_X = -46f
-        const val RESTAURANT_SIGN_Y = -66f
-        const val RESTAURANT_PLANTER_LEFT_X = -42f
-        const val RESTAURANT_PLANTER_RIGHT_X = 24f
-        const val RESTAURANT_PLANTER_Y = -6f
-
-        const val RESTAURANT_CORNICE_X = -55f
-        const val RESTAURANT_CORNICE_Y = -108f
-        const val BAR_CORNICE_X = -50f
-        const val BAR_CORNICE_Y = -108f
-
-        const val RESTAURANT_ROOF_SNOW_X = -26f
-        const val RESTAURANT_ROOF_SNOW_Y = -111.5f
-        const val BAR_ROOF_SNOW_X = -50f
-        const val BAR_ROOF_SNOW_Y = -110.5f
-
-        const val BAR_FRONT_FIELD_LEFT_X = -43f
-        const val BAR_FRONT_FIELD_RIGHT_X = 43f
-        const val BAR_FRONT_FIELD_TOP_Y = -53f
-        const val BAR_FRONT_EDGE_HEIGHT = 1.6f
-        val BAR_FRONT_DAY = 0xFF3E5F4E.toInt()
-        val BAR_FRONT_NIGHT = 0xFF243A2D.toInt()
-        val BAR_FRONT_EDGE_DAY = 0xFF33503F.toInt()
-        val BAR_FRONT_EDGE_NIGHT = 0xFF1D2F25.toInt()
-        const val BAR_FRONT_PANE_LEFT_X = -37f
-        const val BAR_FRONT_PANE_RIGHT_X = 13f
-        const val BAR_FRONT_PANE_Y = -45f
-        const val BAR_DOOR_X = -7f
-        const val BAR_SIGN_X = -41f
-        const val BAR_SIGN_Y = -61f
-        const val BAR_LANTERN_X = -43f
-        const val BAR_LANTERN_Y = -51f
-
-        const val BAR_LANTERN_GLOW_X = -40f
-        const val BAR_LANTERN_GLOW_Y = -46f
-        const val BAR_LANTERN_GLOW_RADIUS = 5.5f
         /**
          * Cool glass by day, warm light at night: the two ends every window in the scene
          * crossfades between, on the scene's own `nightGlow`.
@@ -432,12 +392,6 @@ class SceneObjectRenderer(
          */
         fun windowGlassColor(nightGlow: Float): Int =
             SceneColour.blendArgb(WINDOW_GLASS_DAY, WINDOW_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
-
-        const val SKYSCRAPER_WINDOWS = 16
-
-        const val RESTAURANT_PANE_A_CENTRE_X = -27.2f
-        const val RESTAURANT_PANE_B_CENTRE_X = -13.3f
-        const val RESTAURANT_WINDOW_Y = -45f
 
         /**
          * A 22-unit occupant box, read today only by `UnitFrameTest` and `SpriteDrawScaleTest`;
@@ -647,8 +601,7 @@ class SceneObjectRenderer(
         const val FIRE_TRUCK_LAMP_REAR_X_UNITS = 45.5f
         const val FIRE_TRUCK_LAMP_REAR_Y_UNITS = 4f
 
-        /** What a lamp is when it is lit. Warm for a headlight, saturated for a beacon. */
-        const val HEADLIGHT_LIT = 0xFFFFF0BE.toInt()
+        /** What a lamp is when it is lit. Warm for the taxi's sign, saturated for a beacon. */
         const val TAXI_SIGN_LIT = 0xFFFFE9A8.toInt()
         val BEACON_RED_LIT = 0xFFFF6A57.toInt()
         val BEACON_BLUE_LIT = 0xFF6E9BFF.toInt()
@@ -736,7 +689,7 @@ class SceneObjectRenderer(
          *
          * **v5.6F: the pane and the sprite are no longer the same rectangle.**
          *
-         * «Ritaglio» puts the glass *behind* the body paper and cuts the panes out of it, so the
+         * «Cut-out» puts the glass *behind* the body paper and cuts the panes out of it, so the
          * glass sheet is grown half a unit past every edge of the hole -- otherwise a seam opens
          * between two papers that are supposed to be layered -- and its canvas carries another
          * half unit. The pane therefore runs -12..13 inside a sprite blitted at -13 and 27 units
@@ -791,7 +744,7 @@ class SceneObjectRenderer(
          *
          * **v4.25: 23.7 on the artwork this replaced, and the measurement rule had to change with
          * it.** The old rule took the jaw as the end of the face's first contiguous run of skin
-         * rows, which worked while the neck was drawn in something other than skin. B "Rilievo"
+         * rows, which worked while the neck was drawn in something other than skin. B "Relief"
          * draws the neck in skin, so that run now ends below the collar and read 29.7 -- a head
          * half again too tall, on a constant every head in the scene derives from. The rule is now
          * the width: the head is the wide part of the skin and the neck a strip a third of it.
@@ -822,7 +775,7 @@ class SceneObjectRenderer(
          * on the table and a child's comes out 10% shorter, which is what a child is.
          *
          * **The measuring rule is the one thing here that is a decision.** This read 35 until
-         * v4.25, taken with the jaw at the end of the face's first run of skin rows; B "Rilievo"
+         * v4.25, taken with the jaw at the end of the face's first run of skin rows; B "Relief"
          * draws the neck in skin, so that rule ran past the collar, the busts read three units
          * taller than they are, and the occupants shipped **17% too small** on the device --
          * because this constant and the pedestrian constant it is compared against were being
@@ -937,7 +890,7 @@ class SceneObjectRenderer(
          *
          * Until v5.5 a car's glass was one hole and the light between the two heads was empty, so
          * a 2.6-unit bar of upholstery was painted into it to say there was a seat there.
-         * «Ritaglio» cuts *two* holes with a 3.5-unit pillar of body paper between them, exactly
+         * «Cut-out» cuts *two* holes with a 3.5-unit pillar of body paper between them, exactly
          * where that bar stood -- x 0.5 to 4, against the bar's 1.7 to 4.3 -- so the mark is drawn
          * out of the artwork instead of out of code, and the shoulders close over its lower half
          * the way they always did.
@@ -971,14 +924,14 @@ class SceneObjectRenderer(
          * arches concentric with the tyre at a unit of air, the same corner radii and the same
          * darker lower band, both lamp lenses shared with the cars, and a cab-over nose with an
          * upright windscreen that has room for a table-sized head. (The arches went with v5.6F;
-         * the rest of that vocabulary is what «Ritaglio» re-cut it in.)
+         * the rest of that vocabulary is what «Cut-out» re-cut it in.)
          *
          * The canvas now reaches the ladder, so the body's own origin is the sprite's top-left
          * and [SceneSpace.FIRE_TRUCK_SPRITE_UNITS_TALL] is still 68 -- the vehicle did not change
          * size, only drawing. The cab roof stays eight units below the body roof, which is the one
          * line that says truck rather than scaled-up car.
          *
-         * **v5.6F redraws it in «Ritaglio»'s language, on a 100x53 canvas at (-50,-25).**
+         * **v5.6F redraws it in «Cut-out»'s language, on a 100x53 canvas at (-50,-25).**
          * The proposal round authored it at 104x60 on (-51,-26) and `paperscrape-assets normalize
          * --apply` took the four transparent units off the right and the seven off the bottom and
          * the one off each of the other two sides, which is 30 240 B of decoded memory and moved
@@ -1185,7 +1138,7 @@ class SceneObjectRenderer(
      * greyscale mask in V2, so both are tints in the sense the word is meant to carry.
      */
     private val parasolPoleColor = 0xFFEFE0CE.toInt()
-    private val penguinBellyColor = 0xFFF3F7FB.toInt()
+    private val penguinBellyColor = PENGUIN_BELLY_COLOR
 
     // Road (drawn under any cars the theme has); its asphalt is [ROAD_COLOR_DAY]/[ROAD_COLOR_NIGHT]
     private val roadEdgeColor = 0xFF3D3A33.toInt()
@@ -1502,7 +1455,7 @@ class SceneObjectRenderer(
         // over its own stem, which was every variant until v5.1's palm leaned.
         val centreXUnits: Float
         when (variant) {
-            // v4.21, re-derived for the "Quercia larga" and not carried over: the crown is
+            // v4.21, re-derived for the "Broad Oak" and not carried over: the crown is
             // `tree_canopy`'s 101x66 u of content blitted at (-50,-80) inside the -38 lift, so in
             // object space it is x -50..51, y -118..-52. Centre -85, half-height 33, half-width 51
             // (the wider of the two sides, so the band covers the whole crown). The band is 24%
@@ -1511,7 +1464,7 @@ class SceneObjectRenderer(
             SceneSpace.SceneVariant.TREE -> {
                 centreUnits = -85f; halfHeightUnits = 33f; halfWidthUnits = 51f; centreXUnits = 0f
             }
-            // v5.1, re-derived for the "Cocco" palm and not carried over: the crown is a 56x48-unit
+            // v5.1, re-derived for the "Coconut" palm and not carried over: the crown is a 56x48-unit
             // canvas (its drawing plus a transparent guard), blitted at (-21,-82), so in object
             // space the canvas is x -21..35, y -82..-34. Centre (7,-58), half-height 24,
             // half-width 28. Both the width and the offset are consequences of the artwork -- a
@@ -1777,11 +1730,12 @@ class SceneObjectRenderer(
         // constants moves the test fails instead of the picture.
         //
         // Until v4.6 this call came last. Nothing but the two orders differ: the deepest figure
-        // sits 0.0100 of screen height below a far-lane car's roof line -- 24 px on a 2400 px
-        // screen, 32 px against a police light bar -- and painted its shoes across the roof
-        // whenever the two happened to coincide in x. `drawPeople` draws walking pedestrians and
-        // nothing else (window occupants belong to their building, drivers and passengers to
-        // their car), so moving it changes that one relationship and no other.
+        // stands below a far-lane car's roof line -- 0.0119 of screen height, 28.5 px on a 2400 px
+        // screen, as `PeopleTrafficDepthTest` measures it today (0.0100 and 24 px when the order
+        // was fixed, before the cars grew), more against a police light bar -- and painted its
+        // shoes across the roof whenever the two happened to coincide in x. `drawPeople` draws
+        // walking pedestrians and nothing else (window occupants belong to their building, drivers
+        // and passengers to their car), so moving it changes that one relationship and no other.
         drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend)
 
         for (c in carRuntimes) {
@@ -2193,15 +2147,14 @@ class SceneObjectRenderer(
      * Its surface pattern does advance, though, and it does so on the same shared
      * `scrollSpeed` every other scrolling element uses -- not an independent rate. This
      * used to advance the dashed line by its own fixed `elapsedSeconds`-driven speed, unrelated to
-     * [scrollSpeed]/swipe scroll entirely -- both wrong in the same direction the reference
-     * corrects (a made-up independent rate) and the reported bug (dashes racing at a fixed pace no
-     * matter how fast or slow -- or whether at all -- the rest of the scene was actually
-     * scrolling). [shiftXWrapped]/[tileWidth] are the *exact* same values the nearest object row
-     * already scrolls by (they're identical across every row now that there's a single hill
-     * layer -- see `PaperRenderer.drawHillLayers`'s own doc comment), so the dashes are
-     * guaranteed to read as flowing at the same rate as everything else around them, including
-     * responding immediately to swipes and the scroll-speed setting, with zero new state to keep
-     * in sync.
+     * [scrollSpeed]/swipe scroll entirely -- a made-up independent rate, which was the reported
+     * bug (dashes racing at a fixed pace no matter how fast or slow -- or whether at all -- the
+     * rest of the scene was actually scrolling). [shiftXWrapped]/[tileWidth] are the *exact* same
+     * values the nearest object row already scrolls by (they're identical across every row now
+     * that there's a single hill layer -- see `PaperRenderer.drawHillLayers`'s own doc comment),
+     * so the dashes are guaranteed to read as flowing at the same rate as everything else around
+     * them, including responding immediately to swipes and the scroll-speed setting, with zero new
+     * state to keep in sync.
      */
     private fun drawRoad(canvas: SceneCanvas, dayBlend: Float, screenWidth: Float, screenHeight: Float, shiftXWrapped: Float, tileWidth: Float) {
         // Drawn whenever the theme has a road and the Cars category is switched on. Density is
@@ -2656,7 +2609,7 @@ class SceneObjectRenderer(
      */
     private fun drawFir(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime) {
         drawGroundShadow(canvas, 26f)
-        // v4.21: the stocky fir of the "Quercia larga" family -- `tree_fir` is 240x366 px = 80x122
+        // v4.21: the stocky fir of the "Broad Oak" family -- `tree_fir` is 240x366 px = 80x122
         // u, content filling its canvas, so it blits at (-40,-122) and stands x -40..40.
         drawSprite(canvas, R.drawable.tree_fir, -40f, -122f)
         if (customization.winterColorsEnabled) {
@@ -2796,9 +2749,6 @@ class SceneObjectRenderer(
     private val christmasLightColors = intArrayOf(
         0xFFE8564F.toInt(), 0xFFFFD54F.toInt(), 0xFF4F8FBF.toInt(), 0xFF6FCF6F.toInt(),
     )
-    private val restaurantUpperWindowX =
-        floatArrayOf(RESTAURANT_UPPER_WINDOW_LEFT_X, RESTAURANT_UPPER_WINDOW_RIGHT_X)
-    private val barFrontPaneX = floatArrayOf(BAR_FRONT_PANE_LEFT_X, BAR_FRONT_PANE_RIGHT_X)
 
     /**
      * Where the lights sit, as offsets in a **unit disc** rather than in local units.
@@ -3481,7 +3431,7 @@ class SceneObjectRenderer(
         }
 
         // Wheels: a disc of ink with a smaller disc of light card on it, drawn **after** the
-        // body and its occupants, because in «Ritaglio» the wheel is a whole circle glued on top
+        // body and its occupants, because in «Cut-out» the wheel is a whole circle glued on top
         // of the paper rather than a tyre showing through an arch. The treatment is shared by
         // every vehicle in the fleet; where the wheels stand is not, because each body carries its
         // own wheelbase. The estate's are asymmetric (-42 and +40), which is what a long load bay

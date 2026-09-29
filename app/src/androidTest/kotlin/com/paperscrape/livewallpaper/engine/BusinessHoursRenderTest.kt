@@ -6,7 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The business hours, on rendered pixels (v4.22 Fase 4).
+ * The business hours, on rendered pixels (v4.22 Phase 4).
  *
  * The scene is the desert theme -- the one whose commercial frontage the `people-commercial`
  * golden proves populated -- rendered at a chosen scene hour. Three claims:

@@ -14,29 +14,29 @@ edges reuse the wobble helpers of the v4.26 sky-and-water generator
 Three families, three proposals each:
 
 **Birds** -- 51x21 canvas pixels, ``CANVAS_PIXELS``, flap axis at row 15, tintable mask: the
-shipped canvas, origin and call site. The shipped "Colomba" raises both wings *forward*, and at
+shipped canvas, origin and call site. The shipped "Dove" raises both wings *forward*, and at
 48 px the two humps are the largest shape in the outline and read as a fanned tail, so the eye
 turns the animal round. All three proposals move the largest shape behind the head:
 
-    B1 "Rondine"           deep forked tail, sickle wings swept back, small head, short beak
-    B2 "Gabbiano lungo"    long shallow-V wings tilted back, a longer neck and beak, wedge tail
-    B3 "Colomba corretta"  the shipped body, wings rotated back, a longer beak, a notched fan
+    B1 "Swallow"           deep forked tail, sickle wings swept back, small head, short beak
+    B2 "Long gull"         long shallow-V wings tilted back, a longer neck and beak, wedge tail
+    B3 "Corrected dove"    the shipped body, wings rotated back, a longer beak, a notched fan
 
 **Umbrellas** -- ``SCENE_UNITS`` (3 px per unit), tintable mask, one sprite for every walker: it
 is a separate blit drawn in the figure's own transform, so season, tone, family and direction
 cost nothing. The handle is a rectangle drawn in code (the parasol pole's recipe). Panels
 alternate white and a light grey, which is the parasol's stripe fan said as a mask.
 
-    U1 "Alta"        a round dome, 48x24 units      (O1 upright, O2 = O1 rotated 12 deg)
-    U3 "Piatta"      a shallow wide canopy, 54x18   (O3)
+    U1 "Tall"        a round dome, 48x24 units      (O1 upright, O2 = O1 rotated 12 deg)
+    U3 "Flat"        a shallow wide canopy, 54x18   (O3)
 
 **Waves** -- ``SCENE_UNITS``, tintable mask, **foam only**: the body of the wave is transparent,
 so the mirror shows through and what is drawn is the whitecap and a band of shade under it. One
 blit per wave, tinted with a colour derived per frame from the water's own surface.
 
-    W1 "Cavallone"      one curling crest with a frothy lip, two frames, 84x24 units
-    W2 "Cresta doppia"  two low foam patches on one swell, 96x18
-    W3 "Increspature"   a small foam tick, 36x12
+    W1 "Breaker"        one curling crest with a frothy lip, two frames, 84x24 units
+    W2 "Double crest"   two low foam patches on one swell, 96x18
+    W3 "Ripples"        a small foam tick, 36x12
 """
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ BIRD_W, BIRD_H, AXIS = 51, 21, 15.0
 BIRD_WOBBLE = 0.4   # the sprite is drawn 1:1, so a cut wider than half a pixel is a cut
 
 
-def bird_rondine() -> list[str]:
+def bird_swallow() -> list[str]:
     a = AXIS
     far_wing = [(35, a - 3.2), (31, a - 5.6), (25, a - 8.6), (19, a - 11.0), (15, a - 12.0),
                 (18, a - 9.8), (22.5, a - 7.2), (26, a - 4.4), (27.5, a - 2.6)]
@@ -101,7 +101,7 @@ def bird_rondine() -> list[str]:
             poly(cut(near_wing, "b1-near", BIRD_WOBBLE), WHITE)]
 
 
-def bird_gabbiano_lungo() -> list[str]:
+def bird_long_gull() -> list[str]:
     a = AXIS
     far_wing = [(36, a - 3.0), (32, a - 5.0), (26, a - 7.6), (19, a - 10.4), (12.5, a - 12.4),
                 (15, a - 10.0), (20, a - 7.4), (25.5, a - 4.6), (29, a - 2.8)]
@@ -117,8 +117,8 @@ def bird_gabbiano_lungo() -> list[str]:
             poly(cut(near_wing, "b2-near", BIRD_WOBBLE), WHITE)]
 
 
-def bird_colomba_corretta() -> list[str]:
-    """The shipped Colomba's body, head and beak, with the wings rotated to point back."""
+def bird_corrected_dove() -> list[str]:
+    """The shipped Dove's body, head and beak, with the wings rotated to point back."""
     a = AXIS
     far_wing = [(27, a - 2.8), (24, a - 6.8), (19, a - 10.6), (13.5, a - 12.6), (13, a - 10.6),
                 (17, a - 7.6), (21.5, a - 4.4), (23, a - 2.4)]
@@ -137,9 +137,9 @@ def bird_colomba_corretta() -> list[str]:
 
 
 BIRDS = {
-    "bird_concept1": ("B1 Rondine: forked tail, sickle wings swept back.", bird_rondine),
-    "bird_concept2": ("B2 Gabbiano lungo: long shallow-V wings tilted back, longer neck and beak.", bird_gabbiano_lungo),
-    "bird_concept3": ("B3 Colomba corretta: the shipped body with the wings rotated back and a longer beak.", bird_colomba_corretta),
+    "bird_concept1": ("B1 Swallow: forked tail, sickle wings swept back.", bird_swallow),
+    "bird_concept2": ("B2 Long gull: long shallow-V wings tilted back, longer neck and beak.", bird_long_gull),
+    "bird_concept3": ("B3 Corrected dove: the shipped body with the wings rotated back and a longer beak.", bird_corrected_dove),
 }
 
 
@@ -173,8 +173,8 @@ def canopy(width: float, height: float, panels: int, scallop: float, seed: str) 
 
 
 UMBRELLAS = {
-    "umbrella_concept1": (48, 24, "U1 Alta: a round dome of six panels.", lambda: canopy(48, 24, 6, 2.2, "u1")),
-    "umbrella_concept3": (54, 18, "U3 Piatta: a shallow wide canopy of seven panels.", lambda: canopy(54, 18, 7, 1.6, "u3")),
+    "umbrella_concept1": (48, 24, "U1 Tall: a round dome of six panels.", lambda: canopy(48, 24, 6, 2.2, "u1")),
+    "umbrella_concept3": (54, 18, "U3 Flat: a shallow wide canopy of seven panels.", lambda: canopy(54, 18, 7, 1.6, "u3")),
 }
 
 
@@ -195,7 +195,7 @@ def frothy(points, bumps: int, depth: float, seed: str):
     return cut(out, seed, 0.3)
 
 
-def wave_cavallone(frame: int) -> list[str]:
+def wave_breaker(frame: int) -> list[str]:
     """A curling crest: the lip runs up the back of the swell and tips forward, with bubbles
     thrown off the tip. Two frames: the lip and the bubbles move, the crest does not."""
     shift = 0.0 if frame == 0 else 2.5
@@ -211,7 +211,7 @@ def wave_cavallone(frame: int) -> list[str]:
     return out
 
 
-def wave_cresta_doppia() -> list[str]:
+def wave_double_crest() -> list[str]:
     out = []
     for i, (x0, x1, y) in enumerate([(4, 46, 9.0), (52, 92, 7.0)]):
         top = [(x0, y + 6), (x0 + 8, y + 2), ((x0 + x1) / 2, y - 3), (x1 - 8, y + 1), (x1, y + 5)]
@@ -223,7 +223,7 @@ def wave_cresta_doppia() -> list[str]:
     return out
 
 
-def wave_increspatura() -> list[str]:
+def wave_ripples() -> list[str]:
     top = [(2, 9), (8, 5), (14, 2.8), (20, 4.4), (26, 2.6), (33, 6.5)]
     bottom = [(30, 8.6), (24, 6.8), (18, 8.4), (12, 7.6), (6, 10.6)]
     lip = frothy(top, 3, 1.2, "w3-lip") + bottom
@@ -232,10 +232,10 @@ def wave_increspatura() -> list[str]:
 
 
 WAVES = {
-    "wave_concept1_frame0": (84, 24, "W1 Cavallone, frame 0.", lambda: wave_cavallone(0)),
-    "wave_concept1_frame1": (84, 24, "W1 Cavallone, frame 1.", lambda: wave_cavallone(1)),
-    "wave_concept2": (96, 18, "W2 Cresta doppia.", wave_cresta_doppia),
-    "wave_concept3": (36, 12, "W3 Increspature.", wave_increspatura),
+    "wave_concept1_frame0": (84, 24, "W1 Breaker, frame 0.", lambda: wave_breaker(0)),
+    "wave_concept1_frame1": (84, 24, "W1 Breaker, frame 1.", lambda: wave_breaker(1)),
+    "wave_concept2": (96, 18, "W2 Double crest.", wave_double_crest),
+    "wave_concept3": (36, 12, "W3 Ripples.", wave_ripples),
 }
 
 
@@ -255,7 +255,7 @@ def lip(top_pts, under_pts, bumps, depth, seed):
 
 
 def wave_a() -> dict:
-    """WA "Cavallone con corpo", 132x36 units: one big breaker leaning into +x, a dark face under
+    """WA "Breaker with a body", 132x36 units: one big breaker leaning into +x, a dark face under
     a thick foam crest, bubbles thrown off the tip."""
     body = mound([(6, 33), (22, 26), (40, 16), (58, 8), (74, 3.5), (88, 5), (98, 10), (106, 18), (112, 27), (116, 35)], 4, 118, 36, "wa-body")
     crest = lip([(44, 14), (54, 8), (66, 3), (78, 1), (90, 3), (100, 8), (106, 14)],
@@ -266,7 +266,7 @@ def wave_a() -> dict:
 
 
 def wave_b() -> dict:
-    """WB "Frangenti sulla riva", 120x20 units, three frames of surf arriving along the shore:
+    """WB "Surf on the shore", 120x20 units, three frames of surf arriving along the shore:
     a thin line, the full swell, and the foam breaking up."""
     out = {}
     f0 = lip([(6, 15), (30, 12.5), (60, 11.5), (90, 12.5), (114, 15)], [(8, 18), (30, 17.5), (60, 17), (90, 17.5), (112, 18)], 4, 1.2, "wb-0")
@@ -281,7 +281,7 @@ def wave_b() -> dict:
 
 
 def wave_c() -> dict:
-    """WC "Onda che frange", 108x36 units, three frames: the swell rises, breaks, collapses."""
+    """WC "Breaking wave", 108x36 units, three frames: the swell rises, breaks, collapses."""
     out = {}
     # 0 rise: a low mound, a thin bright edge on its crest
     out["wave_c_body0"] = (108, 36, [poly(mound([(10, 32), (30, 26), (54, 22), (78, 26), (98, 32)], 6, 102, 36, "wc-b0"), WHITE)])
@@ -300,7 +300,7 @@ def wave_c() -> dict:
 
 
 def wave_a1() -> dict:
-    """WA1 "Cresta che sporge", 140x40 units: a long low back slope on the left, a steep face on
+    """WA1 "Overhanging crest", 140x40 units: a long low back slope on the left, a steep face on
     the right, and a crest lip that overhangs the face by a good ten units, with a streak of foam
     trailing back down the slope. The overhang is what says the direction."""
     body = mound([(6, 37), (24, 32), (44, 26), (64, 18), (82, 10), (96, 5), (106, 4), (112, 8), (116, 16), (118, 26), (119, 38)], 4, 121, 40, "wa1-body")
@@ -313,7 +313,7 @@ def wave_a1() -> dict:
 
 
 def wave_a2() -> dict:
-    """WA2 "Rullo lungo", 150x30 units: a long, low roller whose whole front-top edge carries a
+    """WA2 "Long roller", 150x30 units: a long, low roller whose whole front-top edge carries a
     foam line, the face steep along its length, a short back and a small spray at the head."""
     body = mound([(4, 28), (20, 22), (44, 15), (74, 9), (104, 6), (126, 6), (136, 9), (142, 15), (145, 22), (146, 29)], 3, 147, 30, "wa2-body")
     crest = lip([(30, 16), (50, 10), (74, 5.5), (100, 3), (124, 2.5), (138, 5), (144, 10)],
@@ -324,7 +324,7 @@ def wave_a2() -> dict:
 
 
 def wave_a3() -> dict:
-    """WA3 "Tubo", 120x44 units: short and tall, the crest hooks over into a tube with a hollow
+    """WA3 "Tube", 120x44 units: short and tall, the crest hooks over into a tube with a hollow
     under the lip (a notch cut out of the body), spray thrown forward off the tip."""
     body = cut([(4, 42), (16, 36), (30, 26), (44, 14), (58, 6), (72, 3), (84, 4), (92, 9), (96, 16),
                 (92, 20), (84, 18), (78, 22), (84, 30), (94, 36), (100, 43)], "wa3-body", 0.4)

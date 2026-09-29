@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The cars' night density (v4.22 Fase 3): the pedestrians' model, replicated exactly.
+ * The cars' night density (v4.22 Phase 3): the pedestrians' model, replicated exactly.
  *
  * Three halves are pinned. The **blend**: the density in force crossfades linearly on `dayBlend`
  * through the same [PeopleDensity.at] the pedestrians use, and feeds the count — there is no

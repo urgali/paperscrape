@@ -45,7 +45,7 @@ PaperScrape/
 │       └── res/
 │           ├── drawable/        vector launcher icon + wallpaper thumbnail
 │           ├── drawable-nodpi/  sprite PNGs
-│           ├── mipmap-anydpi-v26/
+│           ├── mipmap-anydpi/   adaptive launcher icons, one per launcher alias
 │           ├── values/          strings, colors, themes
 │           └── xml/wallpaper.xml
 ├── tools/assets/                offline asset source pipeline (not part of the build)
@@ -118,7 +118,7 @@ byte-identical pair**, and has not since the V2 asset library replaced the whole
 | `SceneSpace.kt` | **The one place the world's size is stated.** The horizon, the ground plane's projection, the road's lanes and edges, and every category's real height in metres against the local units its art occupies. Every base scale is derived here, so the ratios between objects cannot be edited one at a time. |
 | `SceneTime.kt` | Scene time as a `@JvmInline value class` over `Double`, with every read bounded at the point of use. Replaces a `Float` accumulator that stopped advancing after ~12 days of visible uptime. |
 | `SolarDay.kt` | Today's sunrise, sunset and whether they came from a real position, as one immutable value (**P2-6**, v3.6). Published through a single `@Volatile` reference on the engine so the render thread cannot read a sunrise from one location beside a sunset from another — which three separate fields, `@Volatile` or not, allow. |
-| `LakeLanes.kt` | Which lane each lake decoration occupies and how deep it sits, so boats cannot share a line and a leaping dolphin sorts by where its body is rather than by the lane it left. Since v4.28 the waves sort in the same pass, keyed by their waterline said in the boat's convention. |
+| `LakeLanes.kt` | Which lane each lake decoration occupies and how deep it sits, so boats cannot share a line and a leaping dolphin sorts by where its body is rather than by the lane it left. Since v4.28 the waves sort in the same pass; since v5.9B every kind is keyed by where its own drawing meets the water (`visibleWaterline`). |
 | `WaveTint.kt` | Where a wave's body and foam sit in luma, given the water under them. Pure arithmetic, so `WaveContrastTest` measures the same numbers the renderer draws: the cheaper carry for the direction, the foam always the lighter paper, and the gate that is a floor rather than a target. |
 | `PedestrianCarry.kt` | Which walkers have an umbrella up and when that may change -- `CarSelection.offScreen`'s "only out of sight" rule taken over for people, plus the share (**dealt over the street since v5.4**, not rolled per walker), the rain predicate and the canopy palette. |
 | `CandidateNoise.kt` | The stable per-candidate pseudo-random values the stateless candidate model is built on: same slot, same value, every frame, with density thinning and colour-variant assignment deliberately drawn from uncorrelated streams. |
@@ -529,15 +529,20 @@ fresh measurement it paces the old way. On this panel that is about 30.7 frames 
 than the old loop drew.
 
 **Each frame also says when it should be shown** (v5.8D, `FramePacing.presentAt`,
-`eglPresentationTimeANDROID`): the next frame's tick less a quarter period, as the Android
-frame-pacing library does. Sleeping to the tick fixes when a frame starts, not which refresh shows
-it: without a time SurfaceFlinger takes the frame for the first refresh after it is queued, and on
-the BV6600 the GPU finishes it only 2-4 ms before that refresh, so a frame a little slower than usual
-waited a whole refresh more. With the time every frame waits for the later refresh, at one refresh
-more of latency. Measured on the BV6600 (perf build, Autumn, alternated runs): frames held 40 ms or
-more **6.7 % -> 2.9 %**, CPU **45.4 -> 46.3 %** of a core. The ~3 % left are compositions that
-SurfaceFlinger hands to the display's composer too late for their refresh; `FramePacing.presentAt`
-has the measurements and what is not known about them.
+`eglPresentationTimeANDROID`), as the Android frame-pacing library does. Sleeping to the tick fixes
+when a frame starts, not which refresh shows it: without a time SurfaceFlinger takes the frame for
+the first refresh after it is queued, and on the BV6600 the GPU finishes it only 2-4 ms before that
+refresh, so a frame a little slower than usual waited a whole refresh more. v5.8D asked for the next
+frame's tick less a quarter period: frames held 40 ms or more **6.7 % -> 2.9 %** (perf build,
+Autumn, alternated runs), CPU **45.4 -> 46.3 %** of a core. What was left are compositions that
+SurfaceFlinger hands to the display's composer too late for their refresh, and at night, with the
+stars on, there were five times as many (14.8 % of frames): the composer's call ran while the loop
+drew the next frame on the same cores, and the governor kept moving their clock. **Since v5.9F the
+time is one refresh later** -- the tick after the next frame's, less a quarter period -- so the next
+frame runs before that call instead of through it: at midnight with the stars **14.8 % -> 7.0 %**
+of frames held and about two points of a core less, by day about half as many again, at one more
+refresh (16 ms) of latency. `FramePacing.presentAt` has the measurements and what is not known about
+them.
 
 It deliberately does **not** free-run at the display's refresh rate. `eglSwapBuffers`
 blocks on vsync, so an unpaced loop would render at 60, 90 or 120 Hz and do two to
@@ -608,7 +613,7 @@ keeps it inside the atlas.
 
 | | |
 |---|---|
-| Whole sprite set, decoded | ~16.4 MB (4.3 Mpixels ARGB_8888) |
+| Whole sprite set, decoded | printed on every build by `SpriteGeometryTest` (`decodedByteBudget: … B of …`), and by `paperscrape-assets inventory` |
 | Atlas texture | 2048² RGBA = 16 MB, allocated on first sprite, typically a fraction used |
 | CPU bitmaps retained by the wallpaper | none, once uploaded |
 
@@ -620,12 +625,22 @@ in the first place.
 
 ### Allocation on the frame path
 
-The rule is that nothing in a draw path allocates, and it is enforced by reading
-bytecode rather than by inspection: `javap -c` on the compiled renderer classes,
-looking for `new`, `newarray`/`anewarray`, `valueOf` boxing and iterator
-allocation inside the per-frame methods. Two of the allocations that mattered
-most were invisible in the source — `Integer.valueOf` inside a map lookup, and a
-`Pair<Float, Float>` return type — which is why the check is a bytecode check.
+The rule is that new code on a draw path allocates nothing. The path as it stands
+does allocate, and that is measured and decided: on the BV6600 (debug build, the
+real renderer, September 2026) a steady GL frame allocates 116 to 453 objects,
+and 42-84 % of them come from inside Android 10's own `Paint.setAlpha`, which
+clones an enum array on every call (current Android does not); the rest are the
+crowd rebuilt each frame, one object per lit window and the birds' colour pick.
+The runtime collects them about once a minute in a 0.18 ms pause, about 0.2 % of
+a core, which nobody can see, and they are kept as they are (decided
+2026-09-28). No automatic check enforces the rule. The audits that removed the
+allocations below read the bytecode by hand — `javap -c` on the compiled renderer
+classes, looking for `new`, `newarray`/`anewarray`, `valueOf` boxing and iterator
+allocation inside the per-frame methods — because two of the allocations that
+mattered most were invisible in the source: `Integer.valueOf` inside a map
+lookup, and a `Pair<Float, Float>` return type. The counts above come from ART's
+own allocation counter and tracker, which see a platform call's allocations
+too.
 
 Three patterns account for nearly all of what has been removed:
 
@@ -651,9 +666,10 @@ they are applied is the backend's business: `CanvasSceneTarget` builds a
 `PorterDuffColorFilter`, `GlSceneTarget` puts the same numbers in the vertex colour.
 `draw` is `drawTinted` with white, the `MULTIPLY` identity.
 
-Two scale conventions still coexist, because a sprite's convention is a
-property of the asset and no asset declares its own metadata yet (Group 3).
-Until then the caller names it, as a `SpriteScale` argument:
+Two scale conventions still coexist. Each sprite's convention is declared in its
+own metadata (`scale` in `tools/assets/sources/sprites.json`, and `validate`
+compares it with every call site it can resolve), but the draw path does not
+read that file: the caller names the convention, as a `SpriteScale` argument:
 
 | `SpriteScale` | Meaning | Used by |
 |---|---|---|
@@ -1039,11 +1055,19 @@ survive by construction: boats are untouched, the lift is never negative so
 nothing is ever pulled *forward* of where it sits, and one key still orders
 everything.
 
-Wave against dolphin is still off by the difference between the two
-conventions — about 16 px on the reference device. It is an open backlog item, and the shape of
-the real fix is known: one "visible waterline" function per kind, sorted on instead of the lane. It is not done there because
-changing the dolphin's key changes the shipped dolphin-and-boat ordering that
-five committed goldens portray.
+That left wave against dolphin off by the difference between the two
+conventions -- 16.9 px on the BV6600's 1440 px surface -- and dolphin against boat off by the same.
+**v5.9B took the real fix** (inventory I-02, item 84): `LakeLanes.visibleWaterline` keys every kind
+by where its own drawing meets the water -- a boat at its hull, a dolphin in the air at its belly
+(29 of its own units under its body's centre), a dolphin under water at its lane (only the splash
+shows, and it stands there), a wave at its base -- and `orderByDepth` sorts on that. Boats among
+themselves, and waves against boats, keep exactly the order they had, because both moved alike; a
+dolphin now compares with both where their drawings are. The v5.9B probe had found the old
+difference on screen at the factory settings: on Beach in a thunderstorm a leaping dolphin was
+painted across a nearer wave, or the sail of a nearer boat, 63 times in fifteen minutes of scene.
+Item 84 expected the fix to move five goldens; it moves none -- in the goldens' own frames no
+dolphin stands within the difference of a wave or a boat -- which is why `LakeLanesTest` and
+`LakeWaterlineOrderTest` carry the property as arithmetic and as a real frame rather than a golden.
 
 **The waves themselves.** Three slots, present only when it is raining or there
 is a thunderstorm — a clear sky gathers none, so the pass is bit-identical to
@@ -1272,6 +1296,13 @@ of the wallpaper's day -- `ThemePreviewScenes.cardPhase`: noon, midnight for the
 building walls are blended on that moment's `dayBlend`, its road is `SceneObjectRenderer.roadColor`
 and appears only where `SceneObjectRenderer.drawsRoad` says the scene has one, its palms come from
 the layout's own slots (`hasPalmSlots`) and its mountains are `MountainSilhouette`'s parabolic arch.
+Since v5.9G the objects in front take the same moment too: a tree, a car or a decoration wears
+`ObjectVariantConfig.colorAt`, which is what `colorFor` paints an instance of that variant with, a
+palm carries `nightShadeAt` as a `PreviewSprite.shade` that the painter hands to `SpriteBlitter.draw`
+as the wallpaper does, the clouds blend their pair on the same `dayBlend`, a pumpkin is carved
+where `halloweenEnabled` is on, and a penguin's belly is `SceneObjectRenderer.PENGUIN_BELLY_COLOR`.
+Until then they kept their noon colours on every night card. The card still draws no porch light,
+car lamp, beacon, wheel or window occupant, at any hour.
 What this replaced computed all of it by itself: Sunset's sky from the theme's old `skyDusk` array
 (coral at the top, which the wallpaper never draws), a cold grey road on every card, palms by theme
 name (oaks for a theme saved from Beach), dunes for the Desert (the wallpaper has none), and a sky
@@ -1284,9 +1315,11 @@ drawn. `ThemePreviewTruthTest` (v5.7) compares each card with the scene the same
 builds: every family the scene draws is on the card, every boat and dolphin has its ink in the
 water, nothing is more than half covered by what is drawn after it, (R4, v5.8B) the sky, hills,
 mountains, water and road are the wallpaper's own at the card's moment, and (R5, R6, v5.8E) every
-car body ends on the floor the card gives it, measured off its PNG, and a fir stands on a card only
-where `SceneObjectRenderer.drawsFirs` lets the wallpaper stand one -- on the built-ins, on
-customizations no built-in ships, and on a theme saved under a `custom:` id.
+car body ends on the floor the card gives it, measured off its PNG, a fir stands on a card only
+where `SceneObjectRenderer.drawsFirs` lets the wallpaper stand one, and (R7, R8, v5.9G) every tinted
+object, palm and cloud wears the wallpaper's colour or shade at the card's moment and a pumpkin is
+carved where the wallpaper carves it -- on the built-ins, on customizations no built-in ships, and on
+a theme saved under a `custom:` id.
 
 Both places that show a preview -- the gallery card and the strip at the top of World & scene --
 go through `ThemePreviewGeometry` (one 4:3 shape, one uniform scale, no per-call-site crop or
@@ -1557,10 +1590,12 @@ dropping the reference is enough for the platform to reclaim the pixels (bitmap
 storage has been GC-tracked native memory since API 26) and `recycle()` would
 risk an `IllegalStateException` if a reference were still held.
 
-The absence of synchronisation is deliberate and load-bearing: rendering runs on
-the main looper and `onTrimMemory` is delivered on the main thread, so a trim
-cannot interleave with a draw. Moving rendering to its own thread would require
-adding a lock **before** that change lands.
+**`SpriteCache` is synchronised**: every entry point is `@Synchronized`, because
+rendering runs on each engine's own GL render thread and a process can host two
+engines, so a draw can meet a trim or another draw in the cache. Until rendering
+left the main looper the cache had no lock, correctly; §3 (*Scene state is owned by
+the render thread*) records that the lock was taken with the change that removed
+that premise.
 
 Measured footprint if every sprite is decoded. **The figures are deliberately not written
 down here.** `paperscrape-assets inventory` measures them from the shipped PNGs, and a number
@@ -1572,9 +1607,7 @@ cd tools/assets && python -m paperscrape_assets inventory   # writes reports/run
 ```
 
 **`tools/assets/reports/runtime-inventory.md` is evidence of the run that produced it, not a
-live view.** Measured 2026-09-07 it disagrees with the tree — it records 24 byte-identical
-groups and 30.25 MB decoded where the tree measures **0** and **28.85 MB** — so regenerate it
-before quoting it.
+live view**, so regenerate it before quoting it. `validate` refuses to pass on a stale one.
 
 What is structural, and therefore worth stating here rather than counting:
 
@@ -1804,20 +1837,21 @@ determined, the origin.
 Resolution is deliberately total-or-nothing. There is no dataflow analysis: a
 sprite chosen from a lookup table (`resId`, `driverRes`, `phaseSprite`) or an
 origin computed from the drawn object's own dimensions resolves to nothing, and
-is reported as **unresolved** rather than counted as agreement. Current reach:
+is reported as **unresolved** rather than counted as agreement. How far each check
+reaches is printed by `validate` itself, and is not copied here: its `registry OK:` line
+counts the entries whose `contentBox` was checked against the PNG, `anchors:` the anchors
+determined, `variants:` the variant groups compared with the shipped bytes, and
+`call-site check:` the sprites whose scale and tint, and whose origin, were compared with
+the code.
 
-| Check | Sprites reached |
-|---|---|
-| `contentBox` against the PNG | 111 |
-| `scale` and `tint` against the code | 10 (see defect D-4) |
-| origin against the declared anchor | 4 (see defect D-4) |
-| variant group against the shipped bytes | 18 groups, 36 sprites |
+```bash
+cd tools/assets && python -m paperscrape_assets validate
+```
 
 The rest is not a shortfall to be papered over: an origin is `placement - anchor`
 with both unknown, so it fixes an anchor only for a sprite that *is* an object
-rather than a part of one. `house_large_window` is blitted at four different
-origins; the `person_*` sprites at hand-tuned constants outside the anchoring
-system entirely.
+rather than a part of one: a part is placed by the piece it belongs to; the
+`person_*` sprites at hand-tuned constants outside the anchoring system entirely.
 
 See `tools/assets/README.md` for the authoring conventions and the commands.
 
@@ -1830,7 +1864,7 @@ See `tools/assets/README.md` for the authoring conventions and the commands.
 | Parallax | `continuousScrollAccum` (`Double`) + optional home-screen swipe offset → `scrollProgress` (`Float`) → per-layer multiplier. The celestial body is the one exception: it takes the two inputs separately and bounds the result — see §3, *The sky layer*. |
 | Object idle motion | `sin(elapsedSeconds × k + perObjectPhase)`. |
 | Cars | Per-runtime `progress` advanced by `deltaSeconds × speedFraction`, wrapped with an off-screen buffer. |
-| People | 4 hardcoded candidates, own drift timer, 4-frame walk cycle stepped by elapsed time. |
+| People | 4 hardcoded candidates, own drift timer, 3-frame walk cycle stepped by elapsed time. |
 | Precipitation / leaves | Stateless: each candidate's phase re-derived from `elapsedSeconds` every frame. |
 | Fireworks / sleigh | Self-contained effect classes with their own timers. |
 | Day/night | `SunPositionCalculator` produces a normalised `DayPhase`; every colour is a blend between a day and a night value by `dayBlend`. |
@@ -1903,7 +1937,7 @@ Text fields (custom location, hex colour, theme name) already followed this
 pattern with an explicit Apply/OK commit; the sliders did not.
 
 The custom-theme JSON carries a **`schemaVersion`** field
-(`CUSTOM_THEME_SCHEMA_VERSION`, currently `1`). Payloads written before
+(`CUSTOM_THEME_SCHEMA_VERSION` in `engine/CustomThemeData.kt`). Payloads written before
 versioning existed (v73 and earlier) have no such key and are read as version
 `0` (`CUSTOM_THEME_SCHEMA_VERSION_LEGACY`); versions 0 and 1 describe the same
 shape, so migrating between them is a no-op by construction and simply stamps
@@ -1921,6 +1955,19 @@ the rest of it, and returns `null` for absent or unparseable data.
 
 Individual field reads remain defensive (`opt*` with defaults), so purely
 additive changes still do not require a version bump.
+
+**The document is read entry by entry, and an entry that fails is kept, not dropped** (v5.9A,
+`ROADMAP.md` A22). Until then one saved theme the reader could not parse made the whole document
+read as empty, and `CustomThemeStore.update`, which refuses to write over a document it cannot
+read, dropped every later edit. Now each entry has its own `try`; one that fails travels in
+`CustomThemeData.unreadable`, invisible to every screen and to the wallpaper, and `toJsonString`
+writes it back **as the text it was stored as** into a top-level section, `unreadableEntries` --
+each item `{"from", "key", "schemaVersion", "entry"}`, the entry verbatim. The text is found by a
+strict scanner (`JsonSpans`), because `org.json` cannot hand back the text of a value it parsed and
+re-serialising would change numbers and escapes. Every read retries each kept entry from the schema
+it records and puts it back where it came from if it now reads and its place is free. The section
+exists only while something is kept: a document with nothing unreadable is written as before, to the
+byte. A document that is not JSON is still unreadable as a whole and still refused.
 
 `SceneTheme` overrides `equals`/`hashCode` on `id` alone, so two themes with the
 same id but different colours compare equal. `CustomThemeRegistry.generation()`
@@ -2008,7 +2055,7 @@ package, a device not yet able to install, and finally a shell syntax error insi
 wrapper). On its last run its diagnostics step hung until the job timed out, so it could not even
 upload the evidence. The rule written out of it is that an auxiliary job may not gate anything
 until it has passed on its own for a stated run of releases, and that bounding a diagnostic's exit
-status is not the same as bounding its time — a step that cannot fail can still hang. **The instrumented tests themselves were not removed** — see *Testing* above.
+status is not the same as bounding its time — a step that cannot fail can still hang. **The instrumented tests themselves were not removed** — see *Testing* below.
 
 Neither workflow needed a change for the Phase 2 upgrade, and neither needed one
 for the v5.3 dependency round either. JDK 17 still builds
@@ -2088,40 +2135,34 @@ print(t,'tests,',f,'failures,',e,'errors,',s,'skipped')"
 python3 -c "import xml.etree.ElementTree as ET,collections;print(collections.Counter(i.get('id') for i in ET.parse('app/build/reports/lint-results-debug.xml').getroot().findall('issue')))"
 ```
 
-**Last run: v5.1, 2026-09-14**, JDK 17, AGP 9.3.1, Gradle 9.7.1, 4 m 59 s on a four-core Linux
-host with a warm dependency cache, `--rerun-tasks` so nothing is answered from the build cache,
-from a clean extraction of the delivery archive.
+**The figures are not written here**: the block above prints
+them, and the round that runs it puts them in its own report. This paragraph used to carry a dated
+run — v4.24's numbers for eight releases, then v5.1's (2026-09-14: 1 452 tests, 45 lint issues,
+21 compiler warnings) — and each was out of date within a release, in every line.
 
-**Every figure in this block was wrong before this run, not only the one that was reported.** It
-had been carrying v4.24's numbers since 2026-09-07 — eight releases — and the block *was* dated,
-which made the staleness checkable and did not prevent it. Measured against v5.0, before this
-round added anything: the test count was out by **63**, the lint count by **16**, the compiler
-warnings by **2**, and only the APK size was close. **Re-measure and re-date the whole block rather
-than correcting one line of it**: a uniformly old block reads as old, a mixed one does not.
+Two figures the block does not print, and how to read them:
 
-| Task | Result |
-|---|---|
-| `./gradlew assembleDebug` | **BUILD SUCCESSFUL**, `app-debug.apk` 22 669 106 B (21.62 MiB) |
-| `./gradlew testDebugUnitTest` | **BUILD SUCCESSFUL** — 1452 tests, 0 failures, 0 errors, 0 skipped |
-| `./gradlew lintDebug` | **BUILD SUCCESSFUL** — 45 issues: 42 warnings, 3 hints, 0 errors, 0 fatal |
-| Kotlin compiler warnings | **21** |
-| instrumented suite, BV6600 | **OK (171 tests)** in 2 934.3 s |
-
-Lint breakdown: `UnusedResources` ×32, `UseKtx` ×4, `AutoboxingStateCreation` ×3, plus single
-instances of `UnusedAttribute`, `VectorRaster`, `GradleDependency`,
-`ConfigurationScreenWidthHeight`, `DataExtractionRules` and `ObsoleteSdkInt`. `OldTargetApi` is not
-among them: it fires only while `targetSdk` lags `compileSdk`, and since v4.0 both are 37. The
-`UnusedResources` count grew with the neighbourhood redraw, which left drawables behind; that is
-recorded here rather than silenced.
-
-The twenty-one compiler warnings are five groups, all pre-existing: eleven `Java type mismatch:
-inferred type is 'Nothing?', but 'String' was
-expected` and three of the same against `File`, which are `org.json`'s platform types read
-through Kotlin's nullability; four deprecations of `TRIM_MEMORY_RUNNING_LOW` and
-`TRIM_MEMORY_RUNNING_CRITICAL`; and one `Condition is always 'true'`. They are recorded rather
-than silenced — an earlier version of this table claimed **0**, which had stopped being true
-without anybody noticing, because nothing reads the warnings when the exit code is zero. Closing
-them is an open backlog item, not a claim already met.
+- **Kotlin compiler warnings.** The compiler prints them only for the files it compiles, so they
+  are counted on a build from scratch:
+  `./gradlew --no-daemon --rerun-tasks testDebugUnitTest compileDebugAndroidTestKotlin 2>&1 | grep -c '^w: '`.
+  Since v5.9C there are none. A warning that cannot be removed is suppressed
+  at its line with the reason beside it — `GlRenderThread`'s lock, which is a `java.lang.Object`
+  because the loop parks on its `wait`; the platform's deprecated trim levels in
+  `RegistryAndTrimPolicyTest`, which the policy still receives below API 36 — so a warning that
+  appears is a new one. Nothing fails the build on one: that would be a gate, and gates are the
+  maintainer's decision.
+- **Lint's severities.** The SARIF report files every finding as a warning; the XML (the block's
+  last line) and the HTML keep warnings and hints apart. Since v5.9C what lint
+  still reports is declared rather than silenced: the notices that a newer Gradle or a newer
+  dependency exists, which move with the calendar and whose upgrade is the maintainer's call;
+  `ConfigurationScreenWidthHeight` in `SettingsInsets.kt`, the file of v2.14's dialog defect, left
+  as it is because the repaired code was checked on an Android 16 phone (2026-09-28) and there is
+  nothing measured wrong in it to change. What moves to a new phone was a lint finding
+  (`DataExtractionRules`) until v5.9F and is a declaration now: nothing does
+  (`res/xml/data_extraction_rules.xml`). The findings that are true of the
+  code and not a defect of the project are suppressed where they are, each with its reason: at the
+  line in Kotlin, the manifest and the build script, and by exact path in `app/lint.xml` for the
+  people's un-suffixed bases and the picker's thumbnail.
 
 ### Testing
 
@@ -2137,7 +2178,7 @@ runs.**
 
 **Instrumented tests** live in `app/src/androidTest/kotlin/` and need a device. Since v3.6 **CI does
 not run them** — see *Workflows* below for why the emulator job was removed — so they are run
-locally against an Android 17 emulator before a release. They are not optional and not decorative:
+locally, on the project's phone (there is no emulator), before every delivery. They are not optional and not decorative:
 they are the only thing in the project that looks at a rendered frame.
 
 The table below is the JVM layer; the instrumented layer follows it.
@@ -2159,6 +2200,11 @@ The table below is the JVM layer; the instrumented layer follows it.
 | `SeasonalCalendarIdentityTest` | **The gate for the v5.1 rewrite.** Transcribes the v5.0 table and walks it against the factory calendar for fifteen years, allowing exactly one difference — 1 March — and asserting it is present in every year and is `winter`→`spring`. Also walks the continuous autumn against a split one for ten years, and re-measures v5.0's 69 uncovered days so the reason for the change survives as a number |
 | `SeasonalCalendarStorageTest` | The calendar as a document: that the factory calendar stores nothing, that an edit back to a factory value stops being an override, the JSON round trip (wrapping spans and 29 February included), unreadable and partly-unknown documents falling back whole rather than in part, the same-tier overlap gate, Easter's exemption from it, and that a gap costs the day rather than breaking the calendar |
 | `CustomThemeDataJsonTest` | Serialisation round trips (including all built-in themes), schema versioning and legacy compatibility, and defensive parsing of corrupt input |
+| `UnreadableSavedThemeTest` | **Item 18, v5.9A.** One saved theme that cannot be read hides none of the others, an edit is applied rather than dropped, and the unreadable entry's text survives every write byte for byte; a kept entry comes back migrated from its own schema, never over a newer save; a document with nothing unreadable is written exactly as before. Written against the reader's public surface, so it runs red on the v5.8 tree |
+| `JsonSpansTest` | The strict scanner that finds an unreadable entry's own text, and that it refuses the syntax `org.json` tolerates rather than guessing |
+| `SavedThemeNameTest` | **Inventory I-01, v5.9B.** "Rename" changes the name the user sees: a saved theme renamed by any earlier build is read with the name the user wrote last (its `name`, which the reader now puts in `theme.displayName`), every screen's lookup (`ThemeCatalog.byId`) and an exported file get that name, the next write carries it in both places, and a theme never renamed is read and written byte for byte as before. Written with v5.9A's own functions, so it runs red on that tree |
+| `PreviewPrecipitationColourTest` | **Inventory I-03, v5.9B (item 73's residue).** A gallery card's rain and snow take the wallpaper's own rule -- the night colour blended toward the day colour by the day blend -- so the two midnight cards, Halloween and New Year's Eve, and any card forced to night, rain in the night colours; a day card is unchanged |
+| `SeatedArtworkFacingTest` | **Inventory I-42, v5.9B.** The premise of `drawSeatedOccupant`'s mirror, read off the PNGs: the adult seated heads carry their hair behind the eye axis, so the drawing looks toward +x. `OccupantFacingTest` on the device asserts the behaviour |
 | `IntKeyLruSlotsTest` | The multi-component key table `GradientShaderCache` runs on: exactness (a difference in *any* of the five components, including the zero padding, must miss), the capacity bound under a continuous stream of new keys, exact LRU order, slot recycling, and that two floats one ULP apart are distinct keys |
 | `SolarDayPublicationTest` | **P2-6.** That three separately-published fields can be read half-updated — demonstrated deterministically with a barrier, and with the fields already `@Volatile`, so it is a statement about the shape and not about a missing annotation — and that one immutable snapshot behind one `@Volatile` cannot be, under the identical interleaving and under 200 000 unsynchronised sampled reads |
 | `RoadVehicleGeometryTest` | **Filone B.** The road/vehicle ratios measured from `SceneSpace`'s own constants: lanes about one vehicle apart, the carriageway between 1.5 and 4 car-heights deep, the fire engine fitting inside it, the strip symmetric about the lane pair, and a degenerate lane pair still painting a full-width road |
@@ -2194,6 +2240,10 @@ spans three days either side.
 | `SceneGoldenTest` | Committed PNGs rendered through `CanvasSceneTarget` — the backend that ships, not a test double — and compared per pixel. `GoldenScene` describes each frame as data so that when one changes, "did the scene change or did the drawing change" is answerable. `GoldenFocus` re-checks named patches on their own much smaller area, because 0.2% of a 360x800 frame is 576 pixels and a dolphin covers 160. **Do not quote a count here** — the figure that means anything is the number of `assertMatches` calls, not the number of files in the directory. `grep -rh 'SceneGolden\.assertMatches' app/src/androidTest --include='*.kt' | grep -vc '^\s*\*'` counts them, and **its answer is one too high**: `LightningPinTest` hands `assertMatches` a scene it must *reject*, which is how the guard is shown to run rather than merely to exist. Subtract it. An assertion is also not a file — two scenes are each asserted more than once with different focus rectangles, so the assertion count and the PNG count are different numbers and neither is "the number of goldens" on its own. |
 | `GlSceneGoldenTest` | Three of the same scenes rendered through the shipped `GlSceneTarget` on an offscreen EGL pbuffer, configured exactly as `GlRenderThread` configures it, MSAA included. Three gates: against its own committed `gl-*.png`, against the Canvas golden (the claim that the two backends still draw the same picture), and — since v3.7 — **against a named region**. |
 | `PrefsCorruptionRecoveryTest` | That a damaged preferences file costs that store its contents and nothing else, including across a process restart. |
+| `UnreadableSavedThemeStoreTest` | **Item 18, v5.9A.** The same three properties on the phone's own `org.json` and the real DataStore: the damaged entry's bytes are read back off the store's file after each of three edits |
+| `SavedThemeRenameStoreTest` | **Inventory I-01, v5.9B.** The real `CustomThemeStore.renameCustomTheme` on DataStore and Android's `org.json`: the new name is what the gallery card and `ThemeCatalog.byId` read back, and it is the theme's `displayName` in the file; a theme renamed by an earlier build is read with its new name |
+| `OccupantFacingTest` | **Inventory I-42, v5.9B (item 62).** Every occupant looks the way their vehicle travels, for four vehicle types in both directions: the direction read off two frames of the real `SceneObjectRenderer`, the artwork's facing off the adult seated heads' hair masks, and the bust's blit off the transform a matrix-keeping `SceneCanvas` records. Reversing v4.25's mirror turns it red |
+| `LakeWaterlineOrderTest` | **Inventory I-02, v5.9B (item 84).** The frame v5.9B's probe found -- Beach at its factory settings, in a thunderstorm, on the BV6600's 720x1440 surface, 80.37 s in -- walked up to at 30 fps through the real `PaperRenderer` and recorded as a draw sequence: the wave and the boat whose waterlines are nearer than the leaping dolphin's belly must be painted after it. Red on v5.9A, which painted the dolphin across both |
 | `CanvasGradientAllocationTest` | **P2-5.** Records the full argument tuple of every gradient the real renderer asks for over 60 animated frames, and checks the cache builds one `Shader` per *distinct* gradient rather than one per request. |
 | `TrafficGoldenTest` | **v3.8.** That the two traffic goldens actually contain traffic, measured off the finished frame by `VehiclePresence` rather than inferred, that both lanes are occupied, that the frame is bit-identical across two renders, and that three plausible traffic regressions each move more of the frame than the golden's own budget. |
 | `TreeArtworkAlignmentTest` | **v3.8.** That the winter tree's snow cap lands entirely on the crown — 0 of 17 182 opaque pixels off it — which disproves v3.7's report of a 3-unit misalignment. An assertion about the *artwork*, which nothing else checks. |
@@ -2218,7 +2268,7 @@ therefore **about one run in 32 failing by the entire frame**. Since **v5.0** th
 `GoldenScene.requireDeterministicLightning`, run by both harnesses before they render, and a scene
 that needs to warm a storm up says so with `GoldenScene.pinLightning`, which clears
 `PaperRenderer.lightningStrikesEnabled` **for that render alone**. The wallpaper's own lightning is
-untouched: nothing in `src/main` writes that flag, and v5.0 Fase 0 measured the strike cadence and
+untouched: nothing in `src/main` writes that flag, and v5.0 Phase 0 measured the strike cadence and
 flash intensity on v4.31's production build and on this one to say so rather than assume it.
 
 **The wall clock is the v5.4G addition, and it is the same shape of hole one level up.** A golden
@@ -2235,8 +2285,10 @@ wallpaper service fills it in from the real moon, and a caller that names none g
 `SunPositionCalculator.FIXED_MOON_PHASE`. Two checks keep it there:
 `SceneGolden.assertReproducesOverTime` renders every Canvas golden a second time with the device's
 wall clock moved 191 days (`DeviceClock`, through `cmd alarm set-time`) and requires the two frames
-to be identical pixel for pixel, and `RenderPathReadsNoWallClockTest` refuses a clock read in
-`PaperRenderer.kt`, `SceneObjectRenderer.kt` or `SunPositionCalculator.compute` at all. The
+to be identical pixel for pixel, and `RenderPathReadsNoWallClockTest` refuses a clock read anywhere on
+the render path -- since v5.9B every file of the `engine` package except the three that hand the
+clock in (the wallpaper service and its two calendars), plus the card painter `ui/ThemePreview.kt`
+-- and in `SunPositionCalculator.compute`; until then it read the two renderers alone. The
 behavioural one is the one that catches a leak; the source rule is what covers a leak in a theme or
 a weather no golden renders.
 
@@ -2257,28 +2309,39 @@ Maven and Maven Central. Platform 37 is what `compileSdk` links against;
 build-tools stays at 36.0.0, which is what AGP 9.4.0 selects by default. `README.md`'s *Build*
 section has the minimal setup.
 
-**An Android 17 emulator is also required to release**, because the instrumented layer above is not
-run by CI and a release is not verified without it. Two GL drivers are worth having available:
-`swiftshader_indirect`, the software rasteriser the committed GL goldens were taken under, and the
-host-GPU translator — v3.7's region thresholds were set by measuring the same frame under both, and
-that comparison is the only way to tell a driver difference from a regression.
+**A phone is also required to release**, because the instrumented layer above is not run by CI and
+a release is not verified without it. The project's is a Blackview BV6600 (PowerVR GE8320, Android
+10), and the committed GL references are that driver's since v4.26: `GlGolden.EdgeDisplacement`
+keeps the figures of the drivers before it. A second GPU is a second driver — v3.7's region
+thresholds were set by measuring the same frame under two, and that comparison is the only way to
+tell a driver difference from a regression.
 
 ---
 
 ## 9. Known architectural weaknesses
 
-Recorded here so they are not rediscovered from scratch. Which of them gets worked on, and in
-what order, is decided outside this document.
+Recorded here so they are not rediscovered from scratch. **Every one still standing is kept as it
+is, by decision**: 1, 2, 11, 12 and 14 on 2026-09-29, 10 on 2026-09-27 and 13 on 2026-09-28, the
+date at each. None is visible on the phone, and working on one is new work.
 
-1. **Partial source pipeline for assets.** `tools/assets/` (Phase 3.1) gives 24
-   of the sprites an SVG source and a deterministic rasterisation path; the other
-   94 remain their own source. Phase 3.2 declared the bounding boxes and Phase 3.3
-   removed the padding, so what remains of the downstream consequences is 16
-   duplicate groups and the hand-tuned anchors — the anchors being the one that
-   still blocks Group 4.
+1. **Partial source pipeline for assets.** `tools/assets/` (Phase 3.1) gives part
+   of the sprites an SVG source and a deterministic rasterisation path; the rest
+   are written by a generator with no SVG of its own (the people's layers, the
+   neighbourhood); none is its own source any more. `validate`'s first line counts both
+   (`registry OK: … entries, … with an SVG source, … recorded as gaps`). Phase 3.2
+   declared the bounding boxes, Phase 3.3 removed the padding, and no variant group
+   is a byte-identical duplicate any more (`validate`'s `variants:` line), so what
+   remains of the downstream consequences is the hand-tuned anchors. They no longer
+   block anything: Group 4, the perspective and scaling work that waited on them, was
+   done in v76.5-v76.7. Kept as it is (2026-09-29): every sprite without an SVG is
+   written by a committed generator, which its registry entry names (241 by
+   `tools/generate_people_layers.py`, 76 by `tools/assets/buildings/build_neighbourhood.py`
+   on 2026-09-29).
 2. **No single scene-space model.** Four multiplicative scale factors, two
    sprite conventions, geometry constants spread across three classes. Produces
-   recurring per-asset size/alignment patches.
+   recurring per-asset size/alignment patches. Kept as it is (2026-09-29; the two
+   conventions on 2026-09-27): each sprite's convention is declared in
+   `tools/assets/sources/sprites.json` and `validate` checks every call site against it.
 3. ~~**Per-frame recomputation.**~~ Resolved in Phase 2.1/2.2: effect
    candidates are addressed by index rather than read from a per-frame `Random`.
 4. ~~**RNG stream coupled to the density filter.**~~ Resolved in Phase 2.1/2.2.
@@ -2298,9 +2361,11 @@ what order, is decided outside this document.
 7c. ~~**Three scene fields shared across threads without synchronisation.**~~ Resolved in v3.6
    (**P2-6**): sunrise, sunset and the has-fix flag are one immutable `SolarDay` behind a single
    `@Volatile`, so a frame cannot mix two locations' days.
-8. **People are outside the scene systems.** Fixed screen-height anchor, fixed
-   scale, no depth scaling, no ground anchoring, no road awareness, no
-   visibility or density control.
+8. ~~**People are outside the scene systems.**~~ No longer true (checked 2026-09-26):
+   the pavement rows are `SceneSpace` fractions that no jitter may cross into the road
+   (`PedestrianPopulation.build`), and each person is drawn at its own row's
+   perspective scale. The two rows are 0.795 and 0.807 of the screen height, so there is
+   almost no distance between them to show.
 9. ~~**Three tile copies are still evaluated per object.**~~ Resolved in Phase
    2.4: the copy range is derived from the tiling period and the object's own
    extent instead of being a fixed `-1..1`, and the per-object setup the cull
@@ -2318,30 +2383,39 @@ what order, is decided outside this document.
     `androidTest/assets/golden/`, which also holds the three `gl-*.png`. Counting the directory is
     how the handover notes came to say 30; v4.21 corrected it and added `GoldenUniquenessTest`.) What remains true is the shape of the gap. The engine lifecycle, the
     preferences layer and the Compose UI are still untested and still cannot be unit tested
-    without being decoupled from `Canvas` and `Context` first, which is deferred item **B5**.
+    without being decoupled from `Canvas` and `Context` first, which was decided against on
+    2026-09-27: the instrumented suite runs whole on the test phone before every delivery.
     v4.23 narrowed one corner of that and no more: the settings screens' *derivations* are pure and
     unit-tested (`SettingsUiModel`, and `MoonPhaseControlTest` for the Halloween override), and the
     call sites that consume them are pinned by reading the source, because there is no
     `createComposeRule` in this tree and nothing composes a screen in a test. **No composable is
     rendered by any test**, so the gap this entry describes is unchanged in kind.
-    Two narrower gaps worth naming, both found in v3.7 and neither scheduled:
-    **no golden contains a vehicle** (car `progress` starts negative and the goldens render one
-    frame with `deltaSeconds = 0`, so no car has entered the frame), and the preview/renderer
-    sprite-offset agreement is pinned for the tree only — the other 55 shared sprites were checked
-    by hand once and nothing guards them.
-11. **The atlas cannot reclaim space.** Shelf packing wastes area against a real bin
-    packer and has no way to free a single entry; it is only ever added to, and reset
+    Two narrower gaps were named here in v3.7. **No golden contained a vehicle**: no longer
+    true, since the traffic goldens (`traffic-day`, `traffic-night`, `traffic-day-sparse`,
+    `traffic-night-quiet`) warm the scene up for `SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES`
+    frames so the cars are on the road. And the preview/renderer sprite-offset agreement is
+    pinned for two groups, the tree and the tower, of the 49 sprites the two share; guarding
+    the rest was decided against on 2026-09-27, because the gallery card's families, order
+    and water are held to the scene by `ThemePreviewTruthTest` instead.
+11. **The atlas cannot reclaim space.** The skyline packer (§3; shelves until v4.29)
+    has no way to free a single entry; it is only ever added to, and reset
     wholesale. It also fills in first-draw order, so a scene whose sprite set exceeds
     2048² pushes its *later* sprites — the objects and people, which benefit most —
     out to standalone textures. Neither has been observed to matter, and neither is
-    worth fixing before it does.
+    worth fixing before it does: kept as it is (2026-09-29), with 583 of the page's 2048
+    rows in use and no sprite standalone (measured on the BV6600, 2026-09-27).
 12. **Each engine has its own EGL context**, so the picker's preview engine and the
     live engine do not share textures the way they share `SpriteCache`'s bitmaps.
-    Whether that costs enough VRAM to matter is unmeasured.
+    Measured on the BV6600 on 2026-09-28: `dumpsys meminfo`'s GL memory for the process reads
+    33.0 MB with the wallpaper's engine alone, 61.3 MB with the picker's preview open
+    beside it (reached from the settings screen), and 41.3 MB back on the home screen with the
+    settings screen's own memory still held: the second engine is about 20 MB of GL memory and
+    6 MB of EGL buffers, and only while the picker's preview is open. Kept as it is (2026-09-29).
 13. **No localisation.** Almost every UI string is a literal in Compose rather than a
     `strings.xml` entry. "Zero `stringResource` usages" stood here until v5.1 and there are
-    now a handful; the decision (English-only, `ROADMAP.md` Deferred) is unchanged, the count
-    is not worth keeping — `grep -rc stringResource app/src/main --include='*.kt'` answers it.
-14. **Incomplete Material 3 colour scheme.** Four roles defined out of ~30; the
-    rest fall back to Material's baseline palette. `themes.xml` still inherits
-    from a framework Material 1 theme.
+    now a handful; the decision (English-only, confirmed by the maintainer on 2026-09-28) is
+    unchanged, the count is not worth keeping — `grep -rc stringResource app/src/main --include='*.kt'` answers it.
+14. **A framework Material 1 theme under the Material 3 one.** The Compose colour
+    scheme is the full Material 3 scheme (`ui/theme/PaperScrapeTheme.kt`, `LightColors`),
+    but `themes.xml` still inherits from a framework Material 1 theme. No visible effect is
+    known; kept as it is (2026-09-29).

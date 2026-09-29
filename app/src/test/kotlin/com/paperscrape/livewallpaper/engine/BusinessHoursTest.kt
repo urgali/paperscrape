@@ -5,7 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The commercial opening hours (v4.22 Fase 4), as pure arithmetic.
+ * The commercial opening hours (v4.22 Phase 4), as pure arithmetic.
  *
  * The claims pinned here are the maintainer's decisions, each in its own test: off means
  * constantly open (and therefore bitwise the pre-feature scene), `open == close` means always

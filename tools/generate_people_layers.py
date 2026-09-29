@@ -26,7 +26,7 @@ A weight interpolates and a region index does not. The sprite is halved on the C
 and sampled bilinearly by the GPU, so it is averaged twice before it reaches the screen; halfway
 between "skin" and "shirt" is not a region, but halfway between two weights is a weight. Measured
 on the device's own draw path, a region index is out by dE 5-8 on 42% of the pixels and a weight by
-at most 1.5 with none over 2 (`indagine_strati/REPORT.md` §2.1-2.3).
+at most 1.5 with none over 2 (the layer investigation's report, §2.1-2.3).
 
 And the mask is **summed**, not laid over. Two source-over layers split the pixel's coverage
 between them, and ``a + b(1-a)`` is not linear -- so once the engine halves each layer separately
@@ -76,7 +76,7 @@ import build_people_concepts as bpc  # noqa: E402
 import build_carry_sprites as carry  # noqa: E402
 from paperscrape_assets import raster  # noqa: E402
 
-STYLE = "rilievo_occhi"
+STYLE = "relief_eyes"
 
 #: Suffix per region, in the order the engine's own table lists them.
 SUFFIX = {

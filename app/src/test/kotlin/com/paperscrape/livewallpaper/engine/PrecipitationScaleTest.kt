@@ -100,8 +100,9 @@ class PrecipitationScaleTest {
      * child of the day, reading as rain, with the next candidate up at 0.64 of one and reading as
      * a falling stick; v4.4 shipped 1.73 m, which was 1.28 of a whole child.
      *
-     * Whether 0.51 of a child is too much rain is a question for a photograph and is the open half
-     * of `BACKLOG_v4_30.md` item 99. Nothing here answers it.
+     * Whether 0.51 of a child is too much rain was a question for a photograph -- the open half of
+     * `BACKLOG_v4_30.md` item 99 -- and the maintainer answered it on 2026-09-28, looking at one:
+     * the rain stays as it is (inventory I-70). This test holds the ratio, not the verdict.
      */
     @Test
     fun `a raindrop is never more than a fraction of a child`() {
@@ -117,9 +118,9 @@ class PrecipitationScaleTest {
         // by quietly raising it would be raising a tolerance to stay green. So the ceiling is
         // restated against the figure the scene's metre is actually *defined* by --
         // `PERSON_METRES_TALL`, the adult, which did not move -- at exactly the value it has
-        // always had in those terms. What changed is which figure the sentence names, and it is
-        // named in a backlog item so the maintainer can judge the rain from a photograph if 0.51
-        // of a child is too much.
+        // always had in those terms. What changed is which figure the sentence names; whether 0.51
+        // of a child is too much was judged by the maintainer from a photograph, and the rain
+        // stays (2026-09-28, the KDoc above).
         assertTrue(
             "the longest raindrop is ${PaperRenderer.RAIN_LENGTH_MAX_METRES} m against a " +
                 "${SceneSpace.PERSON_METRES_TALL} m adult and a $childMetres m child",

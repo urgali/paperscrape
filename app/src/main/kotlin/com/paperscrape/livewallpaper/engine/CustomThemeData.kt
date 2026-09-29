@@ -16,6 +16,18 @@ import org.json.JSONObject
  */
 data class CustomThemeEntry(
     val id: String,
+    /**
+     * The name the user gave this theme, and **the one every screen shows** (v5.9B, I-01).
+     *
+     * [theme] carries a second copy, `displayName`, and that copy is what the screens actually read
+     * -- the gallery card, the preview at the top of the settings, the Theme row, Seasons and
+     * World & scene all go through [SceneTheme.displayName], most of them via
+     * [ThemeCatalog.byId]. "Rename" used to write this field alone, from v1.0 to v5.9A, so a renamed
+     * theme kept its old name everywhere the user looked while the file held the new one. The two
+     * are now one fact: [customThemeEntryFromJson] reads `displayName` from here, which also puts
+     * right every theme renamed before the repair, and `CustomThemeStore.renameCustomTheme` writes
+     * both.
+     */
     val name: String,
     val theme: SceneTheme,
     val layout: SceneObjectLayout,
@@ -31,9 +43,84 @@ data class CustomThemeData(
     val overrides: Map<String, CustomThemeEntry> = emptyMap(),
     /** Fully independent user-created themes, unrelated to any built-in id. */
     val customThemes: List<CustomThemeEntry> = emptyList(),
+    /**
+     * Saved themes this build could not read, carried so that no write can lose them. Nothing
+     * draws or lists them; [toJsonString] writes them back byte for byte. See
+     * [UnreadableThemeEntry].
+     */
+    val unreadable: List<UnreadableThemeEntry> = emptyList(),
 ) {
     companion object {
         val EMPTY = CustomThemeData()
+    }
+}
+
+/**
+ * A saved theme this build cannot read, kept exactly as it was stored (item 18, v5.9A).
+ *
+ * ### Why it is kept rather than skipped
+ *
+ * Until v5.9A one unreadable entry made the whole document read as [CustomThemeData.EMPTY]: every
+ * saved theme vanished from the Themes screen, a wallpaper set to one of them fell back to Sunset,
+ * and every later edit was dropped, because `CustomThemeStore.update` refuses to write over a
+ * document it cannot read (BCK-05). Skipping the entry instead would have been worse -- the next
+ * save would write the document back without it, and those bytes are the only copy the user has.
+ * So the reader now reads entry by entry, and an entry that fails is carried here, as text.
+ *
+ * ### Where it lives on disk, and why not where it was
+ *
+ * [toJsonString] writes it into a section of its own, `unreadableEntries`, as one item holding
+ * where the entry came from (`overrides` and its key, or `customThemes`), the schema version its
+ * bytes were written in, and the entry itself verbatim. It is moved out of `overrides` and
+ * `customThemes` for two reasons. The rewritten document is stamped with the current schema, and
+ * an entry written under another one would be mislabelled in place -- a later build that learned
+ * to read it would skip its migrations (1 -> 2 changes what `scale` means). And an override kept
+ * under its key would collide with a new override the user saves for the same built-in: one of the
+ * two would have to go.
+ *
+ * ### How it comes back
+ *
+ * Every read tries each item again, migrating it from the version it records. One that reads, and
+ * whose place is free, rejoins the other saved themes; the next write puts it back where it came
+ * from. Nothing in this build can make an entry readable that was not, so today that is the path a
+ * later build takes -- one that restores an object type or relaxes a field that made the entry fail.
+ *
+ * [itemJson] is the whole item as it stands in the section, which is what makes a second, third and
+ * hundredth write leave it byte-identical.
+ */
+data class UnreadableThemeEntry(val itemJson: String) {
+
+    /** `"overrides"` or `"customThemes"`, or `null` when the item itself cannot be read. */
+    val from: String? get() = parsedItem()?.optString("from")?.takeIf { it.isNotEmpty() }
+
+    /** The built-in id the entry overrode, for an item from `overrides`. */
+    val key: String? get() = parsedItem()?.takeIf { it.has("key") }?.optString("key")
+
+    /** The schema its bytes were written in, or `null` when the item does not say. */
+    val schemaVersion: Int? get() = parsedItem()?.takeIf { it.has("schemaVersion") }?.optInt("schemaVersion")
+
+    /** The entry exactly as it was stored, or `null` when the item has no `entry`. */
+    val entryJson: String? get() = runCatching {
+        JsonSpans.objectMembers(itemJson, 0).lastOrNull { it.key == "entry" }?.let { itemJson.substring(it.start, it.end) }
+    }.getOrNull()
+
+    private fun parsedItem(): JSONObject? = runCatching { JSONObject(itemJson) }.getOrNull()
+
+    companion object {
+        internal const val FROM_OVERRIDES = "overrides"
+        internal const val FROM_CUSTOM_THEMES = "customThemes"
+
+        /** An item for an entry read as unreadable just now; [entryText] goes in unchanged. */
+        internal fun of(from: String, key: String?, schemaVersion: Int, entryText: String): UnreadableThemeEntry =
+            UnreadableThemeEntry(
+                buildString {
+                    append("{\"from\":").append(JSONObject.quote(from))
+                    if (key != null) append(",\"key\":").append(JSONObject.quote(key))
+                    append(",\"schemaVersion\":").append(schemaVersion)
+                    append(",\"entry\":").append(entryText)
+                    append('}')
+                },
+            )
     }
 }
 
@@ -232,8 +319,8 @@ fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig):
     colorNight1 = json.optInt("colorNight1", default.colorNight1),
     colorDay2 = json.optInt("colorDay2", default.colorDay2),
     colorNight2 = json.optInt("colorNight2", default.colorNight2),
-    autoMode1 = AutoColorMode.fromStorageId(json.optString("autoMode1", null)),
-    autoMode2 = AutoColorMode.fromStorageId(json.optString("autoMode2", null)),
+    autoMode1 = AutoColorMode.fromStorageId(json.optString("autoMode1")),
+    autoMode2 = AutoColorMode.fromStorageId(json.optString("autoMode2")),
 )
 
 fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
@@ -389,14 +476,14 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // fully transparent hills (v5.8B comment audit).
         hillsColorDay = json.optInt("hillsColorDay", defaults.hillsColorDay),
         hillsColorNight = json.optInt("hillsColorNight", defaults.hillsColorNight),
-        hillsAutoMode = AutoColorMode.fromStorageId(json.optString("hillsAutoMode", null)),
+        hillsAutoMode = AutoColorMode.fromStorageId(json.optString("hillsAutoMode")),
         mountainsFront = json.optJSONObject("mountainsFront")?.let {
             MountainLayerConfig(
                 visible = it.optBoolean("visible", defaults.mountainsFront.visible),
                 density = it.optFinite("density", defaults.mountainsFront.density),
                 colorDay = it.optInt("colorDay", defaults.mountainsFront.colorDay),
                 colorNight = it.optInt("colorNight", defaults.mountainsFront.colorNight),
-                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
+                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode")),
             )
         } ?: defaults.mountainsFront,
         mountainsBack = json.optJSONObject("mountainsBack")?.let {
@@ -405,7 +492,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 density = it.optFinite("density", defaults.mountainsBack.density),
                 colorDay = it.optInt("colorDay", defaults.mountainsBack.colorDay),
                 colorNight = it.optInt("colorNight", defaults.mountainsBack.colorNight),
-                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
+                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode")),
             )
         } ?: defaults.mountainsBack,
         lake = json.optJSONObject("lake")?.let {
@@ -418,7 +505,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 sailboatsDensity = it.optFinite("sailboatsDensity", defaults.lake.sailboatsDensity),
                 dolphinsVisible = it.optBoolean("dolphinsVisible", defaults.lake.dolphinsVisible),
                 dolphinsDensity = it.optFinite("dolphinsDensity", defaults.lake.dolphinsDensity),
-                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
+                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode")),
             )
         } ?: defaults.lake,
         birds = json.optJSONObject("birds")?.let { b ->
@@ -456,8 +543,8 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 colorSunriseLow = it.optInt("colorSunriseLow", defaults.sky.colorSunriseLow),
                 colorSunsetLow = it.optInt("colorSunsetLow", defaults.sky.colorSunsetLow),
                 sunCloudHeight = it.optFinite("sunCloudHeight", defaults.sky.sunCloudHeight),
-                autoModeHigh = AutoColorMode.fromStorageId(it.optString("autoModeHigh", null)),
-                autoModeLow = AutoColorMode.fromStorageId(it.optString("autoModeLow", null)),
+                autoModeHigh = AutoColorMode.fromStorageId(it.optString("autoModeHigh")),
+                autoModeLow = AutoColorMode.fromStorageId(it.optString("autoModeLow")),
             )
         } ?: defaults.sky,
         sun = json.optJSONObject("sun")?.let {
@@ -479,7 +566,7 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 density = it.optFinite("density", defaults.clouds.density),
                 colorDay = it.optInt("colorDay", defaults.clouds.colorDay),
                 colorNight = it.optInt("colorNight", defaults.clouds.colorNight),
-                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode", null)),
+                autoMode = AutoColorMode.fromStorageId(it.optString("autoMode")),
             )
         } ?: defaults.clouds,
         precipitation = json.optJSONObject("precipitation")?.let {
@@ -494,8 +581,8 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 snowColorDay = it.optInt("snowColorDay", defaults.precipitation.snowColorDay),
                 snowColorNight = it.optInt("snowColorNight", defaults.precipitation.snowColorNight),
                 thunderstorm = it.optBoolean("thunderstorm", defaults.precipitation.thunderstorm),
-                rainAutoMode = AutoColorMode.fromStorageId(it.optString("rainAutoMode", null)),
-                snowAutoMode = AutoColorMode.fromStorageId(it.optString("snowAutoMode", null)),
+                rainAutoMode = AutoColorMode.fromStorageId(it.optString("rainAutoMode")),
+                snowAutoMode = AutoColorMode.fromStorageId(it.optString("snowAutoMode")),
             )
         } ?: defaults.precipitation,
         rainbow = json.optJSONObject("rainbow")?.let {
@@ -536,13 +623,19 @@ fun CustomThemeEntry.toJson(): JSONObject = JSONObject().apply {
     put("customization", customization.toJson())
 }
 
-fun customThemeEntryFromJson(json: JSONObject): CustomThemeEntry = CustomThemeEntry(
-    id = json.getString("id"),
-    name = json.getString("name"),
-    theme = sceneThemeFromJson(json.getJSONObject("theme")),
-    layout = sceneObjectLayoutFromJson(json.getJSONObject("layout")),
-    customization = sceneCustomizationFromJson(json.optJSONObject("customization")),
-)
+fun customThemeEntryFromJson(json: JSONObject): CustomThemeEntry {
+    val name = json.getString("name")
+    return CustomThemeEntry(
+        id = json.getString("id"),
+        name = name,
+        // The name every screen shows is the entry's own (v5.9B, I-01): see [CustomThemeEntry.name].
+        // Read this way rather than trusted from the file because every "Rename" before v5.9B wrote
+        // `name` alone and left the theme's copy behind.
+        theme = sceneThemeFromJson(json.getJSONObject("theme")).copy(displayName = name),
+        layout = sceneObjectLayoutFromJson(json.getJSONObject("layout")),
+        customization = sceneCustomizationFromJson(json.optJSONObject("customization")),
+    )
+}
 
 // --- Schema versioning -------------------------------------------------------------------
 
@@ -724,8 +817,15 @@ private fun migrateCustomThemeJson(root: JSONObject, fromVersion: Int): Int {
  * alone rather than repaired from part of itself: the loader would reject it anyway, and a school
  * placed against half a street could stand on a house nobody measured. Idempotent, because a
  * second run finds the school it added in the middle third.
+ *
+ * Two callers, one rule: the 4 -> 5 step above, for the themes the store saved before v5.6, and
+ * `parseThemeShare`, for a theme **file** exported before v5.6 and imported now (since v5.9F,
+ * inventory I-93: the maintainer's decision of 2026-09-21 that those streets get the school covers
+ * the files too, his answer of 2026-09-28). A file carries no store version, and the share format's
+ * own version (1) has never changed, so the file cannot say it is old: it is simply given the school
+ * if it has none, which a street from v5.6 on always has.
  */
-private fun addMissingSchool(objects: JSONArray?) {
+internal fun addMissingSchool(objects: JSONArray?) {
     if (objects == null) return
     val parsed = (0 until objects.length()).map { staticSceneObjectFromJson(objects.getJSONObject(it)) }
     val school = SceneObjectCatalog.missingSchoolFor(parsed) ?: return
@@ -858,6 +958,9 @@ private fun migrateStaticScalesToVariations(objects: JSONArray?) {
 }
 
 
+/** The section [CustomThemeData.unreadable] is written to. See [UnreadableThemeEntry]. */
+internal const val UNREADABLE_ENTRIES_KEY = "unreadableEntries"
+
 fun CustomThemeData.toJsonString(): String {
     val root = JSONObject()
     // Written first so it is present even in a payload that is later truncated by a storage
@@ -867,7 +970,24 @@ fun CustomThemeData.toJsonString(): String {
     overrides.forEach { (builtinId, entry) -> overridesJson.put(builtinId, entry.toJson()) }
     root.put("overrides", overridesJson)
     root.put("customThemes", JSONArray(customThemes.map { it.toJson() }))
-    return root.toString()
+    // A document with nothing unreadable in it is written exactly as it always was.
+    if (unreadable.isEmpty()) return root.toString()
+    // The kept entries go in as text, not as parsed JSON: `org.json` re-serialises what it parses
+    // (numbers, escapes, key order), and those bytes are the only copy the user has. So the
+    // section is written as a placeholder string -- letters, digits and hyphens, which neither
+    // org.json implementation escapes -- and the placeholder is then replaced by the items. The
+    // token is random and checked to occur exactly once, so a theme name cannot be mistaken for it.
+    while (true) {
+        val token = "paperscrape-unreadable-" + java.util.UUID.randomUUID()
+        root.put(UNREADABLE_ENTRIES_KEY, token)
+        val text = root.toString()
+        val quoted = "\"" + token + "\""
+        val at = text.indexOf(quoted)
+        check(at >= 0) { "the placeholder was escaped by the serialiser" }
+        if (at != text.lastIndexOf(quoted)) continue
+        val section = unreadable.joinToString(separator = ",", prefix = "[", postfix = "]") { it.itemJson }
+        return text.substring(0, at) + section + text.substring(at + quoted.length)
+    }
 }
 
 /**
@@ -935,18 +1055,22 @@ fun CustomThemeData.repairBuiltInOverrides(): CustomThemeData {
     if (overrides.isEmpty()) return this
     var changed = false
     val repaired = overrides.mapValues { (builtinId, entry) ->
-        val canonical = SceneObjectCatalog.builtinCarsFor(builtinId, entry.theme.accentColor)
-        if (canonical.isEmpty()) return@mapValues entry
-        val stored = entry.layout.cars
-        // A whole inventory, or more than one: nothing to put back, and nothing this understands.
-        if (stored.size >= canonical.size) return@mapValues entry
-        // A *partial* inventory is only repaired once it has been re-derived and matched. See
-        // [oldSaveWouldHaveWritten].
-        if (stored.isNotEmpty() && stored != oldSaveWouldHaveWritten(canonical, entry.customization)) {
-            return@mapValues entry
-        }
-        changed = true
-        entry.copy(layout = entry.layout.copy(cars = SceneObjectCatalog.canonicaliseTraffic(canonical)))
+        // Each override is repaired on its own: a repair that throws leaves that one theme as it
+        // was read, and never costs the others (item 18, v5.9A).
+        runCatching {
+            val canonical = SceneObjectCatalog.builtinCarsFor(builtinId, entry.theme.accentColor)
+            if (canonical.isEmpty()) return@runCatching entry
+            val stored = entry.layout.cars
+            // A whole inventory, or more than one: nothing to put back, and nothing this understands.
+            if (stored.size >= canonical.size) return@runCatching entry
+            // A *partial* inventory is only repaired once it has been re-derived and matched. See
+            // [oldSaveWouldHaveWritten].
+            if (stored.isNotEmpty() && stored != oldSaveWouldHaveWritten(canonical, entry.customization)) {
+                return@runCatching entry
+            }
+            changed = true
+            entry.copy(layout = entry.layout.copy(cars = SceneObjectCatalog.canonicaliseTraffic(canonical)))
+        }.getOrDefault(entry)
     }
     return if (changed) copy(overrides = repaired) else this
 }
@@ -981,49 +1105,338 @@ private fun oldSaveWouldHaveWritten(
     SceneObjectCatalog.canonicaliseTraffic(canonical.filter { customization.legacyKeepCar(it) })
 
 /**
- * The stored blob, or `null` if there is one and it cannot be read.
+ * The stored blob, or `null` if there is one and it cannot be read at all.
  *
- * The distinction [customThemeDataFromJsonString] deliberately hides — an absent store and an
- * unreadable one both read as `CustomThemeData.EMPTY`, which is what a *reader* wants. A
+ * The distinction [customThemeDataFromJsonString] deliberately hides -- an absent store and a
+ * document that is not JSON both read as `CustomThemeData.EMPTY`, which is what a *reader* wants. A
  * read-modify-write needs to tell them apart or it overwrites the second with a document derived
  * from nothing; see `CustomThemeStore.update` for what that cost.
+ *
+ * **Since v5.9A (item 18) `null` means the document itself, not one theme in it.** A document whose
+ * entries are unreadable one by one reads with those entries set aside in
+ * [CustomThemeData.unreadable], and writing it back keeps them, so an edit no longer has to be
+ * refused for their sake.
  */
 fun customThemeDataOrNull(raw: String?): CustomThemeData? {
     if (raw.isNullOrBlank()) return CustomThemeData.EMPTY
-    val parsed = customThemeDataFromJsonString(raw)
-    // The reader's own failure signal: a non-blank blob that comes back completely empty either was
-    // unreadable or holds nothing worth keeping, and the two are the same decision here.
-    return if (parsed == CustomThemeData.EMPTY && !looksEmpty(raw)) null else parsed
+    return readCustomThemeDocument(raw)
 }
-
-/** Whether [raw] is a document that legitimately holds no themes, rather than one that failed. */
-private fun looksEmpty(raw: String): Boolean = runCatching {
-    val root = JSONObject(raw)
-    val overrides = root.optJSONObject("overrides")?.length() ?: 0
-    val customs = root.optJSONArray("customThemes")?.length() ?: 0
-    overrides == 0 && customs == 0
-}.getOrDefault(false)
 
 fun customThemeDataFromJsonString(raw: String?): CustomThemeData {
     if (raw.isNullOrBlank()) return CustomThemeData.EMPTY
-    return try {
-        val root = JSONObject(raw)
-        val version = root.optInt("schemaVersion", CUSTOM_THEME_SCHEMA_VERSION_LEGACY)
-        migrateCustomThemeJson(root, version)
-        val overridesJson = root.optJSONObject("overrides") ?: JSONObject()
-        val overrides = mutableMapOf<String, CustomThemeEntry>()
-        overridesJson.keys().forEach { key ->
-            overrides[key] = customThemeEntryFromJson(overridesJson.getJSONObject(key))
-        }
-        val customArray = root.optJSONArray("customThemes") ?: JSONArray()
-        val customThemes = (0 until customArray.length()).map { customThemeEntryFromJson(customArray.getJSONObject(it)) }
-        // Repaired on the way out, never on the way in: the bytes on disk are left as they are and
-        // the fix is applied to what the app uses. That is one fewer write on a startup path, it
-        // covers data that arrives later from a backup import just as well, and being idempotent
-        // it needs no schema bump and no migration entry. See [repairBuiltInOverrides].
-        CustomThemeData(overrides = overrides, customThemes = customThemes).repairBuiltInOverrides()
+    // A document that is not JSON should never crash the wallpaper -- it reads as "nothing saved".
+    return readCustomThemeDocument(raw) ?: CustomThemeData.EMPTY
+}
+
+/**
+ * Reads a saved-themes document **entry by entry** (item 18, v5.9A).
+ *
+ * `null` only when [raw] is not a JSON object at all, or the migrations fail on it as a whole (none
+ * can today: each step that reads a theme's contents is guarded per entry). Otherwise every entry
+ * that reads is returned as before, and every one that does not is kept in
+ * [CustomThemeData.unreadable] with its bytes as they stand in [raw] -- **before** the migrations
+ * below rewrite the parsed copy -- and the schema version those bytes are in. Until v5.9A the whole
+ * read sat in one `catch`, so one damaged entry read as "no saved themes at all".
+ *
+ * Kept entries that an earlier write put in the `unreadableEntries` section are tried again on every
+ * read: see [recoverUnreadable].
+ */
+private fun readCustomThemeDocument(raw: String): CustomThemeData? {
+    val root = try {
+        JSONObject(raw)
     } catch (_: Exception) {
-        // Corrupt/unexpected data should never crash the wallpaper -- fall back to "nothing saved".
-        CustomThemeData.EMPTY
+        return null
+    }
+    val version = root.optInt("schemaVersion", CUSTOM_THEME_SCHEMA_VERSION_LEGACY)
+    // The text of anything that fails is taken from [raw] as it was written. Where the strict
+    // scanner cannot follow the text (org.json also accepts comments and unquoted names), the kept
+    // text falls back to a re-serialisation of an unmigrated parse: the same content, not the same
+    // bytes. Both are worked out only if something fails.
+    val spans by lazy { runCatching { DocumentSpans.of(raw) }.getOrNull() }
+    val pristine by lazy { JSONObject(raw) }
+    fun keptText(span: JsonSpans.Span?, value: () -> Any?): String =
+        span?.let { raw.substring(it.start, it.end) } ?: JsonSpans.serialise(value())
+
+    try {
+        migrateCustomThemeJson(root, version)
+    } catch (_: Exception) {
+        return null
+    }
+
+    val unreadable = mutableListOf<UnreadableThemeEntry>()
+    val overrides = LinkedHashMap<String, CustomThemeEntry>()
+    // An explicit `null` holds nothing, so it reads as absent, as it always has.
+    fun present(value: Any?): Boolean = value != null && value != JSONObject.NULL
+    val overridesValue = root.opt("overrides")
+    if (overridesValue is JSONObject) {
+        for (key in overridesValue.keys()) {
+            val entry = runCatching { customThemeEntryFromJson(overridesValue.getJSONObject(key)) }.getOrNull()
+            if (entry != null) {
+                overrides[key] = entry
+            } else {
+                val span = spans?.overrides?.lastOrNull { it.key == key }?.let { JsonSpans.Span(it.start, it.end) }
+                val text = keptText(span) { pristine.optJSONObject("overrides")?.opt(key) }
+                unreadable += UnreadableThemeEntry.of(UnreadableThemeEntry.FROM_OVERRIDES, key, version, text)
+            }
+        }
+    } else if (present(overridesValue)) {
+        // Present but not an object: kept whole. It has no key to go back under, so it stays
+        // aside for good, which is still better than being written over.
+        unreadable += UnreadableThemeEntry.of(
+            UnreadableThemeEntry.FROM_OVERRIDES, null, version, keptText(spans?.overridesValue) { pristine.opt("overrides") },
+        )
+    }
+    val customThemes = mutableListOf<CustomThemeEntry>()
+    val customThemesValue = root.opt("customThemes")
+    if (customThemesValue is JSONArray) {
+        for (i in 0 until customThemesValue.length()) {
+            val entry = runCatching { customThemeEntryFromJson(customThemesValue.getJSONObject(i)) }.getOrNull()
+            if (entry != null) {
+                customThemes += entry
+            } else {
+                val text = keptText(spans?.customThemes?.getOrNull(i)) { pristine.optJSONArray("customThemes")?.opt(i) }
+                unreadable += UnreadableThemeEntry.of(UnreadableThemeEntry.FROM_CUSTOM_THEMES, null, version, text)
+            }
+        }
+    } else if (present(customThemesValue)) {
+        unreadable += UnreadableThemeEntry.of(
+            UnreadableThemeEntry.FROM_CUSTOM_THEMES, null, version, keptText(spans?.customThemesValue) { pristine.opt("customThemes") },
+        )
+    }
+    // Items an earlier write set aside, in their own text. A section that is not an array is kept
+    // as one item, so it is never lost either.
+    val section = root.opt(UNREADABLE_ENTRIES_KEY)
+    val earlier = if (section is JSONArray) {
+        (0 until section.length()).map { i ->
+            UnreadableThemeEntry(keptText(spans?.unreadableEntries?.getOrNull(i)) { pristine.optJSONArray(UNREADABLE_ENTRIES_KEY)?.opt(i) })
+        }
+    } else if (present(section)) {
+        listOf(UnreadableThemeEntry(keptText(spans?.unreadableEntriesValue) { pristine.opt(UNREADABLE_ENTRIES_KEY) }))
+    } else {
+        emptyList()
+    }
+    val kept = recoverUnreadable(earlier, overrides, customThemes)
+    // Repaired on the way out, never on the way in: the bytes on disk are left as they are and
+    // the fix is applied to what the app uses. That is one fewer write on a startup path, it
+    // covers data that arrives later from a backup import just as well, and being idempotent
+    // it needs no schema bump and no migration entry. See [repairBuiltInOverrides].
+    return CustomThemeData(overrides = overrides, customThemes = customThemes, unreadable = unreadable + kept)
+        .repairBuiltInOverrides()
+}
+
+/**
+ * Puts back every kept entry that now reads and whose place is free; returns the ones that stay.
+ *
+ * An item is tried only when it says where it came from and which schema its bytes are in: the entry
+ * is migrated from that version on a copy, exactly as it would have been in its own document, and
+ * then read. An override goes back under its key unless the user has saved another one for that
+ * built-in since -- the newer one is theirs and wins, and the old one stays aside. A standalone theme
+ * goes back at the end of the list unless a theme with its id is already there. Everything else --
+ * an item that cannot be parsed, a whole container kept by [readCustomThemeDocument], an entry that
+ * still does not read -- stays exactly as it is.
+ */
+private fun recoverUnreadable(
+    items: List<UnreadableThemeEntry>,
+    overrides: MutableMap<String, CustomThemeEntry>,
+    customThemes: MutableList<CustomThemeEntry>,
+): List<UnreadableThemeEntry> = items.filterNot { item ->
+    runCatching {
+        val parsed = JSONObject(item.itemJson)
+        if (!parsed.has("schemaVersion")) return@runCatching false
+        val version = parsed.getInt("schemaVersion")
+        val entry = parsed.optJSONObject("entry") ?: return@runCatching false
+        when (parsed.optString("from")) {
+            UnreadableThemeEntry.FROM_OVERRIDES -> {
+                if (!parsed.has("key")) return@runCatching false
+                val key = parsed.getString("key")
+                if (key in overrides) return@runCatching false
+                val single = JSONObject().put("overrides", JSONObject().put(key, JSONObject(entry.toString())))
+                migrateCustomThemeJson(single, version)
+                overrides[key] = customThemeEntryFromJson(single.getJSONObject("overrides").getJSONObject(key))
+                true
+            }
+            UnreadableThemeEntry.FROM_CUSTOM_THEMES -> {
+                val single = JSONObject().put("customThemes", JSONArray().put(JSONObject(entry.toString())))
+                migrateCustomThemeJson(single, version)
+                val recovered = customThemeEntryFromJson(single.getJSONArray("customThemes").getJSONObject(0))
+                if (customThemes.any { it.id == recovered.id }) return@runCatching false
+                customThemes += recovered
+                true
+            }
+            else -> false
+        }
+    }.getOrDefault(false)
+}
+
+/**
+ * Where each top-level value of a saved-themes document stands in its text, and each entry inside
+ * `overrides`, `customThemes` and `unreadableEntries`. Throws if the text is not strict JSON.
+ */
+internal class DocumentSpans private constructor(
+    val overridesValue: JsonSpans.Span?,
+    val overrides: List<JsonSpans.Member>,
+    val customThemesValue: JsonSpans.Span?,
+    val customThemes: List<JsonSpans.Span>,
+    val unreadableEntriesValue: JsonSpans.Span?,
+    val unreadableEntries: List<JsonSpans.Span>,
+) {
+    companion object {
+        fun of(text: String): DocumentSpans {
+            val top = JsonSpans.objectMembers(text, JsonSpans.skipSpace(text, 0))
+            // The last occurrence of a name is the one org.json keeps.
+            fun value(name: String) = top.lastOrNull { it.key == name }?.let { JsonSpans.Span(it.start, it.end) }
+            fun membersOf(span: JsonSpans.Span?) =
+                if (span != null && text[span.start] == '{') JsonSpans.objectMembers(text, span.start) else emptyList()
+            fun elementsOf(span: JsonSpans.Span?) =
+                if (span != null && text[span.start] == '[') JsonSpans.arrayElements(text, span.start) else emptyList()
+            val overrides = value("overrides")
+            val customThemes = value("customThemes")
+            val unreadable = value(UNREADABLE_ENTRIES_KEY)
+            return DocumentSpans(
+                overridesValue = overrides,
+                overrides = membersOf(overrides),
+                customThemesValue = customThemes,
+                customThemes = elementsOf(customThemes),
+                unreadableEntriesValue = unreadable,
+                unreadableEntries = elementsOf(unreadable),
+            )
+        }
+    }
+}
+
+/**
+ * A strict JSON scanner that reports **where** values stand in a text instead of parsing them.
+ *
+ * `org.json` has no way to hand back the text a value was read from, and the kept entries must be
+ * written back as that text (see [UnreadableThemeEntry]). This follows RFC 8259 and nothing more:
+ * org.json's leniencies (comments, unquoted names, `=` and `;` as separators) make it throw, and the
+ * caller then falls back to [serialise].
+ */
+internal object JsonSpans {
+
+    /** `text.substring(start, end)` is one whole JSON value. */
+    data class Span(val start: Int, val end: Int)
+
+    /** One `"name": value` pair of an object; [key] is the name decoded. */
+    data class Member(val key: String, val start: Int, val end: Int)
+
+    fun skipSpace(text: String, from: Int): Int {
+        var i = from
+        while (i < text.length && text[i] in " \t\n\r") i++
+        return i
+    }
+
+    /** The index just past the value that starts at [start]. */
+    fun valueEnd(text: String, start: Int): Int {
+        require(start < text.length) { "value expected at $start" }
+        return when (text[start]) {
+            '{' -> objectEnd(text, start)
+            '[' -> arrayEnd(text, start)
+            '"' -> stringEnd(text, start)
+            't' -> literalEnd(text, start, "true")
+            'f' -> literalEnd(text, start, "false")
+            'n' -> literalEnd(text, start, "null")
+            else -> numberEnd(text, start)
+        }
+    }
+
+    fun objectMembers(text: String, start: Int): List<Member> {
+        require(text[start] == '{') { "object expected at $start" }
+        val members = mutableListOf<Member>()
+        var i = skipSpace(text, start + 1)
+        if (i < text.length && text[i] == '}') return members
+        while (true) {
+            require(i < text.length && text[i] == '"') { "name expected at $i" }
+            val nameEnd = stringEnd(text, i)
+            val key = decode(text, i, nameEnd)
+            i = skipSpace(text, nameEnd)
+            require(i < text.length && text[i] == ':') { "':' expected at $i" }
+            val valueStart = skipSpace(text, i + 1)
+            val valueEnd = valueEnd(text, valueStart)
+            members += Member(key, valueStart, valueEnd)
+            i = skipSpace(text, valueEnd)
+            require(i < text.length) { "unterminated object" }
+            if (text[i] == '}') return members
+            require(text[i] == ',') { "',' expected at $i" }
+            i = skipSpace(text, i + 1)
+        }
+    }
+
+    fun arrayElements(text: String, start: Int): List<Span> {
+        require(text[start] == '[') { "array expected at $start" }
+        val elements = mutableListOf<Span>()
+        var i = skipSpace(text, start + 1)
+        if (i < text.length && text[i] == ']') return elements
+        while (true) {
+            val end = valueEnd(text, i)
+            elements += Span(i, end)
+            i = skipSpace(text, end)
+            require(i < text.length) { "unterminated array" }
+            if (text[i] == ']') return elements
+            require(text[i] == ',') { "',' expected at $i" }
+            i = skipSpace(text, i + 1)
+        }
+    }
+
+    /** [value] as JSON text, for a value whose own text could not be followed. */
+    fun serialise(value: Any?): String {
+        // Wrapped in an array and unwrapped, because neither org.json serialises a bare value.
+        val text = JSONArray().put(value ?: JSONObject.NULL).toString()
+        return text.substring(1, text.length - 1)
+    }
+
+    private fun objectEnd(text: String, start: Int): Int {
+        val members = objectMembers(text, start)
+        val afterLast = members.lastOrNull()?.end ?: (start + 1)
+        return skipSpace(text, afterLast) + 1
+    }
+
+    private fun arrayEnd(text: String, start: Int): Int {
+        val elements = arrayElements(text, start)
+        val afterLast = elements.lastOrNull()?.end ?: (start + 1)
+        return skipSpace(text, afterLast) + 1
+    }
+
+    private fun stringEnd(text: String, start: Int): Int {
+        var i = start + 1
+        while (i < text.length) {
+            when (text[i]) {
+                '\\' -> i += 2
+                '"' -> return i + 1
+                else -> i++
+            }
+        }
+        throw IllegalArgumentException("unterminated string at $start")
+    }
+
+    private fun literalEnd(text: String, start: Int, literal: String): Int {
+        require(text.startsWith(literal, start)) { "'$literal' expected at $start" }
+        return start + literal.length
+    }
+
+    private fun numberEnd(text: String, start: Int): Int {
+        var i = start
+        while (i < text.length && (text[i].isDigit() || text[i] in "+-.eE")) i++
+        require(i > start) { "value expected at $start" }
+        return i
+    }
+
+    private fun decode(text: String, start: Int, end: Int): String = buildString {
+        var i = start + 1
+        while (i < end - 1) {
+            val c = text[i]
+            if (c != '\\') {
+                append(c); i++; continue
+            }
+            when (val e = text[i + 1]) {
+                'u' -> { append(text.substring(i + 2, i + 6).toInt(16).toChar()); i += 6 }
+                'b' -> { append('\b'); i += 2 }
+                'f' -> { append('\u000C'); i += 2 }
+                'n' -> { append('\n'); i += 2 }
+                'r' -> { append('\r'); i += 2 }
+                't' -> { append('\t'); i += 2 }
+                else -> { append(e); i += 2 }
+            }
+        }
     }
 }

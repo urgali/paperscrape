@@ -19,12 +19,13 @@ moving on its own.
   times can come from the clock alone, from your location, or from a place you pick —
   by searching for it by name, or by entering coordinates.
 - **Twelve themes** — sunset, autumn, winter, spring, desert, Christmas, new year, beach,
-  city, tundra, Easter and Halloween — with optional automatic switching by date, which
-  covers every day of the year and moves Easter with the calendar. Each one's gallery card
+  city, tundra, Easter and Halloween — with optional automatic switching by date, which as
+  it comes covers every day of the year and moves Easter with the calendar. Each one's gallery card
   draws a small version of that theme's own world, so you can see what you are choosing.
 - **The holiday calendar is yours to move.** Every window the automatic switch uses — the four
   holidays and the four seasons — can start and end where you want, and Easter's length is
-  adjustable either side of a Sunday the app works out for you. One button puts it all back.
+  adjustable either side of a Sunday the app works out for you. A stretch you leave uncovered
+  shows the theme you picked yourself, and the settings say so. One button puts it all back.
 - **Custom themes.** Save your own, built on any of the twelve, and keep them.
 - **Every part of the scene is adjustable.** Houses, buildings, trees, garden parasols,
   cars, people, hills, mountains, clouds, stars, rainbows, the lake and its boats and
@@ -241,17 +242,22 @@ unused because no v1.2 was ever released.
 ## Development
 
 - Read `ARCHITECTURE.md` before changing anything: §3 is the authority on the two rendering
-  backends, and nothing about the draw path should be inferred without it. The draw path
-  allocates nothing per frame — no object is created inside `draw`, and that is a rule, not a
-  preference.
+  backends, and nothing about the draw path should be inferred without it. Nothing in the
+  draw path should allocate per frame, and new code must not; the current code does. Measured on
+  a Blackview BV6600 on 2026-09-27 with the debug build, a steady frame of the real renderer
+  allocates about 120 to 460 objects on the GL path and 430 to 800 on the Canvas fallback,
+  depending on the scene, two fifths to nine tenths of them inside Android 10's own
+  `Paint.setAlpha`. The phone collects them about once a minute in a pause of under a fifth of
+  a millisecond, which cannot be seen, so they stay as they are.
 - Sizes and ground positions come from `SceneSpace`. If something draws at the wrong
   size, the fix is its entry in the size table, never a correction at the call site.
 - Sprites are described by `tools/assets/sources/sprites.json`. Changing artwork means
   changing its SVG source and re-rendering, not editing a PNG.
 - `./gradlew testDebugUnitTest` and `python3 -m paperscrape_assets validate` are the two
   checks worth running on almost any change.
-- There is no visual regression test. Anything that changes what is drawn has to be
-  looked at on a device.
+- The visual regression tests are instrumented: rendered frames compared with committed
+  goldens, on the Canvas and on the GL path, on a phone. CI does not run them, so anything
+  that changes what is drawn is checked on a device before it is delivered.
 
 ---
 

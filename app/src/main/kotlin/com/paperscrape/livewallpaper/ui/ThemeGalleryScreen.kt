@@ -143,17 +143,14 @@ internal fun ThemeGalleryScreen(
                 supporting = if (calendarThemeId != null) {
                     "On - the calendar is choosing ${ThemeCatalog.byId(calendarThemeId).displayName} today"
                 } else {
-                    "The calendar picks a theme for every day of the year"
+                    SettingsUiModel.autoThemeLine(settings.seasonalCalendar, overridingYourPick = false)
                 },
                 icon = Icons.Filled.Event,
                 checked = settings.autoThemeByDate,
                 onCheckedChange = { scope.launch { prefs.setAutoThemeByDate(it) } },
             )
         }
-        SettingsCaption(
-            "While this is on, the calendar picks the theme. The theme you choose below is the one used " +
-                "whenever you turn it off.",
-        )
+        SettingsCaption(SettingsUiModel.autoThemeCaption(settings.seasonalCalendar))
 
         // What each card shows is what the wallpaper would draw for that theme: the same
         // resolution the engine makes (an edit in progress, then the theme's own edits, then a

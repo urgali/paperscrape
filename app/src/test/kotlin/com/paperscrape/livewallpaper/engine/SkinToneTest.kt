@@ -20,11 +20,11 @@ import org.junit.Test
  * that reaches every tone without bias is exactly what makes a rotation of it worth having, because
  * a rotation is a bijection and cannot improve a deal that was already poor.
  *
- * **But read `skin does not depend on the clock` with its subject in mind.** It says the *deal* is
- * not a function of the wall clock, which is a statement about reproducibility and is still true.
- * It is not a statement about what the wallpaper draws: since v4.30 the tone a figure wears *does*
- * move with the clock, deliberately, and `PeopleColoursTest` is where that lives. A test asserting
- * the opposite of the product while staying green is the trap this paragraph exists to remove.
+ * **`the dealt base does not depend on the clock` says what it tests.** It was called `skin does
+ * not depend on the clock`, which asserted the opposite of the product while staying green: it
+ * says the *deal* is not a function of the wall clock, a statement about reproducibility that is
+ * still true, and not what the wallpaper draws -- since v4.30 the tone a figure wears *does* move
+ * with the clock, deliberately, and `PeopleColoursTest` is where that lives.
  */
 class SkinToneTest {
 

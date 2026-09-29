@@ -45,7 +45,7 @@ class FramePacingTest {
         repeat(frames) { i ->
             // The grid is re-measured about once a second, at a real tick, with a period that may
             // be a little off -- which is what an estimate is.
-            if (lastMeasure == null || now - lastMeasure!! >= 1_000_000_000L) {
+            if (lastMeasure == null || now - lastMeasure >= 1_000_000_000L) {
                 val k = Math.floorDiv(now - phaseNanos, realPeriodNanos)
                 gridTick = phaseNanos + k * realPeriodNanos
                 lastMeasure = now
@@ -233,13 +233,15 @@ class FramePacingTest {
     // ------------------------------------------------------------------ presentation time
 
     /**
-     * Each frame asks to be shown a quarter period before the next frame's tick, on every panel:
-     * consecutive requests are exactly one frame interval apart, and each falls after the refresh
-     * a quick frame would otherwise jump to (more than three quarters of a period past the frame's
-     * `k - 1`-th tick) and before the next frame starts.
+     * Each frame asks to be shown a quarter period before the tick **after** the next frame's, on
+     * every panel (since v5.9F; the next frame's own tick until then, `FramePacing.presentAt`):
+     * consecutive requests are exactly one frame interval apart, and each falls more than three
+     * quarters of a period past the frame's `k`-th tick -- the next frame's start, so the
+     * composition of this one no longer overlaps the drawing of that one -- and before the tick
+     * after it.
      */
     @Test
-    fun `a frame asks to be shown just before the next frame's tick, on every panel`() {
+    fun `a frame asks to be shown just before the tick after the next frame's, on every panel`() {
         for (hz in listOf(50.0, 60.0, 61.45, 90.0, 120.0, 144.0, 240.0)) {
             val period = (1e9 / hz).toLong()
             val k = FramePacing.ticksPerFrame(period)
@@ -249,7 +251,7 @@ class FramePacingTest {
             repeat(100) {
                 val at = FramePacing.presentAt(grid, tick)
                 val lead = at - tick
-                assertTrue("$hz Hz: $lead ns after the tick", lead >= (k - 1) * period + 3 * period / 4 && lead < k * period)
+                assertTrue("$hz Hz: $lead ns after the tick", lead >= k * period + 3 * period / 4 && lead < (k + 1) * period)
                 if (previous != 0L) assertEquals("$hz Hz: requests one frame apart", k * period, at - previous)
                 previous = at
                 tick += k * period
@@ -289,7 +291,8 @@ class FramePacingTest {
                 val offset = period * offsetStep / 8
                 for (leadStep in 0..4) {
                     val lead = period * leadStep / 8
-                    // The latest a frame can be ready and still make the refresh it is asked for.
+                    // The latest a frame could be ready and still make the refresh the time asked for
+                    // until v5.9F; the time is one refresh later now, so this keeps a refresh to spare.
                     val budget = (k * period - period / 4) - lead
                     var tick = k * period * 10
                     var lastWith = 0L

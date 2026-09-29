@@ -43,7 +43,7 @@ tools/assets/buildings/out/
 
 # Internal working documents — they belong to the delivery ZIP, not to this repository.
 # Machine setup and session notes, the standing brief, the design reasoning, the
-# release-by-release internal history, the plan of unapproved work, the open backlogs and
+# release-by-release internal history, the plan of unapproved work, the closed backlogs and
 # the internal delivery reports. They are the working record between the maintainer and
 # whoever is doing the work, and nothing in them is written for a reader of this repository.
 #

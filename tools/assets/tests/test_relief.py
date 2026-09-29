@@ -1,7 +1,7 @@
 """How a person sprite separates one piece of paper from the next.
 
 **This file used to test an outer outline, and v4.25 changed what it protects rather than
-relaxing it.** Concept B "Rilievo" -- the family the maintainer chose -- draws no outline at all.
+relaxing it.** Concept B "Relief" -- the family the maintainer chose -- draws no outline at all.
 Every piece instead carries an *under-paper*: the same cut, offset down and to the right, in a
 darker tone of that piece's own colour, which is the recipe the v4.21 oak already uses. An arm
 reads as separate from the body because a sliver of its own shadow shows along the edge, not

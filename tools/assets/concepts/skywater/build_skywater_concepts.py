@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the three v4.26 sky-and-water concepts -- Sagoma, Rilievo, A giorno -- as SVG sources
+"""Builds the three v4.26 sky-and-water concepts -- Silhouette, Relief, Openwork -- as SVG sources
 and renders them through the project's own rasteriser.
 
 Run from ``tools/assets`` with the pinned venv:
@@ -161,7 +161,7 @@ def chain_contour(lobes, base_y, step_deg=11.0, base=None, notch=None):
 
 
 def scalloped_base(y, radius, depth, step_deg=30.0):
-    """A bottom edge cut as a run of shallow scallops -- the fringe A giorno gives the band."""
+    """A bottom edge cut as a run of shallow scallops -- the fringe Openwork gives the band."""
     def build(x_right, x_left):
         pts = []
         span = x_right - x_left
@@ -200,9 +200,9 @@ class Piece:
     points: list                       # outer contour
     fill: str
     holes: list = field(default_factory=list)   # inner contours, drawn with fill-rule evenodd
-    under: str | None = None           # Rilievo: colour of the paper beneath, drawn offset
+    under: str | None = None           # Relief: colour of the paper beneath, drawn offset
     under_offset: tuple = (0.0, 0.0)
-    clip_to: list | None = None        # a contour this piece is clipped inside (Sagoma's base band)
+    clip_to: list | None = None        # a contour this piece is clipped inside (Silhouette's base band)
 
 
 @dataclass
@@ -298,9 +298,9 @@ def bird_wings_only(seed: str):
 
 def bird(style: str) -> Sprite:
     s = Sprite("bird_body", 90, 24, "CANVAS_PIXELS", "TINTABLE", "animal", view_units=False)
-    if style == "sagoma":
+    if style == "silhouette":
         s.add(bird_silhouette("bird-a"), WHITE)
-    elif style == "rilievo":
+    elif style == "relief":
         # Two papers: the body, and the pair of wings laid over it. The under-paper is offset
         # along x only, because the flap mirrors the canvas vertically and a vertical offset
         # would swap sides twice a second.
@@ -324,7 +324,7 @@ CLOUD_W, CLOUD_H = 266.0, 132.0
 
 def cloud(style: str) -> Sprite:
     s = Sprite("cloud_body", CLOUD_W, CLOUD_H, "SCENE_UNITS", "TINTABLE", "sky")
-    if style == "sagoma":
+    if style == "silhouette":
         # One paper. Six lobes of six sizes with the crown left of centre, so a row of copies at
         # four scales has no beat in it, and a flat base. The lower band is the same paper in
         # shade -- a second tone, not a second piece -- clipped to the silhouette.
@@ -334,7 +334,7 @@ def cloud(style: str) -> Sprite:
         s.add(contour, WHITE)
         band = [(0, base_y - 20), (CLOUD_W, base_y - 20), (CLOUD_W, base_y + 2), (0, base_y + 2)]
         s.add(band, PAPER_2, clip_to=contour)
-    elif style == "rilievo":
+    elif style == "relief":
         # Three papers stacked like the oak's three bands of foliage: a wide low base, a middle
         # paper, a small crown, each with its own darker paper beneath, offset down and right.
         base = [(30, 110, 22), (66, 104, 27), (104, 102, 29), (144, 104, 29), (182, 102, 28), (218, 106, 26), (246, 112, 19)]
@@ -386,10 +386,10 @@ def dolphin(style: str, back: str = DOLPHIN_BACK, under: str = DOLPHIN_UNDER,
     v4.26 ships a lighter pair, derived in `LakeContrastTest`; the concepts keep theirs so the
     photographs stay reproducible."""
     s = Sprite("dolphin_body", 115, 58, "SCENE_UNITS", "FIXED_ART", "lake")
-    if style == "sagoma":
+    if style == "silhouette":
         s.add(dolphin_outline("dolphin-a"), back)
         s.add(dolphin_belly("dolphin-a-belly"), DOLPHIN_BELLY)
-    elif style == "rilievo":
+    elif style == "relief":
         # Body, belly, dorsal fin, pectoral fin and flukes as five papers. The under-paper is
         # offset by 5.5 units -- 1.6 px at the size the animal is drawn -- because the two units
         # the people use would be half a pixel here and would not exist.
@@ -404,7 +404,7 @@ def dolphin(style: str, back: str = DOLPHIN_BACK, under: str = DOLPHIN_UNDER,
         s.add(dolphin_belly("dolphin-b-belly"), DOLPHIN_BELLY, under=belly_under, under_offset=(3.0, 3.0))
     else:
         # The eye is cut through the paper: 9 units across, 2.6 px on the screen, the only
-        # opening this sprite can afford. Everything else is Sagoma's silhouette.
+        # opening this sprite can afford. Everything else is Silhouette's outline.
         eye = circle_pts(100.0, 22.5, 4.5, 10, start=0.3)
         s.add(dolphin_outline("dolphin-c"), back, holes=[eye])
         s.add(dolphin_belly("dolphin-c-belly"), DOLPHIN_BELLY)
@@ -429,10 +429,10 @@ def deck_stripe(seed: str):
 
 def hull(style: str) -> Sprite:
     s = Sprite("sailboat_hull", 84, 17, "SCENE_UNITS", "FIXED_ART", "lake")
-    if style == "sagoma":
+    if style == "silhouette":
         s.add(hull_outline("hull-a"), HULL)
         s.add(deck_stripe("hull-a-stripe"), DECK_STRIPE)
-    elif style == "rilievo":
+    elif style == "relief":
         s.add(hull_outline("hull-b"), HULL, under=HULL_UNDER, under_offset=(2.0, 2.0))
         s.add(deck_stripe("hull-b-stripe"), DECK_STRIPE, under=SAIL_UNDER, under_offset=(1.5, 1.5))
     else:
@@ -461,12 +461,12 @@ def sail(style: str) -> Sprite:
     s = Sprite("sailboat_sail", 70, 60, "SCENE_UNITS", "FIXED_ART", "lake")
     mast = [(MAST_X - 1.6, 0.0), (MAST_X + 1.6, 0.0), (MAST_X + 1.6, 60.0), (MAST_X - 1.6, 60.0)]
     band = [(11.6, 50.0), (MAST_X - 1.6, 50.0), (MAST_X - 1.6, 54.4), (10.7, 54.4)]
-    if style == "sagoma":
+    if style == "silhouette":
         s.add(mast, MAST)
         s.add(mainsail("sail-a"), SAIL)
         s.add(cut(band, "sail-a-band", 0.3), SAIL_BAND)
         s.add(jib("sail-a-jib"), SAIL)
-    elif style == "rilievo":
+    elif style == "relief":
         s.add(mast, MAST, under=HULL_UNDER, under_offset=(1.5, 0.0))
         s.add(mainsail("sail-b"), SAIL, under=SAIL_UNDER, under_offset=(2.0, 2.0))
         s.add(cut(band, "sail-b-band", 0.3), SAIL_BAND)
@@ -486,9 +486,9 @@ def sail(style: str) -> Sprite:
 
 # ------------------------------------------------------------------------------ build
 STYLES = {
-    "sagoma": "Concept A 'Sagoma' -- one paper per object: the silhouette alone carries the identity, at most two flat tones and no shadow offset, no outline.",
-    "rilievo": "Concept B 'Rilievo' -- the oak's and the people's recipe: two to five papers stacked, each on a darker paper beneath it offset down and right, the offset sized to the pixels the sprite is drawn at.",
-    "agiorno": "Concept C 'A giorno' -- the paper is cut through: openings inside the silhouette let the sky or the water show, never narrower than 2.5 px on the screen.",
+    "silhouette": "Concept A 'Silhouette' -- one paper per object: the silhouette alone carries the identity, at most two flat tones and no shadow offset, no outline.",
+    "relief": "Concept B 'Relief' -- the oak's and the people's recipe: two to five papers stacked, each on a darker paper beneath it offset down and right, the offset sized to the pixels the sprite is drawn at.",
+    "openwork": "Concept C 'Openwork' -- the paper is cut through: openings inside the silhouette let the sky or the water show, never narrower than 2.5 px on the screen.",
 }
 
 NOTES = {

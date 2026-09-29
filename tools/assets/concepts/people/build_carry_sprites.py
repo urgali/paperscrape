@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The shipped carrying pose: the walking adults with the near arm bent, P1 "Alzato" (v4.28).
+"""The shipped carrying pose: the walking adults with the near arm bent, P1 "Raised" (v4.28).
 
 Run from ``tools/assets`` with the pinned venv:
 
@@ -13,7 +13,7 @@ and only that pose is generated here, under the shipped names
 
 ### Why this is a generator and not twelve more committed SVGs
 
-Concept B "Rilievo" as shipped (``build_people_concepts.walker_rilievo``, style ``rilievo_occhi``)
+Concept B "Relief" as shipped (``build_people_concepts.walker_relief``, style ``relief_eyes``)
 is what every walking pedestrian in the scene is drawn from. The carrying pose is that same figure
 with **one limb replaced**: the near arm becomes an upper arm to an elbow and a forearm to a closed
 hand. Authoring it as twelve independent SVGs would put a second hand-maintained copy of the head,
@@ -37,7 +37,7 @@ axis of the artwork at all. Until v5.4H this script also wrote 36 **skin-tone** 
 ``res``; v4.30 retired those and the loop that wrote them was left behind, so running the script
 put files back that nothing draws. It is gone; see [build].
 
-**v5.4H draws the children too.** The maintainer chose strada 1 variante 1b of the v5.4F proposal
+**v5.4H draws the children too.** The maintainer chose approach 1, variant 1b of the v5.4F proposal
 round: the near arm raised, and the canopy at 70 %. Four families here, twelve frames, and
 ``PeopleLayerTable.CARRY`` goes from two families to four.
 
@@ -71,13 +71,13 @@ skin_tool = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(skin_tool)
 
 RES = REPO / "app" / "src" / "main" / "res" / "drawable-nodpi"
-STYLE = "rilievo_occhi"
+STYLE = "relief_eyes"
 TRIM = (1, 1)            # the shipped family's trim: 41x85 -> 39x84, origin +(1,1)
 CANVAS = (39, 84)
 
 
 def child_walker(kind: str, season: str, frame: int, carrying: bool) -> tuple[Sprite, dict]:
-    """``walker_rilievo_child`` verbatim, except the near arm when ``carrying`` (v5.4H).
+    """``walker_relief_child`` verbatim, except the near arm when ``carrying`` (v5.4H).
 
     A second function beside [walker] for the same reason ``build_people_concepts`` has two: since
     v4.30 the child is not the adult scaled. Its skeleton is derived **from the target box
@@ -87,7 +87,7 @@ def child_walker(kind: str, season: str, frame: int, carrying: bool) -> tuple[Sp
     shipped drawing by [check_reproduces_shipped], which renders boy and girl through *this* path
     and compares them byte for byte with what ships.
 
-    **The pose is the maintainer's choice of v5.4F, strada 1 variante 1b: the near arm raised.** It
+    **The pose is the maintainer's choice of v5.4F, approach 1, variant 1b: the near arm raised.** It
     is the adult's P1 at a child's proportions -- elbow 5 down and 2.5 forward of the arm root
     against the adult's 9 and 3, forearm 10.5 up against 16 -- and like P1 it is fixed on all three
     walk frames while the far arm keeps swinging. The 1b half of the choice is not here: it is the
@@ -175,10 +175,10 @@ def child_walker(kind: str, season: str, frame: int, carrying: bool) -> tuple[Sp
 
 
 def walker(kind: str, season: str, frame: int, carrying: bool) -> tuple[Sprite, dict]:
-    """``walker_rilievo`` verbatim, except the near arm when ``carrying``.
+    """``walker_relief`` verbatim, except the near arm when ``carrying``.
 
-    Dispatches to [child_walker] for the two child families exactly as ``walker_rilievo`` dispatches
-    to ``walker_rilievo_child``: since v4.30 a child is not an adult scaled down.
+    Dispatches to [child_walker] for the two child families exactly as ``walker_relief`` dispatches
+    to ``walker_relief_child``: since v4.30 a child is not an adult scaled down.
 
     Returns the sprite and, for the carrying pose, the hand centre in untrimmed units.
     """

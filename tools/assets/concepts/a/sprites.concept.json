@@ -1,6 +1,6 @@
 {
  "schemaVersion": 2,
- "note": "Registro dei concept v4.23 fase 1: stesso schema di sources/sprites.json, tenuto qui perche' questi sprite NON sono spediti e il registro principale descrive solo il set spedito.",
+ "note": "Registry of the v4.23 phase-1 concepts: the same schema as sources/sprites.json, kept here because these sprites are NOT shipped and the main registry describes only the shipped set.",
  "sprites": [
   {
    "name": "moon_crescent",
@@ -26,7 +26,7 @@
     "kind": "svg",
     "file": "moon_crescent.svg"
    },
-   "notes": "Concept A 'Strati' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept A 'Layers' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   },
   {
    "name": "moon_full",
@@ -52,7 +52,7 @@
     "kind": "svg",
     "file": "moon_full.svg"
    },
-   "notes": "Concept A 'Strati' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept A 'Layers' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   },
   {
    "name": "moon_half",
@@ -78,7 +78,7 @@
     "kind": "svg",
     "file": "moon_half.svg"
    },
-   "notes": "Concept A 'Strati' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept A 'Layers' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   },
   {
    "name": "star_sparkle",
@@ -104,7 +104,7 @@
     "kind": "svg",
     "file": "star_sparkle.svg"
    },
-   "notes": "Concept A 'Strati' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept A 'Layers' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   },
   {
    "name": "sun_body",
@@ -130,7 +130,7 @@
     "kind": "svg",
     "file": "sun_body.svg"
    },
-   "notes": "Concept A 'Strati' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept A 'Layers' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   },
   {
    "name": "sun_glow",
@@ -156,7 +156,7 @@
     "kind": "svg",
     "file": "sun_glow.svg"
    },
-   "notes": "Concept A 'Strati' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept A 'Layers' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   }
  ]
 }

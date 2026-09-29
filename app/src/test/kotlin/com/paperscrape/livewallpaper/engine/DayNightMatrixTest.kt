@@ -23,17 +23,17 @@ class DayNightMatrixTest {
 
     /** day colour to the kind of surface it stands for, for readable failures. */
     private val daylight = linkedMapOf(
-        0xFFF3F7FB.toInt() to "neve quasi bianca",
-        0xFFEFE4CF.toInt() to "crema calda",
-        0xFFB8E0A0.toInt() to "verde chiaro",
-        0xFFF2A65A.toInt() to "arancio",
-        0xFFE03A2F.toInt() to "rosso saturo",
-        0xFFB3453A.toInt() to "mattone",
-        0xFFF2D06B.toInt() to "giallo",
-        0xFF7FB3D5.toInt() to "azzurro",
-        0xFF5B6270.toInt() to "grigio-blu",
-        0xFF2E86AB.toInt() to "acqua",
-        0xFF2F6B3A.toInt() to "verde scuro",
+        0xFFF3F7FB.toInt() to "near-white snow",
+        0xFFEFE4CF.toInt() to "warm cream",
+        0xFFB8E0A0.toInt() to "light green",
+        0xFFF2A65A.toInt() to "orange",
+        0xFFE03A2F.toInt() to "saturated red",
+        0xFFB3453A.toInt() to "brick",
+        0xFFF2D06B.toInt() to "yellow",
+        0xFF7FB3D5.toInt() to "sky blue",
+        0xFF5B6270.toInt() to "blue-grey",
+        0xFF2E86AB.toInt() to "water",
+        0xFF2F6B3A.toInt() to "dark green",
     )
 
     @Test

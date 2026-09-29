@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Round 4 of the v4.26 sky-and-water concepts: soft clouds and a new, smaller bird. The dolphin
-and the sailboat stay as concept B "Rilievo" delivered them.
+and the sailboat stay as concept B "Relief" delivered them.
 
 Run from ``tools/assets`` with the pinned venv:
 
@@ -8,8 +8,8 @@ Run from ``tools/assets`` with the pinned venv:
 
 Two combinations, paired for capture economy only:
 
-    batuffolo_colomba   cloud C1 "Batuffolo" (edge feathered 1.5 units) + bird A "Colomba"
-    vapore_gabbiano     cloud C2 "Vapore"    (edge feathered 3 units)   + bird B "Gabbiano morbido"
+    puff_dove           cloud C1 "Puff"      (edge feathered 1.5 units) + bird A "Dove"
+    vapour_gull         cloud C2 "Vapour"    (edge feathered 3 units)   + bird B "Soft gull"
 
 **No cut edges and no second sheet.** The cloud is one mass of four large round lobes that meet
 in shallow, rounded joints -- no cusps, no notches -- over a wide low lobe that gives it a soft,
@@ -21,8 +21,8 @@ traced or sampled from anywhere.
 
 **The bird is compact.** Both variants are ~48 px across (1.3 person heights), with the body on
 the flap axis and the wings rising above it as two soft, rounded shapes rather than two blades:
-A "Colomba" has a plump body, a fan tail and two leaf-shaped wings raised together; B "Gabbiano
-morbido" has a slimmer body and longer rounded wings in a shallow V. Both carry the same soft
+A "Dove" has a plump body, a fan tail and two leaf-shaped wings raised together; B "Soft
+gull" has a slimmer body and longer rounded wings in a shallow V. Both carry the same soft
 gradient (white above, light grey below) and a light feather of the edge.
 
 **Tint-class budget** (`SpriteTintClassTest`: mean of every pixel with alpha > 0 at least 220,
@@ -95,7 +95,7 @@ def bird_svg(style: str) -> str:
              "</defs>",
              '<g filter="url(#soft)" fill="url(#ramp)">']
     a = BIRD_AXIS
-    if style == "colomba":
+    if style == "dove":
         # far wing (a tone back), body, near wing, tail, head
         parts.append(f'<path fill="#E9E9E9" d="M 22 {a - 2} C 20 {a - 8}, 24 {a - 13}, 30 {a - 14} C 31 {a - 9}, 28 {a - 4}, 24 {a - 1} Z"/>')
         parts.append(f'<path d="M 12 {a + 1} C 10 {a - 3}, 14 {a - 5}, 22 {a - 5} L 36 {a - 4} C 40 {a - 4}, 42 {a - 1}, 42 {a + 1} '
@@ -105,7 +105,7 @@ def bird_svg(style: str) -> str:
         parts.append(f'<circle cx="43" cy="{a - 1}" r="3.6"/>')
         parts.append(f'<path d="M 46 {a - 1.5} L 49.5 {a - 0.8} L 46 {a + 0.5} Z"/>')  # beak
     else:
-        # gabbiano morbido: slim body, long rounded wings in a shallow V, small head and tail
+        # soft gull: slim body, long rounded wings in a shallow V, small head and tail
         parts.append(f'<path fill="#E9E9E9" d="M 22 {a - 2} C 16 {a - 5}, 9 {a - 8}, 3 {a - 8} C 5 {a - 5}, 12 {a - 2}, 22 {a + 1} Z"/>')
         parts.append(f'<path d="M 9 {a + 0.5} C 12 {a - 3}, 18 {a - 4}, 26 {a - 4} L 38 {a - 3} C 41 {a - 3}, 42 {a - 1}, 42 {a + 1} '
                      f'C 41 {a + 3.5}, 37 {a + 4.5}, 30 {a + 4.5} L 16 {a + 4} C 12 {a + 4}, 9 {a + 3}, 9 {a + 0.5} Z"/>')
@@ -134,7 +134,7 @@ def clean_mask(png_bytes: bytes) -> tuple[bytes, float, int, float]:
     return out.getvalue(), mean, mn, partial
 
 
-COMBOS = {"batuffolo_colomba": (1.5, "colomba"), "vapore_gabbiano": (3.0, "gabbiano")}
+COMBOS = {"puff_dove": (1.5, "dove"), "vapour_gull": (3.0, "gull")}
 
 
 def build(combo: str) -> None:
@@ -144,8 +144,8 @@ def build(combo: str) -> None:
     entries = []
     items = [("bird_body", bird_svg(bird_style), (BIRD_W, BIRD_H), "CANVAS_PIXELS", "TINTABLE", "animal"),
              ("cloud_body", cloud_svg(blur), (int(CLOUD_W * UNIT), int(CLOUD_H * UNIT)), "SCENE_UNITS", "TINTABLE", "sky")]
-    for sprite in (dolphin("rilievo"), hull("rilievo"), sail("rilievo")):
-        items.append((sprite.name, emit_svg(sprite, "rilievo"),
+    for sprite in (dolphin("relief"), hull("relief"), sail("relief")):
+        items.append((sprite.name, emit_svg(sprite, "relief"),
                       (int(sprite.width_units * UNIT), int(sprite.height_units * UNIT)), sprite.scale, sprite.tint, sprite.category))
     for name, svg, expected, scale, tint, category in items:
         (out / f"{name}.svg").write_text(svg + "\n", encoding="utf-8")

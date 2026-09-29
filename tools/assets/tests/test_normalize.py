@@ -394,8 +394,9 @@ class TrailingCropTest(unittest.TestCase):
 # needs no compensation and costs nothing. What is left is ~55 KB of decoded
 # memory that could be recovered by giving both sprites derived origins; the
 # release did not need it (133 KB of headroom under the 29 MiB ceiling) and the
-# guard is worth more than the bytes. Recorded as an open item in
-# `BACKLOG_v4_21.md` rather than left for someone to rediscover here.
+# guard is worth more than the bytes. Recorded as item 24 of `BACKLOG_v4_21.md`;
+# v5.9C measured the margin at 35 136 B, and the maintainer closed the item on
+# 2026-09-27 without doing it (`ROADMAP.md` row A41).
 KNOWN_PENDING_CROP_COUNT = 2
 
 
@@ -423,17 +424,16 @@ class ShippedSetTest(unittest.TestCase):
             self.referenced,
         )
         pending = normalize.pending(plans)
-        # **Empty, and that is the whole of D-10.** Phase 3.3 normalised the set that
-        # existed then; the V2 asset library replaced almost all of it and went
-        # through the same pass only now. Nothing in scope carries removable padding
-        # any more, so this reads as a guard rather than as a record: a new sprite
-        # that ships with padding, or a crop that is undone, fails here.
+        # **Two, and both kept on purpose: the two trees of `KNOWN_PENDING_CROP_COUNT`**
+        # (closed without cropping on 2026-09-27, `ROADMAP.md` row A41). Phase 3.3
+        # normalised the set that existed then and the V2 asset library went through the
+        # same pass; nothing else in scope carries removable padding, so this reads as a
+        # guard: a new sprite that ships with padding, or a crop that is undone, fails here.
         #
         # Cropping is not a standalone change: every crop shifts the sprite's content
         # inside its own box, so each one needs its blit origin compensated in the
-        # same commit, and a mistake there is a visibly misplaced sprite. That is a
-        # task with a device look attached, recorded in `ROADMAP.md`, not something to
-        # slip into a tooling fix.
+        # same commit, and a mistake there is a visibly misplaced sprite -- a task with a
+        # device look attached, not something to slip into a tooling fix.
         #
         # Pinned as a count rather than waved through: cropping some of them, or
         # adding a new padded sprite, both show up here.
@@ -442,6 +442,18 @@ class ShippedSetTest(unittest.TestCase):
             len(pending),
             "the set of croppable targets changed; if that was intended, update "
             "KNOWN_PENDING_CROP_COUNT and compensate every origin you cropped",
+        )
+
+    def test_every_exclusion_names_a_sprite_that_ships(self):
+        # An exclusion is a reason not to crop one sprite, and it is never re-read: nothing
+        # fails when the sprite it names stops shipping. Three outlived theirs --
+        # `car_lights` and `car_lights_day` (v4.19 turned the two lamp overlays into four small
+        # lenses) and `skyscraper_wall_lit` (the flat facades went in v5.0) -- until v5.9D.
+        stale = sorted(normalize.excluded_names() - set(self.measurements))
+        self.assertEqual(
+            [], stale,
+            "these exclusions name sprites that no longer ship; remove them, and any "
+            "reason that points at them",
         )
 
     def test_the_registry_still_describes_the_shipped_pixels(self):

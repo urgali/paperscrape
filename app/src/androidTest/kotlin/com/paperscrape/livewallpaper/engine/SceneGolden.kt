@@ -37,7 +37,7 @@ import kotlin.math.abs
  * the storm golden does pin is everything `StormAtmosphere` drives: the darkened sky, the darkened
  * cloud band and the attenuated sun.
  *
- * ### v5.4 lavoro D re-authored twenty-four of the thirty-three committed frames
+ * ### v5.4 work D re-authored twenty-four of the thirty-three committed frames
  *
  * Twenty-one Canvas PNGs and **all three `gl-*.png`**, from two causes, each attributed with its
  * own diagnostic build before anything was regenerated (`consegna_v5_4d/registri/40_*`):
@@ -60,7 +60,7 @@ import kotlin.math.abs
  * device rendered before the change — the environment reproduces the shipped goldens exactly, so a
  * frame that moved, moved because of the code.
  *
- * ### v5.4 lavoro E re-authored two, and the arithmetic of D closes on them
+ * ### v5.4 work E re-authored two, and the arithmetic of D closes on them
  *
  * The maintainer removed the share: in the rain **every walker who has a carry pose is carrying**.
  * Two frames moved and they are the only two that *could* — an umbrella is state, not a predicate,
@@ -68,11 +68,11 @@ import kotlin.math.abs
  * `wave-storm` are the only rainy scenes with a warm-up (320 frames x 0.25 s). `rain`,
  * `rain-worst-sky` and `thunderstorm` all rain and all render at zero.
  *
- * Both moved by **56 px**, which is one canopy at this viewport — the same 56 lavoro D measured
+ * Both moved by **56 px**, which is one canopy at this viewport — the same 56 work D measured
  * when one went down. `umbrella-rain`'s theme deals three adults and all three carry again;
  * `wave-storm`'s `beach` deals four and the fourth picks one up.
  *
- * **The sum closes on `umbrella-rain`**, and it is worth writing because it makes lavoro D's
+ * **The sum closes on `umbrella-rain`**, and it is worth writing because it makes work D's
  * attribution checkable from outside: against the v5.4C file, D was **955** and E is **899**, and
  * 899 is exactly D's shop cause on its own. The umbrella went back up in the pixel it came down
  * from. On `wave-storm`, C and D are byte-identical and E differs from both by the same 56.
@@ -183,11 +183,12 @@ object SceneGolden {
      * The same rule applied to a [GoldenFocus], with a looser fraction and a far smaller area.
      *
      * Looser per pixel because a small patch is mostly edges -- a sail is a diagonal, and diagonals
-     * are where anti-aliasing differs between Skia builds -- and far stricter in absolute terms:
-     * 2% of a 900-pixel patch is 18 pixels, where 0.2% of the whole frame is 576. That difference
-     * is the point. A dolphin covers about 160 pixels at this frame size, so a golden about which
-     * side of a sail a dolphin is on cannot be measured against the whole-frame budget: the sprite
-     * could move anywhere, or vanish, and the frame would still pass.
+     * are where anti-aliasing differs between Skia builds. It was also the stricter of the two in
+     * absolute terms while the whole frame allowed 0.2% (576 pixels, until v4.31): 2% of a
+     * 900-pixel patch is 18 pixels, and a dolphin covers about 160 pixels at this frame size, so a
+     * golden about which side of a sail a dolphin is on could not be measured against the old
+     * whole-frame budget -- the sprite could move anywhere, or vanish, and the frame would still
+     * pass. Since v4.31 the whole frame allows no differing pixel ([MAX_DIFFERING_FRACTION]).
      */
     const val MAX_FOCUS_DIFFERING_FRACTION = 0.02
 

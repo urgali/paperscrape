@@ -1,7 +1,6 @@
 package com.paperscrape.livewallpaper.prefs
 
 import com.paperscrape.livewallpaper.engine.toJsonString
-import com.paperscrape.livewallpaper.engine.CustomThemeData
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -166,11 +165,6 @@ class BackupRepository(
 
     /** For tests and for the UI's confirmation step, without going near the stores. */
     fun preview(raw: String?): BackupParseResult = parseAppBackup(raw)
-
-    private companion object {
-        @Suppress("unused")
-        val EMPTY_THEMES = CustomThemeData.EMPTY
-    }
 }
 
 /**

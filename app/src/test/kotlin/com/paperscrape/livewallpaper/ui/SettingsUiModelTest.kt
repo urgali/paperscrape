@@ -336,4 +336,72 @@ class SettingsUiModelTest {
         assertEquals("Autumn and Beach", SettingsUiModel.namesInProse(listOf("Autumn", "Beach")))
         assertEquals("Autumn, Beach and Winter", SettingsUiModel.namesInProse(listOf("Autumn", "Beach", "Winter")))
     }
+    // -- Automatic theme by date, with a gap in the calendar (inventory I-06, v5.9F) ------------
+
+    /**
+     * The factory calendar covers every day, and the line says so; a calendar with a gap -- which
+     * the calendar screen allows, and names -- does not, and the line must not say it does. Until
+     * v5.9F both screens printed "for every day of the year" whatever the calendar held.
+     */
+    @Test
+    fun `the automatic theme line says every day only when the calendar covers every day`() {
+        val factory = com.paperscrape.livewallpaper.engine.SeasonalCalendar.DEFAULT
+        assertEquals(
+            "The calendar picks a theme for every day of the year, overriding your own pick",
+            SettingsUiModel.autoThemeLine(factory, overridingYourPick = true),
+        )
+        assertEquals(
+            "The calendar picks a theme for every day of the year",
+            SettingsUiModel.autoThemeLine(factory, overridingYourPick = false),
+        )
+        // Spring moved to start on 10 March: 1-9 March have no season under them.
+        val gapped = factory.withSpan(
+            com.paperscrape.livewallpaper.engine.CalendarWindow.SPRING,
+            com.paperscrape.livewallpaper.engine.CalendarSpan(3, 10, 5, 31),
+        )
+        for (overriding in listOf(true, false)) {
+            val line = SettingsUiModel.autoThemeLine(gapped, overridingYourPick = overriding)
+            assertFalse(line, line.contains("every day of the year"))
+            assertTrue(line, line.contains("the 9 days no season covers, your own pick shows unless a holiday covers them"))
+            assertEquals(line, overriding, line.contains("overriding your own pick"))
+        }
+        val oneDay = factory.withSpan(
+            com.paperscrape.livewallpaper.engine.CalendarWindow.SPRING,
+            com.paperscrape.livewallpaper.engine.CalendarSpan(3, 2, 5, 31),
+        )
+        assertTrue(SettingsUiModel.autoThemeLine(oneDay, false).contains("On the day no season covers"))
+    }
+
+    @Test
+    fun `the gallery's caption names the other days only when there are some`() {
+        val factory = com.paperscrape.livewallpaper.engine.SeasonalCalendar.DEFAULT
+        assertEquals(
+            "While this is on, the calendar picks the theme. The theme you choose below is the one used whenever you turn it off.",
+            SettingsUiModel.autoThemeCaption(factory),
+        )
+        val gapped = factory.withSpan(
+            com.paperscrape.livewallpaper.engine.CalendarWindow.WINTER,
+            com.paperscrape.livewallpaper.engine.CalendarSpan(1, 5, 2, 29),
+        )
+        assertTrue(SettingsUiModel.autoThemeCaption(gapped).contains("on the days it covers"))
+    }
+
+    /** Both screens read the line from here: no copy of the old fixed text is left in the UI. */
+    @Test
+    fun `no screen prints the fixed every-day line any more`() {
+        for (screen in listOf("SettingsScreen.kt", "ThemeGalleryScreen.kt")) {
+            var dir: java.io.File? = java.io.File(".").absoluteFile
+            var code: String? = null
+            while (dir != null && code == null) {
+                for (prefix in listOf("", "app/")) {
+                    val f = java.io.File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/ui/$screen")
+                    if (f.isFile) code = f.readText()
+                }
+                dir = dir.parentFile
+            }
+            requireNotNull(code) { "could not locate $screen" }
+            assertFalse(screen, code.contains("\"The calendar picks a theme for every day of the year"))
+            assertTrue(screen, code.contains("SettingsUiModel.autoThemeLine(settings.seasonalCalendar"))
+        }
+    }
 }

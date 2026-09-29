@@ -26,7 +26,7 @@
     "kind": "svg",
     "file": "umbrella_concept1.svg"
    },
-   "notes": "U1 Alta: a round dome of six panels. 48x24 units, SCENE_UNITS, tintable mask."
+   "notes": "U1 Tall: a round dome of six panels. 48x24 units, SCENE_UNITS, tintable mask."
   },
   {
    "name": "umbrella_concept3",
@@ -52,7 +52,7 @@
     "kind": "svg",
     "file": "umbrella_concept3.svg"
    },
-   "notes": "U3 Piatta: a shallow wide canopy of seven panels. 54x18 units, SCENE_UNITS, tintable mask."
+   "notes": "U3 Flat: a shallow wide canopy of seven panels. 54x18 units, SCENE_UNITS, tintable mask."
   }
  ]
 }

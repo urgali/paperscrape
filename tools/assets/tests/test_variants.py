@@ -260,11 +260,12 @@ class ShippedVariantsTest(unittest.TestCase):
         self.assertEqual([], sorted(g.id for g in self.groups if g.state == "IDENTICAL_GAP"))
 
     def test_every_gap_member_is_recorded_as_having_no_source(self):
-        """Why the gap is declared instead of closed.
+        """A guard for a gap declared later: none is declared today.
 
-        These sprites cannot be regenerated -- there is nothing to regenerate them
-        from -- so closing the gap is asset redesign. If a member ever gains an
-        SVG source, that argument no longer holds and this test says so.
+        The test above requires zero `IDENTICAL_GAP` groups, so this loop has nothing to
+        read. It stays so that a gap declared again may only name sprites with no SVG
+        source: a sprite that has one can be regenerated, and a gap for it would be
+        undone work rather than missing artwork.
         """
         by_name = {s.name: s for s in self.specs}
         for group_ in self.groups:

@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.location
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,6 +34,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * host, not about the code. The one test left on `runBlocking` races real threads and measures
  * nothing.
  */
+// `currentTime`, `advanceUntilIdle` and `runCurrent` are the virtual clock this class is written on,
+// and kotlinx-coroutines-test still marks them experimental.
+@OptIn(ExperimentalCoroutinesApi::class)
 class AwaitOnceTest {
 
     @Test

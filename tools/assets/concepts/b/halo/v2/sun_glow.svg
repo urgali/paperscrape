@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
+  <!--
+    Round 1b, HALO variant V2 "Clean ring over the halo" - concept B.
+    The ring is compass-struck, NOT cut by hand, by declared choice: at
+    scene size B's wobble on a thin band would read
+    as "a slightly crooked circle" (the same fate as the moon's edge), and
+    a thin line is either clean or wrong. Band 154-166 (12 units,
+    ~8 px on screen), opacity 0.75. The radial gradient STAYS (0.40/0.16
+    as in B's petals): it is the variant that measures by eye the risk of
+    "muddy" - a soft halo and a sharp ring on top of each other. No shadow.
+  -->
+  <defs>
+    <radialGradient id="g_sunglow_b_v2">
+      <stop offset="0"    stop-color="#F7CE64" stop-opacity="0.40"/>
+      <stop offset="0.55" stop-color="#F0A03C" stop-opacity="0.16"/>
+      <stop offset="1"    stop-color="#F0A03C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="198" cy="198" r="198" fill="url(#g_sunglow_b_v2)"/>
+  <path fill-rule="evenodd" fill="#F7CE64" opacity="0.75" d="M 198 198 m -166,0 a 166,166 0 1,0 332,0 a 166,166 0 1,0 -332,0 Z M 198 198 m -154,0 a 154,154 0 1,1 308,0 a 154,154 0 1,1 -308,0 Z"/>
+</svg>

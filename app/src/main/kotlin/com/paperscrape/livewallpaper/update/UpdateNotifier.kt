@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.update
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -77,7 +78,11 @@ object UpdateNotifier {
      * The two facts [UpdateNotificationPolicy.permissionFor] needs, read in the one place that is
      * allowed to touch `android.*`. Below API 33 the grant flag is not consulted at all — see that
      * function for why reading it there would be a bug rather than a nicety.
+     *
+     * `InlinedApi` is suppressed for the same reason: `POST_NOTIFICATIONS` is a String constant the
+     * compiler copies in, so reading it below API 33 cannot fail, and there its answer is unread.
      */
+    @SuppressLint("InlinedApi")
     fun notificationPermission(context: Context): NotificationPermission =
         UpdateNotificationPolicy.permissionFor(
             sdkInt = Build.VERSION.SDK_INT,
@@ -86,14 +91,26 @@ object UpdateNotifier {
         )
 
     /**
-     * Whether the phone's settings stop PaperScrape's notifications right now -- see
-     * [UpdateNotificationPolicy.blockedInPhoneSettings] for what counts. Read by the settings
-     * screen whenever it is shown, and by [post], so a release is not recorded as notified while
-     * nothing can appear.
+     * What the phone's settings say about PaperScrape's notifications right now: the three facts
+     * [UpdateNotificationPolicy.blockedInPhoneSettings] decides from, besides the app's own switch.
+     * Read by the settings screen whenever it comes to the front -- the way to change any of them is
+     * to leave for the phone's settings and return -- and by [post].
      */
-    fun blockedInPhoneSettings(context: Context): Boolean {
+    data class PhoneState(
+        val permission: NotificationPermission,
+        val appNotificationsEnabled: Boolean,
+        val channelTurnedOff: Boolean,
+    ) {
+        /** See [UpdateNotificationPolicy.blockedInPhoneSettings]; [notifySwitchOn] is the switch as saved. */
+        fun blocks(notifySwitchOn: Boolean): Boolean = UpdateNotificationPolicy.blockedInPhoneSettings(
+            permission, appNotificationsEnabled, channelTurnedOff, notifySwitchOn,
+        )
+    }
+
+    /** The phone's side of [PhoneState], read now. */
+    fun phoneState(context: Context): PhoneState {
         val manager = NotificationManagerCompat.from(context)
-        return UpdateNotificationPolicy.blockedInPhoneSettings(
+        return PhoneState(
             permission = notificationPermission(context),
             appNotificationsEnabled = manager.areNotificationsEnabled(),
             channelTurnedOff = manager.getNotificationChannelCompat(CHANNEL_ID)?.importance ==
@@ -123,7 +140,7 @@ object UpdateNotifier {
      * The return value is the whole reason this is not a `Unit` function: the caller records the tag
      * as notified, and recording a tag whose notification was dropped would silence that release
      * forever. `false` means nothing was posted — the permission is denied, the phone's settings
-     * have PaperScrape's notifications or this channel switched off ([blockedInPhoneSettings]), or
+     * have PaperScrape's notifications or this channel switched off ([phoneState]), or
      * the platform refused. All are the same outcome for the caller and none throws. Until v5.8B a
      * switched-off app or channel returned `true`: the platform drops such a post silently, so the
      * release was recorded as notified and never shown when the user switched them back on.
@@ -132,8 +149,10 @@ object UpdateNotifier {
      * a lock screen in one glance, and "which version am I on" is the second question, not the first.
      */
     fun post(context: Context, tagName: String, currentVersionName: String): Boolean {
-        if (!UpdateNotificationPolicy.mayPost(notificationPermission(context))) return false
-        if (blockedInPhoneSettings(context)) return false
+        val phone = phoneState(context)
+        if (!UpdateNotificationPolicy.mayPost(phone.permission)) return false
+        // Only ever called with *Notify me about new versions* on (the engine's loop checks it first).
+        if (phone.blocks(notifySwitchOn = true)) return false
         ensureChannel(context)
 
         // FLAG_IMMUTABLE is mandatory from API 31 and available from 23, so it is unconditional

@@ -22,13 +22,13 @@ enum class SceneObjectType {
  * depth.
  *
  * [depthFraction] (0..1, 0=farthest/smallest, 1=nearest/largest) replaces what used to be a
- * discrete `layer: Int` row index (0..8). Placing every object at its own continuous
- * fraction (`(index - rangeStart) / (rangeEnd - rangeStart)`, within whatever index sub-range
- * that category was given) rather than snapping to one of a fixed number of discrete slots, and
- * scale each one's size continuously too (`index / totalCount` there). PaperScrape's version
- * uses the *same* fraction for both -- the reference computes those as two independent fractions,
- * but for objects placed within one narrow category range they move together closely enough that
- * using one simplifies the whole placement pipeline without a visible difference. See
+ * discrete `layer: Int` row index (0..8). Every object stands at its own continuous fraction
+ * (`(index - rangeStart) / (rangeEnd - rangeStart)`, within whatever index sub-range that category
+ * was given) rather than snapping to one of a fixed number of discrete slots, and the *same*
+ * fraction decides both where it stands and how big it is drawn. Two independent fractions, one
+ * for the position and one for the size, would differ only in how the category's range is cut, and
+ * for objects placed within one narrow category range they move together closely enough that one
+ * fraction simplifies the whole placement pipeline without a visible difference. See
  * [SceneSpace.groundYFraction] and [SceneSpace.depthScale] for how this fraction becomes an
  * actual screen position and size.
  *
@@ -695,10 +695,10 @@ object SceneObjectCatalog {
         // symmetric reach the same way the tree's and the palm's do. It is the widest thing on
         // the ground after the large house.
         SceneSpace.SceneVariant.SCHOOL -> 56f
-        // v4.21: 51, not 41. The "Quercia larga" crown is `tree_canopy`'s 101 units of content
+        // v4.21: 51, not 41. The "Broad Oak" crown is `tree_canopy`'s 101 units of content
         // blitted at -50, so it spans x -50..51 and the wider side governs a symmetric reach.
         SceneSpace.SceneVariant.TREE -> 51f
-        // v5.1, for the "Cocco" palm: the crown is a 56-unit canvas blitted at -21, so it spans
+        // v5.1, for the "Coconut" palm: the crown is a 56-unit canvas blitted at -21, so it spans
         // x -21..35 about the foot. It leans, so `CROWN_HALF_WIDTH` (28) is its half-width about
         // the crown's own centre, 7 units right of the foot, not a reach about the foot.
         // Not modelled, and why it is left so (v5.8D/E, V3-02): the ink of the lean side reaches

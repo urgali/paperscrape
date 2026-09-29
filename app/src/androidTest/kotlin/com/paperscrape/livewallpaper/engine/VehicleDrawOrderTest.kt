@@ -1,7 +1,6 @@
 package com.paperscrape.livewallpaper.engine
 
 import android.graphics.Paint
-import android.graphics.RectF
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertTrue
@@ -83,7 +82,6 @@ class VehicleDrawOrderTest {
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) = Unit
         override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) = Unit
         override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
-        override fun drawArc(oval: RectF, startAngle: Float, sweepAngle: Float, paint: Paint) = Unit
         override fun drawWedge(
             cx: Float,
             cy: Float,

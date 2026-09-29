@@ -22,7 +22,7 @@ class SpriteMeasurementClaimTest {
     @Test
     fun `the sprites are the sizes the comments now say`() {
         val expected = mapOf(
-            // v4.26: 90x24 until the bird was redrawn as concept A "Colomba" and reduced to the
+            // v4.26: 90x24 until the bird was redrawn as concept A "Dove" and reduced to the
             // size it is actually read at -- ~48 px on screen, about 1.3 person heights. The flap
             // axis moved with it, from canvas row 18 to row 15, and BIRD_SPRITE_ORIGIN_X/Y_PX
             // moved to (-25, -15) in the same change: the origin *is* the axis the flap mirrors
@@ -32,7 +32,7 @@ class SpriteMeasurementClaimTest {
             // was cropped, with DOLPHIN_ORIGIN_X/Y_UNITS compensated by the (1, 2) units it
             // removed. No drawn pixel moved.
             "dolphin_body" to (342 to 171),
-            // v4.21 redrew the crown: 303x198 px = 101x66 u, the "Quercia larga" cushion.
+            // v4.21 redrew the crown: 303x198 px = 101x66 u, the "Broad Oak" cushion.
             "tree_canopy" to (303 to 198),
             // v4.25: 159x171 until the window family was redrawn on a canvas trimmed to what it
             // covers, then 141x171, and 147x171 once the proportion pass gave the head back the
@@ -69,42 +69,296 @@ class SpriteMeasurementClaimTest {
         )
     }
 
+    /**
+     * **Every size written in a comment is the size of the artwork it is about, or says why not.**
+     *
+     * *Until v5.9B* the rule was one regex -- `` `name` `` ... `is NxM px` -- and it said so: a claim
+     * about a sprite had to be *written in the shape this reads*. v4.29 had tried making `px`
+     * optional and put it back, because "`house_shared_window` is 22x21" is a true statement in
+     * local units about a 66x63 px sprite and the widened pattern read it as pixels.
+     * `BACKLOG_v4_29.md` item 90 recorded what that left uncovered, and item 63 had already met it:
+     * **a size written in units, or with no unit, or with the unit on the next line, was invisible.**
+     * Thirty sizes in `src/main` are written in units, and not one of them was ever read (inventory
+     * row I-40, items 63 and 90).
+     *
+     * *Since v5.9B* every `NxM` in a comment block of `src/main` is found -- the block read as one
+     * line, so a unit after a line break is still its unit, and with `"quoted"` spans removed, because
+     * a quotation is how this codebase marks a superseded sentence -- and each one must be one of:
+     *
+     * - **attributed to a shipped sprite** and equal to it: the nearest `` `name` `` before it in the
+     *   block -- or, since v5.9C, `name.png` written without backticks -- or the pixel size it
+     *   restates (`A px = B u`), or, when it names none, the family its
+     *   size belongs to in [sizeFamilies]. Pixels must equal the canvas, units the canvas over
+     *   [SpriteBlitter.SPRITE_PIXELS_PER_UNIT]; either may equal the drawing's ink box instead, which
+     *   is what "of content" claims measure. **A size with no unit is right if it is right in either
+     *   frame** -- which is what keeps v4.29's `22x21` true;
+     * - **declared** in [declaredClaims], with the reason it is not a claim about a shipped canvas: a
+     *   size the sentence itself says is history, or the size of something that is not a sprite.
+     *   Checked in both directions: a declaration that matches no claim any more fails.
+     *
+     * A size in pixels or units that is neither fails, and the message says which. A size with no
+     * unit and no sprite before it is not read: "a 2x3 affine", "a 1x1 texture". Until v5.9C a
+     * sprite written as a bare file name did not count as "a sprite before it", so "sun_glow.png is
+     * 396x396" went unread (inventory row I-49); it is read now.
+     */
     @Test
-    fun `a size attributed to a named sprite is that sprite's size`() {
-        // The precise form of the rule. A comment may quote a size that no longer ships -- the
-        // cloud origin explains its own defect by naming the 768x510 canvas that never existed --
-        // so what is checked is a size *attributed to a sprite*: `name` ... `NxM px`. That is the
-        // shape every stale measurement in REN-07 had, and the shape a new one would have.
-        // `px` stays **mandatory**, and v4.29 tried dropping it and put it back. The stale claim
-        // the santa crop report had already reported and this test had not caught --
-        // "`santa_sleigh_scene` is 624x168 with a content box of ..." -- names no unit at all, and
-        // making the unit optional to reach it immediately mis-read
-        // "`house_shared_window` is 22x21", which is a true statement in **local units** about a
-        // 66x63 px sprite. A comment that says NxM without a unit is genuinely ambiguous here,
-        // because both frames are in daily use three lines apart.
-        //
-        // So the rule is the other way round: a claim about a sprite's pixels must be *written in
-        // the shape this reads*, and v4.29 rewrote the sleigh's two comments into it rather than
-        // widening the pattern until it produced noise. `BACKLOG_v4_29.md` item 90 records that,
-        // and records what is still uncovered: a pixel claim that omits its unit is invisible.
-        val claim = Regex("""`([a-z0-9_]+)(?:\.png)?`[^`\n]{0,40}?is (\d{2,4})x(\d{2,4}) px""")
-        var checked = 0
-        for (file in kotlinSources()) {
-            val source = file.readText()
-            for (match in claim.findAll(source)) {
-                val sprite = File(drawableDir(), match.groupValues[1] + ".png")
-                if (!sprite.isFile) continue
-                val image = ImageIO.read(sprite)
-                assertEquals(
-                    file.name + " says " + match.groupValues[1] + " is " +
-                        match.groupValues[2] + "x" + match.groupValues[3],
-                    image.width.toString() + "x" + image.height,
-                    match.groupValues[2] + "x" + match.groupValues[3],
-                )
-                checked++
+    fun `every size written about artwork is that artwork's size, or is declared`() {
+        val wrong = mutableListOf<String>()
+        val unclassified = mutableListOf<String>()
+        val all = claims()
+        // The whole reading, into the test's own report, so what the guardian saw can be looked at.
+        println("${all.size} sizes in the comments of src/main: " + all.groupingBy { verdictFor(it).javaClass.simpleName }.eachCount())
+        for (c in all) println("  ${c.where} \"${c.text}\" -> ${verdictFor(c)}")
+        for (claim in all) {
+            when (val verdict = verdictFor(claim)) {
+                is Verdict.Right, Verdict.Declared, Verdict.NotRead -> Unit
+                is Verdict.Wrong -> wrong += "${claim.where}: \"${claim.text}\" -- ${verdict.why}"
+                Verdict.Unclassified -> unclassified += "${claim.where}: \"${claim.text}\" (…${claim.before.takeLast(50)})"
             }
         }
-        assertTrue("the pattern matched nothing, so this test proves nothing", checked > 0)
+        assertEquals("these sizes are written about artwork and are not its size", emptyList<String>(), wrong)
+        assertEquals(
+            "these sizes name no shipped sprite and match no family: write the sprite's name in " +
+                "backticks before the size, or add the size to sizeFamilies, or declare it in " +
+                "declaredClaims with the reason it is not a canvas",
+            emptyList<String>(),
+            unclassified,
+        )
+    }
+
+    /**
+     * **The guardian sees what the simplest search sees.** The inventory counted thirty sizes in
+     * units with `grep -Eo '[0-9]{2,4}x[0-9]{2,4}(-unit| units?| u)' app/src/main`; every one of them
+     * has to be a claim this class reads and classifies, or it is proof of a hole.
+     */
+    @Test
+    fun `every size in units a plain search finds is read and classified`() {
+        val plain = Regex("""([0-9]{2,4})x([0-9]{2,4})(-unit| units?| u)""")
+        val seen = claims().filter { verdictFor(it) !is Verdict.Unclassified && verdictFor(it) != Verdict.NotRead }
+        var found = 0
+        for (file in kotlinSources()) {
+            for (m in plain.findAll(file.readText())) {
+                found++
+                assertTrue(
+                    "${file.name}: \"${m.value}\" is a size in units that this guardian does not read",
+                    seen.any { it.file == file.name && it.w == m.groupValues[1].toInt() && it.h == m.groupValues[2].toInt() && it.unit == Measure.UNITS },
+                )
+            }
+        }
+        assertTrue("the plain search found nothing, so this proves nothing", found >= 30)
+    }
+
+    /**
+     * **The rule bites**, on the three shapes the old regex could not read, each planted into a copy
+     * of a real comment and each caught: a size in units, a size with no unit, and a size whose unit
+     * is on the next line.
+     */
+    @Test
+    fun `a wrong size is caught in units, with no unit, and across a line break`() {
+        val palm = "PalmSpriteLayout.kt"
+        val cases = mapOf(
+            "in units" to " * `palmtree_trunk` is 21x57 u, and the point that stands",
+            "no unit" to " * `palmtree_trunk` is 63x171, and the point that stands",
+            "line break" to " * `palmtree_trunk` is 63x171\n * px, and the point that stands",
+            "a family, unnamed" to " * the crown is a 56x46-unit canvas",
+        )
+        for ((shape, comment) in cases) {
+            val verdicts = claimsIn(palm, "/**\n$comment\n */").map { verdictFor(it) }
+            assertTrue("a wrong size $shape was not caught: $verdicts", verdicts.any { it is Verdict.Wrong || it == Verdict.Unclassified })
+        }
+        val right = claimsIn(palm, "/**\n * `palmtree_trunk` is 63x174\n * px = 21x58 u\n */").map { verdictFor(it) }
+        assertTrue("the true sentence must pass: $right", right.all { it is Verdict.Right })
+    }
+
+    /**
+     * **A size after a bare file name is read** (v5.9C, inventory row I-49): the renderer's own
+     * sentence about the sunburst, true and then made wrong.
+     */
+    @Test
+    fun `a size written after a sprite's bare file name is read and checked`() {
+        val file = "PaperRenderer.kt"
+        val right = claimsIn(file, "// sun_glow.png is 396x396 and its ring sits 154..166px from its own centre").map { verdictFor(it) }
+        assertEquals("the true sentence must be read and pass", listOf<Verdict>(Verdict.Right("sun_glow")), right)
+        val wrong = claimsIn(file, "// sun_glow.png is 396x390 and its ring sits 154..166px from its own centre").map { verdictFor(it) }
+        assertTrue("a wrong size after a bare file name was not caught: $wrong", wrong.single() is Verdict.Wrong)
+        val live = claims().filter { it.file == file && it.text == "396x396" }
+        assertTrue("the renderer's own sentence is not read: ${live.map { verdictFor(it) }}", live.isNotEmpty() && live.all { verdictFor(it) == Verdict.Right("sun_glow") })
+    }
+
+    /** No declaration outlives the sentence it declares. */
+    @Test
+    fun `every declared size is still written where it is declared`() {
+        val all = claims()
+        for (d in declaredClaims) {
+            val matched = all.count { d.matches(it) }
+            val message = "${d.file}: \"${d.text}\" is declared (${d.why}) and matches $matched claims"
+            if (d.times == ANY) assertTrue(message, matched >= 1) else assertEquals(message, d.times, matched)
+            assertTrue("${d.text}: the reason is too short to be a reason", d.why.length > 30)
+        }
+        for ((size, glob) in sizeFamilies) assertTrue("$size names the family $glob, which ships nothing", spritesMatching(glob).isNotEmpty())
+    }
+
+    // ---------------------------------------------------------------- claims, and their verdicts
+
+    private enum class Measure { PX, UNITS, NONE }
+
+    private class Claim(val file: String, val line: Int, val text: String, val w: Int, val h: Int, val unit: Measure, val sprite: String?, val before: String) {
+        val where get() = "$file:$line"
+    }
+
+    private sealed interface Verdict {
+        data class Right(val sprite: String) : Verdict
+        data class Wrong(val why: String) : Verdict
+        data object Declared : Verdict
+        data object Unclassified : Verdict
+        data object NotRead : Verdict
+    }
+
+    /**
+     * A size that is not a claim about a shipped canvas, where it is written, and why. [times] is how
+     * often the file writes it, or [ANY] for something that is not a sprite at all.
+     */
+    private class Declared(val file: String, val text: String, val why: String, val times: Int = 1) {
+        fun matches(c: Claim) = c.file == file && c.text == text
+    }
+
+    private companion object {
+        const val ANY = -1
+    }
+
+    private val declaredClaims = listOf(
+        Declared("PalmSpriteLayout.kt", "40x40-unit", "history: the crown's canvas before v5.1 redrew it"),
+        Declared("TreeSpriteLayout.kt", "10x44 u", "history: the v4.20 trunk, a drawRect and never a sprite"),
+        Declared("PaperRenderer.kt", "768x510 px", "history: the canvas the old cloud origin centred, which never shipped"),
+        Declared("PaperRenderer.kt", "624x168", "history: the sleigh canvas an orphaned KDoc used to quote, cited twice as such", times = 2),
+        Declared("SceneObjectRenderer.kt", "47x44 units", "history: the seated bust canvas before v4.25 trimmed it"),
+        Declared("SceneObjectRenderer.kt", "159x171 px", "history: the window bust canvas before REN-07"),
+        Declared("SceneObjectRenderer.kt", "297x174", "history: firetruck_body's size from v4.19 until its redraw"),
+        Declared("CarShell.kt", "282x18 px", "history: v4.18's two full-car-width overlays, removed since"),
+        Declared("ThemePreviewScene.kt", "320x240", "not a sprite: the card's own 320x240 description canvas", times = ANY),
+    )
+
+    /**
+     * The size a comment writes without naming the sprite, and the family it belongs to. Keyed by the
+     * written numbers, so a redraw that changes a family's canvas fails every sentence still quoting
+     * the old one.
+     */
+    private val sizeFamilies = mapOf(
+        "56x48 units" to "palmtree_fronds*", "168x144 px" to "palmtree_fronds*",
+        "39x84 units" to "person_*_walk*", "117x252 px" to "person_*_walk*",
+        "49x57 units" to "person_*_head_window*",
+        "38x42 units" to "person_*_head_car*",
+        "114x57 units" to "dolphin_body", "342x171 px" to "dolphin_body",
+        "21x58 units" to "palmtree_trunk", "63x174 px" to "palmtree_trunk",
+        "32x62 units" to "tree_trunk",
+        "20x6 units" to "police_lightbar",
+        "36x7 units" to "*_pile",
+        "51x21 px" to "bird_body",
+    )
+
+    private fun verdictFor(c: Claim): Verdict {
+        if (declaredClaims.any { it.matches(c) }) return Verdict.Declared
+        val family = sizeFamilies["${c.w}x${c.h} ${if (c.unit == Measure.PX) "px" else "units"}"]
+        val sprites = when {
+            c.sprite != null -> listOf(c.sprite)
+            family != null && c.unit != Measure.NONE -> spritesMatching(family).map { it.nameWithoutExtension }
+            c.unit == Measure.NONE -> return Verdict.NotRead
+            else -> return Verdict.Unclassified
+        }
+        for (name in sprites) {
+            val image = ImageIO.read(File(drawableDir(), "$name.png"))
+            val ink = inkBox(image)
+            val sizes = listOf(image.width to image.height, (ink[2] - ink[0]) to (ink[3] - ink[1]))
+            val unit = SpriteBlitter.SPRITE_PIXELS_PER_UNIT
+            fun inPx(w: Int, h: Int) = (c.w to c.h) == (w to h)
+            fun inUnits(w: Int, h: Int) = (c.w * unit).toInt() == w && (c.h * unit).toInt() == h
+            val ok = sizes.any { (w, h) ->
+                when (c.unit) {
+                    Measure.PX -> inPx(w, h)
+                    Measure.UNITS -> inUnits(w, h)
+                    Measure.NONE -> inPx(w, h) || inUnits(w, h)
+                }
+            }
+            if (!ok) return Verdict.Wrong("$name is ${image.width}x${image.height} px")
+        }
+        return Verdict.Right(sprites.first())
+    }
+
+    private fun claims(): List<Claim> = kotlinSources().flatMap { claimsIn(it.name, it.readText()) }
+
+    private val sizePattern = Regex("""(?<![\w.])(\d{1,4})x(\d{1,4})(?![\w])(\s*px\b|-unit\b| local units?\b| units?\b| u\b)?""")
+    private val backticked = Regex("""`([a-z0-9_]+)(?:\.png)?`""")
+
+    /**
+     * A sprite named in a comment: in backticks, or as a bare file name -- `sun_glow.png is 396x396`
+     * (v5.9C, inventory row I-49). A bare word without `.png` is not a name: "the ring" is not
+     * `ring`.
+     */
+    private val spriteNamed = Regex("""`([a-z0-9_]+)(?:\.png)?`|(?<![\w.`])([a-z0-9_]+)\.png\b""")
+
+    /**
+     * The sizes in one file's comment blocks. Each block is read as one line -- the `*` and `//` at
+     * the start of each line dropped, the line breaks made spaces -- and without its quotations.
+     */
+    private fun claimsIn(fileName: String, source: String): List<Claim> {
+        val out = mutableListOf<Claim>()
+        for ((line, block) in numberedCommentBlocks(source)) {
+            val text = withoutQuotations(block.replace(Regex("""\s*\n\s*(?:\*(?!/)|//)?\s*"""), " "))
+            var previous: Claim? = null
+            var previousEnd = -1
+            for (m in sizePattern.findAll(text)) {
+                val unit = when (m.groupValues[3].trim()) {
+                    "px" -> Measure.PX
+                    "" -> Measure.NONE
+                    else -> Measure.UNITS
+                }
+                val before = text.substring(maxOf(0, m.range.first - 90), m.range.first)
+                val named = spriteNamed.findAll(before).map { it.groupValues[1].ifEmpty { it.groupValues[2] } }
+                    .lastOrNull { File(drawableDir(), "$it.png").isFile }
+                // `A px = B u`, `A px -- B local units`: the second restates the first.
+                val restates = previous?.takeIf {
+                    it.unit == Measure.PX && unit == Measure.UNITS && m.range.first - previousEnd <= 8 &&
+                        text.substring(previousEnd, m.range.first).all { ch -> ch in " =-,(:" }
+                }
+                val claim = Claim(fileName, line, m.value.trim(), m.groupValues[1].toInt(), m.groupValues[2].toInt(), unit, restates?.sprite ?: named, before)
+                out += claim
+                previous = claim
+                previousEnd = m.range.last + 1
+            }
+        }
+        return out
+    }
+
+    /** [commentBlocks], each with the line it starts on. */
+    private fun numberedCommentBlocks(source: String): List<Pair<Int, String>> {
+        val lineOf = { index: Int -> source.substring(0, index).count { it == '\n' } + 1 }
+        val out = mutableListOf<Pair<Int, String>>()
+        var i = source.indexOf("/*")
+        while (i >= 0) {
+            val end = source.indexOf("*/", i + 2)
+            if (end < 0) break
+            out += lineOf(i) to source.substring(i, end + 2)
+            i = source.indexOf("/*", end + 2)
+        }
+        val run = StringBuilder()
+        var start = 0
+        for ((index, raw) in source.lines().withIndex()) {
+            val trimmed = raw.trim()
+            if (trimmed.startsWith("//")) {
+                if (run.isEmpty()) start = index + 1
+                run.append(trimmed).append('\n')
+            } else if (run.isNotEmpty()) {
+                out += start to run.toString()
+                run.clear()
+            }
+        }
+        if (run.isNotEmpty()) out += start to run.toString()
+        return out
+    }
+
+    private fun spritesMatching(glob: String): List<File> {
+        val pattern = Regex(glob.split("*").joinToString(".*") { Regex.escape(it) })
+        return drawableDir().listFiles { f -> f.extension == "png" && pattern.matches(f.nameWithoutExtension) }!!.sortedBy { it.name }
     }
 
     /**

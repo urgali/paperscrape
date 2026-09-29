@@ -29,6 +29,11 @@ enum class AutoColorMode(val storageId: String) {
     ;
 
     companion object {
+        /**
+         * The mode stored as [id]; anything else is [MANUAL] -- an absent key included, whether it
+         * reaches here as `null` or as the `""` that `JSONObject.optString` gives for one, since no
+         * mode is stored as either.
+         */
         fun fromStorageId(id: String?): AutoColorMode =
             entries.firstOrNull { it.storageId == id } ?: MANUAL
     }

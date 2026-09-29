@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="96" height="186" viewBox="0 0 32 62">
   <!--
-    Proposta C: tronco tozzo a sagoma unica - base svasata, fuso corto, forcella a V
-    larga le cui braccia entrano nel cuscino di fogliame. Il fianco destro porta la
-    banda d'ombra di famiglia. Tela 32x62, base al fondo, blit a (-16,-62).
-    Punte braccia in unita' oggetto: sinistra (-8,-60) -> tela (8,2);
-    destra (8,-62) -> tela (24,0).
+    Proposal C: a squat trunk in a single silhouette - a flared base, a short shaft, a wide
+    V fork whose arms enter the foliage cushion. The right flank carries the
+    family's shadow band. Canvas 32x62, base at the bottom, blitted at (-16,-62).
+    Arm tips in object units: left (-8,-60) -> canvas (8,2);
+    right (8,-62) -> canvas (24,0).
   -->
-  <!-- sagoma unica: su per il braccio sinistro, giu' nel cavallo della V,
-       su per il braccio destro, giu' lungo il fianco destro fino alla base -->
+  <!-- single silhouette: up the left arm, down into the crotch of the V,
+       up the right arm, down along the right flank to the base -->
   <path d="M 2,62
            C 6.5,58 9.5,52 10.8,44
            C 11.6,39 12.2,35 12.6,31
@@ -20,7 +20,7 @@
            C 20.3,35 20.8,39 21.4,44
            C 22.6,52 25.6,58 30,62
            Z" fill="#8C5A38"/>
-  <!-- banda d'ombra: il fianco destro del fuso e del braccio destro -->
+  <!-- shadow band: the right flank of the shaft and of the right arm -->
   <path d="M 16.2,62
            C 16.2,52 16.4,42 16.8,33
            C 18,22.5 20,11 22.2,0
@@ -29,7 +29,7 @@
            C 20.3,35 20.8,39 21.4,44
            C 22.6,52 25.6,58 30,62
            Z" fill="#533217"/>
-  <!-- piedi radicali, bassi e tondi -->
+  <!-- root feet, low and round -->
   <path d="M 0,62 C 2.6,60.4 4.4,58 5.4,55 C 6.6,58 6.6,60.6 7.4,62 Z" fill="#6B4326"/>
   <path d="M 32,62 C 29.6,60.6 27.9,58.4 26.9,55.6 C 26,58.4 26.2,60.8 25.4,62 Z" fill="#6B4326"/>
 </svg>

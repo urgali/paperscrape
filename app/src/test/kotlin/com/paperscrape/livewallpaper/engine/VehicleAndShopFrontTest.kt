@@ -76,7 +76,7 @@ class VehicleAndShopFrontTest {
     @Test
     fun `the three bodies are the drawings the criteria were measured against`() {
         val expected = mapOf(
-            // v5.6F: the three «Ritaglio» bodies, and the criteria sweep was re-run on them --
+            // v5.6F: the three «Cut-out» bodies, and the criteria sweep was re-run on them --
             // see `proposte_v5_6b/registri/vano_vetro/` for the nine readings it produced.
             "car_body_compact.png" to "f69bfd5730502ebee0a4db404defe7af0d4071051b31855d5eeda12c4b741382",
             "car_body_saloon.png" to "c3f96f055e13f74bb964bdb0dd4dee6bfb1935436722cef32ebbb0e587b35916",
@@ -131,7 +131,7 @@ class VehicleAndShopFrontTest {
      *
      * This method asserted the opposite shape of drawing until v5.6F: that each shell carried a
      * near-white *lamp housing* at each end and nothing lamp-sized in the middle, which was how a
-     * v4.19 body said where its lenses went. «Ritaglio» has no housings -- the lens is a card
+     * v4.19 body said where its lenses went. «Cut-out» has no housings -- the lens is a card
      * glued on the corner -- and no panels, no door lines, no beltline spear and no sill band: at
      * the scale a car is drawn on this road none of them is a pixel wide, and they are most of
      * what the redraw removed.
@@ -282,7 +282,7 @@ class VehicleAndShopFrontTest {
             SceneObjectRenderer.FIRE_TRUCK_INNER_WHEEL_X_UNITS
         val diameter = 2f * SceneObjectRenderer.FIRE_TRUCK_WHEEL_RADIUS_UNITS
         // **v5.6F: 1.12 diameters, not 1.15, and the floor moved on a measurement.** The fleet's
-        // tyres grew half a unit with the «Ritaglio» redraw while the axle centres stayed where
+        // tyres grew half a unit with the «Cut-out» redraw while the axle centres stayed where
         // `firetruck_body.svg` bakes the wheels' own shadows, so the ratio fell from 1.175 to
         // 1.121. A ratio copied from real lorries is a proxy anyway; what it stands for is the
         // daylight, and that is asserted twice below -- in units, and in the pixels the daylight
@@ -322,7 +322,7 @@ class VehicleAndShopFrontTest {
      * the tyres in them.
      *
      * **v5.6F cut the holes back out, and this test is the other half of that sentence.** In
-     * «Ritaglio» a wheel is a whole disc of card glued *in front of* the body paper, the way the
+     * «Cut-out» a wheel is a whole disc of card glued *in front of* the body paper, the way the
      * reference photograph builds one, so a hole would show road through the middle of the car
      * wherever the disc did not cover it. The floor line therefore has to be **unbroken from nose
      * to tail** -- which is a hole's exact negation and, like a hole, cannot be faked by shading.
@@ -483,7 +483,6 @@ class VehicleAndShopFrontTest {
      */
     @Test
     fun `vehicle lamps are dark by day and lit by night`() {
-        val renderer = SceneObjectRenderer::class.java
         // The ramp is private, so it is exercised through the values it must produce.
         assertEquals("nothing at midday", 0, litVehicleAlphaAt(0f))
         assertEquals("still nothing in the early evening", 0, litVehicleAlphaAt(0.3f))
@@ -506,16 +505,15 @@ class VehicleAndShopFrontTest {
             "and that is where the gate lives",
             drawSource("drawVehicleLamps").contains("if (lit > 0)"),
         )
-        assertTrue("renderer class resolved", renderer != null)
     }
 
     /**
-     * The lit lamps land on the unlit patches, by arithmetic.
+     * Every body and every glass sheet is blitted at its own viewBox minimum.
      *
-     * `car_lights` is cropped to its two lamps, so it no longer shares the shell's canvas and the
-     * blit origin is doing the registering. That origin is the difference between the two viewBoxes
-     * and nothing else; if either drawing is re-cropped without the other, this fails instead of
-     * the lamps sliding off the panels at night.
+     * Each drawing is cropped to itself and authored in the car's local units, so the blit origin
+     * is doing the registering: the body, the glass behind it and the pane cut into the paper must
+     * agree to the unit, and if any one file is re-cropped without its origin moving with it, this
+     * fails instead of that part of the car sliding sideways.
      */
     @Test
     fun `every shell is blitted at its own viewBox minimum`() {
@@ -552,7 +550,7 @@ class VehicleAndShopFrontTest {
      * rather than on the numbers, so a redraw of either part is caught.
      *
      * **v5.6F: "entirely on painted shell" became "mostly on it, and reaching the corner".** The
-     * shells bake no housing any more, and «Ritaglio» sets each lens half a unit past the nose or
+     * shells bake no housing any more, and «Cut-out» sets each lens half a unit past the nose or
      * the tail so it reads as the lamp *on* the corner rather than as a sticker behind it --
      * measured, 14 % to 33 % of a lens's ink is over the chamfer and off the paper, which at 0.88
      * px per unit in the near lane is the corner pixel and not a floating lamp. What must still
@@ -782,7 +780,7 @@ class VehicleAndShopFrontTest {
             (0 until image.height).firstOrNull { (image.getRGB(x, it) ushr 24) >= 200 } ?: image.height
         }
         val highest = tops.min()
-        // **Within one unit of the highest row, not exactly on it.** A «Ritaglio» roof is a cut
+        // **Within one unit of the highest row, not exactly on it.** A «Cut-out» roof is a cut
         // edge: it carries a per-vertex wobble and the saloon's own roof line falls 0.34 units
         // from front to back, so the single topmost *row* is reached by one end of the run and
         // not by the other -- measured, the saloon's exact-row reading is -10.3..24.3 for a roof

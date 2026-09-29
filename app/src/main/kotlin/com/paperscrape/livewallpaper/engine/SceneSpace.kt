@@ -415,7 +415,7 @@ object SceneSpace {
          * rather than the 9.8 it declared.
          *
          * **v4.21 redrew both sprites and this entry did not move**, which is the point worth
-         * recording: the "Quercia larga" is a wider tree, not a taller one. The crown still tops
+         * recording: the "Broad Oak" is a wider tree, not a taller one. The crown still tops
          * out at -118 and the foot still stands on 0, so the metres-per-unit the whole size table
          * is argued against is untouched and no other object's scale had to be renegotiated. The
          * trunk's share of the height went from 37 % to 53 % because the stocky forked stem is
@@ -440,7 +440,7 @@ object SceneSpace {
          * and this `baseScale` is not applied; the only other reference is a `-> Unit` arm in the
          * draw dispatch. `tree_fir` is 240x366 px = 80x122 u blitted at (-40,-122), so a fir
          * occupies 122 units where the leafy tree occupies 118, and at 0.0803 m/unit that is
-         * 9.8 m against the tree's 9.479. (v4.21 redrew the fir into the "Quercia larga" family --
+         * 9.8 m against the tree's 9.479. (v4.21 redrew the fir into the "Broad Oak" family --
          * stocky, three full skirts, a star at the tip -- and kept it at 122 units for the reason
          * this paragraph gives: one metre governs both, so a fir cannot drift out of scale with
          * the wood it stands in.)
@@ -529,8 +529,10 @@ object SceneSpace {
          * The declaration was the only place that decision still held, and correcting it is what
          * makes the contradiction visible rather than what creates it -- `BuildingHeightDeclarationTest`
          * has carried the drawn figures since v5.0 and `SceneContentV27Test` asserted the opposite
-         * from the declaration in the same suite. Both now read the drawing. It is a question about
-         * the artwork, and it is the maintainer's.
+         * from the declaration in the same suite. Both now read the drawing. It was a question about
+         * the artwork, and the maintainer answered it on 2026-09-28: the shops stay as they are
+         * drawn -- the designs chosen from the photographs on 2026-09-13 -- and the v2.7 decision
+         * is superseded.
          */
         RESTAURANT(4.7833333f, 56f),
 

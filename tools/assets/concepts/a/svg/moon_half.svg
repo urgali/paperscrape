@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
   <!--
-    Concept A "Strati" - v4.23 fase 1. La mezzaluna stratificata con la
-    stessa regola della falce: le fasce condividono le punte e il lembo
-    (A102) e differiscono solo nell'arco del terminatore - dritto per la
-    base, rx 36 e 72 per le fasce chiare verso il lembo. Un cratere del tono
-    medio. Maschera tintabile, quattro toni della famiglia della Quercia.
+    Concept A "Layers" - v4.23 phase 1. The layered half moon, with the
+    same rule as the crescent: the bands share the horns and the limb
+    (A102) and differ only in the terminator's arc - straight for the
+    base, rx 36 and 72 for the light bands towards the limb. One crater in the
+    middle tone. Tintable mask, four tones of the Oak's family.
   -->
   <path d="M120 18 A102 102 0 1 1 120 222 L120 18 Z" fill="#DCDCDC"/>
   <path d="M120 18 A102 102 0 1 1 120 222 A36 102 0 0 0 120 18 Z" fill="#EEEEEE"/>

@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """Writes the v4.26 shipped sky-and-water sources into ``tools/assets/sources/svg/``.
 
-Run from ``tools/assets`` with the pinned venv:
+**A record of v4.26's promotion, not a step of today's pipeline.** Four of the five sources it
+writes have changed since -- the bird redrawn (v4.28's B1 "Swallow"), and the dolphin, the hull
+and the sail cropped to their content (v4.31) -- so running it now would put their v4.26 versions
+back over the shipped sources, and the asset tooling's fidelity tests would fail on all four
+(found in v5.9F, in a throwaway copy). It therefore refuses to write unless it is asked to in so
+many words:
 
-    /home/bober/.venvs/paperscrape-assets/bin/python concepts/skywater/promote_v4_26.py
+    /home/bober/.venvs/paperscrape-assets/bin/python concepts/skywater/promote_v4_26.py --overwrite-shipped-sources
+
+run from ``tools/assets`` with the pinned venv, and only to reproduce v4.26.
 
 **This writes SVG sources only.** The shipped PNG is whatever
 ``python -m paperscrape_assets render`` makes of them, which is the whole point of the pipeline:
@@ -13,10 +20,10 @@ sprite needs in ``sources/sprites.json``, measured off the render rather than de
 
 What was chosen, from the four rounds of proposals photographed on the BV6600:
 
-* sea **S1 "Specchio"** -- the renderer's, not a sprite;
-* cloud **C1 "Batuffolo"**, edge feathered 1.5 units;
-* bird **A "Colomba"** at the reduced size, 51x21 px, ~1.3 person heights;
-* boats and dolphins **B "Rilievo"**, as approved in the first round.
+* sea **S1 "Mirror"** -- the renderer's, not a sprite;
+* cloud **C1 "Puff"**, edge feathered 1.5 units;
+* bird **A "Dove"** at the reduced size, 51x21 px, ~1.3 person heights;
+* boats and dolphins **B "Relief"**, as approved in the first round.
 
 The one change to the approved artwork is the dolphin's two body tones, **derived** rather than
 picked: `LakeContrastTest` holds the derivation and the gate. The animal was `#4A6A84` on a
@@ -53,31 +60,36 @@ SHIPPED_DOLPHIN_BACK = "#BAA8AE"
 SHIPPED_DOLPHIN_UNDER = "#917F84"
 SHIPPED_BELLY_UNDER = "#E6CED7"
 
-#: C1 "Batuffolo": the feather of the cloud's edge, in canvas units.
+#: C1 "Puff": the feather of the cloud's edge, in canvas units.
 CLOUD_BLUR_UNITS = 1.5
 
 
 def sources() -> list[tuple[str, str, tuple[int, int]]]:
     """(name, svg, expected size) for the five sprites this release replaces."""
     out = [
-        ("bird_body", bird_svg("colomba"), (BIRD_W, BIRD_H)),
+        ("bird_body", bird_svg("dove"), (BIRD_W, BIRD_H)),
         ("cloud_body", cloud_svg(CLOUD_BLUR_UNITS), (798, 396)),
     ]
     for sprite in (
-        dolphin("rilievo", back=SHIPPED_DOLPHIN_BACK, under=SHIPPED_DOLPHIN_UNDER,
+        dolphin("relief", back=SHIPPED_DOLPHIN_BACK, under=SHIPPED_DOLPHIN_UNDER,
                 belly_under=SHIPPED_BELLY_UNDER),
-        hull("rilievo"),
-        sail("rilievo"),
+        hull("relief"),
+        sail("relief"),
     ):
         out.append((
             sprite.name,
-            emit_svg(sprite, "rilievo"),
+            emit_svg(sprite, "relief"),
             (int(sprite.width_units * UNIT), int(sprite.height_units * UNIT)),
         ))
     return out
 
 
 def main() -> int:
+    if "--overwrite-shipped-sources" not in sys.argv[1:]:
+        print("promote_v4_26.py is the record of v4.26's promotion: four of its five sources have changed "
+              "since, and running it would overwrite them with the v4.26 versions.\n"
+              "Pass --overwrite-shipped-sources to do that anyway (to reproduce v4.26 only).", file=sys.stderr)
+        return 2
     fields = {}
     for name, svg, expected in sources():
         rendered = raster.render_svg(svg)

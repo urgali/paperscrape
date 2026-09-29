@@ -29,16 +29,14 @@ import org.junit.Test
  * signing config is a build that looks like a release and is not one. That argument is answered by
  * the last two assertions and not by this comment.
  *
- * ### One limitation, and it bites locally rather than in CI
+ * ### The limitation this class had, and why it is gone
  *
- * **Everything this class reads — `app/build.gradle.kts` and the workflow files — is invisible to
- * Gradle's up-to-date check for `testDebugUnitTest`.** The task's inputs are the compiled classes,
- * and editing a build script does not change them. So a local run right after changing a build type
- * can report `UP-TO-DATE` and pass without executing a line of this file: three mutations were
- * applied while writing it and all three appeared to be caught by nothing, which is exactly what
- * that looks like. **When you have changed a build script or a workflow, run this with
- * `--rerun-tasks`.** CI is unaffected — every run is a fresh checkout with no previous outcome to
- * reuse — which is why this is a note rather than a defect.
+ * **What this class reads — `app/build.gradle.kts` and the workflow files — was invisible to
+ * Gradle's up-to-date check for `testDebugUnitTest`**: the task's inputs were the compiled classes,
+ * and editing a build script does not change them. Three mutations applied while writing it
+ * appeared to be caught by nothing, because the task reported `UP-TO-DATE` without executing a line
+ * of this file. v5.3 declared both as inputs of every `Test` task (the bottom of
+ * `app/build.gradle.kts`), so an edit to either re-runs this class.
  */
 class BuildTypeDeclarationTest {
 

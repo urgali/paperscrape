@@ -67,6 +67,9 @@ internal class GlRenderThread(
 
     val target = GlSceneTarget()
 
+    // `java.lang.Object` and not `Any`, deliberately: the loop parks on `lock.wait` and is woken by
+    // `lock.notifyAll`, which exist only on the Java class.
+    @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
     private val lock = Object()
     private val eventQueue = ArrayDeque<Runnable>()
 

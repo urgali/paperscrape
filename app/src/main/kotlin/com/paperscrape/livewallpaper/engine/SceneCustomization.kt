@@ -551,10 +551,9 @@ data class SceneCustomization(
         val DEFAULT = SceneCustomization(
             houses = ObjectVariantConfig(
                 visible = true,
-                // aa reported the placement band feeling too crowded and asked to compare
-                // against the reference. Confirmed: houses/buildings/parasols/trees all
-                // defaulted to density=1f (every one of CANDIDATES_PER_CATEGORY's 10 slots
-                // shown), stacking across every depth band at once. Lowered to a more open
+                // Houses, buildings, parasols and trees all defaulted to density=1f (every one
+                // of CANDIDATES_PER_CATEGORY's 10 slots shown), stacking across every depth band
+                // at once, and the placement band read as too crowded. Lowered to a more open
                 // 0.65 -- still user-adjustable via each category's own density slider in either
                 // direction, this only changes what a *fresh, untouched* theme looks like.
                 density = 0.65f,
@@ -932,6 +931,18 @@ fun SceneCustomization.colorFor(spec: StaticSceneObject, dayBlend: Float): Int {
 fun SceneCustomization.colorFor(spec: CarObject, dayBlend: Float): Int = blend(cars, variantIndexFor(spec), dayBlend)
 
 /**
+ * Colour [variant] of this category (0 = Color 1, 1 = Color 2) at [dayBlend]: exactly what
+ * [colorFor] paints an instance whose coin picked that variant.
+ *
+ * For the gallery card, which stands a tree, a car or a decoration at a position no layout dealt
+ * and so names the variant instead of tossing the coin (`ThemePreviewScenes`). Until v5.9G it
+ * painted `colorDay1` / `colorDay2` whatever the card's hour, so on the two midnight cards and on
+ * the World & scene strip's night the trees, the cars and the decorations kept their noon colours
+ * while the wallpaper blends them toward night (inventory I-38).
+ */
+internal fun ObjectVariantConfig.colorAt(variant: Int, dayBlend: Float): Int = blend(this, variant, dayBlend)
+
+/**
  * How lit [spec]'s fixed art is at [dayBlend], as the neutral grey a blit multiplies by.
  *
  * The companion of [colorFor] for a sprite that has no tint to interpolate: same category, same
@@ -944,9 +955,17 @@ fun SceneCustomization.colorFor(spec: CarObject, dayBlend: Float): Int = blend(c
  */
 fun SceneCustomization.nightShadeFor(spec: StaticSceneObject, dayBlend: Float): Int {
     val config = configFor(spec.type) ?: return SpriteBlitter.UNTINTED
-    val variant = variantIndexFor(spec)
-    val day = if (variant == 0) config.colorDay1 else config.colorDay2
-    val night = if (variant == 0) config.colorNight1 else config.colorNight2
+    return config.nightShadeAt(variantIndexFor(spec), dayBlend)
+}
+
+/**
+ * The shade of variant [variant] of this category at [dayBlend]: exactly what [nightShadeFor]
+ * gives an instance whose coin picked that variant. The gallery card's palm reads it for the
+ * reason [colorAt] gives.
+ */
+internal fun ObjectVariantConfig.nightShadeAt(variant: Int, dayBlend: Float): Int {
+    val day = if (variant == 0) colorDay1 else colorDay2
+    val night = if (variant == 0) colorNight1 else colorNight2
     return SceneColour.neutralShade(day, night, dayBlend)
 }
 
@@ -1114,9 +1133,10 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
             parasols = base.parasols.copy(visible = false),
             pumpkins = base.pumpkins.copy(visible = true, density = 0.35f),
         )
-        // A quick, honest first pass -- not the final per-theme design polish, just enough that a
-        // fresh install's themes actually look different from each other instead of all sharing
-        // the exact same lake/mountain defaults regardless of which theme is picked.
+        // Each theme's factory values: what a fresh install shows. They began as a quick first
+        // pass, just enough that the themes look different from each other instead of all sharing
+        // the exact same lake/mountain defaults; most have been reworked since, each with its
+        // reason written beside it, and they are kept as they stand now (decided 2026-09-28).
         "beach" -> base.copy(
             // **The ground was the sea's own teal.** `SceneTheme.hillColorsDay` is a three-entry
             // array from the days of three hill layers; the scene has drawn one layer for some

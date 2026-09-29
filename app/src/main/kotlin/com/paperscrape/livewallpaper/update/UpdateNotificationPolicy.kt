@@ -117,18 +117,33 @@ object UpdateNotificationPolicy {
      * Whether the phone's own settings are what stops PaperScrape's notifications: the app's
      * notifications switched off, or the *Update available* channel turned off.
      *
-     * [appNotificationsEnabled] is `NotificationManagerCompat.areNotificationsEnabled`, which on API
-     * 33+ is also false while the permission has merely not been granted yet. That is not "switched
-     * off in your settings" -- turning the switch on asks for it -- so with the permission
-     * [NotificationPermission.DENIED] only the channel counts here, and the request and its answer
-     * say the rest ([notifyRowLine]'s `requestRefused`). Below API 33, and on 33+ once granted,
-     * [appNotificationsEnabled] false is exactly the user's switch in the app's notification page.
+     * [appNotificationsEnabled] is `NotificationManagerCompat.areNotificationsEnabled`. Below API 33,
+     * and on 33+ while the permission is granted, false is exactly the user's switch in the app's
+     * notification page. **On 33+ with the permission [NotificationPermission.DENIED] it means one
+     * of two things, and [notifySwitchOn] -- *Notify me about new versions* as saved -- tells them
+     * apart:**
+     *
+     *  - **not asked yet.** A new install, or a user who never turned the switch on: the switch is
+     *    off, because the row asks for the permission *before* it stores "on", so a saved "on" and a
+     *    permission never granted cannot come from this app. Nothing is switched off in the phone's
+     *    settings, and turning the switch on asks. Not blocked;
+     *  - **taken away.** From Android 13, switching an app's notifications off in the phone's
+     *    settings revokes `POST_NOTIFICATIONS` (AOSP `NotificationManagerService`
+     *    `setNotificationsEnabledForPackage` -> `PermissionHelper.setNotificationPermission`, and
+     *    `areNotificationsEnabled` is `hasPermission`), so the switch stays on while the permission
+     *    becomes DENIED. Nothing would appear, and the row must say so. Blocked.
+     *
+     * Until v5.9F a DENIED permission never counted, so the second case read the normal line and its
+     * promise of a notification: inventory I-54, the defect row A13 had repaired below API 33 and
+     * that the maintainer confirmed on Android 16 on 2026-09-28.
      */
     fun blockedInPhoneSettings(
         permission: NotificationPermission,
         appNotificationsEnabled: Boolean,
         channelTurnedOff: Boolean,
-    ): Boolean = channelTurnedOff || (!appNotificationsEnabled && permission != NotificationPermission.DENIED)
+        notifySwitchOn: Boolean,
+    ): Boolean = channelTurnedOff ||
+        (!appNotificationsEnabled && (permission != NotificationPermission.DENIED || notifySwitchOn))
 
     /** Which line *Notify me about new versions* shows under its title. */
     enum class NotifyRowLine {

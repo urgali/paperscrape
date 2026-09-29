@@ -21,11 +21,13 @@ android {
         // into Android 17's behaviour changes rather than running under Android 16's rules.
         // Assessed change by change against this app's actual code in v3.8 and again from the
         // v3.9 baseline in v4.0 -- see RELEASE_HISTORY.md. Nothing needed a fix: no reflection, no
-        // LAN access, no native libraries, no notifications, no SMS/contacts/audio/Bluetooth, no
-        // orientation or resizability declarations, and every `startActivity` is from a visible
-        // Activity. The two that are not decidable by reading code -- certificate transparency
-        // enforced by default, and ECH -- are network behaviour on the five HTTPS hosts Live
-        // Weather, the city geocoder and the updater use, and were exercised at runtime.
+        // LAN access, no native libraries, no notifications (then: v5.7 added the one update
+        // notification, whose Android 13 permission update.UpdateNotificationPolicy handles), no
+        // SMS/contacts/audio/Bluetooth, no orientation or resizability declarations, and every
+        // `startActivity` is from a visible Activity. The two that are not decidable by reading
+        // code -- certificate transparency enforced by default, and ECH -- are network behaviour
+        // on the five HTTPS hosts Live Weather, the city geocoder and the updater use, and were
+        // exercised at runtime.
         targetSdk = 37
         // **Two numbers doing two different jobs — see AI_PROJECT_RULES.md §11.A.**
         //
@@ -45,13 +47,13 @@ android {
         // for the neighbourhood redraw, which is a change of visual language rather than a tweak
         // to the old drawing. It was never tagged and never published, so no user ever saw a 4.32
         // and the published sequence runs v4.31 → v5.0 with nothing missing. `versionCode` stays
-        // at the 63 this round's Fase 0 set: it answers "is this newer than what is installed",
+        // at the 63 this round's Phase 0 set: it answers "is this newer than what is installed",
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71. Ordinary bumps: one release, one step.
-        versionCode = 71
-        versionName = "5.8"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72. Ordinary bumps: one release, one step.
+        versionCode = 72
+        versionName = "5.9"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
@@ -106,6 +108,8 @@ android {
         // maintainer closed it knowing that. Adding "x86_64" back to this list is all it takes to
         // reopen it, at the measured price.
         ndk {
+            // Lint's ChromeOsAbiSupport asks for x86_64 back; the paragraph above is why it is not.
+            //noinspection ChromeOsAbiSupport
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
         }
     }
@@ -369,7 +373,7 @@ tasks.withType<Test>().configureEach {
     // The same problem one file over. `InternetInventoryTest` reads AndroidManifest.xml to check the
     // INTERNET inventory against the source, and a manifest-only edit changes nothing Gradle already
     // tracks as an input to the unit tests -- so removing a host from the inventory left the test
-    // UP-TO-DATE and green. Kotlin sources are covered already, because changing one recompiles.
+    // UP-TO-DATE and green.
     inputs.file(layout.projectDirectory.file("src/main/AndroidManifest.xml"))
         .withPropertyName("appManifest")
         .withPathSensitivity(PathSensitivity.RELATIVE)
@@ -378,7 +382,7 @@ tasks.withType<Test>().configureEach {
     // Gradle already tracks as an input here, so a build-script edit left the unit tests
     // UP-TO-DATE and green without executing a line of either. `BuildTypeDeclarationTest`'s own
     // KDoc records three mutations that all appeared to be caught by nothing for this reason, and
-    // CLAUDE.md §7 carries it as a standing trap with "run with --rerun-tasks" as the workaround.
+    // until then CLAUDE.md §7 carried it as a standing trap with "run with --rerun-tasks" as the workaround.
     //
     // It is a two-line fix rather than a habit, so v5.3 declares them. The cost is that editing
     // a build script now re-runs the unit tests, which is the correct answer: a test that reads a
@@ -388,5 +392,32 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(rootProject.layout.projectDirectory.dir(".github/workflows"))
         .withPropertyName("ciWorkflows")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    // **And the sources the tests read as text** (v5.9C). Changing a Kotlin file recompiles it, but a
+    // change to a comment that keeps every line where it was compiles to the same classes, so the
+    // unit tests' inputs do not change -- and the guards that read comments (`SpriteMeasurementClaimTest`,
+    // `UnitFrameTest`) were answered from the build cache: a wrong sprite size planted in a comment
+    // came back green, `testDebugUnitTest FROM-CACHE`, without the test running. The instrumented
+    // sources, the Python generators and the sprite registry under `tools/` and the other resources
+    // are read by tests too (`UnitFrameTest`, `SpriteReachabilityTest`, `VehicleAndShopFrontTest`,
+    // `SeasonalIconManifestTest`) and compile into nothing the unit tests see. Declared, an edit to
+    // any of them re-runs the unit tests, which is the answer the four declarations above give.
+    inputs.dir(layout.projectDirectory.dir("src/main/kotlin"))
+        .withPropertyName("mainSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(layout.projectDirectory.dir("src/test/kotlin"))
+        .withPropertyName("unitTestSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(layout.projectDirectory.dir("src/androidTest/kotlin"))
+        .withPropertyName("instrumentedSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(layout.projectDirectory.dir("src/main/res"))
+        .withPropertyName("appResources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(rootProject.fileTree("tools") {
+        include("**/*.py", "**/*.json", "**/*.svg")
+        exclude("**/__pycache__/**")
+    })
+        .withPropertyName("assetTooling")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

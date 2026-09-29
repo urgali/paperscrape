@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Round 3 of the v4.26 sky-and-water concepts: the cloud N1 "Cavolfiore" with one shaded
-belly, and the bird U2 "Smerlato" at two smaller sizes. The dolphin and the sailboat stay as
-concept B "Rilievo" delivered them.
+"""Round 3 of the v4.26 sky-and-water concepts: the cloud N1 "Cauliflower" with one shaded
+belly, and the bird U2 "Scalloped" at two smaller sizes. The dolphin and the sailboat stay as
+concept B "Relief" delivered them.
 
 Run from ``tools/assets`` with the pinned venv:
 
@@ -10,8 +10,8 @@ Run from ``tools/assets`` with the pinned venv:
 Two combinations are built, one directory each under ``concepts/skywater/round3/``, paired
 for capture economy only -- the cloud and the bird are judged independently:
 
-    ombra_leggera_d1   cloud V1 "Ombra leggera" (7.5 % below white) + bird D1 (0.75 x)
-    ombra_piena_d2     cloud V2 "Ombra piena"   (13 % below white)  + bird D2 (0.60 x)
+    light_shade_d1     cloud V1 "Light shade"   (7.5 % below white) + bird D1 (0.75 x)
+    full_shade_d2      cloud V2 "Full shade"    (13 % below white)  + bird D2 (0.60 x)
 
 **The cloud is N1's silhouette, byte for byte the same outline** (same lobes, same seed for the
 cut wobble), so the two variants differ from N1 and from each other in one thing only: the
@@ -108,7 +108,7 @@ def cloud(style: str) -> Sprite:
     outline, puff = cloud_n1()          # N1's outline, same seed: the same paper
     check_extent(outline, "V-" + style)
     s.add(outline, WHITE)
-    tone = {"leggera": SHADE_LIGHT, "piena": SHADE_FULL}[style]
+    tone = {"light_shade": SHADE_LIGHT, "full_shade": SHADE_FULL}[style]
     s.add(belly_shade(), tone, clip_to=outline)
     s.add(puff, WHITE)
     return s
@@ -154,14 +154,14 @@ def bird(size: str) -> Sprite:
 
 # ------------------------------------------------------------------------------ build
 COMBOS = {
-    "ombra_leggera_d1": ("leggera", "d1"),
-    "ombra_piena_d2": ("piena", "d2"),
+    "light_shade_d1": ("light_shade", "d1"),
+    "full_shade_d2": ("full_shade", "d2"),
 }
 BLURB = {
-    "leggera": "Cloud V1 'Ombra leggera' -- N1 'Cavolfiore' outline unchanged, plus one belly in shade at 7.5% below white: the belly's own line repeated 24 units higher, clipped inside the silhouette. One paper, one tone in shade, no offset and no second sheet.",
-    "piena": "Cloud V2 'Ombra piena' -- the same as V1 with the shade at 13.3% below white, the most a tintable mask may carry.",
-    "d1": "Bird D1 -- U2 'Smerlato' at 0.75 x: 68x18 canvas, flap axis row 13, three scallops per wing kept 2.5 px deep on the screen. Blit origin (-34, -13).",
-    "d2": "Bird D2 -- U2 'Smerlato' at 0.60 x: 54x15 canvas, flap axis row 11, two scallops per wing kept 2.5 px deep on the screen. Blit origin (-27, -11).",
+    "light_shade": "Cloud V1 'Light shade' -- N1 'Cauliflower' outline unchanged, plus one belly in shade at 7.5% below white: the belly's own line repeated 24 units higher, clipped inside the silhouette. One paper, one tone in shade, no offset and no second sheet.",
+    "full_shade": "Cloud V2 'Full shade' -- the same as V1 with the shade at 13.3% below white, the most a tintable mask may carry.",
+    "d1": "Bird D1 -- U2 'Scalloped' at 0.75 x: 68x18 canvas, flap axis row 13, three scallops per wing kept 2.5 px deep on the screen. Blit origin (-34, -13).",
+    "d2": "Bird D2 -- U2 'Scalloped' at 0.60 x: 54x15 canvas, flap axis row 11, two scallops per wing kept 2.5 px deep on the screen. Blit origin (-27, -11).",
 }
 
 
@@ -170,8 +170,8 @@ def build(combo: str) -> None:
     out = HERE / "round3" / combo / "svg"
     out.mkdir(parents=True, exist_ok=True)
     entries = []
-    sprites = [bird(bird_size), cloud(cloud_style), dolphin("rilievo"), hull("rilievo"), sail("rilievo")]
-    styles = [bird_size, cloud_style, "rilievo", "rilievo", "rilievo"]
+    sprites = [bird(bird_size), cloud(cloud_style), dolphin("relief"), hull("relief"), sail("relief")]
+    styles = [bird_size, cloud_style, "relief", "relief", "relief"]
     for sprite, style in zip(sprites, styles):
         svg = emit_svg(sprite, style)
         (out / f"{sprite.name}.svg").write_text(svg + "\n", encoding="utf-8")
@@ -182,7 +182,7 @@ def build(combo: str) -> None:
             raise SystemExit(f"{sprite.name}: rendered {r.size}, expected {expected}")
         (out / f"{sprite.name}.png").write_bytes(r.png_bytes)
         m = measure_raster(sprite.name, r)
-        blurb = BLURB.get(style, "Concept B 'Rilievo', as delivered in round 1 and chosen by the maintainer.")
+        blurb = BLURB.get(style, "Concept B 'Relief', as delivered in round 1 and chosen by the maintainer.")
         note = NOTES[sprite.name]
         if sprite.name == "bird_body":
             kx, axis, w, h, _ = BIRD_SIZES[bird_size]

@@ -63,10 +63,10 @@ object CarSelection {
     /**
      * How the 0..1 density maps onto the way from 1 car to all of them.
      *
-     * Linear is the honest starting hypothesis — the slider's midpoint puts half the possible
-     * traffic on the road — and it is the **one judgement in this feature that belongs to the
-     * eye**: the v4.22 phase-2 checkpoint delivers live captures of candidate curves at 0%, 35%
-     * and 100% and the maintainer chooses by looking. The exponent is the whole difference
+     * Linear — the slider's midpoint puts half the possible traffic on the road — and it was the
+     * **one judgement in this feature that belonged to the eye**, so it was made by eye: v4.22's
+     * phase 2 put live captures of three candidate curves on the device at 0%, 35% and 100%, and
+     * the maintainer chose linear from the 35% ones. The exponent is the whole difference
      * between the candidates (1.0 linear, 1.5 and 2.0 progressively sparser mid-range), so the
      * choice lands here and nowhere else.
      */

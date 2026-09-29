@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The sixth family: the school -- one cut-out figure, with its sign on the facade.
 
-Where it comes from. The concept rounds drew it as «S2 Orologio» and the maintainer chose it in
+Where it comes from. The concept rounds drew it as «S2 Clock» and the maintainer chose it in
 three steps, each of which is a number in this file rather than a preference:
 
  - **S2_C** (round v5.6C) put four bay windows on the ground floor. S2 as first proposed declared
@@ -10,14 +10,14 @@ three steps, each of which is a number in this file rather than a preference:
    units, over the 12 `vocab`'s docstring requires for a bust, and the porch light moved from the
    side of the door (12, -18) to over the canopy (0, -28) because the right-hand row used to run
    through the doorway and through the light's own halo.
- - **B_matita** (round v5.6E) hangs a cream plaque with a red pencil on the facade, between the
+ - **B_pencil** (round v5.6E) hangs a cream plaque with a red pencil on the facade, between the
    upper windows and over the porch light that lights it. It costs **no new PNG and no new atlas
    row**: the plaque sits inside canvases the school already has, and its colours are the fixed
    ones `sign_plate` already uses. The price is paid in windows -- the two upper rows go from four
    panes to three (`k2_t_row3`, the tower's own stamp, already shipped) to clear 38 units of wall
    in the middle.
 
-**The group is named `k2_s_orologio_c`, and that name is load-bearing.** `core.Group.add` seeds
+**The group is named `k2_s_orologio_c` (Italian for «S2 Clock», corrected), and that name is load-bearing.** `core.Group.add` seeds
 each card's wobble from `name#index`, so renaming the group moves every vertex by up to a unit and
 the drawing stops being the one the maintainer approved -- measured in v5.6E, where rendering the
 six sign variants under six names produced +-8 kB of pure cropping noise. `names.py` maps it to the
@@ -96,7 +96,7 @@ def shell(name):
 def upper_rows(g, p):
     """The two upper rows: three panes each, at the tower's own stamp and its own wobble.
 
-    Four each is what S2_C drew, and `B_matita` trades the fourth pane of each row for the 38
+    Four each is what S2_C drew, and `B_pencil` trades the fourth pane of each row for the 38
     units of clear wall the plaque stands on. `k2_t_row3` is `tower_row_tier3`, already shipped
     and already drawn at `k2_profile.T["amp"]`, so the school pays nothing for it.
     """

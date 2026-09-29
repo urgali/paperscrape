@@ -3,7 +3,6 @@ package com.paperscrape.livewallpaper.engine
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.RectF
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -76,9 +75,6 @@ class CanvasGradientAllocationTest {
 
         override fun drawOval(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) =
             delegate.drawOval(left, top, right, bottom, paint)
-
-        override fun drawArc(oval: RectF, startAngle: Float, sweepAngle: Float, paint: Paint) =
-            delegate.drawArc(oval, startAngle, sweepAngle, paint)
 
         override fun drawWedge(
             cx: Float,
@@ -214,7 +210,8 @@ class CanvasGradientAllocationTest {
         val glow = cache.radial(10f, 20f, 30f, 0xFFFFCC00.toInt(), 120)
         val glowAgain = cache.radial(10f, 20f, 30f, 0xFFFFCC00.toInt(), 120)
         assertSame("identical arguments must reuse the instance", glow, glowAgain)
-        assertTrue("a radial must never be served from the linear table", glow !== first)
+        // "A radial is never served from the linear table" needs no assertion: `radial` returns a
+        // RadialGradient and `linear` a LinearGradient, so the compiler already refuses the case.
     }
 
     /**

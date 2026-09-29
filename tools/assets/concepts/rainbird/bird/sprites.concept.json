@@ -26,7 +26,7 @@
     "kind": "svg",
     "file": "bird_concept1.svg"
    },
-   "notes": "B1 Rondine: forked tail, sickle wings swept back. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
+   "notes": "B1 Swallow: forked tail, sickle wings swept back. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
   },
   {
    "name": "bird_concept2",
@@ -52,7 +52,7 @@
     "kind": "svg",
     "file": "bird_concept2.svg"
    },
-   "notes": "B2 Gabbiano lungo: long shallow-V wings tilted back, longer neck and beak. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
+   "notes": "B2 Long gull: long shallow-V wings tilted back, longer neck and beak. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
   },
   {
    "name": "bird_concept3",
@@ -78,7 +78,7 @@
     "kind": "svg",
     "file": "bird_concept3.svg"
    },
-   "notes": "B3 Colomba corretta: the shipped body with the wings rotated back and a longer beak. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
+   "notes": "B3 Corrected dove: the shipped body with the wings rotated back and a longer beak. 51x21 CANVAS_PIXELS, flap axis row 15, blit origin (-25, -15)."
   }
  ]
 }

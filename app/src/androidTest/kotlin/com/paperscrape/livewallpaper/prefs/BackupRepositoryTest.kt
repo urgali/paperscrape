@@ -323,7 +323,10 @@ class BackupRepositoryTest {
         // the themes have.
         val dying = FailOnceThemeStore(context)
         val result = BackupRepository(prefs, dying, "test").import(file)
-        assertTrue("the import should have reported a rollback attempt, got $result", result != null)
+        assertTrue(
+            "the import should have reported a rollback attempt, got $result",
+            result is BackupRepository.ImportResult.RolledBack || result is BackupRepository.ImportResult.Broken,
+        )
 
         // A kill is not a rollback: put the half-applied state back the way a killed process leaves
         // it, with the staged document still on disk.

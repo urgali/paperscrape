@@ -1,124 +1,24 @@
 #!/usr/bin/env python3
-"""K2 «Profilo» (Profile) -- the silhouette is the subject.
+"""K2 «Profile» -- the silhouette is the subject.
 
 Each figure is ONE card (front plus roof cut out together) with its shadow; on top of it, the
 ground floor is a second, darker card, and the windows are a rhythm of small panes; the sign is
-a plaque with an emblem. From the maintainer's reference: spires, hats, turrets, mansards,
-steps, domes, butterfly roofs, corner blocks -- two figures per family (declared cost), and for
-the tower one figure plus two crowns. The colour is bold and saturated: 4 hues per instance.
+a plaque with an emblem. What ships from this concept is the tower (the stepped body and its two
+crowns, spire and dome), the restaurant's pavilion and the bar's two figures, which
+build_neighbourhood.py picks and colours. The concept's other figures -- the small house's spire
+and hat, the large house's turret and mansard, the butterfly-roof restaurant -- and the two sets
+that grouped them for the concept sheets were drawn by nothing once the neighbourhood shipped,
+and were removed in v5.9C (inventory row I-22).
 """
-from core import (Group, Piece, Slot, Building, W, WALL, CREAM, DARK, YELLOW, RED, rect, chamfered, disc, half_disc, scallops)
+from core import (Group, Piece, W, WALL, CREAM, DARK, YELLOW, RED, rect, chamfered, disc, half_disc)
 W_TIER2 = None
-from vocab import (BASE_DARK, BASE_LIGHT, TRIM, ROOF_TILE, ROOF_SLATE, DOOR, GLASS,
-                   wall_face, grid_windows, bay_window, door, glass_door, steps, awning, sign_plate, lantern, chimney,
-                   snow_cap, dormer, row_stamp, rows, bay_glass)
+from vocab import (BASE_DARK, BASE_LIGHT, TRIM, ROOF_SLATE, DOOR, GLASS,
+                   wall_face, grid_windows, bay_window, door, glass_door, steps, awning, sign_plate, lantern,
+                   snow_cap, row_stamp, rows, bay_glass)
 
-H = dict(amp=0.7, relief=(1.5, 2.0))
 T = dict(amp=1.1, relief=(2.4, 3.2))
 R = dict(amp=0.9, relief=(1.9, 2.6))
 B = dict(amp=0.75, relief=(1.5, 2.0))
-HUES = [-50.0, -20.0, 15.0, 45.0]
-SAT = 0.40
-
-
-def hs_spire():
-    g = Group("k2_hs_guglia")
-    p = Piece("k2_hs_guglia", 72)
-    body = [(-23, 0), (-23, -40), (-26, -40), (0, -72), (26, -40), (23, -40), (23, 0)]
-    g.face("wall", rect(-23, -40, 23, 0))
-    g.add(body, WALL, relief=H["relief"], amp=H["amp"])
-    roof = [(-26.5, -39.5), (0, -72.5), (26.5, -39.5), (26.5, -36.5), (0, -68), (-26.5, -36.5)]
-    g.add(roof, ROOF_TILE, relief=H["relief"], amp=H["amp"] * 0.8)
-    g.add(rect(-23, -22, 23, 0), BASE_DARK, amp=H["amp"] * 0.5)
-    steps(g, "wall", 5.5, 19.5, 0, 1, 2.0, H["relief"], H["amp"])
-    door(g, "wall", 7, -20, 11, 18, H["relief"], H["amp"], "arch")
-    win, sill = bay_window(g, "wall", -18, -20, 13, 12, H["relief"], H["amp"])
-    p.windows.append(win); p.lights.append(sill)
-    grid_windows(g, "wall", [-17, 6], [-36], 7, 9, H["amp"])
-    p.lights += [(-17, -27, 7), (6, -27, 7)]
-    g.add(disc(0, -52, 3.5, 10), GLASS, amp=H["amp"] * 0.3)
-    p.smoke = chimney(g, 12, -62, 5, 12, H["relief"], H["amp"])
-    p.lamps.append((20.5, -13))
-    p.place(g)
-    p.place(snow_cap("k2_hs_guglia_snow", [[(-26, -40), (0, -72), (26, -40)]], H["amp"]))
-    return p
-
-
-def hs_hat():
-    g = Group("k2_hs_cappello")
-    p = Piece("k2_hs_cappello", 54)
-    g.face("wall", rect(-32, -32, 32, 0))
-    g.add(rect(-32, -32, 32, 0), WALL, relief=H["relief"], amp=H["amp"])
-    g.add([(-37, -31), (-14, -54), (14, -54), (37, -31)], ROOF_TILE, relief=H["relief"], amp=H["amp"] * 0.8)
-    g.add(rect(-32, -20, 32, 0), BASE_DARK, amp=H["amp"] * 0.5)
-    steps(g, "wall", -7, 7, 0, 1, 2.0, H["relief"], H["amp"])
-    door(g, "wall", -5.5, -20, 11, 18, H["relief"], H["amp"], "arch")
-    win, sill = bay_window(g, "wall", -27, -19, 13, 12, H["relief"], H["amp"])
-    p.windows.append(win); p.lights.append(sill)
-    grid_windows(g, "wall", [14], [-18], 8, 10, H["amp"])
-    grid_windows(g, "wall", [-24, -3.5, 17], [-30], 7, 8, H["amp"])
-    p.lights += [(14, -8, 8)]
-    p.smoke = chimney(g, 18, -60, 6, 14, H["relief"], H["amp"])
-    p.lamps.append((9, -14))
-    p.place(g)
-    p.place(snow_cap("k2_hs_cappello_snow", [[(-20, -48), (-14, -54), (14, -54), (20, -48)]], H["amp"]))
-    return p
-
-
-def hl_turret():
-    g = Group("k2_hl_torretta")
-    p = Piece("k2_hl_torretta", 94)
-    g.face("wall", rect(-38, -56, 32, 0))
-    g.add(rect(-38, -56, 32, 0), WALL, relief=H["relief"], amp=H["amp"])
-    g.add([(-42, -55), (-3, -84), (36, -55)], ROOF_TILE, relief=H["relief"], amp=H["amp"] * 0.8)
-    p.smoke = chimney(g, -30, -76, 6, 12, H["relief"], H["amp"])
-    g.add(rect(-38, -22, 32, 0), BASE_DARK, amp=H["amp"] * 0.5)
-    for x in (-33, -12):
-        win, sill = bay_window(g, "wall", x, -20, 13, 12, H["relief"], H["amp"])
-        p.windows.append(win); p.lights.append(sill)
-    rows(p, g, "wall", row_stamp("k2_hl_torretta_row3", 3, 8, 10, 19, H["amp"]), 3, 8, 10, 19, -32, [-48])
-    p.lights += [(-32, -38, 8), (-12, -38, 8), (6, -38, 8)]
-    p.lamps.append((18, -14))
-    p.place(g)
-    t = Group("k2_hl_torretta_turret")
-    turret = rect(20, -72, 40, 0)
-    t.face("turret", turret)
-    t.add(turret, WALL, relief=H["relief"], amp=H["amp"])
-    t.add([(16, -71), (30, -94), (44, -71)], ROOF_SLATE, relief=H["relief"], amp=H["amp"] * 0.8)
-    t.add(rect(20, -22, 40, 0), BASE_DARK, amp=H["amp"] * 0.5)
-    steps(t, "turret", 23, 36, 0, 1, 2.0, H["relief"], H["amp"])
-    door(t, "turret", 24.5, -20, 11, 18, H["relief"], H["amp"], "arch")
-    grid_windows(t, "turret", [27.5], [-64, -46, -30], 5, 7, H["amp"])
-    p.place(t)
-    p.place(snow_cap("k2_hl_torretta_snow_gable", [[(-42, -55), (-3, -84), (36, -55)]], H["amp"], cover=0.6))
-    p.place(snow_cap("k2_hl_torretta_snow_cone", [[(16, -71), (30, -94), (44, -71)]], H["amp"], cover=0.6))
-    return p
-
-
-def hl_mansard():
-    g = Group("k2_hl_mansarda")
-    p = Piece("k2_hl_mansarda", 82)
-    g.face("wall", rect(-43, -52, 43, 0))
-    g.add(rect(-43, -52, 43, 0), WALL, relief=H["relief"], amp=H["amp"])
-    slope = [(-46, -51), (-37, -74), (37, -74), (46, -51)]
-    g.face("slope", slope)
-    g.add(slope, ROOF_TILE, relief=H["relief"], amp=H["amp"] * 0.8)
-    g.add([(-38, -74), (-32, -82), (32, -82), (38, -74)], ROOF_TILE, relief=H["relief"], amp=H["amp"] * 0.8)
-    for cx in (-18, 16):
-        dormer(g, "slope", cx, -56, 9, 8, H["relief"], H["amp"])
-    p.smoke = chimney(g, 22, -90, 5, 14, H["relief"], H["amp"])
-    g.add(rect(-43, -22, 43, 0), BASE_DARK, amp=H["amp"] * 0.5)
-    steps(g, "wall", 24.5, 38.5, 0, 1, 2.0, H["relief"], H["amp"])
-    door(g, "wall", 26, -21, 12, 19, H["relief"], H["amp"], "arch")
-    for x in (-38, -14):
-        win, sill = bay_window(g, "wall", x, -20, 13, 12, H["relief"], H["amp"])
-        p.windows.append(win); p.lights.append(sill)
-    rows(p, g, "wall", row_stamp("k2_hl_mansarda_row4", 4, 8, 10, 20, H["amp"]), 4, 8, 10, 20, -36, [-44])
-    p.lights += [(-36, -34, 8), (-16, -34, 8), (4, -34, 8), (24, -34, 8)]
-    p.lamps.append((25, -14))
-    p.place(g)
-    p.place(snow_cap("k2_hl_mansarda_snow", [[(-32, -82), (32, -82)]], H["amp"]))
-    return p
 
 
 def tower_body():
@@ -208,29 +108,6 @@ def r_pavilion():
     return p
 
 
-def r_butterfly():
-    g = Group("k2_r_farfalla")
-    p = Piece("k2_r_farfalla", 78)
-    g.face("wall", rect(-48, -42, 48, 0))
-    g.add(rect(-48, -42, 48, 0), WALL, relief=R["relief"], amp=R["amp"])
-    roof = [(-50, -60), (-50, -41), (50, -41), (50, -60), (0, -46)]
-    g.face("roof", roof)
-    g.add(roof, ROOF_SLATE, relief=R["relief"], amp=R["amp"] * 0.8)
-    sign_plate(g, "roof", -44, -78, -24, -58, R["relief"], R["amp"], "disc", rests=True)
-    for x in (-40, -14):
-        win, _ = bay_window(g, "wall", x, -28, 20, 15, R["relief"], R["amp"], frame=1.5, sill=False)
-        p.windows.append(win)
-    p.lights += [(-40, -11.5, 20), (-14, -11.5, 20)]
-    g.add(chamfered(17, -27, 35, -24, 0.6), TRIM, relief=R["relief"], amp=R["amp"] * 0.6, host="wall", label="canopy")
-    steps(g, "wall", 18.5, 33.5, 0, 1, 2.0, R["relief"], R["amp"])
-    door(g, "wall", 20, -22, 12, 20, R["relief"], R["amp"], "flat")
-    grid_windows(g, "wall", [38], [-28], 8, 10, R["amp"])
-    p.lamps.append((16, -26))
-    p.place(g)
-    p.place(snow_cap("k2_r_farfalla_snow", [[(-50, -60), (-25, -53)], [(25, -53), (50, -60)], [(-44, -78), (-24, -78)]], R["amp"], body=3.5, cover=1.0))
-    return p
-
-
 def b_signboard():
     g = Group("k2_b_insegna")
     p = Piece("k2_b_insegna", 72)
@@ -280,28 +157,3 @@ def b_chamfer():
     p.place(g)
     p.place(snow_cap("k2_b_smusso_snow", [[(-36, -52), (20, -52)], [(21, -51), (35, -37)]], B["amp"], body=3.5))
     return p
-
-
-def buildings():
-    """The set that fits in the budget: two figures for the small house and the bar, one for the
-    large house and the restaurant, tower = one body + two crowns. The full set (two figures for
-    EVERY family) is `buildings_full()`: it costs 5 738 616 B [M], 1 475 460 B over the budget,
-    and is rendered separately (`--riserva`) so that the maintainer can see it and decide what is
-    worth the room."""
-    return {
-        "HOUSE_SMALL": Building("HOUSE_SMALL", [Slot([hs_spire(), hs_hat()])], 27.0, HUES, SAT),
-        "HOUSE_LARGE": Building("HOUSE_LARGE", [Slot([hl_mansard()])], 40.0, HUES, SAT),
-        "TOWER": Building("TOWER", [Slot([tower_body()]), Slot([crown_spire(), crown_dome()])], 35.0, HUES, SAT),
-        "RESTAURANT": Building("RESTAURANT", [Slot([r_pavilion()])], 50.0, HUES, SAT),
-        "BAR": Building("BAR", [Slot([b_signboard(), b_chamfer()])], 33.0, HUES, SAT),
-    }
-
-
-def buildings_full():
-    return {
-        "HOUSE_SMALL": Building("HOUSE_SMALL", [Slot([hs_spire(), hs_hat()])], 27.0, HUES, SAT),
-        "HOUSE_LARGE": Building("HOUSE_LARGE", [Slot([hl_turret(), hl_mansard()])], 40.0, HUES, SAT),
-        "TOWER": Building("TOWER", [Slot([tower_body()]), Slot([crown_spire(), crown_dome()])], 35.0, HUES, SAT),
-        "RESTAURANT": Building("RESTAURANT", [Slot([r_pavilion(), r_butterfly()])], 50.0, HUES, SAT),
-        "BAR": Building("BAR", [Slot([b_signboard(), b_chamfer()])], 33.0, HUES, SAT),
-    }

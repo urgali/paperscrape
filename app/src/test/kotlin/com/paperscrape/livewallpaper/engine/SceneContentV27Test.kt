@@ -173,10 +173,11 @@ class SceneContentV27Test {
      * **6.24 m**, against a large house's 7.17 to 10.85 m.
      *
      * So the decision is not satisfied by the artwork and has not been for a release, and the
-     * declaration was the only place it survived. The maintainer's ruling on item 113 was to
-     * correct the declaration and leave the drawing alone -- the drawing is what was chosen from
-     * the phase-4 photographs -- so what is asserted here is the hierarchy the scene actually
-     * shows, with the one it was supposed to show named beside it.
+     * declaration was the only place it survived. Item 113 was closed in v5.4 by correcting the
+     * declaration and leaving the drawing alone (the round's brief) -- the drawing is what the
+     * maintainer chose from the phase-4 photographs -- and on 2026-09-28 the maintainer kept the
+     * shops as drawn. So what is asserted here is the hierarchy the scene actually shows, with
+     * the one v2.7 wanted named beside it.
      *
      * `BuildingHeightDeclarationTest` has carried the drawn figures since v5.0, in the same suite
      * as this method's old claim. Nobody put the two together; this comment is the join.

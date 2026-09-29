@@ -384,10 +384,10 @@ class SceneGoldenTest {
      * the frame is the one already committed, which never had a bolt in it. The rule is a check
      * now — [GoldenScene.requireDeterministicLightning] — so the next scene that warms a storm up
      * fails on its first run rather than on its thirty-second. `BACKLOG_v4_31.md` item 112 has the
-     * arithmetic, and v5.0 Fase 0's report has the 100 consecutive green runs.
+     * arithmetic, and v5.0 Phase 0's report has the 100 consecutive green runs.
      */
     /**
-     * **v5.4 lavoro E moved this frame by 56 px, and the reason is not the water.**
+     * **v5.4 work E moved this frame by 56 px, and the reason is not the water.**
      *
      * `beach` deals four adults; three carried under both of v5.4's share rules and the fourth
      * carries now that there is no share. One canopy is 56 px at this viewport, the same figure
@@ -395,7 +395,7 @@ class SceneGoldenTest {
      * is the whole-frame comparison catching a pavement that the focus does not look at, which is
      * the pair working as intended.
      *
-     * It is also the frame that confirms lavoro D's arithmetic from outside: C and D are
+     * It is also the frame that confirms work D's arithmetic from outside: C and D are
      * byte-identical here (md5 `67c7311214511210a6098cd7e38e28c0`), so the 56 is attributable to
      * this release alone.
      */
@@ -448,16 +448,16 @@ class SceneGoldenTest {
      * pinning the rule failing, which is why the focus rectangle is on the pavement rather than on
      * the whole frame.
      *
-     * **Re-authored twice in one release, and the second time undid the first.** Lavoro D dealt a
+     * **Re-authored twice in one release, and the second time undid the first.** Work D dealt a
      * share of two adults in three over the street, and this frame lost an umbrella by **56 px**:
-     * three of three carrying became two of three. Lavoro E removed the share on the maintainer's
+     * three of three carrying became two of three. Work E removed the share on the maintainer's
      * instruction — in the rain everyone who can hold one does — and the same 56 px came back.
      *
      * **The two 56s are the same pixels**, which is checkable and was checked: against the v5.4C
      * file this frame differed by 955 px after D and differs by 899 after E, and 899 is exactly D's
      * *other* cause, the two shops' declaration, on its own. So the umbrella went back up in the
      * pixel it came down from and nothing else moved with it. `registri/40_attribuzione_golden.md`
-     * in the lavoro E delivery has the three comparisons.
+     * in the work E delivery has the three comparisons.
      *
      * Three of three carrying is now the rule rather than an accident of a threshold, and this
      * frame is where the canopy is pinned as a picture.
@@ -510,7 +510,7 @@ class SceneGoldenTest {
             themeId = "easter",
             weather = weather(cloud = 0.9f, type = PrecipitationType.RAIN, intensity = 0.6f, storm = false),
             focus = listOf(
-                // **A derived limit, because the shared one cannot see this** (v4.22 Fase 5).
+                // **A derived limit, because the shared one cannot see this** (v4.22 Phase 5).
                 // The default 2% is calibrated for a patch of a few hundred pixels; this one is
                 // 79 200, where 2% is 1 584 and the whole regression is 223. Measured on the
                 // device: the noise floor is **0.0000%** — the frame re-captured byte-identical —

@@ -137,8 +137,10 @@ class SpecialVehicleDensityTest {
     }
 
     private fun repoRoot(): File {
-        var dir = File(".").absoluteFile
-        while (dir.parentFile != null) {
+        // Walked to null rather than tested through `parentFile`, a platform type: the older shape
+        // compiled with "Java type mismatch: inferred type is 'File?'" (v5.9C, inventory I-10).
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
             if (File(dir, "app/src/main/kotlin").isDirectory) return dir
             dir = dir.parentFile
         }

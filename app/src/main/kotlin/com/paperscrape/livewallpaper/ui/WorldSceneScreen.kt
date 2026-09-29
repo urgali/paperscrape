@@ -783,9 +783,11 @@ private fun TreesSubScreen(customization: SceneCustomization, forThemeId: String
 /**
  * Visibility and density for the pedestrians, and nothing else.
  *
- * Deliberately not an [ObjectCategorySection]: that lays out four colour swatches, and the walk
- * sprites are finished art in four kinds across two seasons with nothing for a colour to reach.
- * Offering swatches that did nothing would be worse than offering none.
+ * Deliberately not an [ObjectCategorySection]: that lays out four colour swatches, and nothing
+ * here would take them. The people *are* recoloured at run time since v4.30 -- clothes, skin, hair
+ * and hat drawn from their region masks -- but by the scene itself, a different combination at
+ * every crossing, not by a colour the user picks; the maintainer decided on 2026-09-28 that they
+ * stay that way (inventory I-73).
  */
 @Composable
 private fun PeopleSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {

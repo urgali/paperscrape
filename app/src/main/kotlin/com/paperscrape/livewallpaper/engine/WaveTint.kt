@@ -3,7 +3,7 @@ package com.paperscrape.livewallpaper.engine
 /**
  * Where a wave's two papers sit in luma, given the water under them.
  *
- * A wave (v4.28, concept WA3 "Tubo") is two tintable masks laid over the mirror: a **body**, the
+ * A wave (v4.28, concept WA3 "Tube") is two tintable masks laid over the mirror: a **body**, the
  * face under the curling lip, and the **foam** that curls forward off it. Neither carries a colour
  * of its own -- both are derived per frame from the surface they lie on, the way the waterline of
  * v4.26 and the rain of v4.27 are, because the water is a mirror of the sky and any fixed pair of
@@ -17,8 +17,8 @@ package com.paperscrape.livewallpaper.engine
  *
  * From a surface of luma `l`, reaching `l - gap` costs `gap / l` of the way to black and reaching
  * `l + gap` costs `gap / (255 - l)` of the way to white; below 127.5 white is the shorter road.
- * This is exactly `PaperRenderer.standOffFromSky`'s rule for the rain, and it is here for the same
- * reason: the phase-2 proposal carried the body toward black always, and
+ * This is exactly `PrecipitationContrast.standOffFromSky`'s rule for the rain, and it is here for
+ * the same reason: the phase-2 proposal carried the body toward black always, and
  * `WaveContrastTest` measures that this puts the body under 40 of luma in **901 of 2 592
  * situations** -- every one of them at night, where a dark body on dark water stops being a wave
  * and becomes a rock.

@@ -1,6 +1,6 @@
 {
  "schemaVersion": 2,
- "note": "Registro del concept B: stesso schema di sources/sprites.json, tenuto qui perche' questi sprite NON sono spediti. Giro 1b: famiglia completata a 8 sprite; le varianti d'alone sono registrate in alone/varianti.json. Fase 2 / Parte A: le due varianti della zucca sono registrate in zucca/varianti.json; star_sparkle qui e' la versione ridisegnata.",
+ "note": "Registry of concept B: the same schema as sources/sprites.json, kept here because these sprites are NOT shipped. Round 1b: the family completed at 8 sprites; the halo variants are registered in halo/variants.json. Phase 2 / Part A: the pumpkin's two variants are registered in pumpkin/variants.json; star_sparkle here is the redrawn version.",
  "sprites": [
   {
    "name": "moon_crescent",
@@ -26,7 +26,7 @@
     "kind": "svg",
     "file": "moon_crescent.svg"
    },
-   "notes": "Concept B 'Forbici' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept B 'Scissors' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   },
   {
    "name": "moon_full",
@@ -52,7 +52,7 @@
     "kind": "svg",
     "file": "moon_full.svg"
    },
-   "notes": "Concept B - luna piena. Giro 1d: 40 vertici (9 gradi/faccia), il passo di tutta la famiglia."
+   "notes": "Concept B - full moon. Round 1d: 40 vertices (9 degrees/facet), the step of the whole family."
   },
   {
    "name": "moon_gibbous",
@@ -78,7 +78,7 @@
     "kind": "svg",
     "file": "moon_gibbous.svg"
    },
-   "notes": "Concept B 'Forbici' - famiglia completata nel giro 1b (moon_gibbous e moon_jack_o_lantern aggiunte). Candidato, NON spedito. Stessa tela, scala e ancora dello sprite spedito con questo nome."
+   "notes": "Concept B 'Scissors' - the family completed in round 1b (moon_gibbous and moon_jack_o_lantern added). A candidate, NOT shipped. The same canvas, scale and anchor as the shipped sprite of this name."
   },
   {
    "name": "moon_half",
@@ -104,7 +104,7 @@
     "kind": "svg",
     "file": "moon_half.svg"
    },
-   "notes": "Concept B 'Forbici' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept B 'Scissors' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   },
   {
    "name": "moon_jack_o_lantern",
@@ -130,7 +130,7 @@
     "kind": "svg",
     "file": "moon_jack_o_lantern.svg"
    },
-   "notes": "Concept B - luna di Halloween RIFATTA DA CAPO nel giro 1d: bordo e fori tagliati a mano, nessuna coordinata dalla faccia spedita, niente anello esterno (scelta scritta nel sorgente). Unica luna coi fori."
+   "notes": "Concept B - the Halloween moon REDONE FROM SCRATCH in round 1d: edge and holes cut by hand, no coordinate from the shipped face, no outer ring (a choice written in the source). The only moon with holes."
   },
   {
    "name": "star_sparkle",
@@ -156,7 +156,7 @@
     "kind": "svg",
     "file": "star_sparkle.svg"
    },
-   "notes": "Concept B 'Forbici' - RIDISEGNATA nella fase 2 / Parte A per la configurazione 1 (s = radius/16, 10-13 px reali): vita piena (24-28 unita', 27-31% del raggio) al posto dei ~12 del giro 1a, punte diseguali invariate (N 82, E 78, S 74, O 76), lati concavi a due segmenti con tremolio, sedici vertici scritti. Tela 180x180, scala e ancora dello sprite spedito; il sito di chiamata non cambia. Fotografata SOLO con la configurazione 1 applicata in una build usa-e-getta (senza, a 6 px, la forma non conta - giro 1d)."
+   "notes": "Concept B 'Scissors' - REDRAWN in phase 2 / Part A for configuration 1 (s = radius/16, 10-13 real px): a full waist (24-28 units, 27-31% of the radius) in place of round 1a's ~12, the unequal points unchanged (N 82, E 78, S 74, W 76), concave two-segment sides with a wobble, sixteen written vertices. 180x180 canvas, the shipped sprite's scale and anchor; the call site does not change. Photographed ONLY with configuration 1 applied in a throwaway build (without it, at 6 px, the shape does not count - round 1d)."
   },
   {
    "name": "sun_body",
@@ -182,7 +182,7 @@
     "kind": "svg",
     "file": "sun_body.svg"
    },
-   "notes": "Concept B 'Forbici' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept B 'Scissors' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   },
   {
    "name": "sun_glow",
@@ -208,7 +208,7 @@
     "kind": "svg",
     "file": "sun_glow.svg"
    },
-   "notes": "Concept B 'Forbici' v4.23 fase 1 - candidato, NON spedito. Stessa tela, stessa convenzione di scala e stessa ancora dello sprite spedito con questo nome; il sito di chiamata non cambia."
+   "notes": "Concept B 'Scissors' v4.23 phase 1 - a candidate, NOT shipped. The same canvas, the same scale convention and the same anchor as the shipped sprite of this name; the call site does not change."
   }
  ]
 }

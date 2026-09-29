@@ -107,6 +107,11 @@ class LakeLanesTest {
 
     // -- Depth by rendered base, not by lane (P1-2) ---------------------------------------------
     //
+    // These hold `LakeLanes.depthOf`, the climb: a leaping animal recedes as it rises. Since v5.9B
+    // the renderer does not sort on it bare -- `visibleWaterline` adds each kind's own drop from its
+    // placement point to where its drawing meets the water (see the section after this one), and
+    // the climb is still what moves a dolphin back.
+    //
     // The lane spacing and sail height below are the real ones, taken from the geometry the v3.0
     // assessment measured on a 2424 px screen: lanes about 22 px apart, a sail reaching about
     // 82 px above its own waterline, a leap topping out about 38 px above its own. Those three
@@ -210,23 +215,32 @@ class LakeLanesTest {
         assertEquals(listOf(0, 2, 4, 6), boatsInPaintOrder)
     }
 
-    // -- The wave's key, said in the boat's convention (v4.28) ----------------------------------
+    // -- Every kind keyed by where its drawing meets the water (v5.9B, I-02) ---------------------
     //
-    // The three categories on the water do not measure depth from the same place, and a wave is the
-    // one that made that matter. A sailboat's key is its *placement point*; `drawSailboat` blits
-    // `sailboat_hull` at +8 units and the sprite is 17 units tall, so the hull meets the water
-    // **25 units below the key** -- which is what `PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS`
-    // is. A wave's base *is* its waterline. Comparing the two raw is comparing a waterline against
-    // a placement point, and the phase-3 burst showed exactly what that looks like: a wave cutting
-    // the sail of a boat whose hull was plainly nearer.
+    // The three kinds are placed from three different points. A sailboat from its *placement point*,
+    // with `sailboat_hull` blitted at +8 units and 17 units tall, so the hull meets the water **25
+    // boat units below** it (`PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS`). A dolphin from its lane,
+    // with its body centred on the leap point, so in the air its belly is **29 of its own units**
+    // below the point (`-DOLPHIN_ORIGIN_Y_UNITS`); under water only its splash shows, standing on
+    // the lane. A wave from its base, which *is* its waterline.
     //
-    // **These assertions exist because a golden did not catch it.** `wave-storm` portrays a wave
-    // and a hull overlapping correctly, and the mutation that removes the lift survives it -- the
-    // frame happens not to contain a pair the key changes. That is a finding, recorded in
-    // `BACKLOG_v4_28.md` item 84, and this is the check that does bite.
+    // v4.28 put wave and hull on one convention by lifting the wave, and left the dolphin on its
+    // own: 16.9 px apart on the BV6600's 1440 px surface. v5.9B's probe saw that on screen at the
+    // factory settings (Beach, thunderstorm), so [LakeLanes.visibleWaterline] now keys all three the
+    // same way. The numbers below are the real ones, at the BV6600's height.
+    //
+    // **v4.28's finding still holds and is why these are arithmetic and not a golden**: `wave-storm`
+    // portrays a wave and a nearer hull and survived the mutation that broke their order -- one frame
+    // samples one configuration; the property is about all of them.
 
-    /** The boat's hull offset in the same abstract pixels the rest of this class works in. */
-    private val hullDrop = 24f
+    private val screen = 1440f
+    private val scale = SceneSpace.sceneScale(screen)
+    private val hullDrop = PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS * SceneSpace.SAILBOAT_BASE_SCALE * scale
+    private val belly = -PaperRenderer.DOLPHIN_ORIGIN_Y_UNITS * SceneSpace.DOLPHIN_BASE_SCALE * scale
+
+    private fun boat(y: Float) = LakeLanes.visibleWaterline(LakeLanes.Kind.SAILBOAT, y, 0f, screen)
+    private fun dolphin(y: Float, climb: Float) = LakeLanes.visibleWaterline(LakeLanes.Kind.DOLPHIN, y, climb, screen)
+    private fun wave(base: Float) = LakeLanes.visibleWaterline(LakeLanes.Kind.WAVE, base, 0f, screen)
 
     @Test
     fun `the hull offset is the artwork's own, not a number somebody liked`() {
@@ -236,58 +250,88 @@ class LakeLanesTest {
                 "first thing that has to move with it",
             25f, PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS,
         )
+        assertEquals("the dolphin's body is centred on its leap point, half of 57 units tall", -29f, PaperRenderer.DOLPHIN_ORIGIN_Y_UNITS)
+    }
+
+    @Test
+    fun `on the BV6600 the two old conventions were 16_9 px apart`() {
+        assertEquals(16.9f, hullDrop - belly, 0.05f)
+    }
+
+    @Test
+    fun `a wave is keyed by its base, a swimming dolphin by its lane, a boat by its hull`() {
+        assertEquals(500f, wave(500f))
+        assertEquals("under water only the splash shows, and it stands on the lane", 500f, dolphin(500f, 0f))
+        assertEquals(500f + hullDrop, boat(500f))
+        assertEquals("in the air, the belly", 500f - 10f + belly, dolphin(500f, 10f))
     }
 
     @Test
     fun `a wave whose waterline is behind a hull is painted behind it`() {
-        // The wave sits *below the boat's key* but *above the boat's hull* -- the band the two
-        // conventions disagree over, and the only band where the lift changes anything.
-        val boatKey = laneY(2)
-        val waveBase = boatKey + hullDrop * 0.5f
-        assertTrue("the case must be inside the band, or it tests nothing", waveBase > boatKey && waveBase < boatKey + hullDrop)
-
-        val boat = LakeLanes.depthOf(boatKey, heightAboveLane = 0f)
-        val wave = LakeLanes.depthOf(waveBase, heightAboveLane = hullDrop)
+        val boatY = 500f
+        val waveBase = boatY + hullDrop * 0.5f
         assertEquals(
             "the boat's hull is nearer than the wave's waterline, so the boat is painted last",
-            listOf(1, 0), paintOrder(boat, wave),
-        )
-
-        // And the mutation, stated rather than described: keyed by its bare base the wave comes out
-        // in front of a hull that is nearer than it, which is the defect this exists for.
-        val unlifted = LakeLanes.depthOf(waveBase, heightAboveLane = 0f)
-        assertEquals(
-            "keying a wave by its bare base must get this pair wrong -- if it no longer does, the " +
-                "conventions have converged and the lift can go",
-            listOf(0, 1), paintOrder(boat, unlifted),
+            listOf(1, 0), paintOrder(boat(boatY), wave(waveBase)),
         )
     }
 
     @Test
     fun `a wave nearer than the hull is still painted in front of it`() {
-        val boatKey = laneY(2)
-        val boat = LakeLanes.depthOf(boatKey, heightAboveLane = 0f)
-        val wave = LakeLanes.depthOf(boatKey + hullDrop * 2f, heightAboveLane = hullDrop)
-        assertEquals(
-            "the lift may not push a genuinely nearer wave behind the boat",
-            listOf(0, 1), paintOrder(boat, wave),
-        )
+        val boatY = 500f
+        assertEquals(listOf(0, 1), paintOrder(boat(boatY), wave(boatY + hullDrop * 2f)))
+    }
+
+    /**
+     * **The pair v4.28 left behind, and the probe's frame.** A wave whose base is below a leaping
+     * dolphin's belly -- nearer -- by less than the 16.9 px the conventions disagreed by. v5.9A drew
+     * the dolphin over it.
+     */
+    @Test
+    fun `a wave nearer than a leaping dolphin's belly is painted in front of it`() {
+        val laneY = 500f
+        val climb = 12f
+        val waveBase = laneY - climb + belly + 6f
+        assertEquals(listOf(0, 1), paintOrder(dolphin(laneY, climb), wave(waveBase)))
+
+        // The mutation, stated: v5.9A's keys -- the dolphin by its lane less its climb, the wave by
+        // its base lifted by the hull's offset -- put this wave behind the dolphin.
+        val oldDolphin = LakeLanes.depthOf(laneY, climb)
+        val oldWave = waveBase - hullDrop
+        assertEquals("v5.9A's keys must get this pair wrong, or the test tests nothing", listOf(1, 0), paintOrder(oldDolphin, oldWave))
     }
 
     @Test
-    fun `the lift only ever moves a wave backwards, so boats keep the order v3_0 gave them`() {
-        for (base in listOf(laneY(0), laneY(3), laneY(7))) {
-            assertTrue(
-                "a wave must never be pulled forward of where its own base puts it",
-                LakeLanes.depthOf(base, heightAboveLane = hullDrop) <= base,
-            )
-        }
-        // And with waves in the pass, the boats among them are still in lane order.
-        val boats = (0 until LakeLanes.LANE_COUNT step 2).map { LakeLanes.depthOf(laneY(it), 0f) }
-        val waves = listOf(laneY(1), laneY(5)).map { LakeLanes.depthOf(it, hullDrop) }
-        val all = (boats + waves).toFloatArray()
-        val painted = paintOrder(*all).map { all[it] }
-        assertEquals("the whole pass must still be ascending", painted.sorted(), painted)
+    fun `a wave behind a leaping dolphin's belly stays behind it`() {
+        val laneY = 500f
+        val climb = 12f
+        assertEquals(listOf(1, 0), paintOrder(dolphin(laneY, climb), wave(laneY - climb + belly - 3f)))
+    }
+
+    /** The same arithmetic against a boat: the dolphin crossing the deck of a boat whose hull is nearer. */
+    @Test
+    fun `a leaping dolphin whose belly is above a hull goes behind that boat`() {
+        val boatY = 500f
+        val dolphinLane = boatY + hullDrop - belly + 4f   // a lane below the boat's placement point
+        val climb = 6f
+        assertTrue("the case must be one v5.9A painted the other way", LakeLanes.depthOf(dolphinLane, climb) > boatY)
+        assertEquals(listOf(1, 0), paintOrder(boat(boatY), dolphin(dolphinLane, climb)))
+    }
+
+    @Test
+    fun `boats among themselves and waves against boats keep the order they had`() {
+        val boats = (0 until LakeLanes.LANE_COUNT step 2).map { laneY(it) }
+        val waves = listOf(laneY(1), laneY(5))
+        fun order(keys: List<Float>) = paintOrder(*keys.toFloatArray())
+        val before = order(boats + waves.map { it - hullDrop })
+        val after = order(boats.map { boat(it) } + waves.map { wave(it) })
+        assertEquals("moving every boat down to its hull must not reorder a boat against a wave", before, after)
+    }
+
+    @Test
+    fun `the climb still only ever moves a dolphin backwards`() {
+        val keys = listOf(0.5f, 5f, maxLeap / 2f, maxLeap).map { dolphin(laneY(3), it) }
+        assertEquals("a higher leap must key the animal farther, never nearer", keys.sortedDescending(), keys)
     }
 
     @Test

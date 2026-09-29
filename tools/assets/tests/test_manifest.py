@@ -461,8 +461,9 @@ class ShippedSourcesTest(unittest.TestCase):
         # anchor was comparing unrelated numbers, and it went unnoticed because the
         # file that blits nearly all of them did not resolve until D-4 was fixed.
         #
-        # Three sprites are known to disagree by exactly one local unit and are
-        # excused here rather than silently tolerated: see `KNOWN_ONE_UNIT_SINKS`.
+        # A sprite known to disagree by exactly one local unit would be excused in
+        # `KNOWN_ONE_UNIT_SINKS` rather than silently tolerated; since D-9 was fixed
+        # that list is empty, so every such sprite is held to its anchor.
         for spec in self.specs:
             if not spec.predicts_origin:
                 continue
@@ -502,13 +503,11 @@ class ShippedSourcesTest(unittest.TestCase):
         self.assertEqual((), KNOWN_ONE_UNIT_SINKS)
 
     def test_the_one_unit_sinks_are_still_exactly_that(self):
-        # The excused disagreements are pinned rather than waved through. Each of the
-        # three is blitted one local unit above the ground line its own content bottom
-        # would put it on -- consistently, across three unrelated sprites, which reads
-        # as an authoring convention rather than drift. Correcting it means changing a
-        # blit origin in the renderer, which this task is not allowed to do; the entry
-        # in `ROADMAP.md` records it. If one of them ever moves by something other than
-        # one unit, that is new and this test says so.
+        # Empty since D-9 was repaired (see `KNOWN_ONE_UNIT_SINKS`), so today this checks
+        # nothing, and it stays as the guard for an excuse added later: an excused sprite
+        # must sink by exactly one unit, the shape D-9 had -- three sprites each blitted one
+        # local unit above the ground line its own content bottom put it on -- and
+        # anything else fails here rather than being waved through.
         problems, _ = registry.validate_against_callsites(self.specs, self.sites)
         sinking = [p for p in problems if any(n in p for n in KNOWN_ONE_UNIT_SINKS)]
         self.assertEqual(len(KNOWN_ONE_UNIT_SINKS), len(sinking), sinking)

@@ -70,7 +70,11 @@ class CustomThemeDataJsonTest {
     private fun sampleEntry(id: String = "christmas", name: String = "My Christmas") = CustomThemeEntry(
         id = id,
         name = name,
-        theme = sampleTheme(id),
+        // The theme carries the entry's name, as every entry the app builds does. Until v5.9B this
+        // fixture gave it "Sample <id>" beside a different entry name -- a state the reader now
+        // resolves to the entry's name (I-01, see CustomThemeEntry.name), so the round trip below
+        // could no longer hand it back.
+        theme = sampleTheme(id).copy(displayName = name),
         layout = sampleLayout(),
         customization = SceneCustomization.DEFAULT,
     )

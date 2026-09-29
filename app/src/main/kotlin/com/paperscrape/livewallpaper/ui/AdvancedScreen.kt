@@ -122,18 +122,19 @@ internal fun AdvancedScreen(
      */
     var permissionRefused by remember { mutableStateOf(false) }
     /**
-     * Whether the phone's settings have PaperScrape's notifications, or the update channel, switched
-     * off (`UpdateNotificationPolicy.blockedInPhoneSettings`, v5.8B). Read when the screen is
-     * composed and again every time it comes back to the front -- the way to change it is to leave
-     * for the phone's settings and return, so a value read once would be stale exactly when it
-     * matters.
+     * What the phone's settings say about PaperScrape's notifications (`UpdateNotifier.PhoneState`,
+     * v5.8B): read when the screen is composed and again every time it comes back to the front --
+     * the way to change it is to leave for the phone's settings and return, so a value read once
+     * would be stale exactly when it matters. Whether that blocks is decided below with the switch
+     * as saved (`UpdateNotificationPolicy.blockedInPhoneSettings`, v5.9F), so turning the switch off
+     * or on here is reflected at once, without waiting for the next return to the front.
      */
-    var blockedInPhoneSettings by remember { mutableStateOf(UpdateNotifier.blockedInPhoneSettings(context)) }
+    var phoneNotifications by remember { mutableStateOf(UpdateNotifier.phoneState(context)) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, context) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                blockedInPhoneSettings = UpdateNotifier.blockedInPhoneSettings(context)
+                phoneNotifications = UpdateNotifier.phoneState(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -351,7 +352,7 @@ internal fun AdvancedScreen(
                 supporting = when (
                     UpdateNotificationPolicy.notifyRowLine(
                         automaticCheckEnabled = settings.automaticUpdateCheckEnabled,
-                        blocked = blockedInPhoneSettings,
+                        blocked = phoneNotifications.blocks(notifySwitchOn = settings.updateNotificationsEnabled),
                         requestRefused = permissionRefused,
                     )
                 ) {
@@ -378,7 +379,7 @@ internal fun AdvancedScreen(
                     if (UpdateNotificationPolicy.mustAsk(permission)) {
                         onRequestNotificationPermission { granted ->
                             permissionRefused = !granted
-                            blockedInPhoneSettings = UpdateNotifier.blockedInPhoneSettings(context)
+                            phoneNotifications = UpdateNotifier.phoneState(context)
                             if (granted) scope.launch { prefs.setUpdateNotificationsEnabled(true) }
                         }
                     } else {

@@ -65,8 +65,15 @@ open class CustomThemeStore(private val context: Context) {
      * one thing that must not happen to it is being replaced by a document derived from `EMPTY`.
      *
      * So an unreadable blob is left exactly as it is and the edit is dropped. That costs the user
-     * the tap they just made, and the UI already shows them an empty theme list, so the state is
-     * visible rather than silent. It buys them a file that still contains their themes.
+     * the tap they just made, and the UI already shows them an empty theme list. It buys them a
+     * file that still contains their themes.
+     *
+     * **Since v5.9A (item 18) "unreadable" means a document that is not JSON at all.** Until then
+     * one saved theme the reader could not parse made the whole document read as unreadable, so
+     * every other saved theme vanished from the Themes screen and every edit landed here and was
+     * dropped. Now [customThemeDataOrNull] reads entry by entry, the theme that fails is carried in
+     * [CustomThemeData.unreadable], and [toJsonString] writes it back byte for byte beside the
+     * edit -- so the edit is applied and nothing is lost.
      */
     private suspend fun update(transform: (CustomThemeData) -> CustomThemeData) {
         context.customThemeDataStore.edit { prefs ->
@@ -102,8 +109,17 @@ open class CustomThemeStore(private val context: Context) {
         data.copy(customThemes = withoutExisting + entry)
     }
 
+    /**
+     * Renames a standalone saved theme -- **both copies of its name** (v5.9B, I-01). The screens show
+     * `theme.displayName`; this used to write `name` alone, so the rename reached the file and no
+     * screen. See [CustomThemeEntry.name].
+     */
     suspend fun renameCustomTheme(id: String, newName: String) = update { data ->
-        data.copy(customThemes = data.customThemes.map { if (it.id == id) it.copy(name = newName) else it })
+        data.copy(
+            customThemes = data.customThemes.map {
+                if (it.id == id) it.copy(name = newName, theme = it.theme.copy(displayName = newName)) else it
+            },
+        )
     }
 
     suspend fun deleteCustomTheme(id: String) = update { data ->

@@ -118,7 +118,7 @@ class SpriteGeometryTest {
      * maintainer chose for this release, and only one of them is large: the carrying pose that puts
      * an umbrella in an adult's hand (36 PNGs, 2 families x 2 seasons x 3 frames x 3 tones, at
      * 117x252x4 = **4 245 696 B**), the umbrella's canopy (144x72x4 = **41 472 B**) and the wave
-     * WA3 "Tubo" (two 360x132 masks = **380 160 B**). The bird is free: B1 "Rondine" replaces
+     * WA3 "Tube" (two 360x132 masks = **380 160 B**). The bird is free: B1 "Swallow" replaces
      * `bird_body` on the same 51x21 canvas.
      *
      * *First, the space was looked for rather than asked for -- and there is none left to find.*
@@ -374,7 +374,7 @@ class SpriteGeometryTest {
      * *And the sentence this paragraph exists to make unavoidable.* **Moving this line is the
      * maintainer's decision and not the pass's**, as the assertion below says and as the six moves
      * above it all were. The cost was declared to the maintainer in the proposal round -- *"+4,2 MB
-     * decodificati"*, `proposte_bambini_v5_4/PROPOSTE.md` §2 -- and strada 1b was chosen knowing it;
+     * decodificati"*, `proposte_bambini_v5_4/PROPOSTE.md` §2 -- and approach 1b was chosen knowing it;
      * what the proposal did not do was hold that figure against the **margin**, which was 553 936 B.
      * `V5_4H_REPORT.md` opens on this number so it can be reversed in one line, and reversing it
      * means the children go back to walking bare-headed in the rain.
@@ -390,7 +390,7 @@ class SpriteGeometryTest {
      *    first new one since v5.0: a turret with a clock, four bay windows at the ground floor and
      *    a plaque with a pencil on the facade;
      *  - **the vehicle fleet, -62 100 B.** All sixteen vehicle PNGs were redrawn in the maintainer's
-     *    «Ritaglio» direction and the redraw is *cheaper* than what it replaces (976 104 against
+     *    «Cut-out» direction and the redraw is *cheaper* than what it replaces (976 104 against
      *    1 038 204), because the slab is lower: a body canvas went from 50-52 units tall to 44.
      *    **33 840 of those 62 100 are the appliance's canvas**, which the proposal round authored
      *    at 104x60 with four transparent units on the right and seven on the bottom;
@@ -429,7 +429,8 @@ class SpriteGeometryTest {
      * build gates, and moving one changes which arithmetic the build accepts and not a byte of what
      * the device does. What the device really has is **one 2048x2048 atlas page**, which is 16 MiB
      * of RGBA exactly, and a walk of all twelve themes in one process measured it **583 rows of
-     * 2048 occupied with zero sprites falling out of it** -- the school adds **two**. Sixty seconds
+     * 2048 occupied with zero sprites falling out of it**, the school included (re-measured on the
+     * BV6600 on 2026-09-27 by `GlAtlasOccupancyTest`, v5.9D). Sixty seconds
      * of live wallpaper with the school in the scene measured 30.07 fps against 30.03 without it,
      * zero dropped frames out of 3 554, and GL memory inside its own 330 KB of run-to-run noise.
      * So this ceiling is the one that binds, and it binds on the gallery and the APK rather than on

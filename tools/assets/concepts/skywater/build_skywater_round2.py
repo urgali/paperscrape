@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Round 2 of the v4.26 sky-and-water concepts: the cloud and the bird go back to the drawing
-board, the dolphin and the sailboat stay as concept B "Rilievo" delivered them.
+board, the dolphin and the sailboat stay as concept B "Relief" delivered them.
 
 Run from ``tools/assets`` with the pinned venv:
 
@@ -10,9 +10,9 @@ Three combinations are built, one directory each under ``concepts/skywater/round
 one capture build carries one cloud variant and one bird variant; the pairing is for capture
 economy only and the two families are judged independently:
 
-    cavolfiore_pieno       cloud N1 "Cavolfiore"      + bird U1 "Pieno"
-    ombra_smerlato         cloud N2 "Ventre in ombra" + bird U2 "Smerlato"
-    sfilacciata_trequarti  cloud N3 "Sfilacciata"     + bird U3 "Tre quarti"
+    cauliflower_full       cloud N1 "Cauliflower"     + bird U1 "Full"
+    shaded_scalloped       cloud N2 "Shaded belly"    + bird U2 "Scalloped"
+    frayed_three_quarter   cloud N3 "Frayed"          + bird U3 "Three-quarter"
 
 **The cloud is drawn for the band, not for itself.** On the device the band is about sixteen
 copies of this one sprite at four scales, painted in index order, and each copy's interior is
@@ -112,7 +112,7 @@ def check_extent(points, name):
 
 
 # ------------------------------------------------------------------------------ the clouds
-#: N1 "Cavolfiore": crest of seven lobes, the tall dome left of centre and deep cut cusps; a
+#: N1 "Cauliflower": crest of seven lobes, the tall dome left of centre and deep cut cusps; a
 #: belly of eight inverted lobes on a base that rises toward the right; a small puff detached
 #: at the lower right so the copies' outlines break up at different heights.
 N1_CREST = [(26, 100, 18), (48, 78, 30), (84, 46, 42), (130, 60, 38), (170, 82, 30), (198, 100, 22), (212, 110, 14)]
@@ -140,7 +140,7 @@ def cloud_n2(seed="cloud-n2"):
     return outline, puff, shade
 
 
-#: N3 "Sfilacciata": lower and longer, three domes of different height with cut cusps, a belly
+#: N3 "Frayed": lower and longer, three domes of different height with cut cusps, a belly
 #: that rises toward the tail, and two tapered tails trailing to -x, behind the drift, never
 #: thinner than 6 units.
 N3_CREST = [(64, 96, 20), (88, 72, 30), (124, 50, 38), (166, 60, 36), (206, 78, 30), (238, 94, 22)]
@@ -161,17 +161,17 @@ def cloud_n3(seed="cloud-n3"):
 
 def cloud(style: str) -> Sprite:
     s = Sprite("cloud_body", CLOUD_W, CLOUD_H, "SCENE_UNITS", "TINTABLE", "sky")
-    if style == "cavolfiore":
+    if style == "cauliflower":
         outline, puff = cloud_n1()
         s.add(outline, WHITE)
         s.add(puff, WHITE)
-    elif style == "ombra":
+    elif style == "shaded":
         outline, puff, shade = cloud_n2()
         s.add(outline, WHITE)
         for sh in shade:
             s.add(sh, SHADE, clip_to=outline)
         s.add(puff, WHITE)
-    elif style == "sfilacciata":
+    elif style == "frayed":
         outline, tails = cloud_n3()
         for t in tails:
             s.add(t, WHITE)
@@ -224,30 +224,39 @@ def wing_polygon(leading, trailing, seed, scallop=False):
     return cut(leading + trail, seed, 0.4)
 
 
+#: The name each bird style had when it was drawn, **which is part of its wobble seed**.
+#:
+#: [bird] seeds its three cuts with ``bird-<style>-<piece>``, so the style name is written into
+#: every vertex of the bird. The styles were renamed into English in v5.9F (rule 15.2); feeding the
+#: new names to the seed would have redrawn the three round-2 birds. These strings are the seed
+#: input that keeps the drawing byte-identical, not names: nothing else reads them.
+SEED_STYLE = {"full": "pieno", "scalloped": "smerlato", "three_quarter": "trequarti"}
+
+
 def bird(style: str) -> Sprite:
     s = Sprite("bird_body", 90, 24, "CANVAS_PIXELS", "TINTABLE", "animal", view_units=False)
     off = (2.4, 0.0)
-    far, near = (FAR_WING_U3, NEAR_WING_U3) if style == "trequarti" else (FAR_WING_U1, NEAR_WING_U1)
-    scallop = style == "smerlato"
-    s.add(wing_polygon(*far, f"bird-{style}-far", scallop), FAR_WING, under=UNDER_MASK, under_offset=off)
-    s.add(cut(BODY, f"bird-{style}-body", 0.35), WHITE, under=UNDER_MASK, under_offset=off)
-    s.add(wing_polygon(*near, f"bird-{style}-near", scallop), WHITE, under=UNDER_MASK, under_offset=off)
+    far, near = (FAR_WING_U3, NEAR_WING_U3) if style == "three_quarter" else (FAR_WING_U1, NEAR_WING_U1)
+    scallop = style == "scalloped"
+    s.add(wing_polygon(*far, f"bird-{SEED_STYLE[style]}-far", scallop), FAR_WING, under=UNDER_MASK, under_offset=off)
+    s.add(cut(BODY, f"bird-{SEED_STYLE[style]}-body", 0.35), WHITE, under=UNDER_MASK, under_offset=off)
+    s.add(wing_polygon(*near, f"bird-{SEED_STYLE[style]}-near", scallop), WHITE, under=UNDER_MASK, under_offset=off)
     return s
 
 
 # ------------------------------------------------------------------------------ build
 COMBOS = {
-    "cavolfiore_pieno": ("cavolfiore", "pieno"),
-    "ombra_smerlato": ("ombra", "smerlato"),
-    "sfilacciata_trequarti": ("sfilacciata", "trequarti"),
+    "cauliflower_full": ("cauliflower", "full"),
+    "shaded_scalloped": ("shaded", "scalloped"),
+    "frayed_three_quarter": ("frayed", "three_quarter"),
 }
 BLURB = {
-    "cavolfiore": "Cloud N1 'Cavolfiore' -- one tone; a crest of seven lobes of three heights with cusps cut 24 units deep, a belly of inverted lobes on a base rising to the right, a detached puff at the lower right. Drawn for a band of overlapping copies, not for itself.",
-    "ombra": "Cloud N2 'Ventre in ombra' -- N1's silhouette plus a shaded belly (9% below white) whose upper edge is a run of arcs; a copy painted on top of the band shows it as a soft underside.",
-    "sfilacciata": "Cloud N3 'Sfilacciata' -- lower and longer: three domes with cut cusps, a belly rising toward the tail, two tapered tails trailing to -x behind the drift, never thinner than 6 units.",
-    "pieno": "Bird U1 'Pieno' -- concept B's recipe with volume from the silhouette: spindle body 10 px deep, round head off a neck, short beak, two separate tapered wings (the far one a tone back, behind the body), under-papers offset 2.4 px along x only.",
-    "smerlato": "Bird U2 'Smerlato' -- U1 with three scallops cut into each wing's trailing edge: feather tips on the white gull, membrane on the dark bat.",
-    "trequarti": "Bird U3 'Tre quarti' -- U1's body with unequal wings: the near wing long and broad in front, the far wing short and higher behind, for a three-quarter view.",
+    "cauliflower": "Cloud N1 'Cauliflower' -- one tone; a crest of seven lobes of three heights with cusps cut 24 units deep, a belly of inverted lobes on a base rising to the right, a detached puff at the lower right. Drawn for a band of overlapping copies, not for itself.",
+    "shaded": "Cloud N2 'Shaded belly' -- N1's silhouette plus a shaded belly (9% below white) whose upper edge is a run of arcs; a copy painted on top of the band shows it as a soft underside.",
+    "frayed": "Cloud N3 'Frayed' -- lower and longer: three domes with cut cusps, a belly rising toward the tail, two tapered tails trailing to -x behind the drift, never thinner than 6 units.",
+    "full": "Bird U1 'Full' -- concept B's recipe with volume from the silhouette: spindle body 10 px deep, round head off a neck, short beak, two separate tapered wings (the far one a tone back, behind the body), under-papers offset 2.4 px along x only.",
+    "scalloped": "Bird U2 'Scalloped' -- U1 with three scallops cut into each wing's trailing edge: feather tips on the white gull, membrane on the dark bat.",
+    "three_quarter": "Bird U3 'Three-quarter' -- U1's body with unequal wings: the near wing long and broad in front, the far wing short and higher behind, for a three-quarter view.",
 }
 
 
@@ -256,8 +265,8 @@ def build(combo: str) -> None:
     out = HERE / "round2" / combo / "svg"
     out.mkdir(parents=True, exist_ok=True)
     entries = []
-    sprites = [bird(bird_style), cloud(cloud_style), dolphin("rilievo"), hull("rilievo"), sail("rilievo")]
-    styles = [bird_style, cloud_style, "rilievo", "rilievo", "rilievo"]
+    sprites = [bird(bird_style), cloud(cloud_style), dolphin("relief"), hull("relief"), sail("relief")]
+    styles = [bird_style, cloud_style, "relief", "relief", "relief"]
     for sprite, style in zip(sprites, styles):
         svg = emit_svg(sprite, style)
         (out / f"{sprite.name}.svg").write_text(svg + "\n", encoding="utf-8")
@@ -268,7 +277,7 @@ def build(combo: str) -> None:
             raise SystemExit(f"{sprite.name}: rendered {r.size}, expected {expected}")
         (out / f"{sprite.name}.png").write_bytes(r.png_bytes)
         m = measure_raster(sprite.name, r)
-        blurb = BLURB.get(style, "Concept B 'Rilievo', as delivered in round 1 and chosen by the maintainer.")
+        blurb = BLURB.get(style, "Concept B 'Relief', as delivered in round 1 and chosen by the maintainer.")
         entries.append({
             "name": sprite.name, "category": sprite.category,
             "width": expected[0], "height": expected[1], "contentBox": list(m.content_bbox),

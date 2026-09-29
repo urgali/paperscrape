@@ -96,7 +96,7 @@ def families(house_roofs_small=("gable", "mansard"),
              house_roofs_large=("gable", "mansard", "turret"),
              bar_figures=("signboard", "chamfer"),
              crowns=("spire", "dome")):
-    """The mix the maintainer chose: houses from «Scatola», tower and shops from «Profilo».
+    """The mix the maintainer chose: houses from «Box», tower and shops from «Profile».
 
     Every silhouette is a parameter because each one was costed separately against the budget
     before the ceilings moved (a bar figure -405 000 / -447 948 B, the turret roof -361 656, a

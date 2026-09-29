@@ -173,6 +173,22 @@ class UnitFrameTest {
         "CONTENT_TOP_UNITS" to (setOf("santaSleigh") to "SantaSleighOriginTest measures the sleigh's own canvas"),
         "CONTENT_WIDTH_UNITS" to (setOf("santaSleigh") to "SantaSleighOriginTest measures the sleigh's own canvas"),
         "CONTENT_HEIGHT_UNITS" to (setOf("santaSleigh") to "SantaSleighOriginTest measures the sleigh's own canvas"),
+        // v5.9B (I-41): the people generator, read since this release. Its lengths are mostly named
+        // quantity-first, so the prefix table cannot resolve them.
+        "SEATED_HALF_BAND" to (setOf("bustCar") to
+            "half the band a seated head may occupy, in the seated bust's own units -- item 61's first " +
+            "defect: it was 11.0, justified against a seat pitch in car units, and shipped a release of " +
+            "squashed heads. It names no frame and does not end in _UNITS, which is why it has to be " +
+            "declared here to be read at all (item 67)"),
+        "SEAT_PITCH_CAR_UNITS" to (setOf("car") to
+            "the seat pitch of the narrowest cabin, in the car's units, which the seated band is " +
+            "derived from; named quantity-first, CAR is its frame"),
+        "SEATED_CLEARANCE_CAR_UNITS" to (setOf("car") to
+            "what v4.24 left between two occupants' ink at that pitch, in car units; named " +
+            "quantity-first, CAR is its frame"),
+        "ADULT_BOX_UNITS" to (setOf("walk") to
+            "the adult walker's content box, 246.5 of the walk sprite's 252 px over three -- a " +
+            "length on the walk canvas, named for the quantity"),
     )
 
     /** Names that end in `_UNITS` and are not lengths at all. */
@@ -200,6 +216,8 @@ class UnitFrameTest {
         // each other and the raw unit counts behind them are not.
         "BASE_SCALE",
         "baseScale",
+        // The people generator's spelling of CAR_OCCUPANT_SCALE: a bust unit in car units.
+        "CAR_UNITS_PER_BUST_UNIT",
     )
 
     // ---------------------------------------------------------------- the assertions
@@ -214,7 +232,7 @@ class UnitFrameTest {
     fun `every length constant declares its frame`() {
         val undeclared = sortedSetOf<String>()
         for ((file, body) in sources()) {
-            for (name in declaredUnitNames(body)) {
+            for (name in declaredUnitNames(file, body)) {
                 if (name in notLengths) continue
                 if (framesOf(name) == null) undeclared += "${file.name}: $name"
             }
@@ -305,36 +323,142 @@ class UnitFrameTest {
         )
     }
 
+    /**
+     * **The generator where the first defect was born is read, and `SEATED_HALF_BAND` with it**
+     * (v5.9B, I-41). The file is among the sources; its statement declaring the band is analysed as a
+     * bust length computed from car lengths; and it passes because the conversion is in it.
+     */
+    @Test
+    fun `the people generator is read, and SEATED_HALF_BAND is checked`() {
+        val generator = sources().firstOrNull { it.first.name == GENERATOR }
+            ?: throw AssertionError("$GENERATOR is not among the sources this test reads")
+        val line = generator.second.lines().indexOfFirst { it.startsWith("SEATED_HALF_BAND =") } + 1
+        assertTrue("SEATED_HALF_BAND is not declared where this test expects it", line > 0)
+        assertEquals("the shipped derivation converts, and must pass", emptyList<Pair<String, String>>(), mixedExpressionsIn(GENERATOR, generator.second))
+
+        // The defect's own shape: the band computed from the car's seat pitch with no conversion.
+        val broken = generator.second.replace(
+            "SEATED_HALF_BAND = (SEAT_PITCH_CAR_UNITS - SEATED_CLEARANCE_CAR_UNITS) / CAR_UNITS_PER_BUST_UNIT / 2",
+            "SEATED_HALF_BAND = (SEAT_PITCH_CAR_UNITS - SEATED_CLEARANCE_CAR_UNITS) / 2",
+        )
+        assertTrue("the mutation did not apply: the derivation has changed shape", broken != generator.second)
+        val found = mixedExpressionsIn(GENERATOR, broken)
+        assertEquals("the band without its conversion must be caught on its own line", listOf("$GENERATOR:$line"), found.map { it.first })
+        assertTrue(found.single().second, found.single().second.contains("bustCar") && found.single().second.contains("car]"))
+    }
+
+    /**
+     * **A local lives in its function** (v5.9B, item 68 / I-41). A local that holds a conversion in
+     * one function used to clear a mixed expression in the next, because the scanner kept one map per
+     * file. The same mistake, in Kotlin and in Python, must now be caught.
+     */
+    @Test
+    fun `a local does not outlive its function`() {
+        val kotlin = """
+            fun first() {
+                val margin = HEAD_CAR_X_UNITS * CAR_OCCUPANT_SCALE
+            }
+            fun second() {
+                val gap = CAR_PASSENGER_X_UNITS - WIDEST_SEATABLE_HEAD_BUST_UNITS + margin
+            }
+        """.trimIndent()
+        assertEquals(listOf("Mutation.kt:5"), mixedExpressionsIn("Mutation.kt", kotlin).map { it.first })
+
+        val python = """
+            def first():
+                margin = HEAD_CAR_X_UNITS * CAR_UNITS_PER_BUST_UNIT
+
+            def second():
+                gap = SEAT_PITCH_CAR_UNITS - SEATED_HALF_BAND + margin
+        """.trimIndent()
+        assertEquals(listOf("mutation.py:5"), mixedExpressionsIn("mutation.py", python).map { it.first })
+
+        // And a local still reaches the rest of its own function, which is what propagation is for.
+        val sameFunction = """
+            fun only() {
+                val pitch = CAR_PASSENGER_X_UNITS - CAR_HEAD_X_UNITS
+                if (true) {
+                    val margin = pitch - WIDEST_SEATABLE_HEAD_BUST_UNITS
+                }
+            }
+        """.trimIndent()
+        assertEquals(listOf("Mutation.kt:4"), mixedExpressionsIn("Mutation.kt", sameFunction).map { it.first })
+    }
+
+    /** A constant declared in one frame and computed from another's lengths with no conversion. */
+    @Test
+    fun `a length computed from another frame's lengths is caught`() {
+        val defect = "const val HEAD_CAR_PITCH_UNITS = CAR_PASSENGER_X_UNITS - CAR_HEAD_X_UNITS"
+        assertEquals(listOf("Mutation.kt:1"), mixedExpressionsIn("Mutation.kt", defect).map { it.first })
+        val corrected = "const val HEAD_CAR_PITCH_UNITS = (CAR_PASSENGER_X_UNITS - CAR_HEAD_X_UNITS) / CAR_OCCUPANT_SCALE"
+        assertEquals(emptyList<Pair<String, String>>(), mixedExpressionsIn("Mutation.kt", corrected))
+    }
+
     // ---------------------------------------------------------------- the scanner
 
     private fun mixedExpressions(): List<Pair<String, String>> =
         sources().flatMap { (file, body) -> mixedExpressionsIn(file.name, body) }
 
+    /** Where a `val` (or a Python assignment) put a frame or a conversion, and how deep that scope is. */
+    private class Scope(val level: Int) {
+        val frames = HashMap<String, Set<String>>()
+        val conversions = HashSet<String>()
+    }
+
     /**
      * Returns `file:line` and a description for every statement in [body] that names two frames
      * and no conversion. Comments and string literals are blanked first: a doc comment saying
      * "a bust unit is CAR_OCCUPANT_SCALE of a car unit" is prose, not arithmetic.
+     *
+     * **Two things v5.9B added (inventory I-41, items 67 and 68).**
+     *
+     * *A declared name with a frame of its own is part of its own statement.* `val X_CAR_UNITS =
+     * <bust lengths>` mixes two frames exactly as `a - b` does, and the declared name used to be left
+     * out of its statement altogether. It still is when its only frame would be the one an earlier
+     * local of that name left behind -- the reason it was left out -- but a name the prefix table or
+     * [overrides] resolves is compared with what it is computed from. That is the shape the first of
+     * item 61's defects had, in the generator: `SEATED_HALF_BAND`, a bust length, computed from a seat
+     * pitch in car units.
+     *
+     * *A local lives in its function.* The propagated frames were one map per file, so a `val` in one
+     * function reached every function after it: two locals called `left` 110 lines apart were one
+     * entry (`RELEASE_HISTORY.md`, v5.6 known limitations), and a local that held a conversion in one
+     * function cleared a mixed expression in the next. Each function body -- a Kotlin `fun` or
+     * `init` block, a Python `def` -- is now a scope of its own, closed where its braces or its
+     * indentation close; what is declared outside every function stays visible to the whole file.
      */
     private fun mixedExpressionsIn(fileName: String, body: String): List<Pair<String, String>> {
-        val code = blankCommentsAndStrings(body)
-        val localFrames = HashMap<String, Set<String>>()
-        val localConversions = HashSet<String>()
+        val python = fileName.endsWith(".py")
+        val code = if (python) blankPythonCommentsAndStrings(body) else blankCommentsAndStrings(body)
+        val lines = code.lines()
+        val depths = if (python) IntArray(0) else braceDepths(lines)
+        val scopes = ArrayDeque<Scope>().apply { addLast(Scope(Int.MIN_VALUE)) }
         val found = mutableListOf<Pair<String, String>>()
 
-        for ((lineNumber, statement) in statements(code)) {
-            val declared = Regex("""\bva[lr]\s+([A-Za-z_][A-Za-z0-9_]*)""").find(statement)?.groupValues?.get(1)
+        for ((lineNumber, statement) in statements(code, python)) {
+            if (statement.isBlank()) continue
+            val level = if (python) lines[lineNumber - 1].takeWhile { it == ' ' || it == '\t' }.length else depths[lineNumber - 1]
+            while (scopes.size > 1 && level <= scopes.last().level) scopes.removeLast()
+            fun localFrame(id: String): Set<String>? = scopes.reversed().firstNotNullOfOrNull { it.frames[id] }
+            fun localConversion(id: String): Boolean = scopes.any { id in it.conversions }
+
+            val declared = declaredName(statement, python)
+            val declaredOwnFrame = declared?.let { framesOf(it) }
             val hasConversion = conversions.any { statement.contains(it) } ||
-                localConversions.any { Regex("""\b${Regex.escape(it)}\b""").containsMatchIn(statement) }
+                Regex("""\b[A-Za-z_][A-Za-z0-9_]*\b""").findAll(statement).any { localConversion(it.value) }
 
             // Each segment is analysed on its own: the branches of a selection are alternatives
             // rather than a comparison, and the entries of a table are unrelated to each other.
             val perSegment = segments(statement).map { segment ->
-                Regex("""\b[A-Za-z_][A-Za-z0-9_]*\b""").findAll(segment).map { it.value }
+                val carriers = Regex("""\b[A-Za-z_][A-Za-z0-9_]*\b""").findAll(segment).map { it.value }
                     // A `val` does not compare with itself: on its own declaration the name still
                     // carries whatever an earlier, unrelated `val` of that name left behind.
                     .filter { it != declared }
-                    .mapNotNull { id -> (framesOf(id) ?: localFrames[id])?.let { id to it } }
+                    .mapNotNull { id -> (framesOf(id) ?: localFrame(id))?.let { id to it } }
                     .toList()
+                // ...unless the name declares a frame of its own, which is then what the value
+                // assigned to it has to be in (v5.9B).
+                if (declared != null && declaredOwnFrame != null) listOf(declared to declaredOwnFrame) + carriers else carriers
             }
 
             val offending = perSegment.firstOrNull { carriers ->
@@ -349,18 +473,49 @@ class UnitFrameTest {
             // Propagate: `val x = <expr>` carries the expression's frame, or its conversion. A
             // selection carries the union -- `if (isFireTruck) truck else car` is whichever
             // vehicle is being drawn, and is compatible with either.
-            if (declared != null) {
+            if (declared != null && declaredOwnFrame == null) {
+                val scope = scopes.last()
                 val all = perSegment.flatten().map { it.second }.distinct()
                 when {
-                    hasConversion -> localConversions += declared
-                    offending != null && isSelection(statement) -> localFrames[declared] = all.flatten().toSet()
+                    hasConversion -> scope.conversions += declared
+                    offending != null && isSelection(statement) -> scope.frames[declared] = all.flatten().toSet()
                     offending != null -> Unit
-                    all.isNotEmpty() -> localFrames[declared] = all.reduce { a, b -> a intersect b }
+                    all.isNotEmpty() -> scope.frames[declared] = all.reduce { a, b -> a intersect b }
                         .ifEmpty { all.flatten().toSet() }
                 }
             }
+            if (opensFunction(statement, python)) scopes.addLast(Scope(level))
         }
         return found
+    }
+
+    /** The name a statement declares: a Kotlin `val`/`var`, or a Python assignment at its start. */
+    private fun declaredName(statement: String, python: Boolean): String? =
+        if (python) {
+            Regex("""^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=]*)?=(?!=)""").find(statement)?.groupValues?.get(1)
+        } else {
+            Regex("""\bva[lr]\s+([A-Za-z_][A-Za-z0-9_]*)""").find(statement)?.groupValues?.get(1)
+        }
+
+    private fun opensFunction(statement: String, python: Boolean): Boolean =
+        if (python) {
+            Regex("""^\s*(?:async\s+)?def\s""").containsMatchIn(statement)
+        } else {
+            Regex(
+                """^\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:private|internal|public|protected|override|inline|suspend|operator|""" +
+                    """infix|tailrec|external|abstract|open|final|actual|expect)\s+)*(?:fun\b|init\s*\{)""",
+            ).containsMatchIn(statement)
+        }
+
+    /** The brace depth at the start of each line of blanked Kotlin. */
+    private fun braceDepths(lines: List<String>): IntArray {
+        val depths = IntArray(lines.size)
+        var depth = 0
+        for ((i, line) in lines.withIndex()) {
+            depths[i] = depth
+            depth += line.count { it == '{' } - line.count { it == '}' }
+        }
+        return depths
     }
 
     private fun isSelection(statement: String): Boolean =
@@ -393,7 +548,7 @@ class UnitFrameTest {
      * the next while its brackets are unbalanced or it ends on an operator, which is what makes a
      * four-line comparison one unit of analysis instead of four.
      */
-    private fun statements(code: String): List<Pair<Int, String>> {
+    private fun statements(code: String, python: Boolean = false): List<Pair<Int, String>> {
         val out = mutableListOf<Pair<Int, String>>()
         val lines = code.lines()
         var i = 0
@@ -401,8 +556,10 @@ class UnitFrameTest {
             val start = i
             val buffer = StringBuilder(lines[i])
             var depth = bracketDelta(lines[i])
+            // Python ends a statement at the line break unless a bracket is open or the line ends in
+            // a backslash; a trailing `:` opens a block, not a continuation.
             while (i + 1 < lines.size &&
-                (depth > 0 || lines[i].trimEnd().endsWithOperator() || lines[i + 1].trimStart().startsWithOperator())
+                (depth > 0 || (if (python) lines[i].trimEnd().endsWith("\\") else lines[i].trimEnd().endsWithOperator() || lines[i + 1].trimStart().startsWithOperator()))
             ) {
                 i++
                 buffer.append(' ').append(lines[i])
@@ -459,6 +616,33 @@ class UnitFrameTest {
         return out.toString()
     }
 
+    /** The same for Python: `#` comments, and strings in single, double or tripled quotes. */
+    private fun blankPythonCommentsAndStrings(body: String): String {
+        val out = StringBuilder(body.length)
+        var i = 0
+        while (i < body.length) {
+            val c = body[i]
+            when {
+                c == '#' -> while (i < body.length && body[i] != '\n') { out.append(' '); i++ }
+                c == '"' || c == '\'' -> {
+                    val triple = body.startsWith("$c$c$c", i)
+                    val close = if (triple) "$c$c$c" else "$c"
+                    var j = i + close.length
+                    while (j < body.length && !body.startsWith(close, j)) {
+                        if (body[j] == '\\') j++
+                        else if (!triple && body[j] == '\n') break
+                        j++
+                    }
+                    val end = minOf(body.length, j + close.length)
+                    for (k in i until end) out.append(if (body[k] == '\n') '\n' else ' ')
+                    i = end
+                }
+                else -> { out.append(c); i++ }
+            }
+        }
+        return out.toString()
+    }
+
     // ---------------------------------------------------------------- plumbing
 
     private fun framesOf(name: String): Set<String>? {
@@ -481,22 +665,40 @@ class UnitFrameTest {
         name.endsWith("_UNITS") || name.endsWith("_UNITS_TALL") ||
             name.endsWith("_UNITS_LONG") || name.endsWith("_UNITS_WIDE")
 
-    private fun declaredUnitNames(body: String): List<String> =
-        Regex("""\bva[lr]\s+([A-Za-z_][A-Za-z0-9_]*)""").findAll(blankCommentsAndStrings(body))
+    private fun declaredUnitNames(file: File, body: String): List<String> =
+        if (file.extension == "py") {
+            Regex("""(?m)^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=\n]*)?=(?!=)""").findAll(blankPythonCommentsAndStrings(body))
+        } else {
+            Regex("""\bva[lr]\s+([A-Za-z_][A-Za-z0-9_]*)""").findAll(blankCommentsAndStrings(body))
+        }
             .map { it.groupValues[1] }
             .filter { isUnitName(it) }
             .toList()
 
+    /**
+     * Every Kotlin source of the app and its tests, and **every Python source under `tools/`**
+     * (v5.9B, I-41): the generators draw the sprites whose units this test is about, and the first
+     * of item 61's two defects was in one of them. Until v5.9B this read the Kotlin alone.
+     */
     private fun sources(): List<Pair<File, String>> =
-        listOf("app/src/main/kotlin", "app/src/test/kotlin", "app/src/androidTest/kotlin")
-            .map { File(repoRoot(), it) }
-            .flatMap { it.walkTopDown().filter { f -> f.extension == "kt" } }
+        (
+            listOf("app/src/main/kotlin", "app/src/test/kotlin", "app/src/androidTest/kotlin")
+                .map { File(repoRoot(), it) }
+                .flatMap { it.walkTopDown().filter { f -> f.extension == "kt" } } +
+                File(repoRoot(), "tools").walkTopDown().filter { f -> f.extension == "py" && "__pycache__" !in f.path }
+            )
             .sortedBy { it.path }
             .map { it to it.readText() }
 
+    private companion object {
+        const val GENERATOR = "build_people_concepts.py"
+    }
+
     private fun repoRoot(): File {
-        var dir = File(".").absoluteFile
-        while (dir.parentFile != null) {
+        // Walked to null rather than tested through `parentFile`, a platform type: the older shape
+        // compiled with "Java type mismatch: inferred type is 'File?'" (v5.9C, inventory I-10).
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
             if (File(dir, "app/src/main/res/drawable-nodpi").isDirectory) return dir
             dir = dir.parentFile
         }

@@ -98,7 +98,7 @@ class TwinAxleSpacingTest {
                 } else if (top >= 0) {
                     gap++
                     // **The bridge is the hub, and v5.6F made the hub a disc.** It was a 3-unit
-                    // ring, so eight pixels of it was generous; «Ritaglio» fills it at
+                    // ring, so eight pixels of it was generous; «Cut-out» fills it at
                     // `WHEEL_HUB_RATIO` of the tyre, which on this lane is about 19 px of
                     // non-tyre straight down the wheel's own centre column. A literal 8 stopped
                     // the scan at the top of the hub and measured the tyre's upper crescent --
@@ -116,7 +116,7 @@ class TwinAxleSpacingTest {
         val gaps = centres.zipWithNext().map { (a, b) -> b - a }
         val spacing = gaps.min()
         // **v5.6F: 1.12 diameters, not 1.15, and the floor moved on a measurement.** The
-        // «Ritaglio» redraw grew every tyre in the fleet by half a unit while the axle centres
+        // «Cut-out» redraw grew every tyre in the fleet by half a unit while the axle centres
         // stayed where `firetruck_body.svg` bakes the wheels' own shadows, so the ratio fell from
         // 1.175 to 1.121 -- measured here at 51 px of spacing over a 45 px wheel. A ratio copied
         // from real lorries is a proxy anyway; what it stands for is the daylight, and that is

@@ -28,7 +28,7 @@ class GoldenFocus(
      * The fraction of this rectangle allowed to differ, defaulting to the shared
      * [SceneGolden.MAX_FOCUS_DIFFERING_FRACTION] every focus has always used.
      *
-     * A focus may carry a **tighter, derived** limit instead (v4.22 Fase 5): the settings gates
+     * A focus may carry a **tighter, derived** limit instead (v4.22 Phase 5): the settings gates
      * place theirs between the measured noise floor and the weakest regression that must fail,
      * with both numbers written at the declaration. The default is not a tolerance change --
      * every pre-existing focus keeps the limit it always had -- and a derived limit is only ever

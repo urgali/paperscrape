@@ -107,7 +107,7 @@ class FallingLeafContinuityTest {
      * It is the leaf's own bounding radius and nothing else: `drawFallingLeaves` draws every leaf
      * as `drawOval(-4,-6,4,6)` **unscaled**, so the furthest any of its pixels sits from the point
      * this recorder captures is `hypot(4,6) = 7.211`, and 7.3 rounds that up. It does not depend
-     * on the canopy, which is why the "Quercia larga" redraw leaves it at 7.3 — the honest
+     * on the canopy, which is why the "Broad Oak" redraw leaves it at 7.3 — the honest
      * re-derivation of this number is the finding that it was never a canopy measurement.
      *
      * What the redraw *did* move is the clearance the spawn point has to give: `recordLeafSource`
@@ -267,7 +267,6 @@ class FallingLeafContinuityTest {
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: Paint) = Unit
         override fun drawLine(startX: Float, startY: Float, stopX: Float, stopY: Float, paint: Paint) = Unit
         override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) = Unit
-        override fun drawArc(oval: RectF, startAngle: Float, sweepAngle: Float, paint: Paint) = Unit
         override fun drawWedge(
             cx: Float,
             cy: Float,

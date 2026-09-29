@@ -1,21 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="303" height="198" viewBox="2 0 101 66">
   <!--
-    v4.21, la "Quercia larga": un cuscino di fogliame piu' largo che alto, orlo
-    smerlato, stratificato in tre fasce orizzontali di carta - scuro sotto, chiaro
-    sopra - piu' la luce piena sul colmo. Sostituisce l'ottagono su tronco dritto
-    che il maintainer leggeva come un lecca-lecca.
+    v4.21, the "Broad Oak": a cushion of foliage wider than it is tall, a
+    scalloped rim, layered in three horizontal bands of paper - dark below, light
+    above - plus the full light on the top. It replaces the octagon on a straight trunk
+    that the maintainer read as a lollipop.
 
-    Maschera tintabile: solo grigi, il piu' chiaro #ffffff, il piu' scuro #dcdcdc
-    (13.9% di mottling, sotto il tetto del 14%).
+    Tintable mask: greys only, the lightest #ffffff, the darkest #dcdcdc
+    (13.9% mottling, under the 14% ceiling).
 
-    La tela e' rifilata al contenuto: 101x66 unita' (303x198 px sulla griglia 3x),
-    viewBox spostata a x=2 perche' il disegno comincia li'. Blit a (-50,-80) nello
-    spazio sollevato di drawTree, cioe' oggetto x -50..51, y -118..-52: il ventre
-    del cuscino copre le braccia della forcella del tronco, che arrivano a -60/-62,
-    con 8 unita' di sovrapposizione - piu' del massimo che l'ondeggio di +/-4 gradi
-    puo' aprire.
+    The canvas is trimmed to the content: 101x66 units (303x198 px on the 3x grid),
+    viewBox moved to x=2 because the drawing starts there. Blitted at (-50,-80) in
+    drawTree's raised space, that is object x -50..51, y -118..-52: the belly
+    of the cushion covers the arms of the trunk's fork, which reach -60/-62,
+    with 8 units of overlap - more than the most that the +/-4 degree sway
+    can open.
   -->
-  <!-- fascia bassa: la sagoma piena, il tono piu' scuro -->
+  <!-- low band: the full silhouette, the darkest tone -->
   <g fill="#dcdcdc">
     <circle cx="16" cy="46" r="14"/>
     <circle cx="34" cy="50" r="15"/>
@@ -30,7 +30,7 @@
     <circle cx="55" cy="13" r="13"/>
     <circle cx="72" cy="17" r="12"/>
   </g>
-  <!-- fascia media -->
+  <!-- middle band -->
   <g fill="#ececec">
     <circle cx="17" cy="42.5" r="12.5"/>
     <circle cx="34" cy="46" r="13.5"/>
@@ -45,7 +45,7 @@
     <circle cx="54.5" cy="11.5" r="11.5"/>
     <circle cx="70.5" cy="15.5" r="10.5"/>
   </g>
-  <!-- fascia alta: la luce sulle spalle del cuscino -->
+  <!-- high band: the light on the cushion's shoulders -->
   <g fill="#f7f7f7">
     <circle cx="26" cy="26" r="11"/>
     <circle cx="44" cy="21.5" r="13"/>
@@ -55,13 +55,13 @@
     <circle cx="53" cy="9.5" r="9.5"/>
     <circle cx="69" cy="13.5" r="8.5"/>
   </g>
-  <!-- la luce piena sul colmo, decentrata a sinistra -->
+  <!-- the full light on the top, off centre to the left -->
   <g fill="#ffffff">
     <circle cx="38" cy="10.5" r="7"/>
     <circle cx="50" cy="7.8" r="6.5"/>
     <circle cx="30" cy="17" r="6"/>
   </g>
-  <!-- ciuffi d'ombra interni nel fianco basso -->
+  <!-- inner tufts of shadow on the lower flank -->
   <g fill="#e3e3e3">
     <circle cx="44" cy="54" r="6"/>
     <circle cx="76" cy="52" r="5.5"/>

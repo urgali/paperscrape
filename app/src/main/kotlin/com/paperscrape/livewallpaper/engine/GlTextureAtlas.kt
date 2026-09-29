@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.opengl.GLES20
 import android.opengl.GLUtils
+import androidx.core.graphics.createBitmap
 
 /**
  * One GL texture holding many sprites, packed as they are first drawn.
@@ -103,7 +104,7 @@ internal class GlTextureAtlas(
         val contentX = packer.contentX
         val contentY = packer.contentY
 
-        val padded = Bitmap.createBitmap(
+        val padded = createBitmap(
             bitmap.width + PADDING * 2, bitmap.height + PADDING * 2, Bitmap.Config.ARGB_8888,
         )
         try {

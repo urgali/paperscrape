@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="396" height="396" viewBox="0 0 396 396">
+  <!--
+    Round 1d, V2 REFINED "a": solid ring, halo as it is. V2 (chosen by the maintainer) tuned
+    on two parameters only, with no redraw: a compass-struck ring 154-166 in #F7CE64,
+    identical to V2, but at OPACITY 1.0 (cut paper, like every other piece of
+    B: at 0.75 it was the concept's only veil, and the warm yellow veiled over the cold
+    sky desaturated to grey); gradient 0.40/0.16 (V2's), unchanged. No shadow, like V2.
+  -->
+  <defs>
+    <radialGradient id="g">
+      <stop offset="0"    stop-color="#F7CE64" stop-opacity="0.40"/>
+      <stop offset="0.55" stop-color="#F0A03C" stop-opacity="0.16"/>
+      <stop offset="1"    stop-color="#F0A03C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="198" cy="198" r="198" fill="url(#g)"/>
+  <path fill-rule="evenodd" fill="#F7CE64" d="M 198 198 m -166,0 a 166,166 0 1,0 332,0 a 166,166 0 1,0 -332,0 Z M 198 198 m -154,0 a 154,154 0 1,1 308,0 a 154,154 0 1,1 -308,0 Z"/>
+</svg>

@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * At dusk the car count changes **by itself**, and still no car pops (v4.22 Fase 3).
+ * At dusk the car count changes **by itself**, and still no car pops (v4.22 Phase 3).
  *
  * `CarCountOffScreenApplyTest` pins the off-screen rule for a slider the user drags.
  * This is the case the rule really exists for: with day density 1 and night density 0 the target

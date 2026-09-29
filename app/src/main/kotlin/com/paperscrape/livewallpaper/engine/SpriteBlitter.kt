@@ -62,7 +62,10 @@ enum class SpriteScale {
  * flattened away. The trade-off is that the on-screen colour is no longer bit-exact to the hex the
  * user picked: it is darkened by a few percent wherever mottling sits. The mottling is deliberately
  * low-strength and confined to individual object sprites rather than applied as a full-scene
- * overlay, so the deviation stays minor, but it is real and has never been judged on a device.
+ * overlay, so the deviation stays minor, but it is real. Measured on the BV6600's GPU on 2026-09-27
+ * (v5.9D), the real renderer at noon: a tree's crown shows the picked colour a median of 1.1 to 6.6
+ * units of L* darker over seven colours, exactly what the multiplication predicts, while a car's
+ * body shows the picked colour itself (`DESIGN_NOTES.md` §3, rule 3).
  *
  * Nothing here allocates: this runs for every sprite of every frame.
  */

@@ -62,6 +62,52 @@ internal object LakeLanes {
      */
     fun depthOf(laneY: Float, heightAboveLane: Float): Float = laneY - heightAboveLane
 
+    /** The three kinds of thing on the water, for [visibleWaterline]. */
+    enum class Kind { SAILBOAT, DOLPHIN, WAVE }
+
+    /**
+     * **Where a thing's drawing meets the water, which is the one value [orderByDepth] may compare**
+     * (v5.9B, inventory I-02 -- the real fix `BACKLOG_v4_28.md` item 84 named and did not take).
+     *
+     * The three kinds are placed from three different points, and until v5.9B each was keyed by its
+     * own: a sailboat by its placement point, which `drawSailboat` hangs the hull
+     * [PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS] below; a dolphin by its lane, with its body
+     * drawn centred on the leap point, so its belly is half the body -- `-DOLPHIN_ORIGIN_Y_UNITS` of
+     * its own units -- below; a wave by its base, which is its waterline. v4.28 lifted the wave by the
+     * hull's offset so that wave and hull were compared waterline to waterline, and left the dolphin
+     * alone: against both of the others it was still off by the difference, 16.9 px on the BV6600's
+     * 1440 px surface. The probe of v5.9B found that difference on screen at the factory settings --
+     * on Beach in a thunderstorm, 63 times in fifteen minutes of scene, a leaping dolphin painted
+     * across a wave and the sail of a boat whose waterlines were both nearer than its own
+     * (`consegna_v5_9b/registri/i02_sonda/`).
+     *
+     * So every kind now answers the same question in the same frame: **how far down the screen does
+     * its drawing meet the water right now.**
+     *
+     * - a sailboat: its placement point plus the hull's offset, at the boat's own scale;
+     * - a dolphin **in the air** ([heightAboveLane] > 0): its lane, minus the climb, plus the half
+     *   body under the leap point, at the dolphin's own scale; **under water** only the splash is
+     *   drawn, and the splash stands on the lane (`SPLASH_ORIGIN_Y_UNITS` is its whole height), so
+     *   the waterline is the lane itself;
+     * - a wave: its base.
+     *
+     * Two properties survive by construction. Boats among themselves and waves against boats are
+     * ordered exactly as before, because each moved by the same amount the other did; what changes
+     * is the dolphin against both. The climb still only ever moves a dolphin backwards (v3.1).
+     */
+    fun visibleWaterline(kind: Kind, placementY: Float, heightAboveLane: Float, screenHeight: Float): Float {
+        val scale = SceneSpace.sceneScale(screenHeight)
+        return when (kind) {
+            Kind.SAILBOAT -> placementY + PaperRenderer.SAILBOAT_HULL_WATERLINE_UNITS * SceneSpace.SAILBOAT_BASE_SCALE * scale
+            Kind.DOLPHIN -> if (heightAboveLane > 0f) {
+                depthOf(placementY, heightAboveLane) - PaperRenderer.DOLPHIN_ORIGIN_Y_UNITS * SceneSpace.DOLPHIN_BASE_SCALE * scale
+            } else {
+                placementY
+            }
+            Kind.WAVE -> placementY
+        }
+    }
+
     /**
      * Fills [order] with `0 until count`, sorted so that the smallest [depths] value comes first:
      * far to near, which is the order the water has to be painted in.

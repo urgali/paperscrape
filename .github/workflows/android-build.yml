@@ -73,11 +73,10 @@ jobs:
           name: paperscrape-debug-apk
           path: app/build/outputs/apk/debug/*.apk
 
-  # Only runs after `build` succeeds, and only for real pushes to main (never PRs, never forks --
-  # the `if` below guards on the event/ref). This is the only place release-signing secrets are
-  # ever exposed.
-  # Only ever runs for a pushed tag. Merging to main no longer publishes anything -- shipping is
-  # now a deliberate act (push a tag) rather than a side effect of merging.
+  # Only runs after `build` succeeds, and only for a pushed tag (never PRs, never forks -- the `if`
+  # below guards on the event and the ref). This is the only place release-signing secrets are
+  # ever exposed. Merging to main publishes nothing -- shipping is a deliberate act (push a tag)
+  # rather than a side effect of merging.
   release:
     needs: build
     if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -157,9 +156,9 @@ jobs:
         # `buildConfigField` String is a plain constant in the dex, so the maintainer's own
         # Open-Meteo key was readable in every published release with `strings`. Live Weather runs
         # on Open-Meteo's keyless free tier, and a user's own key from Settings still upgrades to
-        # the higher-limit endpoint. If a `OPENMETEO_API_KEY` GitHub Secret still exists on this
-        # repository, **delete it** -- nothing reads it any more, and `ShippedApkContractTest`
-        # fails the build if anything starts to.
+        # the higher-limit endpoint. A `OPENMETEO_API_KEY` GitHub Secret, if one is still on this
+        # repository, is read by nothing, and `ShippedApkContractTest` fails the build if anything
+        # starts to; removing it from the repository's settings is harmless and changes no build.
         run: |
           missing=()
           [ -z "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ] && missing+=("RELEASE_KEYSTORE_BASE64")
@@ -195,8 +194,7 @@ jobs:
         # Gradle always writes `app-release.apk`, so every release published one file with the
         # same name and nothing in it to say which version it was -- indistinguishable in a
         # downloads folder the moment there are two. Renamed to `PaperScrape-<tag>.apk`, with the
-        # tag taken from the ref rather than written down anywhere: v2.8 and v3.0 will name
-        # themselves.
+        # tag taken from the ref rather than written down anywhere, so every release names itself.
         #
         # The checksum is generated *after* the rename and over the renamed file, so the name
         # inside the `.sha256` is the name of the thing you downloaded.

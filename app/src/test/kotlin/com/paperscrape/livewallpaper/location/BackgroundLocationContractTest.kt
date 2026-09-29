@@ -36,11 +36,11 @@ import org.junit.Test
  * `BackgroundLocationManifestTest`, asserts the manifest; this half asserts the behaviour around
  * it, which is the part that decides how often a position is even wanted.
  *
- * **Not verified: the Network provider.** The emulator's network location provider is disabled
- * (`enabled=false, allowed=false`, no Wi-Fi or cell infrastructure behind it), so the runtime proof
- * covers GPS only. The permission and the code path are shared -- [DeviceLocationProvider] treats
- * the two kinds identically apart from which provider name it asks -- but that is an inference,
- * and the report says so.
+ * **Not verified on a phone: the Network provider.** The emulator's network location provider is
+ * disabled (`enabled=false, allowed=false`, no Wi-Fi or cell infrastructure behind it), so the
+ * runtime proof covers GPS only. The permission and the code path are shared -- [DeviceLocationProvider]
+ * treats the two kinds identically apart from which provider name it asks -- but that is an inference,
+ * and it stays one on the maintainer's decision of 2026-09-29.
  */
 class BackgroundLocationContractTest {
 

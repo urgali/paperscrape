@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nothing of PaperScrape's is copied off the phone by Android: not to the cloud backup, not to a
+     new phone in a device-to-device transfer, not in a transfer to another platform. Read on
+     Android 12 and later, for an app that targets 31 or more; below 12, android:allowBackup="false"
+     in the manifest and full_backup_content.xml say the same.
+
+     Why this file exists: from Android 12, allowBackup="false" stops the cloud backup but, on
+     devices from some manufacturers, not the transfer to a new phone, so a phone change copied the
+     settings, the saved themes, the weather keys and the last location on some brands and nothing
+     on others. The maintainer's decision of 2026-09-28 (inventory I-99) is the same on every
+     phone: copy nothing. Moving to a new phone is the app's own backup file (Advanced and about),
+     which leaves out the location on purpose.
+
+     An absent section would mean that kind of transfer copies everything, so all three are here,
+     and each leaves out every domain there is. Note for the next editor: an XML comment may not
+     contain a double hyphen. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </device-transfer>
+    <cross-platform-transfer platform="ios">
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </cross-platform-transfer>
+</data-extraction-rules>

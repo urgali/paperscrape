@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds the three v4.25 people concepts -- Stampino, Rilievo, Bambola -- as SVG sources
+"""Builds the three v4.25 people concepts -- Stencil, Relief, Doll -- as SVG sources
 and renders them through the project's own rasteriser.
 
 Run from ``tools/assets`` with the pinned venv:
@@ -154,7 +154,7 @@ def _rgb(hex_colour: str) -> tuple:
 def shade_weight(fill: str, base: str) -> float:
     """The weight `1 - t` of a piece painted [fill] in the region whose paint is [base].
 
-    Every shadow in this artwork is `mix(paint, DARK, t)` -- [shade] and the Rilievo under-paper
+    Every shadow in this artwork is `mix(paint, DARK, t)` -- [shade] and the Relief under-paper
     both -- so a piece's own fill says how far towards `DARK` it was moved, and `1 - t` is exactly
     the share of the pixel that follows the region's colour when the colour changes. Recovered from
     the two colours rather than recorded at the call site, because the call sites already say it
@@ -184,7 +184,7 @@ def shade_weight(fill: str, base: str) -> float:
 KINDS = ("man", "woman", "boy", "girl")
 ADULT = {"man": True, "woman": True, "boy": False, "girl": False}
 #: What a child measures against an adult, chosen by the maintainer from the v4.30 phase-1
-#: photographs (`consegna_v4_30_fase1/NOTA_DI_CONSEGNA.md`).
+#: photographs (the v4.30 phase-1 delivery note).
 #:
 #: 70 % still read as a short adult at 1x and 60 % was a dot at night in Big City; 65 % is the
 #: first proportion at which the child reads as a child *beside* the adult and still has a figure.
@@ -199,9 +199,9 @@ CHILD_OF_ADULT = 0.65
 #: other three are `SceneSpace.PERSON_METRES_TALL`, `VehiclePedestrianScaleTest` and
 #: `PrecipitationScaleTest` -- and three of four is how a silent inconsistency starts.
 #:
-#: **Only the two unshipped concepts read it now.** The shipped child ([walker_rilievo_child])
+#: **Only the two unshipped concepts read it now.** The shipped child ([walker_relief_child])
 #: derives its crown from the adult's measured box instead, which is the metre the maintainer
-#: judges the proportion on; this stays so Stampino and Bambola keep drawing a child of the same
+#: judges the proportion on; this stays so Stencil and Doll keep drawing a child of the same
 #: height as the one that ships.
 CHILD_TOP = 84 - round(CHILD_OF_ADULT * 80)
 ADULT_TOP = 84 - 80
@@ -271,11 +271,11 @@ def shade(color: str, t: float = 0.22) -> str:
 #: the question "does a face read at this size" can finally be answered by looking instead of being
 #: settled by the sampler. Both families are generated so the maintainer can compare them on the
 #: same scenes at the size they are actually seen at.
-EYED = {"rilievo_occhi": "rilievo"}
+EYED = {"relief_eyes": "relief"}
 
 
 def drawing_style(style: str) -> str:
-    """The style whose *shapes* to draw. The eyed variant draws Rilievo's."""
+    """The style whose *shapes* to draw. The eyed variant draws Relief's."""
     return EYED.get(style, style)
 
 
@@ -289,8 +289,8 @@ class Part:
     points: list
     fill: str
     opacity: float | None = None   # only the ground shadow uses it
-    relief: bool = True            # Rilievo draws an under-paper beneath it
-    outline: bool = True           # Bambola includes it in the outer outline
+    relief: bool = True            # Relief draws an under-paper beneath it
+    outline: bool = True           # Doll includes it in the outer outline
     #: The wobble seed of the `cut` that produced [points], which ends in the piece's own name
     #: ("L1", "hair", "hatband", ...). Filled in by [Sprite.add]; empty for the few pieces drawn
     #: from a bare `oval` with no cut, all of which are fixed art. See [CutPoints] and
@@ -314,7 +314,7 @@ class Sprite:
 
 # ------------------------------------------------------------------------------ styles
 RELIEF_SHADE = 0.34
-"""How far the Rilievo under-paper is moved towards `DARK`. Written once here because the region
+"""How far the Relief under-paper is moved towards `DARK`. Written once here because the region
 weights ([emit_region_svg]) have to move by exactly the same amount the drawing does."""
 
 
@@ -345,7 +345,7 @@ def emit_svg(sprite: Sprite, style: str, paint=None, note: str = "") -> str:
         return shade(part.fill, RELIEF_SHADE) if paint is None else paint(part, RELIEF_SHADE)
 
     outline_paint = OUTLINE if paint is None else "#000000"
-    if style == "bambola":
+    if style == "doll":
         # The outer outline: the whole figure once more underneath itself, filled and stroked
         # in the outline colour, so overlapping strokes merge into one band round the union.
         out.append(f'<g fill="{outline_paint}" stroke="{outline_paint}" stroke-width="1.5" stroke-linejoin="round">')
@@ -357,11 +357,11 @@ def emit_svg(sprite: Sprite, style: str, paint=None, note: str = "") -> str:
         if p.opacity is not None:
             out.append(poly(p.points, fill_of(p), f' opacity="{p.opacity}"'))
             continue
-        if drawing_style(style) == "rilievo" and p.relief:
+        if drawing_style(style) == "relief" and p.relief:
             # The paper underneath: the same cut, offset down and to the right, in a darker
-            # tone of the piece's own colour -- the Quercia larga's recipe.
+            # tone of the piece's own colour -- the Broad Oak's recipe.
             #
-            # The marker is what `tests/test_relief.py` reads. Rilievo has no outer outline, so the
+            # The marker is what `tests/test_relief.py` reads. Relief has no outer outline, so the
             # under-paper is the only thing separating one piece from the next, and a hand edit that
             # dropped it would leave a figure that still renders and no longer reads. A comment
             # rather than a group because each under-paper has to sit immediately beneath its own
@@ -432,7 +432,7 @@ def ground_shadow(s: Sprite, cx=20.5, rx=13.0):
     s.add(oval(cx, 82.4, rx, 2.1, 16), DARK, opacity=0.16)
 
 
-def walker_stampino(kind: str, season: str, frame: int) -> Sprite:
+def walker_stencil(kind: str, season: str, frame: int) -> Sprite:
     """Three-quarter figure facing +x. Head, one body block, two legs, feet, hair. Nothing else."""
     s = Sprite(f"person_{kind}_{season}_walk{frame}", 41, 85)
     seed = s.name
@@ -547,14 +547,14 @@ CHILD_GEOMETRY = dict(
     shadow=9.5, coat=4.5, dress=2.5, scarf=9.0,
 )
 
-#: Where the adult's feet land in the pre-trim frame ([walker_rilievo]).
+#: Where the adult's feet land in the pre-trim frame ([walker_relief]).
 CHILD_GROUND = 81.0
 
 
-def walker_rilievo_child(kind: str, season: str, frame: int) -> Sprite:
-    """The Rilievo child, built from the feet up at [CHILD_OF_ADULT] of the adult.
+def walker_relief_child(kind: str, season: str, frame: int) -> Sprite:
+    """The Relief child, built from the feet up at [CHILD_OF_ADULT] of the adult.
 
-    A separate function rather than a branch inside [walker_rilievo] because almost nothing is
+    A separate function rather than a branch inside [walker_relief] because almost nothing is
     shared any more: the skeleton is derived from the target box downwards -- crown, head, neck,
     torso -- and the legs are whatever is left to the ground, so the box lands on the proportion
     by construction instead of being tuned towards it.
@@ -624,11 +624,11 @@ def walker_rilievo_child(kind: str, season: str, frame: int) -> Sprite:
     return s
 
 
-def walker_rilievo(kind: str, season: str, frame: int) -> Sprite:
+def walker_relief(kind: str, season: str, frame: int) -> Sprite:
     """Three-quarter figure facing +x, built as stacked papers: legs, body, two swinging arms
     with hands, neck, head, a cushion of hair lobes. Every piece carries an under-paper."""
     if not ADULT[kind]:
-        return walker_rilievo_child(kind, season, frame)
+        return walker_relief_child(kind, season, frame)
     s = Sprite(f"person_{kind}_{season}_walk{frame}", 41, 85)
     seed = s.name
     adult = ADULT[kind]
@@ -705,7 +705,7 @@ def walker_rilievo(kind: str, season: str, frame: int) -> Sprite:
     return s
 
 
-def walker_bambola(kind: str, season: str, frame: int) -> Sprite:
+def walker_doll(kind: str, season: str, frame: int) -> Sprite:
     """Frontal paper doll: a big head with two eyes, a small body, arms down, legs that splay
     with the walk. Outlined once round the union of the whole figure."""
     s = Sprite(f"person_{kind}_{season}_walk{frame}", 41, 85)
@@ -790,7 +790,7 @@ def bust_window(style: str, kind: str, season: str) -> Sprite:
     """53x57 units, eye line centred on x=26.8 (WINDOW_HEAD_ANCHOR_X_UNITS), sill at the bottom.
     The head is ~37 units crown to chin, the premise WINDOW_HEAD_HEAD_UNITS encodes."""
     s = Sprite(f"person_{kind}_{season}_head_window", 53, 57)
-    seed = s.name + style
+    seed = s.name + SEED_STYLE[style]
     gar = (SUMMER if season == "summer" else WINTER)[kind]
     skin, hair = SKIN[kind], HAIR[kind]
     cx = 26.8
@@ -807,7 +807,7 @@ def bust_window(style: str, kind: str, season: str) -> Sprite:
     s.add(cut([(cx - 22, 57), (cx - 21, chin + 3), (cx - 12, chin - 2), (cx + 12, chin - 2), (cx + 21, chin + 3), (cx + 22, 57)], seed + "sh"), gar["top"])
     if season == "winter":
         s.add(cut([(cx - 12, chin - 3), (cx + 12, chin - 3), (cx + 12, chin + 4), (cx - 12, chin + 4)], seed + "scarf"), gar["belt"])
-    frontal = style == "bambola"
+    frontal = style == "doll"
     hx = cx if frontal else cx + 0.8
     s.add(cut([(cx - 4, chin - 4), (cx + 4, chin - 4), (cx + 4, chin + 2), (cx - 4, chin + 2)], seed + "N"), skin, relief=False)
     hy = head_cy
@@ -839,7 +839,7 @@ def bust_car(style: str, kind: str, season: str, rise: float = 0.0) -> Sprite:
     so the rise does not depend on the oval's height.
     """
     s = Sprite(f"person_{kind}_{season}_head_car", 47, 44)
-    seed = s.name + style
+    seed = s.name + SEED_STYLE[style]
     gar = (SUMMER if season == "summer" else WINTER)[kind]
     skin, hair = SKIN[kind], HAIR[kind]
     cx = 23.0
@@ -860,13 +860,13 @@ def bust_car(style: str, kind: str, season: str, rise: float = 0.0) -> Sprite:
     # longer the thing that shapes it.
     head_rx = 13.8 if adult else 12.8
     head_cy = head_top + head_ry
-    # shoulders and (Rilievo, Bambola) the seatbelt that says "in a car"
+    # shoulders and (Relief, Doll) the seatbelt that says "in a car"
     s.add(cut([(cx - 17, 43.7), (cx - 16, chin + 2), (cx - 9, chin - 2), (cx + 9, chin - 2), (cx + 16, chin + 2), (cx + 17, 43.7)], seed + "sh"), gar["top"])
-    if drawing_style(style) != "stampino":
+    if drawing_style(style) != "stencil":
         s.add(cut([(cx - 17, 43.7), (cx - 13, 43.7), (cx + 9, chin - 1.5), (cx + 6, chin - 2.5)], seed + "belt"), "#3A3F4A", relief=False, outline=False)
     if season == "winter":
         s.add(cut([(cx - 9, chin - 2.5), (cx + 9, chin - 2.5), (cx + 9, chin + 3), (cx - 9, chin + 3)], seed + "scarf"), gar["belt"])
-    frontal = style == "bambola"
+    frontal = style == "doll"
     hx = cx if frontal else cx + 0.5
     s.add(cut([(cx - 3.5, chin - 3), (cx + 3.5, chin - 3), (cx + 3.5, chin + 1), (cx - 3.5, chin + 1)], seed + "N"), skin, relief=False)
     behind_head(s, style, kind, season, gar, hair, hx, head_cy, head_rx, head_ry, seed, frontal, narrow=True)
@@ -927,7 +927,7 @@ def in_band(hx, x, r, narrow):
     """
     if not narrow:
         return x
-    # **The under-paper counts.** Rilievo draws every piece a second time, offset down and to the
+    # **The under-paper counts.** Relief draws every piece a second time, offset down and to the
     # right by [RELIEF_OFFSET], so a piece whose own outline stops exactly on the band still puts
     # ink past it. Forgetting that left the family a unit and a half over the seat pitch after the
     # band rule was already in place -- the rule was right and the edge it measured was the wrong
@@ -941,8 +941,8 @@ def in_band(hx, x, r, narrow):
 
 
 def add_hair(s, style, kind, season, gar, hair, hx, hy, rx, ry, seed, frontal, narrow=False):
-    """Hair or headwear for the busts. Frontal (Bambola) or three-quarter (the other two);
-    Rilievo builds it from lobes, the others from one cut piece. `narrow` keeps every piece
+    """Hair or headwear for the busts. Frontal (Doll) or three-quarter (the other two);
+    Relief builds it from lobes, the others from one cut piece. `narrow` keeps every piece
     inside 22 units of width for the car family."""
     side = 0 if frontal else 1   # three-quarter: hair mass toward -x
     reach = 1.5 if narrow else 3.0
@@ -954,7 +954,7 @@ def add_hair(s, style, kind, season, gar, hair, hx, hy, rx, ry, seed, frontal, n
     # are not: the head is no taller than it was.
     k = rx / (9.0 if narrow else 14.0)
     if season == "summer":
-        if drawing_style(style) == "rilievo":
+        if drawing_style(style) == "relief":
             lobes = {
                 "man": [(hx - 5 * k, hy - ry + 3, 6.5 * k, 4.5), (hx + 2.5 * k, hy - ry + 1.5, 6.5 * k, 4.5), (hx - rx + 1.5 * k, hy - 5, 3.5 * k, 6.5)],
                 # The inner lock is dropped on the seated bust (`narrow`): there it falls across
@@ -1037,12 +1037,22 @@ def behind_head(s, style, kind, season, gar, hair, hx, hy, rx, ry, seed, frontal
 
 
 # ------------------------------------------------------------------------------ driver
-WALKERS = {"stampino": walker_stampino, "rilievo": walker_rilievo, "bambola": walker_bambola}
+WALKERS = {"stencil": walker_stencil, "relief": walker_relief, "doll": walker_doll}
+
+#: The name each style had when its busts were drawn, **which is part of their wobble seed**.
+#:
+#: [bust_window] and [bust_car] seed every cut with the sprite name plus the style name, so the
+#: style name is written into every vertex of every bust. The styles were renamed into English in
+#: v5.9F (rule 15.2); feeding the new names to the seed would have moved every bust of every
+#: family by up to [CUT_MAX_WOBBLE], including the shipped ones. These strings are the seed input
+#: that keeps the drawing byte-identical, not names: they are not shown, written or looked up
+#: anywhere else. The walkers are seeded by the sprite name alone and do not read this.
+SEED_STYLE = {"stencil": "stampino", "relief": "rilievo", "doll": "bambola"}
 BLURB = {
-    "stampino": "Concept A 'Stampino' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands.",
-    "rilievo": "Concept B 'Rilievo' -- stacked papers with an under-paper shadow beneath every piece (the Quercia larga's recipe), hair as a cushion of lobes, arms as separate strips. No face.",
-    "bambola": "Concept C 'Bambola' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline.",
-    "rilievo_occhi": "Concept B Rilievo with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at.",
+    "stencil": "Concept A 'Stencil' -- the least paper that still reads as a person: head, one body block, two legs, feet, hair. No outline, no face, no hands.",
+    "relief": "Concept B 'Relief' -- stacked papers with an under-paper shadow beneath every piece (the Broad Oak's recipe), hair as a cushion of lobes, arms as separate strips. No face.",
+    "doll": "Concept C 'Doll' -- a frontal paper doll: a big head, two eyes, one outer outline round the union of the figure. The only concept with a face and an outline.",
+    "relief_eyes": "Concept B Relief with a hint of a face: identical in every other respect, plus two dark dots on the three-quarter head, sized from that head. Built so the face question can be judged on the device at the size the figures are actually seen at.",
 }
 
 

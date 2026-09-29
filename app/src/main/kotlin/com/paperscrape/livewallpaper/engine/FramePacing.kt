@@ -89,36 +89,46 @@ internal object FramePacing {
      * it. The usual margin was 2-4 ms (`--timestats` acquire2present, median 3 ms), so a frame a
      * little slower than usual waited a whole refresh more: 48 ms then 16 ms on screen. With a time
      * every frame is taken for the later refresh, which its GPU work makes with ~18 ms to spare; the
-     * Android frame-pacing library (Swappy) does the same for the same reason. The price is one
-     * refresh more between a frame's start and the screen (queue to screen 27 ms against 11,
-     * medians), which only a launcher that sends wallpaper offsets could show.
+     * Android frame-pacing library (Swappy) does the same for the same reason. The price is
+     * latency: one refresh more between a frame's start and the screen (queue to screen 27 ms
+     * against 11, medians, v5.8D), and one more again since v5.9F (below).
      *
      * **Measured (v5.8D, perf build, Autumn, three alternated pairs of 3 x 60 s): intervals of 40 ms
      * or more 6.7 % without the time and 2.9 % with it, at 45.4 -> 46.3 % of a core.**
      *
      * **The slips that remain are not the GPU** (v5.8D, system traces,
-     * `consegna_v5_8d/registri/30_*`, `32_*`). Those frames were ready ~35 ms early and taken for
-     * composition on time; what is late is SurfaceFlinger's call into the display's composer (HWC).
-     * When that call ends more than ~5.5 ms after the frame is taken, about 1.8 ms before the refresh,
-     * the composition goes out one refresh later. With this time the call runs while the loop starts
-     * the next frame on the same cluster of cores, which makes both a little slower (the call 3.6 ms
-     * against 3.3; the loop +0.3 ms of CPU a frame, nearly all of the time's CPU cost). A time one
-     * refresh later, measured and not shipped, removes the overlap and that CPU and leaves 2.0 % of
-     * slips (4.2 % with this time in the same session), at one more refresh of latency: not zero,
-     * because why the composer's call is sometimes ~5 ms long is not known. The model in
-     * `FramePacingTest` has no composer time, which is why it predicts none.
+     * `consegna_v5_8d/registri/30_*`, `32_*`; again at night in v5.9E, `consegna_v5_9e/registri/i60/`).
+     * Those frames were ready early and taken for composition on time; what is late is
+     * SurfaceFlinger's call into the display's composer (HWC). When that call ends more than ~5.5 ms
+     * after the frame is taken, about 1.8 ms before the refresh, the composition goes out one refresh
+     * later. With the time on the next frame's tick the call ran while the loop started the next frame
+     * on the same cluster of cores, which made both a little slower (the call 3.6 ms against 3.3; the
+     * loop +0.3 ms of CPU a frame), and at night the stars made it worse: the MediaTek governor moved
+     * the big cluster's clock ~50 times a second, and a call crossed by a change went out late
+     * 56-78 % of the time -- **14.8 % of frames held a refresh with the stars on, 3.9 % with them off**.
      *
-     * **The time**: the next frame's tick less a quarter period. Not the tick itself: where the
-     * vsync timestamps coincide with the panel's refresh, a request exactly on one could land
-     * either side of it frame by frame. A quarter period before it keeps every refresh at least
-     * three quarters of a period after the frame's tick out of reach -- the one the frame would
-     * otherwise jump to when it is quick -- and nothing here knows the phone: the period and the
-     * tick are the measured grid's.
+     * **So the time is one refresh later than that** (since v5.9F, on the maintainer's decision of
+     * 2026-09-28, which replaces the one of v5.8D; `ROADMAP.md` rows A15 and A61):
+     * the tick *after* the next frame's tick, less a quarter period. The loop's next frame then runs
+     * before the composer's call instead of through it. Measured by v5.9E in one session, alternated
+     * runs, the `perf` build: at midnight with the stars **14.8 % -> 7.0 %** of frames held and 51.65
+     * -> 49.76 % of a core, without them 3.9 -> 3.1 % and 48.14 -> 45.59 %; by day v5.8D had it at 4.2
+     * -> 2.0 %. Not zero, because why the composer's call is sometimes ~5 ms long is not known. The
+     * price is one refresh more between a frame's start and the screen (16 ms on a 61.45 Hz panel),
+     * which a wallpaper that answers no touch cannot show; on a launcher that scrolls the wallpaper
+     * with a finger the scenery would follow it that much later. The model in `FramePacingTest` has
+     * no composer time, which is why it predicts no slips either way.
+     *
+     * **Why a quarter period before a tick.** Not the tick itself: where the vsync timestamps
+     * coincide with the panel's refresh, a request exactly on one could land either side of it frame
+     * by frame. A quarter period before it keeps every refresh at least three quarters of a period
+     * after the preceding tick out of reach -- the one the frame would otherwise jump to when it is
+     * quick -- and nothing here knows the phone: the period and the tick are the measured grid's.
      */
     fun presentAt(grid: VsyncGrid.Grid?, frameTickNanos: Long): Long {
         if (grid == null || frameTickNanos == 0L) return PRESENT_AUTO
         val period = grid.periodNanos
-        return frameTickNanos + ticksPerFrame(period) * period - period / 4
+        return frameTickNanos + (ticksPerFrame(period) + 1) * period - period / 4
     }
 
     /** `NATIVE_WINDOW_TIMESTAMP_AUTO`: the compositor shows the frame as soon as it is ready. */

@@ -216,7 +216,7 @@ class VehicleOccupantScaleTest {
      * for the same man seated, **0.623** for a walking woman and **0.733** for her seated: a third
      * of the quantity is hair, so no scale can make two poses agree on it and a test that asks
      * them to is asking the wrong question. It was only ever satisfiable while the four drawings
-     * happened to leave similar amounts of face uncovered, and B "Rilievo" -- fuller hair on both
+     * happened to leave similar amounts of face uncovered, and B "Relief" -- fuller hair on both
      * adults, a lock across the woman's cheek -- ended that.
      *
      * The head block does not move: it is what [SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS] and
@@ -228,7 +228,7 @@ class VehicleOccupantScaleTest {
      *
      * That JVM test measures the same block on the shipped PNG: content top for the crown, and for
      * the jaw *the width* -- the last row of the skin's first run still at least half as wide as
-     * the widest. The neck is drawn in skin since B "Rilievo", so a rule that took the end of the
+     * the widest. The neck is drawn in skin since B "Relief", so a rule that took the end of the
      * run would put the jaw below the collar. This reads the same block off painted pixels: the
      * crown by walking up the face's own columns while [isInk] still finds the figure, the jaw by
      * that same half-width test on the face blob's rows.
@@ -423,7 +423,7 @@ class VehicleOccupantScaleTest {
     /**
      * The glass **and the shadow the body paper casts on it**, which is also glass.
      *
-     * v5.6F: «Ritaglio» lays the glass sheet *behind* the body and cuts the panes out of it, and
+     * v5.6F: «Cut-out» lays the glass sheet *behind* the body and cuts the panes out of it, and
      * paints a band of `mix(glass, ink, 0.34)` along the top and the front edge of every hole --
      * the shadow of the paper's own cut edge falling on the sheet below. That band is the one
      * mark in the drawing that says the glass is behind rather than stuck on top, and a scan that
@@ -1295,7 +1295,7 @@ class VehicleOccupantScaleTest {
      *
      * **v5.6F: what separates two heads may be glass or it may be the car.** Until v5.5 a cabin
      * was one hole and the only thing that could stand between the two busts was clear glass, so
-     * "ink" was simply "not glass" and the pillar question did not arise. «Ritaglio» cuts *two*
+     * "ink" was simply "not glass" and the pillar question did not arise. «Cut-out» cuts *two*
      * holes with 3.5 units of body paper between them, and the two occupants sit in different
      * windows -- which is a *stronger* separation than clear glass and read as a merge to a scan
      * that called everything non-glass an occupant. So the complement is taken against glass
@@ -1387,7 +1387,7 @@ class VehicleOccupantScaleTest {
                     }
                     if (runStart >= 0 && glassMax - runStart >= MIN_RUN_PX) runs.add(intArrayOf(runStart, glassMax))
                     // **A person is at least two units of car wide; a seam between two pieces of
-                    // car is a pixel or two.** v5.6F: the pillar that «Ritaglio» leaves between
+                    // car is a pixel or two.** v5.6F: the pillar that «Cut-out» leaves between
                     // the two panes meets the glass's shadow band in a two-pixel blend which is
                     // neither glass, nor the shell's tint, nor anybody -- and a
                     // complement-of-glass scan counted it as a third occupant. Taking the
@@ -1494,7 +1494,7 @@ class VehicleOccupantScaleTest {
             val predicted = shell.unitsTall * unitPx(lane, CarType.PLAIN)
             // **2.5 px of measurement slop plus the cut edge's own wobble**, which is v5.6F's
             // addition and not a loosening. `unitsTall` is the height the size table *governs* --
-            // roof line to wheel contact -- and «Ritaglio» cuts both of those edges with a
+            // roof line to wheel contact -- and «Cut-out» cuts both of those edges with a
             // per-vertex wobble of up to 0.6 units, so the drawn extent legitimately overshoots
             // the governed one by up to that much at each end. Measured on this build: the estate
             // on the far lane reads 138 px against a governed 135.0, which is 1.2 units of
@@ -1539,7 +1539,7 @@ class VehicleOccupantScaleTest {
          * The four adult drawings show, crown of the hairline to chin, 62 and 43 rows of skin
          * walking and 77 and 74 seated -- and the head each of them sits on is the same size in
          * all four. As a share of the head block that is 0.861, 0.623, 0.794 and 0.733: a third of
-         * the quantity is haircut. Two of these tests were built on it, and B "Rilievo" is where
+         * the quantity is haircut. Two of these tests were built on it, and B "Relief" is where
          * that stopped working; they measure the head block now (see [headBlock]). The numbers are
          * kept here because they are the reason, and `OccupantHeadFitTest` re-measures the artwork
          * itself so nothing here has to hold a copy of it.
@@ -1608,7 +1608,7 @@ class VehicleOccupantScaleTest {
         val GLASS_SHADE = intArrayOf(137, 157, 168)
 
         /**
-         * The per-vertex wobble «Ritaglio» cuts every paper edge of a car with: 0.6 units of
+         * The per-vertex wobble «Cut-out» cuts every paper edge of a car with: 0.6 units of
          * **car**, the value
          * `genera_mezzi.py` authored the fleet at and the same order as the neighbourhood's own
          * 0.7. It is what makes a scissor cut a scissor cut, and it is why a drawn extent is not
@@ -1686,7 +1686,7 @@ class VehicleOccupantScaleTest {
          * would flatter the pillar light and flatten the fill, so the cabin pane stops at the
          * B-pillar.
          *
-         * **v5.6F: both numbers come off the shell, and neither is the sprite's.** «Ritaglio» puts
+         * **v5.6F: both numbers come off the shell, and neither is the sprite's.** «Cut-out» puts
          * the glass behind the body paper and cuts the panes out of it, so `car_window_*` is a
          * unit wider than the hole on every side and the estate's exclusion stopped being the
          * only reason these two differed. [CarShell.paneXUnits] and [CarShell.paneWidthUnits] are

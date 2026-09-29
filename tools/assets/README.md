@@ -108,13 +108,13 @@ replaced the artwork wholesale and shipped its own sources, so every *drawn* spr
 SVG:
 
 ```json
-{ "kind": "svg", "file": "house_shared_window.svg" }
+{ "kind": "svg", "file": "tree_canopy.svg" }
 ```
 
 The remaining entries are the people's layer files, and they are not a gap in that
 sense either: `tools/generate_people_layers.py` writes a fixed layer and up to four
 region weight masks for each shape, from the same drawing code that draws the
-shipped figure. They carry `source.kind = "generated"` and name that script,
+shipped figure. They carry `source.kind = "none"` and name that script,
 because `render` regenerates a sprite from an SVG and these have none of their own
 — a mask is a *view* of a drawing, not a drawing, and authoring one per region per
 shape would be exactly the duplication the generator exists to remove. Their
@@ -169,7 +169,7 @@ the top-level `variants` array; schema 2 added `contentBox`, `anchorRule` and
 `anchor`. `contentBox` is re-derived on every run, so it cannot drift away from
 the PNG it describes.
 
-**All 18 variant groups are `DISTINCT` as of schema 4.** Six were `IDENTICAL_GAP`
+**Every variant group is `DISTINCT`** (`validate`'s `variants:` line counts them). Six were `IDENTICAL_GAP`
 — the seasonal heads for window occupants and car drivers, whose winter artwork
 had never been drawn — and the V2 library drew them. There is no
 `IDENTICAL_GAP` group left, and no byte-identical pair anywhere in the shipped
@@ -188,20 +188,17 @@ because a resolver that guesses is worse than one that admits it cannot see. A
 sprite chosen from a lookup table, or an origin computed from the drawn object's
 own dimensions, resolves to nothing and is reported as **unresolved**. An
 unresolved item is never counted as agreement, and `validate` prints the coverage
-on success rather than only on failure:
+on success rather than only on failure, one figure per check, on its lines:
+`registry OK:` (every entry's `contentBox` checked against its PNG), `anchors:`,
+`normalisation:`, `variants:` and `call-site check:` (the sprites whose scale and
+tint, and whose origin, were compared with the code). The figures are read there,
+not copied here.
 
-| Check | Sprites reached |
-|---|---|
-| `contentBox` against the PNG | 111 |
-| `scale` and `tint` against the code | 10 |
-| origin against the declared anchor | 4 |
-| variant group against the shipped bytes | 18 groups, 36 sprites |
-
-The `scale`/`tint` and origin figures are far lower than they should be, and that
-is **defect D-4**, not a property of the manifest: the call-site resolver
-recognises a blit wrapper only when its first parameter is typed `Canvas`, and the
-GPU migration changed `SceneObjectRenderer`'s two wrappers to take `SceneCanvas`,
-so that file's call sites stopped resolving. See `ROADMAP.md`.
+The `scale`/`tint` and origin figures were far lower until **defect D-4** was fixed:
+the call-site resolver recognised a blit wrapper only when its first parameter was
+typed `Canvas`, and the GPU migration had changed `SceneObjectRenderer`'s two
+wrappers to take `SceneCanvas`, so that file's call sites had stopped resolving.
+`callsites.py` keeps the wrappers it recognises as a set, with the reason.
 
 ## Anchors are declared, not inferred
 
@@ -211,16 +208,17 @@ available was the origin a call site blits the sprite at, and that origin is
 `placement - anchor` — one equation, two unknowns. It collapses to the anchor
 alone only when the sprite is an object in its own right. For a part of a
 composite the origin is a composition placement carrying no anchor at all, which
-is why `house_shared_window` is drawn at five different origins.
+is why `house_shared_window`, a part of the house facades v5.0 retired, was drawn at
+five different origins.
 
-The V2 library declares the anchor at authoring time instead, so all 111 now
-carry one, under four rules:
+The V2 library declares the anchor at authoring time instead, so every sprite now
+carries one (`validate`'s `anchors:` line), under four rules:
 
 | Rule | Meaning |
 |---|---|
 | `CONTENT_BOTTOM_CENTRE` | Ground-anchored wholes, and every person |
 | `SPRITE_CENTRE` | Sun, moon, star, firework |
-| `DECLARED_ATTACHMENT` | The palm frond fan, at (60,102) |
+| `DECLARED_ATTACHMENT` | The palm: its three crowns at (84,78), its trunk at its foot (24,174) |
 | `PART_LOCAL` | Parts whose offset the composite owns; origin (0,0) |
 
 `PART_LOCAL` is the honest successor to `UNDETERMINED`: it says the same thing —
@@ -315,19 +313,21 @@ be split per sprite first.
 ### What the pinned rasteriser does and does not reproduce
 
 The shipped PNGs came from the V2 library's own rasteriser, and the pinned one
-resolves partially covered pixels differently. `ShippedAgainstSourceTest` bounds
+resolved partially covered pixels differently. `ShippedAgainstSourceTest` bounds
 that difference instead of describing it: across every sprite it checks there is no
 pixel that is solid in one rendering and empty in the other, so **no sprite's
 shape differs from its source**, and no single pixel's coverage moves by as much
-as half (worst case 121/255, one pixel on `rainbow_arc`'s shallowest stroke
-edge). Everything the two rasterisers disagree about is therefore the resolution
+as half (the worst case, when D-7 was closed, was 121/255, one pixel on
+`rainbow_arc`'s shallowest stroke edge; `reports/fidelity.json` now records 0 on
+every sprite). Everything the two rasterisers disagreed about was the resolution
 of a boundary pixel. That was defect D-7, and it is closed.
 
-Most sprites still report `DIVERGENT` against their sources. The V2 library is
+Every sprite with a committed SVG source now compares `PIXEL_IDENTICAL`
+(`reports/fidelity.md`), where most once reported `DIVERGENT`: the V2 library is
 layered paper-cutout artwork, so where two opaque shapes meet, the antialiased
 band lives in RGB at full alpha rather than in the alpha channel, and the three
-gating conditions only look at alpha. The verdict counts should be read with that
-in mind; the shape bounds above are what the closure of D-7 rests on.
+gating conditions only look at alpha. A `DIVERGENT` verdict should be read with
+that in mind; the shape bounds above are what the closure of D-7 rests on.
 
 ## Padding and grid normalisation
 
@@ -377,3 +377,31 @@ split per sprite before any of them could be cropped.
 so `SpriteGeometryTest` on the Kotlin side repeats the part of the invariant that has
 to hold in the APK — every canvas on the grid, and the whole set inside its decoded
 byte budget — where CI will actually run it.
+
+## Proposal names
+
+The concepts under `concepts/` and the drawings they became carry the names they were chosen
+under. Until v5.9F those names were Italian, and the release history, the closed backlogs and the
+delivery reports still use them; the tooling, the code's comments and the living documents use
+the English ones. The same drawing, under both names:
+
+| English (since v5.9F) | In the records before it | What it is |
+|---|---|---|
+| Broad Oak | «Quercia larga» | the tree, v4.21 |
+| Scissors | «Forbici» | the sun, moon and star sprites, concept B, v4.23 |
+| Relief | «Rilievo» | the people (v4.25) and the boats and dolphins (v4.26), concept B |
+| Mirror | «Specchio» | the lake as a mirror of the sky, S1, v4.26 |
+| Puff | «Batuffolo» | the cloud, C1, v4.26 |
+| Dove | «Colomba» | the bird of v4.26, concept A |
+| Swallow | «Rondine» | the bird since v4.28, B1 |
+| Tube | «Tubo» | the storm wave, WA3, v4.28 |
+| Coconut | «Cocco» | the palm, concept A, v5.1 |
+| Cut-out | «Ritaglio» | the vehicles, D1, v5.6 |
+| stencil, relief, doll, relief_eyes | `stampino`, `rilievo`, `bambola`, `rilievo_occhi` | the people concepts' folders and styles |
+| silhouette, relief, openwork | `sagoma`, `rilievo`, `agiorno` | the sky-and-water concepts' folders and styles |
+
+Two sets of the old names are still read by code, on purpose: the people's busts and the round-2
+birds seed their wobble with the old style names, and the building groups `k2_t_gradini*`,
+`k2_r_padiglione`, `k2_b_insegna`, `k2_b_smusso` and `k2_s_orologio_c` seed every card in their
+group. Renaming them would redraw shipped sprites, so the generators keep the strings and say why
+beside them (`build_people_concepts.py`, `build_skywater_round2.py`, `buildings/names.py`).

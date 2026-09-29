@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
   <!--
-    Concept A "Strati" - v4.23 fase 1. La falce stratificata: tre fasce di
-    carta che condividono le punte (120,18)-(120,222) e il lembo esterno
-    (A102), e differiscono solo nell'arco del terminatore: rx 60 / 74 / 88.
-    Cosi' le fasce si annidano esattamente - scure verso il terminatore,
-    chiare sul lembo - senza che nessun arco sporga dalla sagoma di base,
-    che e' identica allo sprite spedito. Un cratere del tono medio sul lembo.
+    Concept A "Layers" - v4.23 phase 1. The layered crescent: three bands of
+    paper that share the horns (120,18)-(120,222) and the outer limb
+    (A102), and differ only in the terminator's arc: rx 60 / 74 / 88.
+    So the bands nest exactly - dark towards the terminator,
+    light on the limb - without any arc standing out of the base silhouette,
+    which is identical to the shipped sprite. One crater in the middle tone on the limb.
   -->
   <path d="M120 18 A102 102 0 1 1 120 222 A60 102 0 0 0 120 18 Z" fill="#DCDCDC"/>
   <path d="M120 18 A102 102 0 1 1 120 222 A74 102 0 0 0 120 18 Z" fill="#EEEEEE"/>

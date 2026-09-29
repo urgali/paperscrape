@@ -59,6 +59,10 @@ class RegistryAndTrimPolicyTest {
      * That is a spike paid for memory the process gives back immediately, which is not what
      * `RUNNING_LOW` is asking for. `RUNNING_CRITICAL` is, and still drops it.
      */
+    // The platform's own levels on purpose: deprecated in the SDK this builds against and still
+    // delivered by every Android below 36 this app installs on (minSdk 26), so the policy is fed
+    // the numbers the phone sends rather than MemoryPressurePolicy's mirror of them.
+    @Suppress("DEPRECATION")
     @Test
     fun `a low hint on a visible engine does not drop the atlas`() {
         val action = MemoryPressurePolicy.actionFor(
@@ -72,6 +76,7 @@ class RegistryAndTrimPolicyTest {
         )
     }
 
+    @Suppress("DEPRECATION") // the platform's level, as above
     @Test
     fun `a critical hint still drops the atlas`() {
         val visible = MemoryPressurePolicy.actionFor(
@@ -88,6 +93,7 @@ class RegistryAndTrimPolicyTest {
         assertFalse(MemoryPressurePolicy.dropsGpuTextures(TrimAction.KEEP_ALL))
     }
 
+    @Suppress("DEPRECATION") // the platform's levels, as above
     @Test
     fun `an invisible engine gives everything back at every real pressure level`() {
         for (level in listOf(

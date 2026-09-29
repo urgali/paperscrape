@@ -1,18 +1,18 @@
 """Production names for the neighbourhood pieces.
 
-The generator draws under the names the concept rounds used (`k1_` = «Scatola», `k2_` =
-«Profilo»), and those letters are round labels: they name which *proposal* a drawing came from,
+The generator draws under the names the concept rounds used (`k1_` = «Box», `k2_` =
+«Profile»), and those letters are round labels: they name which *proposal* a drawing came from,
 which is a fact about September 2026 and not about the artwork. What ships is the mix, which is
 no K at all, so the shipped drawables are named for what they are. The map is here rather than in
 the drawing code so the concept scripts stay byte-comparable with the ones the proposals were
-photographed from -- the PNGs this produces are the fase-4/5 pixels under another file name.
+photographed from -- the PNGs this produces are the phase-4/5 pixels under another file name.
 
 Longest prefix wins, so `k1_roof_turret_b_tower` is not read as `k1_roof_turret_b`.
 """
 from __future__ import annotations
 
 PREFIXES: dict[str, str] = {
-    # K1 «Scatola» -- the two houses, a stack of pieces per instance
+    # K1 «Box» -- the two houses, a stack of pieces per instance
     "k1_ground_house_a": "house_small_ground",
     "k1_storey_house_a": "house_small_storey",
     "k1_roof_gable_a": "house_small_roof_gable",
@@ -23,7 +23,7 @@ PREFIXES: dict[str, str] = {
     "k1_roof_mansard_b": "house_large_roof_mansard",
     "k1_roof_turret_b_gable": "house_large_roof_turret_gable",
     "k1_roof_turret_b_tower": "house_large_roof_turret_tower",
-    # K2 «Profilo» -- one cut-out figure each
+    # K2 «Profile» -- one cut-out figure each
     "k2_t_gradini_1": "tower_tier1",
     "k2_t_gradini_2": "tower_tier2",
     "k2_t_gradini_3": "tower_tier3",
@@ -42,9 +42,14 @@ PREFIXES: dict[str, str] = {
     "k2_b_insegna": "bar_signboard",
     "k2_b_smusso": "bar_chamfer",
     # The sixth family (v5.6F). One figure, like the two shops: the concept round called it
-    # «S2 Orologio» with the maintainer's corrections applied (`_c`), and `school.py` keeps
+    # «S2 Clock» with the maintainer's corrections applied (`_c`), and `school.py` keeps
     # drawing under that name because the wobble seed is `name#index`.
     "k2_s_orologio_c": "school",
+    # The generator's own group names (`k2_t_gradini`, `k2_r_padiglione`, `k2_b_insegna`,
+    # `k2_b_smusso`, `k2_s_orologio_c`) are the concept rounds' Italian labels and are kept as they
+    # are, against rule 15.2, because each is the wobble seed of every card in its group
+    # (`core.Group.add`): renaming one redraws it. They never reach a shipped file name; this map
+    # is where they become English.
     # Piece names (a piece is a stackable unit; its cards are the groups above). `k1_roof_turret_b`
     # is a piece whose two cards are the gable and the little tower, so it needs a name of its own
     # and longest-prefix matching keeps the three apart.

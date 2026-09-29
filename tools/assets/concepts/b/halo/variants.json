@@ -1,0 +1,84 @@
+{
+ "schemaVersion": 2,
+ "note": "Round 1b halo variants for concept B - three answers to the maintainer's request ('one single circle around the sun'). Only one will replace the concept's sun_glow.svg; the choice is the maintainer's.",
+ "sprites": [
+  {
+   "name": "sun_glow (v1)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    22,
+    22,
+    375,
+    375
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "v1/sun_glow.svg"
+   },
+   "notes": "A paper ring cut by hand, no gradient, no shadow."
+  },
+  {
+   "name": "sun_glow (v2)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    1,
+    1,
+    395,
+    395
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "v2/sun_glow.svg"
+   },
+   "notes": "A clean ring (compass-struck) over the reduced radial gradient; no shadow."
+  },
+  {
+   "name": "sun_glow (v3)",
+   "category": "sky",
+   "width": 396,
+   "height": 396,
+   "contentBox": [
+    19,
+    21,
+    385,
+    381
+   ],
+   "scale": "CANVAS_PIXELS",
+   "tint": "FIXED_ART",
+   "usage": "concept-variant",
+   "anchorRule": "SPRITE_CENTRE",
+   "anchor": [
+    198,
+    198
+   ],
+   "season": "all",
+   "source": {
+    "kind": "svg",
+    "file": "v3/sun_glow.svg"
+   },
+   "notes": "A thick ring cut by hand with B's cast shadow (+6,+8, 13%); no gradient."
+  }
+ ]
+}

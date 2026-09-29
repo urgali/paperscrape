@@ -55,7 +55,7 @@ class OccupantHeadFitTest {
         val hairTop = regionRows("person_man_summer_walk0", "mh").first()
         // **The jaw is where the skin narrows, not where it stops.** Until v4.25 the neck was not
         // drawn in skin, so the face's first contiguous run of skin rows ended at the chin and the
-        // simpler rule was right. B "Rilievo" draws the neck in skin and joins it to the face, so
+        // simpler rule was right. B "Relief" draws the neck in skin and joins it to the face, so
         // that run now runs on to the collar and measures a head half again too tall -- silently,
         // on the constant every head in the scene derives from. Width separates them: the head is
         // twenty-odd units across and the neck is a strip a third of that.
@@ -473,7 +473,7 @@ class OccupantHeadFitTest {
      *
      * [FULL_WEIGHT] and not "any weight at all", and the threshold is the landmark rather than a
      * tolerance. A mask carries `1` for the paint and `1 - t` for each of its shadows -- 0.66 for
-     * the Rilievo under-paper, 0.86 and 0.84 for the two darker limbs -- plus whatever fraction the
+     * the Relief under-paper, 0.86 and 0.84 for the two darker limbs -- plus whatever fraction the
      * anti-aliasing leaves at the edge. The measurements in this class were written against a
      * colour match within ten levels, which admitted the paint and excluded every shadow of it, so
      * the landmark they read is the **unshaded** core of a region. Reading it at full weight is that

@@ -892,8 +892,8 @@ class SpriteDrawScaleTest {
      * production code are all in comments. The device's real limit is the one atlas page this
      * budget is *modelled on* and is not the same as: 2048x2048 RGBA, 16 MiB, allocated once. A
      * twelve-theme walk in one process measured **583 of its 2048 rows occupied, with zero sprites
-     * falling out to a texture of their own**, and the school takes it to **585** -- two rows, and
-     * 1 463 still free, which is about 11.4 MiB. On the device, sixty seconds of live wallpaper
+     * falling out to a texture of their own**, the school included -- re-measured on the BV6600 on
+     * 2026-09-27 by `GlAtlasOccupancyTest` (v5.9D) -- and 1 465 still free, which is about 11.4 MiB. On the device, sixty seconds of live wallpaper
      * with the school in frame measured GL mtrack at 39 721 and 40 046 KB against 39 717 and
      * 39 717 without it, which is inside the 330 KB the same state varies by between its own two
      * runs; 30.06-30.07 fps and zero dropped frames. So this ceiling moving is an upper bound

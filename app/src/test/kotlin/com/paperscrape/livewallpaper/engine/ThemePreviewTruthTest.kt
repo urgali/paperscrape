@@ -46,6 +46,13 @@ import org.junit.Test
  * - **R6, the species** (v5.8E, V3-48). A card shows a fir only where the wallpaper can stand one
  *   (`SceneObjectRenderer.drawsFirs`). R1 counts a fir as a tree, so it passed Tundra's card, which
  *   drew a fir for its sparse wood while its wallpaper draws snowy oaks.
+ * - **R7, the objects' colours** (v5.9G, inventory I-38). The trees, the cars and the decorations
+ *   wear the colours `colorFor` gives at the card's moment, the palms the shade `nightShadeFor`
+ *   gives, the clouds `drawClouds`' pair on the same blend, and the windows the glass
+ *   `drawNeighbourhoodBuilding` lights, a business's by its opening hours. R4 had stopped at the building
+ *   walls, and on every night card everything in front of them kept its noon colours.
+ * - **R8, the fixed art on a tinted body** (v5.9G). A pumpkin is carved where `halloweenEnabled`
+ *   carves the wallpaper's, and a penguin's belly is the wallpaper's white.
  *
  * The runs cover the twelve built-ins, customizations no built-in ships (including every
  * landscape colour edited), and **a theme saved under a `custom:` id**, which is where the card's
@@ -674,6 +681,219 @@ class ThemePreviewTruthTest {
         assertTrue("a night card has stars in the sky pass", stars.isNotEmpty())
     }
 
+    /**
+     * R7 (v5.9G, inventory I-38): the card's trees, cars, decorations and clouds wear the
+     * wallpaper's colours at the card's moment, and its palms the wallpaper's shade.
+     *
+     * R4 held the landscape and the building walls to the wallpaper's `dayBlend`, and everything
+     * standing in front of them kept `colorDay1` / `colorDay2`: on the two midnight cards and on the
+     * World & scene strip's night the trees, the cars, the snowmen, the gifts, the penguins, the
+     * rabbits, the eggs and the pumpkins had their noon colours, and the palms their noon light,
+     * while the wallpaper blends every one of them toward night. The expected values are asked of
+     * the wallpaper's own functions -- `colorFor` for a tinted body, `nightShadeFor` for the palm --
+     * over one instance of each of the category's two variants, so the card may wear either of the
+     * user's two colours but no colour the wallpaper would not paint at that hour. The clouds have
+     * one pair and are drawn only on a day card, so only Sunset's 19:00 (dayBlend 0.80) tells them
+     * apart.
+     *
+     * Two things are left out, each because the wallpaper leaves it out too: the autumn canopy,
+     * whose fall palette is the same at every hour on both sides, and the fixed art -- trunks, bare
+     * branches, the fir, snow caps, ribbons, faces -- which does not dim (item 123).
+     */
+    private fun checkObjectColours(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?, seen: MutableMap<String, Int>? = null): List<String> {
+        val night = forceNight ?: (c.horrorSkyEnabled || theme.hasFireworks)
+        val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
+        val d = ThemePreviewScenes.cardPhase(theme, night).dayBlend
+        val out = mutableListOf<String>()
+        fun hex(v: Int?) = if (v == null) "none" else "%08X".format(v)
+        fun paints(type: SceneObjectType) = variantSpecs(type).map { c.colorFor(it, d) }.toSet()
+        val palmShades = variantSpecs(SceneObjectType.PALM_TREE).map { c.nightShadeFor(it, d) }.toSet()
+        val carPaints = VARIANT_CARS.map { c.colorFor(it, d) }.toSet()
+        // `drawNeighbourhoodBuilding`'s glass: a house lit by the night alone, a business by the
+        // night times its opening hours at the card's own hour ([BusinessHours], 1 with the toggle off).
+        val openness = BusinessHours.opennessAt(c.businessHoursEnabled, c.businessOpenHour, c.businessCloseHour, ThemePreviewScenes.cardHour(theme, night))
+        for (item in drawOrder(scene)) {
+            val house = item.parts.any { familyOf(nameOf(it.resId))?.startsWith("HOUSE_") == true }
+            for (part in item.parts.filter { it.resId in GLASS_MASKS }) {
+                val expected = SceneObjectRenderer.windowGlassColor(if (house) 1f - d else (1f - d) * openness)
+                if (part.tint != expected) {
+                    out += "$label: R7 a ${if (house) "house's" else "business's"} window at x=%.0f is ${hex(part.tint)} on the card, the wallpaper lights it ${hex(expected)} at dayBlend %.3f, openness %.3f"
+                        .format(item.x, d, openness)
+                }
+                seen?.let { val k = if (house) "HOUSE_GLASS" else if (openness < 1f && d < 1f) "CLOSED_BUSINESS_GLASS" else "BUSINESS_GLASS"; it[k] = (it[k] ?: 0) + 1 }
+            }
+            for (part in item.parts) {
+                val name = nameOf(part.resId)
+                val type = TINTED_BODIES[name]
+                when {
+                    name == "tree_canopy" && c.fallColorsEnabled -> Unit
+                    type != null -> {
+                        val allowed = paints(type)
+                        if (part.tint !in allowed) {
+                            out += "$label: R7 a $name at x=%.0f is ${hex(part.tint)} on the card, the wallpaper paints ${allowed.joinToString(" or ") { hex(it) }} at dayBlend %.3f"
+                                .format(item.x, d)
+                        }
+                        seen?.let { it[type.name] = (it[type.name] ?: 0) + 1 }
+                    }
+                    name.startsWith("car_body_") -> {
+                        if (part.tint !in carPaints) {
+                            out += "$label: R7 a $name at x=%.0f is ${hex(part.tint)} on the card, the wallpaper paints ${carPaints.joinToString(" or ") { hex(it) }} at dayBlend %.3f"
+                                .format(item.x, d)
+                        }
+                        seen?.let { it["CAR"] = (it["CAR"] ?: 0) + 1 }
+                    }
+                    name == "cloud_body" -> {
+                        // `PaperRenderer.drawClouds`' pair on the moment's dayBlend, with the storm's
+                        // dimming at zero: the card has no forecast.
+                        val expected = SceneColour.blendArgb(c.clouds.colorNight, c.clouds.colorDay, d)
+                        if (part.tint != expected) {
+                            out += "$label: R7 a cloud is ${hex(part.tint)} on the card, the wallpaper paints ${hex(expected)} at dayBlend %.3f".format(d)
+                        }
+                        seen?.let { it["CLOUDS"] = (it["CLOUDS"] ?: 0) + 1 }
+                    }
+                    name.startsWith("palmtree_") -> {
+                        if (part.tint != null || part.shade !in palmShades) {
+                            out += "$label: R7 a $name at x=%.0f is shaded ${hex(part.shade)} (tint ${hex(part.tint)}) on the card, the wallpaper shades it ${palmShades.joinToString(" or ") { hex(it) }} at dayBlend %.3f"
+                                .format(item.x, d)
+                        }
+                        seen?.let { it["PALM_TREE"] = (it["PALM_TREE"] ?: 0) + 1 }
+                    }
+                }
+            }
+        }
+        return out
+    }
+
+    /** Every decoration a user can turn on, on, and every night colour R7 reads moved off its default. */
+    private fun editedNightColours(): Pair<SceneTheme, SceneCustomization> {
+        val beach = ThemeCatalog.byId("beach")
+        val c = defaultCustomizationFor("beach")
+        fun ObjectVariantConfig.edited(seed: Int) = copy(
+            visible = true,
+            colorNight1 = (0xFF000000.toInt() or (seed * 0x010203)),
+            colorNight2 = (0xFF000000.toInt() or (seed * 0x030201)),
+        )
+        return beach to c.copy(
+            trees = c.trees.edited(0x11), cars = c.cars.edited(0x12),
+            snowmen = c.snowmen.edited(0x13), gifts = c.gifts.edited(0x14), penguins = c.penguins.edited(0x15),
+            bunnies = c.bunnies.edited(0x16), easterEggs = c.easterEggs.edited(0x17), pumpkins = c.pumpkins.edited(0x18),
+        )
+    }
+
+    @Test
+    fun `R7 the card's trees, cars, decorations and clouds wear the wallpaper's colours at the card's moment`() {
+        val fails = mutableListOf<String>()
+        val seenAtNight = sortedMapOf<String, Int>()
+        for ((theme, c) in builtIns()) {
+            fails += checkObjectColours(theme.id, theme, c, null)
+            fails += checkObjectColours("${theme.id} (forced night)", theme, c, true, seenAtNight)
+            fails += checkObjectColours("${theme.id} (forced day)", theme, c, false)
+        }
+        for ((label, pair) in custom()) {
+            fails += checkObjectColours(label, pair.first, pair.second, null)
+            fails += checkObjectColours("$label (forced night)", pair.first, pair.second, true, seenAtNight)
+        }
+        val (beach, edited) = editedNightColours()
+        fails += checkObjectColours("beach with every decoration out and its night colours edited (forced night)", beach, edited, true, seenAtNight)
+        fails += checkObjectColours("beach with every decoration out and its night colours edited", beach, edited, null)
+        val (autumn, landscape) = editedLandscape()
+        fails += checkObjectColours("autumn with every landscape colour edited (forced night)", autumn, landscape, true)
+        // Opening hours on, 09:00 to 18:00: the midnight and 19:00 cards find the businesses shut.
+        for (id in listOf("autumn", "sunset", "new_year")) {
+            val theme = ThemeCatalog.byId(id)
+            val hours = defaultCustomizationFor(id).copy(businessHoursEnabled = true, businessOpenHour = 9f, businessCloseHour = 18f)
+            fails += checkObjectColours("$id with opening hours 9-18", theme, hours, null, seenAtNight)
+            fails += checkObjectColours("$id with opening hours 9-18 (forced night)", theme, hours, true, seenAtNight)
+        }
+        println("v5.9G R7: parts checked on night cards, by category: $seenAtNight")
+        for ((theme, _) in builtIns()) {
+            val night = defaultCustomizationFor(theme.id).let { it.horrorSkyEnabled || theme.hasFireworks }
+            println("v5.9G R7: ${theme.id} card's moment dayBlend = %.4f".format(ThemePreviewScenes.cardPhase(theme, night).dayBlend))
+        }
+        report(fails)
+        // Not vacuous: every category R7 reads was asked about at night at least once.
+        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "CLOSED_BUSINESS_GLASS")) {
+            assertTrue("R7 never met a $category on a night card: $seenAtNight", (seenAtNight[category] ?: 0) > 0)
+        }
+    }
+
+    /**
+     * R8 (v5.9G, on the maintainer's answer of 2026-09-29): the fixed art the wallpaper lays on a
+     * tinted body is on the card too -- a pumpkin is carved where `halloweenEnabled` carves the
+     * wallpaper's, and a penguin's belly is the wallpaper's white. The card drew smooth pumpkins on
+     * Halloween under a carved moon, and a belly of `#F7FAFC` where the wallpaper paints `#F3F7FB`.
+     */
+    private fun checkFixedArt(label: String, theme: SceneTheme, c: SceneCustomization, forceNight: Boolean?, seen: MutableMap<String, Int>): List<String> {
+        val scene = ThemePreviewScenes.forTheme(theme, c, forceNight)
+        val out = mutableListOf<String>()
+        for (item in drawOrder(scene)) {
+            val names = item.parts.map { nameOf(it.resId) }
+            if ("pumpkin_body" in names) {
+                val carved = "pumpkin_face" in names
+                if (carved != c.halloweenEnabled) {
+                    out += "$label: R8 a pumpkin at x=%.0f is ${if (carved) "carved" else "smooth"} on the card and ${if (c.halloweenEnabled) "carved" else "smooth"} in the wallpaper".format(item.x)
+                }
+                seen[if (carved) "carved pumpkin" else "smooth pumpkin"] = (seen[if (carved) "carved pumpkin" else "smooth pumpkin"] ?: 0) + 1
+            }
+            for (part in item.parts.filter { nameOf(it.resId) == "penguin_belly" }) {
+                if (part.tint != SceneObjectRenderer.PENGUIN_BELLY_COLOR) {
+                    out += "$label: R8 a penguin's belly at x=%.0f is %08X on the card, %08X in the wallpaper".format(item.x, part.tint, SceneObjectRenderer.PENGUIN_BELLY_COLOR)
+                }
+                seen["penguin belly"] = (seen["penguin belly"] ?: 0) + 1
+            }
+        }
+        return out
+    }
+
+    @Test
+    fun `R8 a card's pumpkin is carved where the wallpaper carves it, and a penguin's belly is the wallpaper's white`() {
+        val fails = mutableListOf<String>()
+        val seen = sortedMapOf<String, Int>()
+        for ((theme, c) in builtIns()) {
+            for (forceNight in listOf(null, true)) fails += checkFixedArt("${theme.id} ($forceNight)", theme, c, forceNight, seen)
+        }
+        for ((label, pair) in custom()) fails += checkFixedArt(label, pair.first, pair.second, null, seen)
+        val (beach, edited) = editedNightColours()
+        fails += checkFixedArt("beach with every decoration out", beach, edited, null, seen)
+        fails += checkFixedArt("beach with every decoration out, on Halloween", beach, edited.copy(halloweenEnabled = true), null, seen)
+        report(fails)
+        println("v5.9G R8: $seen")
+        for (what in listOf("carved pumpkin", "smooth pumpkin", "penguin belly")) {
+            assertTrue("R8 never met a $what: $seen", (seen[what] ?: 0) > 0)
+        }
+    }
+
+    @Test
+    fun `the wallpaper paints its trees, cars, decorations, clouds, pumpkins and penguins through the functions R7 and R8 hold the card to`() {
+        // R7 compares the card with `colorFor`, `nightShadeFor` and the clouds' blend. That is only a comparison with
+        // the wallpaper if the wallpaper paints with them, so its own draw functions are read.
+        val objects = source("engine/SceneObjectRenderer.kt")
+        fun body(name: String): String = objects.substring(objects.indexOf("private fun $name("))
+            .let { it.substring(0, it.indexOf("\n    }\n") + 6) }
+        for (name in listOf("drawTree", "drawSnowman", "drawGift", "drawPenguin", "drawBunny", "drawEasterEgg", "drawPumpkin")) {
+            assertTrue("$name no longer paints customization.colorFor(r.spec, dayBlend)", body(name).contains("customization.colorFor(r.spec, dayBlend)"))
+        }
+        assertTrue("drawPalmTree no longer shades with nightShadeFor", body("drawPalmTree").contains("customization.nightShadeFor(r.spec, dayBlend)"))
+        assertTrue("drawCar no longer paints a plain car with colorFor", body("drawCar").contains("customization.colorFor(c.spec, dayBlend)"))
+        val building = body("drawNeighbourhoodBuilding")
+        assertTrue("drawNeighbourhoodBuilding no longer lights a business by its opening hours",
+            building.contains("WindowBuildingKind.HOUSE) night else night * businessOpenness") && building.contains("windowGlassColor(glassNight)"))
+        // R8's two pieces of fixed art, read the same way.
+        val pumpkin = body("drawPumpkin")
+        assertTrue("drawPumpkin no longer carves on halloweenEnabled",
+            pumpkin.contains("if (customization.halloweenEnabled)") && pumpkin.contains("R.drawable.pumpkin_face, -19f, -30f"))
+        assertTrue("drawPenguin no longer paints the belly with penguinBellyColor", body("drawPenguin").contains("R.drawable.penguin_belly, -9f, -38f, penguinBellyColor"))
+        assertTrue("penguinBellyColor is no longer PENGUIN_BELLY_COLOR", objects.contains("private val penguinBellyColor = PENGUIN_BELLY_COLOR"))
+        // And the card's painter hands a palm's shade to the blitter, or R7's shade never reaches
+        // the screen: the painter is Compose and has no JVM test of its own.
+        assertTrue("ThemePreview's painter no longer passes a part's shade to the blitter",
+            source("ui/ThemePreview.kt").contains("SpriteScale.SCENE_UNITS, part.alpha, part.shade)"))
+        val renderer = source("engine/PaperRenderer.kt")
+        val drawClouds = renderer.substring(renderer.indexOf("private fun drawClouds("))
+            .let { it.substring(0, it.indexOf("\n    }\n") + 6) }
+        assertTrue("drawClouds no longer blends its pair on the day phase", drawClouds.contains("blendColor(clouds.colorNight, clouds.colorDay, dayPhase.dayBlend)"))
+    }
+
     @Test
     fun `the wallpaper paints its sky, road and mountains through the rules R4 holds the card to`() {
         // R4 compares the card with SkyGradient, roadColor/drawsRoad and MountainSilhouette. That is
@@ -732,6 +952,65 @@ class ThemePreviewTruthTest {
          */
         const val CARD_FLOOR_TOLERANCE_UNITS = 0.05f
         val WATER_FAMILIES = setOf("SAILBOAT", "DOLPHIN")
+
+        /** R7: every glass mask a building of the neighbourhood can be dealt. */
+        val GLASS_MASKS: Set<Int> = NeighbourhoodTable.FAMILIES.values.flatMap { it.slots }.flatMap { it.options }
+            .flatMap { piece -> piece.parts.filter { it.role == PartRole.GLASS_MASK } }.map { it.res }.toSet()
+
+        /** R7: the card's tinted bodies, and the category whose two colours each one wears. */
+        val TINTED_BODIES = mapOf(
+            "tree_canopy" to SceneObjectType.TREE,
+            "snowman_body" to SceneObjectType.SNOWMAN,
+            "gift_box" to SceneObjectType.GIFT,
+            "penguin_body" to SceneObjectType.PENGUIN,
+            "bunny_body" to SceneObjectType.BUNNY,
+            "easteregg_shell" to SceneObjectType.EASTER_EGG,
+            "pumpkin_body" to SceneObjectType.PUMPKIN,
+        )
+
+        private val PROBE_1 = 0xFF000001.toInt()
+        private val PROBE_2 = 0xFF000002.toInt()
+
+        private fun ObjectVariantConfig.probed() = copy(colorDay1 = PROBE_1, colorDay2 = PROBE_2)
+
+        /** Every category R7 reads with two day colours no theme has, so `colorFor` at noon names the variant. */
+        private val PROBE: SceneCustomization = SceneCustomization.DEFAULT.run {
+            copy(
+                trees = trees.probed(), cars = cars.probed(), snowmen = snowmen.probed(), gifts = gifts.probed(),
+                penguins = penguins.probed(), bunnies = bunnies.probed(), easterEggs = easterEggs.probed(),
+                pumpkins = pumpkins.probed(),
+            )
+        }
+
+        private val VARIANT_SPECS = HashMap<SceneObjectType, List<StaticSceneObject>>()
+
+        /**
+         * One instance of each of [type]'s two variants, Color 1 first, told apart by the
+         * wallpaper's own coin through `colorFor` -- not by a copy of the coin, which is private
+         * to `SceneCustomization.kt` and should stay so.
+         */
+        fun variantSpecs(type: SceneObjectType): List<StaticSceneObject> = VARIANT_SPECS.getOrPut(type) {
+            val byColour = HashMap<Int, StaticSceneObject>()
+            var i = 0
+            while (byColour.size < 2) {
+                val spec = StaticSceneObject(type, depthFraction = 0.5f, tileFractionX = (i + 0.5f) / 1000f)
+                byColour.putIfAbsent(PROBE.colorFor(spec, 1f), spec)
+                check(++i < 1000) { "no position deals both variants of $type" }
+            }
+            listOf(byColour.getValue(PROBE_1), byColour.getValue(PROBE_2))
+        }
+
+        /** The same, for a car: the coin reads its lane and its start delay. */
+        val VARIANT_CARS: List<CarObject> by lazy {
+            val byColour = HashMap<Int, CarObject>()
+            var i = 0
+            while (byColour.size < 2) {
+                val car = CarObject(laneYFraction = 0.5f, speedFraction = 0.1f, startDelaySeconds = i.toFloat(), color = 0)
+                byColour.putIfAbsent(PROBE.colorFor(car, 1f), car)
+                check(++i < 1000) { "no car deals both variants" }
+            }
+            listOf(byColour.getValue(PROBE_1), byColour.getValue(PROBE_2))
+        }
 
         /** The families whose one job is to be seen: a star or a snowflake is not one of them. */
         val COVERABLE = setOf(
