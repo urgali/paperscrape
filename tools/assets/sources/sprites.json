@@ -9,7 +9,7 @@
     "person_boy_winter_head_window"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "boy_walk0",
@@ -19,7 +19,7 @@
     "person_boy_winter_walk0"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "boy_walk1",
@@ -29,7 +29,7 @@
     "person_boy_winter_walk1"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "boy_walk2",
@@ -39,7 +39,7 @@
     "person_boy_winter_walk2"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "girl_head_car",
@@ -59,7 +59,7 @@
     "person_girl_winter_head_window"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "girl_walk0",
@@ -69,7 +69,7 @@
     "person_girl_winter_walk0"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "girl_walk1",
@@ -79,7 +79,7 @@
     "person_girl_winter_walk1"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "girl_walk2",
@@ -89,7 +89,7 @@
     "person_girl_winter_walk2"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "man_head_window",
@@ -99,7 +99,7 @@
     "person_man_winter_head_window"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "man_walk0",
@@ -109,7 +109,7 @@
     "person_man_winter_walk0"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "man_walk1",
@@ -119,7 +119,7 @@
     "person_man_winter_walk1"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "man_walk2",
@@ -129,7 +129,7 @@
     "person_man_winter_walk2"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "woman_head_window",
@@ -139,7 +139,7 @@
     "person_woman_winter_head_window"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "woman_walk0",
@@ -149,7 +149,7 @@
     "person_woman_winter_walk0"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "woman_walk1",
@@ -159,7 +159,7 @@
     "person_woman_winter_walk1"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "woman_walk2",
@@ -169,7 +169,7 @@
     "person_woman_winter_walk2"
    ],
    "state": "DISTINCT",
-   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, Phase 3.5 -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
+   "reason": "The V2 asset set draws summer and winter apart for every person sprite, heads included: a hat, a scarf, a hood, a raised collar and cold cheeks where the shipped set had one drawing under two names. This group was IDENTICAL_GAP until then -- see RELEASE_HISTORY.md, its section 3.5 (Seasonal variants) -- and closing it needed artwork, not code, because the runtime lookup tables were always two columns wide."
   },
   {
    "id": "ground_flowers",
@@ -3218,7 +3218,7 @@
     "kind": "svg",
     "file": "palmtree_fronds_frost.svg"
    },
-   "notes": "The winter palette's palm crown: the same seven blades in a cold green with snow settled along the backs of the five upper ones. v5.1 made it a WHOLE CROWN rather than the five white caps that used to be blitted on top of the live one, so drawPalmTree draws it INSTEAD of palmtree_fronds and the pixel-for-pixel coverage condition the overlay needed is gone. Same canvas, same declared attachment. Snow is white over a #C9D6E0 card, the two papers house_small_roof_snow.svg cuts it from."
+   "notes": "The winter palette's palm crown: the same seven blades in a cold green with snow settled along the backs of the five upper ones. v5.1 made it a WHOLE CROWN rather than the five white caps that used to be blitted on top of the live one, so drawPalmTree draws it INSTEAD of palmtree_fronds and the pixel-for-pixel coverage condition the overlay needed is gone. Same canvas, same declared attachment. Snow is white over a #C9D6E0 card."
   },
   {
    "name": "palmtree_trunk",
@@ -5480,7 +5480,7 @@
     "kind": "svg",
     "file": "person_girl_summer_head_car.svg"
    },
-   "notes": "Shipped but blitted by nothing, and deliberately so: this is the exact source tools/generate_skin_variants.py recolours to produce this character's three tone copies, and it is not a duplicate of any of them. The girl's own painted skin (239, 185, 148) is a fourth colour that no shipped file carries -- the three canonical TONES are the woman's, the man's and the boy's. v4.20 measured what retiring it would cost: regenerating her other two tones from skin0 instead reproduces 165-406 pixels differently at the anti-aliased edges (summer 291/195, winter 406/165), against 0 for the boy's base, which IS skin2. So the boy's base was retired and this one was not. Item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md."
+   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted: the girl's seated bust as drawn, and the subject of the girl_head_car seasonal pair; the draw path reads the layers. Until v4.30 it was also the exact source tools/generate_skin_variants.py recoloured into her three tone copies, which v4.30 stopped shipping; v4.20's measurement of what retiring it would cost (165-406 pixels differently at the anti-aliased edges, item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md) was about those copies."
   },
   {
    "name": "person_girl_summer_head_car_fx",
@@ -6416,7 +6416,7 @@
     "kind": "svg",
     "file": "person_girl_winter_head_car.svg"
    },
-   "notes": "Shipped but blitted by nothing, and deliberately so: this is the exact source tools/generate_skin_variants.py recolours to produce this character's three tone copies, and it is not a duplicate of any of them. The girl's own painted skin (239, 185, 148) is a fourth colour that no shipped file carries -- the three canonical TONES are the woman's, the man's and the boy's. v4.20 measured what retiring it would cost: regenerating her other two tones from skin0 instead reproduces 165-406 pixels differently at the anti-aliased edges (summer 291/195, winter 406/165), against 0 for the boy's base, which IS skin2. So the boy's base was retired and this one was not. Item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md."
+   "notes": "Shipped and blitted by nothing since v4.30, and declared rather than deleted: the girl's seated bust as drawn, and the subject of the girl_head_car seasonal pair; the draw path reads the layers. Until v4.30 it was also the exact source tools/generate_skin_variants.py recoloured into her three tone copies, which v4.30 stopped shipping; v4.20's measurement of what retiring it would cost (165-406 pixels differently at the anti-aliased edges, item 7 of BACKLOG_v4_19.md, closed in BACKLOG_v4_20.md) was about those copies."
   },
   {
    "name": "person_girl_winter_head_car_fx",
@@ -11096,7 +11096,7 @@
     "kind": "svg",
     "file": "star_sparkle.svg"
    },
-   "notes": "Redrawn for v4.23 from concept B \"Scissors\", for the doubled sprite scale that release also ships (PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR went 32 -> 16): a full waist of 24-28 units against the old ~12, four unequal points (N 82, E 78, S 74, W 76) and concave two-segment sides. The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it."
+   "notes": "Redrawn for v4.23 from concept B \"Scissors\", for the doubled sprite scale that release also ships (PaperRenderer.STAR_SPRITE_RADIUS_DIVISOR went 32 -> 16): a full waist of 24-28 units against the old ~12, four unequal points (N 82, E 78, S 74, W 76) and concave two-segment sides. The V2 manifest declared this sprite CANVAS_PIXELS. That is defect D-1 restated: read as raw pixels the 180px sparkle would cover 180 local units against a star's own 16, which is the three-times-too-large rendering v73.7 fixed. The scale here follows PaperRenderer.drawStars, which is the source of truth for a convention; the tint class follows the manifest, and the call site was moved to an untinted blit to match it. The gallery card's fir also uses it, tinted, as Christmas baubles (ThemePreviewScene.fir): the one tinted use, on a preview placed by eye."
   },
   {
    "name": "sun_body",

@@ -127,9 +127,10 @@ object WeatherSnapshotMapper {
             // `isThunderstorm` used to be the condition alone, so a thunderstorm code with every
             // measurement reading zero -- the exact code-flapping shape documented above, where
             // Open-Meteo alternated 3 and 80 over a dry Florence hour -- would have flashed
-            // lightning over a sky with no rain in it. The theme's own storm toggle has always
-            // required rain to be falling before it flashes; this is the same requirement for the
-            // forecast-driven path, which had been the looser of the two.
+            // lightning over a sky with no rain in it, on a code nobody can vouch for. (The theme's
+            // own storm toggle is another matter: it asks for Rain chosen and Show Rain/Snow on, not
+            // for drops, and flashes at 0 % intensity too -- a dry thunderstorm the maintainer kept
+            // on 2026-10-04, inventory I-292. This comment used to say it required rain to fall.)
             isThunderstorm = observation.condition == WeatherCondition.THUNDERSTORM &&
                 precipitationType != null,
             fetchedAtMillis = observation.observedAtMillis,

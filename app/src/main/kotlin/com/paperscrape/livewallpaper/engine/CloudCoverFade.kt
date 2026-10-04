@@ -54,7 +54,7 @@ package com.paperscrape.livewallpaper.engine
  * The third way the sky could change in a frame. When the snapshot ages out --
  * `LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS` after the last good reading, with the retries
  * spent -- the scene falls back to the theme's own weather. Until v5.7F that went through
- * [coverToward]'s null branch, which resets the ramp: measured, the drawn cover went from 0.87 to
+ * [coverToward]'s no-target branch, which resets the ramp: measured, the drawn cover went from 0.87 to
  * the theme's density **in one frame** where the same move as a forecast change takes 270, and
  * the next good reading then snapped again because the ramp had been reset. The maintainer's
  * decision of 2026-09-23 is that "we no longer know what sky it is" deserves the same dissolve as
@@ -64,9 +64,9 @@ package com.paperscrape.livewallpaper.engine
  *
  * ### What it does not touch
  *
- * The theme's own sky, while nothing has lapsed. Handing [coverToward] a null target -- Live
+ * The theme's own sky, while nothing has lapsed. Handing [coverToward] no target (`NaN`) -- Live
  * Weather switched off, or off the whole time, or the location or the provider changed so it
- * cannot run -- resets the ramp and returns null, so the theme's own cloud switch and slider reach
+ * cannot run -- resets the ramp and returns `NaN`, so the theme's own cloud switch and slider reach
  * `LiveWeatherSceneRules.cloudDensity` exactly as they do today. Those are deliberate acts with a
  * settings screen open in front of them, which is not the event that was reported, and a sky that
  * answers at once is how the user sees the switch worked. Once a lapse has settled the same is
@@ -77,7 +77,8 @@ package com.paperscrape.livewallpaper.engine
  * the rarer event the smoother one.
  *
  * No allocation and no new artwork: one float, one [FloatArray] sized to the pool, and an alpha
- * argument `SpriteBlitter.drawTinted` has always taken. Neither sprite budget can move, because
+ * argument `SpriteBlitter.drawTinted` has always taken. "No cover" is `NaN`, not `null`, in and out
+ * (v5.10B): a `Float?` crossing this API every frame was a boxed `Float` every frame. Neither sprite budget can move, because
  * both count the *set of PNGs* and this adds none -- `SpriteGeometryTest.decodedByteBudget` and
  * `SpriteDrawScaleTest.uploadedTexelBudget` are untouched by construction. **The two tests carry
  * their own ceilings and the measurements behind them; this paragraph deliberately does not
@@ -101,14 +102,14 @@ internal class CloudCoverFade(poolSize: Int) {
     /**
      * The cover to draw this frame, easing toward [target].
      *
-     * @param target the forecast's cover, or null when Live Weather is not driving the scene.
-     * @return the cover to hand `LiveWeatherSceneRules.cloudDensity`, or null when [target] is.
+     * @param target the forecast's cover, or `NaN` when Live Weather is not driving the scene.
+     * @return the cover to hand `LiveWeatherSceneRules.cloudDensity`, or `NaN` when [target] is.
      */
-    fun coverToward(target: Float?, deltaSeconds: Float): Float? {
+    fun coverToward(target: Float, deltaSeconds: Float): Float {
         lapseSettled = false
-        if (target == null) {
+        if (target.isNaN()) {
             cover = UNSET
-            return null
+            return Float.NaN
         }
         val wanted = target.coerceIn(0f, 1f)
         val settled = if (cover == UNSET) wanted else approach(cover, wanted, COVER_UNITS_PER_SECOND * deltaSeconds)
@@ -122,23 +123,23 @@ internal class CloudCoverFade(poolSize: Int) {
      * switch is off).
      *
      * @return the eased cover, to hand `LiveWeatherSceneRules.cloudDensity` exactly as a forecast
-     * cover is handed -- or null once it has arrived, from which frame on the theme's own switch
+     * cover is handed -- or `NaN` once it has arrived, from which frame on the theme's own switch
      * and slider draw the sky as they do with Live Weather off. Null straight away when nothing
      * has ever been drawn from a forecast, because then there is no sky to ease from: that is the
      * first observation, and it snaps for the reason the class KDoc gives.
      */
-    fun coverLapsingTo(themeCover: Float, deltaSeconds: Float): Float? {
-        if (cover == UNSET) return null
+    fun coverLapsingTo(themeCover: Float, deltaSeconds: Float): Float {
+        if (cover == UNSET) return Float.NaN
         val wanted = themeCover.coerceIn(0f, 1f)
         if (lapseSettled) {
             cover = wanted
-            return null
+            return Float.NaN
         }
         val settled = approach(cover, wanted, COVER_UNITS_PER_SECOND * deltaSeconds)
         cover = settled
         if (settled == wanted) {
             lapseSettled = true
-            return null
+            return Float.NaN
         }
         return settled
     }

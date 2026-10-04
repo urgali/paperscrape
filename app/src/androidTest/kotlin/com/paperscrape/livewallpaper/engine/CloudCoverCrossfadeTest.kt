@@ -112,7 +112,8 @@ class CloudCoverCrossfadeTest {
      *
      * [POP_LEVELS] is where a cloud is. Sky and cloud are ~100 levels apart here, a cloud crossing
      * its threshold inside [CloudCoverFade.FADE_SECONDS] moves about 4 levels a frame at this
-     * cadence, and a quantisation tip is 1 -- so 16 separates "a cloud arrived whole" from both.
+     * cadence (up to 25 over the sun), and a quantisation tip is 1 -- so 48 separates "a cloud
+     * arrived whole" from all three (see its own KDoc).
      */
     private fun churn(a: IntArray, b: IntArray, minLevels: Int): Int {
         var n = 0

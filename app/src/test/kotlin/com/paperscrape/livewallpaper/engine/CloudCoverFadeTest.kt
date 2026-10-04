@@ -2,7 +2,6 @@ package com.paperscrape.livewallpaper.engine
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -23,7 +22,7 @@ class CloudCoverFadeTest {
         // A fresh engine, and every golden, draws the sky it was handed on its first frame. Easing
         // here would mean a wallpaper that boots to the wrong weather.
         val fade = CloudCoverFade(41)
-        assertEquals(0.87f, fade.coverToward(0.87f, dt)!!, 0f)
+        assertEquals(0.87f, fade.coverToward(0.87f, dt), 0f)
     }
 
     @Test
@@ -37,7 +36,7 @@ class CloudCoverFadeTest {
         var steps = 0
         var value = previous
         while (value != 0.42f) {
-            value = fade.coverToward(0.42f, dt)!!
+            value = fade.coverToward(0.42f, dt)
             val moved = kotlin.math.abs(value - previous)
             assertTrue(
                 "the cover moved $moved in one frame, past the ${CloudCoverFade.COVER_UNITS_PER_SECOND * dt} a frame allows",
@@ -62,17 +61,17 @@ class CloudCoverFadeTest {
     fun liveWeatherGoingAwayHandsTheThemeBackImmediately() {
         // Switching the feature off is a deliberate act with a settings screen open in front of it,
         // and the theme's own slider must take the scene back on the next frame rather than fade
-        // into it. A null target also has to clear the ramp, so switching it on again snaps.
+        // into it. No target (`NaN`) also has to clear the ramp, so switching it on again snaps.
         val fade = CloudCoverFade(41)
         fade.coverToward(0.87f, dt)
-        assertNull(fade.coverToward(null, dt))
-        assertEquals(0.10f, fade.coverToward(0.10f, dt)!!, 0f)
+        assertTrue(fade.coverToward(Float.NaN, dt).isNaN())
+        assertEquals(0.10f, fade.coverToward(0.10f, dt), 0f)
     }
 
     /**
      * Item 135 (v5.7F): the snapshot aging out eases to the theme's cover at the forecast's rate.
      *
-     * Before v5.7F this path went through `coverToward(null)` and the drawn cover left 0.87 for the
+     * Before v5.7F this path went through `coverToward` with no target and the drawn cover left 0.87 for the
      * theme's density in **one** frame, against the 270 the same move takes as a forecast change.
      */
     @Test
@@ -82,7 +81,8 @@ class CloudCoverFadeTest {
         var previous = 0.87f
         var steps = 0
         while (true) {
-            val value = fade.coverLapsingTo(0.25f, dt) ?: break
+            val value = fade.coverLapsingTo(0.25f, dt)
+            if (value.isNaN()) break
             val moved = kotlin.math.abs(value - previous)
             assertTrue(
                 "the lapsing cover moved $moved in one frame, past the ${CloudCoverFade.COVER_UNITS_PER_SECOND * dt} a frame allows",
@@ -92,13 +92,13 @@ class CloudCoverFadeTest {
             steps++
             assertTrue("the cover never arrived at the theme's in $steps frames", steps < 10_000)
         }
-        // The frame that lands is the one that hands the sky back (null: the theme draws itself),
+        // The frame that lands is the one that hands the sky back (`NaN`: the theme draws itself),
         // so the last eased value is one step short of it and within one step of the target.
         assertTrue("stopped at $previous, not within a step of 0.25", kotlin.math.abs(previous - 0.25f) <= CloudCoverFade.COVER_UNITS_PER_SECOND * dt + 1e-6f)
         val expected = ((0.87f - 0.25f) / CloudCoverFade.COVER_UNITS_PER_SECOND / dt).toInt()
         assertTrue("took $steps frames, expected about $expected", steps in (expected - 2)..(expected + 2))
         // And from then on the theme's own slider is followed exactly: nothing eases a setting.
-        assertNull(fade.coverLapsingTo(0.60f, dt))
+        assertTrue(fade.coverLapsingTo(0.60f, dt).isNaN())
     }
 
     /**
@@ -111,8 +111,8 @@ class CloudCoverFadeTest {
         fade.coverToward(0.87f, dt)
         repeat(2_000) { fade.coverLapsingTo(0.25f, dt) }
         // Settled on the theme, which the user then moved: the ramp follows it silently.
-        assertNull(fade.coverLapsingTo(0.30f, dt))
-        val first = fade.coverToward(0.80f, dt)!!
+        assertTrue(fade.coverLapsingTo(0.30f, dt).isNaN())
+        val first = fade.coverToward(0.80f, dt)
         assertEquals(
             "the new reading must start one step from the theme's 0.30, not at 0.80",
             0.30f + CloudCoverFade.COVER_UNITS_PER_SECOND * dt, first, 1e-6f,
@@ -123,9 +123,9 @@ class CloudCoverFadeTest {
     @Test
     fun aLapseWithNothingDrawnBeforeItIsTheThemeAtOnce() {
         val fade = CloudCoverFade(41)
-        assertNull(fade.coverLapsingTo(0.25f, dt))
+        assertTrue(fade.coverLapsingTo(0.25f, dt).isNaN())
         // and the first reading after it is still a first observation
-        assertEquals(0.87f, fade.coverToward(0.87f, dt)!!, 0f)
+        assertEquals(0.87f, fade.coverToward(0.87f, dt), 0f)
     }
 
     /** Switching Live Weather off in the middle of a lapse is still a switch: it snaps. */
@@ -134,8 +134,8 @@ class CloudCoverFadeTest {
         val fade = CloudCoverFade(41)
         fade.coverToward(0.87f, dt)
         repeat(10) { fade.coverLapsingTo(0.25f, dt) }
-        assertNull(fade.coverToward(null, dt))
-        assertEquals("switched on again, the first reading snaps", 0.10f, fade.coverToward(0.10f, dt)!!, 0f)
+        assertTrue(fade.coverToward(Float.NaN, dt).isNaN())
+        assertEquals("switched on again, the first reading snaps", 0.10f, fade.coverToward(0.10f, dt), 0f)
     }
 
     @Test

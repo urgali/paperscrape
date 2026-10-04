@@ -55,8 +55,15 @@ object SunPositionCalculator {
          * The live wallpaper passes the real phase every frame (see [PaperWallpaperService]); a
          * caller that does not name one gets [FIXED_MOON_PHASE], so its frame is a function of
          * what it wrote down.
+         *
+         * **A `var`, and only for [DayPhaseCache]** (v5.10B). The engine keeps one phase and
+         * recomputes it when the hour or the sun's times change -- once a minute -- but the moon's
+         * phase, as a `Float`, moves several times a second, and near a new moon every frame; a new
+         * object each time was an allocation a frame on the render thread. The cache writes the new
+         * value into its own instance before the frame is drawn, so the frame still receives the
+         * moon as an input. Nothing else writes it.
          */
-        val moonPhase: Float,
+        var moonPhase: Float,
     )
 
     /**

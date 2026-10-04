@@ -15,9 +15,23 @@ import kotlinx.coroutines.flow.first
  */
 internal const val UPDATE_PREFS_STORE_NAME = "paperscrape_update_prefs"
 
-// Its own file and its own handler. A corrupt snooze file is the cheapest of the three to lose --
-// it costs one "remind me later" -- but it used to be just as fatal as the other two, because the
-// crash was in the read, not in the value. See [PrefsRecovery].
+/** The file of GitHub's last reply (v5.10D); shared with the same recovery test. */
+internal const val UPDATE_REPLY_STORE_NAME = "paperscrape_update_reply"
+
+/**
+ * GitHub's last reply to a check, in a file of its own (v5.10D, [SavedUpdateReply]): it carries the
+ * notes of every release newer than the installed one, which for a user far behind is a couple of
+ * hundred kilobytes, and the snooze and the notified tag -- read on every check -- should not have to
+ * parse them. Losing it costs one full download.
+ */
+private val Context.updateReplyDataStore by preferencesDataStore(
+    name = UPDATE_REPLY_STORE_NAME,
+    corruptionHandler = PrefsRecovery.replacingCorruptFile(),
+)
+
+// Its own file and its own handler. A corrupt snooze file is among the cheapest to lose -- it costs
+// one "remind me later" (the reply's file above, one full download) -- but it used to be just as fatal
+// as the other two stores, because the crash was in the read, not in the value. See [PrefsRecovery].
 private val Context.updateDataStore by preferencesDataStore(
     name = UPDATE_PREFS_STORE_NAME,
     corruptionHandler = PrefsRecovery.replacingCorruptFile(),
@@ -25,7 +39,8 @@ private val Context.updateDataStore by preferencesDataStore(
 
 /**
  * Persists what has already been decided about each release: the "remind me later" snooze and the
- * last version notified about. Read on demand, not as a reactive Flow: by the settings screen
+ * last version notified about -- and, since v5.10D, GitHub's last reply to a check ([readReply]).
+ * Read on demand, not as a reactive Flow: by the settings screen
  * before it shows the prompt, and by the wallpaper engine's loop before it posts a notification.
  *
  * Snoozing is tied to the *specific version* that was snoozed: if a newer release comes out
@@ -33,7 +48,7 @@ private val Context.updateDataStore by preferencesDataStore(
  * staying silent until the original snooze expires — a month-old "remind me later" shouldn't
  * suppress news of a completely different, newer update.
  */
-class UpdatePrefs(private val context: Context) {
+class UpdatePrefs(private val context: Context) : UpdateReplyStore {
 
     private object Keys {
         val SNOOZE_UNTIL_MILLIS = longPreferencesKey("update_snooze_until_millis")
@@ -46,9 +61,18 @@ class UpdatePrefs(private val context: Context) {
          * it is not a user preference, it is the same kind of "what has already been said about
          * which version" bookkeeping the two keys above are, keyed the same way and losable at the
          * same cost. A corrupt file here costs one repeated notification, which is why this store
-         * is the one with the cheapest recovery of the three.
+         * is among the cheapest to lose (the reply's file, v5.10D, costs one full download).
          */
         val NOTIFIED_VERSION_TAG = stringPreferencesKey("update_notified_version_tag")
+
+        /**
+         * The last reply GitHub gave to a check, with its `ETag` (v5.10D, [SavedUpdateReply]): what
+         * lets the next check ask "has anything changed?" and download nothing when it has not. One
+         * key, so the tag and the answer it vouches for are written together; in a file of its own
+         * (`updateReplyDataStore`). Bookkeeping of the same kind as the two keys above: losing it costs
+         * one full download, nothing else.
+         */
+        val LAST_REPLY = stringPreferencesKey("update_last_reply")
     }
 
     data class SnoozeState(val untilMillis: Long, val versionTag: String?)
@@ -85,6 +109,13 @@ class UpdatePrefs(private val context: Context) {
      */
     suspend fun setNotifiedTag(versionTag: String) {
         context.updateDataStore.edit { prefs -> prefs[Keys.NOTIFIED_VERSION_TAG] = versionTag }
+    }
+
+    override suspend fun readReply(): SavedUpdateReply? =
+        SavedUpdateReply.fromJson(context.updateReplyDataStore.data.recoveringFromReadErrors().first()[Keys.LAST_REPLY])
+
+    override suspend fun writeReply(reply: SavedUpdateReply) {
+        context.updateReplyDataStore.edit { prefs -> prefs[Keys.LAST_REPLY] = reply.toJson() }
     }
 
     /** "Remind me later" -> "In a month": suppress the prompt for this specific version for ~30 days. */

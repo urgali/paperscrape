@@ -24,11 +24,30 @@ import kotlinx.coroutines.flow.asStateFlow
  * settings screen can count them. The preview engine the picker runs is left out: it draws a
  * preview, not the wallpaper. Measured on the BV6600 in all three states (ROADMAP row A20).
  *
+ * **It also counts the engines drawing with `Canvas`** (v5.10B), previews included: those read
+ * [SpriteCache] on every frame, so it is the one thing that stops the settings screen giving the
+ * cache back when it closes (`SettingsActivity.onStop`). A GL engine uploads each sprite and lets
+ * the bitmap go; a `Canvas` one would have to decode its whole scene again at once.
+ *
  * Main thread only: engine lifecycle callbacks are delivered there, and Compose reads it there.
  */
 internal class EngineCensus {
     private var drawing = 0
+    private var canvasEngines = 0
     private val state = MutableStateFlow(false)
+
+    /** True while an engine of this process, preview or not, draws with the `Canvas` fallback. */
+    val anyCanvasEngine: Boolean get() = canvasEngines > 0
+
+    /** An engine gave up on GL and draws with `Canvas` from now on; see [anyCanvasEngine]. */
+    fun engineFellBackToCanvas() {
+        canvasEngines++
+    }
+
+    /** An engine that had fallen back to `Canvas` is gone. */
+    fun canvasEngineDestroyed() {
+        canvasEngines = (canvasEngines - 1).coerceAtLeast(0)
+    }
 
     /** True while at least one engine that is not a preview is alive. */
     val isTheWallpaper: StateFlow<Boolean> = state.asStateFlow()

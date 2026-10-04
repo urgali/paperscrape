@@ -27,7 +27,8 @@ import org.junit.Test
  * - above it a denial stops the post rather than throwing or posting into a void;
  * - the decision is a function of its inputs and of nothing else — no clock, no context, no state;
  * - the four reasons to stay quiet, one at a time and in combination;
- * - the check interval is the weather interval times 24, and is 24 hours.
+ * - the check interval is the weather interval times 3, and is 3 hours (24 until v5.10D; the
+ *   cadence over a day of passes is `UpdateCheckCadenceTest`).
  *
  * **Not covered here, and it must not be claimed:** that the permission is actually requested, that
  * the system dialog appears, that a user's answer reaches the switch, that the channel exists, that
@@ -239,9 +240,10 @@ class UpdateNotificationPolicyTest {
      * again rather than inherited.
      */
     @Test
-    fun `the check interval is twenty-four weather intervals, and that is a day`() {
-        assertEquals(24 * WEATHER_REFRESH_INTERVAL_MS, UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS)
-        assertEquals(24L * 60 * 60 * 1000, UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS)
+    fun `the check interval is three weather intervals, and that is three hours`() {
+        // The maintainer's decision of 2026-09-30, row 3 of the v5.10A table: 24 hours until v5.10D.
+        assertEquals(3 * WEATHER_REFRESH_INTERVAL_MS, UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS)
+        assertEquals(3L * 60 * 60 * 1000, UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS)
     }
 
     /**
@@ -310,11 +312,12 @@ class UpdateNotificationPolicyTest {
                 revoked, appNotificationsEnabled = false, channelTurnedOff = false, notifySwitchOn = true,
             )
             assertTrue("API $sdk: switched off in the phone's settings, switch on", blocked)
-            assertEquals(
-                "API $sdk: the line under the switch",
-                UpdateNotificationPolicy.NotifyRowLine.BLOCKED,
-                UpdateNotificationPolicy.notifyRowLine(automaticCheckEnabled = true, blocked = blocked, requestRefused = false),
-            )
+            // Since v5.10C the row says it, and the switch is off, and a tap asks (the dialog, or
+            // the phone's page where the system will not show it again).
+            val row = row(sdk, granted = false, appNotificationsEnabled = false, notifySwitchOn = true)
+            assertEquals("API $sdk: the line under the switch", UpdateNotificationPolicy.NotifyRowLine.BLOCKED_ASK, row.line)
+            assertFalse("API $sdk: the switch reads off", row.shownOn)
+            assertEquals(UpdateNotificationPolicy.NotifyTap.ASK_PERMISSION, row.tap)
             // The same phone with the switch off is a user who never asked: the normal line.
             val notAsked = UpdateNotificationPolicy.blockedInPhoneSettings(
                 revoked, appNotificationsEnabled = false, channelTurnedOff = false, notifySwitchOn = false,
@@ -322,24 +325,44 @@ class UpdateNotificationPolicyTest {
             assertFalse("API $sdk: not asked yet", notAsked)
             assertEquals(
                 UpdateNotificationPolicy.NotifyRowLine.DESCRIPTION,
-                UpdateNotificationPolicy.notifyRowLine(automaticCheckEnabled = true, blocked = notAsked, requestRefused = false),
+                row(sdk, granted = false, appNotificationsEnabled = false, notifySwitchOn = false).line,
             )
         }
     }
 
+    private fun row(
+        sdk: Int,
+        granted: Boolean,
+        appNotificationsEnabled: Boolean,
+        notifySwitchOn: Boolean,
+        automaticCheckEnabled: Boolean = true,
+        channelTurnedOff: Boolean = false,
+        isTheWallpaper: Boolean = true,
+        requestRefused: Boolean = false,
+    ) = UpdateNotificationPolicy.notifyRow(
+        automaticCheckEnabled = automaticCheckEnabled,
+        notifySwitchOn = notifySwitchOn,
+        permission = UpdateNotificationPolicy.permissionFor(sdk, granted),
+        appNotificationsEnabled = appNotificationsEnabled,
+        channelTurnedOff = channelTurnedOff,
+        isTheWallpaper = isTheWallpaper,
+        requestRefused = requestRefused,
+    )
+
     /**
-     * And the screen hands the policy the switch **as saved**, read at each composition rather than
-     * once, so turning the switch off in the app moves the line at once. A source check, because the
-     * screen is Compose and cannot run here -- the same reason `FramePacingTest` reads
-     * `GlRenderThread.kt`.
+     * And the screen hands the policy the switch **as saved** and the phone's state, read at each
+     * composition rather than once, so turning the switch off in the app moves the line at once. A
+     * source check, because the screen is Compose and cannot run here -- the same reason
+     * `FramePacingTest` reads `GlRenderThread.kt`.
      */
     @Test
     fun `the settings screen decides with the saved switch`() {
         val screen = source("ui/AdvancedScreen.kt")
         assertTrue(
-            "AdvancedScreen must pass the saved switch to the blocked rule",
-            screen.contains("blocked = phoneNotifications.blocks(notifySwitchOn = settings.updateNotificationsEnabled)"),
+            "AdvancedScreen must hand the row rule the saved switch",
+            screen.contains("notifySwitchOn = settings.updateNotificationsEnabled,"),
         )
+        assertTrue("and draw the switch from it", screen.contains("checked = notifyRow.shownOn,"))
         val notifier = source("update/UpdateNotifier.kt")
         assertTrue(
             "a post is only attempted with the switch on, and must be judged so",
@@ -362,14 +385,17 @@ class UpdateNotificationPolicyTest {
 
     @Test
     fun `the blocked line appears whenever the phone blocks, switch on or off`() {
-        // What stood before could never be reached: it needed the switch on and a refusal a moment
-        // ago, and a refusal leaves the switch off.
-        val line = UpdateNotificationPolicy::notifyRowLine
-        assertEquals(UpdateNotificationPolicy.NotifyRowLine.BLOCKED, line(true, true, false))
-        assertEquals(UpdateNotificationPolicy.NotifyRowLine.BLOCKED, line(true, false, true))
-        assertEquals(UpdateNotificationPolicy.NotifyRowLine.DESCRIPTION, line(true, false, false))
+        // What stood before v5.9F could never be reached: it needed the switch on and a refusal a
+        // moment ago, and a refusal leaves the switch off.
+        for (switchOn in listOf(true, false)) {
+            assertEquals(UpdateNotificationPolicy.NotifyRowLine.BLOCKED, row(29, true, appNotificationsEnabled = false, notifySwitchOn = switchOn).line)
+            assertEquals(UpdateNotificationPolicy.NotifyRowLine.BLOCKED, row(34, true, appNotificationsEnabled = true, notifySwitchOn = switchOn, channelTurnedOff = true).line)
+        }
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.REFUSED, row(34, false, false, notifySwitchOn = false, requestRefused = true).line)
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.DESCRIPTION, row(29, true, true, notifySwitchOn = false).line)
         // The automatic check off greys the row and explains that first, blocked or not.
-        assertEquals(UpdateNotificationPolicy.NotifyRowLine.NEEDS_AUTOMATIC_CHECK, line(false, true, false))
-        assertEquals(UpdateNotificationPolicy.NotifyRowLine.NEEDS_AUTOMATIC_CHECK, line(false, false, true))
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.NEEDS_AUTOMATIC_CHECK, row(29, true, false, true, automaticCheckEnabled = false).line)
+        assertEquals(UpdateNotificationPolicy.NotifyRowLine.NEEDS_AUTOMATIC_CHECK, row(34, false, false, true, automaticCheckEnabled = false, requestRefused = true).line)
+        assertFalse(row(29, true, true, true, automaticCheckEnabled = false).enabled)
     }
 }

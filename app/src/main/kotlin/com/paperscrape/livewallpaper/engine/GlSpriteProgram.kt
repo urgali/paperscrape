@@ -100,8 +100,10 @@ internal class GlSpriteProgram {
     /**
      * Points the three attributes at the interleaved client-side vertex buffer.
      *
-     * Client-side arrays rather than a VBO: the whole buffer is rewritten every frame, so a VBO
-     * would add an upload without removing one, and ES 2.0 accepts a `Buffer` here directly.
+     * Client-side arrays rather than a VBO: every batch is copied twice, from [GlSceneTarget]'s `FloatArray`
+     * into this direct buffer and then by the driver at the draw call, and a VBO, rewritten every frame
+     * through `glBufferSubData` from the same direct buffer, would copy it twice too. ES 2.0 accepts a
+     * `Buffer` here directly.
      */
     fun bindVertexData(buffer: java.nio.FloatBuffer) {
         val stride = FLOATS_PER_VERTEX * BYTES_PER_FLOAT

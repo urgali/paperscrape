@@ -375,4 +375,55 @@ class PedestrianPopulationTest {
             )
         }
     }
+
+    // ---------------------------------------------------------------- the crowd kept between frames
+
+    /**
+     * [PedestrianPopulation.presentMask] names exactly the groups [PedestrianPopulation.build]
+     * puts on the street, at every density -- the renderer rebuilds the crowd only when the mask
+     * changes (v5.10B), so a mask that disagreed would leave a group on the street or off it.
+     */
+    @Test
+    fun `the mask of present groups is the groups the population holds, at every density`() {
+        var densities = 0
+        for (seed in seeds(60)) {
+            var density = 0f
+            while (density <= 1.0001f) {
+                val groups = build(seed, density).map { it.groupIndex }.toSet()
+                val mask = PedestrianPopulation.presentMask(density)
+                val fromMask = (0 until PedestrianPopulation.GROUP_COUNT).filter { mask and (1 shl it) != 0 }.toSet()
+                assertEquals("seed $seed density $density", groups, fromMask)
+                density += 0.01f
+                densities++
+            }
+        }
+        assertTrue(densities > 5_000)
+        assertEquals("an empty street has no groups", 0, PedestrianPopulation.presentMask(0f))
+        assertEquals(0, PedestrianPopulation.presentMask(-0.5f))
+    }
+
+    /**
+     * One mask, one population: two densities that put the same groups on the street give the
+     * same people in the same order, every field equal. That is what makes keeping the crowd
+     * between frames draw what building it every frame drew.
+     */
+    @Test
+    fun `two densities with the same groups present give the same population`() {
+        var pairs = 0
+        for (seed in seeds(60)) {
+            val byMask = HashMap<Int, List<Pedestrian>>()
+            var density = 0.005f
+            while (density <= 1.0001f) {
+                val mask = PedestrianPopulation.presentMask(density)
+                val people = build(seed, density)
+                val first = byMask.getOrPut(mask) { people }
+                if (first !== people) {
+                    assertEquals("seed $seed density $density, mask $mask", first, people)
+                    pairs++
+                }
+                density += 0.005f
+            }
+        }
+        assertTrue(pairs > 5_000)
+    }
 }

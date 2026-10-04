@@ -17,6 +17,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.paperscrape.livewallpaper.prefs.PrefsRecovery.recoveringFromReadErrors
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.engine.AutoColorMode
+import com.paperscrape.livewallpaper.engine.CustomThemeRegistry
 import com.paperscrape.livewallpaper.engine.CalendarWindow
 import com.paperscrape.livewallpaper.engine.SeasonalCalendar
 import com.paperscrape.livewallpaper.engine.seasonalCalendarFromJsonString
@@ -133,8 +134,8 @@ data class WallpaperSettings(
     val liveWeatherStatus: String = LiveWeatherStatus.OFF.storageId,
     /**
      * Whether the app may check GitHub for a new release on its own: when the settings screen
-     * opens, and -- together with [updateNotificationsEnabled] -- from the wallpaper engine's daily
-     * check.
+     * opens, and -- together with [updateNotificationsEnabled] -- from the wallpaper engine's check
+     * every three hours (`UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS`).
      *
      * Off by default, and deliberately: the check used to run on every open, which is a network
      * request the user never asked for. The manual button is always available, so opting out costs
@@ -184,6 +185,15 @@ data class WallpaperSettings(
     // hill colors or which decorations are visible are.
     val scrollBackground: Boolean = false, // whether sun/moon/sky scroll with the parallax hills
     val swipeScroll: Boolean = true, // whether swiping between home screens scrolls the wallpaper at all
+    /**
+     * Whether this phone's home screen has ever moved the wallpaper with a swipe (v5.10E, inventory
+     * I-222): written once, by the wallpaper, the first time an engine that is not a preview sees the
+     * home screen's offset move (`SwipeReport`). *Swipe scroll* reads on only after that
+     * (`SettingsUiModel.swipeScroll`): many home screens never report a swipe -- the project's phone
+     * never has -- and there the switch was on over nothing. Runtime state of this phone, like the
+     * resolved GPS fix: a backup does not carry it and a restore leaves it as it is.
+     */
+    val swipeReported: Boolean = false,
     // Continuous auto-scroll, independent of swiping entirely: this speed multiplies a per-frame
     // *time delta* rather than a swipe offset, which is a genuinely
     // different mechanism from PaperScrape's existing `parallaxStrength` (which scales how far
@@ -264,6 +274,15 @@ enum class ObjectCategory {
     // category because the storage is generic; nothing reads People's.
     PEOPLE,
     SNOWMEN, GIFTS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS,
+    ;
+
+    companion object {
+        /**
+         * The six categories Seasons & decorations shows, each behind its season: what its "Reset
+         * decorations to defaults" resets ([WallpaperPrefs.resetDecorations]), and nothing else.
+         */
+        val DECORATIONS: List<ObjectCategory> = listOf(SNOWMEN, GIFTS, PENGUINS, BUNNIES, EASTER_EGGS, PUMPKINS)
+    }
 }
 
 /** Key-name prefix for [WallpaperPrefs]'s per-theme customization blobs. */
@@ -288,7 +307,28 @@ private suspend fun DataStore<Preferences>.editDurably(
     transform: suspend (MutablePreferences) -> Unit,
 ): Preferences = withContext(NonCancellable) { edit(transform) }
 
-class WallpaperPrefs(private val context: Context) {
+/**
+ * The wallpaper's preferences, over one DataStore.
+ *
+ * The app builds it from a [Context], which is the process's one store file. The store itself is the
+ * constructor's (v5.10C): the reader and the writers had no other use for the `Context`, and handed a
+ * store over a scratch file a JVM test reads exactly what the app reads -- which is how the palms of a
+ * preference store written before v5.10 are checked (`PalmsPreferenceStoreTest`), with the keys that
+ * build wrote and the code that reads them, not a copy of either.
+ */
+class WallpaperPrefs internal constructor(
+    private val store: DataStore<Preferences>,
+    /**
+     * The look a theme was saved with in the gallery, if it was -- a saved version of a built-in theme
+     * or a theme of the user's own (`CustomThemeRegistry.savedCustomizationFor`). What the first edit of
+     * such a theme starts from ([ensureFreshPendingTheme], v5.10E, inventory I-295). A parameter so a JVM
+     * test can hand it its own saved looks; the app reads the registry, which the settings screen and the
+     * wallpaper keep filled from the theme store.
+     */
+    private val savedLookFor: (String) -> SceneCustomization? = { CustomThemeRegistry.savedCustomizationFor(it) },
+) {
+
+    constructor(context: Context) : this(context.dataStore)
 
     private object Keys {
         /**
@@ -398,6 +438,7 @@ class WallpaperPrefs(private val context: Context) {
         val HILLS_AUTO_MODE = stringPreferencesKey("hills_auto_mode")
         val SCROLL_BACKGROUND = booleanPreferencesKey("scroll_background")
         val SWIPE_SCROLL = booleanPreferencesKey("swipe_scroll")
+        val SWIPE_REPORTED = booleanPreferencesKey("swipe_reported")
         val SCROLL_SPEED = floatPreferencesKey("scroll_speed")
         fun mountainVisible(front: Boolean) = booleanPreferencesKey("mountain_${if (front) "front" else "back"}_visible")
         fun mountainDensity(front: Boolean) = floatPreferencesKey("mountain_${if (front) "front" else "back"}_density")
@@ -456,6 +497,12 @@ class WallpaperPrefs(private val context: Context) {
         val CHRISTMAS_DECORATIONS_ENABLED = booleanPreferencesKey("christmas_decorations_enabled")
         val FLOWERS_ENABLED = booleanPreferencesKey("flowers_enabled")
         val PALMS_ENABLED = booleanPreferencesKey("palms_enabled")
+        /**
+         * The Palms switch on a theme whose layout plants no palm (v5.10C). Absent from every store
+         * written before v5.10 -- where [PALMS_ENABLED] reads `true` on every theme the app ever
+         * wrote, chosen or not -- and absent reads off. See `SceneCustomization.palmsInsteadOfTrees`.
+         */
+        val PALMS_INSTEAD_OF_TREES = booleanPreferencesKey("palms_instead_of_trees")
         val HALLOWEEN_ENABLED = booleanPreferencesKey("halloween_enabled")
         val HORROR_SKY_ENABLED = booleanPreferencesKey("horror_sky_enabled")
         val SANTA_ENABLED = booleanPreferencesKey("santa_enabled")
@@ -473,7 +520,7 @@ class WallpaperPrefs(private val context: Context) {
             autoMode2 = AutoColorMode.fromStorageId(prefs[Keys.autoMode2(category)]),
         )
 
-    val settingsFlow: Flow<WallpaperSettings> = context.dataStore.data.recoveringFromReadErrors().map { prefs ->
+    val settingsFlow: Flow<WallpaperSettings> = store.data.recoveringFromReadErrors().map { prefs ->
         // Falls back to whichever theme's pending edit is currently tagged (see
         // PENDING_CUSTOMIZATION_THEME_ID) -- crucial for seasonal categories specifically:
         // editing just one (e.g. turning snowmen off for Christmas) must NOT silently reset every
@@ -508,6 +555,7 @@ class WallpaperPrefs(private val context: Context) {
             parallaxStrength = prefs[Keys.PARALLAX_STRENGTH] ?: 1f,
             scrollBackground = prefs[Keys.SCROLL_BACKGROUND] ?: false,
             swipeScroll = prefs[Keys.SWIPE_SCROLL] ?: true,
+            swipeReported = prefs[Keys.SWIPE_REPORTED] ?: false,
             scrollSpeed = prefs[Keys.SCROLL_SPEED] ?: 0.15f,
             autoThemeByDate = prefs[Keys.AUTO_THEME_BY_DATE] ?: false,
             seasonalCalendar = seasonalCalendarFromJsonString(prefs[Keys.SEASONAL_CALENDAR]),
@@ -653,6 +701,7 @@ class WallpaperPrefs(private val context: Context) {
             christmasDecorationsEnabled = prefs[Keys.CHRISTMAS_DECORATIONS_ENABLED] ?: defaults.christmasDecorationsEnabled,
             flowersEnabled = prefs[Keys.FLOWERS_ENABLED] ?: defaults.flowersEnabled,
             palmsEnabled = prefs[Keys.PALMS_ENABLED] ?: defaults.palmsEnabled,
+            palmsInsteadOfTrees = prefs[Keys.PALMS_INSTEAD_OF_TREES] ?: defaults.palmsInsteadOfTrees,
             halloweenEnabled = prefs[Keys.HALLOWEEN_ENABLED] ?: defaults.halloweenEnabled,
             horrorSkyEnabled = prefs[Keys.HORROR_SKY_ENABLED] ?: defaults.horrorSkyEnabled,
             santaEnabled = prefs[Keys.SANTA_ENABLED] ?: defaults.santaEnabled,
@@ -780,6 +829,7 @@ class WallpaperPrefs(private val context: Context) {
         this[Keys.CHRISTMAS_DECORATIONS_ENABLED] = c.christmasDecorationsEnabled
         this[Keys.FLOWERS_ENABLED] = c.flowersEnabled
         this[Keys.PALMS_ENABLED] = c.palmsEnabled
+        this[Keys.PALMS_INSTEAD_OF_TREES] = c.palmsInsteadOfTrees
         this[Keys.HALLOWEEN_ENABLED] = c.halloweenEnabled
         this[Keys.HORROR_SKY_ENABLED] = c.horrorSkyEnabled
         this[Keys.SANTA_ENABLED] = c.santaEnabled
@@ -800,11 +850,11 @@ class WallpaperPrefs(private val context: Context) {
 
     /** The document an interrupted import left behind, or `null` if there is none. */
     suspend fun pendingImportThemes(): String? =
-        context.dataStore.data.first()[Keys.PENDING_IMPORT_THEMES]
+        store.data.first()[Keys.PENDING_IMPORT_THEMES]
 
     /** Marks the import complete. Safe to call when there is nothing pending. */
     suspend fun clearPendingImportThemes() {
-        context.dataStore.editDurably { it.remove(Keys.PENDING_IMPORT_THEMES) }
+        store.editDurably { it.remove(Keys.PENDING_IMPORT_THEMES) }
     }
 
     /**
@@ -825,7 +875,7 @@ class WallpaperPrefs(private val context: Context) {
         settings: AppBackup.BackupSettings,
         themeCustomizations: Map<String, SceneCustomization>,
         pendingThemesJson: String? = null,
-    ) = context.dataStore.editDurably { prefs ->
+    ) = store.editDurably { prefs ->
         if (pendingThemesJson == null) {
             prefs.remove(Keys.PENDING_IMPORT_THEMES)
         } else {
@@ -868,15 +918,28 @@ class WallpaperPrefs(private val context: Context) {
         }
     }
 
-    suspend fun setTheme(themeId: String) = context.dataStore.editDurably { it[Keys.THEME_ID] = themeId }
+    suspend fun setTheme(themeId: String) = store.editDurably { it[Keys.THEME_ID] = themeId }
+
+    /**
+     * [themeId] chosen **and shown**: *Automatic theme by date* off in the same edit (v5.10C, row 9).
+     *
+     * What the question "The calendar is showing Autumn today. Show it anyway?" writes when the user
+     * says yes. One edit and not [setTheme] then [setAutoThemeByDate], because between two edits the
+     * wallpaper would draw the theme picked before for a frame or more: the manual pick with the
+     * calendar off.
+     */
+    suspend fun setThemeTurningAutoThemeOff(themeId: String) = store.editDurably {
+        it[Keys.THEME_ID] = themeId
+        it[Keys.AUTO_THEME_BY_DATE] = false
+    }
 
     suspend fun setSyncWithRealTime(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.SYNC_REAL_TIME] = enabled }
+        store.editDurably { it[Keys.SYNC_REAL_TIME] = enabled }
 
     /** Mutually exclusive with [setUseCustomLocation] -- enabling device-location mode always
      * turns custom location off in the same edit. */
     suspend fun setUseLocation(enabled: Boolean) =
-        context.dataStore.editDurably {
+        store.editDurably {
             it[Keys.USE_LOCATION] = enabled
             if (enabled) it[Keys.USE_CUSTOM_LOCATION] = false
         }
@@ -890,7 +953,7 @@ class WallpaperPrefs(private val context: Context) {
      * it away. Custom location is cleared here for the same reason [setUseLocation] clears it.
      */
     suspend fun setDeviceLocation(kind: DeviceLocationKind) =
-        context.dataStore.editDurably {
+        store.editDurably {
             it[Keys.DEVICE_LOCATION_KIND] = kind.storageId
             it[Keys.USE_LOCATION] = true
             it[Keys.USE_CUSTOM_LOCATION] = false
@@ -898,39 +961,49 @@ class WallpaperPrefs(private val context: Context) {
 
     /** Mutually exclusive with [setUseLocation] -- see that function's own doc comment. */
     suspend fun setUseCustomLocation(enabled: Boolean) =
-        context.dataStore.editDurably {
+        store.editDurably {
             it[Keys.USE_CUSTOM_LOCATION] = enabled
             if (enabled) it[Keys.USE_LOCATION] = false
         }
 
     suspend fun setCustomLocation(latitude: Float, longitude: Float, label: String) =
-        context.dataStore.editDurably {
+        store.editDurably {
             it[Keys.CUSTOM_LOCATION_LAT] = latitude
             it[Keys.CUSTOM_LOCATION_LON] = longitude
             it[Keys.CUSTOM_LOCATION_LABEL] = label
         }
 
     suspend fun setLiveWeatherEnabled(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.LIVE_WEATHER_ENABLED] = enabled }
+        store.editDurably { it[Keys.LIVE_WEATHER_ENABLED] = enabled }
+
+    /**
+     * Live Weather on **and** the scene back on real time, in one edit (v5.10C, row 4): what a tap on
+     * the Live Weather switch writes while a fixed hour is what holds it off. One edit, so the engine
+     * never sees the pair half-written.
+     */
+    suspend fun setLiveWeatherOnFollowingRealTime() = store.editDurably {
+        it[Keys.LIVE_WEATHER_ENABLED] = true
+        it[Keys.SYNC_REAL_TIME] = true
+    }
 
     suspend fun setLiveWeatherApiKey(apiKey: String) =
-        context.dataStore.editDurably { it[Keys.LIVE_WEATHER_API_KEY] = apiKey }
+        store.editDurably { it[Keys.LIVE_WEATHER_API_KEY] = apiKey }
 
     /** Writes only the provider. Nothing else about Live Weather or the location is touched. */
     suspend fun setWeatherProvider(provider: WeatherProviderId) =
-        context.dataStore.editDurably { it[Keys.WEATHER_PROVIDER] = provider.storageId }
+        store.editDurably { it[Keys.WEATHER_PROVIDER] = provider.storageId }
 
     suspend fun setWeatherApiComApiKey(apiKey: String) =
-        context.dataStore.editDurably { it[Keys.WEATHER_API_COM_API_KEY] = apiKey }
+        store.editDurably { it[Keys.WEATHER_API_COM_API_KEY] = apiKey }
 
     suspend fun setOpenWeatherApiKey(apiKey: String) =
-        context.dataStore.editDurably { it[Keys.OPEN_WEATHER_API_KEY] = apiKey }
+        store.editDurably { it[Keys.OPEN_WEATHER_API_KEY] = apiKey }
 
     suspend fun setAutomaticUpdateCheckEnabled(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.AUTOMATIC_UPDATE_CHECK] = enabled }
+        store.editDurably { it[Keys.AUTOMATIC_UPDATE_CHECK] = enabled }
 
     suspend fun setUpdateNotificationsEnabled(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.UPDATE_NOTIFICATIONS] = enabled }
+        store.editDurably { it[Keys.UPDATE_NOTIFICATIONS] = enabled }
 
     /**
      * Records whether Live Weather has fallen back to the theme's manual weather.
@@ -941,7 +1014,7 @@ class WallpaperPrefs(private val context: Context) {
      * wake every collector for nothing.
      */
     suspend fun setLiveWeatherStatus(status: LiveWeatherStatus) =
-        context.dataStore.editDurably { it[Keys.LIVE_WEATHER_STATUS] = status.storageId }
+        store.editDurably { it[Keys.LIVE_WEATHER_STATUS] = status.storageId }
 
     /**
      * Saves the position the device reported, with the moment it was saved.
@@ -952,28 +1025,35 @@ class WallpaperPrefs(private val context: Context) {
      * provider is slow.
      */
     suspend fun setResolvedGpsLocation(latitude: Float, longitude: Float) =
-        context.dataStore.editDurably {
+        store.editDurably {
             it[Keys.RESOLVED_GPS_LAT] = latitude
             it[Keys.RESOLVED_GPS_LON] = longitude
             it[Keys.DEVICE_FIX_AT] = System.currentTimeMillis()
         }
 
-    suspend fun setFixedHour(hour: Float) = context.dataStore.editDurably { it[Keys.FIXED_HOUR] = hour }
+    suspend fun setFixedHour(hour: Float) = store.editDurably { it[Keys.FIXED_HOUR] = hour }
 
     suspend fun setParallaxStrength(strength: Float) =
-        context.dataStore.editDurably { it[Keys.PARALLAX_STRENGTH] = strength }
+        store.editDurably { it[Keys.PARALLAX_STRENGTH] = strength }
 
     suspend fun setScrollBackground(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.SCROLL_BACKGROUND] = enabled }
+        store.editDurably { it[Keys.SCROLL_BACKGROUND] = enabled }
 
     suspend fun setSwipeScroll(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.SWIPE_SCROLL] = enabled }
+        store.editDurably { it[Keys.SWIPE_SCROLL] = enabled }
+
+    /**
+     * The home screen has moved the wallpaper with a swipe (v5.10E, [WallpaperSettings.swipeReported]).
+     * Written once; never written back to false.
+     */
+    suspend fun setSwipeReported() =
+        store.editDurably { it[Keys.SWIPE_REPORTED] = true }
 
     suspend fun setScrollSpeed(speed: Float) =
-        context.dataStore.editDurably { it[Keys.SCROLL_SPEED] = speed }
+        store.editDurably { it[Keys.SCROLL_SPEED] = speed }
 
     suspend fun setAutoThemeByDate(enabled: Boolean) =
-        context.dataStore.editDurably { it[Keys.AUTO_THEME_BY_DATE] = enabled }
+        store.editDurably { it[Keys.AUTO_THEME_BY_DATE] = enabled }
 
     /**
      * Stores [calendar], or removes the key entirely when it is back to the factory shape.
@@ -983,7 +1063,7 @@ class WallpaperPrefs(private val context: Context) {
      * the dates this release happens to ship.
      */
     suspend fun setSeasonalCalendar(calendar: SeasonalCalendar) =
-        context.dataStore.editDurably {
+        store.editDurably {
             if (calendar.isFactory) it.remove(Keys.SEASONAL_CALENDAR)
             else it[Keys.SEASONAL_CALENDAR] = calendar.toJsonString()
         }
@@ -998,216 +1078,216 @@ class WallpaperPrefs(private val context: Context) {
     // live only to the current theme" is enforced -- other themes simply never match the tag.
 
     suspend fun setCategoryVisible(category: ObjectCategory, visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.visible(category)] = visible
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setCategoryDensity(category: ObjectCategory, density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.density(category)] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     /** The night-time pedestrian density. The daytime one is `setCategoryDensity(PEOPLE, ...)`. */
     suspend fun setPeopleNightDensity(density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.PEOPLE_NIGHT_DENSITY] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     /** The night-time car density. The daytime one is `setCategoryDensity(CARS, ...)`. */
     suspend fun setCarsNightDensity(density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.CARS_NIGHT_DENSITY] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setBusinessHoursEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.BUSINESS_HOURS_ENABLED] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setBusinessOpenHour(hour: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.BUSINESS_OPEN_HOUR] = hour
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setBusinessCloseHour(hour: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.BUSINESS_CLOSE_HOUR] = hour
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setCategoryColorDay1(category: ObjectCategory, color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.colorDay1(category)] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setCategoryColorNight1(category: ObjectCategory, color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.colorNight1(category)] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setCategoryColorDay2(category: ObjectCategory, color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.colorDay2(category)] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setCategoryColorNight2(category: ObjectCategory, color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.colorNight2(category)] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setHillsVariation(variation: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.HILLS_VARIATION] = variation
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setHillsColorDay(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.HILLS_COLOR_DAY] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setHillsColorNight(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.HILLS_COLOR_NIGHT] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setMountainVisible(front: Boolean, visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.mountainVisible(front)] = visible
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setMountainDensity(front: Boolean, density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.mountainDensity(front)] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setMountainColorDay(front: Boolean, color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.mountainColorDay(front)] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setMountainColorNight(front: Boolean, color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.mountainColorNight(front)] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setLakeVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LAKE_VISIBLE] = visible
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setLakeColorDay(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LAKE_COLOR_DAY] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setLakeColorNight(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LAKE_COLOR_NIGHT] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setLakeHeight(height: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LAKE_HEIGHT] = height
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setLakeSailboatsVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LAKE_SAILBOATS_VISIBLE] = visible
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setLakeSailboatsDensity(density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LAKE_SAILBOATS_DENSITY] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setLakeDolphinsVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LAKE_DOLPHINS_VISIBLE] = visible
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setLakeDolphinsDensity(density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LAKE_DOLPHINS_DENSITY] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setStarsVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.STARS_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.STARS_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setStarsDensity(density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.STARS_DENSITY] = density; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.STARS_DENSITY] = density; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSkyColorDayHigh(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_DAY_HIGH] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_DAY_HIGH] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSkyColorDayLow(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_DAY_LOW] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_DAY_LOW] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSkyColorNightHigh(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_NIGHT_HIGH] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_NIGHT_HIGH] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSkyColorNightLow(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_NIGHT_LOW] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_NIGHT_LOW] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSkyColorSunriseLow(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_SUNRISE_LOW] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_SUNRISE_LOW] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSkyColorSunsetLow(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_SUNSET_LOW] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_COLOR_SUNSET_LOW] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSkySunCloudHeight(height: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_SUN_CLOUD_HEIGHT] = height; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SKY_SUN_CLOUD_HEIGHT] = height; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSunVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SUN_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SUN_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setSunColor(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SUN_COLOR] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.SUN_COLOR] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setMoonVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.MOON_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.MOON_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setMoonColor(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.MOON_COLOR] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.MOON_COLOR] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setMoonRealisticPhases(realistic: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.MOON_REALISTIC_PHASES] = realistic; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.MOON_REALISTIC_PHASES] = realistic; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setCloudsVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setCloudsDensity(density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_DENSITY] = density; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_DENSITY] = density; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setCloudsColorDay(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_COLOR_DAY] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_COLOR_DAY] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setCloudsColorNight(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_COLOR_NIGHT] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.CLOUDS_COLOR_NIGHT] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     // ---- Automatic day/night colours -------------------------------------------------------
     //
@@ -1252,7 +1332,7 @@ class WallpaperPrefs(private val context: Context) {
         key: androidx.datastore.preferences.core.Preferences.Key<String>,
         mode: AutoColorMode,
         forThemeId: String,
-    ) = context.dataStore.editDurably {
+    ) = store.editDurably {
         it.ensureFreshPendingTheme(forThemeId)
         it[key] = mode.storageId
         it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
@@ -1260,84 +1340,84 @@ class WallpaperPrefs(private val context: Context) {
 
     /** Settled snow on the ground, 0..1. Winter only -- see [SceneCustomization.snowPiles]. */
     suspend fun setSnowPiles(value: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.SNOW_PILES] = value.coerceIn(0f, 1f)
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     /** Heaps of fallen leaves, 0..1. Autumn only -- see [SceneCustomization.leafPiles]. */
     suspend fun setLeafPiles(value: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.LEAF_PILES] = value.coerceIn(0f, 1f)
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setBirdsVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.BIRDS_VISIBLE] = visible
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setBirdsDensity(density: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.BIRDS_DENSITY] = density
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setBirdsNight(nightBirds: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.BIRDS_NIGHT] = nightBirds
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setBirdColor(index: Int, color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.birdColor(index)] = color
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setBirdWeight(index: Int, weight: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.birdWeight(index)] = weight
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setPrecipitationVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setPrecipitationType(type: PrecipitationType, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_TYPE] = type.name; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_TYPE] = type.name; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setPrecipitationIntensity(intensity: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_INTENSITY] = intensity; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_INTENSITY] = intensity; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setPrecipitationRainColorDay(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_RAIN_COLOR_DAY] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_RAIN_COLOR_DAY] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setPrecipitationRainColorNight(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_RAIN_COLOR_NIGHT] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_RAIN_COLOR_NIGHT] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setPrecipitationSnowColorDay(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_SNOW_COLOR_DAY] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_SNOW_COLOR_DAY] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setPrecipitationSnowColorNight(color: Int, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_SNOW_COLOR_NIGHT] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_SNOW_COLOR_NIGHT] = color; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setPrecipitationThunderstorm(thunderstorm: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_THUNDERSTORM] = thunderstorm; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.PRECIPITATION_THUNDERSTORM] = thunderstorm; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setRainbowVisible(visible: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.RAINBOW_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.RAINBOW_VISIBLE] = visible; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     suspend fun setRainbowOpacity(opacity: Float, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.RAINBOW_OPACITY] = opacity; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId); it[Keys.RAINBOW_OPACITY] = opacity; it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId }
 
     /** Mutually exclusive with [setWinterColorsEnabled] -- turning Fall Colors on always turns
      * Winter Colors off in the same edit (Christmas decorations are untouched), same pattern
      * PrecipitationConfig.type already uses for Rain vs Snow (see
      * [SceneCustomization.fallColorsEnabled]'s own doc comment). */
     suspend fun setFallColorsEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.FALL_COLORS_ENABLED] = enabled
             if (enabled) it[Keys.WINTER_COLORS_ENABLED] = false
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
@@ -1351,29 +1431,35 @@ class WallpaperPrefs(private val context: Context) {
      * hung *on top of* whatever the trees look like, so this clears nothing and nothing clears it.
      */
     suspend fun setChristmasDecorationsEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.CHRISTMAS_DECORATIONS_ENABLED] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     /** Ground flowers on or off. Independent of every other flag. */
     suspend fun setFlowersEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.FLOWERS_ENABLED] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     /**
-     * Palms on or off, wherever the layout places any (Beach, Desert, their saved copies, and
-     * shuffled themes that deal palms). Independent of every other flag.
+     * The Palms switch, on any theme (v5.10C): on a layout that plants palms it says whether they
+     * stay palms, on one that plants none whether its trees become palms. Independent of every
+     * other flag.
      *
-     * It does not touch TREES: turning palms off leaves the tree slots exactly as populated as
-     * they were and changes which species fills them, so this is not a second way to empty the
-     * shore. See [SceneCustomization.palmsEnabled].
+     * **Writes both fields behind the switch** ([SceneCustomization.palmsEnabled] and
+     * [SceneCustomization.palmsInsteadOfTrees]), so it needs no layout to know which one the theme
+     * reads, and from the first move the two agree. Only the store's older value of the first was
+     * ever written without the user, which is why a theme without palms reads the second.
+     *
+     * It does not touch TREES: the tree slots stay exactly as populated as they were and only the
+     * species that fills them changes, so this is not a second way to empty the shore.
      */
     suspend fun setPalmsEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.PALMS_ENABLED] = enabled
+            it[Keys.PALMS_INSTEAD_OF_TREES] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
@@ -1384,67 +1470,62 @@ class WallpaperPrefs(private val context: Context) {
      * it being a third flag rather than a mode on either of them.
      */
     suspend fun setHalloweenEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.HALLOWEEN_ENABLED] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     /** The horror sky, independent of [setHalloweenEnabled] in both directions. */
     suspend fun setHorrorSkyEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.HORROR_SKY_ENABLED] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     /** Mutually exclusive with [setFallColorsEnabled] -- see that function's own doc comment. */
     suspend fun setWinterColorsEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.WINTER_COLORS_ENABLED] = enabled
             if (enabled) it[Keys.FALL_COLORS_ENABLED] = false
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
     suspend fun setSantaEnabled(enabled: Boolean, forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.SANTA_ENABLED] = enabled
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** Removes the override entirely, so it falls back to [defaultCustomizationFor]'s per-theme
-     * default (`theme.hasSantaSleigh`: on for Christmas, off elsewhere) -- "reset" has to mean "go
-     * back to whatever this theme's own default is", not "force off everywhere including
-     * Christmas". [resetSeasonalPalettes] does the same for the palettes and the other decoration
-     * switches, whose defaults also vary per theme. */
-    suspend fun resetSanta(forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
-            it.remove(Keys.SANTA_ENABLED)
-            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
-        }
-
     /**
-     * Clears the seasonal flags -- the two palettes and the five decoration switches (Christmas
-     * lights, flowers, palms, Halloween, horror sky) -- so they fall back to the theme's own
-     * defaults. Santa has its own reset, [resetSanta].
+     * **"Reset decorations to defaults"**, everything Seasons & decorations shows, in one write (v5.10E,
+     * inventory I-214 and I-294, the maintainer's *sì* of 2026-09-30 to row 10 and of 2026-10-04 to
+     * I-294): the seasonal palette and the snow and leaf piles under it, the six decorations with their
+     * densities and colours ([ObjectCategory.DECORATIONS]), and the switches -- Christmas lights, Santa,
+     * Halloween, the horror sky, the flowers -- back to the theme's own, on [forThemeId] only.
      *
-     * **Removes them rather than setting them false.** The Seasonal Decorations screen's "reset
-     * everything to defaults" wrote `false` into Fall and Winter Colors, which was indistinguishable
-     * from a default while every theme defaulted to off — and stopped being a reset the moment
-     * Winter, Christmas, New Year and Autumn started defaulting to on. A reset has to mean "forget
-     * what I chose", not "choose off". Palms are the case that shows it: they default to **on**, so
-     * a reset that skipped them left a Beach the user had turned palm-less without palms after
-     * "Reset decorations to defaults".
+     * **Removed, not set false**: a reset means "forget what I chose", and the theme's own default may
+     * be on (Winter, Christmas, New Year and Autumn turn their palettes on, Christmas its Santa).
+     *
+     * Until v5.10E the screen made eight writes (six `resetCategory`, the palettes, Santa), with no
+     * question first, and two things on its screen survived them: the **snow piles and the leaf piles**,
+     * which stayed where they had been dragged. And it took the **palms**, whose switch has been on the
+     * Trees page of World & scene since v5.10C2: now "Reset Trees to default" takes them
+     * ([resetCategory]), the reset of the page they are on.
      */
-    suspend fun resetSeasonalPalettes(forThemeId: String) =
-        context.dataStore.editDurably { it.ensureFreshPendingTheme(forThemeId)
-            it.remove(Keys.FALL_COLORS_ENABLED)
-            it.remove(Keys.WINTER_COLORS_ENABLED)
-            it.remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
-            it.remove(Keys.FLOWERS_ENABLED)
-            it.remove(Keys.PALMS_ENABLED)
-            it.remove(Keys.HALLOWEEN_ENABLED)
-            it.remove(Keys.HORROR_SKY_ENABLED)
-            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
-        }
+    suspend fun resetDecorations(forThemeId: String) = store.editDurably { prefs ->
+        prefs.ensureFreshPendingTheme(forThemeId)
+        for (category in ObjectCategory.DECORATIONS) prefs.removeCategoryKeys(category)
+        prefs.remove(Keys.FALL_COLORS_ENABLED)
+        prefs.remove(Keys.WINTER_COLORS_ENABLED)
+        prefs.remove(Keys.SNOW_PILES)
+        prefs.remove(Keys.LEAF_PILES)
+        prefs.remove(Keys.CHRISTMAS_DECORATIONS_ENABLED)
+        prefs.remove(Keys.SANTA_ENABLED)
+        prefs.remove(Keys.FLOWERS_ENABLED)
+        prefs.remove(Keys.HALLOWEEN_ENABLED)
+        prefs.remove(Keys.HORROR_SKY_ENABLED)
+        prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+    }
 
     /**
      * Resets one category's visibility/density/colors back to defaults, **on [forThemeId]**.
@@ -1466,19 +1547,9 @@ class WallpaperPrefs(private val context: Context) {
      * reset reaches a theme whose state currently lives in its archive rather than in the scratch.
      * The tag is stamped afterwards for the same reason the setters stamp it.
      */
-    suspend fun resetCategory(category: ObjectCategory, forThemeId: String) = context.dataStore.editDurably { prefs ->
+    suspend fun resetCategory(category: ObjectCategory, forThemeId: String) = store.editDurably { prefs ->
         prefs.ensureFreshPendingTheme(forThemeId)
-        prefs.remove(Keys.visible(category))
-        prefs.remove(Keys.density(category))
-        prefs.remove(Keys.colorDay1(category))
-        prefs.remove(Keys.colorNight1(category))
-        prefs.remove(Keys.colorDay2(category))
-        prefs.remove(Keys.colorNight2(category))
-        // The two automatic-colour modes belong to this category's two pairs, so a reset that
-        // restored the colours but left a pair on FROM_DAY would hand back a default the user
-        // cannot see -- the derived half would still be overriding it.
-        prefs.remove(Keys.autoMode1(category))
-        prefs.remove(Keys.autoMode2(category))
+        prefs.removeCategoryKeys(category)
         // People carry a second density that lives outside the per-category keys; resetting the
         // category has to clear it too, or "reset to default" would leave the night population
         // wherever the user had dragged it. Cars carry the same pair since v4.22, and the
@@ -1490,7 +1561,31 @@ class WallpaperPrefs(private val context: Context) {
             prefs.remove(Keys.BUSINESS_OPEN_HOUR)
             prefs.remove(Keys.BUSINESS_CLOSE_HOUR)
         }
+        // And the trees carry the Palms switch, which is on their page since v5.10C2 (the
+        // maintainer: *«il flag non deve stare in summer ma in tree»*): "Reset Trees to default" puts
+        // the palms back to the theme's own -- on Beach and Desert, on; elsewhere, off -- and
+        // "Reset decorations to defaults" no longer does (v5.10E, inventory I-294, the maintainer's
+        // *«3 - si»* of 2026-10-04). Both fields of the switch, as every wipe here removes them.
+        if (category == ObjectCategory.TREES) {
+            prefs.remove(Keys.PALMS_ENABLED)
+            prefs.remove(Keys.PALMS_INSTEAD_OF_TREES)
+        }
         prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+    }
+
+    /** One category's own keys: the switch, the density, the two colour pairs and their two modes. */
+    private fun MutablePreferences.removeCategoryKeys(category: ObjectCategory) {
+        remove(Keys.visible(category))
+        remove(Keys.density(category))
+        remove(Keys.colorDay1(category))
+        remove(Keys.colorNight1(category))
+        remove(Keys.colorDay2(category))
+        remove(Keys.colorNight2(category))
+        // The two automatic-colour modes belong to this category's two pairs, so a reset that
+        // restored the colours but left a pair on FROM_DAY would hand back a default the user
+        // cannot see -- the derived half would still be overriding it.
+        remove(Keys.autoMode1(category))
+        remove(Keys.autoMode2(category))
     }
 
     /**
@@ -1614,6 +1709,7 @@ class WallpaperPrefs(private val context: Context) {
         // reset brought it back on the next edit, and a backup restore left it for the first
         // post-restore edit to pick up. Measured on a device (assessment v5.7, M1).
         remove(Keys.PALMS_ENABLED)
+        remove(Keys.PALMS_INSTEAD_OF_TREES)
         remove(Keys.HALLOWEEN_ENABLED)
         remove(Keys.HORROR_SKY_ENABLED)
         remove(Keys.SANTA_ENABLED)
@@ -1667,8 +1763,21 @@ class WallpaperPrefs(private val context: Context) {
         clearAllThemeCustomizationKeys()
         // And the incoming theme's own archived state is restored, so re-editing a theme picks up
         // where the user left off rather than starting from defaults.
-        this[Keys.themeCustomization(forThemeId)]?.let { stored ->
-            writeFlatCustomization(sceneCustomizationFromJson(runCatching { JSONObject(stored) }.getOrNull()))
+        //
+        // **With no archive, the look it was saved with** (v5.10E, inventory I-295, the maintainer's
+        // *«Ripararlo (consigliato)»* of 2026-10-04). A theme saved in the gallery -- "Replace with
+        // current" on a built-in, or a theme of the user's own -- and never edited from these menus had
+        // nothing here, so the scratch space read its *factory* values ([readFlatCustomization]) plus the
+        // one control touched; and edits win over a saved version
+        // (`CustomThemeRegistry.resolveActiveCustomization`), so the first touch of any control -- the moon
+        // turned off and on again, on the phone -- put the theme back to how it ships and hid the saved
+        // look. Now the edit starts from the saved look and changes only what was touched. A reset of one
+        // page still means the theme's own factory values for that page, as its button says.
+        val archived = this[Keys.themeCustomization(forThemeId)]
+        if (archived != null) {
+            writeFlatCustomization(sceneCustomizationFromJson(runCatching { JSONObject(archived) }.getOrNull()))
+        } else {
+            savedLookFor(forThemeId)?.let { writeFlatCustomization(it) }
         }
     }
 
@@ -1677,7 +1786,7 @@ class WallpaperPrefs(private val context: Context) {
      * *Advanced & about*'s "Reset current edits to built-in themes". One transaction, so a crash
      * half-way cannot leave some of the themes reset and the rest not.
      */
-    suspend fun resetCustomizations(themeIds: Set<String>) = context.dataStore.editDurably { prefs ->
+    suspend fun resetCustomizations(themeIds: Set<String>) = store.editDurably { prefs ->
         val pending = prefs[Keys.PENDING_CUSTOMIZATION_THEME_ID]
         if (pending != null && pending in themeIds) {
             prefs.clearAllThemeCustomizationKeys()
@@ -1689,7 +1798,7 @@ class WallpaperPrefs(private val context: Context) {
     /** Resets [forThemeId]'s whole customization to its defaults: removes its archive and -- only
      * if the scratch space is this theme's -- clears every per-theme scratch key and the
      * pending-edit tag. */
-    suspend fun resetAllCategories(forThemeId: String) = context.dataStore.editDurably { prefs ->
+    suspend fun resetAllCategories(forThemeId: String) = store.editDurably { prefs ->
         // Only if the scratch space is *this* theme's. Clearing it unconditionally would reset
         // whichever theme happened to be under live edit -- caught by
         // `ThemeCustomizationPersistenceTest.resetIsTheOnlyThingThatRemovesACustomization`, which

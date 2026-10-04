@@ -192,7 +192,7 @@ class FramePacingTest {
             val frameStart = if (anchor != 0L) anchor else now
             starts += frameStart
             now = frameStart + 9_000_000L
-            anchor = FramePacing.plan(grid, anchor, frameStart, now).anchorTickNanos
+            anchor = FramePacing.nextAnchorTick(grid, anchor, frameStart, now)
             now = anchor
         }
         val late = starts.zipWithNext { a, b -> b - a }.drop(70)
@@ -221,9 +221,16 @@ class FramePacingTest {
      */
     @Test
     fun `without a fresh grid the old sleep comes back`() {
-        val plan = FramePacing.plan(null, 123_456L, 1_000_000_000L, 1_000_000_000L + 14_600_000L)
-        assertEquals("33 ms less a 14 ms cost, as the old loop computed it", 19_000_000L, plan.sleepNanos)
-        assertEquals("no anchor: the next frame is not on a tick", 0L, plan.anchorTickNanos)
+        assertEquals(
+            "33 ms less a 14 ms cost, as the old loop computed it",
+            19_000_000L,
+            FramePacing.fallbackSleepNanos(1_000_000_000L, 1_000_000_000L + 14_600_000L),
+        )
+        assertEquals(
+            "no anchor: the next frame is not on a tick",
+            0L,
+            FramePacing.nextAnchorTick(null, 123_456L, 1_000_000_000L, 1_000_000_000L + 14_600_000L),
+        )
         val old = VsyncGrid.Grid(tickNanos = 1_000_000_000L, periodNanos = 16_666_667L)
         assertEquals(old, VsyncGrid.fresh(old, 1_000_000_000L + VsyncGrid.STALE_AFTER_NANOS))
         assertEquals(null, VsyncGrid.fresh(old, 1_000_000_000L + VsyncGrid.STALE_AFTER_NANOS + 1))

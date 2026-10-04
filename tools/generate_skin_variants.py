@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Generates skin-tone variants of the four person sprites.
+"""Skin-tone recolouring of the person sprites: retired as a generator by v4.30, kept as a library.
 
-Run from the repo root:
-
-    python3 tools/generate_skin_variants.py
+Until v4.30 ``main()`` wrote a ``_skin<tone>`` copy of every person sprite into res/. v4.30 replaced
+the copies with fixed art plus region masks, coloured at the blit, and none ships any more, so
+**do not run it**: it would write stray ``_skin*`` PNGs into res/ and stop at the first retired
+``head_car`` base, whose heir no longer ships. ``concepts/people/build_carry_concepts.py`` (the
+v4.28 proposal record) imports ``recolour``, ``TONES`` and ``SKIN_BASE`` from it.
 
 The art is flat: each character's skin is a *single* colour with no shading ramp,
 which is what makes an exact recolour possible. Interior skin pixels are replaced
@@ -60,7 +62,7 @@ SEASONS = ["summer", "winter"]
 # the pairing rule ("the passenger is never the driver's own family") meant a car was reliably one
 # of each. Item 5 of BACKLOG_v4_19.md.
 #
-# **Which colour is the garment was measured, not assumed.** The bust is 141x132 and its shoulders
+# **Which colour is the garment was measured, not assumed.** The bust was 141x132 and its shoulders
 # occupy y 111-127; the colour that fills that band is the clothing. The others nearby are not:
 # the woman's yellow sits at y 27-44, which is a *headband*, and the man's winter blue at y 3-46 is
 # his hat, with his scarf at y 96-122. The backlog entry called the yellow part of her outfit,
@@ -403,8 +405,7 @@ def write_outfit_variants(kind, season, variant, src, skin_base):
     # the hat's outline, quietly, on the way past. Clothing is what this axis is allowed to
     # change.
     #
-    # Two pixels is the same reach `tools/assets/tests/test_outline.py` calls the silhouette's
-    # edge band, which is the width the artwork's own outline occupies, so the region covers the
+    # Two pixels is the width the artwork's own outline occupied when this ran, so the region covers the
     # garment and every anti-aliased pixel that genuinely belongs to it and nothing further.
     pixels = np.array(source)
     garment_family = shade_family(pixels[:, :, :3].astype(np.float64), pixels[:, :, 3], garment)

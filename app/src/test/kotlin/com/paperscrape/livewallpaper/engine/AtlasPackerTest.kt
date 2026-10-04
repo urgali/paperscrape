@@ -263,7 +263,7 @@ class AtlasPackerTest {
      * where the shipped one spilled 117 is being measured either way -- but it is why this is not
      * an inventory of the sprite set. `SpriteGeometryTest` and `SpriteDrawScaleTest` are those.
      *
-     * **Regenerating it** is a device run, described in `release-verification/V4_29_REPORT.md`
+     * **Regenerating it** is a device run, described in `docs/archive/V4_29_REPORT.md`
      * section 1.3. Do not hand-edit it: its value is that nobody chose it.
      */
     private val recordedWalk = """

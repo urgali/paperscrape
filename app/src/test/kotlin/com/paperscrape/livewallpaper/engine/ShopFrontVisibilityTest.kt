@@ -287,6 +287,50 @@ class ShopFrontVisibilityTest {
     }
 
     /**
+     * **Palms in the trees' places keep every front clear** (v5.10C). The ten streets without palms
+     * of their own were laid out around broadleaf trees -- the shop plan runs on the layout, before
+     * any switch -- and since v5.10C the Palms switch can turn every one of those trees into a palm,
+     * where it stands (`palmSpeciesApplied`). So the fronts are measured again with the palms in
+     * place, by both of this class's rules and on ink: no front over the ceiling, no trunk across a
+     * front. The worst reading is printed for the round's register.
+     */
+    @Test
+    fun `with palms in place of the trees, every shop front still keeps both rules`() {
+        val palms = SceneCustomization.DEFAULT.copy(palmsInsteadOfTrees = true)
+        var shopsChecked = 0
+        var worst = 0f
+        var worstShop = ""
+        val failures = mutableListOf<String>()
+        for (themeId in themes) {
+            val layout = SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt())
+            if (layout.hasPalmSlots()) continue
+            val objects = layout.staticObjects.map { palms.palmSpeciesApplied(it, layoutPlantsPalms = false) }
+            assertTrue("$themeId: the switch planted no palm", objects.any { it.type == SceneObjectType.PALM_TREE })
+            for (shop in objects.filter { isShop(it) }) {
+                shopsChecked++
+                val name = "$themeId/${SceneObjectRenderer.variantFor(shop)}"
+                for (onInk in listOf(false, true)) {
+                    val coverage = sampledFrontCoverage(objects, shop, onInk = onInk)
+                    if (onInk && coverage > worst) { worst = coverage; worstShop = name }
+                    if (coverage > 0.40f) failures += "$name ${if (onInk) "on ink" else "declared"} ${"%.1f".format(coverage * 100)}%"
+                }
+                val f = frontRect(shop)
+                val cx = (f[0] + f[2]) / 2f
+                val crossers = objects
+                    .filter { it !== shop && it.depthFraction > shop.depthFraction }
+                    .mapNotNull { o -> verticalMemberBox(o)?.let { o to wrapBox(it, cx) } }
+                    .filter { (_, b) -> b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3] }
+                if (crossers.isNotEmpty()) {
+                    failures += "$name crossed by " + crossers.joinToString { (o, _) -> "a ${SceneObjectRenderer.variantFor(o)} at x=${o.tileFractionX}" }
+                }
+            }
+        }
+        println("PALMS_SHOP_FRONTS worst on ink with palms: ${"%.3f".format(worst)} at $worstShop, $shopsChecked shops")
+        assertEquals("this test asserted over no shop at all", 3 * 10, shopsChecked)
+        assertTrue("with palms in place of the trees: $failures", failures.isEmpty())
+    }
+
+    /**
      * The drawn extent of one building instance's own deal, in the variant's units.
      *
      * The deal is a pure function of `(tileFractionX, depthFraction)` — see

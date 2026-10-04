@@ -56,4 +56,25 @@ class WallpaperEngineCensusTest {
         census.engineCreated(isPreview = false)
         assertTrue(census.isTheWallpaper.value)
     }
+
+    /**
+     * The settings screen gives [SpriteCache] back when it closes unless an engine draws with
+     * `Canvas` (v5.10B), which reads the cache every frame: the count follows the fallbacks, previews
+     * included, and never goes below zero.
+     */
+    @Test
+    fun `an engine drawing with Canvas is counted until it is destroyed`() {
+        val census = EngineCensus()
+        assertFalse(census.anyCanvasEngine)
+        census.engineFellBackToCanvas()
+        census.engineFellBackToCanvas()
+        assertTrue(census.anyCanvasEngine)
+        census.canvasEngineDestroyed()
+        assertTrue("one of the two is still drawing with Canvas", census.anyCanvasEngine)
+        census.canvasEngineDestroyed()
+        assertFalse(census.anyCanvasEngine)
+        census.canvasEngineDestroyed()
+        census.engineFellBackToCanvas()
+        assertTrue("an extra destroy must not have hidden the next fallback", census.anyCanvasEngine)
+    }
 }

@@ -387,7 +387,10 @@ class ThemeCustomizationPersistenceTest {
         assertEquals("resetting city's houses reached beach instead", beach, customizationOf("beach"))
     }
 
-    /** The same, through the Seasons screen's loop over the six decoration categories. */
+    /**
+     * The same, through the Seasons screen's "Reset decorations to defaults" -- one write since v5.10E
+     * (`resetDecorations`, inventory I-214), where it was the six categories' resets and the palettes'.
+     */
     @Test
     fun resettingTheSeasonalCategoriesLeavesTheLastEditedThemeAlone() = runBlocking {
         customise("city", 2)
@@ -395,13 +398,7 @@ class ThemeCustomizationPersistenceTest {
         val beach = customizationOf("beach")
         val city = customizationOf("city")
 
-        for (category in listOf(
-            ObjectCategory.SNOWMEN, ObjectCategory.GIFTS, ObjectCategory.PENGUINS,
-            ObjectCategory.BUNNIES, ObjectCategory.EASTER_EGGS, ObjectCategory.PUMPKINS,
-        )) {
-            prefs.resetCategory(category, "city")
-        }
-        prefs.resetSeasonalPalettes("city")
+        prefs.resetDecorations("city")
 
         assertEquals("resetting city's decorations reached beach instead", beach, customizationOf("beach"))
         // city keeps everything the reset does not name -- houses, trees, hills, lake, weather.
@@ -494,21 +491,21 @@ class ThemeCustomizationPersistenceTest {
         assertEquals("the palms came back off on the next edit", expected, customizationOf("beach"))
     }
 
-    /** "Reset decorations to defaults" -- exactly the calls the Seasons screen makes -- turns them back on. */
+    /**
+     * **"Reset Trees to default" -- the call the Trees page makes -- turns Beach's palms back on**, and
+     * "Reset decorations to defaults" no longer touches them (v5.10E, inventory I-294, the maintainer's
+     * *«3 - si»* of 2026-10-04): the Palms switch is on the Trees page since v5.10C2, so the reset of that
+     * page is the one that takes it. Until v5.10E this test held the decorations' reset to it.
+     */
     @Test
-    fun resettingTheDecorationsBringsThePalmsBack() = runBlocking {
+    fun resettingTheTreesBringsThePalmsBack() = runBlocking {
         prefs.setPalmsEnabled(false, "beach")
-        for (category in listOf(
-            ObjectCategory.SNOWMEN, ObjectCategory.GIFTS, ObjectCategory.PENGUINS,
-            ObjectCategory.BUNNIES, ObjectCategory.EASTER_EGGS, ObjectCategory.PUMPKINS,
-        )) {
-            prefs.resetCategory(category, "beach")
-        }
-        prefs.resetSeasonalPalettes("beach")
-        prefs.resetSanta("beach")
+        prefs.resetDecorations("beach")
+        assertFalse("the decorations reset took the palms", customizationOf("beach").palmsEnabled)
 
-        assertTrue("the decorations reset left the palms off", customizationOf("beach").palmsEnabled)
-        assertEquals("the decorations reset left something else behind", defaultCustomizationFor("beach"), customizationOf("beach"))
+        prefs.resetCategory(ObjectCategory.TREES, "beach")
+        assertTrue("the Trees reset left the palms off", customizationOf("beach").palmsEnabled)
+        assertEquals("the Trees reset left something else behind", defaultCustomizationFor("beach"), customizationOf("beach"))
     }
 
     // ------------------------------------------------- the automatic colour modes survive a return
@@ -584,6 +581,15 @@ class ThemeCustomizationPersistenceTest {
         prefs.setCategoryDensity(ObjectCategory.HOUSES, beach.houses.density, "beach")
 
         assertEquals("a field was lost archiving and restoring beach", beach, customizationOf("beach"))
+
+        // The other half of the Palms switch (v5.10C), which a palm theme never moves off its
+        // default: palms in the trees' places on a theme that plants none, through the same cycle.
+        prefs.setPalmsEnabled(true, "city")
+        val city = customizationOf("city")
+        assertTrue("the palms in place of the trees were never set", city.palmsInsteadOfTrees)
+        prefs.setCategoryDensity(ObjectCategory.HOUSES, 0.91f, "winter")
+        prefs.setCategoryDensity(ObjectCategory.HOUSES, city.houses.density, "city")
+        assertEquals("a field was lost archiving and restoring city", city, customizationOf("city"))
     }
 
     private fun entryFor(id: String, sourceThemeId: String, name: String, customization: SceneCustomization) =

@@ -9,9 +9,12 @@ import android.util.Log
 import android.view.SurfaceHolder
 import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.icon.SeasonalIconController
+import com.paperscrape.livewallpaper.location.DeviceFixAnswer
+import com.paperscrape.livewallpaper.location.DeviceLocationAccess
 import com.paperscrape.livewallpaper.location.DeviceLocationFix
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.location.DeviceLocationProvider
+import com.paperscrape.livewallpaper.location.LocationRequestThrottle
 import com.paperscrape.livewallpaper.location.LocationSource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -19,6 +22,7 @@ import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.BackupRepository
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.update.ApkDownloader
 import com.paperscrape.livewallpaper.update.UpdateCheckResult
 import com.paperscrape.livewallpaper.update.UpdateChecker
 import com.paperscrape.livewallpaper.update.UpdateNotificationPolicy
@@ -111,14 +115,20 @@ class PaperWallpaperService : WallpaperService() {
      *
      * Whoever gets the lock makes the request; anyone who arrives while it is held waits and then
      * makes their own call, which by then finds a cached fix younger than
-     * [DeviceLocationProvider.FRESH_ENOUGH_MS] and returns it without touching the radio.
+     * [DeviceLocationProvider.FRESH_ENOUGH_MS] and returns it without touching the radio -- and since
+     * v5.10D a real request is made only when the process's one throttle allows it
+     * ([com.paperscrape.livewallpaper.location.LocationRequestThrottle]: an hour after a request that
+     * brought a position; 5, 15 and 30 minutes after the first, second and third in a row that did not,
+     * then the hour), unless [force] says the user has just chosen this source.
      */
-    private suspend fun deviceFix(kind: DeviceLocationKind): DeviceLocationFix? =
-        locationRequestLock.withLock {
-            val provider = (sharedLocationProvider ?: DeviceLocationProvider(applicationContext))
-                .also { sharedLocationProvider = it }
-            provider.currentFix(kind)
-        }
+    private suspend fun deviceFix(kind: DeviceLocationKind, force: Boolean): DeviceFixAnswer =
+        locationRequestLock.withLock { locationProvider().currentFix(kind, forceRequest = force) }
+
+    /** What the phone allows for [kind] now: permission and location switch (v5.10D). No radio. */
+    private fun deviceAccess(kind: DeviceLocationKind): DeviceLocationAccess = locationProvider().access(kind)
+
+    private fun locationProvider(): DeviceLocationProvider =
+        (sharedLocationProvider ?: DeviceLocationProvider(applicationContext)).also { sharedLocationProvider = it }
 
     private fun onEngineVisibilityChanged(nowVisible: Boolean, wasVisible: Boolean) {
         if (nowVisible == wasVisible) return
@@ -196,8 +206,8 @@ class PaperWallpaperService : WallpaperService() {
          *   replacing the live wallpaper with the static system image -- an outcome the user
          *   cannot undo from inside the app, because the app has crashed too.
          *
-         * This is a backstop, not a substitute for handling errors where they happen: the three
-         * preference stores each recover on their own, and this exists so the *next* collector
+         * This is a backstop, not a substitute for handling errors where they happen: the preference
+         * stores (four since v5.10D) each recover on their own, and this exists so the *next* collector
          * somebody adds cannot repeat the same failure.
          */
         private val engineJob = SupervisorJob()
@@ -212,6 +222,12 @@ class PaperWallpaperService : WallpaperService() {
         private lateinit var prefs: WallpaperPrefs
 
         private var renderer: PaperRenderer? = null
+
+        /** This engine's first home-screen offset, and whether a later one moved from it (v5.10E). */
+        private val swipeReport = SwipeReport()
+
+        /** Whether this engine has asked for `swipe_reported` to be written. Main thread. */
+        private var swipeReportSent = false
         // ARC-12: this said "written on the render thread by the settings collector", and the
         // collector runs in `scope`, which is `Dispatchers.Main`. It is written on the **main**
         // thread and read by the weather loop, which is another coroutine on that same dispatcher
@@ -222,6 +238,9 @@ class PaperWallpaperService : WallpaperService() {
         private var visible = false
         private var lastFrameNanos = System.nanoTime()
         private var elapsedSeconds = SceneTime.ZERO
+
+        /** This engine's day phase, rebuilt only when its inputs change; read by [renderScene]. */
+        private val dayPhaseCache = DayPhaseCache()
 
         /**
          * The GPU render thread, or null once the `Canvas` fallback has taken over.
@@ -332,22 +351,22 @@ class PaperWallpaperService : WallpaperService() {
          *
          * The sentinel is what makes the *first* pass of a freshly-bound engine due immediately, so
          * a user who has just set the wallpaper is told about a waiting release now rather than
-         * tomorrow. It resets on every rebind, which is the honest cost of keeping the schedule in
-         * the engine: a device that rebinds its wallpaper several times a day checks several times
-         * a day. Bounded above by one check per rebind and one per day otherwise, plus the retry
-         * ladder while checks come back Unreachable (see [updateCheckTransientFailures]).
+         * in three hours. It resets on every rebind, which is the honest cost of keeping the schedule
+         * in the engine: a device that rebinds its wallpaper several times a day checks at each
+         * rebind. Bounded above by one check per rebind and one every three hours otherwise, plus the
+         * retry ladder while checks come back Unreachable (see [updateCheckTransientFailures]).
          */
         private var lastUpdateCheckElapsed: Long = Long.MIN_VALUE / 4
 
         /**
          * How many update checks in a row came back [UpdateCheckResult.Unreachable].
          *
-         * Feeds the *same* [LiveWeatherSchedule.nextAttemptDelayMillis] ladder the weather loop
-         * uses, with [UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS] as the normal interval
-         * instead of the hourly one -- reused rather than re-derived, so there is one bounded-backoff
-         * rule in this app and not two that can drift. From two minutes it doubles to the daily cap,
-         * which is about ten attempts across the first day of being offline and one a day after
-         * that.
+         * Feeds [UpdateNotificationPolicy.checkDue], which runs the *same*
+         * [LiveWeatherSchedule.nextAttemptDelayMillis] ladder the weather loop uses with
+         * [UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS] (three hours since v5.10D) as the
+         * normal interval instead of the hourly one. From two minutes it doubles to the three-hour
+         * cap: seven retries in the first 4 h 14 min of being offline (2, 6, 14, 30, 62, 126, 254 minutes),
+         * then one every three hours (`UpdateCheckCadenceTest`).
          */
         private var updateCheckTransientFailures = 0
 
@@ -382,6 +401,14 @@ class PaperWallpaperService : WallpaperService() {
         private var publishedWeatherStatus: LiveWeatherStatus? = null
 
         /**
+         * Counts [forgetPublishedWeatherStatus] (v5.10C): a pass whose fetch began before the inputs
+         * changed -- a request with the old key still in flight while the user typed a new one --
+         * publishes nothing, or its answer about the old key would land after the forgetting and
+         * stand until the wallpaper is next on screen. Main thread, like every field of the loop.
+         */
+        private var weatherInputsGeneration = 0
+
+        /**
          * Which location source -- GPS, network, Custom, or none -- the current [lastLocationFix]
          * came from.
          *
@@ -389,10 +416,47 @@ class PaperWallpaperService : WallpaperService() {
          * kind" -- see the collector for the bug that produced.
          */
         private var locationSource: LocationSource = LocationSource.NONE
+
+        /**
+         * The user has just picked GPS or Network, and the phone is asked at once, past the throttle's wait
+         * (v5.10D, [com.paperscrape.livewallpaper.location.LocationRequestThrottle]), until it has really
+         * been consulted for that choice ([DeviceFixAnswer.consulted]): a choice made with the location
+         * switched off is answered when it comes on. Set only by a change after this engine's first
+         * settings ([SolarDaySchedule.userChoseSource]; the read-only review of v5.10D found it set by
+         * every engine start). Main thread, like the collector that sets it and [refreshDeviceFix],
+         * which spends it.
+         */
+        private var userChoseDeviceSource = false
+
+        /** Whether the settings collector has applied this engine's first settings. Main thread. */
+        private var settingsApplied = false
         private var lastAppliedThemeId = "sunset"
         private var lastAppliedCustomization: SceneCustomization = SceneCustomization.DEFAULT
 
         private val drawRunnable = Runnable { drawFrame() }
+
+        /**
+         * No frame until the user's settings and saved themes have reached the scene (v5.10B): an
+         * engine used to draw its first frames from a fresh install's settings -- Sunset -- and the
+         * user's theme a tenth of a second later. See [FirstFrameGate]. Every place that starts
+         * drawing asks [drawing] rather than [visible].
+         */
+        private val firstFrameGate = FirstFrameGate { onFirstFrameAllowed() }
+        private val firstFrameWaitLimit = Runnable { firstFrameGate.waitedTooLong() }
+
+        /** Whether this engine draws now: on screen, and past its [firstFrameGate]. */
+        private val drawing: Boolean get() = visible && firstFrameGate.isOpen
+
+        /** The gate has opened: start the frames it was holding, on whichever backend draws. */
+        private fun onFirstFrameAllowed() {
+            val thread = glThread
+            if (thread != null) {
+                thread.setVisible(drawing)
+            } else if (drawing && renderer != null) {
+                lastFrameNanos = System.nanoTime()
+                handler.post(drawRunnable)
+            }
+        }
 
         /**
          * Runs [action] on whichever thread currently owns the scene state.
@@ -459,6 +523,7 @@ class PaperWallpaperService : WallpaperService() {
             // What the settings screen's top button reads to say whether PaperScrape is the
             // wallpaper: an engine that is not a preview exists only once the system has attached it.
             WallpaperEngineCensus.engineCreated(isPreview)
+            handler.postDelayed(firstFrameWaitLimit, FirstFrameGate.WAIT_LIMIT_MS)
             // **No `setTouchEventsEnabled(true)`, deliberately.** It was here for a tap-to-summon-a-
             // bird gesture that no longer exists; nothing overrides `onTouchEvent` or `onCommand`,
             // so every event the system was dispatching to this engine was being discarded on
@@ -467,6 +532,14 @@ class PaperWallpaperService : WallpaperService() {
             // it back on in the same change that adds a handler, not before.
             prefs = WallpaperPrefs(applicationContext)
             val customThemeStore = CustomThemeStore(applicationContext)
+            // An update installed from the app restarts this process, and the wallpaper's engine is
+            // the first thing to come back: the APK it was installed from has no further use. See
+            // ApkDownloader.pruneInstalled (v5.10B).
+            if (!isPreview) {
+                scope.launch(Dispatchers.IO) {
+                    runCatching { ApkDownloader.pruneInstalled(applicationContext, BuildConfig.VERSION_NAME) }
+                }
+            }
             scope.launch {
                 // BCK-06. An import writes two stores and a process kill between them used to leave
                 // the preferences new and the saved themes old. The pending document is applied here
@@ -481,6 +554,9 @@ class PaperWallpaperService : WallpaperService() {
                         // to even though themeId itself didn't change -- re-apply and redraw.
                         if (applyEffectiveTheme()) requestRedraw()
                     }
+                    // After the update is queued, so the render thread applies it before the frame
+                    // the gate lets through.
+                    firstFrameGate.savedThemesArrived()
                 }
             }
             scope.launch {
@@ -504,6 +580,7 @@ class PaperWallpaperService : WallpaperService() {
                         // instead of at the next tick; the check-interval loop only ever decides
                         // *whether* a fetch is due, and this is what makes it due.
                         lastWeatherFetchElapsed = Long.MIN_VALUE / 4
+                        forgetPublishedWeatherStatus()
                         weatherWakeUp.trySend(Unit)
                     }
                     // The user moving a window on the Seasons screen moves the icon with it:
@@ -517,6 +594,8 @@ class PaperWallpaperService : WallpaperService() {
                         renderer?.scrollSpeed = newSettings.scrollSpeed
                         if (changed) requestRedraw()
                     }
+                    // After the update is queued, as with the saved themes above.
+                    firstFrameGate.settingsArrived()
                     // **A fix belongs to the source it came from.** The "we have a fix" flag (now
                     // [solarDay]'s `hasFix`) used to be set by both the GPS and the custom paths, so
                     // switching Custom -> Phone found it already true, returned from
@@ -527,6 +606,11 @@ class PaperWallpaperService : WallpaperService() {
                     // makes the two sources actually exclusive at runtime and not only in prefs.
                     val requestedSource = LocationSource.of(newSettings)
                     if (requestedSource != locationSource) {
+                        // A source the user has just chosen is answered at once, whatever the wait
+                        // says (`LocationRequestThrottle`), until the phone has really been consulted
+                        // for it -- with a fixed hour, once real time comes back. Not the engine's own
+                        // start, which "changes" the source from none (SolarDaySchedule.userChoseSource).
+                        userChoseDeviceSource = SolarDaySchedule.userChoseSource(settingsApplied, locationSource, requestedSource)
                         locationSource = requestedSource
                         solarDay = SolarDay.NONE
                         lastLocationFix = null
@@ -534,11 +618,14 @@ class PaperWallpaperService : WallpaperService() {
                         // worth keeping, so the next pass must fetch rather than compare.
                         lastWeatherFetchLocation = null
                         lastWeatherFetchElapsed = Long.MIN_VALUE / 4
+                        // And "no position" was the old source's answer, not this one's.
+                        forgetPublishedWeatherStatus()
                     }
                     if (newSettings.useLocationForSunTimes) {
-                        // A fix is asked for here and nowhere else on a timer: the weather loop
-                        // asks again when it is about to fetch, and that is the only other time.
-                        if (!solarDay.hasFix) launch { refreshDeviceFix(requestedSource) }
+                        // A fix is asked for here and by the weather loop (when a refresh is due, or
+                        // while none is held), never on a timer of its own. **Not with a fixed hour**
+                        // (v5.10D, row 6): no position counts then, and the Location row is grey.
+                        if (!solarDay.hasFix && newSettings.syncWithRealTime) launch { refreshDeviceFix(requestedSource) }
                     } else {
                         solarDay = SolarDay.NONE
                         if (!newSettings.useCustomLocation) lastLocationFix = null
@@ -558,6 +645,7 @@ class PaperWallpaperService : WallpaperService() {
                         solarDay = SolarDay.NONE
                         lastLocationFix = null
                     }
+                    settingsApplied = true
                 }
             }
             // Live Weather (Phase 1d point 6): checks every WEATHER_CHECK_INTERVAL_MS, while
@@ -585,17 +673,25 @@ class PaperWallpaperService : WallpaperService() {
                         weatherWakeUp.receive()
                         continue
                     }
-                    // **The only recurring reason to ask the device where it is.**
+                    // **The recurring reasons to ask the device where it is**: a weather refresh is
+                    // due, so the position behind it might be stale; or none is held at all.
                     //
-                    // A refresh is due, so the position behind it might be stale -- and this is
-                    // the one moment in the app's life when a new fix is worth what it costs.
-                    // `currentFix` still prefers a cached answer, so most of these cost nothing at
-                    // all; a fix is only actually requested when the system's own cache has gone
-                    // stale too, which puts an upper bound of one request per refresh interval in
-                    // steady state; during a transient-failure backoff the passes come sooner, and
-                    // a request follows whenever the system's cached fix is older than
-                    // DeviceLocationProvider.FRESH_ENOUGH_MS.
+                    // `currentFix` prefers the system's cached answer, so most of these cost nothing
+                    // at all, and **a real request is made at most once an hour while the phone
+                    // answers**, whoever asks (`LocationRequestThrottle`, v5.10D). This comment used to
+                    // promise "an upper bound of one request per refresh interval in steady state", and
+                    // the bound did not hold: during a weather outage the passes came every 2, 4, 8
+                    // minutes and each asked again once the cache was fifteen minutes old, and with no
+                    // position ever received every two-minute pass searched for up to 20 s (v5.10A,
+                    // inventory I-282). **A request that finds nothing is tried again after 5, 15 and
+                    // 30 minutes, then the hour, held position or not** (v5.10E, the maintainer's
+                    // decision of 2026-10-04): the third reason to ask, `deviceRetryDue`, and the
+                    // shorter wait at the bottom of the loop. What the phone allows is read on every
+                    // pass, from the phone (permission and location switch, no radio): without the
+                    // permission no position from it is kept or asked for
+                    // (`DeviceLocationAccess.mayUsePosition`), and no try is counted.
                     val source = LocationSource.of(settings)
+                    val deviceAccess = source.deviceKind?.let { deviceAccess(it) }
                     // Live Weather runs only over a scene that follows real time: a fixed hour has
                     // no "now" to fetch for, which is what the settings screen has always said
                     // (`LiveWeatherUiState.canBeTurnedOn`). Until v5.8C this loop never checked it,
@@ -614,15 +710,21 @@ class PaperWallpaperService : WallpaperService() {
                     // not Live Weather is on -- see SolarDaySchedule for the defect that inline
                     // condition used to be (Custom, or Live Weather off, never recomputed at all).
                     when (SolarDaySchedule.onTick(
+                        followRealTime = settings.syncWithRealTime,
                         liveWeatherEnabled = liveWeatherRuns,
                         deviceSource = source.deviceKind != null,
+                        devicePositionUsable = deviceAccess?.mayUsePosition == true,
                         weatherAttemptDue = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay),
                         hasPosition = solarDay.hasFix,
+                        holdsDevicePosition = source.deviceKind != null && lastLocationFix != null,
                         dayIsStale = solarDayIsStale(),
+                        userAskPending = userChoseDeviceSource,
+                        deviceRetryDue = source.deviceKind != null && LocationRequestThrottle.shared.retryDue(),
                     )) {
                         SolarDaySchedule.Action.ASK_DEVICE -> refreshDeviceFix(source)
                         SolarDaySchedule.Action.RECOMPUTE_FROM_HELD_POSITION ->
                             lastLocationFix?.let { updateSunTimesFromLocation(it) }
+                        SolarDaySchedule.Action.FORGET_DEVICE_POSITION -> forgetDevicePosition()
                         SolarDaySchedule.Action.NOTHING -> Unit
                     }
                     val fix = lastLocationFix
@@ -634,6 +736,7 @@ class PaperWallpaperService : WallpaperService() {
                     val movedSinceLastFetch = fix != null && fix != lastWeatherFetchLocation
                     val timerExpired = LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastWeatherFetchElapsed, attemptDelay)
                     val provider = settings.weatherProvider
+                    val generationAtStart = weatherInputsGeneration
                     // The outcome of a fetch made on *this* pass, or null when none was due --
                     // the meaning LiveWeatherStatus.of already gives the parameter.
                     var result: WeatherFetchResult? = null
@@ -696,17 +799,31 @@ class PaperWallpaperService : WallpaperService() {
                         weatherTransientFailures = 0
                     }
                     applyLiveWeather(decision.snapshotForScene, decision.lapsed)
-                    publishWeatherStatus(decision.status)
-                    // **The update check rides this loop, once a day** (v5.7D, A0). It is here and
-                    // not in a job scheduler, an alarm or a WorkManager worker because that was the
-                    // decision: no new dependency, no new component, and it inherits the three
-                    // things this loop already had argued out -- the monotonic clock, the bounded
-                    // backoff, and ARC-02's parking. Its whole cost is one more `if` per two-minute
-                    // tick and about one GitHub request a day (one more per rebind, and a short
-                    // retry ladder while GitHub is unreachable).
+                    // Not an answer about inputs replaced while this pass was fetching: see
+                    // [weatherInputsGeneration]. The next pass, due at once, answers for the new ones.
+                    if (generationAtStart == weatherInputsGeneration) publishWeatherStatus(decision.status)
+                    // **The update check rides this loop, every three hours** (v5.7D, A0; three
+                    // hours since v5.10D, the maintainer's row 3). It is here and not in a job
+                    // scheduler, an alarm or a WorkManager worker because that was the decision: no
+                    // new dependency, no new component, and it inherits the three things this loop
+                    // already had argued out -- the monotonic clock, the bounded backoff, and ARC-02's
+                    // parking. Its whole cost is one more `if` per two-minute tick and about eight
+                    // GitHub requests a day (one more per rebind, and a short retry ladder while
+                    // GitHub is unreachable), each answered with no body while the list's first page
+                    // has not changed; when it has, the page is read again, and so is each older page
+                    // down to the installed version (UpdateChecker).
                     maybeCheckForUpdate()
-                    // Waits for the tick *or* for a settings change, whichever comes first.
-                    withTimeoutOrNull(WEATHER_CHECK_INTERVAL_MS) { weatherWakeUp.receive() }
+                    // Waits for the tick *or* for a settings change, whichever comes first -- and the
+                    // tick comes sooner when a try for the phone's position falls due before it
+                    // (v5.10E): 5 minutes after a request that found nothing means 5, not the next
+                    // two-minute pass after 5.
+                    withTimeoutOrNull(
+                        SolarDaySchedule.nextPassDelayMillis(
+                            checkIntervalMillis = WEATHER_CHECK_INTERVAL_MS,
+                            deviceSource = LocationSource.of(settings).deviceKind != null,
+                            retryPassDelayMillis = LocationRequestThrottle.shared.passDelay(WEATHER_CHECK_INTERVAL_MS),
+                        ),
+                    ) { weatherWakeUp.receive() }
                 }
             }
         }
@@ -748,7 +865,7 @@ class PaperWallpaperService : WallpaperService() {
                 GlLifecyclePolicy.SurfaceAction.NO_GL -> {
                     // The Canvas loop draws this engine. It was stopped when the surface went away
                     // (see onSurfaceDestroyed); a new surface is what restarts it.
-                    if (visible) {
+                    if (drawing) {
                         lastFrameNanos = System.nanoTime()
                         handler.post(drawRunnable)
                     }
@@ -775,7 +892,7 @@ class PaperWallpaperService : WallpaperService() {
             thread.onSurfaceCreated(holder)
             val frame = holder.surfaceFrame
             thread.onSurfaceChanged(frame.width(), frame.height())
-            thread.setVisible(visible)
+            thread.setVisible(drawing)
         }
 
         override fun onSurfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -825,10 +942,10 @@ class PaperWallpaperService : WallpaperService() {
                     // picked up promptly instead of waiting for the next settings change.
                     thread.queueEvent(Runnable { applyEffectiveTheme() })
                 }
-                thread.setVisible(visible)
+                thread.setVisible(drawing)
                 return
             }
-            if (visible) {
+            if (drawing) {
                 applyEffectiveTheme()
                 lastFrameNanos = System.nanoTime()
                 handler.post(drawRunnable)
@@ -849,6 +966,19 @@ class PaperWallpaperService : WallpaperService() {
             // this contributes to what's actually drawn (via swipeScrollEnabled), so there's no
             // risk of a stale non-zero value lingering from before the setting was turned off.
             onRenderThread { renderer?.homeScreenOffset = xOffset }
+            // **The home screen has moved the wallpaper with a swipe** (v5.10E, inventory I-222): said
+            // once, so *Swipe scroll* can read on -- until then it reads off, because on a home screen
+            // that never reports a swipe it does nothing. Not from the picker's preview, which is sent
+            // offsets by the picker's own screen (`SwipeReport`). Written once by this engine, and again
+            // only if that write failed, until the settings say so.
+            if (!isPreview && swipeReport.moved(xOffset, xOffsetStep) && !settings.swipeReported &&
+                !swipeReportSent && ::prefs.isInitialized
+            ) {
+                swipeReportSent = true
+                scope.launch {
+                    runCatching { prefs.setSwipeReported() }.onFailure { swipeReportSent = false }
+                }
+            }
             // On the `Canvas` fallback, redraw right away instead of waiting for the next
             // scheduled ~33ms tick: the launcher fires this callback continuously while the user
             // drags between home screens, so rendering immediately keeps the parallax glued to the
@@ -868,6 +998,7 @@ class PaperWallpaperService : WallpaperService() {
         override fun onDestroy() {
             super.onDestroy()
             WallpaperEngineCensus.engineDestroyed(isPreview)
+            if (canvasFallback) WallpaperEngineCensus.canvasEngineDestroyed()
             // An engine can be destroyed while still marked visible (the picker's preview engine
             // usually is). Without this the counter would never fall back to zero and the memory
             // policy would keep believing something is drawing.
@@ -875,6 +1006,7 @@ class PaperWallpaperService : WallpaperService() {
             visible = false
             engines.remove(this)
             handler.removeCallbacks(drawRunnable)
+            handler.removeCallbacks(firstFrameWaitLimit)
             glThread?.shutdown()
             glThread = null
             engineJob.cancel()
@@ -936,12 +1068,13 @@ class PaperWallpaperService : WallpaperService() {
         private fun switchToCanvasFallback() {
             if (canvasFallback) return
             canvasFallback = true
+            WallpaperEngineCensus.engineFellBackToCanvas()
             glThread?.shutdown()
             glThread = null
             val frame = surfaceHolder.surfaceFrame
             renderer?.onSizeChanged(frame.width(), frame.height())
             lastFrameNanos = System.nanoTime()
-            if (visible) handler.post(drawRunnable)
+            if (drawing) handler.post(drawRunnable)
         }
 
         /**
@@ -953,7 +1086,7 @@ class PaperWallpaperService : WallpaperService() {
          */
         private fun requestRedraw() {
             if (glThread != null) return
-            if (visible) drawFrame()
+            if (drawing) drawFrame()
         }
 
         private fun drawFrame() {
@@ -1009,16 +1142,22 @@ class PaperWallpaperService : WallpaperService() {
         private fun renderScene(target: SceneCanvas, deltaSeconds: Float) {
             elapsedSeconds += deltaSeconds
 
-            val hour = if (settings.syncWithRealTime) {
+            // One read of the settings, so the hour and the day below belong to the same ones.
+            val current = settings
+            val hour = if (current.syncWithRealTime) {
                 SunPositionCalculator.currentHour24()
             } else {
-                settings.fixedHour
+                current.fixedHour
             }
 
             // One read of one reference, so the two hours below provably belong to the same fix.
-            // SolarDay.NONE already carries the 6/20 defaults this used to substitute here.
-            val today = solarDay
-            val dayPhase = SunPositionCalculator.compute(
+            // SolarDay.NONE already carries the 6/20 defaults this used to substitute here -- and is
+            // what a fixed hour draws with since v5.10D, whatever position is held (the maintainer's
+            // row 6: with a fixed hour the location does not count; see SolarDaySchedule.sceneDay).
+            val today = SolarDaySchedule.sceneDay(current.syncWithRealTime, solarDay)
+            // Recomputed only when the hour or the sun's times change; see [DayPhaseCache] for why
+            // a new DayPhase every frame was worth removing (v5.10B).
+            val dayPhase = dayPhaseCache.at(
                 hour24 = hour,
                 sunriseHour = today.sunriseHour,
                 sunsetHour = today.sunsetHour,
@@ -1040,7 +1179,9 @@ class PaperWallpaperService : WallpaperService() {
          *
          * ### Why it lives in this loop and not in a scheduler
          *
-         * The maintainer's decision, taken 2026-09-23 with its limit stated first. The alternative
+         * The maintainer's decision, taken 2026-09-23 with its limit stated first; on 2026-09-30 he
+         * kept the place and moved the cadence from once a day to every three hours (row 3 of the
+         * v5.10A table). The alternative
          * was a `WorkManager` periodic job, which would run whether or not this wallpaper is set and
          * would survive reboot -- and would cost a **thirteenth dependency** in a project that ships
          * twelve and has argued over each, a new initializer in a process that starts nothing, and a
@@ -1079,16 +1220,14 @@ class PaperWallpaperService : WallpaperService() {
             if (!current.automaticUpdateCheckEnabled || !current.updateNotificationsEnabled) return
             if (!UpdateNotificationPolicy.mayPost(UpdateNotifier.notificationPermission(applicationContext))) return
 
-            val delay = LiveWeatherSchedule.nextAttemptDelayMillis(
-                consecutiveTransientFailures = updateCheckTransientFailures,
-                normalIntervalMillis = UpdateNotificationPolicy.UPDATE_CHECK_INTERVAL_MILLIS,
-            )
-            if (!LiveWeatherSchedule.isAttemptDue(SystemClock.elapsedRealtime() - lastUpdateCheckElapsed, delay)) return
+            if (!UpdateNotificationPolicy.checkDue(SystemClock.elapsedRealtime() - lastUpdateCheckElapsed, updateCheckTransientFailures)) return
 
             // Stamped before the request, not after, so a slow or hanging call cannot be retried by
             // the next tick two minutes later. The weather loop stamps in the same place.
             lastUpdateCheckElapsed = SystemClock.elapsedRealtime()
-            val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+            // With the reply kept from the last check: while nothing has changed GitHub answers with
+            // no body (v5.10D, row 16).
+            val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME, updatePrefs)
             updateCheckTransientFailures = if (UpdateNotificationPolicy.isTransient(result)) {
                 updateCheckTransientFailures + 1
             } else {
@@ -1122,6 +1261,25 @@ class PaperWallpaperService : WallpaperService() {
             if (UpdateNotifier.post(applicationContext, info.tagName, BuildConfig.VERSION_NAME)) {
                 runCatching { updatePrefs.setNotifiedTag(info.tagName) }
             }
+        }
+
+        /**
+         * The published status was about the provider, key or location source just replaced: say
+         * "not known yet" ([LiveWeatherStatus.OFF]) until the next pass has asked again (v5.10C).
+         *
+         * The settings screen draws the Live Weather switch off on two of the engine's answers, a
+         * refused key and a phone that gives no position (`SettingsUiModel.liveWeather`), and the
+         * next pass that could replace them runs only once the wallpaper is visible again -- not
+         * while the settings screen is in front of it. Kept, a key typed in a moment ago went on
+         * reading "not accepted" until the user had gone home and come back. Forgetting the memory
+         * as well is what lets the next pass publish whatever it finds, the same answer included.
+         * OFF is also what [LiveWeatherSchedule.decide] starts from, so the next pass is a fresh
+         * engine's.
+         */
+        private fun forgetPublishedWeatherStatus() {
+            weatherInputsGeneration++
+            publishedWeatherStatus = null
+            publishWeatherStatus(LiveWeatherStatus.OFF)
         }
 
         /**
@@ -1179,17 +1337,36 @@ class PaperWallpaperService : WallpaperService() {
          * Asks the device where it is, once, and only when something needs the answer.
          *
          * There is no subscription any more (see [DeviceLocationProvider]), so this is called at
-         * the two moments a position actually matters: when a settings change finds no fix held (a
-         * source change always clears it), and when a weather refresh is due. In between, nothing
-         * wakes the positioning stack at all.
+         * the moments a position actually matters: when a settings change finds no fix held (a
+         * source change always clears it), when a weather refresh is due, and -- since v5.10D, on the
+         * loop's pass -- while none is held at all, and since v5.10E when a try after a request that
+         * found nothing is due ([SolarDaySchedule.onTick]). A real request is made at most once an hour
+         * among all of them while the phone answers; 5, 15 and 30 minutes after the first, second and
+         * third in a row that brought nothing, then the hour (`LocationRequestThrottle`); in between, the
+         * system's cached position or the saved one answers, and nothing wakes the positioning stack.
          *
-         * When the provider cannot answer -- permission refused, radio off, no signal -- the last
-         * saved fix is used instead. That is the whole fallback: a town does not move, and last
-         * hour's coordinates give a far better scene than a default somewhere else.
+         * When the provider cannot answer -- the location switched off, no signal, a request too soon after
+         * the last one -- the last saved fix is used instead. That is the whole fallback: a town
+         * does not move, and last hour's coordinates give a far better scene than a default
+         * somewhere else.
+         *
+         * **Except without the permission** (v5.10D, the maintainer's row 5): a user who took it away
+         * said no to PaperScrape knowing where the phone is, and until then the saved position went on
+         * being used -- and sent to the weather service every hour -- for good. Now nothing from the
+         * phone is used, fresh or saved, until the permission is back, and the settings screen says
+         * "GPS - tap to allow" (`DeviceLocationAccess.mayUsePosition`).
          */
         private suspend fun refreshDeviceFix(source: LocationSource) {
             val kind = source.deviceKind ?: return
-            val fix = deviceFix(kind)
+            if (!deviceAccess(kind).mayUsePosition) {
+                forgetDevicePosition()
+                return
+            }
+            val answer = deviceFix(kind, force = userChoseDeviceSource)
+            // Spent only once the phone has really been consulted for the choice: a request the throttle or
+            // a switched-off location did not let through leaves it waiting for the next pass.
+            if (answer.consulted) userChoseDeviceSource = false
+            val fix = answer.fix
             if (fix != null) {
                 updateSunTimesFromLocation(fix, isDeviceFix = true)
                 return
@@ -1212,6 +1389,22 @@ class PaperWallpaperService : WallpaperService() {
             val latitude = settings.resolvedGpsLatitude ?: return null
             val longitude = settings.resolvedGpsLongitude ?: return null
             return DeviceLocationFix(latitude.toDouble(), longitude.toDouble())
+        }
+
+        /**
+         * The phone no longer lets PaperScrape use its position (v5.10D): the position held from it
+         * goes, with the sunrise and sunset worked out from it and the weather fetched for it, and the
+         * next pass decides on what is left -- the default 6:00 and 20:00, and Live Weather with no
+         * place ("no location"). Only a position from the phone: a Custom one is not the phone's to
+         * take away.
+         */
+        private fun forgetDevicePosition() {
+            if (locationSource.deviceKind == null) return
+            solarDay = SolarDay.NONE
+            lastLocationFix = null
+            lastWeatherFetchLocation = null
+            lastWeatherSnapshot = null
+            lastWeatherSnapshotLocation = null
         }
 
         /**

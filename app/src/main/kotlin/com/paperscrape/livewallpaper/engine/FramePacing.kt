@@ -59,23 +59,24 @@ internal object FramePacing {
      * it finished: one tick lost, once, and still on the grid.
      */
     /**
-     * What the render loop does after a frame: how long to sleep, and the tick the next frame is
-     * anchored on (0 when it is not on one). With a [grid] it sleeps to [nextTick]; **with none**
-     * -- the first second, the first second after parking, or a device whose `Choreographer`
-     * never answers -- it sleeps what is left of [FALLBACK_INTERVAL_MS] after this frame's cost,
-     * exactly as the loop did before v5.8C, and anchors nothing.
+     * What the render loop does after a frame, in two numbers: the tick the next frame is anchored
+     * on, which it sleeps to, and -- when that is 0 -- how long to sleep instead. With a [grid] the
+     * anchor is [nextTick]; **with none** -- the first second, the first second after parking, or a
+     * device whose `Choreographer` never answers -- there is no anchor, and the loop sleeps
+     * [fallbackSleepNanos], what is left of [FALLBACK_INTERVAL_MS] after this frame's cost, exactly
+     * as it did before v5.8C.
+     *
+     * Two functions returning `Long` rather than one returning a pair: the answer used to be a
+     * `Plan` object, one allocation a frame on the render thread (v5.10A), for two numbers.
      */
-    fun plan(grid: VsyncGrid.Grid?, anchorTickNanos: Long, frameStartNanos: Long, nowNanos: Long): Plan {
-        if (grid == null) {
-            val costMs = (nowNanos - frameStartNanos) / 1_000_000L
-            return Plan((FALLBACK_INTERVAL_MS - costMs) * 1_000_000L, 0L)
-        }
-        val next = nextTick(anchorTickNanos, frameStartNanos, nowNanos, grid.tickNanos, grid.periodNanos)
-        return Plan(next - nowNanos, next)
-    }
+    fun nextAnchorTick(grid: VsyncGrid.Grid?, anchorTickNanos: Long, frameStartNanos: Long, nowNanos: Long): Long =
+        if (grid == null) 0L else nextTick(anchorTickNanos, frameStartNanos, nowNanos, grid.tickNanos, grid.periodNanos)
 
-    /** See [plan]. A non-positive [sleepNanos] means "start the next frame at once". */
-    class Plan(val sleepNanos: Long, val anchorTickNanos: Long)
+    /** The sleep with no grid: see [nextAnchorTick]. A non-positive value means "start the next frame at once". */
+    fun fallbackSleepNanos(frameStartNanos: Long, nowNanos: Long): Long {
+        val costMs = (nowNanos - frameStartNanos) / 1_000_000L
+        return (FALLBACK_INTERVAL_MS - costMs) * 1_000_000L
+    }
 
     /**
      * When the frame started on [frameTickNanos] should reach the screen, for

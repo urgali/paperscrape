@@ -58,8 +58,8 @@ class SpriteGeometryTest {
      * **The alternative, for whoever revisits this.** Recolouring one flat colour into a cached
      * bitmap at load time would give the same tones with zero growth here, at the cost of a
      * one-off per-pixel pass per tone actually used. It was not taken because the batch that
-     * requested this asked for real variant PNGs; it remains the cheaper answer if memory
-     * pressure is ever measured to be a problem on real devices.
+     * requested this asked for real variant PNGs; it was the cheaper answer, and v4.30 took it in
+     * another form (the rc4 and v4.30 paragraphs below).
      *
      * **SCL-01 grew the set inside the ceiling rather than moving it, and says so here because
      * the paragraph above asks the next asset pass to.** Widening the three co-registered person
@@ -78,8 +78,9 @@ class SpriteGeometryTest {
      * the v4.1 paragraph describes -- sprites decode on demand, no frame decodes four tones of
      * one character, and the rc4 release build was measured as the live wallpaper without a
      * memory regression (the pass report carries the PSS figure). The runtime-recolour
-     * alternative above remains the cheaper answer if pressure is ever measured on a real
-     * device. The ceiling is set just above the measured figure, as always, so the next pass
+     * alternative above was the cheaper answer then; v4.30 took it in another form -- a person is
+     * fixed art plus region masks, coloured at the blit -- so the tones no longer grow this set.
+     * The ceiling is set just above the measured figure, as always, so the next pass
      * has to come here and say so too.
      *
      * **v4.20 raises it to 29 MiB, and this is that argument.** It buys the clothing-colour axis
@@ -163,8 +164,8 @@ class SpriteGeometryTest {
      * not raining. The worst case those sprites can add is bounded by the arithmetic above --
      * 4 667 328 B, and only in a scene that is raining over a lake with adults on the pavement.
      *
-     * *The cheaper answer, still on the table.* Everything the v4.1 paragraph says about recolouring
-     * at load time still applies, and `BACKLOG_v4_28.md` item 80 recorded a second and larger one:
+     * *The cheaper answer, as it stood then* (v4.30 took it, below). The v4.1 paragraph made the case
+     * for recolouring at load time, and `BACKLOG_v4_28.md` item 80 recorded a second and larger one:
      * `SpriteCache` decodes at the resolution the artwork was drawn at, so this 117x252 pose is
      * decoded at four times the area it is ever blitted at.
      *

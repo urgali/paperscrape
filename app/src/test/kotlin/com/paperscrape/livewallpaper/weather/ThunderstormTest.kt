@@ -178,7 +178,7 @@ class ThunderstormTest {
     fun `clouds and storm agree about who is in charge`() {
         val cloudsUnderForecast = LiveWeatherSceneRules.cloudDensity(1f, themeCloudsVisible = false, themeCloudDensity = 0f)
         val stormUnderForecast = LiveWeatherSceneRules.stormActive(true, false, false, false)
-        assertTrue("clouds drawn from the forecast", cloudsUnderForecast != null)
+        assertTrue("clouds drawn from the forecast", !cloudsUnderForecast.isNaN())
         assertTrue("storm active from the forecast", stormUnderForecast)
     }
 }

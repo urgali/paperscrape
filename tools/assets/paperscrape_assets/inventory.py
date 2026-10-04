@@ -1,9 +1,9 @@
 """Measurement of the shipped runtime PNGs.
 
 This module only reads. It is what lets a claim about the asset set be checked
-rather than repeated: every figure quoted in `ARCHITECTURE.md` section 5 and
-`DESIGN_NOTES.md` section 4 comes from here, and can be re-derived by running the
-tool again.
+rather than repeated: a figure about the shipped PNGs -- size, decoded bytes,
+padding -- comes from here, is written to `reports/runtime-inventory.md`, and can be
+re-derived by running the tool again.
 
 Two measurements are worth explaining.
 
@@ -76,9 +76,9 @@ class SpriteMeasurement:
     #: rasterizer probe stopped hashing PNG bytes in v4.13: a file digest measures the compressor.
     #: Two files holding the identical drawing, written by different encoder settings or at
     #: different times, get different file digests, and the check that exists to find "one drawing
-    #: under two names" could not see any of them. Twenty-four sprite pairs in this library are
-    #: pixel-identical -- every character whose own skin tone is one of the three the variants are
-    #: generated in -- and the byte check reported zero.
+    #: under two names" could not see any of them. Until v4.30 twenty-four sprite pairs in this
+    #: library were pixel-identical -- every character whose own skin tone was one of the three the
+    #: variants were generated in -- and the byte check reported zero.
     pixels_sha256: str
 
     def as_dict(self) -> dict[str, object]:

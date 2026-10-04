@@ -10,10 +10,11 @@ import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Egg
 import androidx.compose.material.icons.outlined.LocalFlorist
-import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,14 +29,20 @@ import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-/** The six seasons decorations are grouped under. Presentation only; no flag knows about it. */
+/**
+ * The five seasons decorations are grouped under. Presentation only; no flag knows about it.
+ *
+ * There was a sixth, Summer, and the Palms switch was all it held. The maintainer moved the switch
+ * to the Trees page of World & scene on 2026-10-03 (*«il flag non deve stare in summer ma in
+ * tree»*, v5.10C2): the palms stand in the trees' places, so they are set where the trees are. A
+ * Summer row left behind would have counted nothing and opened an empty page.
+ */
 private enum class Season(val title: String) {
     WINTER("Winter"),
     CHRISTMAS("Christmas"),
     HALLOWEEN("Halloween"),
     EASTER("Easter"),
     SPRING("Spring"),
-    SUMMER("Summer"),
 }
 
 /**
@@ -56,25 +63,18 @@ internal fun SeasonsScreen(
     customization: SceneCustomization,
     forThemeId: String,
     themeName: String,
-    /**
-     * Whether the layout this theme draws places any palm -- `SceneObjectLayout.hasPalmSlots`,
-     * asked by the caller of the same layout the wallpaper uses. The Palms switch is on by
-     * default everywhere and changes nothing where no palm stands, so counting it as "on" there
-     * reported a decoration on ten of the twelve built-ins that cannot show one.
-     */
-    themeHasPalms: Boolean,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
     onBack: () -> Unit,
 ) {
     var openSeason by remember { mutableStateOf<Season?>(null) }
+    // "Reset decorations to defaults" asks first, as the scene's reset does (v5.10E, inventory I-214).
+    var confirmDecorationsReset by remember { mutableStateOf(false) }
     val palette = SettingsUiModel.seasonalPalette(customization.fallColorsEnabled, customization.winterColorsEnabled)
 
     SettingsSubScreen(title = "Seasons & decorations", onBack = onBack) {
-        SettingsBanner(
-            "These apply to $themeName, the theme showing now, and follow whichever theme you are on. " +
-                "Keep an edit permanently by saving the theme from Advanced & about.",
-        )
+        // What happens to an edit, said as it is (v5.10E, inventory I-219): kept with this theme.
+        SettingsBanner(SettingsUiModel.themeEditsBanner(themeName))
 
         SettingsSectionHeader("Seasonal palette")
         SettingsGroup {
@@ -148,62 +148,66 @@ internal fun SeasonsScreen(
 
         SettingsSectionHeader("Decorations")
         SettingsGroup {
+            // Each decoration as its switch shows it: at 0 % density none is drawn, so it is off
+            // here too (v5.10C, row 8).
+            fun shown(c: ObjectVariantConfig) = SettingsUiModel.amountSwitch(c.visible, c.density).shownOn
             SeasonRow(Season.WINTER, Icons.Outlined.AcUnit, listOf(
-                "Snowmen" to customization.snowmen.visible,
-                "Penguins" to customization.penguins.visible,
+                "Snowmen" to shown(customization.snowmen),
+                "Penguins" to shown(customization.penguins),
             )) { openSeason = Season.WINTER }
             SeasonRow(Season.CHRISTMAS, Icons.Outlined.CardGiftcard, listOf(
                 "Christmas lights" to customization.christmasDecorationsEnabled,
                 "Santa" to customization.santaEnabled,
-                "Gifts" to customization.gifts.visible,
+                "Gifts" to shown(customization.gifts),
             )) { openSeason = Season.CHRISTMAS }
             SeasonRow(Season.HALLOWEEN, Icons.Outlined.DarkMode, listOf(
                 "Halloween" to customization.halloweenEnabled,
                 "Horror sky" to customization.horrorSkyEnabled,
-                "Pumpkins" to customization.pumpkins.visible,
+                "Pumpkins" to shown(customization.pumpkins),
             )) { openSeason = Season.HALLOWEEN }
             SeasonRow(Season.EASTER, Icons.Outlined.Egg, listOf(
-                "Bunnies" to customization.bunnies.visible,
-                "Eggs" to customization.easterEggs.visible,
+                "Bunnies" to shown(customization.bunnies),
+                "Eggs" to shown(customization.easterEggs),
             )) { openSeason = Season.EASTER }
             SeasonRow(Season.SPRING, Icons.Outlined.LocalFlorist, listOf(
                 "Flowers" to customization.flowersEnabled,
             )) { openSeason = Season.SPRING }
-            SeasonRow(
-                Season.SUMMER, Icons.Outlined.WbSunny, listOf("Palms" to customization.palmsEnabled),
-                unavailableSupporting = if (themeHasPalms) null else "Palms - none on this theme",
-            ) { openSeason = Season.SUMMER }
         }
 
         OutlinedButton(
-            onClick = {
-                scope.launch {
-                    // Only what this screen shows: the 6 seasonal categories, the palettes and the
-                    // decoration switches (palms included since v5.8, see resetSeasonalPalettes),
-                    // and Santa. resetAllCategories() would also wipe this theme's houses/trees/etc,
-                    // which is not what "reset" means here; that one lives on World & scene.
-                    for (category in listOf(
-                        ObjectCategory.SNOWMEN, ObjectCategory.GIFTS,
-                        ObjectCategory.PENGUINS, ObjectCategory.BUNNIES, ObjectCategory.EASTER_EGGS,
-                        ObjectCategory.PUMPKINS,
-                    )) {
-                        prefs.resetCategory(category, forThemeId)
-                    }
-                    prefs.resetSeasonalPalettes(forThemeId)
-                    prefs.resetSanta(forThemeId)
-                }
-            },
+            onClick = { confirmDecorationsReset = true },
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 24.dp),
         ) {
             Text("Reset decorations to defaults")
         }
     }
 
+    if (confirmDecorationsReset) {
+        // **What this screen shows, and nothing else** (v5.10E, inventory I-214 and I-294): the palette
+        // and the piles under it, the five seasons' decorations with their densities and colours, and
+        // their switches -- in one write (`WallpaperPrefs.resetDecorations`). Until v5.10E the button
+        // reset without asking, left the snow and leaf piles where they were, and took the palms, whose
+        // switch is on the Trees page of World & scene since v5.10C2: "Reset Trees to default" takes
+        // them now. resetAllCategories() would also wipe this theme's houses, trees and the rest, which
+        // is not what "reset" means here; that one lives on World & scene.
+        AlertDialog(
+            onDismissRequest = { confirmDecorationsReset = false },
+            title = { Text("Reset $themeName's decorations?") },
+            text = { Text(SettingsUiModel.decorationsResetMessage(themeName)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { prefs.resetDecorations(forThemeId) }
+                    confirmDecorationsReset = false
+                }) { Text("Reset") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDecorationsReset = false }) { Text("Cancel") } },
+        )
+    }
+
     openSeason?.let { season ->
         SeasonDetailScreen(
             season = season,
             customization = customization,
-            themeHasPalms = themeHasPalms,
             forThemeId = forThemeId,
             prefs = prefs,
             scope = scope,
@@ -213,23 +217,25 @@ internal fun SeasonsScreen(
 }
 
 /**
- * One season's row. [unavailableSupporting], when given, replaces the count: it is for a season
- * whose decorations cannot appear on this theme at all, where "1 on" would describe a switch
- * position rather than anything the wallpaper draws.
+ * One season's row: its decorations, and how many of them the wallpaper is drawing. Each pair's
+ * flag is what the switch shows, not what is stored -- a decoration at 0 % density counts as off,
+ * as its switch does (v5.10C, [SettingsUiModel.amountSwitch]).
+ *
+ * It had a second form until v5.10C, a sentence in place of the count for a season whose
+ * decorations could not appear on the theme at all: the palms, which grew only where the layout
+ * planted them. They can be switched on anywhere now, and since v5.10C2 from the Trees page.
  */
 @Composable
 private fun SeasonRow(
     season: Season,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contents: List<Pair<String, Boolean>>,
-    unavailableSupporting: String? = null,
     onClick: () -> Unit,
 ) {
-    val onCount = if (unavailableSupporting != null) 0 else contents.count { it.second }
+    val onCount = contents.count { it.second }
     SettingsNavigationRow(
         title = season.title,
-        supporting = unavailableSupporting
-            ?: (contents.joinToString(", ") { it.first } + if (onCount == 0) " - all off" else " - $onCount on"),
+        supporting = contents.joinToString(", ") { it.first } + if (onCount == 0) " - all off" else " - $onCount on",
         icon = icon,
         supportingIsAccent = onCount > 0,
         onClick = onClick,
@@ -248,7 +254,6 @@ private fun SeasonRow(
 private fun SeasonDetailScreen(
     season: Season,
     customization: SceneCustomization,
-    themeHasPalms: Boolean,
     forThemeId: String,
     prefs: WallpaperPrefs,
     scope: CoroutineScope,
@@ -266,7 +271,12 @@ private fun SeasonDetailScreen(
                 Season.CHRISTMAS -> {
                     SettingsSwitchRow(
                         title = "Christmas lights",
-                        supporting = "Blinking lights on the trees. Independent of the seasonal palette - you can have one without the other.",
+                        // What the switch does, all of it (v5.10E, inventory I-224): the lights on the
+                        // trees *and* the strings along the buildings' windowsills, and one tree in three
+                        // standing as a Christmas fir with presents at its foot
+                        // (`SceneObjectRenderer.standsAsFir`), on any theme. Until v5.10E it said only
+                        // "Blinking lights on the trees".
+                        supporting = CHRISTMAS_LIGHTS_LINE,
                         checked = customization.christmasDecorationsEnabled,
                         onCheckedChange = { scope.launch { prefs.setChristmasDecorationsEnabled(it, forThemeId) } },
                     )
@@ -305,16 +315,6 @@ private fun SeasonDetailScreen(
                         onCheckedChange = { scope.launch { prefs.setFlowersEnabled(it, forThemeId) } },
                     )
                 }
-                Season.SUMMER -> {
-                    SettingsSwitchRow(
-                        title = "Palms",
-                        supporting = "Palm trees on the Beach and Desert themes. Turn them off and those two draw the " +
-                            "same broadleaf trees as everywhere else - same places, same number, so the shore does " +
-                            "not go bare.",
-                        checked = customization.palmsEnabled,
-                        onCheckedChange = { scope.launch { prefs.setPalmsEnabled(it, forThemeId) } },
-                    )
-                }
             }
         }
         SettingsCaption(
@@ -324,18 +324,6 @@ private fun SeasonDetailScreen(
                 Season.HALLOWEEN -> "Halloween and Horror sky are independent of each other and of the palette."
                 Season.EASTER -> "Both are available on any theme, not only the Easter one."
                 Season.SPRING -> "Flowers are available on any theme, not only the Spring one."
-                // The one switch in this screen that is on out of the box on every theme (the
-                // others are on only where a theme's own defaults put them), and the only one
-                // whose scope is not every theme: it changes something only where the layout
-                // places a palm -- Beach, Desert, a theme saved from either, a shuffled theme that
-                // dealt one.
-                // Said per theme, from the layout, because "only Beach and Desert" was false about
-                // a saved Beach, which keeps its palms under its own name.
-                Season.SUMMER -> if (themeHasPalms) {
-                    "This theme has palms. On a theme without any this switch changes nothing."
-                } else {
-                    "This theme has no palms, so this switch changes nothing here. Beach and Desert have them."
-                }
             },
         )
     }
@@ -352,6 +340,16 @@ private fun SeasonDetailScreen(
     }
 }
 
+/**
+ * The line under *Christmas lights* (v5.10E, inventory I-224): everything the switch does --
+ * `SceneObjectRenderer`'s tree, palm and fir lights, the strings on the buildings' sills
+ * (`drawNeighbourhoodBuilding`), and the firs.
+ */
+internal const val CHRISTMAS_LIGHTS_LINE =
+    "Blinking lights on the trees and along the windowsills, and one tree in three becomes a " +
+        "Christmas fir with presents at its foot. Independent of the seasonal palette - you can have " +
+        "one without the other."
+
 /** A decoration that has density and colours: its switch, then a way into those. */
 @Composable
 private fun DecorationRows(
@@ -363,11 +361,20 @@ private fun DecorationRows(
     scope: CoroutineScope,
     onOpenOptions: (ObjectCategory) -> Unit,
 ) {
+    // At 0 % density none is drawn: off, and said, and a tap brings them back at the theme's own
+    // density (v5.10C, row 8; inventory I-211).
+    val shown = SettingsUiModel.amountSwitch(config.visible, config.density)
     SettingsSwitchRow(
         title = title,
-        supporting = "Density ${(config.density * 100).toInt()}%",
-        checked = config.visible,
-        onCheckedChange = { scope.launch { prefs.setCategoryVisible(category, it, forThemeId) } },
+        supporting = if (shown.noneAtZero) NONE_AT_ZERO_LINE else "Density ${(config.density * 100).toInt()}%",
+        checked = shown.shownOn,
+        onCheckedChange = { wanted ->
+            scope.applyAmountTap(
+                SettingsUiModel.amountTap(wanted, config.density, defaultDensityOf(category, forThemeId)),
+                setVisible = { prefs.setCategoryVisible(category, it, forThemeId) },
+                setAmount = { prefs.setCategoryDensity(category, it, forThemeId) },
+            )
+        },
     )
     SettingsNavigationRow(
         title = "$title options",

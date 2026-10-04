@@ -10,7 +10,7 @@
 # antialiasing by a few units of alpha along an edge, and that would silently
 # invalidate every fidelity figure recorded in reports/.
 #
-# `paperscrape-assets probe` renders a fixed probe document and hashes the
+# `python3 -m paperscrape_assets probe` (from tools/assets) renders a fixed probe document and hashes the
 # result. Run it after any change here: if the hash moves, the toolchain moved,
 # and every previously recorded fidelity number has to be re-measured rather
 # than trusted.

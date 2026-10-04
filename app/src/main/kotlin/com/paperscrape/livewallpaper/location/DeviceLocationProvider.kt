@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.location
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
@@ -10,6 +11,7 @@ import android.os.CancellationSignal
 import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
@@ -17,6 +19,14 @@ import kotlin.coroutines.resume
 
 /** A raw lat/long fix, independent of what it is used for. */
 data class DeviceLocationFix(val latitude: Double, val longitude: Double)
+
+/**
+ * [DeviceLocationProvider.currentFix]'s answer (v5.10D): the position, if any, and whether the phone was
+ * really consulted for it -- a real request made, or a cached position young enough to stand for one.
+ * Only that answers a choice the user has just made; a request the throttle or a switched-off location did
+ * not let through leaves the choice waiting.
+ */
+data class DeviceFixAnswer(val fix: DeviceLocationFix?, val consulted: Boolean)
 
 /**
  * One position, asked for when something actually needs it.
@@ -40,12 +50,47 @@ data class DeviceLocationFix(val latitude: Double, val longitude: Double)
  *    back to the position it saved last time.
  *  - **A request always ends.** Every path is bounded by `timeoutMillis`, so a provider that never
  *    calls back costs one pending continuation and no more.
+ *  - **At most one request an hour while the phone answers** (v5.10D): [LocationRequestThrottle.shared]
+ *    decides, for every engine of the process. Until then a weather outage, or a position that never
+ *    arrived, made the loop ask every few minutes. **A request that finds nothing is tried again after
+ *    5, 15 and 30 minutes, then the hour** (v5.10E, the maintainer's decision of 2026-10-04): it is told
+ *    how each request ended ([LocationRequestThrottle.requestEnded]).
  */
 class DeviceLocationProvider(private val context: Context) {
 
-    /** Whether the permission [kind] needs has been granted. */
-    fun hasPermission(kind: DeviceLocationKind): Boolean =
-        ContextCompat.checkSelfPermission(context, kind.permission) == PackageManager.PERMISSION_GRANTED
+    /**
+     * Whether a permission that serves [kind] has been granted: the precise location for GPS, either
+     * for Network ([DeviceLocationAccess.of]'s rule, v5.10D: the network provider answers to the
+     * precise permission too, and the screen calls that working).
+     */
+    fun hasPermission(kind: DeviceLocationKind): Boolean {
+        fun granted(permission: String) =
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        return when (kind) {
+            DeviceLocationKind.GPS -> granted(Manifest.permission.ACCESS_FINE_LOCATION)
+            DeviceLocationKind.NETWORK ->
+                granted(Manifest.permission.ACCESS_COARSE_LOCATION) || granted(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
+    /**
+     * What the phone allows for [kind] right now: the two permissions and the phone's location switch
+     * ([DeviceLocationAccess], v5.10D). Cheap -- two permission checks and one system call, no radio --
+     * so the wallpaper reads it on every pass and the settings screen every time it comes back.
+     */
+    fun access(kind: DeviceLocationKind): DeviceLocationAccess {
+        fun granted(permission: String) =
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        val locationOn = manager != null &&
+            runCatching { LocationManagerCompat.isLocationEnabled(manager) }.getOrDefault(false)
+        return DeviceLocationAccess.of(
+            kind = kind,
+            fineGranted = granted(Manifest.permission.ACCESS_FINE_LOCATION),
+            coarseGranted = granted(Manifest.permission.ACCESS_COARSE_LOCATION),
+            locationOn = locationOn,
+        )
+    }
 
     /**
      * One position from [kind], or `null` if it cannot be had right now.
@@ -56,26 +101,48 @@ class DeviceLocationProvider(private val context: Context) {
      * different provider.
      *
      * A cached fix younger than [maxAgeMillis] short-circuits the whole thing. Beyond that, one
-     * current-location request is made and abandoned after [timeoutMillis]; if it comes back
-     * empty, a stale cached fix is still better than nothing and is returned rather than discarded.
+     * current-location request is made and abandoned after [timeoutMillis] -- **only if [throttle]
+     * allows it** (v5.10D): an hour after a request that brought a position; 5, 15 and 30 minutes after
+     * the first, second and third in a row that did not, then the hour, and round again (v5.10E);
+     * whoever asks, unless [forceRequest] says the user has just chosen this source. If no request is made or it comes back empty, a stale cached fix is still better than
+     * nothing and is returned rather than discarded.
+     *
+     * **What the throttle is told** ([plan]): how a request it let through ended, and a fresh cached fix
+     * as a position arrived. Nothing about the two cases where the phone is not asked at all -- no
+     * permission, the provider (the phone's location) off: those are not failed tries, and they leave
+     * the wait where it was (the maintainer, 2026-10-04: the settings screen says what to do there).
      */
     suspend fun currentFix(
         kind: DeviceLocationKind,
+        forceRequest: Boolean = false,
         maxAgeMillis: Long = FRESH_ENOUGH_MS,
         timeoutMillis: Long = REQUEST_TIMEOUT_MS,
-    ): DeviceLocationFix? {
-        if (!hasPermission(kind)) return null
-        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
-
-        val cached = lastKnown(manager, kind)
-        if (cached != null && cached.ageMillis() <= maxAgeMillis) return cached.toFix()
-
-        // Asking a disabled provider can only wait out the timeout, so do not.
-        val live = if (isEnabled(manager, kind)) requestOnce(manager, kind, timeoutMillis) else null
-
-        // A stale cached fix beats no fix: a town does not move, and the forecast for where the
-        // device was an hour ago is a far better scene than the default one.
-        return live ?: cached?.toFix()
+        throttle: LocationRequestThrottle = LocationRequestThrottle.shared,
+    ): DeviceFixAnswer {
+        val permitted = hasPermission(kind)
+        val manager = if (permitted) context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager else null
+        val cached = manager?.let { lastKnown(it, kind) }
+        val step = plan(
+            permitted = manager != null,
+            cachedAgeMillis = cached?.ageMillis(),
+            maxAgeMillis = maxAgeMillis,
+            // Asking a disabled provider can only wait out the timeout, so it is not asked.
+            providerOn = manager != null && isEnabled(manager, kind),
+            throttle = throttle,
+            force = forceRequest,
+        )
+        return when (step) {
+            FixStep.NOT_PERMITTED -> DeviceFixAnswer(null, consulted = false)
+            FixStep.FRESH_CACHE -> DeviceFixAnswer(cached?.toFix(), consulted = true)
+            // A stale cached fix beats no fix: a town does not move, and the forecast for where the
+            // device was an hour ago is a far better scene than the default one.
+            FixStep.PROVIDER_OFF, FixStep.WAIT -> DeviceFixAnswer(cached?.toFix(), consulted = false)
+            FixStep.REQUEST -> {
+                // Counted however it ends, a cancellation included (`LocationRequestThrottle.counted`).
+                val live = throttle.counted { manager?.let { requestOnce(it, kind, timeoutMillis) } }
+                DeviceFixAnswer(live ?: cached?.toFix(), consulted = true)
+            }
+        }
     }
 
     private fun isEnabled(manager: LocationManager, kind: DeviceLocationKind): Boolean = try {
@@ -157,7 +224,51 @@ class DeviceLocationProvider(private val context: Context) {
 
     private fun Location.ageMillis(): Long = System.currentTimeMillis() - time
 
+    /** What [currentFix] does, in the order it decides it ([plan]). */
+    internal enum class FixStep {
+        /** The permission [currentFix]'s kind needs is not held: the phone is not asked. */
+        NOT_PERMITTED,
+
+        /** The system's own position is young enough to stand for a request. */
+        FRESH_CACHE,
+
+        /** The provider -- the phone's location -- is off: asking could only wait out the timeout. */
+        PROVIDER_OFF,
+
+        /** A real request would be too soon ([LocationRequestThrottle]): the last fix stands in. */
+        WAIT,
+
+        /** A real request, now. */
+        REQUEST,
+    }
+
     companion object {
+
+        /**
+         * [currentFix]'s decision, without the phone (v5.10E): the permission, the system's cached
+         * position, the provider, then the throttle -- and what the throttle is told on the way. A fresh
+         * cached position is a position arrived ([LocationRequestThrottle.positionArrived]); a request is
+         * counted from now ([LocationRequestThrottle.tryAcquire]), and [currentFix] tells it how the
+         * request ended. **No permission and a provider switched off touch nothing**: they are not tries
+         * (the maintainer's rule of 2026-10-04), and `LocationRetryLadderTest` holds that here.
+         */
+        internal fun plan(
+            permitted: Boolean,
+            cachedAgeMillis: Long?,
+            maxAgeMillis: Long,
+            providerOn: Boolean,
+            throttle: LocationRequestThrottle,
+            force: Boolean,
+        ): FixStep = when {
+            !permitted -> FixStep.NOT_PERMITTED
+            cachedAgeMillis != null && cachedAgeMillis <= maxAgeMillis -> {
+                throttle.positionArrived()
+                FixStep.FRESH_CACHE
+            }
+            !providerOn -> FixStep.PROVIDER_OFF
+            throttle.tryAcquire(force) -> FixStep.REQUEST
+            else -> FixStep.WAIT
+        }
 
         /**
          * How old a cached fix may be and still be used without asking for a new one.

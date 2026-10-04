@@ -39,8 +39,8 @@ class PalmSpeciesTest {
     @Test
     fun `off turns a palm slot into a tree slot and changes nothing else about it`() {
         val slot = palm(x = 0.37f, depth = 0.81f)
-        assertEquals(slot, on.palmSpeciesApplied(slot))
-        val swapped = off.palmSpeciesApplied(slot)
+        assertEquals(slot, on.palmSpeciesApplied(slot, layoutPlantsPalms = true))
+        val swapped = off.palmSpeciesApplied(slot, layoutPlantsPalms = true)
         assertEquals(SceneObjectType.TREE, swapped.type)
         // Same place, same depth, same size. The slot is not re-dealt, re-thinned or moved: the
         // scene keeps exactly the vegetation it had, drawn as another species.
@@ -55,8 +55,8 @@ class PalmSpeciesTest {
         for (type in SceneObjectType.entries) {
             if (type == SceneObjectType.PALM_TREE) continue
             val slot = StaticSceneObject(type, depthFraction = 0.4f, tileFractionX = 0.6f)
-            assertEquals("$type moved with the palms switch on", slot, on.palmSpeciesApplied(slot))
-            assertEquals("$type moved with the palms switch off", slot, off.palmSpeciesApplied(slot))
+            assertEquals("$type moved with the palms switch on", slot, on.palmSpeciesApplied(slot, layoutPlantsPalms = true))
+            assertEquals("$type moved with the palms switch off", slot, off.palmSpeciesApplied(slot, layoutPlantsPalms = true))
         }
     }
 
@@ -67,7 +67,7 @@ class PalmSpeciesTest {
             val palms = objects.count { it.type == SceneObjectType.PALM_TREE }
             assertTrue("$id should ship palms to begin with", palms > 0)
 
-            val swapped = objects.map { off.palmSpeciesApplied(it) }
+            val swapped = objects.map { off.palmSpeciesApplied(it, layoutPlantsPalms = true) }
             assertFalse("$id still holds a palm with the switch off", swapped.any { it.type == SceneObjectType.PALM_TREE })
             // The count is the point: this is a species change, not a second visibility toggle.
             assertEquals(
@@ -83,11 +83,11 @@ class PalmSpeciesTest {
         // The reason the swap is made on the spec rather than at the blit. `variantFor` decides
         // the drawing, and `SceneVariant` decides how tall it stands; asking them after the swap
         // is what stops an oak being drawn at a palm's 90.33 units.
-        val swapped = off.palmSpeciesApplied(palm())
+        val swapped = off.palmSpeciesApplied(palm(), layoutPlantsPalms = true)
         val variant = SceneObjectRenderer.variantFor(swapped)
         assertEquals(SceneSpace.SceneVariant.TREE, variant)
         assertEquals(SceneSpace.SceneVariant.TREE.spriteUnitsTall, variant.spriteUnitsTall, 0f)
-        assertEquals(SceneSpace.SceneVariant.PALM_TREE, SceneObjectRenderer.variantFor(on.palmSpeciesApplied(palm())))
+        assertEquals(SceneSpace.SceneVariant.PALM_TREE, SceneObjectRenderer.variantFor(on.palmSpeciesApplied(palm(), layoutPlantsPalms = true)))
     }
 
     @Test
@@ -107,13 +107,18 @@ class PalmSpeciesTest {
         }
     }
 
+    /**
+     * The old field, on the ten themes that plant no palm: still inert. Since v5.10C the Palms switch
+     * does reach those themes, through `palmsInsteadOfTrees` (`PalmsOnEveryThemeTest`), and this is
+     * the half that keeps a `true` the app wrote there before v5.10 from planting anything.
+     */
     @Test
-    fun `it is inert on every theme that has no palms`() {
+    fun `the old field is inert on every theme that has no palms`() {
         for (theme in ThemeCatalog.ALL) {
             if (theme.id in setOf("beach", "desert")) continue
             val base = defaultCustomizationFor(theme.id)
             assertEquals(
-                "${theme.id} changed when the palms switch moved, and it has no palms to change",
+                "${theme.id} changed when palmsEnabled moved, and it plants no palms for that field to change",
                 ThemePreviewScenes.forTheme(theme, base).items,
                 ThemePreviewScenes.forTheme(theme, base.copy(palmsEnabled = false)).items,
             )
@@ -145,9 +150,9 @@ class PalmSpeciesTest {
     }
 
     @Test
-    fun `the settings screen counts the switch only where the layout places a palm`() {
-        // `SeasonsScreen` reads `hasPalmSlots` off the same layout the wallpaper draws, to stop
-        // reporting "Palms - 1 on" on the ten built-ins where no palm can appear.
+    fun `exactly the two summer themes plant palms of their own`() {
+        // `SeasonsScreen` reads `hasPalmSlots` off the same layout the wallpaper draws, to know which
+        // half of the switch a theme reads (`palmsShown`): only these two read `palmsEnabled`.
         val withPalms = ThemeCatalog.ALL
             .filter { SceneObjectCatalog.layoutFor(it.id, it.accentColor).hasPalmSlots() }
             .map { it.id }

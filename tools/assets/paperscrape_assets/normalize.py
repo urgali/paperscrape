@@ -1,8 +1,9 @@
 """Padding and grid normalisation: the rule, and the plan it produces.
 
 A shipped sprite carries transparent padding that is decoded, held and blitted
-for no visual result -- 18.3 MB of it across the set, more than half of everything
-the app decodes. Removing it is not a redraw: cropping rows and columns whose
+for no visual result -- 18.3 MB of it across the set when Phase 3.3 measured it, more
+than half of everything the app then decoded; since that pass none is left outside
+`EXCLUSIONS`. Removing it is not a redraw: cropping rows and columns whose
 alpha is zero changes no visible pixel. What it does change is where the bitmap's
 own pixel (0,0) sits, and `SpriteBlitter` places exactly that pixel at the
 caller's origin. So a crop is only correct together with a compensation at the
@@ -31,7 +32,7 @@ is therefore allowed by rule 6.3, which is also why it is *outward*: rounding
 inward would crop artwork.
 
 **Why the union over a group.** Some sprites are selected from a lookup table at
-draw time -- the 32 walk frames, the window occupants, the car drivers -- so every
+draw time -- the walk and carry frames, the window occupants, the car drivers -- so every
 member is blitted through one origin literal. Trimming each member to its own box
 would need one origin per member, which does not exist and which rule 7.3
 forbids; the walk frames would jitter horizontally, since `walk2` reaches 9 px
@@ -46,10 +47,10 @@ agreeing on a number.
 
 What this module does not do
 ----------------------------
-It does not touch anchors. An anchor is `placement - anchor` away from the origin
-and 101 of the 118 are `UNDETERMINED`; nothing here resolves one, and nothing here
-changes what a placement means. For the 17 determined anchors the invariant
-``origin == -anchor`` survives untouched, because the anchor is derived from the
+It does not touch anchors. An anchor is `placement - anchor` away from the origin;
+every entry declares one today, nothing here resolves one, and nothing here changes
+what a placement means. For the box-derived anchor rules the invariant
+``origin == -anchor`` survives a crop untouched, because the anchor is derived from the
 content box and both sides move by the same amount -- `validate` checks that
 rather than taking it on trust.
 """
@@ -95,38 +96,32 @@ def co_registered_groups(names: set[str]) -> list[Group]:
         (
             "person_walk",
             lambda n: n.startswith("person_") and ("_walk" in n or "_carry" in n),
-            "SceneObjectRenderer.drawPerson",
-            "Every walk frame of every kind and season is chosen from personWalkDrawables and "
-            "blitted through one origin. The frames do not share a content box -- the mid-stride "
-            "frame reaches further to both sides -- so a per-frame crop would move the figure "
-            "between frames. v4.28's carrying frames are in the same group and must be: "
-            "drawPerson swaps a `_carry` frame in for the `_walk` frame of the same walker at the "
-            "same origin, so a crop that moved one against the other would make the figure jump "
-            "the moment it put an umbrella up.",
+            "SceneObjectRenderer.drawPersonLayers",
+            "Every walk and carry frame of every kind and season, and each of its layers, is "
+            "chosen from PeopleLayerTable and blitted through one origin. The frames do not share "
+            "a content box -- the mid-stride frame reaches further to both sides -- so a per-frame "
+            "crop would move the figure between frames. The carrying frames are in the same group "
+            "and must be: a walker swaps a `_carry` frame in for its `_walk` frame at the same "
+            "origin, so a crop that moved one against the other would make the figure jump the "
+            "moment it put an umbrella up.",
         ),
         (
             "person_head_window",
             lambda n: "_head_window" in n,
             "SceneObjectRenderer.drawWindowOccupant",
-            "Occupant heads are chosen from personWindowHeadDrawables and blitted through one "
-            "origin, so they must stay registered against the window frame they are drawn into. "
-            "Matched by substring rather than by suffix so the skin-tone recolours land in the "
-            "same group as the head they were recoloured from: `personWindowHeadSkinDrawables` "
-            "indexes them through that same origin, so cropping a tone on its own would move it "
-            "against the base head. `person_walk` above has always matched this way, and the "
-            "suffix here was simply older than the skin axis.",
+            "Occupant busts and their layers are chosen from PeopleLayerTable.WINDOW and blitted "
+            "through one origin, so they must stay registered against the window frame they are "
+            "drawn into. Matched by substring rather than by suffix so a shape's layers (`_fx` "
+            "and its masks) land in the same group as the shape.",
         ),
         (
             "person_head_car",
             lambda n: "_head_car" in n,
-            "SceneObjectRenderer.drawCar",
-            "The vehicle occupants (rc4): the driver is chosen from "
-            "personCarHeadSkinDrawables and blitted through one CONTENT_BOTTOM_CENTRE origin on "
-            "the sill, so a crop would move the seat with the season or the tone. Matched by "
-            "substring so the skin recolours stay registered against their base head, exactly as "
-            "person_head_window above. Replaces the person_head_profile group (rc2): the profile "
-            "busts were retired for the pedestrians' own frontal language, and the frontal "
-            "family covers every family x season x skin combination the pedestrians have.",
+            "SceneObjectRenderer.drawSeatedOccupant",
+            "The vehicle occupants: a bust and its layers, chosen from PeopleLayerTable.CAR and "
+            "blitted through one CONTENT_BOTTOM_CENTRE origin on the sill, so a crop would move "
+            "the seat with the season. Matched by substring so a shape's layers stay registered "
+            "against each other, exactly as person_head_window above.",
         ),
         (
             "moon_phase",
@@ -242,8 +237,8 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
     ),
     Exclusion(
         "star_sparkle",
-        "`SPRITE_CENTRE`, positioned by `STAR_SPRITE_ORIGIN_UNITS` against a nominal 32-unit star "
-        "radius. The crop is symmetric and would be safe on its own, but it moves the canvas the "
+        "`SPRITE_CENTRE`, positioned by `STAR_SPRITE_ORIGIN_UNITS` against the 16-unit "
+        "`STAR_SPRITE_RADIUS_DIVISOR` (32 until v4.23). The crop is symmetric and would be safe on its own, but it moves the canvas the "
         "origin constant is expressed against, and that constant is the one D-1 broke. Left with "
         "the other canvas-anchored sprites so the sky set moves as one decision or not at all.",
     ),
@@ -260,6 +255,22 @@ EXCLUSIONS: tuple[Exclusion, ...] = (
         "`SPRITE_CENTRE`, blitted centred on the burst it draws. Same reasoning as `star_sparkle`: "
         "a symmetric crop is expressible, but it redefines the canvas the origin is measured "
         "against, which is a change to the sky sprites' anchoring rather than to their padding.",
+    ),
+    Exclusion(
+        "tree_canopy_snowcap",
+        "Blitted at the crown's own origin (`TreeSpriteLayout.SNOWCAP_X == CANOPY_X`), so a snow "
+        "cap meets the trunk exactly where the leaves did and a redraw has to move both or "
+        "neither: its 6-unit leading margin *is* that shared origin, and cropping it would turn "
+        "the equality into a derived offset. Closed without cropping by the maintainer's "
+        "decision of 2026-09-27 (ROADMAP row A41); declared here since v5.10G, so a check of "
+        "the shipped set stops asking for the crop.",
+    ),
+    Exclusion(
+        "tree_dead_branches",
+        "Blitted at the crown's own origin (`TreeSpriteLayout.DEAD_BRANCHES_X == CANOPY_X`), for "
+        "the same reason as `tree_canopy_snowcap`: its 11-unit leading margin is the shared "
+        "origin. Closed without cropping on 2026-09-27 (ROADMAP row A41); declared here since "
+        "v5.10G.",
     ),
 )
 

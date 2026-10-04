@@ -22,6 +22,18 @@ import kotlin.random.Random
  */
 class FireworkEffect {
 
+    /**
+     * Blits one burst: its centre, the scale to draw it at ([MIN_SCALE], 0.15, at the instant it
+     * goes off, 1 fully expanded) and its fade alpha (1 down to 0).
+     *
+     * A `fun interface` with `Float` parameters rather than a `(Float, Float, Float, Float) -> Unit`:
+     * a Kotlin function type is a generic `Function4`, and calling one boxes all four floats -- four
+     * `Float` objects per burst per frame while fireworks were going off (v5.10A).
+     */
+    fun interface BurstBlit {
+        fun blit(x: Float, y: Float, scale: Float, alpha: Float)
+    }
+
     private class Burst(val x: Float, val y: Float) {
         var age = 0f
     }
@@ -30,11 +42,12 @@ class FireworkEffect {
     private var timeUntilNextSpawn = 2f
 
     fun update(deltaSeconds: Float, enabled: Boolean, screenWidth: Float, screenHeight: Float) {
-        val iterator = bursts.iterator()
-        while (iterator.hasNext()) {
-            val b = iterator.next()
+        // By index, from the end so a removal does not skip the next burst: an iterator here was
+        // an object every frame, bursts or none (v5.10A). `removeAt` keeps the others in order.
+        for (i in bursts.size - 1 downTo 0) {
+            val b = bursts[i]
             b.age += deltaSeconds
-            if (b.age > MAX_AGE) iterator.remove()
+            if (b.age > MAX_AGE) bursts.removeAt(i)
         }
 
         if (!enabled) return
@@ -52,11 +65,10 @@ class FireworkEffect {
     }
 
     /**
-     * @param spriteDraw receives each live burst's centre, the scale to draw it at ([MIN_SCALE],
-     *   0.15, at the instant it goes off, 1 fully expanded) and its fade alpha (1 down to 0).
-     *   Called once per burst per frame, only while bursts are alive.
+     * @param spriteDraw blits each live burst (see [BurstBlit]). Called once per burst per frame,
+     *   only while bursts are alive.
      */
-    fun draw(spriteDraw: (x: Float, y: Float, scale: Float, alpha: Float) -> Unit) {
+    fun draw(spriteDraw: BurstBlit) {
         // By index: a `for (b in bursts)` builds an iterator every frame (v5.8C).
         for (i in bursts.indices) {
             val b = bursts[i]
@@ -65,7 +77,7 @@ class FireworkEffect {
             // opening rather than appearing. A scale that starts near zero reproduces that; the
             // floor stops the first frame being an invisible zero-area blit.
             val scale = MIN_SCALE + (1f - MIN_SCALE) * t
-            spriteDraw(b.x, b.y, scale, 1f - t)
+            spriteDraw.blit(b.x, b.y, scale, 1f - t)
         }
     }
 

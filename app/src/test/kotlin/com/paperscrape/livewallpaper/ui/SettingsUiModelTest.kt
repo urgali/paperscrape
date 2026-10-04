@@ -7,6 +7,7 @@ import com.paperscrape.livewallpaper.prefs.WallpaperSettings
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -208,23 +209,32 @@ class SettingsUiModelTest {
         followRealTime: Boolean = true,
         mode: LocationMode = LocationMode.GPS,
         status: LiveWeatherStatus = LiveWeatherStatus.OK,
-    ) = SettingsUiModel.liveWeather(enabled, followRealTime, mode, status)
+        keyMissing: Boolean = false,
+        isTheWallpaper: Boolean = true,
+        devicePositionUsable: Boolean = true,
+    ) = SettingsUiModel.liveWeather(enabled, followRealTime, mode, devicePositionUsable, keyMissing, isTheWallpaper, status)
 
+    /**
+     * **No dead end, in the shape it has since v5.10C.** Until then this said "a switch that is on
+     * can always be switched off", and the switch showed the stored flag. It shows on only while
+     * real weather can drive the scene now, so the stored "on" behind a switch drawn off is not
+     * something the user can reach directly -- and that is safe only because nothing locks anything
+     * while it is drawn off: World & scene's clouds are read-only only while `drivingTheScene`. So:
+     * drawn on, a tap turns it off; drawn off, nothing is driving the scene. Every combination.
+     */
     @Test
-    fun `a Live Weather switch that is on can always be switched off`() {
-        // Every way the prerequisites can fail, with the setting already on. There is no
-        // combination in which the user is locked in.
-        for (followRealTime in listOf(true, false)) {
-            for (mode in LocationMode.entries) {
-                for (status in LiveWeatherStatus.entries) {
-                    assertTrue(
-                        "on + followRealTime=$followRealTime, $mode, $status must stay switchable",
-                        liveWeather(enabled = true, followRealTime = followRealTime, mode = mode, status = status)
-                            .switchIsInteractive,
-                    )
+    fun `a Live Weather switch drawn on can be switched off, and one drawn off locks nothing`() {
+        for (enabled in listOf(true, false)) for (followRealTime in listOf(true, false)) for (mode in LocationMode.entries)
+            for (status in LiveWeatherStatus.entries) for (keyMissing in listOf(true, false)) for (wallpaper in listOf(true, false)) {
+                val state = liveWeather(enabled, followRealTime, mode, status, keyMissing, wallpaper)
+                val label = "on=$enabled real=$followRealTime $mode $status key-missing=$keyMissing wallpaper=$wallpaper"
+                if (state.shownOn) {
+                    assertEquals(label, LiveWeatherTap.TURN_OFF, SettingsUiModel.liveWeatherTap(state))
+                } else {
+                    assertFalse("$label: drawn off but locking World & scene", state.drivingTheScene)
+                    assertNotEquals("$label: drawn off, and the tap would turn it off", LiveWeatherTap.TURN_OFF, SettingsUiModel.liveWeatherTap(state))
                 }
             }
-        }
     }
 
     @Test
@@ -232,30 +242,23 @@ class SettingsUiModelTest {
         val state = liveWeather(enabled = true, mode = LocationMode.OFF, status = LiveWeatherStatus.NO_LOCATION)
 
         assertFalse("nothing to fetch for", state.canBeTurnedOn)
-        assertTrue("but the way out has to stay open", state.switchIsInteractive)
+        assertFalse("so the switch reads off", state.shownOn)
+        assertEquals(LiveWeatherBlocker.NO_LOCATION, state.blocker)
+        assertEquals("and its tap goes to the location", LiveWeatherTap.SHOW_LOCATION, SettingsUiModel.liveWeatherTap(state))
         assertFalse("and the scene is on the theme's own weather", state.drivingTheScene)
     }
 
     @Test
     fun `case B - follow real time switched off with Live Weather on`() {
+        // The status is what an engine published before the hour was fixed, with the settings
+        // screen in front of it: it has not been on screen since to say otherwise.
         val state = liveWeather(enabled = true, followRealTime = false, status = LiveWeatherStatus.OK)
 
         assertFalse(state.canBeTurnedOn)
-        assertTrue(state.switchIsInteractive)
-    }
-
-    @Test
-    fun `a Live Weather switch that is off stays gated on its prerequisites`() {
-        assertFalse(
-            "turning it on with no location would produce exactly the state we just made escapable",
-            liveWeather(enabled = false, mode = LocationMode.OFF, status = LiveWeatherStatus.OFF).switchIsInteractive,
-        )
-        assertFalse(
-            liveWeather(enabled = false, followRealTime = false, status = LiveWeatherStatus.OFF).switchIsInteractive,
-        )
-        assertTrue(
-            liveWeather(enabled = false, mode = LocationMode.CUSTOM, status = LiveWeatherStatus.OFF).switchIsInteractive,
-        )
+        assertFalse("the switch read on over a fixed hour until v5.10C", state.shownOn)
+        assertEquals(LiveWeatherBlocker.FIXED_HOUR, state.blocker)
+        assertEquals(LiveWeatherTap.FOLLOW_REAL_TIME, SettingsUiModel.liveWeatherTap(state))
+        assertFalse("an old OK must not lock World & scene", state.drivingTheScene)
     }
 
     @Test

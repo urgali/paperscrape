@@ -163,12 +163,13 @@ class PaperRenderer(
     private val cloudCoverFade = CloudCoverFade(CLOUD_POOL_SIZE)
 
     /**
-     * This frame's cloud cover as actually drawn, or null when Live Weather is not driving.
+     * This frame's cloud cover as actually drawn, or `NaN` when Live Weather is not driving (a
+     * `Float?` here was a boxed `Float` every frame: see [LiveWeatherSceneRules.cloudDensity]).
      *
      * Refreshed once per frame by [updateWeatherPredicates] and read by both [drawClouds] and
      * [stormStrength], which are separated by the whole sky in draw order.
      */
-    private var drawnCloudCover: Float? = null
+    private var drawnCloudCover: Float = Float.NaN
 
     // **Where the light is, this frame.** The water is a mirror since v4.26, so it has to know
     // three things the sky already worked out: whether a body was drawn at all, whether it was the
@@ -207,6 +208,9 @@ class PaperRenderer(
     private val precipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val lightningPaint = Paint()
     private val leafPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    /** The falling-leaf palette blended to this frame's light, one per entry; see [drawFallingLeaves]. */
+    private val fallingLeafBlended = IntArray(FALLING_LEAF_PALETTE.size)
 
     /**
      * The paint the point stars are drawn with.
@@ -312,7 +316,11 @@ class PaperRenderer(
     // A positive-but-meaningless value such as 1f would pass that guard while claiming the scene
     // tiles every pixel, which would put the tile enumeration into a range of roughly
     // screenWidth + 2 * halfWidth entries per object.
-    private var objectGroundGeometry = GroundGeometry(0f, 0f)
+    //
+    // One instance for the renderer's life, written in place by drawHillLayers (v5.10B): the shift
+    // moves every frame the scene scrolls, and a new GroundGeometry each frame was an allocation on
+    // the render thread for three numbers.
+    private val objectGroundGeometry = GroundGeometry(0f, 0f)
     private val fireworkEffect = FireworkEffect()
     private val santaSleighEffect = SantaSleighEffect()
 
@@ -1033,6 +1041,16 @@ class PaperRenderer(
          */
         const val STAR_POINT_COLOR = 0xFFFBF4E6.toInt()
 
+        /** How many stars a full *# of Stars* places. */
+        const val STAR_COUNT_AT_FULL_DENSITY = 70
+
+        /**
+         * How many stars the field holds at [density] -- the same expression `regenerateStars` always
+         * used, here so the settings screen can ask it too (v5.10C): below 1/70 it is none, and
+         * *Show Stars* reads off there rather than on over an empty sky.
+         */
+        fun starCountFor(density: Float): Int = (STAR_COUNT_AT_FULL_DENSITY * density.coerceIn(0f, 1f)).toInt()
+
         /**
          * How much of a star's radius a point covers.
          *
@@ -1273,7 +1291,7 @@ class PaperRenderer(
 
     private fun regenerateStars() {
         val rnd = Random(42)
-        val count = (70 * sceneCustomization.stars.density.coerceIn(0f, 1f)).toInt()
+        val count = starCountFor(sceneCustomization.stars.density)
         val placed = List(count) {
             Star(
                 x = rnd.nextFloat() * screenWidth,
@@ -1325,7 +1343,7 @@ class PaperRenderer(
             val clouds = sceneCustomization.clouds
             cloudCoverFade.coverLapsingTo(if (clouds.visible) clouds.density else 0f, deltaSeconds)
         } else {
-            cloudCoverFade.coverToward(live?.cloudCoverFraction, deltaSeconds)
+            cloudCoverFade.coverToward(if (live == null) Float.NaN else live.cloudCoverFraction, deltaSeconds)
         }
         if (live != null) {
             rainingNow = live.precipitationType == PrecipitationType.RAIN && live.precipitationIntensity > 0f
@@ -1440,7 +1458,7 @@ class PaperRenderer(
     private var effectElapsed = SceneTime(0.0)
 
     /** Built once: see the comment where the effects are drawn. */
-    private val drawFireworkBurst: (Float, Float, Float, Float) -> Unit = { x, y, burstScale, alpha ->
+    private val drawFireworkBurst = FireworkEffect.BurstBlit { x, y, burstScale, alpha ->
         val canvas = effectCanvas
         if (canvas != null) {
             // `firework` is 240x240 with a SPRITE_CENTRE anchor -- 80x80 local units, so the
@@ -1464,7 +1482,7 @@ class PaperRenderer(
     }
 
     /** Built once, like [drawFireworkBurst]. */
-    private val drawSleigh: (Float, Float, Float, Float) -> Unit = { x, y, dir, alpha ->
+    private val drawSleigh = SantaSleighEffect.SleighBlit { x, y, dir, alpha ->
         val canvas = effectCanvas
         if (canvas != null) {
             val elapsedSeconds = effectElapsed
@@ -1673,7 +1691,7 @@ class PaperRenderer(
             // clouds, and a sky that stepped to the new weather while the clouds under it were
             // still easing into it would put the two layers a ramp apart. Falls back to the
             // reported value on the frame before [updateWeatherPredicates] has ever run.
-            cloudCoverFraction = drawnCloudCover ?: live.cloudCoverFraction,
+            cloudCoverFraction = if (drawnCloudCover.isNaN()) live.cloudCoverFraction else drawnCloudCover,
         )
     }
 
@@ -1749,12 +1767,13 @@ class PaperRenderer(
         // few brighter stars in it, and seventy identical rotating sparkles read as a pattern.
         // The sparkles that remain are the largest fifth of the field ([starSparkleIndices];
         // until v5.8C every fifth by index, whatever its size).
-        for (star in stars) {
+        for (starIndex in stars.indices) {
+            val star = stars[starIndex]
             val twinkle = 0.5f + 0.5f * elapsedSeconds.sinAt(1.5f, star.phase)
             val alpha = (255 * visibility * twinkle).toInt().coerceIn(0, 255)
             if (alpha <= 0) continue
             if (!star.sparkle) {
-                starPointPaint.alpha = alpha
+                starPointPaint.setAlphaWithoutAllocating(alpha)
                 canvas.drawCircle(star.x, star.y, star.radius * STAR_POINT_RADIUS_SCALE, starPointPaint)
                 continue
             }
@@ -2157,7 +2176,7 @@ class PaperRenderer(
         // A cover easing down to nothing reaches zero before the last clouds have finished fading,
         // so "no clouds to place" is not yet "no clouds on screen": leaving early here would cut
         // the fade off at its last step, which is the one frame this whole class exists to remove.
-        if (density == null && !cloudCoverFade.anythingVisible()) {
+        if (density.isNaN() && !cloudCoverFade.anythingVisible()) {
             // No clouds to place, either because the layer is off or because the forecast reports a
             // clear sky. Turning the cloud layer off must not also turn precipitation off, so with
             // no clouds to derive a field from the sky is treated as uniformly covered and
@@ -2172,7 +2191,7 @@ class PaperRenderer(
             blendColor(clouds.colorNight, clouds.colorDay, dayPhase.dayBlend),
             stormStrength(),
         )
-        cloudPaint.alpha = 255
+        cloudPaint.setAlphaWithoutAllocating(255)
 
         // aa reported clouds too small and, even at 100% density, not actually covering the sky.
         // A full sky is ~41 heavily-overlapping clouds spread evenly across the *whole* width,
@@ -2188,7 +2207,7 @@ class PaperRenderer(
         // Zero when the layer has just been told to place nothing and is only finishing its fade;
         // `isPresent` already answers false for every candidate at zero, which is precisely the
         // "everything is on its way out" the frames after the early return above describe.
-        val placementDensity = density ?: 0f
+        val placementDensity = if (density.isNaN()) 0f else density
         val effectOffset = CandidateThreshold.offsetFor(EffectId.CLOUDS)
         val fallbackIndex = CandidateThreshold.fallbackIndexFor(placementDensity, CLOUD_POOL_SIZE, effectOffset)
         val seed = seedFor(EffectId.CLOUDS)
@@ -2460,12 +2479,17 @@ class PaperRenderer(
                 else -> 1f
             }.coerceIn(0f, 1f)
 
+            // The drops below the bottom edge (the last [PRECIPITATION_BOTTOM_MARGIN_METRES] of the
+            // fall) are drawn like the others. Skipping them changes no pixel, and v5.10B measured
+            // what it saves under full rain on the BV6600: 0.21 points of a core, inside the noise
+            // of two alternated runs -- so, on the maintainer's condition of 2026-09-30, it is not
+            // done (inventory I-262).
             if (isRain) {
-                precipPaint.alpha = (RAIN_ALPHA * fadeAlpha).toInt()
+                precipPaint.setAlphaWithoutAllocating((RAIN_ALPHA * fadeAlpha).toInt())
                 val len = CandidateNoise.range(seed, i, CandidateNoise.CH_LENGTH, rainLengthMin, rainLengthMax)
                 canvas.drawLine(x, y, x - len * 0.25f, y + len, precipPaint)
             } else {
-                precipPaint.alpha = (SNOW_ALPHA * fadeAlpha).toInt()
+                precipPaint.setAlphaWithoutAllocating((SNOW_ALPHA * fadeAlpha).toInt())
                 val r = CandidateNoise.range(seed, i, CandidateNoise.CH_WIDTH, snowRadiusMin, snowRadiusMax)
                 canvas.drawCircle(x, y, r, precipPaint)
             }
@@ -2535,6 +2559,16 @@ class PaperRenderer(
         // they were only ever drawn over it. Still stateless: same noise, same channels,
         // re-evaluated from the clock every frame, nothing stored between frames.
         val fallSpeed = 0.06f
+        // The palette's day/night blend is the same for every leaf of a frame, so it is worked out
+        // once per entry here, with the same calls, instead of twice per leaf; and the style is set
+        // once, since nothing in the loop changes it. The colour and the alpha then go into the paint
+        // in one write (`setAlpha` allocates on Android 10: see [setAlphaWithoutAllocating]).
+        val blended = fallingLeafBlended
+        for (k in palette.indices) {
+            val c = palette[k]
+            blended[k] = blendColor(ColorUtils.blendARGB(c, 0xFF000000.toInt(), 0.35f), c, dayPhase.dayBlend)
+        }
+        leafPaint.style = Paint.Style.FILL
         for (source in 0 until sources) {
             val id = objectRenderer.leafSourceId[source]
             val perTree = objectRenderer.leafSourceLeafCount[source]
@@ -2565,7 +2599,7 @@ class PaperRenderer(
                 val x = objectRenderer.leafSourceX[source] +
                     acrossCrown * objectRenderer.leafSourceHalfWidth[source] + sway * fallFraction
                 val spin = elapsedSeconds.cycleOf(60f * (0.5f + speedVariance * 0.5f), phase * 360f, 360f)
-                val color = palette[i % palette.size]
+                val leafColor = blended[i % palette.size]
                 // Fade in leaving the canopy, fade out settling near the ground -- same polish
                 // drawPrecipitation's own fade already uses, for the same "doesn't just pop
                 // into/out of existence" reason.
@@ -2575,14 +2609,12 @@ class PaperRenderer(
                     fallFraction > 1f - fadeRange -> (1f - fallFraction) / fadeRange
                     else -> 1f
                 }.coerceIn(0f, 1f)
-                leafPaint.color =
-                    blendColor(ColorUtils.blendARGB(color, 0xFF000000.toInt(), 0.35f), color, dayPhase.dayBlend)
-                leafPaint.style = Paint.Style.FILL
-                leafPaint.alpha = (220 * fadeAlpha).toInt().coerceIn(0, 255)
+                val leafAlpha = (220 * fadeAlpha).toInt().coerceIn(0, 255)
+                leafPaint.color = (leafAlpha shl 24) or (leafColor and 0x00FFFFFF)
                 // A fully faded leaf is not drawn at all: an alpha-0 oval costs a draw call and,
                 // at the fall's very first frame, would count as "a leaf on the crown" to any
                 // honest pixel accounting -- including FallingLeafContinuityTest's.
-                if (leafPaint.alpha == 0) continue
+                if (leafAlpha == 0) continue
                 canvas.save()
                 canvas.translate(x, y)
                 canvas.rotate(spin)
@@ -2627,7 +2659,7 @@ class PaperRenderer(
     private fun drawLightningFlash(canvas: SceneCanvas) {
         if (lightningFlashAlpha <= 0f) return
         lightningPaint.color = 0xFFFFFFFF.toInt()
-        lightningPaint.alpha = (LIGHTNING_VEIL_MAX_ALPHA * lightningFlashAlpha).toInt().coerceIn(0, 255)
+        lightningPaint.setAlphaWithoutAllocating((LIGHTNING_VEIL_MAX_ALPHA * lightningFlashAlpha).toInt().coerceIn(0, 255))
         canvas.drawRect(0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), lightningPaint)
 
         // The sprite hangs from its own top edge, so the scale that gives it the rolled height is
@@ -2720,7 +2752,7 @@ class PaperRenderer(
         // layers is already communicated by their independently user-editable colors (and, once a
         // layer is picked, its own smaller/larger size and lower/higher position) -- opacity was
         // never needed for that and only introduced this glitch.
-        mountainPaint.alpha = 255
+        mountainPaint.setAlphaWithoutAllocating(255)
 
         val effectOffset = CandidateThreshold.offsetFor(seedSalt)
         val fallbackIndex = CandidateThreshold.fallbackIndexFor(config.density, MOUNTAIN_POOL_SIZE, effectOffset)
@@ -2823,7 +2855,8 @@ class PaperRenderer(
      * are then stale and must not be read. */
     private fun updateLakeBandY(): Boolean {
         val lake = sceneCustomization.lake
-        if (!lake.visible) return false
+        // Off, or at 0 % height: no water, and nothing laid out on it (v5.10E, inventory I-293).
+        if (!lake.drawsWater) return false
         // The lake now sits *above* where hills begin, not overlapping their body -- verified
         // with an actual rendered mock of the geometry (not just the math): hills are largely
         // opaque, so there's almost no room for anything behind them to show through except right
@@ -3049,10 +3082,10 @@ class PaperRenderer(
             val drift = elapsedSeconds.cycle(CandidateNoise.range(sparkleSeed, i, CandidateNoise.CH_SPEED, 0.03f, 0.05f), phase)
             val sx = xOffset + drift * screenWidth
             val twinkle = (elapsedSeconds.sinAt(3f, phase * 6.28f) * 0.5f + 0.5f)
-            ripplePaint.alpha = (140 * twinkle).toInt().coerceIn(0, 255)
+            ripplePaint.setAlphaWithoutAllocating((140 * twinkle).toInt().coerceIn(0, 255))
             canvas.drawLine(sx - 5f, sy, sx + 5f, sy, ripplePaint)
         }
-        ripplePaint.alpha = 255
+        ripplePaint.setAlphaWithoutAllocating(255)
     }
 
     /** One scratch shape, reused for every sliver of the light's path, so the glitter allocates
@@ -3120,7 +3153,7 @@ class PaperRenderer(
             val half = 4f + 26f * lane
             val thick = 1.2f + 2f * lane
             val twinkle = elapsedSeconds.sinAt(2.4f, phase * 6.28f) * 0.5f + 0.5f
-            ripplePaint.alpha = (255f * gain * (0.45f + 0.55f * twinkle)).toInt().coerceIn(0, 255)
+            ripplePaint.setAlphaWithoutAllocating((255f * gain * (0.45f + 0.55f * twinkle)).toInt().coerceIn(0, 255))
             lakeScratchShape.moveTo(x - half, y)
             lakeScratchShape.lineTo(x - half * 0.3f, y - thick)
             lakeScratchShape.lineTo(x + half, y)
@@ -3128,7 +3161,7 @@ class PaperRenderer(
             lakeScratchShape.close()
             canvas.drawShape(lakeScratchShape, ripplePaint)
         }
-        ripplePaint.alpha = 255
+        ripplePaint.setAlphaWithoutAllocating(255)
     }
 
     /**
@@ -3454,7 +3487,9 @@ class PaperRenderer(
             // used, so the two cannot disagree by a ULP and step the copy identities spuriously.
             val unwrappedShift = -scrollProgress * screenWidth * parallax
             val scrollTileBias = Math.round((unwrappedShift - wrappedShift) / tileWidth).toInt()
-            objectGroundGeometry = GroundGeometry(objectShiftWrapped, objectTileWidth, scrollTileBias)
+            objectGroundGeometry.shiftXWrapped = objectShiftWrapped
+            objectGroundGeometry.tileWidth = objectTileWidth
+            objectGroundGeometry.scrollTileBias = scrollTileBias
 
             val path = baseHillShapes[layer] ?: continue
 

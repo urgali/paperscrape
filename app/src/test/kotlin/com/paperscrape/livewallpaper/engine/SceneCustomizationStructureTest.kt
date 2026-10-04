@@ -170,6 +170,28 @@ class SceneCustomizationStructureTest {
         val mutated = base.copy(palmsEnabled = !base.palmsEnabled)
         assertFalse("the palms switch must rebuild the static objects", base.staticStructurallyEquals(mutated))
         assertTrue("the palms switch must not restart cars", base.carsStructurallyEquals(mutated))
+        // Its other half since v5.10C, the palms in the trees' places on a theme that plants none:
+        // the same rule, or turning palms on over Christmas would change nothing until the scene was
+        // rebuilt for some other reason.
+        val other = base.copy(palmsInsteadOfTrees = !base.palmsInsteadOfTrees)
+        assertFalse("palms in place of trees must rebuild the static objects", base.staticStructurallyEquals(other))
+        assertTrue("and must not restart cars", base.carsStructurallyEquals(other))
+    }
+
+    @Test
+    fun `the Christmas layer is structural only while palms stand in the trees' places`() {
+        // v5.10C2: with palms in the trees' places a fir stays a tree (`palmSpeciesApplied`), and which
+        // slots are firs is the Christmas layer's -- so turning the lights on or off over such a scene
+        // changes which slots are palms, and has to rebuild the list, or the firs would come and go only
+        // when something else rebuilt it. Without those palms the fir is decided at the draw and the
+        // layer must not rebuild anything: nothing changes for a scene that has no palm in a tree slot.
+        for (palms in listOf(false, true)) {
+            val start = base.copy(palmsInsteadOfTrees = palms)
+            val lit = start.copy(christmasDecorationsEnabled = !start.christmasDecorationsEnabled)
+            assertEquals("palms in place of trees $palms", !palms, start.staticStructurallyEquals(lit))
+            assertEquals(!palms, lit.staticStructurallyEquals(start))
+            assertTrue("the lights must not restart cars", start.carsStructurallyEquals(lit))
+        }
     }
 
     @Test
@@ -247,15 +269,22 @@ class SceneCustomizationStructureTest {
         // for the static objects, and for the cars `CarSelection.countFor` at both ends of the day
         // (the engine rebuilds its cars only on a visibility flip and counts the rest per frame).
         val palms = "palms" to { c: SceneCustomization -> c.copy(palmsEnabled = !c.palmsEnabled) }
+        val palmsForTrees = "palms in place of trees" to { c: SceneCustomization -> c.copy(palmsInsteadOfTrees = !c.palmsInsteadOfTrees) }
         val nightCars = "cars at night" to { c: SceneCustomization -> c.copy(carsNightDensity = c.carsNightDensity / 2f + 0.1f) }
-        val mutations = densityMutations + visibilityMutations + colourMutations + palms + nightCars
+        // v5.10C2: the Christmas layer decides which tree slots stay firs among the palms.
+        val lights = "Christmas lights" to { c: SceneCustomization -> c.copy(christmasDecorationsEnabled = !c.christmasDecorationsEnabled) }
+        val mutations = densityMutations + visibilityMutations + colourMutations + palms + palmsForTrees + nightCars + lights
         var equalStatic = 0
         var equalCars = 0
-        for (theme in ThemeCatalog.ALL) {
+        // Every built-in as it ships, and since v5.10C2 with palms in its trees' places as well, where
+        // the Christmas layer is structural.
+        for ((theme, start) in ThemeCatalog.ALL.flatMap { theme ->
+            val shipped = defaultCustomizationFor(theme.id)
+            listOf(theme to shipped, theme to shipped.copy(palmsInsteadOfTrees = true))
+        }) {
             val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
-            val start = defaultCustomizationFor(theme.id)
             fun standing(c: SceneCustomization) =
-                layout.staticObjects.filter { c.keepCandidate(it) }.map { c.palmSpeciesApplied(it) }
+                layout.staticObjects.filter { c.keepCandidate(it) }.map { c.palmSpeciesApplied(it, layout.hasPalmSlots()) }
             fun traffic(c: SceneCustomization) = Triple(
                 c.cars.visible,
                 CarSelection.countFor(c.cars.density, layout.cars.size),

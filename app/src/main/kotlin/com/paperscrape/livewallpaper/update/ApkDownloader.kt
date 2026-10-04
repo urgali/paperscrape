@@ -85,10 +85,37 @@ object ApkDownloader {
 
     /**
      * Clears any previously downloaded APK. Called before a download and when a downloaded file is
-     * rejected; the file handed to the installer stays until the next download.
+     * rejected; the file handed to the installer stays until it is installed ([pruneInstalled]) or
+     * the next download.
      */
     fun clearCache(context: Context) {
         updateCacheDir(context).listFiles()?.forEach { it.delete() }
+    }
+
+    /**
+     * Deletes every downloaded APK whose release is not newer than the one running, and anything
+     * else in the downloads folder that is not a release's APK. Run off the main thread when the app
+     * starts (v5.10B).
+     *
+     * The file handed to the installer has to outlive the handover -- the installer reads it through
+     * the `FileProvider` while its own screen is open -- so nothing deleted it, and once installed it
+     * stayed in the cache until the next download, about 2.9 MB (v5.9's APK) for a file with no
+     * further use. When the running version is at least the file's, the install has happened (or a
+     * newer one has): the file goes. One newer than the running version is an install that may still
+     * be pending, and it stays.
+     */
+    fun pruneInstalled(context: Context, installedVersionName: String): Int =
+        pruneInstalledIn(updateCacheDir(context), installedVersionName)
+
+    /** [pruneInstalled] on a directory, with no `Context`, for the JVM tests. Returns how many files it deleted. */
+    internal fun pruneInstalledIn(dir: File, installedVersionName: String): Int {
+        val installed = AppVersion.parse(installedVersionName) ?: return 0
+        var deleted = 0
+        for (file in dir.listFiles() ?: return 0) {
+            val version = ReleaseAssets.tagOfApkName(file.name)?.let { AppVersion.parse(it) }
+            if ((version == null || version <= installed) && file.delete()) deleted++
+        }
+        return deleted
     }
 
     /**

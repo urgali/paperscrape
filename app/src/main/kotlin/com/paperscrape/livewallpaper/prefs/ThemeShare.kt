@@ -96,8 +96,8 @@ data class ThemeShare(
      * **Always a new, independent theme; never an overwrite.** The id is freshly minted, so
      * importing the same file twice gives two themes rather than silently replacing one, and the
      * entry carries the packaged theme and layout rather than a pointer to a built-in. The format
-     * records [sourceThemeId] so a future release could offer "replace my Beach with this" — but
-     * that has to be a thing the user asks for, not something an import does on its own.
+     * records [sourceThemeId] as where the theme came from, and an import never uses it to replace
+     * that theme: a replacement would have to be a thing the user asks for.
      */
     fun asNewCustomTheme(id: String, displayName: String = name): CustomThemeEntry = CustomThemeEntry(
         id = id,

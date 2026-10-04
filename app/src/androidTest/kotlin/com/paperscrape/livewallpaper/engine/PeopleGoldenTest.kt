@@ -313,9 +313,9 @@ class PeopleGoldenTest {
     /**
      * Somebody behind commercial glass -- the frame v4.1 could not have produced.
      *
-     * `desert`'s restaurant at tile fraction 0.433 holds a woman on tone 0, and the focus is her
-     * pane rather than the facade band, because a golden about one bust has to be measured over
-     * the bust. Against v4.1 this rectangle contains an empty window.
+     * `desert`'s restaurant (tile fraction 0.40, `ShopPlanTable`) has somebody behind its glass, and
+     * the focus is that pane rather than the facade band, because a golden about one bust has to be
+     * measured over the bust. Against v4.1 this rectangle contains an empty window.
      *
      * **This frame is also the desert theme's frame, and since v4.21 it is the only one.** This
      * scene never used the [people] helper — it is the theme's own defaults at `day()` — which is

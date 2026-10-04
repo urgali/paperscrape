@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.update
 
 import com.paperscrape.livewallpaper.engine.WEATHER_REFRESH_INTERVAL_MS
+import com.paperscrape.livewallpaper.weather.LiveWeatherSchedule
 
 /**
  * Whether this device needs the notification permission asked for, and what the answer was.
@@ -52,30 +53,53 @@ object UpdateNotificationPolicy {
     const val RUNTIME_PERMISSION_SDK = 33
 
     /**
-     * The normal wait between two update checks in the engine's loop: **24 hours**, derived.
+     * The normal wait between two update checks in the engine's loop: **3 hours**, derived.
      *
      * Written as a multiple of [WEATHER_REFRESH_INTERVAL_MS] for the same reason
      * [com.paperscrape.livewallpaper.weather.LiveWeatherSchedule.SNAPSHOT_MAX_AGE_MILLIS] is — the
      * policy is the declaration, and a reader can see what it is a multiple *of*. The two schedules
-     * share a loop, and this one being expressed in the other's unit is what says "much rarer than
-     * the weather" in the source rather than in a comment.
+     * share a loop.
      *
-     * **Why 24 and not the weather's 1.** Weather is hours-scale and the sky on screen is wrong the
-     * moment it changes. A release list changes a few times a year, and a user who hears about a
-     * release a day late has lost nothing — while an hourly check would mean 24 requests a day to
-     * GitHub, for every user, forever, to learn the same answer 24 times. Once a day is the
-     * coarsest cadence that still feels like "it told me", and the finest that is defensible for a
-     * process the user did not ask to have running.
+     * **Why 3, the maintainer's decision of 2026-09-30** (row 3 of the v5.10A table, *«3 - voglio B»*,
+     * which replaces his choice of 2026-09-23, once a day). It was 24 until v5.10D, and the v5.9
+     * release reached him without a notification: published at 20:54, it waited for a check that
+     * came up to a day after his wallpaper's last one, and he had installed it by then. Every three
+     * hours, still inside the wallpaper and with no library added, the notice arrives within a few
+     * hours. What it costs is eight requests a day to GitHub instead of one, and only with both
+     * update switches on; and since the same round a check that finds the list unchanged downloads
+     * nothing (`UpdateChecker`, `If-None-Match`: GitHub answers 304 with no body). The list also
+     * changes when somebody downloads a release's file (it carries the download counts), and then the
+     * check downloads it again, once.
      *
-     * **What this is not.** It is not a promise of one check per day. It can be more: every rebind
+     * **What this is not.** It is not a promise of eight checks a day. It can be more: every rebind
      * of the wallpaper checks at once, and a failed check is retried from two minutes, doubling up
      * to this. It can be less: the loop parks while the wallpaper is invisible (ARC-02), so a
      * device whose wallpaper is rarely on screen checks rarely, and a user who has another
      * wallpaper set is never checked by this loop (only by the settings screen's own check, when
-     * they open it). That limit was stated to the maintainer before the decision and accepted with
-     * it; the manual button in *Advanced & about* is what those users have.
+     * they open it). That limit was stated to the maintainer before the decision of 2026-09-23 and
+     * accepted with it, and row 3 kept it; the manual button in *Advanced & about* is what those
+     * users have.
      */
-    const val UPDATE_CHECK_INTERVAL_MILLIS = 24 * WEATHER_REFRESH_INTERVAL_MS
+    const val UPDATE_CHECK_INTERVAL_MILLIS = 3 * WEATHER_REFRESH_INTERVAL_MS
+
+    /**
+     * Whether the engine's loop checks on this pass: [UPDATE_CHECK_INTERVAL_MILLIS] since the last
+     * check, or the retry ladder's shorter wait while checks come back
+     * [UpdateCheckResult.Unreachable] -- the *same* ladder the weather loop uses
+     * ([com.paperscrape.livewallpaper.weather.LiveWeatherSchedule.nextAttemptDelayMillis], from two
+     * minutes doubling up to the interval), reused rather than re-derived, so there is one
+     * bounded-backoff rule in this app and not two that can drift.
+     *
+     * [elapsedSinceLastCheckMillis] is on the monotonic clock (`SystemClock.elapsedRealtime`); a
+     * fresh engine's sentinel reads as long ago, so its first pass checks. Pure, so the cadence is
+     * asserted over a day of passes on the JVM (`UpdateCheckCadenceTest`) rather than read off a
+     * constant.
+     */
+    fun checkDue(elapsedSinceLastCheckMillis: Long, consecutiveUnreachable: Int): Boolean =
+        LiveWeatherSchedule.isAttemptDue(
+            elapsedSinceLastCheckMillis,
+            LiveWeatherSchedule.nextAttemptDelayMillis(consecutiveUnreachable, UPDATE_CHECK_INTERVAL_MILLIS),
+        )
 
     /**
      * What the notification permission means on this device, from the two facts that decide it.
@@ -147,32 +171,124 @@ object UpdateNotificationPolicy {
 
     /** Which line *Notify me about new versions* shows under its title. */
     enum class NotifyRowLine {
-        /** "Turn on the automatic check above first": the row is greyed and this is why. */
+        /** "Needs \"Check for updates when I open PaperScrape\" above": the row is greyed and this is why. */
         NEEDS_AUTOMATIC_CHECK,
 
-        /** "Notifications are switched off for PaperScrape in your phone's settings...". */
+        /** The phone's settings stop PaperScrape's notifications, and a tap opens the page where they are allowed. */
         BLOCKED,
+
+        /**
+         * Android 13 or later, and the permission is not held while the switch is saved on: taken away
+         * by switching notifications off in the phone's settings, or never given on this phone (an app
+         * backup restored on a new one). A tap asks; where the system will not ask again, it opens the page.
+         */
+        BLOCKED_ASK,
+
+        /** The permission dialog was just refused; a tap asks again. */
+        REFUSED,
+
+        /** PaperScrape is not the phone's wallpaper, and the check runs inside it; a tap sets it. */
+        NOT_THE_WALLPAPER,
 
         /** What the switch does. */
         DESCRIPTION,
     }
 
+    /** What a tap on *Notify me about new versions* does (v5.10C). */
+    enum class NotifyTap {
+        /** The row is greyed: nothing. */
+        NOTHING,
+
+        /** Shown on: the user turns it off, and only the saved choice changes. */
+        TURN_OFF,
+
+        /** Everything is in place but the saved choice: store "on". */
+        TURN_ON,
+
+        /**
+         * Ask for `POST_NOTIFICATIONS`, and store "on" only once it is granted -- a saved "on" with the
+         * permission refused would read as [NotifyRowLine.BLOCKED_ASK]. Granted and PaperScrape not the
+         * wallpaper, carry on to [SET_AS_WALLPAPER]; refused where the system will not show the dialog
+         * again, store "on" and carry on to [OPEN_APP_NOTIFICATIONS].
+         */
+        ASK_PERMISSION,
+
+        /** Store "on", and open the phone's page for PaperScrape's notifications. */
+        OPEN_APP_NOTIFICATIONS,
+
+        /** Store "on", and open the phone's page for the *Update available* channel. */
+        OPEN_CHANNEL,
+
+        /** Store "on", and put up the system's preview, where PaperScrape is set as the wallpaper. */
+        SET_AS_WALLPAPER,
+    }
+
     /**
-     * The row's line, from what the settings screen knows when it draws.
+     * How *Notify me about new versions* is drawn and what a tap on it does.
      *
-     * The blocked line used to need the switch on **and** a permission request just refused, and a
-     * refusal leaves the switch off, so it could never appear: somebody who had blocked
-     * PaperScrape's notifications in the phone's settings read the promise of a notification that
-     * would not come. It now follows [blocked] -- [blockedInPhoneSettings], read by the screen
-     * whenever it is shown -- with or without the switch on, because "nothing would appear" is true
-     * of both; and a refusal of the permission dialog a moment ago ([requestRefused]) still says so.
+     * @property shownOn what the switch shows: **on only if a notification can really arrive**
+     *   (v5.10C, the maintainer's rule of 2026-09-29: *«l'utente normale non legge, vede il toggle e si
+     *   arrabbia perché non funziona»*). The saved choice is not changed to make it so; it comes back
+     *   by itself as soon as what was missing is in place.
+     * @property enabled whether the row accepts a tap: only the automatic check above greys it.
      */
-    fun notifyRowLine(automaticCheckEnabled: Boolean, blocked: Boolean, requestRefused: Boolean): NotifyRowLine =
-        when {
-            !automaticCheckEnabled -> NotifyRowLine.NEEDS_AUTOMATIC_CHECK
-            blocked || requestRefused -> NotifyRowLine.BLOCKED
-            else -> NotifyRowLine.DESCRIPTION
+    data class NotifyRowState(
+        val shownOn: Boolean,
+        val enabled: Boolean,
+        val line: NotifyRowLine,
+        val tap: NotifyTap,
+    )
+
+    /**
+     * The row, from what the settings screen knows when it draws.
+     *
+     * **A notification can arrive only if all of these hold**, and the switch shows on only then:
+     * the automatic check is on (the engine checks only with both switches on,
+     * `PaperWallpaperService.maybeCheckForUpdate`); the phone lets PaperScrape post -- the permission
+     * on Android 13+ ([mayPost]), the app's notifications and the *Update available* channel left on
+     * ([blockedInPhoneSettings] judged as if the switch were on, which is how [UpdateNotifier.post]
+     * judges); and PaperScrape is the phone's wallpaper, because the check runs inside it and nowhere
+     * else ([isTheWallpaper], `WallpaperEngineCensus`). Until v5.10C the switch read the saved choice
+     * and the automatic check alone, and said the rest in the line under it -- the defect the
+     * maintainer met on Android 16 (inventory I-201).
+     *
+     * When something is missing, the line names the first one, in the order a user can fix them
+     * without leaving the app first: the automatic check, the phone's settings, the wallpaper.
+     *
+     * [notifySwitchOn] is the switch as saved; [requestRefused] is whether the permission dialog was
+     * refused a moment ago on this screen.
+     */
+    fun notifyRow(
+        automaticCheckEnabled: Boolean,
+        notifySwitchOn: Boolean,
+        permission: NotificationPermission,
+        appNotificationsEnabled: Boolean,
+        channelTurnedOff: Boolean,
+        isTheWallpaper: Boolean,
+        requestRefused: Boolean,
+    ): NotifyRowState {
+        if (!automaticCheckEnabled) {
+            return NotifyRowState(false, enabled = false, NotifyRowLine.NEEDS_AUTOMATIC_CHECK, NotifyTap.NOTHING)
         }
+        val phoneLetsItPost = mayPost(permission) &&
+            !blockedInPhoneSettings(permission, appNotificationsEnabled, channelTurnedOff, notifySwitchOn = true)
+        if (notifySwitchOn && phoneLetsItPost && isTheWallpaper) {
+            return NotifyRowState(true, enabled = true, NotifyRowLine.DESCRIPTION, NotifyTap.TURN_OFF)
+        }
+        val (line, tap) = when {
+            channelTurnedOff -> NotifyRowLine.BLOCKED to NotifyTap.OPEN_CHANNEL
+            mustAsk(permission) -> when {
+                notifySwitchOn -> NotifyRowLine.BLOCKED_ASK
+                requestRefused -> NotifyRowLine.REFUSED
+                !isTheWallpaper -> NotifyRowLine.NOT_THE_WALLPAPER
+                else -> NotifyRowLine.DESCRIPTION
+            } to NotifyTap.ASK_PERMISSION
+            !appNotificationsEnabled -> NotifyRowLine.BLOCKED to NotifyTap.OPEN_APP_NOTIFICATIONS
+            !isTheWallpaper -> NotifyRowLine.NOT_THE_WALLPAPER to NotifyTap.SET_AS_WALLPAPER
+            else -> NotifyRowLine.DESCRIPTION to NotifyTap.TURN_ON
+        }
+        return NotifyRowState(false, enabled = true, line, tap)
+    }
 
     /**
      * Whether "remind me later" is still suppressing this exact release.

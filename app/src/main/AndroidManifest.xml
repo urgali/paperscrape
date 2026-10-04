@@ -26,15 +26,18 @@
                                       plain GET of a public page. THREE callers.
                                       1. the "Check for updates" button in Advanced and about,
                                          which always works;
-                                      2. while "Check for updates automatically" is on (it is
-                                         off by default), once each time the settings screen is
+                                      2. while "Check for updates when I open PaperScrape" is
+                                         on (off by default), once each time the settings screen is
                                          opened; and, whatever that switch says, when it is
                                          opened by tapping an update notification;
                                       3. since v5.7D, and only while BOTH that switch and
                                          "Notify me about new versions" are on, about once
-                                         every 24 hours from the wallpaper engine's own loop;
-                                         a check that fails is retried sooner (2, 4, 8 minutes
-                                         and so on, doubling up to 24 hours).
+                                         every 3 hours from the wallpaper engine's own loop
+                                         (once every 24 until v5.10D); a check that fails is
+                                         retried sooner (2, 4, 8 minutes and so on, doubling up
+                                         to 3 hours). Since v5.10D every caller sends the ETag of
+                                         its last answer (If-None-Match), and while the list has
+                                         not changed GitHub answers 304 with no body.
                                          The timer lives in the running engine, in memory, so
                                          a new engine (a restart, an update, another
                                          wallpaper and back again) checks at once: "about", not "at
@@ -94,7 +97,8 @@
          requests (v5.8C; it went unrounded before). No device identifier, no
          account, no analytics. The wallpaper engine makes exactly two kinds of call, both listed
          above and both on its own visible loop: the hourly weather fetch and, since v5.7D, the
-         daily update check. With Live Weather off and both update switches off, the app makes no
+         update check, every three hours since v5.10D. With Live Weather off and both update
+         switches off, the app makes no
          network call of its own except when the user asks for one: the update button, an update
          download, a city search. The place-name row's platform lookup can still happen whenever
          the settings screen shows a position. -->
@@ -108,8 +112,8 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Declared for the one notification this app posts: "a newer release is available", from
-         the wallpaper engine's daily check, and only while the user has switched both
-         "Check for updates automatically" and "Notify me about new versions" on.
+         the wallpaper engine's check every three hours, and only while the user has switched both
+         "Check for updates when I open PaperScrape" and "Notify me about new versions" on.
 
          From Android 13 (API 33) this is a runtime permission and is asked for the first time the
          second switch is turned on, never at startup: an app that asks on first launch is asking

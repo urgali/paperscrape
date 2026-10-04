@@ -112,13 +112,31 @@ class BackgroundLocationContractTest {
      *
      * A background app that polls its position is a battery complaint waiting to happen, and the
      * reason this design needs no special permission is the same reason it needs no special
-     * budget: it asks **once an hour at most**, only when a weather refresh is actually due, and it
-     * takes the system's own cached answer whenever that answer is younger than a quarter of an
-     * hour. The two-minute tick is a check of the clock, not a request.
+     * budget: it makes **one real request an hour at most while the phone answers**
+     * ([LocationRequestThrottle], v5.10D) -- and since v5.10E, after a search that finds nothing, tries
+     * 5, 15 and 30 minutes later before the hour again (the maintainer's decision of 2026-10-04): at most
+     * four in any hour, 54 in a day with a GPS that never answers -- and it takes the system's own cached
+     * answer whenever that answer is younger than a quarter of an hour. The two-minute tick is a check
+     * of the clock, not a request.
+     *
+     * **These constants were all this test held until v5.10D, and the hour was not true**: the loop
+     * asked on every weather retry and, with no position ever received, on every two-minute tick
+     * (inventory I-207). The number is held here; the rhythm is `LocationRequestRhythmTest`, on a
+     * clock it moves.
      */
     @Test
-    fun `a position is asked for at most once an hour`() {
+    fun `a position is asked for once an hour while the phone answers, and the tries after a miss are 5, 15 and 30 minutes`() {
         assertEquals("the weather refresh interval", 60 * 60 * 1000L, WEATHER_REFRESH_INTERVAL_MS)
+        assertEquals("the throttle's hour is the refresh's", WEATHER_REFRESH_INTERVAL_MS, LocationRequestThrottle.MIN_INTERVAL_MILLIS)
+        assertEquals(
+            "the maintainer's tries, then the hour",
+            listOf(5, 15, 30, 60).map { it * 60 * 1000L },
+            LocationRequestThrottle.RETRY_LADDER_MILLIS.toList(),
+        )
+        assertTrue(
+            "no try is sooner than two ticks: a GPS that never answers is not searched every pass",
+            LocationRequestThrottle.RETRY_LADDER_MILLIS.all { it >= 2 * WEATHER_CHECK_INTERVAL_MS },
+        )
         assertEquals("the tick that checks whether one is due", 2 * 60 * 1000L, WEATHER_CHECK_INTERVAL_MS)
         assertTrue(
             "the check must be far shorter than the refresh, or a freshly enabled toggle waits an hour",

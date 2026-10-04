@@ -36,8 +36,11 @@ internal fun Reader.readAtMost(limit: Int): String? {
  * The cap for the HTTP responses this app reads into memory through [readAtMost] (SEC-03).
  *
  * The three bodies are a GitHub releases page, a geocoder's few candidate places, and a weather
- * provider's current conditions. The largest of them measured in the tens of kilobytes; a megabyte
- * is far past any of them and far below a problem.
+ * provider's current conditions. The largest is the releases page: GitHub's thirty releases a page
+ * read 252 KB on 2026-10-03 (v5.10D; this line said "tens of kilobytes"), and a release adds about
+ * eight. A megabyte is past any of them and far below a problem; the update check reads the list a
+ * page at a time, and a page that ever outgrew it would read as "GitHub didn't answer", not as a
+ * crash.
  *
  * A fourth body, the release checksum file (`ApkDownloader.fetchText`), reads through the same
  * cap since v5.8C.

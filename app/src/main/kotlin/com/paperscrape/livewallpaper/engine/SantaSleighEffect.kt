@@ -15,6 +15,15 @@ import kotlin.random.Random
  */
 class SantaSleighEffect {
 
+    /**
+     * Blits the sleigh: its centre, its facing (+1/-1) and its fade alpha. A `fun interface` with
+     * `Float` parameters rather than a function type, which would box all four floats on every
+     * call (v5.10A; see [FireworkEffect.BurstBlit]).
+     */
+    fun interface SleighBlit {
+        fun blit(x: Float, y: Float, dir: Float, alpha: Float)
+    }
+
     private data class FallingGift(
         val x: Float,
         val startY: Float,
@@ -56,12 +65,13 @@ class SantaSleighEffect {
     private val giftRibbonColor = 0xFFF2C230.toInt()
 
     fun update(deltaSeconds: Float, enabled: Boolean, screenWidth: Float, screenHeight: Float) {
-        // Falling gifts keep animating even if the flight itself is disabled mid-drop.
-        val giftIterator = fallingGifts.iterator()
-        while (giftIterator.hasNext()) {
-            val g = giftIterator.next()
+        // Falling gifts keep animating even if the flight itself is disabled mid-drop. By index,
+        // from the end so a removal does not skip the next gift: an iterator here was an object
+        // every frame, gifts or none (v5.10A). `removeAt` keeps the others in order.
+        for (i in fallingGifts.size - 1 downTo 0) {
+            val g = fallingGifts[i]
             g.age += deltaSeconds
-            if (g.age >= g.fallDuration) giftIterator.remove()
+            if (g.age >= g.fallDuration) fallingGifts.removeAt(i)
         }
 
         if (!enabled) {
@@ -170,7 +180,7 @@ class SantaSleighEffect {
      * already accounting for [reverse]), and its current fade alpha (0..1) -- called once per
      * frame only while actually flying and not fully faded out.
      */
-    fun draw(canvas: SceneCanvas, elapsedSeconds: SceneTime, screenWidth: Float, spriteDraw: (x: Float, y: Float, dir: Float, alpha: Float) -> Unit) {
+    fun draw(canvas: SceneCanvas, elapsedSeconds: SceneTime, screenWidth: Float, spriteDraw: SleighBlit) {
         // By index: a `for (g in fallingGifts)` builds an iterator every frame (v5.8C).
         for (i in fallingGifts.indices) {
             val g = fallingGifts[i]
@@ -195,7 +205,7 @@ class SantaSleighEffect {
         val bob = elapsedSeconds.sinAt(3f) * 4f
         val fadeAlpha = edgeFadeAlpha(flightProgress)
         if (fadeAlpha <= 0.01f) return // fully faded out, nothing to draw
-        spriteDraw(x, flightY + bob, dir, fadeAlpha)
+        spriteDraw.blit(x, flightY + bob, dir, fadeAlpha)
     }
 
     private fun drawFallingGift(canvas: SceneCanvas, g: FallingGift, fade: Float) {

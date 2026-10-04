@@ -17,7 +17,8 @@ import org.junit.runner.RunWith
  * wrong, for a reason that only became true in v4.29.
  *
  * [GlSceneTarget] accumulates vertices in one batch and empties it **only when the texture changes**.
- * Since v4.29 all 332 sprites live in a single atlas and there are no standalone textures left, so
+ * Since v4.29 every sprite the scene draws lives in a single atlas (332 sprites then;
+ * `GlAtlasOccupancyTest` keeps it so) and there are no standalone textures left, so
  * the texture never changes; a flat fill samples a white texel from that same atlas. A layer more is
  * therefore six vertices in the batch that was already open, and no draw call at all.
  *

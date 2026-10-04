@@ -426,6 +426,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("christmasDecorationsEnabled", christmasDecorationsEnabled)
     put("flowersEnabled", flowersEnabled)
     put("palmsEnabled", palmsEnabled)
+    put("palmsInsteadOfTrees", palmsInsteadOfTrees)
     put("halloweenEnabled", halloweenEnabled)
     put("horrorSkyEnabled", horrorSkyEnabled)
     put("santaEnabled", santaEnabled)
@@ -609,6 +610,12 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // `true` precisely so that a Beach or Desert theme saved before then keeps its palms
         // rather than coming back planted with oaks. See `SceneCustomization.palmsEnabled`.
         palmsEnabled = json.optBoolean("palmsEnabled", defaults.palmsEnabled),
+        // Absent from every payload written before v5.10, and **absent means off** -- the reason
+        // the field exists: such a payload's `palmsEnabled` is `true` on every theme, chosen or
+        // not, and on a theme without palms of its own it was never something the user could see.
+        // So a saved Autumn, a backup or a shared file from 5.9 comes back with its trees, and only
+        // a switch moved in v5.10 or later puts palms in them. See `SceneCustomization.palmsInsteadOfTrees`.
+        palmsInsteadOfTrees = json.optBoolean("palmsInsteadOfTrees", defaults.palmsInsteadOfTrees),
         halloweenEnabled = json.optBoolean("halloweenEnabled", defaults.halloweenEnabled),
         horrorSkyEnabled = json.optBoolean("horrorSkyEnabled", defaults.horrorSkyEnabled),
         santaEnabled = json.optBoolean("santaEnabled", defaults.santaEnabled),

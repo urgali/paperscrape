@@ -45,7 +45,9 @@ class WeatherLoopVisibilityTest {
     @Test
     fun `the park comes before the timed wait, so the timer only runs when visible`() {
         val parkAt = source.indexOf("if (!visible) {")
-        val timedAt = source.indexOf("withTimeoutOrNull(WEATHER_CHECK_INTERVAL_MS)")
+        // One timed wait, of the check interval or -- since v5.10E -- less, when a try for the phone's
+        // position falls due before it (`SolarDaySchedule.nextPassDelayMillis`).
+        val timedAt = TIMED_WAIT.find(source)?.range?.first ?: -1
         assertTrue("the visibility park is missing", parkAt > 0)
         assertTrue("the timed wait is missing", timedAt > 0)
         assertTrue(
@@ -74,8 +76,14 @@ class WeatherLoopVisibilityTest {
         assertEquals(
             "WEATHER_CHECK_INTERVAL_MS must be waited on in exactly one place",
             1,
-            Regex("""withTimeoutOrNull\(WEATHER_CHECK_INTERVAL_MS\)""").findAll(source).count(),
+            TIMED_WAIT.findAll(source).count(),
         )
+        assertEquals("and nothing else in the service waits on a timer", 1, Regex("""withTimeoutOrNull\(""").findAll(source).count())
+    }
+
+    private companion object {
+        /** The loop's one timed wait, as the service writes it since v5.10E, whatever the line breaks. */
+        val TIMED_WAIT = Regex("""withTimeoutOrNull\(\s*SolarDaySchedule\.nextPassDelayMillis\(\s*checkIntervalMillis = WEATHER_CHECK_INTERVAL_MS,""")
     }
 
     @Test

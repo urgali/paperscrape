@@ -1,9 +1,8 @@
 # Asset source pipeline
 
 Offline developer tooling. **Gradle never runs any of this**, and the app has no
-dependency on it. It exists to fix one structural problem: until now a sprite's
-only source was the sprite itself, so no sprite could be re-derived, re-scaled or
-corrected except by editing pixels.
+dependency on it. It exists so that a sprite has a source other than the sprite
+itself, and can be re-derived, re-scaled or corrected without editing pixels.
 
 ```
 SVG source  ->  deterministic, version-pinned rasterisation  ->  PNG
@@ -25,15 +24,22 @@ first.
 rather than a loophole. It does not produce artwork; it removes rows and columns
 whose alpha is zero and reports the origin compensation each affected call site
 needs. No visible pixel changes, and the arithmetic is reversible. Everything
-else here is still read-only with respect to the runtime directory.
+else in `paperscrape_assets` is read-only with respect to the runtime directory;
+the generators that write artwork there are listed under *Layout*.
 
 ## Setup
 
 ```bash
+python3 -m venv ~/.venvs/paperscrape-assets    # once; any environment holding exactly these pins will do
+. ~/.venvs/paperscrape-assets/bin/activate
 cd tools/assets
-pip install -r requirements.txt      # add --break-system-packages on Debian/Ubuntu
+pip install -r requirements.txt
 python3 -m paperscrape_assets probe  # must report matches_expected: true
 ```
+
+There is no installed `paperscrape-assets` command: every command below is
+`python3 -m paperscrape_assets <command>`, run from `tools/assets` in that environment
+(`paperscrape-assets` is only the name its `--help` and the reports it writes print).
 
 Run `probe` first, every time. It renders a fixed document and hashes the result
 against the value pinned in `raster.py`. If it does not match, the rasteriser has
@@ -91,96 +97,90 @@ sources/svg/              SVG sources
 staging/                  rendered output (gitignored; never the runtime directory)
 reports/                  measurements, committed as evidence
 tests/                    tests that the fidelity criterion can fail
+build_occluder_table.py   writes engine/SpriteOccluderTable.kt (above)
+buildings/                the neighbourhood generator and its budget report
+concepts/                 the drawing scripts of the people, the lake and the sky, beside their proposals
 ```
 
-## The registry covers every sprite, and every drawn sprite has a source
+The generators that write artwork into `res/drawable-nodpi`:
+
+- **The buildings.** From `tools/assets`, `python3 -m buildings.build_neighbourhood --res
+  --registry --budget` draws every piece of the six building families into `buildings/out/`
+  (gitignored); `--res` copies them into the runtime directory and writes
+  `engine/NeighbourhoodTable.kt`, `--registry` rewrites their entries in `sources/sprites.json`,
+  and `--budget` writes `buildings/budget.json` and `budget.md`. `validate` checks the budget
+  against the shipped PNGs, so neither file is edited by hand.
+- **The people.** Drawn by `concepts/people/build_people_concepts.py` and written by two scripts in
+  `tools/`, run from the repository root in this order: `tools/generate_people_layers.py` writes
+  every figure as fixed art plus up to four region masks, and `engine/PeopleLayerTable.kt`;
+  `tools/update_people_registry.py` then rewrites the person entries of `sources/sprites.json`.
+  `concepts/people/README.md` has the rest.
+
+`concepts/people/`, `concepts/skywater/` and `concepts/rainbird/` hold the scripts that drew the
+people; the dolphin, the sailboat and the cloud; and the bird, the umbrella and the wave, each
+beside the proposals it drew. An SVG in `sources/svg/` that one of them drew names it in its
+opening comment. The sun-and-moon proposals that stood in `concepts/a/`, `b/` and `c/` were
+removed in v5.10 and remain in the repository's git history.
+
+## The registry covers every sprite, and says where each one comes from
 
 `sources/sprites.json` has an entry for **every** shipped PNG — that is the rule, and
 `tests/test_registry_coverage.py` enforces it. The three counts that go with it (entries, entries
-with an SVG source, declared gaps) are printed by `paperscrape-assets validate`; they are not
-written here, and the three that used to be — 221, 108, 125 in three consecutive sentences — did
-not even agree with each other.
+with an SVG source, declared gaps) are printed by `python3 -m paperscrape_assets validate`; they
+are not written here.
 
-The registry was built when most sprites were declared gaps: entries whose `source.kind` was
-`"none"` with a stated reason, because the original generators were lost and geometry could only be
-recovered by measurement for the sprites made of measurable primitives. The V2 asset library
-replaced the artwork wholesale and shipped its own sources, so every *drawn* sprite now names an
-SVG:
+An entry's `source` says how to get its file back. A sprite rendered from a committed
+SVG names it:
 
 ```json
 { "kind": "svg", "file": "tree_canopy.svg" }
 ```
 
-The remaining entries are the people's layer files, and they are not a gap in that
-sense either: `tools/generate_people_layers.py` writes a fixed layer and up to four
-region weight masks for each shape, from the same drawing code that draws the
-shipped figure. They carry `source.kind = "none"` and name that script,
-because `render` regenerates a sprite from an SVG and these have none of their own
-— a mask is a *view* of a drawing, not a drawing, and authoring one per region per
-shape would be exactly the duplication the generator exists to remove. Their
-`source.notes` say which region each one carries, so "how do I get this file back"
-has an answer for every entry in the registry, which is what the field is for.
-
-Until v4.30 this paragraph described **96 per-skin-tone recolours** under
-`source.kind = "none"`, produced by `tools/generate_skin_variants.py`. Those files
-are gone: a person's colour is now resolved at the blit instead of being shipped
-once per value. The script itself is kept — it is what the layer generator's own
-shade arithmetic was derived from and verified against — but nothing in `res/`
-comes from it any more.
-
-They were shipped without registry entries, and for a while nothing said so
-usefully: `validate` reported ninety-six unregistered sprites, `normalize` raised
-`KeyError` on the first of them, and the inventory report went on describing the
-older, smaller set. `tests/test_registry_coverage.py` now states the relation
-between the registry and `res/drawable-nodpi` as a rule rather than a count.
-
-**This closes blocker B1.** Group 4 could not start while the sprites it needs —
-people, vehicles, buildings, decorations — were among the gaps, because
-re-anchoring a sprite means being able to regenerate it with normalised padding
-and declared metadata. All of the drawn sprites have a source now, and a recolour
-inherits its base's geometry rather than carrying one of its own.
-
-Schema 4 records what the V2 library declares per sprite: `anchorRule` and
-`anchor` for **every** sprite rather than the 17 an origin could be solved for,
-plus `season`. The anchors are no longer inferred from call-site origins — see
-below.
+The other entries carry `source.kind = "none"`, which `validate` counts as gaps,
+though nothing is lost: a generator writes each of them, and `source.reason` names
+it. They are the people's layer files, which `tools/generate_people_layers.py`
+writes as a fixed layer and up to four region weight masks per shape, and the
+pieces of the six building families, which `buildings/build_neighbourhood.py`
+writes as a fixed layer and at most a wall and a glass mask — each decomposed from
+the generator's own drawing of the shape. They have no SVG of their own because
+`render` regenerates a sprite from an SVG, and a mask is a *view* of a drawing, not
+a drawing: authoring one per region per shape would be exactly the duplication the
+generators exist to remove. A person's `notes` say which region the file carries,
+and a piece's suffix does (`_fx` fixed, `_mw` wall, `_mg` glass), so "how do I get
+this file back" has an answer for every entry in the registry, which is what the
+field is for.
 
 `validate` fails if a shipped PNG has no entry, if an entry has no PNG, if
 declared dimensions or `contentBox` disagree with the file, if a declared anchor
-is not what its rule derives, if a referenced SVG is missing, or if `usage`,
+is not what its rule derives, if a referenced SVG is missing, if `usage`,
 `scale`, `tint` or a determined anchor disagree with what the Kotlin sources
-actually do.
+actually do, or if a committed report (`reports/runtime-inventory.json`,
+`reports/fidelity.json`, `buildings/budget.json` and `budget.md`) no longer
+describes the shipped PNGs.
 
 It also fails on the two things a per-sprite check cannot see. A **variant group**
-declared `DISTINCT` whose members are byte-identical has lost the distinction it
-names — the seasonal outfits shipped that way in v73, and every per-sprite rule
-passed, because two copies of one picture satisfy all of them. A group declared
+declared `DISTINCT` whose members are pixel-identical has lost the distinction it
+names, and every per-sprite rule passes, because two copies of one picture
+satisfy all of them. A group declared
 `IDENTICAL_GAP` whose members have started to **differ** has gained artwork the
 declaration has not caught up with, which is what makes a gap close itself instead
-of being forgotten. And any byte-identical pair that **no** group declares fails
+of being forgotten. And any pixel-identical pair that **no** group declares fails
 outright: it is one drawing under two names, which is two decodes, two atlas
 entries, and two files that can be edited apart in one place only.
 
 ## The manifest, and what it can and cannot check
 
-Schema 4 declares `anchorRule`, `anchor` and `season` for every sprite and drops
-`anchorReason`, which existed only to explain an absent anchor. Schema 3 added
-the top-level `variants` array; schema 2 added `contentBox`, `anchorRule` and
-`anchor`. `contentBox` is re-derived on every run, so it cannot drift away from
-the PNG it describes.
+Schema 4 declares `contentBox`, `anchorRule`, `anchor` and `season` for every
+sprite, and the variant groups in a top-level `variants` array. `contentBox` is
+re-measured on every run, so it cannot drift away from the PNG it describes.
 
-**Every variant group is `DISTINCT`** (`validate`'s `variants:` line counts them). Six were `IDENTICAL_GAP`
-— the seasonal heads for window occupants and car drivers, whose winter artwork
-had never been drawn — and the V2 library drew them. There is no
-`IDENTICAL_GAP` group left, and no byte-identical pair anywhere in the shipped
+**Every variant group is `DISTINCT`** (`validate`'s `variants:` line counts them). There is no
+`IDENTICAL_GAP` group, and no pixel-identical pair anywhere in the shipped
 set.
 
-Nothing at runtime reads any of this. The manifest is developer tooling; the app
-is unaffected by it.
-
-The point of comparing it to the Kotlin sources is defect D-1: a sprite's pixel
-size, its scale convention and its origin are correct only together, nothing in a
-PNG records the convention, so the registry declared it and nothing checked the
+The point of comparing it to the Kotlin sources: a sprite's pixel
+size, its scale convention and its origin are correct only together, and nothing in a
+PNG records the convention, so the registry declares it and `validate` checks the
 declaration against the code.
 
 `callsites.py` resolves a blit call site syntactically — no dataflow analysis,
@@ -194,25 +194,17 @@ on success rather than only on failure, one figure per check, on its lines:
 tint, and whose origin, were compared with the code). The figures are read there,
 not copied here.
 
-The `scale`/`tint` and origin figures were far lower until **defect D-4** was fixed:
-the call-site resolver recognised a blit wrapper only when its first parameter was
-typed `Canvas`, and the GPU migration had changed `SceneObjectRenderer`'s two
-wrappers to take `SceneCanvas`, so that file's call sites had stopped resolving.
-`callsites.py` keeps the wrappers it recognises as a set, with the reason.
-
 ## Anchors are declared, not inferred
 
-The registry used to record an anchor for a sixth of the sprites and `UNDETERMINED`
-for the rest, and the reason was structural rather than lazy: the only evidence
-available was the origin a call site blits the sprite at, and that origin is
-`placement - anchor` — one equation, two unknowns. It collapses to the anchor
-alone only when the sprite is an object in its own right. For a part of a
-composite the origin is a composition placement carrying no anchor at all, which
-is why `house_shared_window`, a part of the house facades v5.0 retired, was drawn at
-five different origins.
+An anchor cannot be read off the code: the only evidence is the origin a call site
+blits the sprite at, and that origin is `placement - anchor` — one equation, two
+unknowns. It collapses to the anchor alone only when the sprite is an object in
+its own right; for a part of a composite the origin is a composition placement
+carrying no anchor at all.
 
-The V2 library declares the anchor at authoring time instead, so every sprite now
-carries one (`validate`'s `anchors:` line), under four rules:
+The V2 library declares the anchor at authoring time instead, and the generators
+declare it for what they write, so every sprite carries one (`validate`'s
+`anchors:` line), under four rules:
 
 | Rule | Meaning |
 |---|---|
@@ -221,40 +213,29 @@ carries one (`validate`'s `anchors:` line), under four rules:
 | `DECLARED_ATTACHMENT` | The palm: its three crowns at (84,78), its trunk at its foot (24,174) |
 | `PART_LOCAL` | Parts whose offset the composite owns; origin (0,0) |
 
-`PART_LOCAL` is the honest successor to `UNDETERMINED`: it says the same thing —
-this sprite's placement belongs to whatever composes it — but as a positive
-declaration rather than an absence.
-
 ## Two declarations the registry does not take from the manifest
 
 The V2 manifest is the source of truth for the artwork, not for what the code
-does with it, and it disagreed with the call sites twice. Both are recorded in
-the affected entry's `notes`.
-
-`star_sparkle` is declared `CANVAS_PIXELS` there. That is defect D-1 written
-down: read as raw pixels, the 180px sparkle covers 180 local units against a
-star's own 32, which is the three-times-too-large rendering v73.7 fixed. The
-registry keeps `SCENE_UNITS`, because a *convention* is a fact about the call
-site and `PaperRenderer.drawStars` is where it lives.
-
-`santa_sleigh_scene` is the mirror case: the manifest says `SCENE_UNITS` and the
-shipped call site said `CANVAS_PIXELS`, and there the manifest was right — the
-sprite was redrawn on the authoring grid. The call site was changed to agree with
-it rather than the entry being bent to agree with the call site.
+does with it, and it disagreed with the call sites twice. It declared
+`star_sparkle` `CANVAS_PIXELS`, which would draw the 180px sparkle three times too
+large; the registry keeps `SCENE_UNITS`, because a *convention* is a fact about the
+call site and `PaperRenderer.drawStars` is where it lives (the entry's `notes` say
+so). It declared `santa_sleigh_scene` `SCENE_UNITS` where the call site then said
+`CANVAS_PIXELS`, and there the manifest was right — the sprite had been redrawn on
+the authoring grid — so the call site was changed to agree with it.
 
 The rule the two cases share: **a scale convention is only ever correct together
 with the PNG and the origin**, so when they disagree the answer comes from
 whichever of the two was actually re-derived, never from whichever is easier to
 edit.
 
-## Why the geometry is fitted rather than drawn
+## `fit`, and why it fits only rectangles
 
-The SVG sources carry corner radii of 6, 9 and 12. Those are not eyeballed:
-`fit` sweeps the radius against the shipped PNG's alpha channel and keeps the
-value that minimises the error, then reports it next to the nearest multiple of
-`SPRITE_PIXELS_PER_UNIT`. Every radius it recovered landed on a multiple of 3 —
-two, three and four on-screen units — which is independent evidence that the lost
-generator worked on the same grid the project documents.
+`fit` sweeps a rounded rectangle's corner radius against a shipped PNG's alpha
+channel, keeps the value that minimises the error and reports it next to the
+nearest multiple of `SPRITE_PIXELS_PER_UNIT`, in `reports/geometry-fit.json`;
+`--emit` writes the result as an SVG source. The sprites recorded in that report
+no longer ship.
 
 Only rectangles and rounded rectangles are implemented, and that is the point
 rather than a shortcoming. Those are determined by their canvas: one free
@@ -280,54 +261,19 @@ Run the tests before trusting a verdict. They pin the near misses in both
 directions — a one-pixel displacement, a radius one grid unit off, a fill colour
 off by one — because a criterion that cannot fail asserts nothing.
 
-## Padding, and the origin that has to move with it
-
-**`SpriteBlitter` puts the bitmap's own pixel (0,0) on the origin its call site passes.**
-Cropping transparent rows off the left or the top of a sprite therefore changes what that
-pixel is, and the drawing lands somewhere else unless the origin moves by exactly the
-trim. That is why `--apply` prints a compensation for every target and why it is not a
-standalone asset change: the crop and the origin are one edit, and defect D-10 stayed open
-for as long as it did because it was recorded as the former.
-
-Cropping the **right and bottom** is a different matter. Pixel (0,0) does not move, every
-drawn pixel keeps its coordinates, and nothing outside `GlTextureAtlas` and
-`CanvasSceneTarget` reads a sprite's dimensions at all. `--apply-trailing` is that half,
-and it needs nothing from the renderer.
-
-Both round the retained box **outward to `SPRITE_PIXELS_PER_UNIT`, for every sprite**.
-That is the grid `SpriteGeometryTest` requires of the whole shipped set regardless of
-scale convention; only the compensation follows the convention, one unit per pixel for
-`CANVAS_PIXELS` and one per three for `SCENE_UNITS`. Rounding outward leaves up to two
-pixels of padding, and that padding is load-bearing for alignment.
-
-Both also rewrite the SVG source's `viewBox` — its origin to the crop's top-left corner
-and its extent to the crop's size — so the source keeps describing the PNG that ships.
-Nothing inside the document moves.
-
-`EXCLUSIONS` in `normalize.py` lists the sprites this rule deliberately leaves alone, each
-with its reason. It is not a backlog: a `SPRITE_CENTRE` sprite is placed by the centre of
-its canvas, so cropping it moves its anchor even though no drawn pixel moves, and the sun,
-the four moon phases and the carved Halloween moon share one origin constant that would have to
-be split per sprite first.
-
 ### What the pinned rasteriser does and does not reproduce
 
-The shipped PNGs came from the V2 library's own rasteriser, and the pinned one
-resolved partially covered pixels differently. `ShippedAgainstSourceTest` bounds
-that difference instead of describing it: across every sprite it checks there is no
-pixel that is solid in one rendering and empty in the other, so **no sprite's
-shape differs from its source**, and no single pixel's coverage moves by as much
-as half (the worst case, when D-7 was closed, was 121/255, one pixel on
-`rainbow_arc`'s shallowest stroke edge; `reports/fidelity.json` now records 0 on
-every sprite). Everything the two rasterisers disagreed about was the resolution
-of a boundary pixel. That was defect D-7, and it is closed.
+Every sprite with a committed SVG source compares `PIXEL_IDENTICAL` in the
+committed `reports/fidelity.json`, with a largest alpha difference of 0.
+`ShippedAgainstSourceTest` (`tests/test_fidelity.py`) keeps a looser bound across
+the set as the guard: no pixel that is solid in one rendering and empty in the
+other, so **no sprite's shape differs from its source**, and no single pixel's
+coverage moving by as much as half.
 
-Every sprite with a committed SVG source now compares `PIXEL_IDENTICAL`
-(`reports/fidelity.md`), where most once reported `DIVERGENT`: the V2 library is
-layered paper-cutout artwork, so where two opaque shapes meet, the antialiased
-band lives in RGB at full alpha rather than in the alpha channel, and the three
-gating conditions only look at alpha. A `DIVERGENT` verdict should be read with
-that in mind; the shape bounds above are what the closure of D-7 rests on.
+Layered paper-cutout artwork is the case to know: where two opaque shapes meet,
+the antialiased band lives in RGB at full alpha rather than in the alpha channel,
+outside the band the edge conditions allow, so a rasteriser that resolves it
+differently gets `DIVERGENT`. Read that verdict with the shape bounds above in mind.
 
 ## Padding and grid normalisation
 
@@ -344,17 +290,23 @@ bitmap's own pixel (0,0) at the caller's origin, so a crop without its
 compensation moves the sprite by exactly the amount that was cropped. The tool
 cannot make the Kotlin edit for you; it can only tell you the number, and
 `validate` catches the omission only for the sprites whose anchor predicts an
-origin. D-10 did exactly this in v2.2: 34 targets cropped, 34 origins moved, and
-every sprite's ink hashed before and after to prove it landed where it started.
+origin.
 
-Two parts of the rule look like details and are not:
+`--apply-trailing` is the half that needs no compensation: it crops only the right
+and the bottom, so pixel (0,0) and every drawn pixel keep their coordinates. It
+leaves out the `SPRITE_CENTRE` sprites, which are placed by the centre of their
+canvas, so any crop moves them.
+
+Three parts of the rule look like details and are not:
 
 - **Rounded outward, not to the measured box.** The compensation is
   `trim / unit`, and the blitter multiplies the origin by the same unit again at
   draw time. A trim of 17 px would give 5.667 units, which returns as 17.000002 —
   a sub-pixel origin, resampled because the blit paint carries
-  `FILTER_BITMAP_FLAG`. Outward rounding keeps the compensation an exact integer
-  and leaves up to two pixels behind. That residue is deliberate.
+  `FILTER_BITMAP_FLAG`. Outward rounding keeps the compensation an exact integer,
+  and a side that is trimmed keeps at least one transparent pixel, because that is
+  the neighbour the bilinear filter reads at the edge: one to three pixels stay
+  behind. That residue is deliberate.
 - **Rounded to the sprite grid even for a raw-pixel sprite.** `unit` governs the
   compensation, not the grid: a `CANVAS_PIXELS` sprite writes its origin in
   pixels, but `SpriteGeometryTest` still requires its canvas to be a whole
@@ -362,16 +314,16 @@ Two parts of the rule look like details and are not:
   produced 88x21, off the grid on both axes.
 - **The union covers a group, not a sprite.** Sprites chosen from a lookup table
   at draw time share one origin literal, so they must share one crop. Cropping
-  each walk frame to its own box would need 32 origins that do not exist, and the
-  frames would jitter horizontally against each other. Sprites that merely share
-  an origin *value* — two call sites that happen to pass the same number — are not
-  a group and each take their own crop.
+  each walk frame to its own box would need an origin per frame where there is one
+  for all of them, and the frames would jitter horizontally against each other.
+  Sprites that merely share an origin *value* — two call sites that happen to pass
+  the same number — are not a group and each take their own crop.
 
 `EXCLUSIONS` in `normalize.py` lists the sprites left alone, each with its reason.
 An empty list there would be a claim that every sprite can be normalised, which is
 not true: the canvas-anchored sky sprites are placed by the centre of their bitmap,
-and the sun and the four moon phases share one origin constant that would have to be
-split per sprite before any of them could be cropped.
+and the sun, the four moon phases and the carved Halloween moon share one origin
+constant that would have to be split per sprite before any of them could be cropped.
 
 `normalize` runs in check form as part of `all`. Gradle never invokes this tooling,
 so `SpriteGeometryTest` on the Kotlin side repeats the part of the invariant that has
@@ -381,11 +333,10 @@ byte budget — where CI will actually run it.
 ## Proposal names
 
 The concepts under `concepts/` and the drawings they became carry the names they were chosen
-under. Until v5.9F those names were Italian, and the release history, the closed backlogs and the
-delivery reports still use them; the tooling, the code's comments and the living documents use
-the English ones. The same drawing, under both names:
+under. Until v5.9 those names were Italian, and older commits use them; the tooling and the
+code's comments use the English ones. The same drawing, under both names:
 
-| English (since v5.9F) | In the records before it | What it is |
+| English (since v5.9) | Before v5.9 | What it is |
 |---|---|---|
 | Broad Oak | «Quercia larga» | the tree, v4.21 |
 | Scissors | «Forbici» | the sun, moon and star sprites, concept B, v4.23 |
@@ -403,5 +354,6 @@ the English ones. The same drawing, under both names:
 Two sets of the old names are still read by code, on purpose: the people's busts and the round-2
 birds seed their wobble with the old style names, and the building groups `k2_t_gradini*`,
 `k2_r_padiglione`, `k2_b_insegna`, `k2_b_smusso` and `k2_s_orologio_c` seed every card in their
-group. Renaming them would redraw shipped sprites, so the generators keep the strings and say why
-beside them (`build_people_concepts.py`, `build_skywater_round2.py`, `buildings/names.py`).
+group. Renaming them would redraw what they seed (shipped sprites, for the busts and the
+buildings), so the generators keep the strings and say why beside them
+(`build_people_concepts.py`, `build_skywater_round2.py`, `buildings/names.py`).

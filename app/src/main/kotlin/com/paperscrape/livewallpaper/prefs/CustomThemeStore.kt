@@ -28,7 +28,8 @@ private val Context.customThemeDataStore by preferencesDataStore(
  * about" and "World & scene"):
  *  - overrides: a user-saved replacement for one of the built-in themes (e.g. their own
  *    "christmas"), which [com.paperscrape.livewallpaper.engine.ThemeCatalog.byId] prefers over
- *    the hardcoded default. Removing an override is exactly "Reset to default".
+ *    the hardcoded default. Removing one is half of the gallery's "Reset to default", which also
+ *    clears the theme's edits from the menus (`resetBuiltinToDefault`).
  *  - customThemes: fully independent, user-created themes with their own id/name.
  *
  * Stored as a single JSON blob under one DataStore key -- the data is small (a handful of

@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -117,6 +118,26 @@ object UpdateNotifier {
                 NotificationManagerCompat.IMPORTANCE_NONE,
         )
     }
+
+    /**
+     * The phone's page for PaperScrape's notifications -- where a user who has switched them off, or
+     * on Android 13+ has refused them for good, can allow them (v5.10C, the tap on *Notify me about
+     * new versions* when the phone is what blocks it). `ACTION_APP_NOTIFICATION_SETTINGS` exists from
+     * API 26, the app's `minSdk`.
+     */
+    fun appNotificationSettingsIntent(context: Context): Intent =
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+
+    /** The app's details page, which every Android has: the fallback when a notification page will not open. */
+    fun appDetailsIntent(context: Context): Intent =
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", context.packageName, null))
+
+    /** The phone's page for the *Update available* channel alone, for when only that is turned off. */
+    fun channelSettingsIntent(context: Context): Intent =
+        Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            .putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID)
 
     /**
      * Creates the channel if it is not there, which is safe to call as often as one likes.

@@ -117,10 +117,10 @@ class CanvasSceneTarget : SceneCanvas {
         alpha: Int,
     ) {
         gradientPaint.shader = gradientCache.linear(gradientTopY, gradientBottomY, topColor, bottomColor)
-        gradientPaint.alpha = alpha
+        gradientPaint.setAlphaWithoutAllocating(alpha)
         require().drawPath(shape.asPath(), gradientPaint)
         gradientPaint.shader = null
-        gradientPaint.alpha = 255
+        gradientPaint.setAlphaWithoutAllocating(255)
     }
 
     override fun drawVerticalGradientRect(
@@ -155,7 +155,7 @@ class CanvasSceneTarget : SceneCanvas {
         // White is the MULTIPLY identity, so an untinted sprite skips the filter entirely rather
         // than paying for a no-op one.
         spritePaint.colorFilter = if (tintColor == WHITE) null else TintFilterCache.get(tintColor)
-        spritePaint.alpha = alpha
+        spritePaint.setAlphaWithoutAllocating(alpha)
         // `PorterDuff.Mode.ADD` sums the alpha as well as the colour. Summing alpha would be wrong
         // over a transparent destination -- but **this scene has none**: the sky is painted opaque
         // under everything, so the destination alpha is already 1 and the sum saturates where it

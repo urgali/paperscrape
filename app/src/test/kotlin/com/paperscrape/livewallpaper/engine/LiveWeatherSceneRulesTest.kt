@@ -1,8 +1,7 @@
 package com.paperscrape.livewallpaper.engine
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -33,15 +32,15 @@ class LiveWeatherSceneRulesTest {
             themeCloudsVisible = false,
             themeCloudDensity = 0.4f,
         )
-        assertNotNull("the forecast reported full cover; clouds must be drawn", density)
-        assertEquals(1f, density!!, 0.0001f)
+        assertFalse("the forecast reported full cover; clouds must be drawn", density.isNaN())
+        assertEquals(1f, density, 0.0001f)
     }
 
     @Test
     fun `the forecast overrides the theme's own density too`() {
         assertEquals(
             0.25f,
-            LiveWeatherSceneRules.cloudDensity(0.25f, themeCloudsVisible = true, themeCloudDensity = 0.9f)!!,
+            LiveWeatherSceneRules.cloudDensity(0.25f, themeCloudsVisible = true, themeCloudDensity = 0.9f),
             0.0001f,
         )
     }
@@ -49,15 +48,15 @@ class LiveWeatherSceneRulesTest {
     /** A clear forecast draws no clouds, whatever the theme's switch and slider say. */
     @Test
     fun `a clear forecast draws no clouds even with the layer switched on`() {
-        assertNull(LiveWeatherSceneRules.cloudDensity(0f, themeCloudsVisible = true, themeCloudDensity = 0.9f))
-        assertNull(LiveWeatherSceneRules.cloudDensity(0f, themeCloudsVisible = false, themeCloudDensity = 0.9f))
+        assertTrue(LiveWeatherSceneRules.cloudDensity(0f, themeCloudsVisible = true, themeCloudDensity = 0.9f).isNaN())
+        assertTrue(LiveWeatherSceneRules.cloudDensity(0f, themeCloudsVisible = false, themeCloudDensity = 0.9f).isNaN())
     }
 
     /** Cover is a fraction. Anything outside 0..1 is clamped rather than trusted. */
     @Test
     fun `cover is clamped into range`() {
-        assertEquals(1f, LiveWeatherSceneRules.cloudDensity(4f, true, 0.4f)!!, 0.0001f)
-        assertNull(LiveWeatherSceneRules.cloudDensity(-1f, true, 0.4f))
+        assertEquals(1f, LiveWeatherSceneRules.cloudDensity(4f, true, 0.4f), 0.0001f)
+        assertTrue(LiveWeatherSceneRules.cloudDensity(-1f, true, 0.4f).isNaN())
     }
 
     /**
@@ -72,6 +71,7 @@ class LiveWeatherSceneRulesTest {
                     "cover $cover density $themeDensity",
                     LiveWeatherSceneRules.cloudDensity(cover, themeCloudsVisible = true, themeCloudDensity = themeDensity),
                     LiveWeatherSceneRules.cloudDensity(cover, themeCloudsVisible = false, themeCloudDensity = themeDensity),
+                    0f,
                 )
             }
         }
@@ -81,10 +81,10 @@ class LiveWeatherSceneRulesTest {
 
     @Test
     fun `without the forecast the theme's switch still governs`() {
-        assertNull(LiveWeatherSceneRules.cloudDensity(null, themeCloudsVisible = false, themeCloudDensity = 0.4f))
+        assertTrue(LiveWeatherSceneRules.cloudDensity(Float.NaN, themeCloudsVisible = false, themeCloudDensity = 0.4f).isNaN())
         assertEquals(
             0.4f,
-            LiveWeatherSceneRules.cloudDensity(null, themeCloudsVisible = true, themeCloudDensity = 0.4f)!!,
+            LiveWeatherSceneRules.cloudDensity(Float.NaN, themeCloudsVisible = true, themeCloudDensity = 0.4f),
             0.0001f,
         )
     }
@@ -94,7 +94,7 @@ class LiveWeatherSceneRulesTest {
     fun `a visible layer at zero density is not the same as a switched-off layer`() {
         assertEquals(
             0f,
-            LiveWeatherSceneRules.cloudDensity(null, themeCloudsVisible = true, themeCloudDensity = 0f)!!,
+            LiveWeatherSceneRules.cloudDensity(Float.NaN, themeCloudsVisible = true, themeCloudDensity = 0f),
             0.0001f,
         )
     }

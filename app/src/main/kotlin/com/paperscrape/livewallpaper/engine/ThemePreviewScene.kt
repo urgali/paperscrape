@@ -132,11 +132,21 @@ object ThemePreviewGeometry {
 }
 
 /**
+ * Whether the wallpaper draws any of a thing at all: switched on **and above 0 %** (v5.10E). The card
+ * read the switches alone, so with a density, an intensity or a number at 0 -- where the wallpaper draws
+ * none (v5.10C, row 8: the switch reads off there) -- it went on showing trees, houses, the decorations,
+ * clouds, birds, rain and boats over a scene that had none of them; the v5.10C2 round saw it for the trees.
+ * Not for the buildings, whose shops stay at 0 %, nor the cars, one of which drives, nor the people, who
+ * have their night density: those keep their switch alone, as the wallpaper does.
+ */
+private fun drawn(visible: Boolean, amount: Float): Boolean = visible && amount > 0f
+
+/**
  * Builds a theme's preview scene out of the customization the wallpaper would draw it with.
  *
  * **Nothing here decides what a theme contains.** Every object is conditional on the same flags
- * the wallpaper reads -- `lake.visible`, `snowmen.visible`, `winterColorsEnabled`,
- * `halloweenEnabled`, `mountainsFront.visible` and so on -- so a preview shows what the scene
+ * the wallpaper reads -- `lake.drawsWater`, `snowmen.visible` with its density ([drawn], v5.10E),
+ * `winterColorsEnabled`, `halloweenEnabled`, `mountainsFront.visible` and so on -- so a preview shows what the scene
  * shows wherever the card reads the same flag. The one exception there was, a sparse wood
  * (`trees.density <= 0.25`) drawn as a fir, went in v5.8E (V3-48): the wallpaper draws a fir only
  * where [SceneObjectRenderer.drawsFirs] says so, and Tundra's card showed one its wallpaper never
@@ -318,11 +328,13 @@ object ThemePreviewScenes {
         // 1 with the toggle off, which is the default, so only a user who turns opening hours on
         // sees a night card's shops and towers go dark as the wallpaper's do (v5.9G, I-38).
         val openness = BusinessHours.opennessAt(c.businessHoursEnabled, c.businessOpenHour, c.businessCloseHour, cardHour(theme, night))
-        // Palms where the layout plants them, and the switch read the way the wallpaper reads it:
-        // with it off, the palm slots draw the ordinary tree. Asked of the layout rather than of
-        // the theme's name, which said "oaks" about a theme saved from Beach while the wallpaper
-        // drew its palms.
-        val palms = layout.hasPalmSlots() && c.palmsEnabled
+        // Palms where the switch puts them, read the way the wallpaper reads it: on a layout that
+        // plants palms, with it off the palm slots draw the ordinary tree; on one that plants none,
+        // with it on the tree slots draw palms (v5.10C, `palmsShown`). Asked of the layout rather
+        // than of the theme's name, which said "oaks" about a theme saved from Beach while the
+        // wallpaper drew its palms.
+        val layoutPlantsPalms = layout.hasPalmSlots()
+        val palms = c.palmsShown(layoutPlantsPalms)
 
         val skyTop = if (c.horrorSkyEnabled) {
             SkyGradient.horrorTop(dayBlend)
@@ -373,12 +385,12 @@ object ThemePreviewScenes {
         }
 
         // --- clouds ---------------------------------------------------------------------------
-        if (c.clouds.visible && !night) {
+        if (drawn(c.clouds.visible, c.clouds.density) && !night) {
             // The wallpaper's pair at the card's moment (`PaperRenderer.drawClouds`, before its storm
             // dimming, which needs a forecast the card does not have). Until v5.9G the day colour on
             // every card, which only Sunset's hour tells apart: its dayBlend at 19:00 is 0.80.
             val cloudTint = blendRgb(c.clouds.colorNight, c.clouds.colorDay, dayBlend)
-            val heavy = c.precipitation.visible
+            val heavy = drawn(c.precipitation.visible, c.precipitation.intensity)
             backdrop += PreviewItem(70f, 40f, if (heavy) 0.30f else 0.22f,
                 listOf(PreviewSprite(R.drawable.cloud_body, -128f, -85f, cloudTint, alpha = 235)))
             backdrop += PreviewItem(206f, 30f, if (heavy) 0.26f else 0.18f,
@@ -389,14 +401,14 @@ object ThemePreviewScenes {
         // The flock the card never drew. `BirdsConfig.nightBirds` is off in every built-in, so a
         // night card owes none -- and reading the flag rather than the theme's name means a custom
         // theme that turns night birds on gets them here too.
-        if (c.birds.visible && (!night || c.birds.nightBirds)) {
+        if (drawn(c.birds.visible, c.birds.density) && (!night || c.birds.nightBirds)) {
             backdrop += PreviewItem(128f, 62f, 0.9f, bird(c))
             backdrop += PreviewItem(148f, 72f, 0.7f, bird(c))
             if (c.birds.density >= 0.4f) backdrop += PreviewItem(112f, 78f, 0.6f, bird(c))
         }
 
         // --- stars ----------------------------------------------------------------------------
-        if (night && c.stars.visible) {
+        if (night && c.stars.visible && PaperRenderer.starCountFor(c.stars.density) > 0) {
             var seed = theme.id.hashCode()
             repeat(34) {
                 seed = seed * 1664525 + 1013904223
@@ -441,7 +453,7 @@ object ThemePreviewScenes {
                 SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
                 PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, openness)
         }
-        if (c.houses.visible) {
+        if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(80f, ROW_HOUSE_LARGE, 0.40f,
                 SceneSpace.SceneVariant.HOUSE_LARGE, SceneObjectType.HOUSE,
                 PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, dayBlend, winter, openness)
@@ -451,7 +463,7 @@ object ThemePreviewScenes {
                 SceneSpace.SceneVariant.SCHOOL, SceneObjectType.SKYSCRAPER,
                 PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, winter, openness)
         }
-        if (c.houses.visible) {
+        if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(236f, ROW_HOUSE_SMALL, 0.40f,
                 SceneSpace.SceneVariant.HOUSE_SMALL, SceneObjectType.HOUSE,
                 PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, dayBlend, winter, openness)
@@ -463,23 +475,27 @@ object ThemePreviewScenes {
         }
 
         // --- trees ------------------------------------------------------------------------------
-        if (c.trees.visible) {
-            // Two, whatever the density, and one where the woodland is a scattering: a third has
-            // no place on this row that does not stand in front of a shop.
-            val xs = if (sparse) listOf(262f) else listOf(70f, 262f)
-            xs.forEachIndexed { index, x ->
+        if (drawn(c.trees.visible, c.trees.density)) {
+            // Two, or one where the woodland is a scattering -- and a fir and a palm, even in a
+            // scattering, where the scene keeps both (v5.10C2). See [cardTrees].
+            val kinds = cardTrees(c, layout, layoutPlantsPalms, palms, sparse)
+            val xs = if (kinds.size == 1) listOf(262f) else listOf(70f, 262f)
+            kinds.forEachIndexed { index, kind ->
+                val x = xs[index]
                 val leaf = if (c.fallColorsEnabled) FALL_LEAF_COLOURS[index % FALL_LEAF_COLOURS.size] else c.trees.colorAt(0, dayBlend)
-                val parts = when {
-                    palms -> palmTree(dead = halloween, frost = winter, shade = c.trees.nightShadeAt(0, dayBlend))
-                    // Christmas is the theme that puts firs among the trees, and the only one:
-                    // a sparse wood is not a reason for a fir (v5.8E, V3-48).
-                    SceneObjectRenderer.drawsFirs(c) && index % 2 == 0 -> fir(snow = winter)
-                    else -> tree(leaf, winter = winter, halloween = halloween)
+                val palm = kind == CardTree.PALM
+                val parts = when (kind) {
+                    CardTree.FIR -> fir(snow = winter)
+                    CardTree.PALM -> palmTree(
+                        dead = halloween, frost = winter, shade = c.trees.nightShadeAt(0, dayBlend),
+                        lights = c.christmasDecorationsEnabled,
+                    )
+                    CardTree.TREE -> tree(leaf, winter = winter, halloween = halloween)
                 }
                 items += PreviewItem(
                     x,
-                    if (palms) ROW_TREES + 4f else ROW_TREES,
-                    if (palms) 0.44f else 0.38f,
+                    if (palm) ROW_TREES + 4f else ROW_TREES,
+                    if (palm) 0.44f else 0.38f,
                     parts,
                 )
             }
@@ -504,7 +520,7 @@ object ThemePreviewScenes {
         }
 
         // --- what is on the water ---------------------------------------------------------------
-        if (c.lake.visible) lakeLife(c, lake, water)
+        if (c.lake.drawsWater) lakeLife(c, lake, water)
 
         // --- the ground, then what stands on it ---------------------------------------------------
         // **Wildflowers first.** `SceneObjectRenderer.drawGroundFlowers` says of itself that it
@@ -526,32 +542,32 @@ object ThemePreviewScenes {
                 groundItems += PreviewItem(x, y, 0.95f, listOf(PreviewSprite(flowers, -18f, -12f)))
             }
         }
-        if (c.snowmen.visible) {
+        if (drawn(c.snowmen.visible, c.snowmen.density)) {
             groundItems += PreviewItem(52f, ROW_GROUND, 0.56f, snowman(c.snowmen.colorAt(0, dayBlend)))
             if (c.snowmen.density >= 0.45f) groundItems += PreviewItem(DECOR_RIGHT_X, ROW_GROUND, 0.50f, snowman(c.snowmen.colorAt(1, dayBlend)))
         }
-        if (c.gifts.visible) {
+        if (drawn(c.gifts.visible, c.gifts.density)) {
             groundItems += PreviewItem(200f, ROW_GROUND, 0.55f, gift(c.gifts.colorAt(0, dayBlend)))
             groundItems += PreviewItem(222f, ROW_GROUND, 0.48f, gift(c.gifts.colorAt(1, dayBlend)))
             groundItems += PreviewItem(60f, ROW_GROUND, 0.50f, gift(c.gifts.colorAt(0, dayBlend)))
         }
-        if (c.penguins.visible) {
+        if (drawn(c.penguins.visible, c.penguins.density)) {
             // 120 and 148 stood on the two adults at 118 and 142 and covered one of them by two
             // thirds; 72 and 98 stand beside them.
             groundItems += PreviewItem(72f, ROW_GROUND + 2f, 0.60f, penguin(c.penguins.colorAt(0, dayBlend)))
             groundItems += PreviewItem(98f, ROW_GROUND + 2f, 0.54f, penguin(c.penguins.colorAt(1, dayBlend)))
             groundItems += PreviewItem(236f, ROW_GROUND, 0.50f, penguin(c.penguins.colorAt(0, dayBlend)))
         }
-        if (c.bunnies.visible) {
+        if (drawn(c.bunnies.visible, c.bunnies.density)) {
             groundItems += PreviewItem(50f, ROW_GROUND, 0.60f, bunny(c.bunnies.colorAt(0, dayBlend)))
             groundItems += PreviewItem(DECOR_RIGHT_X, ROW_GROUND, 0.52f, bunny(c.bunnies.colorAt(1, dayBlend)))
         }
-        if (c.easterEggs.visible) {
+        if (drawn(c.easterEggs.visible, c.easterEggs.density)) {
             groundItems += PreviewItem(196f, ROW_GROUND, 0.55f, easterEgg(c.easterEggs.colorAt(0, dayBlend)))
             groundItems += PreviewItem(218f, ROW_GROUND, 0.48f, easterEgg(c.easterEggs.colorAt(1, dayBlend)))
             groundItems += PreviewItem(92f, ROW_GROUND, 0.46f, easterEgg(c.easterEggs.colorAt(0, dayBlend)))
         }
-        if (c.pumpkins.visible) {
+        if (drawn(c.pumpkins.visible, c.pumpkins.density)) {
             groundItems += PreviewItem(52f, ROW_GROUND, 0.56f, pumpkin(c.pumpkins.colorAt(0, dayBlend), carved = halloween))
             groundItems += PreviewItem(204f, ROW_GROUND, 0.50f, pumpkin(c.pumpkins.colorAt(1, dayBlend), carved = halloween))
             groundItems += PreviewItem(DECOR_RIGHT_X, ROW_GROUND, 0.48f, pumpkin(c.pumpkins.colorAt(0, dayBlend), carved = halloween))
@@ -602,7 +618,7 @@ object ThemePreviewScenes {
         }
 
         // --- weather --------------------------------------------------------------------------
-        if (c.precipitation.visible) {
+        if (drawn(c.precipitation.visible, c.precipitation.intensity)) {
             var seed = theme.id.hashCode() xor 0x50F1
             val snow = c.precipitation.type == PrecipitationType.SNOW
             // The wallpaper's own rule (`PaperRenderer.drawPrecipitation`): the theme's night colour
@@ -647,7 +663,8 @@ object ThemePreviewScenes {
             groundColour = ground,
             peaks = peaks,
             lake = lake,
-            hasLake = c.lake.visible,
+            // As the wallpaper decides it, 0 % height included (v5.10E, `LakeConfig.drawsWater`).
+            hasLake = c.lake.drawsWater,
             hasRoad = SceneObjectRenderer.drawsRoad(layout, c),
             roadColour = SceneObjectRenderer.roadColor(dayBlend),
             backdrop = backdrop,
@@ -688,14 +705,14 @@ object ThemePreviewScenes {
     private fun lakeLife(c: SceneCustomization, band: PreviewBand, into: MutableList<PreviewItem>) {
         val height = band.bottom - band.top
         val open = c.lake.height >= OPEN_WATER_HEIGHT
-        if (c.lake.sailboatsVisible) {
+        if (drawn(c.lake.sailboatsVisible, c.lake.sailboatsDensity)) {
             val scale = (height / 60f).coerceIn(0.14f, if (open) 0.30f else 0.24f)
             // The hull's ink runs from oy 8 to oy 25 in the sprite's own space, so its middle is
             // 16.5 units below the item's origin: subtracting that sits the waterline on the lane.
             val lane = band.top + height * 0.38f
             into += PreviewItem(if (open) 130f else 13f, lane - 16.5f * scale, scale, sailboat())
         }
-        if (c.lake.dolphinsVisible) {
+        if (drawn(c.lake.dolphinsVisible, c.lake.dolphinsDensity)) {
             val scale = (0.75f * height / 57f).coerceIn(0.12f, if (open) 0.30f else 0.20f)
             val lane = band.top + height * 0.42f
             into += PreviewItem(if (open) 200f else 207f, lane - scale, scale, dolphin())
@@ -1000,6 +1017,57 @@ object ThemePreviewScenes {
         return parts
     }
 
+    /** What the card stands on its tree row, left to right. */
+    private enum class CardTree { TREE, FIR, PALM }
+
+    /**
+     * The card's trees: two, whatever the density, and one where the woodland is a scattering -- a
+     * third has no place on the row that does not stand in front of a shop.
+     *
+     * **As before v5.10C2, except under palms in the trees' places with the Christmas layer on.** The
+     * palms are the switch's (`palmsShown`), and Christmas is the layer that puts firs among the trees,
+     * and the only one: a sparse wood is not a reason for a fir (v5.8E, V3-48). So with the palms the
+     * card shows palms, and without them a fir first under the layer.
+     *
+     * Under both, on a layout that plants no palm of its own, the scene keeps two species: its firs,
+     * and a palm in every other tree's place (`palmSpeciesApplied`, the maintainer's *«gli abeti sono del
+     * tema e tali devono rimanere»*, 2026-10-03). Which of them a thinned wood keeps is the layout's
+     * deal -- Christmas at 20 % keeps two trees and both are firs -- so the card asks the scene, through
+     * the same two functions the renderer builds its list with, and shows a fir and a palm when it
+     * stands both, even in a scattering: one tree cannot be two species, and leaving either out is the
+     * card saying less than the scene. Beach and Desert are not this case: their palm slots are palms
+     * whatever the layer says, and with their palms on they stand no fir, as before.
+     */
+    private fun cardTrees(
+        c: SceneCustomization,
+        layout: SceneObjectLayout,
+        layoutPlantsPalms: Boolean,
+        palms: Boolean,
+        sparse: Boolean,
+    ): List<CardTree> {
+        val count = if (sparse) 1 else 2
+        if (palms && !layoutPlantsPalms && SceneObjectRenderer.drawsFirs(c)) {
+            val kept = layout.staticObjects
+                .filter { c.keepCandidate(it, layout.densityScheme) }
+                .map { c.palmSpeciesApplied(it, layoutPlantsPalms = false) }
+            // A tree slot left a tree here is a fir: every other one became a palm.
+            val firs = kept.any { it.type == SceneObjectType.TREE }
+            val palmsKept = kept.any { it.type == SceneObjectType.PALM_TREE }
+            return when {
+                firs && palmsKept -> listOf(CardTree.FIR, CardTree.PALM)
+                firs -> List(count) { CardTree.FIR }
+                else -> List(count) { CardTree.PALM }
+            }
+        }
+        return List(count) { index ->
+            when {
+                palms -> CardTree.PALM
+                SceneObjectRenderer.drawsFirs(c) && index % 2 == 0 -> CardTree.FIR
+                else -> CardTree.TREE
+            }
+        }
+    }
+
     /**
      * v4.21 moved both of these, and they are the reason this function is worth a comment.
      *
@@ -1039,19 +1107,35 @@ object ThemePreviewScenes {
      * it wears the same pair's colour ([colorAt]). Full daylight at noon, so a day card's palm is
      * the untinted blit it always was. Until v5.9G neither the palm nor the leafy tree read the
      * hour, and on a night card both kept their noon light (inventory I-38).
+     *
+     * **[lights], the Christmas lights the wallpaper strings on a palm** (`drawPalmTree` calls
+     * `drawChristmasLights` on the crown's centre, Halloween's dead crown included). Until v5.10C the
+     * card's palm had none, which was a card saying less than its scene only on a Beach or a Desert
+     * someone had lit; since then palms can stand on Christmas, where they are lit by default, and
+     * `ThemePreviewTruthTest` found the card's Christmas without a light. **One** of the fir's
+     * baubles ([fir]), not its three: the `star_sparkle` canvas is 60 units with its ink centred about
+     * (30, 29), as big as the whole 56x48 crown, and three of them hid the palm on the card
+     * (photographed on the BV6600, v5.10C). It sits on the crown's top edge, over the centre the
+     * wallpaper hangs its string on, mostly in the sky -- placed by eye, like the fir's.
      */
-    private fun palmTree(dead: Boolean, frost: Boolean, shade: Int): List<PreviewSprite> = listOf(
-        PreviewSprite(R.drawable.palmtree_trunk, PalmSpriteLayout.TRUNK_X, PalmSpriteLayout.TRUNK_Y, shade = shade),
-        PreviewSprite(
-            when {
-                dead -> R.drawable.palmtree_fronds_dead
-                frost -> R.drawable.palmtree_fronds_frost
-                else -> R.drawable.palmtree_fronds
-            },
-            PalmSpriteLayout.CROWN_X, PalmSpriteLayout.CROWN_Y,
-            shade = shade,
-        ),
-    )
+    private fun palmTree(dead: Boolean, frost: Boolean, shade: Int, lights: Boolean): List<PreviewSprite> {
+        val parts = mutableListOf(
+            PreviewSprite(R.drawable.palmtree_trunk, PalmSpriteLayout.TRUNK_X, PalmSpriteLayout.TRUNK_Y, shade = shade),
+            PreviewSprite(
+                when {
+                    dead -> R.drawable.palmtree_fronds_dead
+                    frost -> R.drawable.palmtree_fronds_frost
+                    else -> R.drawable.palmtree_fronds
+                },
+                PalmSpriteLayout.CROWN_X, PalmSpriteLayout.CROWN_Y,
+                shade = shade,
+            ),
+        )
+        if (lights) {
+            parts += PreviewSprite(R.drawable.star_sparkle, -23f, -109f, 0xFFF2C14E.toInt(), alpha = 220)
+        }
+        return parts
+    }
 
     private fun snowman(c: Int) = listOf(
         PreviewSprite(R.drawable.snowman_body, -19f, -74f, c),

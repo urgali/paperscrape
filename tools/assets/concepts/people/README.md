@@ -1,48 +1,32 @@
-# People concepts for v4.25 — three proposals; B shipped
+# People drawings
 
-Three candidate redraws of the whole people family, built for the size they are actually
-seen at: an adult walker is **37 px tall on the BV6600** (measured on a captured frame),
-a child about 28, a bust in a car about 15 and a bust at a window about 8. The maintainer chose
-B `relief` with the suggestion of a face, from photographs taken at real size on the device
-(v4.25, `RELEASE_HISTORY.md`), and `build_people_concepts.py` in its style `relief_eyes` is
-still what draws every person that ships (`CLAUDE.md` §4).
+The scripts that draw every person the app ships. Run them from `tools/assets`, in the tooling's
+environment ([Setup](../../README.md#setup)).
 
-`build_people_concepts.py` writes every source and renders it through the project's own
-rasteriser (`paperscrape_assets.raster`, probe verified). Each concept directory holds the
-40 SVG sources with their PNGs and a `sprites.concept.json` in the shipped registry's schema.
+- **`build_people_concepts.py`** draws the four characters as cut-paper polygons: three walk
+  frames, a window bust and a car bust, in summer and winter, 40 sprites per style. For each
+  style it writes `<style>/svg/<name>.svg` and `.png` and `<style>/sprites.concept.json`; with no
+  argument it builds all four. **`relief_eyes` is the style that ships**: its SVGs are the
+  `person_*` files in `sources/svg/`. `stencil`, `relief` and `doll` are the other proposals of
+  v4.25, not shipped.
+- **`build_carry_sprites.py`** draws the carrying pose (the near arm raised to hold the umbrella)
+  into `carry/`, with `carry/hands.json`, the grip `SceneObjectRenderer`'s `carryHandX`,
+  `carryHandY` and `carryCrownY` are copied from. Each run first checks that it still reproduces
+  every shipped walk frame byte for byte; if that fails, stop and look. `build_carry_concepts.py`
+  drew the candidate poses in `carry_concepts/`; nothing uses it.
 
-## What every concept shares
+The wallpaper does not draw these PNGs. `tools/generate_people_layers.py` imports both scripts
+and writes every figure into `res/drawable-nodpi` as fixed art plus up to four region weight
+masks (skin, head, shirt or coat, trousers), and writes `engine/PeopleLayerTable.kt`;
+`tools/update_people_registry.py` then rewrites the person entries of `sources/sprites.json`.
+Run both, in that order, from the repository root. To change a person, edit the drawing (a
+region is declared by piece, in `_PIECE_REGION`), re-run `build_people_concepts.py`, copy the
+changed `relief_eyes/svg/*.png` over the shipped bases and the matching `.svg` over
+`sources/svg/`, then run those two scripts.
 
-- **The shipped canvases**: walk 123×255, window bust 159×171, car bust 141×132. Same
-  `SCENE_UNITS` convention, same `CONTENT_BOTTOM_CENTRE` anchors, same `FIXED_ART` class,
-  so no call site, no constant and no byte of the decoded budget (29 MiB then) moves.
-- **Cut edges**: every shape is a polygon with a small deterministic wobble written into
-  its coordinates — the rule the sky adopted in v4.23.
-- **No feature thinner than three units.** The GL backend minifies with one bilinear tap
-  and no mipmaps (`GlTextureAtlas.kt`), so at the ~1:8 reduction a walker gets, anything
-  thinner appears and disappears as the figure moves.
-- **One flat skin colour per character**, the shipped tone, so `generate_skin_variants.py`
-  still applies. Garment paints are the shipped ones too.
-- Walk frames 0 and 2 differ by construction on the side-view figures: the far leg is a
-  darker paper than the near one.
-
-## The three directions
-
-| | A `stencil` | B `relief` | C `doll` |
-|---|---|---|---|
-| Idea | the least paper that still reads as a person | stacked papers, the Broad Oak's recipe | a frontal paper doll with a face |
-| Pieces per walker | 3–4 (+ hair, feet) | 6–8, each with an under-paper shadow | 6–7 |
-| View | three-quarter, facing +x | three-quarter, facing +x | frontal |
-| Face | none | none | two eyes, 3.6 units |
-| Outline | none | none (the under-paper does the separating) | one outer outline round the union, 1.5 units |
-| Arms | folded into the body block | separate strips with hands, swinging | short stubs with hands |
-
-## Known consequences for phase 2, whichever is chosen
-
-- `tools/assets/tests/test_outline.py` encodes the current rule that every person sprite
-  carries an outer outline; A and B drop it deliberately, so that rule changes with them.
-- `SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS` (23.7) is measured off the shipped man's
-  crown and jaw rows; a redraw re-measures it, and for C the head is larger (see the
-  generator), which moves `CAR_OCCUPANT_SCALE` unless the seated fit or the car glass moves.
-- The winter window busts are drawn but unreachable: `seasonIndexFor(Exposure.INDOORS)`
-  always reads the summer column.
+There is no outline: every piece sits on a darker under-paper offset down and right, and
+`tests/test_relief.py` checks that the shipped walk frames and busts still carry it.
+`SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS` is measured off the shipped man's head, and
+`OccupantHeadFitTest` fails if a redraw moves it by more than half a unit. The busts seed their
+wobble with the style names they were first drawn under (`SEED_STYLE`); changing those strings
+would move every vertex.

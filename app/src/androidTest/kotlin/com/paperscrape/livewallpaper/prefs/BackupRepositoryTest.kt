@@ -290,11 +290,11 @@ class BackupRepositoryTest {
     }
 
     /**
-     * A [CustomThemeStore] that cancels the importing job on its way into the write.
-     *
-     * `replaceAll` is `open` for this and for [FailOnceThemeStore] and for nothing else — see its
-     * own doc comment. There is no honest way to make a real DataStore fail, or to be cancelled at
-     * a chosen instant, from outside.
+     * [CancellingThemeStore], below with the process-kill tests, is a [CustomThemeStore] that cancels
+     * the importing job on its way into the write. It overrides `replaceAllJson`, the seam the import
+     * goes through (`replaceAll` delegates to it), which is `open` for this double and for
+     * [FailOnceThemeStore] and for nothing else -- see its own doc comment. There is no honest way to
+     * make a real DataStore fail, or to be cancelled at a chosen instant, from outside.
      */
     // ------------------------------------------------------------------ process kill (v4.15)
 

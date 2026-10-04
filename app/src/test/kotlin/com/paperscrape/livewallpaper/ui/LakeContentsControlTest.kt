@@ -138,8 +138,16 @@ class LakeContentsControlTest {
             "the screen must build the state through SettingsUiModel.lakeContents",
             body.contains("SettingsUiModel.lakeContents("),
         )
-        assertTrue("the sailboat switch must be drawn from the derivation", body.contains("checked = lakeContents.sailboatsShownOn"))
-        assertTrue("the dolphin switch must be drawn from the derivation", body.contains("checked = lakeContents.dolphinsShownOn"))
+        // Since v5.10C through the 0 % rule too (`SettingsUiModel.amountSwitch`), which reads the
+        // derivation's answer rather than the stored flag.
+        assertTrue(
+            "the sailboat switch must be drawn from the derivation",
+            body.contains("SettingsUiModel.amountSwitch(lakeContents.sailboatsShownOn,") && body.contains("checked = sailboats.shownOn"),
+        )
+        assertTrue(
+            "the dolphin switch must be drawn from the derivation",
+            body.contains("SettingsUiModel.amountSwitch(lakeContents.dolphinsShownOn,") && body.contains("checked = dolphins.shownOn"),
+        )
         assertEquals(
             "all four controls -- two switches and two sliders -- must take enabled from the derivation",
             4,
@@ -163,18 +171,24 @@ class LakeContentsControlTest {
     @Test
     fun `the override and the values it overrides are read from the same theme's customization`() {
         val body = lakeSubScreenSource()
-        assertTrue(body.contains("lakeVisible = customization.lake.visible"))
+        // The lake as its switch shows it: on, and above 0 % height since v5.10E (inventory I-293).
+        assertTrue(body.contains("val lake = SettingsUiModel.amountSwitch(customization.lake.visible, customization.lake.height)"))
+        assertTrue(body.contains("lakeVisible = lake.shownOn"))
         assertTrue(body.contains("storedSailboatsVisible = customization.lake.sailboatsVisible"))
         assertTrue(body.contains("storedDolphinsVisible = customization.lake.dolphinsVisible"))
     }
 
     /**
-     * **Each of the four preferences has exactly one writer, and it is its own control.**
+     * **Each of the four preferences is written only by its own row, on a touch.**
      *
      * This is the assertion that stands for "the stored values survive". A `LaunchedEffect` that
      * tidied the preferences when the lake went off -- the obvious and wrong repair -- would be
      * invisible to every other test in this suite and would destroy the user's setup on the first
      * frame of the screen.
+     *
+     * One writer each until v5.10C. Since then a density has two, both in its own row and both
+     * behind a touch: its slider, and its switch turned on at 0 %, which brings the theme's density
+     * back so the boats appear (`applyAmountTap`'s `setAmount`, row 8 of the maintainer's table).
      */
     @Test
     fun `nothing but its own control ever writes a lake-contents preference`() {
@@ -191,15 +205,21 @@ class LakeContentsControlTest {
                         .filter { (_, line) -> line.contains("$setter(") }
                         .map { (index, line) -> "${file.name}:${index + 1}: ${line.trim()}" }
                 }
+            val expected = if (setter.endsWith("Density")) 2 else 1
             assertEquals(
-                "$setter must have exactly one writer outside WallpaperPrefs, its own control: $callers",
-                1,
+                "$setter must have exactly $expected writer(s) outside WallpaperPrefs, in its own row: $callers",
+                expected,
                 callers.size,
             )
-            assertTrue(
-                "the one writer must be in the lake screen: ${callers.first()}",
-                callers.first().startsWith("WorldSceneScreen.kt:"),
-            )
+            for (caller in callers) {
+                assertTrue("every writer must be in the lake screen: $caller", caller.startsWith("WorldSceneScreen.kt:"))
+                val line = caller.substringAfter(": ")
+                assertTrue(
+                    "every writer must sit behind a touch -- a slider's commit or the switch's own tap: $caller",
+                    line.startsWith("onCommit = ") || line.startsWith("onCheckedChange = ") ||
+                        line.startsWith("setAmount = ") || line.startsWith("setVisible = "),
+                )
+            }
         }
     }
 

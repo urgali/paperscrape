@@ -4,32 +4,44 @@
 
     <!-- Live Weather -->
     <string name="live_weather_title">Live Weather</string>
-    <string name="live_weather_desc">Real current conditions replace each theme\'s manual rain/snow/cloud settings automatically, refreshed hourly. While on, this theme\'s own Clouds/Precipitation screens switch to read-only.</string>
+    <!-- v5.10D: the theme's own cloud and rain controls are not drawn while the forecast drives them
+         (inventory I-220); "read-only" was the greyed switches that could read off over the forecast's
+         clouds. -->
+    <string name="live_weather_desc">Real current conditions replace each theme\'s manual rain/snow/cloud settings automatically, refreshed hourly. While on, this theme\'s own Clouds and Rain and snow screens leave those to the forecast; their colours stay yours.</string>
     <string name="live_weather_needs_location">Pick a location above first - GPS, Network or Custom - so it knows where to check the weather for.</string>
     <string name="live_weather_fallback_notice">Location unavailable — showing this theme\'s own weather instead.</string>
 
     <!-- Updates -->
-    <string name="settings_auto_update_check_title">Check for updates automatically</string>
-    <!-- Only the settings-screen check is this switch's own. The engine's daily check needs the
-         notification switch below as well (PaperWallpaperService.maybeCheckForUpdate): its only
-         job is to feed that notification. Until v5.8 this line promised the daily check alone. -->
+    <!-- "When I open PaperScrape" since v5.10C (the maintainer's decision of 2026-09-30): "automatically"
+         read like a check that runs by itself, and what this switch does on its own is check when
+         these settings open. -->
+    <string name="settings_auto_update_check_title">Check for updates when I open PaperScrape</string>
+    <!-- Only the settings-screen check is this switch's own. The engine's check every three hours
+         needs the notification switch below as well (PaperWallpaperService.maybeCheckForUpdate): its
+         only job is to feed that notification. Until v5.8 this line promised the engine's check alone. -->
     <string name="settings_auto_update_check_subtitle">When on, PaperScrape asks GitHub for a newer release each time you open these settings. To also hear about one while the wallpaper is on screen, turn on the notification below. Off by default; the button below always works.</string>
 
     <!-- The second switch (v5.7D). A row of its own rather than a new meaning for the one above:
          somebody who turned that one on asked for a prompt inside the app, and quietly turning
          that into a notification would be changing what a control they already set means. -->
     <string name="settings_update_notify_title">Notify me about new versions</string>
-    <!-- "About", not "at most": the 24-hour timer lives in the running wallpaper, in memory, so a
-         wallpaper that restarts (phone restart, app update, another wallpaper and back) checks at once.
-         Measured in the v5.7 assessment: three checks in a quarter of an hour. -->
-    <string name="settings_update_notify_subtitle">Puts a quiet notification in the shade when a newer release appears. No sound and no pop-up. Only while PaperScrape is your wallpaper and on screen; it checks about once a day, and again whenever the wallpaper restarts.</string>
-    <string name="settings_update_notify_needs_check">Turn \"Check for updates automatically\" on first - this is how PaperScrape tells you what that check found. Your choice here is kept until then.</string>
-    <string name="settings_update_notify_blocked">Notifications are switched off for PaperScrape in your phone\'s settings, so nothing would appear.</string>
+    <!-- "About", not "at most": the three-hour timer (the maintainer's decision of 2026-09-30, once a
+         day until v5.10D) lives in the running wallpaper, in memory, so a wallpaper that restarts (phone
+         restart, app update, another wallpaper and back) checks at once. Measured in the v5.7 assessment:
+         three checks in a quarter of an hour. -->
+    <string name="settings_update_notify_subtitle">Puts a quiet notification in the shade when a newer release appears. No sound and no pop-up. Only while PaperScrape is your wallpaper and on screen; it checks about every three hours, and again whenever the wallpaper restarts.</string>
+    <string name="settings_update_notify_needs_check">Needs \"Check for updates when I open PaperScrape\" above: the wallpaper checks only while that is on too. Your choice here is kept until then.</string>
+    <!-- v5.10C: the switch is on only when a notification can really arrive, and each line below says
+         what is missing and what the tap does about it (UpdateNotificationPolicy.notifyRow). -->
+    <string name="settings_update_notify_blocked">Your phone is not letting PaperScrape show notifications, so nothing would appear. Tap to open the phone\'s page for them.</string>
+    <string name="settings_update_notify_blocked_ask">Your phone is not letting PaperScrape show notifications, so nothing would appear. Tap to allow them.</string>
+    <string name="settings_update_notify_refused">Notifications were not allowed, so nothing would appear. Tap to allow them.</string>
+    <string name="settings_update_notify_not_wallpaper">Works only while PaperScrape is your wallpaper: the check runs inside it. Tap to set it as your wallpaper.</string>
 
     <!-- What the user sees in System settings > Apps > PaperScrape > Notifications. This is the
          only account of the feature anyone gets from outside the app, so it says the cadence. -->
     <string name="update_channel_name">Update available</string>
-    <string name="update_channel_description">A quiet note when a newer release of PaperScrape is out. At most one per version, and no sound. PaperScrape checks about once a day while it is your wallpaper and on screen.</string>
+    <string name="update_channel_description">A quiet note when a newer release of PaperScrape is out. At most one per version, and no sound. PaperScrape checks about every three hours while it is your wallpaper and on screen.</string>
 
     <!-- Title %1$s is the new release tag, which already carries its own "v" (e.g. "v5.7");
          body %1$s is the installed versionName, which does not, so the "v" is in the string. -->

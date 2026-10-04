@@ -73,7 +73,7 @@ internal class GlTextureAtlas(
      * both halves of that sentence, because the comment that used to stand here justified the
      * limit with a sprite that had not had those dimensions for several releases: it said "the
      * sleigh alone is 1563x434", and `santa_sleigh_scene` is 594x123 px — the crop recorded in
-     * `SANTA_CROP_REPORT.md`, which landed in v4.19. The largest single dimension anywhere in the
+     * `SANTA_CROP_REPORT.md`, which landed in v4.8. The largest single dimension anywhere in the
      * set is `cloud_body`, and **0 of the 421 sprites shipped at v5.8 exceed [maxEntryDimension] on
      * either axis** (305 when v4.29 measured it). Over a twelve-theme walk at full density, 33 000
      * frames and 314 entries, the dimension rejection fired **0 times**; what fired was the space

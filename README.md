@@ -17,7 +17,11 @@ moving on its own.
 - **A day that follows yours.** The sun and moon move with your device clock, and the
   whole palette blends from night through dawn to day and back. Sunrise and sunset
   times can come from the clock alone, from your location, or from a place you pick —
-  by searching for it by name, or by entering coordinates.
+  by searching for it by name, or by entering coordinates. Your phone's location is used
+  only while the phone allows it, and asked for once an hour at most -- after a search that
+  finds nothing, again after 5, 15 and 30 minutes; the settings say when
+  it is not allowed or switched off, and take you where to change it. Frozen at a fixed hour,
+  the scene uses a sunrise at 6:00 and a sunset at 20:00 wherever you are.
 - **Twelve themes** — sunset, autumn, winter, spring, desert, Christmas, new year, beach,
   city, tundra, Easter and Halloween — with optional automatic switching by date, which as
   it comes covers every day of the year and moves Easter with the calendar. Each one's gallery card
@@ -69,12 +73,9 @@ moving on its own.
 no 3D rendering, no perspective projection of geometry, no lighting model. Depth comes
 from layering, from scale, and from where a thing stands on the ground.
 
-All artwork is original and drawn for this project. Every drawn sprite has an SVG source in
-the repository, and the drawing language is still being revised family by family: the tree
-became a wide oak in v4.21, the sun, the sunburst, the four moon phases, the carved Halloween
-moon and the star sparkle were redrawn in v4.23, the people — walking, at the windows and in
-the cars — in v4.25, and the sky and the water in v4.26: the cloud, the bird, the sailboat and the
-dolphin, plus the water's own surface, which is drawn by the renderer rather than by a sprite.
+All artwork is original and drawn for this project, from sources kept in the repository: most
+sprites from an SVG, the people and the buildings from the two generators that write them (see
+*Assets* below). The water's own surface is drawn by the renderer rather than by a sprite.
 
 Two things in the scene are not sprites at all but **hairlines struck over a surface the scene
 recomputes** — the water's cut edge and the falling rain — and neither can carry a colour of its
@@ -114,8 +115,9 @@ themes to JSON with a versioned schema and migrations. `SeasonalThemeRules` deci
 automatic by-date theme.
 
 **Settings.** A Jetpack Compose UI (Material 3, complete colour scheme derived from the
-app's own palette) backed by DataStore Preferences. Five destinations — Weather & time,
-Seasons & decorations, World & scene, Advanced & about, and the theme gallery — reached
+app's own palette) backed by DataStore Preferences. Six destinations — Weather & time,
+Seasons & decorations, World & scene, Advanced & about, the theme gallery and the holiday
+calendar — reached
 from a home screen that says which theme is showing and who chose it. The wallpaper
 service collects the preferences flow, so changes reach the running scene without a
 restart.
@@ -130,15 +132,18 @@ verifies it against the SHA-256 the release publishes, and hands it to Android's
 asks the user to confirm. A release without a checksum is not installed in-app at all. Nothing
 downloads or installs without an explicit tap.
 
-Since v5.7 the app can also *tell* you a release exists: with both *Check for updates
-automatically* and *Notify me about new versions* switched on (both are off by default), the
-wallpaper checks about once a day while it is on screen and posts a silent notification that
-opens the same update dialog. It never checks while another wallpaper is set, or while the
-wallpaper is out of sight.
+Since v5.7 the app can also *tell* you a release exists: with both *Check for updates when I
+open PaperScrape* and *Notify me about new versions* switched on (both are off by default), the
+wallpaper checks about every three hours while it is on screen and posts a silent notification that
+opens the same update dialog. Each check asks GitHub whether anything has changed since the last
+one, and when nothing has, nothing is downloaded. The dialog lists what changed in every release
+since the one you have, in full. It never checks while another wallpaper is set, or while the
+wallpaper is out of sight -- and since v5.10 the switch says so: it reads on only while a
+notification can actually arrive.
 
 The flow reports four states — checking, downloading, verifying, ready to install — and cannot be
 left stuck on any of them: a cancelled download returns the screen to the offer rather than freezing
-on a progress bar. (v2.13–v2.16 could hang on `Downloading`; that was **D13**, fixed in v3.0.)
+on a progress bar.
 
 **Assets.** Every shipped PNG in `app/src/main/res/drawable-nodpi/` carries a registry entry in
 `tools/assets/sources/sprites.json`, and most are generated from an SVG source under
@@ -147,8 +152,7 @@ renders, measures and checks them against that registry — which records every 
 box, anchor rule, scale convention and tint class — and against the Kotlin call sites that blit
 them.
 (Counts are deliberately not written here: `ls app/src/main/res/drawable-nodpi/*.png | wc -l` is the
-answer, and a number kept by hand in a document goes stale. The v4.28 snapshot this sentence used to
-carry proved the point — it was five releases and sixty-six sprites out of date by v5.1.)
+answer, and a number kept by hand in a document goes stale.)
 
 **People are a special case, since v4.30.** A person is not shipped once per colour. Each shape is a
 **fixed layer** plus up to four **weight masks** — skin, head, shirt, trousers — and the renderer
@@ -167,22 +171,21 @@ app/src/main/kotlin/com/paperscrape/livewallpaper/
   ui/         Compose settings UI, one file per destination
   prefs/      DataStore preferences
   weather/    Live Weather: the provider interface, Open-Meteo, WeatherAPI.com, OpenWeather,
-              and the normalised model they both produce
+              and the normalised model all three produce
   location/   optional location for sunrise/sunset and weather
   update/     GitHub release check
 app/src/main/res/drawable-nodpi/   the shipped sprites
 app/src/test/                      Kotlin unit tests
 tools/assets/                      SVG sources, sprite registry, Python pipeline
-release-notes/                     user-facing notes, one file per release
+release-notes/                     user-facing notes, one file per tag
 ```
 
 Documentation: `ARCHITECTURE.md` is how the code works — the two rendering backends, the
-scene graph, the asset pipeline and the test layers. `CHANGELOG.md` is the technical log of the
-pre-release development, kept as history and not extended. What each release contains is on the
+scene graph, the asset pipeline and the test layers. What each release contains is on the
 Releases page, and `release-notes/` holds the same text one file per tag.
 
-The project's own working documents — the design reasoning, the plans, the backlogs and the
-per-release verification reports — are not published. They are working notes between the author
+The project's own working documents — the design reasoning, the plans, the backlogs, the
+per-release verification reports and the log of the pre-release builds — are not published. They are working notes between the author
 and the assistants doing the work, not documentation, and they are written for that audience.
 
 ---
@@ -243,12 +246,8 @@ unused because no v1.2 was ever released.
 
 - Read `ARCHITECTURE.md` before changing anything: §3 is the authority on the two rendering
   backends, and nothing about the draw path should be inferred without it. Nothing in the
-  draw path should allocate per frame, and new code must not; the current code does. Measured on
-  a Blackview BV6600 on 2026-09-27 with the debug build, a steady frame of the real renderer
-  allocates about 120 to 460 objects on the GL path and 430 to 800 on the Canvas fallback,
-  depending on the scene, two fifths to nine tenths of them inside Android 10's own
-  `Paint.setAlpha`. The phone collects them about once a minute in a pause of under a fifth of
-  a millisecond, which cannot be seen, so they stay as they are.
+  draw path allocates per frame, and new code must not: since v5.10 a steady frame creates no
+  object, and an instrumented test that counts them over every built-in theme fails if one does.
 - Sizes and ground positions come from `SceneSpace`. If something draws at the wrong
   size, the fix is its entry in the size table, never a correction at the call site.
 - Sprites are described by `tools/assets/sources/sprites.json`. Changing artwork means

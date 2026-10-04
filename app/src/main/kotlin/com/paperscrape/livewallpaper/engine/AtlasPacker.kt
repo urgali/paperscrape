@@ -27,7 +27,7 @@ package com.paperscrape.livewallpaper.engine
  * **99 % of the atlas's 2 048 rows while holding 42 % of its area as content**, saturated on the
  * *fifth* theme, and spilled 25 sprites into standalone textures — each one a batch break per
  * frame, which is precisely what the atlas exists to prevent. At full density it spilled 34. The
- * census is in `release-verification/V4_29_REPORT.md`; `AtlasPackerTest` replays the recorded
+ * census is in `docs/archive/V4_29_REPORT.md`; `AtlasPackerTest` replays the recorded
  * insertion sequence so the improvement cannot regress unnoticed.
  *
  * The skyline is what the shelf packer's comment assumed was not worth writing: about eighty lines,

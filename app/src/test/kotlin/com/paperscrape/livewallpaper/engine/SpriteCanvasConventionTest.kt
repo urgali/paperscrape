@@ -240,9 +240,9 @@ class SpriteCanvasConventionTest {
          * `firetruck_body` is in this class and carries more than the registration needs: it is
          * authored on a fixed 104x60 canvas and its ink stops 4 units short of the right edge and
          * 6.67 short of the bottom, which is 30 240 B of decoded memory a trailing crop would give
-         * back with no origin to compensate. Recorded rather than taken, because the delivered
-         * artwork is the artwork the maintainer chose from the proposal round's photographs, and
-         * `paperscrape-assets normalize --apply-trailing` is the change that takes it.
+         * back with no origin to compensate. Left as delivered, on purpose: the artwork is the one
+         * the maintainer chose from the proposal round's photographs, and 30 240 B do not justify
+         * an asset change.
          */
         val VEHICLE_SHEET = Regex("""(car_body|car_window|firetruck_body).*""")
     }

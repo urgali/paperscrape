@@ -243,7 +243,7 @@ def _rewritten_registry_geometry(
     before it has written a single PNG -- which is what v4.31 needed it to do. See
     that function.
 
-    A load-and-dump round trip would reformat all 118 entries and bury a
+    A load-and-dump round trip would reformat every entry and bury a
     four-field change in a whole-file diff, so each entry is edited as text
     inside its own object and nothing else in the document is touched.
 

@@ -165,7 +165,7 @@ class ThemePreviewTruthTest {
         }
         for (raw in layout.staticObjects) {
             if (!c.keepCandidate(raw)) continue
-            val spec = c.palmSpeciesApplied(raw)
+            val spec = c.palmSpeciesApplied(raw, layout.hasPalmSlots())
             val family = when (spec.type) {
                 SceneObjectType.HOUSE, SceneObjectType.SKYSCRAPER -> SceneObjectRenderer.variantFor(spec).name
                 else -> spec.type.name
@@ -269,7 +269,7 @@ class ThemePreviewTruthTest {
     /**
      * Customizations no built-in ships, chosen to move every number the card branches on: the two
      * building densities that switch the skyline, the tree densities that switch the tree line,
-     * a lake at the bottom of its range and one at the top, the palms switch, a theme with its
+     * a lake at the bottom of its range and one at the top, the palms switch (both halves), a theme with its
      * water turned off under it, and one with every decoration a user can turn on turned on.
      */
     private fun custom(): List<Pair<String, Pair<SceneTheme, SceneCustomization>>> {
@@ -295,6 +295,23 @@ class ThemePreviewTruthTest {
                 ))),
             "beach with its palms switched off" to
                 (beach to defaultCustomizationFor("beach").copy(palmsEnabled = false)),
+            // v5.10C: the switch on a theme that plants none, the three the maintainer is shown.
+            "christmas with palms in place of its trees" to
+                (ThemeCatalog.byId("christmas") to defaultCustomizationFor("christmas").copy(palmsInsteadOfTrees = true)),
+            "autumn with palms in place of its trees" to
+                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(palmsInsteadOfTrees = true)),
+            "winter with palms in place of its trees" to
+                (ThemeCatalog.byId("winter") to defaultCustomizationFor("winter").copy(palmsInsteadOfTrees = true)),
+            // v5.10C2: the firs stay firs among the palms, wherever the Christmas layer stands them.
+            "autumn with the Christmas lights and palms in place of its trees" to
+                (ThemeCatalog.byId("autumn") to defaultCustomizationFor("autumn").copy(palmsInsteadOfTrees = true, christmasDecorationsEnabled = true)),
+            "christmas with palms, its woodland thinned to a scattering" to
+                (ThemeCatalog.byId("christmas") to defaultCustomizationFor("christmas").let {
+                    it.copy(palmsInsteadOfTrees = true, trees = it.trees.copy(density = 0.2f))
+                }),
+            // The wallpaper lights a palm too; until v5.10C the card's palm had no lights to show.
+            "beach with the Christmas lights on" to
+                (beach to defaultCustomizationFor("beach").copy(christmasDecorationsEnabled = true)),
             "beach with its sea turned off" to
                 (beach to defaultCustomizationFor("beach").let { it.copy(lake = it.lake.copy(visible = false)) }),
             "tundra with the Christmas decorations on" to
@@ -628,7 +645,13 @@ class ThemePreviewTruthTest {
             same("a star", PaperRenderer.STAR_POINT_COLOR, star.colour)
         }
         val palms = scene.items.any { item -> item.parts.any { nameOf(it.resId).startsWith("palmtree_") } }
-        val scenePalms = layout.hasPalmSlots() && c.palmsEnabled && c.trees.visible
+        // Whether a palm stands in the scene, read off the slots it keeps (v5.10C2). It was the switch and
+        // the trees' visibility, and that stopped being the same thing when the firs began to stay firs
+        // among the palms: Christmas at 20 % keeps two tree slots and both are firs, so the switch is on
+        // over a scene with no palm in it.
+        val scenePalms = c.trees.visible && layout.staticObjects.any {
+            c.keepCandidate(it) && c.palmSpeciesApplied(it, layout.hasPalmSlots()).type == SceneObjectType.PALM_TREE
+        }
         if (palms != scenePalms) out += "$label: R4 the scene ${if (scenePalms) "has" else "has no"} palms and the card ${if (palms) "has" else "has no"}"
         return out
     }

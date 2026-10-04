@@ -17,8 +17,9 @@ import kotlin.math.sin
  * part that genuinely varies frame to frame -- where the scroll currently is.
  */
 data class GroundGeometry(
-    val shiftXWrapped: Float, // parallax shift, shared verbatim with the hills (see PaperRenderer.drawHillLayers)
-    val tileWidth: Float,     // the objects' tiling period: twice the screen width, same as the hills'
+    // `var` since v5.10B: the renderer keeps one and rewrites it each frame (PaperRenderer.drawHillLayers).
+    var shiftXWrapped: Float, // parallax shift, shared verbatim with the hills (see PaperRenderer.drawHillLayers)
+    var tileWidth: Float,     // the objects' tiling period: twice the screen width, same as the hills'
     /**
      * How many whole tiles the wrap has removed from the raw parallax shift:
      * `round((shiftUnwrapped - shiftXWrapped) / tileWidth)`.
@@ -29,11 +30,11 @@ data class GroundGeometry(
      * `tileIndex - scrollTileBias` is constant for a physical copy for as long as it exists, so
      * it is the copy half of [SceneObjectRenderer.leafSourceId].
      */
-    val scrollTileBias: Int = 0,
+    var scrollTileBias: Int = 0,
 )
 
 private class StaticRuntime(val spec: StaticSceneObject) {
-    val idleSeed = (spec.tileFractionX * 97f) % 6.28f
+    val idleSeed = SceneObjectRenderer.idleSeedOf(spec)
 }
 
 private class CarRuntime(val spec: CarObject, val layoutIndex: Int, val selectionRank: Int) {
@@ -121,6 +122,13 @@ class SceneObjectRenderer(
         }
 
     /**
+     * Whether this layout plants palms of its own, which decides which half of the Palms switch the
+     * scene reads ([SceneCustomization.palmSpeciesApplied]). A property of the layout, so read once;
+     * declared above [staticRuntimes] because that list is built from it at construction.
+     */
+    private val layoutPlantsPalms: Boolean = layout.hasPalmSlots()
+
+    /**
      * Draw order is back-to-front by depth, so nearer objects overlap farther ones.
      *
      * Sorted in [buildStaticRuntimes], not in `draw()`. It used to be
@@ -139,11 +147,12 @@ class SceneObjectRenderer(
     private fun buildStaticRuntimes(): List<StaticRuntime> = layout.staticObjects
         .filter { spec -> customization.keepCandidate(spec, layout.densityScheme) }
         // The palms switch is resolved here, when the list is built, and nowhere downstream: from
-        // this point on a slot the user has turned the palms off for *is* a tree, to the drawing,
-        // the size, the occlusion box and the leaf recorder alike. Which is why flipping it has to
-        // rebuild this list -- `staticStructurallyEquals` compares it. See
+        // this point on a slot the user has turned the palms off for *is* a tree -- and, on a theme
+        // that plants none, a tree slot the user has turned palms on for *is* a palm (v5.10C) -- to
+        // the drawing, the size, the occlusion box and the leaf recorder alike. Which is why flipping
+        // it has to rebuild this list -- `staticStructurallyEquals` compares both fields. See
         // [SceneCustomization.palmSpeciesApplied].
-        .map { StaticRuntime(customization.palmSpeciesApplied(it)) }
+        .map { StaticRuntime(customization.palmSpeciesApplied(it, layoutPlantsPalms)) }
         .sortedBy { it.spec.depthFraction }
 
     /**
@@ -231,6 +240,14 @@ class SceneObjectRenderer(
     private var clockSeconds = PeopleColours.clockSeconds(12f)
 
     companion object {
+        /** [fallLeafColorFor]'s four colours, built once rather than per tree per frame. */
+        private val FALL_LEAF_TREE_PALETTE = intArrayOf(
+            0xFFD2691E.toInt(), 0xFFB5451B.toInt(), 0xFFE0A93A.toInt(), 0xFF8F3B1B.toInt(),
+        )
+        /** Where a fir's three presents stand and how big they are: built once, not per fir per frame. */
+        private val FIR_GIFT_X = floatArrayOf(-19f, -2f, 14f)
+        private val FIR_GIFT_SCALES = floatArrayOf(0.36f, 0.30f, 0.26f)
+
 
         /**
          * The penguin's belly, one of the two colours that never belonged to a sprite (see
@@ -263,6 +280,38 @@ class SceneObjectRenderer(
          * never draws).
          */
         fun drawsFirs(customization: SceneCustomization): Boolean = customization.christmasDecorationsEnabled
+
+        /**
+         * Whether this slot stands as a Christmas fir under [customization]: a tree slot, the
+         * Christmas layer on ([drawsFirs]), and one of the third of the trees its position picks
+         * ([isFirSeed]). The drawing asks the same two questions per frame, on the seed its runtime
+         * already holds ([standsAsFir] of a runtime); this form is for the one place that has to
+         * know before there is a runtime -- [SceneCustomization.palmSpeciesApplied], which since
+         * v5.10C2 leaves a fir a tree when the palms take the other trees' places (the maintainer,
+         * 2026-10-03: *«gli abeti sono del tema e tali devono rimanere»*). One seed, one hash, so the
+         * slot the species pass keeps a tree is exactly the slot the drawing makes a fir.
+         */
+        fun standsAsFir(spec: StaticSceneObject, customization: SceneCustomization): Boolean =
+            spec.type == SceneObjectType.TREE && drawsFirs(customization) && isFirSeed(idleSeedOf(spec))
+
+        /**
+         * The idle seed of a static object: its sway phase, and the number [isFirSeed] hashes. A pure
+         * function of the slot's position, so a rebuilt runtime list gets the same seeds back.
+         */
+        internal fun idleSeedOf(spec: StaticSceneObject): Float = (spec.tileFractionX * 97f) % 6.28f
+
+        /**
+         * **One tree in three, decided from the tree's own seed.** Not a count and not a position: a
+         * count would need state to distribute, and a position would put the firs on a line. Hashing
+         * the seed gives about a third, differently for each theme's layout, and gives the *same*
+         * third on every frame -- a wood that reshuffled itself as you watched would be worse than no
+         * firs at all.
+         */
+        private fun isFirSeed(idleSeed: Float): Boolean {
+            var h = (idleSeed * 100000f).toInt() * 0x9E3779B1.toInt()
+            h = h xor (h ushr 16)
+            return (h and 0x7FFFFFFF) % 3 == 0
+        }
 
         /**
          * The season index of the summer column.
@@ -429,8 +478,9 @@ class SceneObjectRenderer(
         //
         // ### The defect this block is the fix for
         //
-        // A pedestrian's head is **31% of their own height** -- 25.00 of the 80.67 local units a
-        // walk sprite's content occupies, which at [SceneSpace.PERSON_METRES_TALL] is 0.547 m.
+        // A pedestrian's head was **31% of their own height** at v4.6 -- 25.00 of the 80.67 local
+        // units a walk sprite's content occupied, which at [SceneSpace.PERSON_METRES_TALL] was 0.547 m;
+        // the family redrawn in v4.25 draws it at 30%, [PERSON_HEAD_SPRITE_UNITS] of 80, 0.532 m.
         // That is a paper-cutout proportion and it is the one the whole scene is drawn in.
         //
         // The busts behind glass were not drawn in it. They were sized to fit *inside* the window
@@ -1159,7 +1209,8 @@ class SceneObjectRenderer(
             CarSelection.densityAt(customization.cars.density, customization.carsNightDensity, dayBlend),
             layout.cars.size,
         )
-        for (c in carRuntimes) {
+        for (carIndex in carRuntimes.indices) {
+            val c = carRuntimes[carIndex]
             // Every runtime advances, active or retired. A retired slot that stopped ticking
             // would re-enter at an arbitrary phase against the cars that kept driving, and the
             // even spacing the generator laid out would be gone the first time a count went up.
@@ -1738,7 +1789,8 @@ class SceneObjectRenderer(
         // and passengers to their car), so moving it changes that one relationship and no other.
         drawPeople(canvas, geom, screenWidth, screenHeight, elapsedSeconds, dayBlend)
 
-        for (c in carRuntimes) {
+        for (carIndex in carRuntimes.indices) {
+            val c = carRuntimes[carIndex]
             if (!c.active) continue
             // The same span CarSelection.offScreen reads: a car outside it is not drawn, which
             // is precisely why that is the only place its membership may change.
@@ -1804,6 +1856,33 @@ class SceneObjectRenderer(
      * [PeopleColours.OUTFITS] instead of a second set of files, dealt per seat since v5.8C
      * ([SeatedOccupants.driverOutfit], [SeatedOccupants.passengerOutfit]).
      */
+
+    /** The crowd [populationAt] last built, the groups it holds and the street it was built for. */
+    private var crowd: List<Pedestrian> = emptyList()
+    private var crowdGroups = -1
+    private var crowdSeed = 0
+
+    /**
+     * The street's crowd at [density]: [PedestrianPopulation.build]'s answer, built again only when the
+     * groups on the street change ([PedestrianPopulation.presentMask]) or the street does. Until v5.10B
+     * it was built every frame -- a dozen objects, their list and a sort that boxed its keys -- for a
+     * result that is the same frame after frame.
+     */
+    private fun populationAt(seed: Int, density: Float): List<Pedestrian> {
+        val groups = PedestrianPopulation.presentMask(density)
+        if (groups != crowdGroups || seed != crowdSeed) {
+            crowd = PedestrianPopulation.build(
+                seed = seed,
+                density = density,
+                nearRowYFraction = SceneSpace.PAVEMENT_NEAR_Y_FRACTION,
+                farRowYFraction = SceneSpace.PAVEMENT_FAR_Y_FRACTION,
+            )
+            crowdGroups = groups
+            crowdSeed = seed
+        }
+        return crowd
+    }
+
     /**
      * The pedestrians, walking along the ground rather than across the screen.
      *
@@ -1856,19 +1935,16 @@ class SceneObjectRenderer(
         // row alternated with that index the far figure was drawn *after* the near one and covered
         // it -- the reported overlap defect. Depth now comes from the figure's own baseline; see
         // [PedestrianPopulation].
-        val population = PedestrianPopulation.build(
-            seed = themeId.hashCode(),
-            density = density,
-            nearRowYFraction = SceneSpace.PAVEMENT_NEAR_Y_FRACTION,
-            farRowYFraction = SceneSpace.PAVEMENT_FAR_Y_FRACTION,
-        )
+        val population = populationAt(themeId.hashCode(), density)
         // Which addresses are on the street at this density: [PeopleColours.keepingSpread] keeps the
         // tones spread over the walkers actually present, not over the whole pool.
         var presentMask = 0
-        for (person in population) {
+        for (i in population.indices) {
+            val person = population[i]
             presentMask = presentMask or (1 shl (person.groupIndex * PedestrianPopulation.MAX_GROUP_SIZE + person.memberIndex))
         }
-        for (person in population) {
+        for (i in population.indices) {
+            val person = population[i]
             // Both the row's y and the speed at it come from [SceneSpace]: a pedestrian on the
             // near row is nearer than one on the far row, so it is drawn larger and crosses the
             // screen faster, by the same ratio the two ground lines imply. People used to sit at a
@@ -2326,10 +2402,10 @@ class SceneObjectRenderer(
             val phase = r.idleSeed * 3.1f + bulb * 1.7f
             val blink = 0.55f + 0.45f * elapsed.sinAt(1.6f, phase)
             fillPaint.color = christmasLightColors[bulb % christmasLightColors.size]
-            fillPaint.alpha = (255 * blink).toInt().coerceIn(70, 255)
+            fillPaint.setAlphaWithoutAllocating((255 * blink).toInt().coerceIn(70, 255))
             canvas.drawCircle(bx, sillY + drop + 1.6f, 1.5f, fillPaint)
         }
-        fillPaint.alpha = 255
+        fillPaint.setAlphaWithoutAllocating(255)
     }
 
     /**
@@ -2488,9 +2564,9 @@ class SceneObjectRenderer(
     /** Shared cozy detail: a soft porch light glowing warmer at night, next to the door. */
     private fun drawPorchLight(canvas: SceneCanvas, x: Float, y: Float, nightGlow: Float) {
         fillPaint.color = 0xFFFFD97A.toInt()
-        fillPaint.alpha = (60 + nightGlow * 90).toInt()
+        fillPaint.setAlphaWithoutAllocating((60 + nightGlow * 90).toInt())
         canvas.drawCircle(x, y, 6f, fillPaint)
-        fillPaint.alpha = 255
+        fillPaint.setAlphaWithoutAllocating(255)
         canvas.drawCircle(x, y, 2.6f, fillPaint)
     }
 
@@ -2530,8 +2606,11 @@ class SceneObjectRenderer(
         // 57 closed: `seasonIndexFor(INDOORS)` was always 0 -- the hat belongs to the street, not to
         // the room behind the pane -- so the winter column of this table named twelve recolours
         // nothing could ever select. [PeopleLayerTable.WINDOW] has one column.
-        val occupant = WindowOccupants.occupantAt(seed, buildingSeed, windowIndex, kind)
-        val slots = PeopleLayerTable.WINDOW[occupant.kindIndex]
+        // Read as two integers rather than as a [WindowOccupant]: one object per lit window per frame
+        // was 15 % of what the frame allocated once `setAlpha` stopped (v5.10A).
+        val occupantKind = WindowOccupants.occupantKindIndexAt(seed, buildingSeed, windowIndex, kind)
+        val occupantSkin = WindowOccupants.occupantSkinIndexAt(seed, buildingSeed, windowIndex)
+        val slots = PeopleLayerTable.WINDOW[occupantKind]
         // **A figure at a window does not cross anything**, so its colours are dealt from its own
         // address and stay put. That is what it did before v4.30 too; what changed is that the
         // deal is now over the same palettes the street uses instead of over three shipped PNGs.
@@ -2540,8 +2619,8 @@ class SceneObjectRenderer(
         // at this same address, and reading them again made the outfit follow the age and the head
         // colour follow which pane is lit (v5.8C; see [PeopleColours.CH_WINDOW_HEAD]).
         val colours = coloursFor(
-            address, 0, occupant.kindIndex, SUMMER_SEASON,
-            PeopleColours.outfit(seed, address, 0, PeopleColours.CH_WINDOW_OUTFIT), occupant.skinIndex,
+            address, 0, occupantKind, SUMMER_SEASON,
+            PeopleColours.outfit(seed, address, 0, PeopleColours.CH_WINDOW_OUTFIT), occupantSkin,
             PeopleColours.CH_WINDOW_HEAD,
         )
         // Placed from the sprite's declared anchor, not by centring its canvas -- the same
@@ -2574,30 +2653,21 @@ class SceneObjectRenderer(
     /** Shared cozy detail: 3 softly fading smoke puffs rising from a chimney top. */
     private fun drawChimneySmoke(canvas: SceneCanvas, r: StaticRuntime, x: Float, topY: Float) {
         fillPaint.color = 0xFFE4E4DC.toInt()
-        fillPaint.alpha = 178
+        fillPaint.setAlphaWithoutAllocating(178)
         canvas.drawCircle(x + 3f, topY + 6f, 3f, fillPaint)
-        fillPaint.alpha = 127
+        fillPaint.setAlphaWithoutAllocating(127)
         canvas.drawCircle(x + 6f, topY - 3f, 4f, fillPaint)
-        fillPaint.alpha = 76
+        fillPaint.setAlphaWithoutAllocating(76)
         canvas.drawCircle(x + 9f, topY - 13f, 5f, fillPaint)
-        fillPaint.alpha = 255
+        fillPaint.setAlphaWithoutAllocating(255)
     }
 
     /**
-     * Whether this tree stands as a Christmas fir.
-     *
-     * **One tree in three, decided from the tree's own seed.** Not a count and not a position: a
-     * count would need state to distribute, and a position would put the firs on a line. Hashing
-     * the seed gives about a third, differently for each theme's layout, and gives the *same*
-     * third on every frame -- a wood that reshuffled itself as you watched would be worse than no
-     * firs at all.
+     * Whether this tree stands as a Christmas fir: the Christmas layer on, and one tree in three by
+     * its own seed ([isFirSeed]). Called only from [drawTree], so the slot is a tree; the companion's
+     * [standsAsFir] of a spec is the same rule, asked before the runtime exists.
      */
-    private fun standsAsFir(r: StaticRuntime): Boolean {
-        if (!drawsFirs(customization)) return false
-        var h = (r.idleSeed * 100000f).toInt() * 0x9E3779B1.toInt()
-        h = h xor (h ushr 16)
-        return (h and 0x7FFFFFFF) % 3 == 0
-    }
+    private fun standsAsFir(r: StaticRuntime): Boolean = drawsFirs(customization) && isFirSeed(r.idleSeed)
 
     /**
      * A fir in the leafy tree's place: tiers, snow while the winter palette is on, the tree
@@ -2624,8 +2694,8 @@ class SceneObjectRenderer(
         drawChristmasLights(canvas, r, elapsed, centerY = -66f, radiusX = 22f, radiusY = 34f)
         // Three presents at the foot, sized against the fir rather than against the scene: the
         // gift sprite is 30 units on its own canvas and a fir is 122, so a third of it reads.
-        val gifts = floatArrayOf(-19f, -2f, 14f)
-        val sizes = floatArrayOf(0.36f, 0.30f, 0.26f)
+        val gifts = FIR_GIFT_X
+        val sizes = FIR_GIFT_SCALES
         for (i in gifts.indices) {
             canvas.save()
             canvas.translate(gifts[i], 0f)
@@ -2725,9 +2795,7 @@ class SceneObjectRenderer(
      * blends toward a dedicated night variant, autumn leaves stay a flat warm tone day and night,
      * matching how the falling-leaf particles in [PaperRenderer.drawFallingLeaves] work too. */
     private fun fallLeafColorFor(r: StaticRuntime): Int {
-        val palette = intArrayOf(
-            0xFFD2691E.toInt(), 0xFFB5451B.toInt(), 0xFFE0A93A.toInt(), 0xFF8F3B1B.toInt(),
-        )
+        val palette = FALL_LEAF_TREE_PALETTE
         val index = (kotlin.math.abs(r.idleSeed * 1000).toInt()) % palette.size
         return palette[index]
     }
@@ -2800,7 +2868,7 @@ class SceneObjectRenderer(
             val lx = christmasLightX[i] * radiusX
             val ly = christmasLightY[i] * radiusY
             fillPaint.color = christmasLightColors[i % christmasLightColors.size]
-            fillPaint.alpha = 255
+            fillPaint.setAlphaWithoutAllocating(255)
             canvas.drawCircle(lx, ly, CHRISTMAS_LIGHT_RADIUS_UNITS, fillPaint)
         }
         canvas.restore()
@@ -3305,7 +3373,7 @@ class SceneObjectRenderer(
                     )
                     val lit = litVehicleAlpha(nightGlow)
                     if (lit > 0) {
-                        fillPaint.alpha = lit
+                        fillPaint.setAlphaWithoutAllocating(lit)
                         fillPaint.color = BEACON_RED_LIT
                         canvas.drawRect(
                             POLICE_LAMP_RED_LEFT_X, POLICE_LAMP_TOP_Y_UNITS,
@@ -3316,7 +3384,7 @@ class SceneObjectRenderer(
                             POLICE_LAMP_BLUE_LEFT_X, POLICE_LAMP_TOP_Y_UNITS,
                             POLICE_LAMP_BLUE_RIGHT_X, POLICE_LAMP_BOTTOM_Y_UNITS, fillPaint,
                         )
-                        fillPaint.alpha = 255
+                        fillPaint.setAlphaWithoutAllocating(255)
                     }
                 }
                 // Same defect as the police stripe, one unit less obvious: the chequer straddled
@@ -3332,12 +3400,12 @@ class SceneObjectRenderer(
                         // The "for hire" light, which is the one part of a taxi that is meant to be
                         // seen from down the street after dark.
                         fillPaint.color = TAXI_SIGN_LIT
-                        fillPaint.alpha = lit
+                        fillPaint.setAlphaWithoutAllocating(lit)
                         canvas.drawRect(
                             TAXI_SIGN_BOX_LEFT_X, TAXI_SIGN_BOX_TOP_Y,
                             TAXI_SIGN_BOX_RIGHT_X, TAXI_SIGN_BOX_BOTTOM_Y, fillPaint,
                         )
-                        fillPaint.alpha = 255
+                        fillPaint.setAlphaWithoutAllocating(255)
                     }
                 }
                 else -> {}

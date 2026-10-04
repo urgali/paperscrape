@@ -109,7 +109,7 @@ class BackupRepository(
         //
         // This is deliberately not a journal. There is no sequence to replay, no ordering to
         // reconstruct and nothing to undo: the pending document *is* the whole of the remaining
-        // work, and [finishPendingImport] is three lines long.
+        // work, and [finishPendingImport] is one call: write it, then clear it (`ImportStaging.finish`).
         val pendingJson = backup.customThemeData.toJsonString()
         return withContext(NonCancellable) {
             try {

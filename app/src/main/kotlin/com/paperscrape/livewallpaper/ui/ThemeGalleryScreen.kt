@@ -26,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -91,11 +92,30 @@ internal fun ThemeGalleryScreen(
     var renameTarget by remember { mutableStateOf<CustomThemeEntry?>(null) }
     var confirmReset by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf<CustomThemeEntry?>(null) }
+    /**
+     * "Replace with current" waiting for its answer (v5.10E, inventory I-215): the card's theme, its
+     * name, and the write that replaces it. Until v5.10E the tap copied the theme showing now onto the
+     * card's at once, with nothing to say which was which.
+     */
+    var confirmReplace by remember { mutableStateOf<PendingReplace?>(null) }
     // (themeId, displayName) of the theme the user asked to export, held until the file is chosen.
     var exportTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     var pendingThemeImport by remember { mutableStateOf<Pair<Uri, ThemeShare>?>(null) }
     var themeMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    /**
+     * A card tapped while the calendar is choosing another theme today, held until the user answers
+     * the question (v5.10C, row 9): picked silently, it was saved and not shown. See
+     * [CalendarPickQuestion].
+     */
+    var pendingPick by remember { mutableStateOf<String?>(null) }
+    fun pick(themeId: String) {
+        if (SettingsUiModel.pickNeedsCalendarQuestion(calendarThemeId, themeId)) {
+            pendingPick = themeId
+        } else {
+            scope.launch { prefs.setTheme(themeId) }
+        }
+    }
 
     val themeExportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
@@ -173,9 +193,13 @@ internal fun ThemeGalleryScreen(
                 selected = settings.themeId == builtin.id,
                 showingToday = effectiveThemeId == builtin.id,
                 isCustomized = overrideEntry != null,
-                onSelect = { scope.launch { prefs.setTheme(builtin.id) } },
+                onSelect = { pick(builtin.id) },
                 onReplaceWithCurrent = {
-                    scope.launch {
+                    confirmReplace = PendingReplace(
+                        targetId = builtin.id,
+                        targetName = overrideEntry?.name ?: builtin.displayName,
+                        targetIsBuiltIn = true,
+                    ) {
                         customThemeStore.setOverride(
                             builtin.id,
                             snapshotEntry(
@@ -218,9 +242,9 @@ internal fun ThemeGalleryScreen(
                     selected = settings.themeId == entry.id,
                     showingToday = effectiveThemeId == entry.id,
                     isCustomized = false,
-                    onSelect = { scope.launch { prefs.setTheme(entry.id) } },
+                    onSelect = { pick(entry.id) },
                     onReplaceWithCurrent = {
-                        scope.launch {
+                        confirmReplace = PendingReplace(targetId = entry.id, targetName = entry.name, targetIsBuiltIn = false) {
                             customThemeStore.upsertCustomTheme(
                                 snapshotEntry(
                                     entry.id,
@@ -247,6 +271,26 @@ internal fun ThemeGalleryScreen(
             "Saving a new theme, and resetting the saved versions or the current edits of built-in " +
                 "themes, live in Advanced & about.",
         )
+    }
+
+    pendingPick?.let { themeId ->
+        if (calendarThemeId != null) {
+            CalendarPickQuestion(
+                calendarThemeName = ThemeCatalog.byId(calendarThemeId).displayName,
+                onShowIt = {
+                    pendingPick = null
+                    scope.launch { prefs.setThemeTurningAutoThemeOff(themeId) }
+                },
+                onCancel = { pendingPick = null },
+            )
+        } else {
+            // The calendar stopped choosing while the question was up (midnight, or the switch
+            // turned off from the card above): nothing left to ask, so the pick goes through.
+            LaunchedEffect(themeId) {
+                prefs.setTheme(themeId)
+                pendingPick = null
+            }
+        }
     }
 
     renameTarget?.let { entry ->
@@ -298,17 +342,56 @@ internal fun ThemeGalleryScreen(
     }
 
     confirmReset?.let { builtinId ->
+        // **"Restores the original", all of it** (v5.10E, inventory I-215). Until v5.10E this removed the
+        // saved version alone, and the edits made to the theme in World & scene and Seasons &
+        // decorations -- which win over a saved version (`CustomThemeRegistry.resolveActiveCustomization`)
+        // -- stayed on top: the card and the wallpaper went on showing them. Now both go, the edits by
+        // the same call as World & scene's own reset ([resetBuiltinToDefault]).
         AlertDialog(
             onDismissRequest = { confirmReset = null },
             title = { Text("Reset to default?") },
-            text = { Text("This removes your custom version of \"${ThemeCatalog.byId(builtinId).displayName}\" and restores the original.") },
+            text = { Text(SettingsUiModel.galleryResetMessage(ThemeCatalog.byId(builtinId).displayName)) },
             confirmButton = {
                 TextButton(onClick = {
-                    scope.launch { customThemeStore.clearOverride(builtinId) }
+                    scope.launch {
+                        resetBuiltinToDefault(
+                            builtinId,
+                            clearSavedVersion = { customThemeStore.clearOverride(it) },
+                            clearEdits = { prefs.resetAllCategories(it) },
+                        )
+                    }
                     confirmReset = null
                 }) { Text("Reset") }
             },
             dismissButton = { TextButton(onClick = { confirmReset = null }) { Text("Cancel") } },
+        )
+    }
+
+    confirmReplace?.let { pending ->
+        val (title, text) = SettingsUiModel.replaceWithCurrentQuestion(
+            targetName = pending.targetName,
+            showingName = ThemeCatalog.byId(effectiveThemeId).displayName,
+            sameTheme = pending.targetId == effectiveThemeId,
+            targetIsBuiltIn = pending.targetIsBuiltIn,
+        )
+        AlertDialog(
+            onDismissRequest = { confirmReplace = null },
+            title = { Text(title) },
+            text = { Text(text) },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        replaceWithCurrent(
+                            targetId = pending.targetId,
+                            showingId = effectiveThemeId,
+                            writeSavedVersion = pending.replace,
+                            clearEdits = { prefs.resetAllCategories(it) },
+                        )
+                    }
+                    confirmReplace = null
+                }) { Text("Replace") }
+            },
+            dismissButton = { TextButton(onClick = { confirmReplace = null }) { Text("Cancel") } },
         )
     }
 
@@ -326,6 +409,47 @@ internal fun ThemeGalleryScreen(
             dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Cancel") } },
         )
     }
+}
+
+/** A "Replace with current" asked about and not answered yet: the card's theme, and the write. */
+private class PendingReplace(
+    val targetId: String,
+    val targetName: String,
+    val targetIsBuiltIn: Boolean,
+    val replace: suspend () -> Unit,
+)
+
+/**
+ * The gallery's "Reset to default" for a built-in theme (v5.10E, inventory I-215): the saved version
+ * ([clearSavedVersion], `CustomThemeStore.clearOverride`) **and** the edits made to the theme in the
+ * menus ([clearEdits], `WallpaperPrefs.resetAllCategories`, the call World & scene's reset makes), so
+ * what the theme resolves to is its default. `ResetsDoWhatTheySayTest` resolves it on the app's own store.
+ */
+internal suspend fun resetBuiltinToDefault(
+    builtinId: String,
+    clearSavedVersion: suspend (String) -> Unit,
+    clearEdits: suspend (String) -> Unit,
+) {
+    clearEdits(builtinId)
+    clearSavedVersion(builtinId)
+}
+
+/**
+ * The gallery's "Replace with current" once asked (v5.10E, inventory I-215): [writeSavedVersion] saves the
+ * look showing now as the card's theme, and -- when the card's theme is not the one showing -- the edits
+ * made to it in the menus go ([clearEdits], `WallpaperPrefs.resetAllCategories`). They win over a saved
+ * version (`CustomThemeRegistry.resolveActiveCustomization`), so left there they hid what was just saved,
+ * and the theme did not look like the question said it would (the read-only review of this round, D1).
+ * The theme showing now keeps its edits: they are what was saved.
+ */
+internal suspend fun replaceWithCurrent(
+    targetId: String,
+    showingId: String,
+    writeSavedVersion: suspend () -> Unit,
+    clearEdits: suspend (String) -> Unit,
+) {
+    writeSavedVersion()
+    if (targetId != showingId) clearEdits(targetId)
 }
 
 /** Lays items out 2-per-row using plain Row/Column chunks (not LazyVerticalGrid) so this can

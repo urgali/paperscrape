@@ -261,4 +261,27 @@ internal object WindowOccupants {
     /** The occupant of a window of a building whose kind says nothing about who stands at it. */
     fun occupantAt(seed: Int, buildingSeed: Int, windowIndex: Int): WindowOccupant =
         occupantAt(seed, buildingSeed, windowIndex, WindowBuildingKind.HOUSE)
+
+    /**
+     * [occupantAt]`(...).kindIndex`, without the object: the draw path reads a window's occupant
+     * every frame for every lit pane, and a [WindowOccupant] each time was one allocation per window
+     * per frame (v5.10A). The same three reads of the same channels at the same address, so the same
+     * answer; `WindowOccupantsTest` holds the two readings together.
+     */
+    fun occupantKindIndexAt(seed: Int, buildingSeed: Int, windowIndex: Int, kind: WindowBuildingKind): Int {
+        val addr = address(buildingSeed, windowIndex)
+        val adult = kind != WindowBuildingKind.SCHOOL && CandidateNoise.value(seed, addr, CH_AGE) < 0.5f
+        val male = CandidateNoise.value(seed, addr, CH_SEX) < 0.5f
+        return when {
+            adult && male -> 0
+            adult -> 1
+            male -> 2
+            else -> 3
+        }
+    }
+
+    /** [occupantAt]`(...).skinIndex`, without the object; see [occupantKindIndexAt]. Not a function of the kind. */
+    fun occupantSkinIndexAt(seed: Int, buildingSeed: Int, windowIndex: Int): Int =
+        (CandidateNoise.value(seed, address(buildingSeed, windowIndex), CH_SKIN) * PedestrianPopulation.SKIN_TONE_COUNT)
+            .toInt().coerceIn(0, PedestrianPopulation.SKIN_TONE_COUNT - 1)
 }

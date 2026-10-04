@@ -364,6 +364,30 @@ internal object PedestrianPopulation {
     }
 
     /**
+     * Which of the four groups [build] puts on the street at [density], one bit per group (bit `g`
+     * for group `g`); 0 when [density] leaves the street empty.
+     *
+     * **Everything else [build] returns depends on the seed and the rows alone**, so two densities
+     * with the same mask give the same population -- the same people, in the same order, down to the
+     * last float. That is what lets the renderer build the street once and keep it while the mask
+     * holds (v5.10B): it used to rebuild it every frame, a dozen `Pedestrian`s, their list and a sort
+     * that boxed two `Float`s per comparison, about ninety objects a frame -- the largest share of what
+     * the render thread still allocated once `setAlpha` stopped (v5.10A). The density itself moves
+     * every frame through dusk (it is blended by the light), the mask only where a threshold is
+     * crossed. `PedestrianPopulationTest` checks both halves: the mask names exactly the groups
+     * [build] returns, and one mask means one population.
+     */
+    fun presentMask(density: Float): Int {
+        if (density <= 0f) return 0
+        val fallbackIndex = CandidateThreshold.fallbackIndexFor(density, GROUP_COUNT, THRESHOLD_OFFSET)
+        var mask = 0
+        for (g in 0 until GROUP_COUNT) {
+            if (CandidateThreshold.isPresent(g, density, THRESHOLD_OFFSET, fallbackIndex)) mask = mask or (1 shl g)
+        }
+        return mask
+    }
+
+    /**
      * Member [m] of group [g]'s place among the m-th members of all four groups -- the groups whose
      * size reaches it, present or not -- in the order the groups arrive as the density rises
      * (ascending threshold, the group index breaking a tie). See [Pedestrian.arrivalSkinIndex].

@@ -33,6 +33,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import com.paperscrape.livewallpaper.BuildConfig
 import com.paperscrape.livewallpaper.R
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
+import com.paperscrape.livewallpaper.engine.WallpaperEngineCensus
 import com.paperscrape.livewallpaper.prefs.AppBackup
 import com.paperscrape.livewallpaper.prefs.BackupImportError
 import com.paperscrape.livewallpaper.prefs.BackupParseResult
@@ -66,6 +68,8 @@ import com.paperscrape.livewallpaper.update.UpdateDownloadResult
 import com.paperscrape.livewallpaper.update.UpdateInfo
 import com.paperscrape.livewallpaper.update.UpdateNotificationPolicy
 import com.paperscrape.livewallpaper.update.UpdateNotifier
+import com.paperscrape.livewallpaper.update.UpdatePrefs
+import com.paperscrape.livewallpaper.update.UpdateReplyStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -105,13 +109,22 @@ internal fun AdvancedScreen(
      * [com.paperscrape.livewallpaper.update.UpdateNotificationPolicy.mustAsk] says there is
      * something to ask for -- below API 33 there is no such permission, and asking would return a
      * result with no dialog, which reads exactly like a refusal.
+     *
+     * The result carries a second fact since v5.10C: whether the system would show the dialog again
+     * (`shouldShowRequestPermissionRationale` after a refusal). Where it would not, the only place the
+     * permission can still be given is the phone's page, and the row's tap goes there.
      */
-    onRequestNotificationPermission: (onResult: (Boolean) -> Unit) -> Unit = { it(true) },
+    onRequestNotificationPermission: (onResult: (granted: Boolean, canAskAgain: Boolean) -> Unit) -> Unit =
+        { it(true, true) },
+    /** The system's preview, where PaperScrape is set as the wallpaper: the tap on *Notify me* when it is not (v5.10C). */
+    onApplyWallpaper: () -> Unit = {},
     startInstallFor: UpdateInfo? = null,
     onInstallStarted: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    /** Where the button's check keeps GitHub's last reply, the store the engine and the home screen use (v5.10D). */
+    val updateReplyStore: UpdateReplyStore = remember(context) { UpdatePrefs(context.applicationContext) }
     /**
      * Whether the last attempt to switch notifications on was refused (A1, v5.7D).
      *
@@ -347,44 +360,96 @@ internal fun AdvancedScreen(
             // get a prompt inside the app, and making it also post notifications would change what
             // a control they already set does -- which is N1's defect in different clothes, and N1
             // was repaired one round ago.
+            //
+            // **On only if a notification can really arrive** (v5.10C, the maintainer's decision of
+            // 2026-09-30, inventory I-201): the phone must let PaperScrape post, and PaperScrape must
+            // be the wallpaper, because the check runs inside it. Otherwise the switch is off, the line
+            // says what is missing, and the tap goes where it is put right -- the phone's notification
+            // page, the permission dialog, or the system's wallpaper preview. The saved choice is not
+            // written to make the switch look right: it comes back by itself. The whole rule is
+            // `UpdateNotificationPolicy.notifyRow`.
+            val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
+            val notifyRow = UpdateNotificationPolicy.notifyRow(
+                automaticCheckEnabled = settings.automaticUpdateCheckEnabled,
+                notifySwitchOn = settings.updateNotificationsEnabled,
+                permission = phoneNotifications.permission,
+                appNotificationsEnabled = phoneNotifications.appNotificationsEnabled,
+                channelTurnedOff = phoneNotifications.channelTurnedOff,
+                isTheWallpaper = isTheWallpaper,
+                requestRefused = permissionRefused,
+            )
+            fun openPhonePage(intent: Intent) {
+                // The per-app page, or, on a phone that has none, the app's details, which link to it.
+                runCatching { context.startActivity(intent) }.onFailure {
+                    runCatching { context.startActivity(UpdateNotifier.appDetailsIntent(context)) }
+                }
+            }
             SettingsSwitchRow(
                 title = stringResource(R.string.settings_update_notify_title),
-                supporting = when (
-                    UpdateNotificationPolicy.notifyRowLine(
-                        automaticCheckEnabled = settings.automaticUpdateCheckEnabled,
-                        blocked = phoneNotifications.blocks(notifySwitchOn = settings.updateNotificationsEnabled),
-                        requestRefused = permissionRefused,
-                    )
-                ) {
+                supporting = when (notifyRow.line) {
                     UpdateNotificationPolicy.NotifyRowLine.NEEDS_AUTOMATIC_CHECK ->
                         stringResource(R.string.settings_update_notify_needs_check)
                     UpdateNotificationPolicy.NotifyRowLine.BLOCKED ->
                         stringResource(R.string.settings_update_notify_blocked)
+                    UpdateNotificationPolicy.NotifyRowLine.BLOCKED_ASK ->
+                        stringResource(R.string.settings_update_notify_blocked_ask)
+                    UpdateNotificationPolicy.NotifyRowLine.REFUSED ->
+                        stringResource(R.string.settings_update_notify_refused)
+                    UpdateNotificationPolicy.NotifyRowLine.NOT_THE_WALLPAPER ->
+                        stringResource(R.string.settings_update_notify_not_wallpaper)
                     UpdateNotificationPolicy.NotifyRowLine.DESCRIPTION ->
                         stringResource(R.string.settings_update_notify_subtitle)
                 },
                 icon = Icons.Outlined.Notifications,
-                enabled = settings.automaticUpdateCheckEnabled,
-                checked = settings.updateNotificationsEnabled && settings.automaticUpdateCheckEnabled,
-                onCheckedChange = { wanted ->
-                    if (!wanted) {
-                        scope.launch { prefs.setUpdateNotificationsEnabled(false) }
-                        return@SettingsSwitchRow
-                    }
-                    // Ask *before* storing, so the stored value and what the user will actually see
-                    // agree. A switch left on after a refusal is a control that says one thing and
-                    // does another; the supporting line above says so when the platform has since
-                    // blocked it anyway.
-                    val permission = UpdateNotifier.notificationPermission(context)
-                    if (UpdateNotificationPolicy.mustAsk(permission)) {
-                        onRequestNotificationPermission { granted ->
-                            permissionRefused = !granted
-                            phoneNotifications = UpdateNotifier.phoneState(context)
-                            if (granted) scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                enabled = notifyRow.enabled,
+                checked = notifyRow.shownOn,
+                onCheckedChange = {
+                    when (notifyRow.tap) {
+                        UpdateNotificationPolicy.NotifyTap.NOTHING -> Unit
+                        UpdateNotificationPolicy.NotifyTap.TURN_OFF ->
+                            scope.launch { prefs.setUpdateNotificationsEnabled(false) }
+                        UpdateNotificationPolicy.NotifyTap.TURN_ON -> {
+                            permissionRefused = false
+                            scope.launch { prefs.setUpdateNotificationsEnabled(true) }
                         }
-                    } else {
-                        permissionRefused = false
-                        scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                        // Ask *before* storing, so the stored value and what the user will actually
+                        // see agree: a saved "on" with the permission refused reads as blocked.
+                        UpdateNotificationPolicy.NotifyTap.ASK_PERMISSION -> {
+                            // Whether a refusal now means "go to the phone's page": the system says it
+                            // will not ask again -- but it says the same of a dialog closed with BACK,
+                            // so only after a refusal already seen on this screen, or with the switch
+                            // saved on, which is the phone having taken the permission away (Android
+                            // 13+, notifications switched off in its settings: no dialog comes then).
+                            val pageAfterRefusal = permissionRefused || settings.updateNotificationsEnabled
+                            onRequestNotificationPermission { granted, canAskAgain ->
+                                permissionRefused = !granted
+                                phoneNotifications = UpdateNotifier.phoneState(context)
+                                when {
+                                    granted -> {
+                                        scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                                        if (!isTheWallpaper) onApplyWallpaper()
+                                    }
+                                    // The system will not ask again: the phone's page is the one place
+                                    // left, and the choice is saved so it shows on once allowed there.
+                                    !canAskAgain && pageAfterRefusal -> {
+                                        scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                                        openPhonePage(UpdateNotifier.appNotificationSettingsIntent(context))
+                                    }
+                                }
+                            }
+                        }
+                        UpdateNotificationPolicy.NotifyTap.OPEN_APP_NOTIFICATIONS -> {
+                            scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                            openPhonePage(UpdateNotifier.appNotificationSettingsIntent(context))
+                        }
+                        UpdateNotificationPolicy.NotifyTap.OPEN_CHANNEL -> {
+                            scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                            openPhonePage(UpdateNotifier.channelSettingsIntent(context))
+                        }
+                        UpdateNotificationPolicy.NotifyTap.SET_AS_WALLPAPER -> {
+                            scope.launch { prefs.setUpdateNotificationsEnabled(true) }
+                            onApplyWallpaper()
+                        }
                     }
                 },
             )
@@ -406,7 +471,7 @@ internal fun AdvancedScreen(
                 enabled = updateState.allowsChecking,
                 supportingIsAccent = updateState is UpdateUiState.Available ||
                     updateState is UpdateUiState.ReadyToInstall,
-                onClick = { scope.launch { updateState = checkForUpdate(onUpdateFound) } },
+                onClick = { scope.launch { updateState = checkForUpdate(updateReplyStore, onUpdateFound) } },
             )
         }
 
@@ -422,7 +487,7 @@ internal fun AdvancedScreen(
             },
             onGrantPermission = { permissionLauncher.launch(ApkInstaller.installPermissionIntent(context)) },
             onOpenReleasePage = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
-            onRetry = { scope.launch { updateState = checkForUpdate(onUpdateFound) } },
+            onRetry = { scope.launch { updateState = checkForUpdate(updateReplyStore, onUpdateFound) } },
             onDismiss = { updateState = UpdateUiState.Idle },
         )
 
@@ -662,8 +727,9 @@ internal sealed interface UpdateUiState {
  * nobody asked -- which is the whole reason the two outcomes had to become distinguishable rather
  * than the failure simply being reported everywhere.
  */
-private suspend fun checkForUpdate(onUpdateFound: (UpdateInfo) -> Unit): UpdateUiState {
-    val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+private suspend fun checkForUpdate(store: UpdateReplyStore, onUpdateFound: (UpdateInfo) -> Unit): UpdateUiState {
+    // The reply kept from the last check answers for a list GitHub says has not changed (v5.10D).
+    val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME, store)
     if (result is UpdateCheckResult.Available) onUpdateFound(result.info)
     return updateStateFor(result)
 }

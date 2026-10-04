@@ -1,10 +1,12 @@
 """Recovery of a sprite's geometry by measurement rather than by eye.
 
-This is committed, not scratch work. The SVG sources under `sources/svg/` carry
-numbers -- a corner radius of 6, of 9, of 12 -- and without this module those
-numbers would be unexplained constants of exactly the kind the project keeps
-having to re-derive by hand. Running `paperscrape-assets fit` reproduces every
-one of them from the shipped PNG.
+This is committed, not scratch work. The SVG sources it was written for -- two house
+trims, a road line and a tower canopy, recorded in `reports/geometry-fit.json`, none of
+which ships any more (their sources were removed in v5.10) -- carried numbers, a corner
+radius of 6, of 9, of 12, and without this module those numbers would have been
+unexplained constants of exactly the kind the project keeps having to re-derive by hand.
+Running `python3 -m paperscrape_assets fit` reproduced every one of them from the PNG
+that shipped then.
 
 Only two shape families are implemented, and that is the point rather than a
 limitation. A rectangle and a rounded rectangle are fully determined by their

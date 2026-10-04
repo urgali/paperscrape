@@ -15,19 +15,19 @@ Fields
 ``name``            the resource name, matching the PNG stem exactly. This is
                     what `R.drawable.<name>` resolves to on the Kotlin side, so a
                     rename here is an app change and not a tooling change.
-``category``        grouping for reports and for future per-category work.
+``category``        grouping for reports and per-category checks.
 ``width``/``height`` declared pixel dimensions. Validated against the shipped
                     PNG: they are part of the sprite's contract with the anchor
                     offsets in `SceneObjectRenderer`, so a source that renders at
                     a different size is a defect, not a variation.
 ``scale``           `SCENE_UNITS` or `CANVAS_PIXELS`, mirroring Kotlin's
                     `SpriteScale`. Recorded here so the convention has a written
-                    home; it is still the caller that selects it at draw time.
-                    Moving the selection to this metadata is a later phase.
+                    home; it is the caller that selects it at draw time, and
+                    `validate` checks the two agree.
 ``tint``            `TINTABLE` (drawn through a runtime `MULTIPLY` colour filter)
                     or `FIXED_ART` (blitted with its own baked colours).
 ``usage``           `referenced` or `orphan`, derived from the Kotlin sources by
-                    `paperscrape-assets validate`.
+                    `python -m paperscrape_assets validate`.
 ``contentBox``      `[x0, y0, x1, y1]` in pixels, right and bottom exclusive --
                     the alpha bounding box of what the sprite actually draws.
                     Declared, not merely measured: `width`/`height` have been
@@ -52,8 +52,8 @@ Fields
 ``notes``           free text; used for the properties a reader would otherwise
                     have to rediscover by measuring.
 
-Why most anchors are `UNDETERMINED`
------------------------------------
+How an anchor is determined
+---------------------------
 An anchor is a property of the sprite, but the only evidence for it is the
 origin a call site blits it at, and that origin is `placement - anchor`: one
 equation, two unknowns. It collapses to the anchor alone only when the sprite is
@@ -63,10 +63,10 @@ placement and carries no anchor at all, which is why `house_large_window` is
 drawn at four different origins.
 
 So an anchor is recorded only where a rule reproduces every observed origin
-exactly. Everything else is `UNDETERMINED` with a stated reason, the same way
-`source.kind = "none"` records a sprite that cannot be regenerated. Deriving the
-remaining anchors means separating placement from anchor at each call site, which
-is the re-anchoring work in `ROADMAP.md` Group 4, not a registry change.
+exactly; since schema 4 (`PART_LOCAL`, `DECLARED_ATTACHMENT`) every shipped sprite
+has one. `UNDETERMINED`, with a stated reason, stays a first-class value for a sprite
+that cannot be given one, the same way `source.kind = "none"` records a sprite that
+cannot be regenerated.
 
 Variant groups (schema 3)
 -------------------------
@@ -76,17 +76,18 @@ person art, today; anything else picked per-instance from a lookup table,
 tomorrow. Each group carries:
 
 ``id``        short identifier, unique within the document.
-``axis``      what the members vary along. ``season`` is the only axis so far.
+``axis``      what the members vary along. ``season`` is the only axis any group uses
+              today; ``skin`` is also accepted (`VARIANT_AXES`).
 ``members``   two or more sprite names, each of which must have its own entry.
 ``state``     ``DISTINCT`` if the members' pixels differ from one another,
               ``IDENTICAL_GAP`` if they are identical and should not be, or
               ``IDENTICAL_BY_CONSTRUCTION`` if they are identical and always
-              will be. The third exists because the second is a *defect* state
-              and this library has twenty-four pairs that are neither: the skin
-              tones are the man's, the woman's and the boy's own shipped skin
-              colours, so each of those characters is identical to one of their
-              own variants by definition. Saying ``IDENTICAL_GAP`` about them
-              would be filing a bug against arithmetic.
+              will be. The third exists because the second is a *defect* state,
+              and until v4.30 this library had twenty-four pairs that were
+              neither: the skin tones were the man's, the woman's and the boy's
+              own shipped skin colours, so each of those characters was identical
+              to one of their own tone copies by definition. v4.30 removed the
+              tone copies; the state stays for the next pair of that kind.
 ``reason``    why the group is in that state, in terms of what would change it.
 
 The reason this exists is that a variant's *whole purpose* is invisible to every
@@ -173,8 +174,8 @@ SPRITE_PIXELS_PER_UNIT = 3
 #: ``UNDETERMINED``
 #:     No anchor is determined by the evidence. Carries a reason, no anchor.
 #: `PART_LOCAL` and `DECLARED_ATTACHMENT` arrived with schema 4 and are documented
-#: in `DESIGN_NOTES.md`, but were never added here, so the registry document could
-#: not be loaded at all. `UNDETERMINED` is retained: it is a first-class value, and
+#: in `DESIGN_NOTES.md`; until they were added here the registry document could not
+#: be loaded at all. `UNDETERMINED` is retained: it is a first-class value, and
 #: removing it would change what a future gap is allowed to say.
 ANCHOR_RULES = (
     "CONTENT_BOTTOM_CENTRE",

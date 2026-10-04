@@ -40,8 +40,11 @@ KOTLIN_SOURCES = REPO_ROOT / "app/src"
 REGISTRY_PATH = TOOL_ROOT / "sources/sprites.json"
 
 #: A sprite produced by recolouring another one, rather than rendered from its own
-#: source. `tools/generate_skin_variants.py` writes these, and the suffix is the whole
-#: naming convention: `<base>_skin<tone>`.
+#: source: `<base>_skin<tone>`. **None ships since v4.30**, which replaced the tone copies
+#: with region masks coloured at the blit (and `retiredBases` is empty), so the three tests
+#: below that read these names read none today. They stay as guards: a derived variant
+#: that ships again must still name a base that ships, declare its base's geometry and be
+#: cropped with its base.
 DERIVED_SUFFIX = re.compile(r"^(?P<base>.+)_skin(?P<tone>\d+)$")
 
 
@@ -83,7 +86,8 @@ class ShippedCoverageTest(unittest.TestCase):
         self.assertEqual(sorted(set(self.by_name) - self.shipped), [])
 
     def test_every_derived_variant_names_a_base_that_also_ships_or_a_declared_heir(self):
-        # `<base>_skin<tone>` is not a free-form name: the generator reads the base
+        # A guard for a variant that ships again (none does since v4.30: `DERIVED_SUFFIX`).
+        # `<base>_skin<tone>` is not a free-form name: a generator reads the base
         # sprite to produce it, so a variant whose base is gone cannot be regenerated
         # and cannot be checked against anything.
         #
@@ -116,7 +120,8 @@ class ShippedCoverageTest(unittest.TestCase):
     def test_a_derived_variant_declares_the_same_geometry_as_its_base(self):
         """A recolour moves paint, never coverage.
 
-        `generate_skin_variants.py` replaces one flat colour and verifies that every
+        A guard for a variant that ships again (none does since v4.30: `DERIVED_SUFFIX`).
+        `generate_skin_variants.py` replaced one flat colour and verified that every
         other colour keeps its exact pixel mask, so a variant's canvas, content box
         and anchor are the base's by construction. Declaring anything else would be a
         registry entry that describes a sprite nobody drew -- and because the variants
@@ -173,8 +178,9 @@ class PlannerReachTest(unittest.TestCase):
     def test_a_derived_variant_is_cropped_with_the_base_it_was_recoloured_from(self):
         """Same lookup table, same origin, so the same crop rectangle.
 
-        A tone is chosen per person and then indexes the table like any other sprite,
-        which means the base and its recolours are blitted through one origin. Cropping
+        A guard for a variant that ships again (none does since v4.30: `DERIVED_SUFFIX`).
+        A tone copy would index the table like any other sprite, which means the base
+        and its recolours would be blitted through one origin. Cropping
         one of them on its own would move it against the others -- the same mistake
         `co_registered_groups` exists to prevent for the walk frames, and the reason
         the group predicates match a family rather than an exact name.

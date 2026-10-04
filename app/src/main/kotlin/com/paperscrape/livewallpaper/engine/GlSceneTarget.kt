@@ -54,6 +54,17 @@ import kotlin.math.sin
  *
  * Nothing here allocates per frame. The vertex buffer, the transform stack and every matrix are
  * allocated once in the constructor; primitive generation writes into them in place.
+ *
+ * ## Work done once rather than per vertex (v5.10B)
+ *
+ * A point shared by two triangles -- a quad's diagonal, a fan's centre and its previous rim point --
+ * is mapped through [transform] once and written as many times as it is used ([mappedVertex]), where
+ * it used to be mapped once per use; the circle slices' `cos` and `sin` come from [CircleTable]; a
+ * hill column wholly off the surface is not emitted. **Each of these is the same float, or no sample,
+ * so the frame is the same frame**: mapping the same inputs gives the same float, the table holds the
+ * loop's own values bit for bit, and a triangle that covers no sample of the surface draws nothing.
+ * Measured on the BV6600 against v5.9 in alternated runs (v5.10A, trial variant `geom`): -12 % of a core
+ * at noon and -15 % at midnight, with the golden frames identical to the byte.
  */
 internal class GlSceneTarget : SceneCanvas {
 
@@ -108,6 +119,7 @@ internal class GlSceneTarget : SceneCanvas {
 
     /** Builds every GL resource. Must run on the render thread with the context current. */
     fun onContextCreated(): Boolean {
+        whitePixelOwed = false
         textures.invalidate()
         isUsable = program.compile()
         if (!isUsable) return false
@@ -134,6 +146,7 @@ internal class GlSceneTarget : SceneCanvas {
 
     /** Drops GL objects without touching a context that is already gone. */
     fun onContextLost() {
+        whitePixelOwed = false
         program.invalidate()
         textures.invalidate()
         whiteIndex = -1
@@ -146,6 +159,7 @@ internal class GlSceneTarget : SceneCanvas {
 
     /** Releases GL objects while the context is still current. */
     fun release() {
+        whitePixelOwed = false
         textures.clear()
         program.release()
         whiteIndex = -1
@@ -173,6 +187,41 @@ internal class GlSceneTarget : SceneCanvas {
         // 0, so every flat fill afterwards bound texture zero and drew black, with nothing able to
         // repair it. Reporting the failure the same way `onContextCreated` does puts the target
         // back into the state that makes the next prepared frame rebuild it.
+        if (!registerWhitePixel()) isUsable = false
+    }
+
+    /**
+     * [trimTextures] for a wallpaper that is not drawing: every texture goes, **the white pixel
+     * included**, and the white pixel is packed again only when the next frame is prepared
+     * ([prepareForFrame]).
+     *
+     * [trimTextures] packs the white pixel straight back, because a frame is about to use it, and
+     * packing even one texel re-creates the whole 2048x2048 atlas page: asked for while hidden, it
+     * gave back nothing -- the GL memory read 25 438 kB before and 25 443 kB after (v5.10A, the
+     * BV6600, screen off). With the white pixel owed instead, the same trim read 27 486 -> 11 071 kB,
+     * 16.4 MB given back; the next visible frame packs it, as it re-uploads every sprite anyway.
+     */
+    fun trimTexturesWhileHidden() {
+        flush()
+        textures.clear()
+        boundTexture = 0
+        whiteIndex = -1
+        whiteTexture = 0
+        whitePixelOwed = true
+    }
+
+    /** Set by [trimTexturesWhileHidden]: the white pixel has to be packed before anything is drawn. */
+    private var whitePixelOwed = false
+
+    /**
+     * Packs the white pixel [trimTexturesWhileHidden] left owed. Called by the render thread on
+     * every prepared frame, with the context current and before [beginFrame]; a no-op otherwise.
+     * A failure leaves [isUsable] false, the state in which the render thread rebuilds the target
+     * before drawing -- the same answer [trimTextures] gives to the same failure.
+     */
+    fun prepareForFrame() {
+        if (!whitePixelOwed) return
+        whitePixelOwed = false
         if (!registerWhitePixel()) isUsable = false
     }
 
@@ -290,9 +339,18 @@ internal class GlSceneTarget : SceneCanvas {
     // --- Vertex emission ---------------------------------------------------------------------
 
     private fun vertex(x: Float, y: Float, u: Float, v: Float, r: Float, g: Float, bl: Float, al: Float) {
+        mappedVertex(transform.mapX(x, y), transform.mapY(x, y), u, v, r, g, bl, al)
+    }
+
+    /**
+     * A vertex whose position [mx], [my] is **already mapped** through [transform]: a point that
+     * several triangles share is mapped once and written once per triangle. The same inputs to
+     * `mapX`/`mapY` give the same float, so the vertex is bit for bit the one [vertex] would write.
+     */
+    private fun mappedVertex(mx: Float, my: Float, u: Float, v: Float, r: Float, g: Float, bl: Float, al: Float) {
         var i = writeIndex
-        vertexData[i++] = transform.mapX(x, y)
-        vertexData[i++] = transform.mapY(x, y)
+        vertexData[i++] = mx
+        vertexData[i++] = my
         vertexData[i++] = u
         vertexData[i++] = v
         vertexData[i++] = r
@@ -307,8 +365,8 @@ internal class GlSceneTarget : SceneCanvas {
         vertex(x, y, whiteU, whiteV, colR, colG, colB, colA)
     }
 
-    private fun solidVertex(x: Float, y: Float, alpha: Float) {
-        vertex(x, y, whiteU, whiteV, colR, colG, colB, alpha)
+    private fun solidMapped(mx: Float, my: Float) {
+        mappedVertex(mx, my, whiteU, whiteV, colR, colG, colB, colA)
     }
 
     /** Current flat colour, unpacked once per primitive rather than per vertex. */
@@ -351,8 +409,21 @@ internal class GlSceneTarget : SceneCanvas {
         x2: Float, y2: Float,
         x3: Float, y3: Float,
     ) {
-        triangle(x0, y0, x1, y1, x2, y2)
-        triangle(x0, y0, x2, y2, x3, y3)
+        // Four corners mapped once, six vertices written: the diagonal's two ends are shared.
+        val m0x = transform.mapX(x0, y0)
+        val m0y = transform.mapY(x0, y0)
+        val m1x = transform.mapX(x1, y1)
+        val m1y = transform.mapY(x1, y1)
+        val m2x = transform.mapX(x2, y2)
+        val m2y = transform.mapY(x2, y2)
+        val m3x = transform.mapX(x3, y3)
+        val m3y = transform.mapY(x3, y3)
+        solidMapped(m0x, m0y)
+        solidMapped(m1x, m1y)
+        solidMapped(m2x, m2y)
+        solidMapped(m0x, m0y)
+        solidMapped(m2x, m2y)
+        solidMapped(m3x, m3y)
     }
 
     // --- Primitives --------------------------------------------------------------------------
@@ -407,16 +478,22 @@ internal class GlSceneTarget : SceneCanvas {
         if (!beginSolid(paint)) return
         val segments = segmentsFor(if (rx > ry) rx else ry)
         ensureRoom(segments * 3)
-        val step = TWO_PI / segments
-        var prevX = cx + rx
-        var prevY = cy
+        val cosines = CircleTable.cosines(segments)
+        val sines = CircleTable.sines(segments)
+        val mcx = transform.mapX(cx, cy)
+        val mcy = transform.mapY(cx, cy)
+        var mpx = transform.mapX(cx + rx, cy)
+        var mpy = transform.mapY(cx + rx, cy)
         for (i in 1..segments) {
-            val angle = step * i
-            val x = cx + rx * cos(angle)
-            val y = cy + ry * sin(angle)
-            triangle(cx, cy, prevX, prevY, x, y)
-            prevX = x
-            prevY = y
+            val x = cx + rx * cosines[i]
+            val y = cy + ry * sines[i]
+            val mx = transform.mapX(x, y)
+            val my = transform.mapY(x, y)
+            solidMapped(mcx, mcy)
+            solidMapped(mpx, mpy)
+            solidMapped(mx, my)
+            mpx = mx
+            mpy = my
         }
     }
 
@@ -486,6 +563,11 @@ internal class GlSceneTarget : SceneCanvas {
             val yL = shape.yAt(i)
             val xR = shape.xAt(i + 1)
             val yR = shape.yAt(i + 1)
+            // A column wholly left or wholly right of the surface covers no sample: its six or
+            // twelve vertices are not emitted. Strict comparisons, so a column touching an edge is
+            // still drawn. The hills hand over a shape two screens wide, once per tile copy, so
+            // about half of every copy's columns are off the surface (v5.10A).
+            if (columnOffSurface(xL, yL, xR, yR, baseY)) continue
             val topMost = if (yL > yR) yL else yR
             if (gradientBottomY > topMost && gradientBottomY < baseY) {
                 ensureRoom(12)
@@ -507,6 +589,22 @@ internal class GlSceneTarget : SceneCanvas {
         }
     }
 
+    /**
+     * Whether the column from ([xL], [yL]) to ([xR], [yR]) down to [baseY] lies wholly left or wholly
+     * right of the surface once mapped. Only the x extent is tested: the hills are cut into vertical
+     * columns and scrolled sideways, and a column above or below the surface does not happen.
+     */
+    private fun columnOffSurface(xL: Float, yL: Float, xR: Float, yR: Float, baseY: Float): Boolean {
+        if (surfaceWidth <= 0) return false
+        val a = transform.mapX(xL, yL)
+        val b = transform.mapX(xL, baseY)
+        val c = transform.mapX(xR, yR)
+        val d = transform.mapX(xR, baseY)
+        val min = minOf(minOf(a, b), minOf(c, d))
+        val max = maxOf(maxOf(a, b), maxOf(c, d))
+        return max < 0f || min > surfaceWidth.toFloat()
+    }
+
     @Suppress("LongParameterList")
     private fun gradientQuad(
         x0: Float, y0: Float,
@@ -519,12 +617,48 @@ internal class GlSceneTarget : SceneCanvas {
         bottomColor: Int,
         alphaScale: Float,
     ) {
-        gradientVertex(x0, y0, gradientTopY, span, topColor, bottomColor, alphaScale)
-        gradientVertex(x1, y1, gradientTopY, span, topColor, bottomColor, alphaScale)
-        gradientVertex(x2, y2, gradientTopY, span, topColor, bottomColor, alphaScale)
-        gradientVertex(x0, y0, gradientTopY, span, topColor, bottomColor, alphaScale)
-        gradientVertex(x2, y2, gradientTopY, span, topColor, bottomColor, alphaScale)
-        gradientVertex(x3, y3, gradientTopY, span, topColor, bottomColor, alphaScale)
+        // Each corner's position and colour worked out once and written where the two triangles
+        // share it -- the expressions [gradientVertex] evaluates, so the same floats.
+        gradientCorner(0, x0, y0, gradientTopY, span, topColor, bottomColor, alphaScale)
+        gradientCorner(1, x1, y1, gradientTopY, span, topColor, bottomColor, alphaScale)
+        gradientCorner(2, x2, y2, gradientTopY, span, topColor, bottomColor, alphaScale)
+        gradientCorner(3, x3, y3, gradientTopY, span, topColor, bottomColor, alphaScale)
+        emitCorner(0)
+        emitCorner(1)
+        emitCorner(2)
+        emitCorner(0)
+        emitCorner(2)
+        emitCorner(3)
+    }
+
+    /** `[mx, my, r, g, b, a]` for each corner of the gradient quad being emitted. */
+    private val corners = FloatArray(4 * 6)
+
+    @Suppress("LongParameterList")
+    private fun gradientCorner(
+        k: Int,
+        x: Float,
+        y: Float,
+        gradientTopY: Float,
+        span: Float,
+        topColor: Int,
+        bottomColor: Int,
+        alphaScale: Float,
+    ) {
+        val t = if (span == 0f) 0f else ((y - gradientTopY) / span).coerceIn(0f, 1f)
+        val o = k * 6
+        corners[o] = transform.mapX(x, y)
+        corners[o + 1] = transform.mapY(x, y)
+        corners[o + 2] = (Color.red(topColor) + (Color.red(bottomColor) - Color.red(topColor)) * t) * INV_255
+        corners[o + 3] = (Color.green(topColor) + (Color.green(bottomColor) - Color.green(topColor)) * t) * INV_255
+        corners[o + 4] = (Color.blue(topColor) + (Color.blue(bottomColor) - Color.blue(topColor)) * t) * INV_255
+        val al = (Color.alpha(topColor) + (Color.alpha(bottomColor) - Color.alpha(topColor)) * t) * INV_255
+        corners[o + 5] = al * alphaScale
+    }
+
+    private fun emitCorner(k: Int) {
+        val o = k * 6
+        mappedVertex(corners[o], corners[o + 1], whiteU, whiteV, corners[o + 2], corners[o + 3], corners[o + 4], corners[o + 5])
     }
 
     private fun gradientVertex(
@@ -572,20 +706,24 @@ internal class GlSceneTarget : SceneCanvas {
         val segments = segmentsFor(radius)
         ensureRoom(segments * 3)
         val inner = centerAlpha * INV_255
-        val step = TWO_PI / segments
-        var prevX = cx + radius
-        var prevY = cy
+        val cosines = CircleTable.cosines(segments)
+        val sines = CircleTable.sines(segments)
+        val mcx = transform.mapX(cx, cy)
+        val mcy = transform.mapY(cx, cy)
+        var mpx = transform.mapX(cx + radius, cy)
+        var mpy = transform.mapY(cx + radius, cy)
         for (i in 1..segments) {
-            val angle = step * i
-            val x = cx + radius * cos(angle)
-            val y = cy + radius * sin(angle)
+            val x = cx + radius * cosines[i]
+            val y = cy + radius * sines[i]
+            val mx = transform.mapX(x, y)
+            val my = transform.mapY(x, y)
             // A two-stop radial gradient is linear in radius, and so is interpolation from the fan's
             // centre vertex to its rim, so the falloff matches rather than approximates.
-            solidVertex(cx, cy, inner)
-            solidVertex(prevX, prevY, 0f)
-            solidVertex(x, y, 0f)
-            prevX = x
-            prevY = y
+            mappedVertex(mcx, mcy, whiteU, whiteV, colR, colG, colB, inner)
+            mappedVertex(mpx, mpy, whiteU, whiteV, colR, colG, colB, 0f)
+            mappedVertex(mx, my, whiteU, whiteV, colR, colG, colB, 0f)
+            mpx = mx
+            mpy = my
         }
     }
 
@@ -659,12 +797,20 @@ internal class GlSceneTarget : SceneCanvas {
         // laid over. Read this together with the fragment shader in [GlSpriteProgram], which says
         // the other half of it; the two are one mechanism written in two places.
         val al = if (additive) -(alpha * INV_255) else alpha * INV_255
-        vertex(quadLeft, quadTop, u0, v0, r, g, bl, al)
-        vertex(right, quadTop, u1, v0, r, g, bl, al)
-        vertex(right, bottom, u1, v1, r, g, bl, al)
-        vertex(quadLeft, quadTop, u0, v0, r, g, bl, al)
-        vertex(right, bottom, u1, v1, r, g, bl, al)
-        vertex(quadLeft, bottom, u0, v1, r, g, bl, al)
+        val m0x = transform.mapX(quadLeft, quadTop)
+        val m0y = transform.mapY(quadLeft, quadTop)
+        val m1x = transform.mapX(right, quadTop)
+        val m1y = transform.mapY(right, quadTop)
+        val m2x = transform.mapX(right, bottom)
+        val m2y = transform.mapY(right, bottom)
+        val m3x = transform.mapX(quadLeft, bottom)
+        val m3y = transform.mapY(quadLeft, bottom)
+        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
+        mappedVertex(m1x, m1y, u1, v0, r, g, bl, al)
+        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
+        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
+        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
+        mappedVertex(m3x, m3y, u0, v1, r, g, bl, al)
     }
 
     // --- Shared tessellation -----------------------------------------------------------------
@@ -673,16 +819,22 @@ internal class GlSceneTarget : SceneCanvas {
         if (radius <= 0f) return
         val segments = segmentsFor(radius)
         ensureRoom(segments * 3)
-        val step = TWO_PI / segments
-        var prevX = cx + radius
-        var prevY = cy
+        val cosines = CircleTable.cosines(segments)
+        val sines = CircleTable.sines(segments)
+        val mcx = transform.mapX(cx, cy)
+        val mcy = transform.mapY(cx, cy)
+        var mpx = transform.mapX(cx + radius, cy)
+        var mpy = transform.mapY(cx + radius, cy)
         for (i in 1..segments) {
-            val angle = step * i
-            val x = cx + radius * cos(angle)
-            val y = cy + radius * sin(angle)
-            triangle(cx, cy, prevX, prevY, x, y)
-            prevX = x
-            prevY = y
+            val x = cx + radius * cosines[i]
+            val y = cy + radius * sines[i]
+            val mx = transform.mapX(x, y)
+            val my = transform.mapY(x, y)
+            solidMapped(mcx, mcy)
+            solidMapped(mpx, mpy)
+            solidMapped(mx, my)
+            mpx = mx
+            mpy = my
         }
     }
 
@@ -691,15 +843,15 @@ internal class GlSceneTarget : SceneCanvas {
         val inner = if (innerRadius < 0f) 0f else innerRadius
         val segments = segmentsFor(outerRadius)
         ensureRoom(segments * 6)
-        val step = TWO_PI / segments
+        val cosines = CircleTable.cosines(segments)
+        val sines = CircleTable.sines(segments)
         var prevOuterX = cx + outerRadius
         var prevOuterY = cy
         var prevInnerX = cx + inner
         var prevInnerY = cy
         for (i in 1..segments) {
-            val angle = step * i
-            val cs = cos(angle)
-            val sn = sin(angle)
+            val cs = cosines[i]
+            val sn = sines[i]
             val outerX = cx + outerRadius * cs
             val outerY = cy + outerRadius * sn
             val innerX = cx + inner * cs
@@ -721,13 +873,12 @@ internal class GlSceneTarget : SceneCanvas {
          */
         const val MAX_VERTICES = 12288
         const val INV_255 = 1f / 255f
-        const val TWO_PI = (2.0 * Math.PI).toFloat()
         const val DEG_TO_RAD = (Math.PI / 180.0).toFloat()
 
         /** One segment per this many device pixels of radius: the tessellation/vertex-count trade. */
         const val DEVICE_PIXELS_PER_SEGMENT = 3f
-        const val MIN_SEGMENTS = 8
-        const val MAX_SEGMENTS = 64
+        const val MIN_SEGMENTS = CircleTable.MIN_SEGMENTS
+        const val MAX_SEGMENTS = CircleTable.MAX_SEGMENTS
 
         /**
          * Registry key for the flat-fill white pixel.

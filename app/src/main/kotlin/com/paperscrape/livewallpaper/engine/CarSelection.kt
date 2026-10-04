@@ -175,8 +175,8 @@ object CarSelection {
      * The bounds are the draw cull's own (`SceneObjectRenderer` skips a car outside them), so a
      * car that is not drawn this frame is exactly a car whose appearance or disappearance cannot
      * be seen. A pedestrian materialising mid-pavement is forgiven; a car materialising in the
-     * middle of the road is not — and the same rule lets the night crossfade of a later phase
-     * move the count without ever touching a car that is on screen.
+     * middle of the road is not — and the same rule lets the night crossfade ([densityAt]) move
+     * the count without ever touching a car that is on screen.
      */
     fun offScreen(progress: Float): Boolean =
         progress < ON_SCREEN_MIN_PROGRESS || progress > ON_SCREEN_MAX_PROGRESS

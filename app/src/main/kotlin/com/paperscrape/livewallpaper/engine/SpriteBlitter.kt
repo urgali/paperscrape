@@ -13,10 +13,10 @@ import android.content.Context
  * point of use, rather than being implied by which of several similarly named helper functions the
  * caller happened to pick.
  *
- * This is an interim arrangement, not the end state: the convention is a property of the asset, so
- * it belongs in the asset's own declared metadata. It cannot live there until the asset pipeline
- * (`tools/assets/`) gives each asset declared metadata (`ARCHITECTURE.md` §3, Group 3), and until
- * then the caller is the only place that knows.
+ * The convention is a property of the asset, so the asset declares it too: the `scale` field of its
+ * entry in `tools/assets/sources/sprites.json`. The caller still names it here, and the asset
+ * pipeline's `validate` checks the two agree at every call site it can resolve
+ * (`AI_PROJECT_RULES.md` 7.2).
  */
 enum class SpriteScale {
     /**

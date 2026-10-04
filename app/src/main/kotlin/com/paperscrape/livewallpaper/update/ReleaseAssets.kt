@@ -15,7 +15,17 @@ data class ReleaseAsset(val name: String, val downloadUrl: String, val sizeBytes
 object ReleaseAssets {
 
     /** The name the release workflow gives the APK: `PaperScrape-v2.11.apk`. */
-    fun apkNameFor(tagName: String): String = "PaperScrape-$tagName.apk"
+    fun apkNameFor(tagName: String): String = "$APK_PREFIX$tagName$APK_SUFFIX"
+
+    /** The tag an [apkNameFor] name was made from, or null for a name that is not one. */
+    fun tagOfApkName(fileName: String): String? {
+        if (!fileName.startsWith(APK_PREFIX) || !fileName.endsWith(APK_SUFFIX)) return null
+        val tag = fileName.substring(APK_PREFIX.length, fileName.length - APK_SUFFIX.length)
+        return tag.ifEmpty { null }
+    }
+
+    private const val APK_PREFIX = "PaperScrape-"
+    private const val APK_SUFFIX = ".apk"
 
     /** The name the workflow gives the checksum: the APK's name with `.sha256` appended. */
     fun checksumNameFor(tagName: String): String = "${apkNameFor(tagName)}.sha256"

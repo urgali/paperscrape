@@ -51,9 +51,9 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72. Ordinary bumps: one release, one step.
-        versionCode = 72
-        versionName = "5.9"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72, v5.10 → 73. Ordinary bumps: one release, one step.
+        versionCode = 73
+        versionName = "5.10"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
@@ -186,7 +186,7 @@ android {
         }
         // **The build the CPU protocol is measured on, and the reason it is committed.**
         //
-        // `BACKLOG_v4_26.md` item 32's protocol needs a build that is what users run: a debug build
+        // `BACKLOG_v4_22.md` item 32's protocol needs a build that is what users run: a debug build
         // is not (R8 off, no shrinking, and v4.26 measured that a conclusion drawn on one — "+4.5
         // points of CPU for every PNG substituted" — was a property of the debug build and not of
         // the artwork), and a real release build cannot be signed on a development machine because
@@ -419,5 +419,10 @@ tasks.withType<Test>().configureEach {
         exclude("**/__pycache__/**")
     })
         .withPropertyName("assetTooling")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And the release notes (v5.10D): `UpdateNotesWholeTest` reads `release-notes/*.md` to show the
+    // update dialog gets every release's note whole, and nothing above declares them.
+    inputs.dir(rootProject.layout.projectDirectory.dir("release-notes"))
+        .withPropertyName("releaseNotes")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

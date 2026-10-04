@@ -57,10 +57,23 @@ data class LakeConfig(
     val dolphinsVisible: Boolean,
     val dolphinsDensity: Float,
     val autoMode: AutoColorMode = AutoColorMode.MANUAL,
-)
+) {
+    /**
+     * Whether there is any water: switched on, **and above 0 % height** (v5.10E, inventory I-293, the
+     * maintainer's *«2 - si»* of 2026-10-04). At 0 % the band was zero pixels tall and *Show Lake* still
+     * read on, and the sailboats and dolphins were still laid out on lanes of a band with no height; now
+     * 0 % is off, as every other amount at 0 is (v5.10C, row 8): the wallpaper draws no lake and nothing
+     * on it (`PaperRenderer.updateLakeBandY`), the gallery card none (`ThemePreviewScene`), and the
+     * switch says so, with a tap that puts the theme's own height back. The mountains stand where they
+     * did: on a band of no height their base was the water's top edge, which is the hills' own line --
+     * the one they take with the lake off -- to within a float's rounding.
+     */
+    val drawsWater: Boolean get() = visible && height > 0f
+}
 
 /** One of a bird's 4 selectable colors, with a relative weight controlling how often it's picked
- * (not a uniform 1-in-4 -- "Bird Color Frequencies" in the UI). Weights don't need to sum to
+ * (not a uniform 1-in-4 -- the colour sliders under "Bird Colors" in the UI, which since v5.10E print each
+ * colour's share of the flock rather than the weight). Weights don't need to sum to
  * anything in particular; a bird's color is picked by weighted-random draw across all 4 (see
  * [BirdsConfig.pickColor]). */
 data class BirdColorWeight(val color: Int, val weight: Float)
@@ -188,10 +201,16 @@ data class BirdsConfig(    val visible: Boolean,
      * fraction can be reused deterministically for a given bird instance rather than re-rolling
      * every frame). */
     fun pickColor(randomFraction: Float): Int {
-        val totalWeight = colors.sumOf { it.weight.toDouble() }.toFloat()
+        // By index, twice: `sumOf` and a `for (c in colors)` each built an iterator, two objects per
+        // bird per frame on the draw path (v5.10A). The sum runs in the same order `sumOf` did, in
+        // `Double`, so it is the same number.
+        var weights = 0.0
+        for (i in colors.indices) weights += colors[i].weight.toDouble()
+        val totalWeight = weights.toFloat()
         if (totalWeight <= 0f) return colors.firstOrNull()?.color ?: 0xFFFFFFFF.toInt()
         var target = randomFraction.coerceIn(0f, 1f) * totalWeight
-        for (c in colors) {
+        for (i in colors.indices) {
+            val c = colors[i]
             target -= c.weight
             if (target <= 0f) return c.color
         }
@@ -362,8 +381,10 @@ data class SceneCustomization(
      */
     val flowersEnabled: Boolean = false,
     /**
-     * Palms wherever a layout places them (Beach, Desert, their saved copies, and shuffled
-     * themes that deal palms): on or off, and nothing else.
+     * Palms on a layout that plants palms of its own (Beach, Desert, their saved copies, and
+     * shuffled themes that deal palms): on or off, and nothing else. **The other half of the one
+     * Palms switch is [palmsInsteadOfTrees]**, for every layout that plants none; which half a
+     * theme reads is decided by its layout, in [palmsShown].
      *
      * **What it actually switches is which tree the Beach and Desert layouts draw.** Those two
      * themes map their tree slots to [SceneObjectType.PALM_TREE] (`SceneObjectCatalog`), and
@@ -392,8 +413,33 @@ data class SceneCustomization(
      * it is inert -- no other built-in layout places a palm -- while a saved copy of Beach or
      * Desert, or a shuffled theme that deals palms, is governed by it exactly as they are (see
      * [hasPalmSlots]).
+     *
+     * **Which is also why it cannot be the switch on the other themes** (v5.10C). Being on by
+     * default, it is `true` in every theme anyone has saved, edited or backed up on a theme
+     * without palms -- written there by the app, not chosen -- so reading it as "palms here" would
+     * have planted palms on every such Autumn and Christmas the day the switch started to work
+     * there. Those themes read [palmsInsteadOfTrees] instead, which no build before v5.10 wrote.
      */
     val palmsEnabled: Boolean = true,
+    /**
+     * Palms in place of the trees, on a layout that plants no palm of its own: every ordinary tree
+     * slot of Autumn, Christmas, Winter and the rest drawn as a palm -- same places, same depths,
+     * same density, the swap [palmsEnabled] makes on Beach and Desert run the other way. The
+     * maintainer's decision of 2026-09-30, in his words *«le palme devono essere attivabili in
+     * qualsiasi tema: l'utente deve essere libero di avere anche natale con palme»*, with the
+     * switch starting off wherever there were no palms before. **A Christmas fir stays a fir**
+     * (v5.10C2, his words of 2026-10-03: *«gli abeti sono del tema e tali devono rimanere»*): the
+     * palms take the ordinary trees' places only -- see [palmSpeciesApplied].
+     *
+     * **A field of its own, off by default, and that is the whole of the upgrade.** The switch
+     * the user moves is one ([palmsShown]); it is stored in two fields because the old one,
+     * [palmsEnabled], is `true` on every theme the app has ever written -- see there. A payload,
+     * a preference store or a backup written before v5.10 carries no value here, so it reads as
+     * off: nobody who updates finds palms they did not ask for, and Beach, Desert and every
+     * layout that deals palms read [palmsEnabled] exactly as before. `WallpaperPrefs.setPalmsEnabled`
+     * writes both, so from the first move of the switch the two say the same thing.
+     */
+    val palmsInsteadOfTrees: Boolean = false,
     /**
      * The Halloween presentation: a jack-o'-lantern moon, bare trees and palms, carved pumpkins.
      *
@@ -791,8 +837,35 @@ private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantCo
 }
 
 /**
- * The species this slot is drawn as, given the current config: a palm where [palmsEnabled] is on,
- * an ordinary tree where it is not.
+ * Whether the Palms switch is on for a theme whose layout does ([layoutPlantsPalms]) or does not
+ * plant palms of its own -- [SceneObjectLayout.hasPalmSlots] of the layout the theme draws.
+ *
+ * The one reading of the switch, for the settings screen, the gallery card and the wallpaper alike
+ * (v5.10C): [palmsEnabled] where the layout plants palms, as it always was; [palmsInsteadOfTrees]
+ * where it plants none, so a `true` the app wrote there before v5.10, when the switch could do
+ * nothing on such a theme, does not count. See [SceneCustomization.palmsInsteadOfTrees].
+ */
+fun SceneCustomization.palmsShown(layoutPlantsPalms: Boolean): Boolean =
+    if (layoutPlantsPalms) palmsEnabled else palmsInsteadOfTrees
+
+/**
+ * The species this slot is drawn as, given the current config and whether the layout it comes
+ * from plants palms of its own ([layoutPlantsPalms], [SceneObjectLayout.hasPalmSlots]):
+ *
+ *  - on a layout that plants palms, a palm slot is a palm while [palmsEnabled] is on and an
+ *    ordinary tree while it is off; its tree slots, if it has any (a shuffled theme may deal both),
+ *    stay trees either way -- exactly the rule of v5.1 to v5.9;
+ *  - on a layout that plants none, a tree slot is a palm while [palmsInsteadOfTrees] is on
+ *    (v5.10C), and a tree otherwise -- **except a fir**: a slot that stands as a Christmas fir
+ *    while the Christmas layer is on (`SceneObjectRenderer.standsAsFir`) stays a tree, and the
+ *    drawing makes it the fir it was (v5.10C2). The palms take the place of the ordinary trees
+ *    only; the maintainer, 2026-10-03: *«le palme in natale devono sovrascrivere gli alberi
+ *    normali, gli abeti sono del tema e tali devono rimanere»*. The Christmas layer puts firs on
+ *    any theme, so this holds wherever a fir stands, not on Christmas alone.
+ *
+ * Every other slot passes through untouched. On a layout that plants palms nothing about the firs
+ * changes: its palm slots are palms whatever the Christmas layer says, as they always were, and a
+ * slot the switch turns back into a tree is a tree the drawing may make a fir, as it always did.
  *
  * **Applied once, on the way from the layout to the renderer's object list, rather than at the
  * blit.** Everything downstream of that list reads `spec.type` -- `SceneObjectRenderer.variantFor`
@@ -807,24 +880,57 @@ private fun SceneCustomization.configFor(type: SceneObjectType): ObjectVariantCo
  * where no customization exists (`SceneObjectCatalog.layoutFor`). A tree is wider than a palm, so
  * turning palms off can leave a shop front more covered than the pass allowed for. That is the
  * behaviour every density and visibility setting already has -- the layout is dealt once and the
- * user's switches are read after it -- and it is not made worse here by being said out loud.
+ * user's switches are read after it -- and it is not made worse here by being said out loud. The
+ * other way round, palms in the tree slots of a street laid out for trees, is measured by
+ * `ShopFrontVisibilityTest` on all twelve built-ins: a palm's crown reaches less far than an oak's.
  */
-fun SceneCustomization.palmSpeciesApplied(spec: StaticSceneObject): StaticSceneObject =
-    if (palmsEnabled || spec.type != SceneObjectType.PALM_TREE) spec
-    else spec.copy(type = SceneObjectType.TREE)
+fun SceneCustomization.palmSpeciesApplied(spec: StaticSceneObject, layoutPlantsPalms: Boolean): StaticSceneObject =
+    when {
+        layoutPlantsPalms ->
+            if (palmsEnabled || spec.type != SceneObjectType.PALM_TREE) spec
+            else spec.copy(type = SceneObjectType.TREE)
+        palmsInsteadOfTrees && spec.type == SceneObjectType.TREE && !SceneObjectRenderer.standsAsFir(spec, this) ->
+            spec.copy(type = SceneObjectType.PALM_TREE)
+        else -> spec
+    }
 
 /**
- * Whether this layout places any palm at all -- which is the only thing that decides whether
- * [SceneCustomization.palmsEnabled] can change the scene drawn from it.
+ * Whether this layout plants any palm of its own -- which decides which of the two fields behind
+ * the Palms switch the theme drawn from it reads: [SceneCustomization.palmsEnabled] if it does,
+ * [SceneCustomization.palmsInsteadOfTrees] if it does not ([palmsShown]).
  *
  * Asked of the layout, not of the theme's id. Beach and Desert are the two built-ins whose tree
  * slots are palms, but a theme saved from either keeps those slots under a `custom:` id, and a
  * shuffled theme may deal palms too; a list of names would say "no palms" about both while the
- * wallpaper draws them. The settings screen reads this so that it reports the switch as on only
- * where a palm can appear.
+ * wallpaper draws them. The layout is the one before the switch is applied -- what the theme plants,
+ * not what the user turned it into.
  */
 fun SceneObjectLayout.hasPalmSlots(): Boolean =
     staticObjects.any { it.type == SceneObjectType.PALM_TREE }
+
+/**
+ * Whether, with the Palms switch on, every tree this layout keeps under [c] would still stand as a
+ * Christmas fir -- so the switch would put no palm anywhere (v5.10C2). The firs stay firs among the
+ * palms ([palmSpeciesApplied]), and a wood thinned far enough under the Christmas layer can keep only
+ * fir slots: Christmas at 20 % keeps two trees, and both are firs. The settings ask this so the switch
+ * does not read on over a scene with no palm in it (`AI_PROJECT_RULES.md` 8.7).
+ *
+ * False when the layout keeps no tree at all: that is the trees' own reason (*Show Trees* off or at 0 %),
+ * said by the switch in its own words. Read through [keepCandidate] and [palmSpeciesApplied] with the
+ * switch on, the two functions the renderer builds its list with, so it cannot drift from the scene.
+ */
+fun SceneObjectLayout.keepsOnlyFirsUnderPalms(c: SceneCustomization): Boolean {
+    val on = c.copy(palmsEnabled = true, palmsInsteadOfTrees = true)
+    val plantsPalms = hasPalmSlots()
+    var trees = 0
+    for (spec in staticObjects) {
+        if (spec.type != SceneObjectType.TREE && spec.type != SceneObjectType.PALM_TREE) continue
+        if (!on.keepCandidate(spec, densityScheme)) continue
+        trees++
+        if (on.palmSpeciesApplied(spec, plantsPalms).type == SceneObjectType.PALM_TREE) return false
+    }
+    return trees > 0
+}
 
 /** Whether this candidate slot should actually render, given the current config. Types with no
  * customization category (e.g. CAR, whose membership is a distributed count -- see [keptCars]
@@ -1182,7 +1288,11 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
  *
  * Only [ObjectVariantConfig.visible] and [ObjectVariantConfig.density] are read by
  * [keepCandidate], so those are the only fields that can change which objects exist -- plus
- * [SceneCustomization.palmsEnabled], which changes which *species* a kept tree slot is.
+ * [SceneCustomization.palmsEnabled] and [SceneCustomization.palmsInsteadOfTrees], which change
+ * which *species* a kept tree slot is, and, **while palms stand in the trees' places**, the
+ * Christmas layer ([SceneCustomization.christmasDecorationsEnabled]): there it decides which tree
+ * slots stay trees to be drawn as firs (v5.10C2). Only there: with the palms off the fir is decided
+ * at the draw, the list does not move, and a Christmas toggle rebuilds nothing, as before.
  * [palmSpeciesApplied] resolves it once, when the runtime list is built, so a palms change that
  * did not rebuild that list never reached a running wallpaper: the switch showed "off" and the
  * palms stayed until something else rebuilt the scene (measured on a device, assessment v5.7 M1).
@@ -1214,7 +1324,9 @@ fun SceneCustomization.staticStructurallyEquals(other: SceneCustomization): Bool
         bunnies.structurallyEquals(other.bunnies) &&
         easterEggs.structurallyEquals(other.easterEggs) &&
         pumpkins.structurallyEquals(other.pumpkins) &&
-        palmsEnabled == other.palmsEnabled
+        palmsEnabled == other.palmsEnabled &&
+        palmsInsteadOfTrees == other.palmsInsteadOfTrees &&
+        (!palmsInsteadOfTrees || christmasDecorationsEnabled == other.christmasDecorationsEnabled)
 
 /**
  * Whether two configs would produce the same set of rendered cars **at every hour** -- the two

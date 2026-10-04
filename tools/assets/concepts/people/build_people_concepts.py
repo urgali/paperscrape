@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Builds the three v4.25 people concepts -- Stencil, Relief, Doll -- as SVG sources
-and renders them through the project's own rasteriser.
+"""Draws the people: the three v4.25 concepts -- Stencil, Relief, Doll -- as SVG sources rendered
+through the project's own rasteriser, and, through ``family("relief_eyes")`` and
+``trim_to_content``, the shipped figures ``tools/generate_people_layers.py`` decomposes.
 
 Run from ``tools/assets`` with the pinned venv:
 
@@ -11,15 +12,17 @@ whole family -- four characters x (three walk frames x two seasons + a window bu
 seasons + a car bust x two seasons) = 40 sprites -- and ``sprites.concept.json`` in the
 registry's own schema, measured off the rendered pixels.
 
-Every canvas is the shipped one (walk 123x255, window 159x171, car 141x132), so no call
-site, anchor or byte of the decoded budget moves, exactly as the v4.23 sky concepts did.
+The concepts were drawn on the canvases that shipped then (walk 123x255, window 159x171, car
+141x132), so no call site, anchor or byte of the decoded budget moved, exactly as the v4.23 sky
+concepts did; the shipped family is trimmed to its content (117x252, 147x171, 114x126).
 Edges are cut, not struck: every shape is a polygon whose vertices carry a small
 deterministic wobble written here into the coordinates. No feature is thinner than three
-units, because the GL backend minifies with a plain bilinear tap and no mipmaps
-(GlTextureAtlas.kt), and at the ~1:8 reduction a walker gets anything thinner flickers.
+units, because the GL backend minifies with a plain bilinear tap and no mipmaps, and at the ~1:8
+reduction a walker gets anything thinner flickers; the reduced copies ``SpriteDetailLevel`` picks
+per draw halve that flicker without removing it, so the rule stays.
 
-Skin is one flat colour per character -- the character's own shipped tone -- so
-``tools/generate_skin_variants.py`` can still produce the tone copies later.
+Skin is one flat colour per character, which is what lets ``region_of`` give it a mask of its
+own; the tone is chosen at the blit (``PeopleColours.SKIN``).
 """
 from __future__ import annotations
 

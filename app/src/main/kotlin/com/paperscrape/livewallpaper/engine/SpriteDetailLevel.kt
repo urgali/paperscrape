@@ -14,8 +14,9 @@ package com.paperscrape.livewallpaper.engine
  * A GPU asked to minify that far with one bilinear tap reads four texels out of the forty-nine or
  * more that fall inside the pixel, and *which* four depends on where the sprite happens to sit this
  * frame. As the scene scrolls, that choice changes every frame and detail below a few source pixels
- * appears and disappears. It is why the artwork carries a "nothing thinner than three units" rule:
- * the rule is a workaround for the sampling, not a drawing decision.
+ * appears and disappears. It is why the people are drawn with nothing thinner than three units
+ * (`build_people_concepts.py`): a rule made for the sampling, not a drawing decision, and it stays,
+ * because the reduced copies below halve that flicker without removing it.
  *
  * The fix is to hand the GPU pixels it can sample at roughly 1:1, by reducing the bitmap on the CPU
  * once, before upload. One reduction per sprite is **not** enough, and the measurement is what says

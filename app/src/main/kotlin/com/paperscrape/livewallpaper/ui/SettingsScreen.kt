@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -60,6 +62,7 @@ import com.paperscrape.livewallpaper.engine.SceneObjectCatalog
 import com.paperscrape.livewallpaper.engine.SceneTheme
 import com.paperscrape.livewallpaper.engine.ThemePreviewGeometry
 import com.paperscrape.livewallpaper.engine.hasPalmSlots
+import com.paperscrape.livewallpaper.engine.keepsOnlyFirsUnderPalms
 import com.paperscrape.livewallpaper.engine.CalendarWindow
 import com.paperscrape.livewallpaper.engine.EasterSpan
 import com.paperscrape.livewallpaper.engine.SeasonalCalendar
@@ -67,6 +70,8 @@ import com.paperscrape.livewallpaper.engine.SeasonalThemeRules
 import com.paperscrape.livewallpaper.engine.coverage
 import com.paperscrape.livewallpaper.engine.ThemeCatalog
 import com.paperscrape.livewallpaper.engine.WallpaperEngineCensus
+import com.paperscrape.livewallpaper.location.DeviceLocationAccess
+import com.paperscrape.livewallpaper.location.DeviceLocationKind
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
@@ -76,6 +81,7 @@ import com.paperscrape.livewallpaper.update.UpdateInfo
 import com.paperscrape.livewallpaper.update.UpdateNotificationPolicy
 import com.paperscrape.livewallpaper.update.UpdateNotifier
 import com.paperscrape.livewallpaper.update.UpdatePrefs
+import com.paperscrape.livewallpaper.weather.WeatherRepository
 import kotlinx.coroutines.launch
 
 /**
@@ -147,9 +153,10 @@ fun SettingsScreen(
     customThemeStore: CustomThemeStore,
     updatePrefs: UpdatePrefs,
     onApplyWallpaper: () -> Unit,
-    onRequestLocationPermission: (permission: String, onResult: (Boolean) -> Unit) -> Unit,
+    onRequestLocationPermission: (kind: DeviceLocationKind, onResult: (LocationPermissionAnswer) -> Unit) -> Unit,
     /** See `AdvancedScreen`'s parameter of the same name (A1, v5.7D). */
-    onRequestNotificationPermission: (onResult: (Boolean) -> Unit) -> Unit = { it(true) },
+    onRequestNotificationPermission: (onResult: (granted: Boolean, canAskAgain: Boolean) -> Unit) -> Unit =
+        { it(true, true) },
     /**
      * The release tag carried by a tapped update notification, or null on an ordinary open (A3).
      *
@@ -237,7 +244,8 @@ fun SettingsScreen(
         // other outcomes are shown too -- Advanced & about with "could not check" or "up to date",
         // the same state its own button reports (v5.8C; until then an offline tap showed nothing
         // at all, and the notification looked broken).
-        val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME)
+        // With the reply kept from the last check, so an unchanged list costs no download (v5.10D).
+        val result = UpdateChecker.checkForUpdate(BuildConfig.VERSION_NAME, updatePrefs)
         val update = (result as? UpdateCheckResult.Available)?.info
         if (update == null) {
             if (askedByNotification) {
@@ -290,6 +298,22 @@ fun SettingsScreen(
         pendingThemeId = settings.pendingCustomizationThemeId,
         themeCustomizations = settings.themeCustomizations,
     )
+    // Whether the theme showing plants palms of its own, which decides which half of the Palms switch
+    // it reads (`SceneCustomization.palmsShown`). Keyed on `customThemeData` for the reason given where
+    // it is read: a saved theme's layout comes from the registry, which Compose cannot see.
+    val themeLayout = remember(effectiveThemeId, customThemeData) {
+        SceneObjectCatalog.layoutFor(effectiveThemeId, effectiveTheme.accentColor)
+    }
+    val themeHasPalms = themeLayout.hasPalmSlots()
+    // Whether the trees this theme keeps would all be Christmas firs with the palms on (v5.10C2): then the
+    // Palms switch has no palm to put anywhere, and reads off. See `SettingsUiModel.palms`.
+    val palmsOnlyFirs = themeLayout.keepsOnlyFirsUnderPalms(customization)
+    // See [WallpaperEngineCensus] for why the engines are counted rather than WallpaperManager asked.
+    val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
+    // What the phone gives for GPS or Network, read each time the screen comes back (v5.10D, row 5).
+    val deviceAccess = rememberDeviceLocationAccess(settings)
+    // *Shuffle* while the calendar is choosing: the question first (v5.10C, row 9).
+    var confirmShuffle by remember { mutableStateOf(false) }
 
     ProvideSettingsBottomInset {
     Scaffold(
@@ -314,7 +338,6 @@ fun SettingsScreen(
             // [WallpaperEngineCensus] for why it counts the engines rather than asking WallpaperManager.
             // The tap does the same either way -- the system's preview, where it can be set again,
             // which is also the way back when the home screen is blank after a force-stop.
-            val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
             Button(
                 onClick = onApplyWallpaper,
                 modifier = Modifier
@@ -368,17 +391,38 @@ fun SettingsScreen(
                         "Builds a new theme from scratch and selects it"
                     },
                     icon = Icons.Filled.Casino,
-                    onClick = { scope.launch { prefs.setTheme(RandomSceneGenerator.newThemeId()) } },
+                    // While the calendar is choosing, a new random theme would be saved and not
+                    // shown: the tap changed nothing on the wallpaper and the line above it read
+                    // "Random theme active" over the calendar's scene (inventory I-212). So it asks.
+                    onClick = {
+                        if (SettingsUiModel.pickNeedsCalendarQuestion(calendarThemeId, pickedThemeId = null)) {
+                            confirmShuffle = true
+                        } else {
+                            scope.launch { prefs.setTheme(RandomSceneGenerator.newThemeId()) }
+                        }
+                    },
                 )
             }
 
             SettingsSectionHeader("Customise this theme")
             SettingsGroup {
+                // Live Weather "on" here only when its switch is (v5.10C, row 4): the same rule, from the
+                // same inputs, as Weather & time's own switch.
+                val liveWeather = SettingsUiModel.liveWeather(
+                    liveWeatherEnabled = settings.liveWeatherEnabled,
+                    followRealTime = settings.syncWithRealTime,
+                    locationMode = homeLocationMode(settings),
+                    devicePositionUsable = deviceAccess.positionUsable(),
+                    keyMissing = WeatherRepository.providerFor(settings.weatherProvider).requiresApiKey &&
+                        settings.apiKeyForWeatherProvider.isBlank(),
+                    isTheWallpaper = isTheWallpaper,
+                    status = settings.liveWeather,
+                )
                 SettingsNavigationRow(
                     title = "Weather & time",
-                    supporting = weatherRowSummary(settings),
+                    supporting = weatherRowSummary(settings, liveWeather, deviceAccess),
                     icon = Icons.Outlined.WbSunny,
-                    supportingIsAccent = settings.liveWeatherEnabled,
+                    supportingIsAccent = liveWeather.shownOn,
                     onClick = { destination = SettingsDestination.WEATHER },
                 )
                 SettingsNavigationRow(
@@ -436,6 +480,7 @@ fun SettingsScreen(
                 worldOpenedFrom = SettingsDestination.WEATHER
                 destination = SettingsDestination.WORLD
             },
+            onApplyWallpaper = onApplyWallpaper,
             onBack = { destination = SettingsDestination.HOME },
         )
         SettingsDestination.CALENDAR -> HolidayCalendarScreen(
@@ -449,11 +494,6 @@ fun SettingsScreen(
             customization = customization,
             forThemeId = effectiveThemeId,
             themeName = effectiveTheme.displayName,
-            // Keyed on `customThemeData` for the reason given where it is read: a saved theme's
-            // layout comes from the registry, which Compose cannot see.
-            themeHasPalms = remember(effectiveThemeId, customThemeData) {
-                SceneObjectCatalog.layoutFor(effectiveThemeId, effectiveTheme.accentColor).hasPalmSlots()
-            },
             prefs = prefs,
             scope = scope,
             onBack = { destination = SettingsDestination.HOME },
@@ -464,6 +504,8 @@ fun SettingsScreen(
             theme = effectiveTheme,
             forThemeId = effectiveThemeId,
             themeName = effectiveTheme.displayName,
+            themeHasPalms = themeHasPalms,
+            palmsOnlyFirs = palmsOnlyFirs,
             prefs = prefs,
             customThemeStore = customThemeStore,
             customThemeData = customThemeData,
@@ -481,9 +523,24 @@ fun SettingsScreen(
             scope = scope,
             onUpdateFound = { availableUpdate = it },
             onRequestNotificationPermission = onRequestNotificationPermission,
+            onApplyWallpaper = onApplyWallpaper,
             startInstallFor = pendingInstall,
             onInstallStarted = { pendingInstall = null },
             onBack = { destination = SettingsDestination.HOME },
+        )
+    }
+
+    // The calendar stopped choosing while the question was up (midnight): nothing to ask any more,
+    // and a question left pending would come back unasked the next time it chooses.
+    if (confirmShuffle && calendarThemeId == null) LaunchedEffect(Unit) { confirmShuffle = false }
+    if (confirmShuffle && calendarThemeId != null) {
+        CalendarPickQuestion(
+            calendarThemeName = ThemeCatalog.byId(calendarThemeId).displayName,
+            onShowIt = {
+                confirmShuffle = false
+                scope.launch { prefs.setThemeTurningAutoThemeOff(RandomSceneGenerator.newThemeId()) }
+            },
+            onCancel = { confirmShuffle = false },
         )
     }
 
@@ -501,12 +558,16 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             Text("What's new:", style = MaterialTheme.typography.labelLarge)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Column(
-                                modifier = Modifier
-                                    .heightIn(max = 340.dp)
-                                    .verticalScroll(rememberScrollState()),
-                            ) {
-                                Text(notes, style = MaterialTheme.typography.bodyMedium)
+                            // **One release a block, laid out only when scrolled to** (v5.10D). The notes
+                            // are every newer release's, whole: from 1.0 that is 68 releases and 211 558
+                            // characters, and as one Text in a scrolling column the BV6600 froze for ~3 s
+                            // (175 frames skipped) laying it out before the dialog appeared. A lazy list
+                            // lays out the blocks on screen; the text is the same, block for block.
+                            val blocks = remember(notes) { UpdateChecker.notesByRelease(notes) }
+                            LazyColumn(modifier = Modifier.heightIn(max = 340.dp)) {
+                                items(blocks) { block ->
+                                    Text(block, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(bottom = 16.dp))
+                                }
                             }
                         }
                     }
@@ -516,9 +577,11 @@ fun SettingsScreen(
                 // Until v2.13 "Update now" opened the release page, which was the whole update
                 // path before there was an in-app one and stayed the default afterwards -- so the
                 // download/verify/install flow that v2.11 built was reachable only by finding it
-                // in Advanced & about. Installing is the primary action; the project page is
+                // in Advanced & about. Installing is the primary action; the release's page is
                 // available for anyone who wants to read the release on GitHub, and is now what it
-                // says it is rather than a redirect standing in for an update.
+                // says it is rather than a redirect standing in for an update. It was called "Check
+                // project page" and opened the page of this one release, not the project's (v5.10E,
+                // inventory I-225): "Open release page" names what opens.
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -535,7 +598,7 @@ fun SettingsScreen(
                             onClick = {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, update.releasePageUrl.toUri()))
                             },
-                        ) { Text("Check project page") }
+                        ) { Text("Open release page") }
                     }
                 },
             )
@@ -660,20 +723,34 @@ private fun calendarRowSummary(calendar: SeasonalCalendar): String {
     }
 }
 
-private fun weatherRowSummary(settings: WallpaperSettings): String {
-    val location = when (
-        SettingsUiModel.locationMode(
-            settings.useLocationForSunTimes,
-            settings.useCustomLocation,
-            settings.deviceLocationKind,
-        )
-    ) {
+private fun homeLocationMode(settings: WallpaperSettings): LocationMode =
+    SettingsUiModel.locationMode(
+        settings.useLocationForSunTimes,
+        settings.useCustomLocation,
+        settings.deviceLocationKind,
+    )
+
+private fun weatherRowSummary(
+    settings: WallpaperSettings,
+    liveWeather: LiveWeatherUiState,
+    deviceAccess: DeviceLocationAccess?,
+): String {
+    // What the phone gives, read from the phone (v5.10D, row 5): "GPS location" was said over a
+    // permission taken away, with nothing from the phone in use.
+    val notGiven = when (deviceAccess) {
+        DeviceLocationAccess.NOT_ALLOWED, DeviceLocationAccess.APPROXIMATE_ONLY -> ", not allowed"
+        DeviceLocationAccess.LOCATION_OFF -> ", phone location off"
+        DeviceLocationAccess.ALLOWED, null -> ""
+    }
+    val location = when (homeLocationMode(settings)) {
         LocationMode.OFF -> "no location"
-        LocationMode.GPS -> "GPS location"
-        LocationMode.NETWORK -> "network location"
+        LocationMode.GPS -> "GPS location$notGiven"
+        LocationMode.NETWORK -> "network location$notGiven"
         LocationMode.CUSTOM -> "custom location"
     }
-    val weather = if (settings.liveWeatherEnabled) "Live Weather on" else "Live Weather off"
+    val weather = SettingsUiModel.homeLiveWeatherLine(liveWeather)
+    // "Live Weather off: no location chosen - no location" says the same thing twice.
+    if (liveWeather.configuredOn && liveWeather.blocker == LiveWeatherBlocker.NO_LOCATION) return weather
     return "$weather - $location"
 }
 
@@ -683,24 +760,10 @@ private fun seasonsRowSummary(customization: SceneCustomization): String {
         SeasonalPalette.AUTUMN -> "Autumn palette"
         SeasonalPalette.WINTER -> "Winter palette"
     }
-    val decorations = listOf(
-        customization.christmasDecorationsEnabled,
-        customization.santaEnabled,
-        customization.halloweenEnabled,
-        customization.horrorSkyEnabled,
-        customization.flowersEnabled,
-        // `palmsEnabled` is deliberately not here. Everything else in this list is off out of the
-        // box and on only because the user (or the theme) put it there, which is what "N
-        // decorations on" means; palms are on by default and inert on ten of the twelve themes, so
-        // counting them would report a decoration on every Winter scene that cannot show one.
-        customization.snowmen.visible,
-        customization.gifts.visible,
-        customization.penguins.visible,
-        customization.bunnies.visible,
-        customization.easterEggs.visible,
-        customization.pumpkins.visible,
-    ).count { it }
-    return when (decorations) {
+    // Each decoration the way its own switch shows it: at 0 % density it is off (v5.10C). The palms
+    // are not one of them since v5.10C2: their switch is on the Trees page of World & scene. See
+    // [SettingsUiModel.decorationsOn].
+    return when (val decorations = SettingsUiModel.decorationsOn(customization)) {
         0 -> "$palette - no decorations on"
         1 -> "$palette - 1 decoration on"
         else -> "$palette - $decorations decorations on"

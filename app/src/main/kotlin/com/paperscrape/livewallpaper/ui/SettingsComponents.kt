@@ -864,3 +864,28 @@ internal fun SettingsSliderRow(
         )
     }
 }
+
+/**
+ * The question a theme pick asks while the calendar is choosing (v5.10C, row 9 of the maintainer's
+ * table of 2026-09-30, inventory I-212): a gallery card, or *Shuffle a random theme*, chosen while
+ * *Automatic theme by date* is on and the calendar is showing another theme today.
+ *
+ * Without it the pick was saved and **not shown** -- the calendar wins on the wallpaper and on the
+ * home card -- so the tap changed nothing a user could see. "Show it" turns the automatic theme off
+ * and shows the pick, in one write (`WallpaperPrefs.setThemeTurningAutoThemeOff`); "Cancel" leaves
+ * everything as it was. Whether to ask is [SettingsUiModel.pickNeedsCalendarQuestion].
+ */
+@Composable
+internal fun CalendarPickQuestion(
+    calendarThemeName: String,
+    onShowIt: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("The calendar is showing $calendarThemeName today") },
+        text = { Text("Show it anyway? This turns the automatic theme off.") },
+        confirmButton = { TextButton(onClick = onShowIt) { Text("Show it") } },
+        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+    )
+}

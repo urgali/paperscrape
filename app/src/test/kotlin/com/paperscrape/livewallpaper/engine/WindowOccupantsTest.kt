@@ -454,4 +454,28 @@ class WindowOccupantsTest {
             }
         }
     }
+
+    /**
+     * The two integers the draw path reads (v5.10B) are [WindowOccupants.occupantAt]'s own fields,
+     * for every kind of building -- the renderer stopped building a [WindowOccupant] per lit window
+     * per frame, and must still seat the same person.
+     */
+    @Test
+    fun `the occupant's kind and skin read as integers are the occupant's own`() {
+        var checked = 0
+        for (seed in seeds(80)) {
+            for (b in 0 until 40) {
+                val buildingSeed = b * 100_003 + 17
+                for (w in 0 until 12) {
+                    for (kind in WindowBuildingKind.values()) {
+                        val occupant = WindowOccupants.occupantAt(seed, buildingSeed, w, kind)
+                        assertEquals(occupant.kindIndex, WindowOccupants.occupantKindIndexAt(seed, buildingSeed, w, kind))
+                        assertEquals(occupant.skinIndex, WindowOccupants.occupantSkinIndexAt(seed, buildingSeed, w))
+                        checked++
+                    }
+                }
+            }
+        }
+        assertTrue(checked > 100_000)
+    }
 }

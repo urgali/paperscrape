@@ -1,6 +1,6 @@
 """Report output: machine-readable JSON, readable markdown, and one image.
 
-All three are written for every run. The JSON is what a later phase reads, the
+All three are written for every run. The JSON is what the checks read (`stale_reports`), the
 markdown is what a human reviews, and the sheet is the only one of the three that
 can catch the failure the numbers cannot: a reconstruction that scores well and
 still looks wrong. `AI_PROJECT_RULES.md` section 6.8 requires that an asset be

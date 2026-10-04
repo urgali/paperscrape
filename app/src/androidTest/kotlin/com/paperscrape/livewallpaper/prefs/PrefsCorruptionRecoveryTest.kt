@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.paperscrape.livewallpaper.update.UPDATE_PREFS_STORE_NAME
+import com.paperscrape.livewallpaper.update.UPDATE_REPLY_STORE_NAME
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,10 +62,12 @@ class PrefsCorruptionRecoveryTest {
         WALLPAPER_PREFS_STORE_NAME,
         CUSTOM_THEME_STORE_NAME,
         UPDATE_PREFS_STORE_NAME,
+        // v5.10D: GitHub's last reply to an update check, in a file of its own.
+        UPDATE_REPLY_STORE_NAME,
     )
 
     /**
-     * Scratch files carrying the three real store names, in the real DataStore directory, so the
+     * Scratch files carrying the four real store names, in the real DataStore directory, so the
      * test corrupts the same shape of file at the same kind of path without destroying the
      * settings of whoever happens to be using the device.
      */
@@ -157,8 +160,8 @@ class PrefsCorruptionRecoveryTest {
     fun aCorruptStoreDoesNotCostTheOtherStoresAnything() {
         val before = seedAllStores()
 
-        // One at a time, each of the three, because the property is that the blast radius is
-        // exactly one file -- and that is a claim about all three declarations, not about one.
+        // One at a time, each of them, because the property is that the blast radius is exactly one
+        // file -- and that is a claim about every declaration (four since v5.10D), not about one.
         for (corrupted in allStores) {
             allStores.forEach { storeFile(it).writeBytes(before.getValue(it)) }
             storeFile(corrupted).writeBytes(corruptBytes)

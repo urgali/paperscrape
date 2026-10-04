@@ -372,14 +372,15 @@ class TrailingCropTest(unittest.TestCase):
 #: origin plus a stated crest rather than a number of its own. Trimming them to their
 #: own content would buy a few kilobytes and cost that derivation.
 #:
-#: **Now zero, which is what closing D-10 means.** The trailing padding went first,
+#: **Zero, which is what closing D-10 means.** The trailing padding went first,
 #: with no origin to compensate because pixel (0,0) never moved. The leading padding
 #: followed in the same change as its compensation: 34 targets cropped, every one of
 #: their blit origins moved by the trim, and every ink pixel verified to land on the
 #: coordinate it had before. What remains is `EXCLUSIONS`, which is a list of
 #: decisions rather than a backlog -- the canvas-anchored sky sprites, whose origin
-#: constants would have to be split per sprite, and the two palm fronds.
-# v4.21: two, both deliberate, both the same reason.
+#: constants would have to be split per sprite, the two palm fronds, and the two trees
+#: below.
+# v4.21: two trees, both deliberate, both the same reason -- in `EXCLUSIONS` since v5.10G.
 #
 # `tree_canopy_snowcap` and `tree_dead_branches` are blitted at the crown's own
 # origin -- `TreeSpriteLayout.SNOWCAP_X == CANOPY_X` and `DEAD_BRANCHES_X ==
@@ -396,8 +397,10 @@ class TrailingCropTest(unittest.TestCase):
 # release did not need it (133 KB of headroom under the 29 MiB ceiling) and the
 # guard is worth more than the bytes. Recorded as item 24 of `BACKLOG_v4_21.md`;
 # v5.9C measured the margin at 35 136 B, and the maintainer closed the item on
-# 2026-09-27 without doing it (`ROADMAP.md` row A41).
-KNOWN_PENDING_CROP_COUNT = 2
+# 2026-09-27 without doing it (`ROADMAP.md` row A41). They were counted here as the two
+# pending targets until v5.10G, which declared them in `EXCLUSIONS`: a decision belongs in
+# that list, and a check of the shipped set (`normalize`, and `all` after it) then passes.
+KNOWN_PENDING_CROP_COUNT = 0
 
 
 class ShippedSetTest(unittest.TestCase):
@@ -424,11 +427,11 @@ class ShippedSetTest(unittest.TestCase):
             self.referenced,
         )
         pending = normalize.pending(plans)
-        # **Two, and both kept on purpose: the two trees of `KNOWN_PENDING_CROP_COUNT`**
-        # (closed without cropping on 2026-09-27, `ROADMAP.md` row A41). Phase 3.3
-        # normalised the set that existed then and the V2 asset library went through the
-        # same pass; nothing else in scope carries removable padding, so this reads as a
-        # guard: a new sprite that ships with padding, or a crop that is undone, fails here.
+        # **None**: the two trees kept on purpose (closed without cropping on 2026-09-27,
+        # `ROADMAP.md` row A41) are in `EXCLUSIONS`. Phase 3.3 normalised the set that existed
+        # then and the V2 asset library went through the same pass; nothing else in scope
+        # carries removable padding, so this reads as a guard: a new sprite that ships with
+        # padding, or a crop that is undone, fails here.
         #
         # Cropping is not a standalone change: every crop shifts the sprite's content
         # inside its own box, so each one needs its blit origin compensated in the

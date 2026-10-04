@@ -53,10 +53,10 @@ def source_pixels(source_file: str) -> np.ndarray:
     """The sprite as the pinned toolchain renders its committed SVG source.
 
     Takes the registry's own `source.file` rather than assuming `<name>.svg`. The two coincide for
-    almost every sprite and stopped coinciding in v4.25: the six retired `head_car` bases ship as
-    their heirs (`..._skin1` and friends), so the heir is the entry that carries the source, and
-    the file keeps the retired base's name because that is what the drawing is. Assuming the name
-    is the same latent shortcut `test_outline` had, found the same way.
+    every sprite today. They stopped coinciding in v4.25, when the six retired `head_car` bases
+    shipped as their heirs (`..._skin1` and friends) and the heir carried the source under the
+    retired base's name, until v4.30 removed the heirs (see the count below). Assuming the name is
+    a shortcut that breaks the day the two differ again.
     """
     return raster.render_svg_file(SVG_DIR / source_file).pixels
 

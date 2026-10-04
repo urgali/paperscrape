@@ -791,7 +791,7 @@ class SpriteDrawScaleTest {
      * walk at full density measured 7 287 KiB packed in the atlas plus 2 317 KiB standalone, about
      * 9.4 MiB, against the 17.09 MiB here. It is an upper bound, computable on the host from the
      * shipped artwork alone, which is what lets it be a test at all; the device figure is in
-     * `release-verification/V4_29_REPORT.md` and cannot be.
+     * `docs/archive/V4_29_REPORT.md` and cannot be.
      *
      * ### v5.0 moved it back **up**, from 15 MiB to 16 MiB
      *

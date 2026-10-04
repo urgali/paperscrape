@@ -70,7 +70,7 @@ class UpdateCheckOutcomeTest {
     """.trimIndent()
 
     private fun check(url: String, version: String = "3.1") =
-        runBlocking { UpdateChecker.checkForUpdate(version, url) }
+        runBlocking { UpdateChecker.checkForUpdate(version, apiUrl = url) }
 
     // -- The three outcomes ---------------------------------------------------------------------
 

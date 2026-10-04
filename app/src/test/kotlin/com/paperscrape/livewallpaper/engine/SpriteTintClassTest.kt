@@ -203,7 +203,7 @@ class SpriteTintClassTest {
      *
      * The two `person_girl_*_head_car` bases are also unreachable and deliberately still ship --
      * they are not in this list because they are declared `usage: "orphan"` in the registry, with
-     * the measurement that justifies them, which is where such a statement belongs.
+     * the reason they still ship, which is where such a statement belongs.
      */
     private val orphans = emptyList<String>()
 

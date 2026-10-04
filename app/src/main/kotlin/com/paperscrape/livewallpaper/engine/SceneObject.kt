@@ -682,7 +682,7 @@ object SceneObjectCatalog {
      * accepted fronts more covered than it computed: four restaurants at the twelve defaults broke
      * the 40 %/no-trunk rule it believed they kept. With the true widths the restaurant stands clear
      * only in the first third of the tile on every theme, which is why the shops are now placed by
-     * [planShopFrontages] rather than each on its own.
+     * [planShopPositions] rather than each on its own.
      */
     private fun halfWidthUnits(variant: SceneSpace.SceneVariant): Float = when (variant) {
         SceneSpace.SceneVariant.HOUSE_SMALL -> 58.7f
@@ -834,9 +834,48 @@ object SceneObjectCatalog {
     // order until none moves. Nothing else moves: houses, trees and parasols stay where the
     // generator put them. `ShopFrontVisibilityTest` holds both the rules and the result: every front
     // inside them, and no more than four themes putting a shop in one spot.
+    //
+    // **Since v5.10B the plan is computed when the table is generated, not when the app starts.** It
+    // depends on nothing but constants of this code -- the twelve streets' seeds, the shops' widths,
+    // the occluders' boxes -- so it gave the same answer at every start, and it cost ~566 ms on the
+    // BV6600's main thread (v5.10A, the `perf` build: every start of the wallpaper and every cold
+    // start of the settings screen, before the first frame). [ShopPlanTable] holds the answer: where
+    // each theme's shops stand. `ShopPlanTableTest` runs [planShopPositions] on the JVM and fails
+    // when the table is not its output to the bit, and writes the table it should be.
 
-    /** Every built-in street with its shops placed: theme id to its static objects. Computed once. */
-    private val SHOP_PLAN: Map<String, List<StaticSceneObject>> by lazy { planShopFrontages() }
+    /**
+     * Every built-in street with its shops placed: theme id to its static objects. Built once, from
+     * [ShopPlanTable]: the streets as generated, each shop moved to the position the plan gave it.
+     */
+    private val SHOP_PLAN: Map<String, List<StaticSceneObject>> by lazy { shopPlanFromTable() }
+
+    private fun shopPlanFromTable(): Map<String, List<StaticSceneObject>> =
+        BUILT_IN_STREETS.associate { (id, tree) -> id to streetWithShopsAt(streetBeforeShops(id, tree), ShopPlanTable.SHOP_X[id]) }
+
+    /**
+     * [objects] with each shop moved to [x] (deepest first, as [planShopPositions] gives them), or
+     * with its shops parked by [separateShopFrontages] when [x] is null: a theme the plan could not
+     * place, which the table leaves out. How the plan's result has always been applied.
+     */
+    private fun streetWithShopsAt(objects: List<StaticSceneObject>, x: FloatArray?): List<StaticSceneObject> {
+        if (x == null) return separateShopFrontages(objects)
+        val shops = shopIndicesDeepestFirst(objects)
+        check(shops.size == x.size) { "ShopPlanTable has ${x.size} shops for a street with ${shops.size}" }
+        return objects.mapIndexed { i, o ->
+            val j = shops.indexOf(i)
+            if (j < 0) o else o.copy(tileFractionX = x[j])
+        }
+    }
+
+    /** The streets [planShopPositions] would give, applied: what the app drew before the table. For `ShopPlanTableTest`. */
+    internal fun plannedStreets(): Map<String, List<StaticSceneObject>> {
+        val positions = planShopPositions()
+        return BUILT_IN_STREETS.associate { (id, tree) -> id to streetWithShopsAt(streetBeforeShops(id, tree), positions[id]) }
+    }
+
+    /** The indices of [objects]' shops, deepest first: the order [planShopPositions] places them in. */
+    private fun shopIndicesDeepestFirst(objects: List<StaticSceneObject>): List<Int> =
+        objects.indices.filter { isShop(objects[it]) }.sortedBy { objects[it].depthFraction }
 
     /** A shop's half-width as a share of the tile, at the reference viewport. */
     private fun halfTile(o: StaticSceneObject): Float =
@@ -881,12 +920,21 @@ object SceneObjectCatalog {
         return b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3]
     }
 
-    private fun planShopFrontages(): Map<String, List<StaticSceneObject>> {
+    /**
+     * The shop plan itself, computed from scratch: for each built-in theme, where its shops stand,
+     * deepest first (the order [shopIndicesDeepestFirst] gives), or null for a theme whose shops the
+     * plan could not all place -- that street then parks them with [separateShopFrontages].
+     *
+     * Not called by the app since v5.10B: [SHOP_PLAN] reads [ShopPlanTable], which is this
+     * function's output, and applies it the way this function's result was always applied. Internal
+     * for `ShopPlanTableTest`, which runs it and compares it with the table to the bit.
+     */
+    internal fun planShopPositions(): Map<String, FloatArray?> {
         class Street(val id: String, val objects: List<StaticSceneObject>, val shops: List<Int>, val clear: List<List<Float>>)
         val streets = BUILT_IN_STREETS.map { (id, tree) ->
             val objects = streetBeforeShops(id, tree)
             val alone = objects.filterNot { isShop(it) }
-            val shops = objects.indices.filter { isShop(objects[it]) }.sortedBy { objects[it].depthFraction }
+            val shops = shopIndicesDeepestFirst(objects)
             Street(id, objects, shops, shops.map { clearPositions(alone, objects[it]) })
         }
         val n = streets.size
@@ -953,14 +1001,7 @@ object SceneObjectCatalog {
             if (changed == 0) break
         }
         return streets.mapIndexed { t, st ->
-            if (st.shops.indices.any { x[t][it].isNaN() }) {
-                st.id to separateShopFrontages(st.objects)
-            } else {
-                st.id to st.objects.mapIndexed { i, o ->
-                    val j = st.shops.indexOf(i)
-                    if (j < 0) o else o.copy(tileFractionX = x[t][j])
-                }
-            }
+            st.id to if (st.shops.indices.any { x[t][it].isNaN() }) null else x[t].copyOf(st.shops.size)
         }.toMap()
     }
 

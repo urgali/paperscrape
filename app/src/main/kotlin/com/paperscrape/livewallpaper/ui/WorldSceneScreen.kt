@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,14 +42,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.LakeConfig
+import com.paperscrape.livewallpaper.engine.PaperRenderer
 import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.WallpaperEngineCensus
+import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
 import com.paperscrape.livewallpaper.engine.sunCloudHeightForFraction
 import com.paperscrape.livewallpaper.engine.sunCloudHeightFraction
 import com.paperscrape.livewallpaper.prefs.CustomThemeStore
 import com.paperscrape.livewallpaper.prefs.ObjectCategory
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
 import com.paperscrape.livewallpaper.prefs.WallpaperSettings
+import com.paperscrape.livewallpaper.weather.WeatherRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -71,6 +76,20 @@ internal fun WorldSceneScreen(
     theme: SceneTheme,
     forThemeId: String,
     themeName: String,
+    /**
+     * Whether the layout this theme draws plants palms of its own -- `SceneObjectLayout.hasPalmSlots`,
+     * asked by the caller of the same layout the wallpaper uses. It decides which half of the Palms
+     * switch on the Trees page this theme reads (`SceneCustomization.palmsShown`, v5.10C): on Beach and
+     * Desert the switch keeps or removes their palms, on every other theme it puts palms in the
+     * ordinary trees' places.
+     */
+    themeHasPalms: Boolean,
+    /**
+     * Whether every tree this theme keeps would be a Christmas fir with the palms on
+     * (`SceneObjectLayout.keepsOnlyFirsUnderPalms`, v5.10C2): the Palms switch then has no palm to put
+     * anywhere, and reads off and locked with the reason.
+     */
+    palmsOnlyFirs: Boolean,
     prefs: WallpaperPrefs,
     customThemeStore: CustomThemeStore,
     customThemeData: CustomThemeData,
@@ -95,24 +114,36 @@ internal fun WorldSceneScreen(
     // sub-screens used to read `settings.liveWeatherEnabled`, so with the switch on and no
     // location they announced "Driven by Live Weather" and went read-only while Weather & time's
     // own banner said the scene was running on this theme's weather -- and the theme's weather was
-    // the truthful one. See [LiveWeatherUiState.drivingTheScene].
-    val liveWeatherDriving = SettingsUiModel.liveWeather(
-        liveWeatherEnabled = settings.liveWeatherEnabled,
-        followRealTime = settings.syncWithRealTime,
-        locationMode = SettingsUiModel.locationMode(
-            settings.useLocationForSunTimes,
-            settings.useCustomLocation,
-            settings.deviceLocationKind,
+    // the truthful one. See [LiveWeatherUiState.drivingTheScene], which since v5.10C is never true
+    // while Weather & time's switch reads off: another wallpaper, a fixed hour, no location or key.
+    //
+    // **And while it does, the theme's own weather controls are not drawn** (v5.10D, inventory I-220):
+    // greyed, *Show Clouds* read off with the forecast's clouds on screen.
+    // See [SettingsUiModel.forecastOwnsTheWeatherControls].
+    val isTheWallpaper by WallpaperEngineCensus.isTheWallpaper.collectAsState()
+    val deviceAccess = rememberDeviceLocationAccess(settings)
+    val liveWeatherDriving = SettingsUiModel.forecastOwnsTheWeatherControls(
+        SettingsUiModel.liveWeather(
+            liveWeatherEnabled = settings.liveWeatherEnabled,
+            followRealTime = settings.syncWithRealTime,
+            locationMode = SettingsUiModel.locationMode(
+                settings.useLocationForSunTimes,
+                settings.useCustomLocation,
+                settings.deviceLocationKind,
+            ),
+            devicePositionUsable = deviceAccess.positionUsable(),
+            keyMissing = WeatherRepository.providerFor(settings.weatherProvider).requiresApiKey &&
+                settings.apiKeyForWeatherProvider.isBlank(),
+            isTheWallpaper = isTheWallpaper,
+            status = settings.liveWeather,
         ),
-        status = settings.liveWeather,
-    ).drivingTheScene
+    )
 
     SettingsSubScreen(title = "World & scene", onBack = onBack) {
         WorldScenePreview(theme = theme, customization = customization)
-        SettingsBanner(
-            "These apply to $themeName, the theme showing now, and follow whichever theme you are on. " +
-                "Keep this look by saving the theme from Advanced & about.",
-        )
+        // What happens to an edit, said as it is (v5.10E, inventory I-219): it stays with this theme.
+        // It said "Keep this look by saving the theme", which read as "unsaved changes are lost".
+        SettingsBanner(SettingsUiModel.themeEditsBanner(themeName))
 
         SettingsSectionHeader("Sky")
         SettingsGroup {
@@ -131,7 +162,7 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Stars",
-                supporting = densitySummary(customization.stars.visible, customization.stars.density),
+                supporting = amountSummary(customization.stars.visible, starsDrawnAmount(customization.stars.density)),
                 icon = Icons.Outlined.StarBorder,
                 onClick = { activeSection = "stars" },
             )
@@ -140,7 +171,7 @@ internal fun WorldSceneScreen(
                 supporting = if (liveWeatherDriving) {
                     "Driven by Live Weather"
                 } else {
-                    densitySummary(customization.clouds.visible, customization.clouds.density)
+                    amountSummary(customization.clouds.visible, customization.clouds.density)
                 },
                 icon = Icons.Outlined.Cloud,
                 supportingIsAccent = liveWeatherDriving,
@@ -151,7 +182,7 @@ internal fun WorldSceneScreen(
                 supporting = if (liveWeatherDriving) {
                     "Driven by Live Weather"
                 } else {
-                    densitySummary(customization.precipitation.visible, customization.precipitation.intensity)
+                    amountSummary(customization.precipitation.visible, customization.precipitation.intensity)
                 },
                 icon = Icons.Outlined.WaterDrop,
                 supportingIsAccent = liveWeatherDriving,
@@ -159,7 +190,11 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Rainbow",
-                supporting = onOffSummary(customization.rainbow.visible, "Rainbow"),
+                supporting = if (customization.rainbow.visible && customization.rainbow.opacity <= 0f) {
+                    NONE_AT_ZERO_SUMMARY
+                } else {
+                    onOffSummary(customization.rainbow.visible, "Rainbow")
+                },
                 icon = Icons.Outlined.Filter,
                 onClick = { activeSection = "rainbow" },
             )
@@ -187,7 +222,7 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Trees",
-                supporting = densitySummary(customization.trees.visible, customization.trees.density),
+                supporting = amountSummary(customization.trees.visible, customization.trees.density),
                 icon = Icons.Outlined.Park,
                 onClick = { activeSection = "trees" },
             )
@@ -200,7 +235,7 @@ internal fun WorldSceneScreen(
                 // correctly and the row was wrong. The name now says which object it is; the
                 // sub-screen says what happens to the other one.
                 title = "Parasols",
-                supporting = densitySummary(customization.parasols.visible, customization.parasols.density),
+                supporting = amountSummary(customization.parasols.visible, customization.parasols.density),
                 icon = Icons.Outlined.FilterDrama,
                 onClick = { activeSection = "parasols" },
             )
@@ -236,13 +271,27 @@ internal fun WorldSceneScreen(
             )
             SettingsNavigationRow(
                 title = "Birds",
-                supporting = densitySummary(customization.birds.visible, customization.birds.density),
+                supporting = amountSummary(customization.birds.visible, customization.birds.density),
                 icon = Icons.Filled.Air,
                 onClick = { activeSection = "birds" },
             )
         }
 
         SettingsSectionHeader("Motion")
+        // **On only while it happens** (v5.10E, inventories I-222 and I-226; `AI_PROJECT_RULES.md` 8.7).
+        // *Swipe scroll* waits for the home screen to move the wallpaper with a swipe once -- many never
+        // do, this project's phone among them -- and *Parallax strength* and *Scroll the background too*
+        // act only on a scene that scrolls: the drift above 0 %, or a swipe that arrives. Off and
+        // locked otherwise, with the reason; the stored values kept.
+        val swipe = SettingsUiModel.swipeScroll(settings.swipeScroll, settings.swipeReported)
+        val scrolls = SettingsUiModel.sceneScrolls(settings.scrollSpeed, swipe)
+        val stillNote = if (settings.swipeReported) {
+            "Nothing scrolls: Scroll speed is at 0% and Swipe scroll is off. Raise Scroll speed or turn " +
+                "Swipe scroll on to set this; your choice is kept until then."
+        } else {
+            "Nothing scrolls: Scroll speed is at 0% and no swipe moves the wallpaper. Raise Scroll speed " +
+                "to set this; your choice is kept until then."
+        }
         SettingsGroup {
             SettingsSliderRow(
                 title = "Scroll speed",
@@ -255,22 +304,43 @@ internal fun WorldSceneScreen(
             SettingsSliderRow(
                 title = "Parallax strength",
                 valueLabel = { shown -> "%.1fx".format(shown) },
-                supporting = "How far apart near and far layers move relative to each other while scrolling.",
+                supporting = if (scrolls) {
+                    "How far apart near and far layers move relative to each other while scrolling."
+                } else {
+                    stillNote
+                },
                 value = settings.parallaxStrength,
                 onCommit = { committed -> scope.launch { prefs.setParallaxStrength(committed) } },
                 valueRange = 0.5f..2f,
+                enabled = scrolls,
             )
+            val background = SettingsUiModel.dependentSwitch(settings.scrollBackground, available = scrolls)
             SettingsSwitchRow(
                 title = "Scroll the background too",
-                supporting = "Whether the sky, sun and moon scroll as well, or stay fixed while only the ground moves",
-                checked = settings.scrollBackground,
+                supporting = if (scrolls) {
+                    "Whether the sky, sun and moon scroll as well, or stay fixed while only the ground moves"
+                } else {
+                    stillNote
+                },
+                checked = background.shownOn,
+                enabled = background.interactive,
                 onCheckedChange = { scope.launch { prefs.setScrollBackground(it) } },
             )
             SettingsSwitchRow(
                 title = "Swipe scroll",
-                supporting = "Whether swiping between home screens also scrolls the wallpaper",
+                supporting = if (swipe.interactive) {
+                    "Whether swiping between home screens also scrolls the wallpaper"
+                } else {
+                    "Your home screen has not moved the wallpaper with a swipe so far - many never do, and " +
+                        "then there is nothing to follow. " + if (settings.swipeScroll) {
+                            "This comes on by itself the first time one does."
+                        } else {
+                            "You can turn it on the first time one does."
+                        }
+                },
                 icon = Icons.Filled.SwipeLeft,
-                checked = settings.swipeScroll,
+                checked = swipe.shownOn,
+                enabled = swipe.interactive,
                 onCheckedChange = { scope.launch { prefs.setSwipeScroll(it) } },
             )
         }
@@ -293,21 +363,20 @@ internal fun WorldSceneScreen(
             // Named by **season**, not by object, and deliberately. `resetAllCategories` removes
             // every customization key this theme has, which on the decorations side is more than
             // the six `ObjectCategory` values -- it also takes `halloweenEnabled`,
-            // `horrorSkyEnabled`, `christmasDecorationsEnabled`, `santaEnabled`, `flowersEnabled`,
-            // `palmsEnabled` and the two palette flags. (`palmsEnabled` only since v5.8: until then
-            // `clearAllThemeCustomizationKeys` skipped it, and the reset's "off" came back on the
-            // theme's next edit.) A list of objects would therefore be both
-            // wrong today and one decoration away from being wrong again; the six seasons are the
-            // whole of that screen and cannot go stale.
-            text = {
-                Text(
-                    "This puts everything on this screen back to how $themeName ships - and it " +
-                        "also clears this theme's Seasons & decorations: every winter, " +
-                        "Christmas, Halloween, Easter, spring and summer decoration you have " +
-                        "switched on, and the autumn and winter palettes. Your other themes " +
-                        "are not affected.",
-                )
-            },
+            // `horrorSkyEnabled`, `christmasDecorationsEnabled`, `santaEnabled`, `flowersEnabled`
+            // and the two palette flags -- and the two fields of the Palms switch, which since
+            // v5.10C2 is on this screen's Trees page and so is "everything on this screen".
+            // (`palmsEnabled` only since v5.8: until then `clearAllThemeCustomizationKeys` skipped
+            // it, and the reset's "off" came back on the theme's next edit; `palmsInsteadOfTrees`
+            // since it exists, v5.10C.) A list of objects would therefore be both
+            // wrong today and one decoration away from being wrong again; the five seasons are the
+            // whole of that screen and cannot go stale. There were six until the Palms switch, all
+            // the Summer season held, moved to the Trees page.
+            //
+            // **And Motion stays** (v5.10E, inventory I-213): it is every theme's, the reset has never
+            // touched it, and the sentence said "everything on this screen" with Motion on it. See
+            // [SettingsUiModel.sceneResetMessage].
+            text = { Text(SettingsUiModel.sceneResetMessage(themeName)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
@@ -340,7 +409,7 @@ internal fun WorldSceneScreen(
         "cities" -> CitiesSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "hills" -> HillsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "mountains" -> MountainsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
-        "trees" -> TreesSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
+        "trees" -> TreesSubScreen(customization, themeHasPalms, palmsOnlyFirs, forThemeId, prefs, scope) { activeSection = null }
         "parasols" -> ParasolsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "lake" -> LakeSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "cars" -> CarsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
@@ -356,6 +425,37 @@ private fun densitySummary(visible: Boolean, density: Float): String =
     if (visible) "On - ${(density * 100).toInt()}%" else "Off"
 
 /**
+ * The line under the buildings' slider (v5.10E, inventory I-216): what it thins, and what stays.
+ */
+internal const val BUILDINGS_DENSITY_LINE =
+    "Thins out the towers behind the houses. The shops among the houses always stay while Show " +
+        "Buildings is on."
+
+/**
+ * A car density as the slider prints it (v5.10E, inventory I-217): the per cent, and at the bottom
+ * "one car", because `CarSelection.countFor` keeps one car driving at 0 %.
+ */
+internal fun carDensityValue(density: Float): String {
+    val percent = (density * 100).toInt()
+    return if (percent <= 0) "0% - one car" else "$percent%"
+}
+
+/** The stars' density, or 0 where it places no star at all (`PaperRenderer.starCountFor`). */
+private fun starsDrawnAmount(density: Float): Float = if (PaperRenderer.starCountFor(density) == 0) 0f else density
+
+/** What a row says for a thing drawn not at all at 0 % ([SettingsUiModel.amountSwitch]). */
+private const val NONE_AT_ZERO_SUMMARY = "None at 0%"
+
+/**
+ * [densitySummary] for the things the wallpaper draws none of at 0 % -- not "On - 0%", which is what
+ * the row said over a scene without one (v5.10C, row 8). The cars and the people keep
+ * [densitySummary]: at 0 % there is still a car, and the people have their night density.
+ */
+private fun amountSummary(visible: Boolean, amount: Float): String =
+    if (SettingsUiModel.amountSwitch(visible, amount).noneAtZero && visible) NONE_AT_ZERO_SUMMARY
+    else densitySummary(visible, amount)
+
+/**
  * The Lake row's state line (N4, v5.7C).
  *
  * The lake is not a density category, so [densitySummary] does not fit it: what a reader of this
@@ -366,9 +466,12 @@ private fun densitySummary(visible: Boolean, density: Float): String =
  */
 private fun lakeRowSummary(lake: LakeConfig): String {
     if (!lake.visible) return "Off"
+    // At 0 % height there is no water (v5.10E, inventory I-293): "None at 0%", like the other amounts.
+    if (!lake.drawsWater) return NONE_AT_ZERO_SUMMARY
+    // As their switches show them: at 0 % none floats (v5.10C).
     val floating = buildList {
-        if (lake.sailboatsVisible) add("sailboats")
-        if (lake.dolphinsVisible) add("dolphins")
+        if (SettingsUiModel.amountSwitch(lake.sailboatsVisible, lake.sailboatsDensity).shownOn) add("sailboats")
+        if (SettingsUiModel.amountSwitch(lake.dolphinsVisible, lake.dolphinsDensity).shownOn) add("dolphins")
     }
     return when (floating.size) {
         0 -> "On - water only"
@@ -410,15 +513,21 @@ private fun SunMoonSubScreen(customization: SceneCustomization, forThemeId: Stri
         // `PeopleDensity.resolveNightDensity`'s -- a settings change may not silently alter what
         // an existing user set up. See [SettingsUiModel.moonPhases], which is where the whole
         // derivation lives so it can be read and tested without Compose.
+        //
+        // And with the moon itself hidden (v5.10C, row 7): `drawCelestialBody` returns before it is
+        // drawn, so its phases are a switch with nothing under it -- off and locked, the same rule.
         val moonPhases = SettingsUiModel.moonPhases(
             storedRealisticPhases = customization.moon.realisticPhases,
             halloweenEnabled = customization.halloweenEnabled,
+            moonVisible = customization.moon.visible,
         )
         SettingSwitchRow(
             title = "Realistic Moon Phases",
             subtitle = if (moonPhases.overriddenByHalloween) {
                 "Halloween's moon is a carved lantern and is always full. Turn Halloween off in " +
                     "Seasons & decorations to set this; your choice is kept until then."
+            } else if (moonPhases.needsMoon) {
+                "Needs Show Moon above; your choice is kept until then."
             } else {
                 "Show real moon phases at night"
             },
@@ -493,16 +602,32 @@ private fun SkySubScreen(customization: SceneCustomization, forThemeId: String, 
 @Composable
 private fun StarsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     SettingsFormSubScreen("Stars", onBack) {
+        // Below 1/70 the field holds no star (`PaperRenderer.starCountFor`), so that is "none" too.
+        val drawn = starsDrawnAmount(customization.stars.density)
+        val stars = SettingsUiModel.amountSwitch(customization.stars.visible, drawn)
         SettingSwitchRow(
-            title = "Show Stars", subtitle = "",
-            checked = customization.stars.visible,
-            onCheckedChange = { scope.launch { prefs.setStarsVisible(it, forThemeId) } },
+            title = "Show Stars",
+            subtitle = when {
+                !stars.noneAtZero -> ""
+                customization.stars.density <= 0f -> NONE_AT_ZERO_LINE
+                else -> "Too few to draw a single star - tap to bring them back"
+            },
+            checked = stars.shownOn,
+            onCheckedChange = { wanted ->
+                scope.applyAmountTap(
+                    SettingsUiModel.amountTap(wanted, drawn, defaultCustomizationFor(forThemeId).stars.density),
+                    setVisible = { prefs.setStarsVisible(it, forThemeId) },
+                    setAmount = { prefs.setStarsDensity(it, forThemeId) },
+                )
+            },
         )
+        // Locked with the switch off (v5.10E, inventory I-226): it moved and changed nothing.
         PreferenceSlider(
             label = { shown -> Text("# of Stars: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = customization.stars.density,
             onCommit = { committed -> scope.launch { prefs.setStarsDensity(committed, forThemeId) } },
             valueRange = 0f..1f,
+            enabled = SettingsUiModel.amountSliderEnabled(customization.stars.visible),
         )
     }
 }
@@ -514,34 +639,47 @@ private fun CloudsSubScreen(customization: SceneCustomization, forThemeId: Strin
         // Live Weather (Weather & time) fully drives cloud density from real conditions while a
         // forecast is actually in effect -- see LiveWeatherSceneRules.cloudDensity (and the inline
         // comment at the top of PaperRenderer.drawClouds) on exactly how that override works.
-        // Visibility/density read-only *then*, so a manual edit can't silently do nothing (or
-        // worse, look like it worked and then get overwritten on the next hourly fetch); colors
-        // stay editable since Live Weather never touches those.
+        // Visibility/density out of reach *then* (greyed until v5.10D, not drawn since), so a manual
+        // edit can't silently do nothing (or worse, look like it worked and then get overwritten on
+        // the next hourly fetch); colors stay editable since Live Weather never touches those.
         //
         // v3.1: "then", not "whenever the switch is on". With the switch on but no forecast in
         // effect -- no location, no API key, a fetch that failed with nothing cached -- this
         // theme's own settings *are* what the scene is drawing, so locking them locked the only
         // controls that still did anything.
+        //
+        // v5.10D: while the forecast drives the sky the switch and the amount are not drawn at all: they
+        // hold this theme's values, and greyed they said "Show Clouds" off with the forecast's clouds on
+        // screen (inventory I-220). [SettingsUiModel.forecastOwnsTheWeatherControls].
         if (liveWeatherDriving) {
             Text(
-                "Live Weather is driving cloud density from real conditions right now. Turn Live Weather off in Weather & time to set this manually.",
+                "Live Weather is drawing the clouds from the real sky right now: the forecast decides whether " +
+                    "there are any and how many. Turn Live Weather off in Weather & time to set them here.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        } else {
+            // At 0 % no cloud is placed (v5.10C, row 8).
+            val clouds = SettingsUiModel.amountSwitch(customization.clouds.visible, customization.clouds.density)
+            SettingSwitchRow(
+                title = "Show Clouds", subtitle = if (clouds.noneAtZero) NONE_AT_ZERO_LINE else "",
+                checked = clouds.shownOn,
+                onCheckedChange = { wanted ->
+                    scope.applyAmountTap(
+                        SettingsUiModel.amountTap(wanted, customization.clouds.density, defaultCustomizationFor(forThemeId).clouds.density),
+                        setVisible = { prefs.setCloudsVisible(it, forThemeId) },
+                        setAmount = { prefs.setCloudsDensity(it, forThemeId) },
+                    )
+                },
+            )
+            PreferenceSlider(
+                label = { shown -> Text("# of Clouds: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
+                value = customization.clouds.density,
+                onCommit = { committed -> scope.launch { prefs.setCloudsDensity(committed, forThemeId) } },
+                valueRange = 0f..1f,
+                enabled = SettingsUiModel.amountSliderEnabled(customization.clouds.visible),
+            )
         }
-        SettingSwitchRow(
-            title = "Show Clouds", subtitle = "",
-            checked = customization.clouds.visible,
-            enabled = !liveWeatherDriving,
-            onCheckedChange = { scope.launch { prefs.setCloudsVisible(it, forThemeId) } },
-        )
-        PreferenceSlider(
-            label = { shown -> Text("# of Clouds: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
-            value = customization.clouds.density,
-            onCommit = { committed -> scope.launch { prefs.setCloudsDensity(committed, forThemeId) } },
-            valueRange = 0f..1f,
-            enabled = !liveWeatherDriving,
-        )
         DayNightColorPair(
             dayLabel = "Day Color", nightLabel = "Night Color",
             dayColor = customization.clouds.colorDay, nightColor = customization.clouds.colorNight, mode = customization.clouds.autoMode,
@@ -563,38 +701,56 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
     SettingsFormSubScreen("Rain and snow", onBack) {
         // See CloudsSubScreen's own comment on this same pattern -- Live Weather fully drives
         // visibility/type/intensity here (PaperRenderer.drawPrecipitation's own doc comment) and
-        // thunderstorm (LiveWeatherSceneRules.stormActive), so those controls are read-only while
+        // thunderstorm (LiveWeatherSceneRules.stormActive), so those controls are out of reach while
         // a forecast is actually in effect. Colors stay editable.
+        //
+        // v5.10D: while the forecast drives, the switch, the type, the intensity and *Thunderstorm* are
+        // not drawn (inventory I-220): greyed, they showed this theme's values -- "Show Rain/Snow" off in
+        // the rain, Thunderstorm on under a clear sky. [SettingsUiModel.forecastOwnsTheWeatherControls].
         if (liveWeatherDriving) {
             Text(
-                "Live Weather is driving rain/snow/thunderstorm from real conditions right now. Turn Live Weather off in Weather & time to set this manually.",
+                "Live Weather is drawing rain, snow and thunderstorms from the real sky right now: the forecast " +
+                    "decides whether anything falls, which, and how hard. Turn Live Weather off in Weather & time " +
+                    "to set them here.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        } else {
+            // At 0 % intensity nothing falls (v5.10C, row 8).
+            val precipitation = SettingsUiModel.amountSwitch(precip.visible, precip.intensity)
+            SettingSwitchRow(
+                title = "Show Rain/Snow",
+                subtitle = if (precipitation.noneAtZero) "None at 0% intensity - tap to bring it back" else "",
+                checked = precipitation.shownOn,
+                onCheckedChange = { wanted ->
+                    scope.applyAmountTap(
+                        SettingsUiModel.amountTap(wanted, precip.intensity, defaultCustomizationFor(forThemeId).precipitation.intensity),
+                        setVisible = { prefs.setPrecipitationVisible(it, forThemeId) },
+                        setAmount = { prefs.setPrecipitationIntensity(it, forThemeId) },
+                    )
+                },
+            )
+            // The type and the intensity follow the switch (v5.10E, inventory I-226): with nothing
+            // falling they moved and changed nothing.
+            val falling = SettingsUiModel.amountSliderEnabled(precip.visible)
+            Text("Type", style = MaterialTheme.typography.bodyMedium)
+            SettingsSegmentedChoice(
+                options = listOf("Rain", "Snow"),
+                selectedIndex = if (precip.type == PrecipitationType.SNOW) 1 else 0,
+                enabled = falling,
+                onSelect = { index ->
+                    val type = if (index == 1) PrecipitationType.SNOW else PrecipitationType.RAIN
+                    scope.launch { prefs.setPrecipitationType(type, forThemeId) }
+                },
+            )
+            PreferenceSlider(
+                label = { shown -> Text("Intensity: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
+                value = precip.intensity,
+                onCommit = { committed -> scope.launch { prefs.setPrecipitationIntensity(committed, forThemeId) } },
+                valueRange = 0f..1f,
+                enabled = falling,
+            )
         }
-        SettingSwitchRow(
-            title = "Show Rain/Snow", subtitle = "",
-            checked = precip.visible,
-            enabled = !liveWeatherDriving,
-            onCheckedChange = { scope.launch { prefs.setPrecipitationVisible(it, forThemeId) } },
-        )
-        Text("Type", style = MaterialTheme.typography.bodyMedium)
-        SettingsSegmentedChoice(
-            options = listOf("Rain", "Snow"),
-            selectedIndex = if (precip.type == PrecipitationType.SNOW) 1 else 0,
-            enabled = !liveWeatherDriving,
-            onSelect = { index ->
-                val type = if (index == 1) PrecipitationType.SNOW else PrecipitationType.RAIN
-                scope.launch { prefs.setPrecipitationType(type, forThemeId) }
-            },
-        )
-        PreferenceSlider(
-            label = { shown -> Text("Intensity: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
-            value = precip.intensity,
-            onCommit = { committed -> scope.launch { prefs.setPrecipitationIntensity(committed, forThemeId) } },
-            valueRange = 0f..1f,
-            enabled = !liveWeatherDriving,
-        )
         SectionTitle("Rain Colors")
         DayNightColorPair(
             dayLabel = "Day Color", nightLabel = "Night Color",
@@ -611,13 +767,29 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
             onEditNight = { editingTarget = ColorEditTarget("Snow - Night Color", precip.snowColorNight) { c -> scope.launch { prefs.setPrecipitationSnowColorNight(c, forThemeId) } } },
             onModeChange = { scope.launch { prefs.setPrecipitationSnowAutoMode(it, forThemeId) } },
         )
-        SectionTitle("Storms")
-        SettingSwitchRow(
-            title = "Thunderstorm", subtitle = "Occasional lightning flashes (only while Rain is selected)",
-            checked = precip.thunderstorm,
-            enabled = !liveWeatherDriving,
-            onCheckedChange = { scope.launch { prefs.setPrecipitationThunderstorm(it, forThemeId) } },
-        )
+        // The lightning flashes only with Show Rain/Snow on and Rain selected
+        // (`LiveWeatherSceneRules.stormActive`): with snow, or the switch above off, it was on over a
+        // sky that never flashed (v5.10C, row 7). Off and locked there, the stored value kept. While
+        // Live Weather drives, not drawn (v5.10D): the forecast decides the flashes.
+        if (!liveWeatherDriving) {
+            SectionTitle("Storms")
+            val storm = SettingsUiModel.thunderstorm(
+                storedThunderstorm = precip.thunderstorm,
+                precipitationVisible = precip.visible,
+                precipitationIsRain = precip.type == PrecipitationType.RAIN,
+            )
+            SettingSwitchRow(
+                title = "Thunderstorm",
+                subtitle = if (storm.interactive) {
+                    "Occasional lightning flashes (only while Rain is selected)"
+                } else {
+                    "Needs Show Rain/Snow on, with Rain selected; your choice is kept until then."
+                },
+                checked = storm.shownOn,
+                enabled = storm.interactive,
+                onCheckedChange = { scope.launch { prefs.setPrecipitationThunderstorm(it, forThemeId) } },
+            )
+        }
     }
     editingTarget?.let { target ->
         ColorPickerDialog(title = target.label, initialColor = target.color,
@@ -629,10 +801,17 @@ private fun PrecipitationSubScreen(customization: SceneCustomization, forThemeId
 private fun RainbowSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     val rainbow = customization.rainbow
     SettingsFormSubScreen("Rainbow", onBack) {
+        val shown = SettingsUiModel.amountSwitch(rainbow.visible, rainbow.opacity)
         SettingSwitchRow(
-            title = "Show Rainbow", subtitle = "",
-            checked = rainbow.visible,
-            onCheckedChange = { scope.launch { prefs.setRainbowVisible(it, forThemeId) } },
+            title = "Show Rainbow", subtitle = if (shown.noneAtZero) "None at 0% opacity - tap to bring it back" else "",
+            checked = shown.shownOn,
+            onCheckedChange = { wanted ->
+                scope.applyAmountTap(
+                    SettingsUiModel.amountTap(wanted, rainbow.opacity, defaultCustomizationFor(forThemeId).rainbow.opacity),
+                    setVisible = { prefs.setRainbowVisible(it, forThemeId) },
+                    setAmount = { prefs.setRainbowOpacity(it, forThemeId) },
+                )
+            },
         )
         Text(
             "How vivid the rainbow is at full daylight - it fades out toward night.",
@@ -643,6 +822,7 @@ private fun RainbowSubScreen(customization: SceneCustomization, forThemeId: Stri
             value = rainbow.opacity,
             onCommit = { committed -> scope.launch { prefs.setRainbowOpacity(committed, forThemeId) } },
             valueRange = 0f..1f,
+            enabled = SettingsUiModel.amountSliderEnabled(rainbow.visible),
         )
     }
 }
@@ -653,13 +833,25 @@ private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: Strin
     SettingsFormSubScreen("Cities", onBack) {
         ObjectCategorySection(
             title = "Houses", config = customization.houses, category = ObjectCategory.HOUSES,
-            forThemeId = forThemeId, prefs = prefs, scope = scope,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, noneAtZero = true,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
         )
+        // **The slider thins the towers only** (v5.10E, inventory I-216): the shops among the houses
+        // stand whatever it says (`SceneCustomization.keepCandidate` keeps every building candidate
+        // below `SceneSpace.BUILDING_TOWER_MAX_DEPTH`'s line), so "Density: 0%" left them all there.
+        // It is called what it moves, and the line under it says what stays.
         ObjectCategorySection(
             title = "Buildings", config = customization.buildings, category = ObjectCategory.BUILDINGS,
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+            densityLabel = "Towers",
+            afterDensity = {
+                Text(
+                    BUILDINGS_DENSITY_LINE,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
         )
         SettingSwitchRow(
             title = "Business hours",
@@ -764,14 +956,59 @@ private fun MountainsSubScreen(customization: SceneCustomization, forThemeId: St
     }
 }
 
+/**
+ * The trees, and since v5.10C2 the Palms switch: the maintainer, 2026-10-03, *«il flag non deve stare
+ * in summer ma in tree»*. The palms stand in the trees' places, so they are set beside *Show Trees* and
+ * the density, under the same two rules they had in Seasons & decorations (v5.10C): off and locked
+ * while there is no tree to stand in, on only where a palm stands ([SettingsUiModel.palms]).
+ */
 @Composable
-private fun TreesSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
+private fun TreesSubScreen(
+    customization: SceneCustomization,
+    themeHasPalms: Boolean,
+    palmsOnlyFirs: Boolean,
+    forThemeId: String,
+    prefs: WallpaperPrefs,
+    scope: CoroutineScope,
+    onBack: () -> Unit,
+) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Trees", onBack) {
         ObjectCategorySection(
             title = "Trees", config = customization.trees, category = ObjectCategory.TREES,
-            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+            afterDensity = {
+                // On every theme since v5.10C, the maintainer's decision of 2026-09-30: on the two
+                // that plant palms it keeps or removes them, as it always did, and on every other
+                // theme it puts palms where the ordinary trees stand -- a Christmas fir stays a fir
+                // (v5.10C2). It starts off there, so nobody finds palms they did not ask for
+                // (`SceneCustomization.palmsInsteadOfTrees`). And they stand where the trees do: off
+                // and locked while there are none, or while every tree left is a Christmas fir (v5.10C2),
+                // the stored choice kept.
+                val palms = SettingsUiModel.palms(customization, themeHasPalms, onlyFirsWouldStand = palmsOnlyFirs)
+                SettingSwitchRow(
+                    title = "Palms",
+                    subtitle = if (!palms.interactive && palmsOnlyFirs) {
+                        "Every tree left at this density is a Christmas fir, and the firs stay. Raise the " +
+                            "density above or turn the Christmas lights off; your choice is kept until then."
+                    } else if (!palms.interactive) {
+                        "Needs Show Trees above: palms stand where the trees do. Your choice is kept until then."
+                    } else if (themeHasPalms) {
+                        "Palm trees are this theme's own trees. Turn them off and it draws the same " +
+                            "broadleaf trees as everywhere else - same places, same number, so the shore " +
+                            "does not go bare."
+                    } else if (customization.christmasDecorationsEnabled) {
+                        "Palm trees in place of this theme's trees - same places, same number. " +
+                            "The Christmas firs stay firs."
+                    } else {
+                        "Palm trees in place of this theme's trees - same places, same number."
+                    },
+                    checked = palms.shownOn,
+                    enabled = palms.interactive,
+                    onCheckedChange = { scope.launch { prefs.setPalmsEnabled(it, forThemeId) } },
+                )
+            },
         )
     }
     editingTarget?.let { target ->
@@ -804,12 +1041,14 @@ private fun PeopleSubScreen(customization: SceneCustomization, forThemeId: Strin
             value = config.density,
             onCommit = { committed -> scope.launch { prefs.setCategoryDensity(ObjectCategory.PEOPLE, committed, forThemeId) } },
             valueRange = 0f..1f,
+            enabled = SettingsUiModel.amountSliderEnabled(config.visible),
         )
         PreferenceSlider(
             label = { shown -> Text("Night density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = customization.peopleNightDensity,
             onCommit = { committed -> scope.launch { prefs.setPeopleNightDensity(committed, forThemeId) } },
             valueRange = 0f..1f,
+            enabled = SettingsUiModel.amountSliderEnabled(config.visible),
         )
         Text(
             "The street fills and empties across dusk and dawn, following the same light the " +
@@ -826,7 +1065,7 @@ private fun ParasolsSubScreen(customization: SceneCustomization, forThemeId: Str
     SettingsFormSubScreen("Parasols", onBack) {
         ObjectCategorySection(
             title = "Parasols", config = customization.parasols, category = ObjectCategory.PARASOLS,
-            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false, noneAtZero = true,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
         )
         // The other half of N2: the object this screen does *not* control, named here so the
@@ -847,25 +1086,32 @@ private fun ParasolsSubScreen(customization: SceneCustomization, forThemeId: Str
 private fun CarsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Cars", onBack) {
+        // **What the two ends do, said** (v5.10E, inventory I-217): at 0 % one car still drives
+        // (`CarSelection.countFor` is 1 at the bottom), so the slider says "one car" there; and *Show
+        // Cars* off takes the road away with the cars (`SceneObjectRenderer.drawsRoad`), which the line
+        // under it said was "an empty road".
         ObjectCategorySection(
             title = "Cars", config = customization.cars, category = ObjectCategory.CARS,
             forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             densityLabel = "Day density",
+            densityValue = ::carDensityValue,
+            switchSubtitle = "Off takes the cars and the road away",
             afterDensity = {
                 // The night half of the pair, in the People screen's own shape: the twin slider
                 // directly under the day one, and a line saying how the two meet.
                 PreferenceSlider(
-                    label = { shown -> Text("Night density: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
+                    label = { shown -> Text("Night density: ${carDensityValue(shown)}", style = MaterialTheme.typography.bodyMedium) },
                     value = customization.carsNightDensity,
                     onCommit = { committed -> scope.launch { prefs.setCarsNightDensity(committed, forThemeId) } },
                     valueRange = 0f..1f,
+                    enabled = SettingsUiModel.amountSliderEnabled(customization.cars.visible),
                 )
                 Text(
                     "The road fills and empties across dusk and dawn, one car at a time and " +
                         "always off screen - a car never pops into the middle of the road. The " +
-                        "bottom of either slider keeps one last car driving; an empty road is " +
-                        "the Show Cars switch.",
+                        "bottom of either slider keeps one last car driving; for no cars at all, " +
+                        "turn Show Cars off, which takes the road away too.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -882,20 +1128,39 @@ private fun CarsSubScreen(customization: SceneCustomization, forThemeId: String,
 private fun BirdsSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Birds", onBack) {
+        val birds = SettingsUiModel.amountSwitch(customization.birds.visible, customization.birds.density)
         SettingSwitchRow(
-            title = "Show Birds", subtitle = "",
-            checked = customization.birds.visible,
-            onCheckedChange = { scope.launch { prefs.setBirdsVisible(it, forThemeId) } },
+            title = "Show Birds", subtitle = if (birds.noneAtZero) NONE_AT_ZERO_LINE else "",
+            checked = birds.shownOn,
+            onCheckedChange = { wanted ->
+                scope.applyAmountTap(
+                    SettingsUiModel.amountTap(wanted, customization.birds.density, defaultCustomizationFor(forThemeId).birds.density),
+                    setVisible = { prefs.setBirdsVisible(it, forThemeId) },
+                    setAmount = { prefs.setBirdsDensity(it, forThemeId) },
+                )
+            },
         )
+        val flying = SettingsUiModel.amountSliderEnabled(customization.birds.visible)
         PreferenceSlider(
             label = { shown -> Text("# of Birds: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = customization.birds.density,
             onCommit = { committed -> scope.launch { prefs.setBirdsDensity(committed, forThemeId) } },
             valueRange = 0f..1f,
+            enabled = flying,
         )
+        // `PaperRenderer.drawBirds` returns before the night is asked while the birds are off, so
+        // this was on over a sky with no bird in it (v5.10C, row 7): off and locked, the stored
+        // value kept, until the birds are back.
+        val nightBirds = SettingsUiModel.dependentSwitch(customization.birds.nightBirds, available = birds.shownOn)
         SettingSwitchRow(
-            title = "Night Birds", subtitle = "Allow birds to fly at night",
-            checked = customization.birds.nightBirds,
+            title = "Night Birds",
+            subtitle = if (nightBirds.interactive) {
+                "Allow birds to fly at night"
+            } else {
+                "Needs Show Birds above; your choice is kept until then."
+            },
+            checked = nightBirds.shownOn,
+            enabled = nightBirds.interactive,
             onCheckedChange = { scope.launch { prefs.setBirdsNight(it, forThemeId) } },
         )
         SectionTitle("Bird Colors")
@@ -904,16 +1169,26 @@ private fun BirdsSubScreen(customization: SceneCustomization, forThemeId: String
                 editingTarget = ColorEditTarget("Bird Color ${index + 1}", colorWeight.color) { c -> scope.launch { prefs.setBirdColor(index, c, forThemeId) } }
             }
         }
+        // **Each colour's real share of the flock** (v5.10E, inventory I-218): the sliders are weights,
+        // and "Color 1: 100" read as "all the birds" while three other colours at 100 shared the flock
+        // four ways. The label works the share out from the weight being dragged and the other three as
+        // stored -- what `BirdsConfig.pickColor` draws ([SettingsUiModel.birdColorShares]).
         Text(
-            "Bird Color Frequencies - change how often each color appears",
+            "How often each colour appears: each one's share of the birds is shown beside it, and moving " +
+                "one changes the others' shares.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        val weights = customization.birds.colors.map { it.weight }
         customization.birds.colors.forEachIndexed { index, colorWeight ->
             PreferenceSlider(
-                label = { shown -> Text("Color ${index + 1}: ${(shown * 100).toInt()}", style = MaterialTheme.typography.bodySmall) },
+                label = { shown ->
+                    val share = SettingsUiModel.birdColorShares(weights.mapIndexed { i, w -> if (i == index) shown else w })[index]
+                    Text("Color ${index + 1}: $share% of the birds", style = MaterialTheme.typography.bodySmall)
+                },
                 value = colorWeight.weight,
                 onCommit = { committed -> scope.launch { prefs.setBirdWeight(index, committed, forThemeId) } },
                 valueRange = 0f..1f,
+                enabled = flying,
             )
         }
     }
@@ -927,10 +1202,22 @@ private fun BirdsSubScreen(customization: SceneCustomization, forThemeId: String
 private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
     SettingsFormSubScreen("Lake, boats and dolphins", onBack) {
+        // **At 0 % height there is no lake** (v5.10E, inventory I-293, the maintainer's *«2 - si»* of
+        // 2026-10-04): off, and said, as every other amount at 0 is (v5.10C, row 8), and a tap puts the
+        // theme's own height back. The wallpaper draws no water and nothing on it then
+        // (`LakeConfig.drawsWater`).
+        val lake = SettingsUiModel.amountSwitch(customization.lake.visible, customization.lake.height)
         SettingSwitchRow(
-            title = "Show Lake", subtitle = "A body of water in the middle distance",
-            checked = customization.lake.visible,
-            onCheckedChange = { scope.launch { prefs.setLakeVisible(it, forThemeId) } },
+            title = "Show Lake",
+            subtitle = if (lake.noneAtZero) "None at 0% height - tap to bring it back" else "A body of water in the middle distance",
+            checked = lake.shownOn,
+            onCheckedChange = { wanted ->
+                scope.applyAmountTap(
+                    SettingsUiModel.amountTap(wanted, customization.lake.height, defaultCustomizationFor(forThemeId).lake.height),
+                    setVisible = { prefs.setLakeVisible(it, forThemeId) },
+                    setAmount = { prefs.setLakeHeight(it, forThemeId) },
+                )
+            },
         )
         DayNightColorPair(
             dayLabel = "Day Color", nightLabel = "Night Color",
@@ -944,6 +1231,7 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
             value = customization.lake.height,
             onCommit = { committed -> scope.launch { prefs.setLakeHeight(committed, forThemeId) } },
             valueRange = 0f..1f,
+            enabled = SettingsUiModel.amountSliderEnabled(customization.lake.visible),
         )
         // **The four controls below follow the lake (v5.7C).** With the lake off nothing floats
         // on it -- `PaperRenderer.updateLakeBandY` returns before `drawLake` ever reaches the
@@ -952,42 +1240,70 @@ private fun LakeSubScreen(customization: SceneCustomization, forThemeId: String,
         // Weather controls already use: grey the control, say why in its subtitle, and **do not
         // touch the stored value**. See [SettingsUiModel.lakeContents].
         val lakeContents = SettingsUiModel.lakeContents(
-            lakeVisible = customization.lake.visible,
+            lakeVisible = lake.shownOn,
             storedSailboatsVisible = customization.lake.sailboatsVisible,
             storedDolphinsVisible = customization.lake.dolphinsVisible,
         )
         // Worded on the "Realistic Moon Phases" subtitle, which is the sentence this pattern
         // already uses: what is holding the control, how to release it, and the promise that the
         // stored value is still there.
-        val lakeOffNote = "The lake is off, so nothing floats on it. Turn Show Lake on to set " +
-            "this; your choice is kept until then."
+        val lakeOffNote = if (lake.noneAtZero && customization.lake.visible) {
+            "The lake is at 0% height, so nothing floats on it. Raise Lake Height to set this; your " +
+                "choice is kept until then."
+        } else {
+            "The lake is off, so nothing floats on it. Turn Show Lake on to set " +
+                "this; your choice is kept until then."
+        }
+        // And at 0 % none floats (v5.10C, row 8): the switch reads off and says so.
+        val sailboats = SettingsUiModel.amountSwitch(lakeContents.sailboatsShownOn, customization.lake.sailboatsDensity)
         SettingSwitchRow(
             title = "Show Sailboats",
-            subtitle = if (lakeContents.blockedByLakeOff) lakeOffNote else "",
-            checked = lakeContents.sailboatsShownOn,
+            subtitle = when {
+                lakeContents.blockedByLakeOff -> lakeOffNote
+                sailboats.noneAtZero -> NONE_AT_ZERO_LINE
+                else -> ""
+            },
+            checked = sailboats.shownOn,
             enabled = lakeContents.interactive,
-            onCheckedChange = { scope.launch { prefs.setLakeSailboatsVisible(it, forThemeId) } },
+            onCheckedChange = { wanted ->
+                scope.applyAmountTap(
+                    SettingsUiModel.amountTap(wanted, customization.lake.sailboatsDensity, defaultCustomizationFor(forThemeId).lake.sailboatsDensity),
+                    setVisible = { prefs.setLakeSailboatsVisible(it, forThemeId) },
+                    setAmount = { prefs.setLakeSailboatsDensity(it, forThemeId) },
+                )
+            },
         )
         PreferenceSlider(
             label = { shown -> Text("# of Sailboats: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = customization.lake.sailboatsDensity,
             onCommit = { committed -> scope.launch { prefs.setLakeSailboatsDensity(committed, forThemeId) } },
             valueRange = 0f..1f,
-            enabled = lakeContents.interactive,
+            enabled = lakeContents.interactive && SettingsUiModel.amountSliderEnabled(customization.lake.sailboatsVisible),
         )
+        val dolphins = SettingsUiModel.amountSwitch(lakeContents.dolphinsShownOn, customization.lake.dolphinsDensity)
         SettingSwitchRow(
             title = "Show Dolphins",
-            subtitle = if (lakeContents.blockedByLakeOff) lakeOffNote else "",
-            checked = lakeContents.dolphinsShownOn,
+            subtitle = when {
+                lakeContents.blockedByLakeOff -> lakeOffNote
+                dolphins.noneAtZero -> NONE_AT_ZERO_LINE
+                else -> ""
+            },
+            checked = dolphins.shownOn,
             enabled = lakeContents.interactive,
-            onCheckedChange = { scope.launch { prefs.setLakeDolphinsVisible(it, forThemeId) } },
+            onCheckedChange = { wanted ->
+                scope.applyAmountTap(
+                    SettingsUiModel.amountTap(wanted, customization.lake.dolphinsDensity, defaultCustomizationFor(forThemeId).lake.dolphinsDensity),
+                    setVisible = { prefs.setLakeDolphinsVisible(it, forThemeId) },
+                    setAmount = { prefs.setLakeDolphinsDensity(it, forThemeId) },
+                )
+            },
         )
         PreferenceSlider(
             label = { shown -> Text("# of Dolphins: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
             value = customization.lake.dolphinsDensity,
             onCommit = { committed -> scope.launch { prefs.setLakeDolphinsDensity(committed, forThemeId) } },
             valueRange = 0f..1f,
-            enabled = lakeContents.interactive,
+            enabled = lakeContents.interactive && SettingsUiModel.amountSliderEnabled(customization.lake.dolphinsVisible),
         )
     }
     editingTarget?.let { target ->

@@ -56,9 +56,13 @@ import androidx.core.graphics.set
  *
  * ## Storage and threading
  *
- * Parallel primitive arrays with a linear search rather than a `Map<Int, …>`: a map boxes its key on
- * every lookup, and this is the per-blit path. The table holds one entry per shipped sprite per
- * level a scene actually draws it at, and the scan stops at the first match.
+ * Parallel primitive arrays rather than a `Map<Int, …>`: a map boxes its key on every lookup, and
+ * this is the per-blit path. The table holds one entry per shipped sprite per level a scene actually
+ * draws it at, and [find] reaches an entry through [SpriteEntryIndex], an open-addressing hash over
+ * the same `(resId, level)` keys, in primitive arrays too. Until v5.10B it scanned the table from the
+ * start on every blit, and the table only grows, so the sprites registered last -- the people and
+ * the cars -- paid the longest scans: 8.5 % of the render thread on the BV6600 with the blit itself
+ * (v5.10A).
  *
  * Every method runs on the render thread; [register], [registerWhitePixel] and [clear] touch GL and
  * need the context current, while [find], the accessors and [invalidate] do not.
@@ -84,6 +88,9 @@ internal class GlTextureCache {
      */
     private var content = FloatArray(INITIAL_CAPACITY * 4)
     private var count = 0
+
+    /** `(resId, level)` to entry index, so a blit does not scan the table. */
+    private val index = SpriteEntryIndex(INITIAL_CAPACITY * 4)
 
     private val scratch = IntArray(1)
     private val scratchRect = FloatArray(4)
@@ -113,12 +120,7 @@ internal class GlTextureCache {
      * Allocation-free and, unlike [SpriteCache], not synchronised: this table belongs to one render
      * thread.
      */
-    fun find(resId: Int, level: Int): Int {
-        for (i in 0 until count) {
-            if (resIds[i] == resId && levels[i] == level) return i
-        }
-        return -1
-    }
+    fun find(resId: Int, level: Int): Int = index.find(resId, level)
 
     /**
      * Uploads [bitmap] for [resId], reduced to [level], and returns its entry index, or `-1` if it
@@ -180,6 +182,9 @@ internal class GlTextureCache {
             content[i * 4 + 1] = cropY / fh
             content[i * 4 + 2] = (cropX + reduced.width) / fw
             content[i * 4 + 3] = (cropY + reduced.height) / fh
+            // Only [register] adds, and only for a pairing [find] did not have, so a key is indexed
+            // once and the index answers what the old scan did.
+            index.add(resId, level, i)
             count++
             return i
         } finally {
@@ -348,6 +353,7 @@ internal class GlTextureCache {
         }
         atlas.clear()
         count = 0
+        index.clear()
     }
 
     /**
@@ -359,6 +365,7 @@ internal class GlTextureCache {
     fun invalidate() {
         atlas.invalidate()
         count = 0
+        index.clear()
     }
 
     private fun grow() {

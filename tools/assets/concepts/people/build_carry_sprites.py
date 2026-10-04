@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The shipped carrying pose: the walking adults with the near arm bent, P1 "Raised" (v4.28).
+"""The shipped carrying pose: every walker with the near arm bent, P1 "Raised" (v4.28; the children since v5.4H).
 
 Run from ``tools/assets`` with the pinned venv:
 
@@ -8,8 +8,8 @@ Run from ``tools/assets`` with the pinned venv:
 This is the production half of ``build_carry_concepts.py``, which drew three candidate poses for
 the v4.28 phase-2 photographs. The maintainer chose P1 -- the forearm raised, the hand at cheek
 height ahead of the face, **fixed on all three walk frames**, with the far arm still swinging --
-and only that pose is generated here, under the shipped names
-``person_<kind>_<season>_carry<frame>_skin<tone>``.
+and only that pose is drawn here; what ships is ``person_<kind>_<season>_carry<frame>`` as fixed art
+and region masks, written by ``tools/generate_people_layers.py`` (see below).
 
 ### Why this is a generator and not twelve more committed SVGs
 

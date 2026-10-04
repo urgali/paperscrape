@@ -67,10 +67,8 @@ internal class GlRenderThread(
 
     val target = GlSceneTarget()
 
-    // `java.lang.Object` and not `Any`, deliberately: the loop parks on `lock.wait` and is woken by
-    // `lock.notifyAll`, which exist only on the Java class.
-    @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-    private val lock = Object()
+    /** Where the loop parks while hidden, and the lock the event queue is guarded by. See [WakeLatch]. */
+    private val latch = WakeLatch()
     private val eventQueue = ArrayDeque<Runnable>()
 
     @Volatile private var holder: SurfaceHolder? = null
@@ -160,7 +158,7 @@ internal class GlRenderThread(
      * This is the only supported way to touch scene state from another thread.
      */
     fun queueEvent(action: Runnable) {
-        synchronized(lock) { eventQueue.addLast(action) }
+        synchronized(latch.lock) { eventQueue.addLast(action) }
         wake()
     }
 
@@ -183,9 +181,8 @@ internal class GlRenderThread(
         // its own EGL resources and exits on its own.
     }
 
-    private fun wake() {
-        synchronized(lock) { lock.notifyAll() }
-    }
+    /** Every input the loop reacts to is written first and announced here after; see [WakeLatch]. */
+    private fun wake() = latch.wake()
 
     // --- Render thread -----------------------------------------------------------------------
 
@@ -202,14 +199,16 @@ internal class GlRenderThread(
     /**
      * The render loop.
      *
-     * Idle waits use a timeout rather than relying on a signal alone. Every input this loop reacts
-     * to is a volatile field or a queued runnable, so a timed wait cannot miss one: at worst it
-     * observes it a fraction of a second late while the wallpaper is not visible anyway. A
-     * signal-only wait would have to hold the lock across the whole state check to be race-free,
-     * which would put a main-thread callback behind a frame.
+     * Every input this loop reacts to is a volatile field or a queued runnable, written by the main
+     * thread and then announced with [wake]. The loop reads [WakeLatch.generation] first and its
+     * inputs after, and parks only if no wake has come in between ([idle]), so it can wait with no
+     * deadline and without holding the lock across the whole state check -- which would put a
+     * main-thread callback behind a frame. Until v5.10B the wait had a 200 ms timeout instead, and a
+     * hidden wallpaper woke five times a second to look (v5.10A).
      */
     private fun loop() {
         while (!exitRequested) {
+            val seen = latch.generation
             drainEvents()
             if (exitRequested) return
 
@@ -226,7 +225,7 @@ internal class GlRenderThread(
                     target.trimTextures()
                 }
                 destroyEglSurface()
-                idle()
+                idle(seen)
                 continue
             }
             if (!visible || unavailableReported) {
@@ -237,15 +236,25 @@ internal class GlRenderThread(
                 // on the first visible frame, where the re-upload is the one cost nobody wanted
                 // (v5.8B comment audit). The context is made current on the surface it already
                 // has; nothing is created for the purpose.
+                //
+                // The white pixel is not packed back here (v5.10B): packing it re-creates the whole
+                // atlas page, and the trim then gave back nothing. It is owed to the next prepared
+                // frame instead -- see GlSceneTarget.trimTexturesWhileHidden.
                 if (!unavailableReported && trimRequested && makeCurrentWhileHidden(currentHolder) &&
                     GlLifecyclePolicy.mayApplyTrim(trimRequested, framePrepared = true)
                 ) {
                     trimRequested = false
-                    target.trimTextures()
+                    target.trimTexturesWhileHidden()
                 }
-                idle()
+                idle(seen)
                 continue
             }
+            // Drained again now that the loop has seen it may draw: an event queued before the
+            // engine made the thread visible -- the user's settings, ahead of the first frame
+            // (v5.10B, `FirstFrameGate`) -- may have landed after the drain at the top of this pass,
+            // and must reach the scene before the frame it was queued for. Nothing to do otherwise.
+            drainEvents()
+            if (exitRequested) return
 
             val frameStart = System.nanoTime()
             if (!prepareFrame(currentHolder, pendingWidth, pendingHeight)) {
@@ -278,25 +287,23 @@ internal class GlRenderThread(
         return ensureEglSurface(holder) && EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)
     }
 
-    private fun idle() {
+    /**
+     * Parks until the next [wake], unless one has come since the loop read [seen] at the top of this
+     * pass (then it goes round again at once). [IDLE_WAIT_MS] is a backstop, not the mechanism.
+     */
+    private fun idle(seen: Int) {
         // Time no longer accumulates while parked, so the first frame after resuming must not be
         // handed the whole idle period as its delta -- nor start on a tick from before it parked.
         lastFrameNanos = 0L
         anchorTickNanos = 0L
-        synchronized(lock) {
-            if (!exitRequested && eventQueue.isEmpty()) {
-                try {
-                    lock.wait(IDLE_WAIT_MS)
-                } catch (_: InterruptedException) {
-                    currentThread().interrupt()
-                }
-            }
+        synchronized(latch.lock) {
+            if (!exitRequested && eventQueue.isEmpty()) latch.parkLocked(seen, IDLE_WAIT_MS)
         }
     }
 
     private fun drainEvents() {
         while (true) {
-            val action = synchronized(lock) {
+            val action = synchronized(latch.lock) {
                 if (eventQueue.isEmpty()) null else eventQueue.removeFirst()
             } ?: return
             try {
@@ -312,6 +319,9 @@ internal class GlRenderThread(
         if (!ensureEglContext()) return false
         if (!ensureEglSurface(holder)) return false
         if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) return false
+        // A white pixel a hidden trim left owed is packed now, the first moment anything needs it;
+        // if that fails the target is unusable and is rebuilt on the next line.
+        target.prepareForFrame()
         if (!target.isUsable && !target.onContextCreated()) return false
         if (width > 0 && height > 0 && (width != currentWidth || height != currentHeight)) {
             currentWidth = width
@@ -354,11 +364,11 @@ internal class GlRenderThread(
      */
     private fun pace(frameStartNanos: Long) {
         val now = System.nanoTime()
-        val plan = FramePacing.plan(vsync.current(now), anchorTickNanos, frameStartNanos, now)
+        val next = FramePacing.nextAnchorTick(vsync.current(now), anchorTickNanos, frameStartNanos, now)
         // On a grid, sleep to the tick itself (the clock has moved while planning); without one,
         // the old `33 ms - cost`, unchanged.
-        sleepNanos(if (plan.anchorTickNanos != 0L) plan.anchorTickNanos - System.nanoTime() else plan.sleepNanos)
-        anchorTickNanos = plan.anchorTickNanos
+        sleepNanos(if (next != 0L) next - System.nanoTime() else FramePacing.fallbackSleepNanos(frameStartNanos, now))
+        anchorTickNanos = next
     }
 
     private fun sleepNanos(nanos: Long) {
@@ -541,8 +551,14 @@ internal class GlRenderThread(
     }
 
     private companion object {
-        /** How long an idle render thread parks before re-checking its inputs. */
-        const val IDLE_WAIT_MS = 200L
+        /**
+         * The longest an idle render thread parks without a wake before it looks at its inputs again.
+         *
+         * A backstop only: every input announces itself with [wake], and [WakeLatch] makes sure no
+         * announcement is lost, so the loop does not rely on this to notice anything. It was 200 ms,
+         * and it was the mechanism, until v5.10B.
+         */
+        const val IDLE_WAIT_MS = 10_000L
         const val MSAA_SAMPLES = 4
     }
 }

@@ -802,8 +802,9 @@ object SceneSpace {
      * **v4.6: the busts behind a windscreen were not governed by this, and that was the rest of
      * the same report.** `CAR_HEAD_SCALE` sizes them against the glass, which is the right thing
      * for it to do, but nobody had checked the result against the way this artwork actually draws
-     * a person. A walk sprite gives a pedestrian a head 25.00 of its 80.67 content units tall --
-     * **31% of their own height**, a paper-cutout proportion -- so an adult's head is 0.547 m. The
+     * a person. A walk sprite then gave a pedestrian a head 25.00 of its 80.67 content units tall --
+     * **31% of their own height**, a paper-cutout proportion -- so an adult's head was 0.547 m (since
+     * the v4.25 redraw, 24.3 of 80 and 0.532 m: `SceneObjectRenderer.PERSON_HEAD_SPRITE_UNITS`). The
      * driver's was 0.320 m, 59% of it, on a plane nearer the viewer than the pavement; the people
      * inside the cars read as children. See `SceneObjectRenderer`'s bust block for the fix, which
      * is a taller pane and one rule instead of three tuned scales, and which leaves
