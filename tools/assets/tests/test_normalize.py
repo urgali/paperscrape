@@ -364,8 +364,8 @@ class TrailingCropTest(unittest.TestCase):
 #: How many normalisation targets still carry padding that only a compensated crop
 #: can remove.
 #:
-#: The V2 asset library never went through Phase 3.3's padding pass. See the test
-#: below for why this is a recorded state rather than a failure.
+#: The V2 asset library went through Phase 3.3's padding pass too (the test below says
+#: so); what is left out of the pass is `EXCLUSIONS`, a list of decisions.
 #:
 #: Rose from 35 to 40 in v76.12 with the five roof snow caps, and deliberately: each
 #: is authored on the canvas of the roof it covers, so its blit origin is that roof's
@@ -378,7 +378,7 @@ class TrailingCropTest(unittest.TestCase):
 #: their blit origins moved by the trim, and every ink pixel verified to land on the
 #: coordinate it had before. What remains is `EXCLUSIONS`, which is a list of
 #: decisions rather than a backlog -- the canvas-anchored sky sprites, whose origin
-#: constants would have to be split per sprite, the two palm fronds, and the two trees
+#: constants would have to be split per sprite, the three palm crowns, and the two trees
 #: below.
 # v4.21: two trees, both deliberate, both the same reason -- in `EXCLUSIONS` since v5.10G.
 #

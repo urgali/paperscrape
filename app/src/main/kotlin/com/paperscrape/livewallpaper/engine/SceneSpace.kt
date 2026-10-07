@@ -90,6 +90,74 @@ object SceneSpace {
     const val GROUND_SOLID_TOP_Y_FRACTION =
         HILL_LAYER_TOP_FRACTION + HILL_LAYER_HEIGHT_FRACTION * HILL_SOLID_TOP_DEPTH_FRACTION
 
+    // ---- The hill's crest ----------------------------------------------------------------
+
+    /** Where the crest's wave is centred, as a fraction of the hill layer's height. */
+    const val HILL_CREST_CENTRE_FRACTION = 0.13f
+
+    /** How far the wave swings either side of its centre at *Hills variation* 100 %. */
+    const val HILL_CREST_MAX_AMPLITUDE_FRACTION = 0.09f
+
+    /**
+     * How far down the hill layer its crest stands at [f] across the hill's tile (0..1, two screen
+     * widths), at [hillsVariation] and the theme's [phase]: a sine, two whole waves per tile,
+     * `0.13 +/- 0.09 x variation`. **The one statement of the crest**: `PaperRenderer.buildBaseHillPath`
+     * draws the hills with it and [towerDrawnDepth] plants the towers by it, so the two cannot drift.
+     */
+    fun hillCrestFraction(f: Float, hillsVariation: Float, phase: Float): Float {
+        val amp = HILL_CREST_MAX_AMPLITUDE_FRACTION * hillsVariation.coerceIn(0f, 1f)
+        return HILL_CREST_CENTRE_FRACTION + amp * kotlin.math.sin(f * 4f * kotlin.math.PI.toFloat() + phase)
+    }
+
+    /**
+     * A theme's crest phase: the hills' own per-theme shift, from the theme's seed -- for hill layer
+     * [layer], of which the scene draws one. Integer arithmetic on the id's hash, which the Java
+     * language specifies exactly, so every device draws the same crest.
+     */
+    fun hillCrestPhase(themeId: String, layer: Int = 0): Float = ((themeId.hashCode().toLong() * 31 + layer) % 628L) / 100f
+
+    /**
+     * The crest's height on screen above a ground object at [tileFractionX], as a fraction of screen
+     * height. An object at `tileFractionX` stands a quarter of the hill's tile from the hill path's
+     * left edge (the path is built from half a screen left of the tile's origin, and the two scroll on
+     * one shift), hence the `+ 0.25`.
+     */
+    fun hillCrestYFraction(tileFractionX: Float, hillsVariation: Float, phase: Float): Float =
+        HILL_LAYER_TOP_FRACTION + HILL_LAYER_HEIGHT_FRACTION * hillCrestFraction(tileFractionX + 0.25f, hillsVariation, phase)
+
+    /**
+     * How far below the crest a tower's foot has to stand not to look set on top of it: 0.045 of
+     * the screen, 65 px on the BV6600 (v5.11, inventory I-404, the maintainer's choice B of
+     * 2026-10-06, photographed in v5.11A).
+     */
+    const val TOWER_CREST_CLEARANCE_FRACTION = 0.045f
+
+    /**
+     * The deepest a tower is drawn when it is brought forward: in front of every tower, behind every
+     * shop -- the shop band starts at [BUILDING_TOWER_MAX_DEPTH], and the shops' candidates at 0.356.
+     */
+    const val TOWER_PLANTED_MAX_DEPTH = 0.29f
+
+    /**
+     * **The rule for a tower near the crest** (v5.11, I-404): the depth a tower at [depthFraction] and
+     * [tileFractionX] is *drawn* at. A tower whose foot stands within [TOWER_CREST_CLEARANCE_FRACTION]
+     * of the hill's crest above it reads as set on the crest rather than in the town, so it is drawn
+     * just far enough forward to clear it, never past [TOWER_PLANTED_MAX_DEPTH]; every other tower is
+     * drawn where it stands.
+     *
+     * **The drawn depth only**: where the foot is, and -- the projection being what it is -- how large
+     * the tower is. The stored depth is what the density's threshold, the colour coin, the deal, the
+     * height coin and the shop plan read, so no tower appears, goes, changes colour, crown or height,
+     * and no shop moves. With *Hills variation* changed the crest moves and the towers near it with it.
+     */
+    fun towerDrawnDepth(depthFraction: Float, tileFractionX: Float, hillsVariation: Float, phase: Float): Float {
+        if (depthFraction >= BUILDING_TOWER_MAX_DEPTH) return depthFraction
+        val crest = hillCrestYFraction(tileFractionX, hillsVariation, phase)
+        val wanted = (crest + TOWER_CREST_CLEARANCE_FRACTION - OBJECT_BAND_TOP_Y_FRACTION) /
+            (OBJECT_BAND_BOTTOM_Y_FRACTION - OBJECT_BAND_TOP_Y_FRACTION)
+        return maxOf(depthFraction, minOf(wanted, TOWER_PLANTED_MAX_DEPTH))
+    }
+
     // ---- Stage 3: the ground plane and its perspective ----------------------------------
 
     /**
@@ -208,6 +276,32 @@ object SceneSpace {
 
     /** [perspectiveScaleAt] evaluated at the ground line of [depthFraction]. */
     fun depthScale(depthFraction: Float): Float = perspectiveScaleAt(groundYFraction(depthFraction))
+
+    // ---- The distant houses ---------------------------------------------------------------
+
+    /**
+     * Where the distant houses stop shrinking: as small as a house standing 0.6722 down the screen,
+     * 25 px under the horizon on the BV6600, where a small house is 14.0 px tall (v5.11, inventory
+     * I-407: the maintainer's *14 px minimum*; 0.672 gave 13.84).
+     *
+     * The ground plane's projection is zero at the horizon and above it, where the mountains and most
+     * of the hill's crest are, so a house sized by it alone would vanish. Above this line it would be
+     * smaller than 14 px on the BV6600, and its smallest details -- a window, the chalet's attic, the
+     * lip of the snow -- smaller than the two pixels every drawn detail is held to.
+     */
+    const val DISTANT_HOUSE_FLOOR_Y_FRACTION = 0.6722f
+
+    /**
+     * **The size rule for a distant house** (v5.11): how many pixels tall one stands with its foot at
+     * [footYFraction] -- a small house ([SceneVariant.HOUSE_SMALL]'s metres) at the projection of that
+     * point, and never smaller than at [DISTANT_HOUSE_FLOOR_Y_FRACTION]. Continuous with the
+     * projection wherever a foot stands below that line; on the mountains, which stand above it, every
+     * house is the floor's size. A house of the village, the nearest to the horizon, is about 40 px on
+     * the BV6600, so a distant house is always smaller than everything in the town.
+     */
+    fun distantHousePixelsTall(footYFraction: Float, screenHeightPx: Float): Float =
+        SceneVariant.HOUSE_SMALL.metresTall * pixelsPerMetre(screenHeightPx) *
+            maxOf(perspectiveScaleAt(footYFraction), perspectiveScaleAt(DISTANT_HOUSE_FLOOR_Y_FRACTION))
 
     // ---- Road geometry ------------------------------------------------------------------
 

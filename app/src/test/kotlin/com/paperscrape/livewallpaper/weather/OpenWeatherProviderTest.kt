@@ -23,7 +23,7 @@ import org.junit.Test
  *  2. **Structurally**, over the whole numeric space including ids that do not exist yet, because
  *     OpenWeather's ids are grouped by their hundreds digit and the mapping is written as a
  *     `when` over that. If the group rule is right, an id nobody has transcribed still lands
- *     correctly — and [everyIdInAGroupFollowsItsGroup] is what says the rule is right.
+ *     correctly — and `every id in a group follows its group` is what says the rule is right.
  *
  * No test here touches the network. Every response body is a literal, and no real API key appears
  * anywhere in this file.

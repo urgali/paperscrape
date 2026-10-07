@@ -90,7 +90,11 @@ open class CustomThemeStore(private val context: Context) {
         data.copy(overrides = data.overrides + (builtinId to entry))
     }
 
-    /** "Reset to default": removes the override, falling back to the hardcoded built-in theme. */
+    /**
+     * Removes the override, falling back to the hardcoded built-in theme: half of the gallery's
+     * "Reset to default" (`resetBuiltinToDefault`, which also clears the theme's edits from the menus)
+     * and part of World & scene's "Reset this theme's scene to defaults".
+     */
     suspend fun clearOverride(builtinId: String) = update { data ->
         data.copy(overrides = data.overrides - builtinId)
     }

@@ -31,10 +31,13 @@ moving on its own.
   adjustable either side of a Sunday the app works out for you. A stretch you leave uncovered
   shows the theme you picked yourself, and the settings say so. One button puts it all back.
 - **Custom themes.** Save your own, built on any of the twelve, and keep them.
-- **Every part of the scene is adjustable.** Houses, buildings, trees, garden parasols,
-  cars, people, hills, mountains, clouds, stars, rainbows, the lake and its boats and
-  dolphins: each can be shown, hidden, thinned out, and — where the artwork allows it
-  — recoloured, with separate day and night colours. (The umbrellas people carry follow the
+- **Every part of the scene is adjustable.** Houses, towers, trees, garden parasols, cars,
+  people, mountains, clouds, stars, rainbows, the lake and its boats and dolphins: each can be
+  shown, hidden, thinned out, and — where the artwork allows it — recoloured, with separate day
+  and night colours; the hills can be recoloured and varied. Every theme, a random one included,
+  starts its towers in colours that stand out from its hills. The shops — the restaurant, the school
+  and the bar — have colours of their own and stand with the towers, and small houses far away on
+  the mountains can be turned on, in the houses' colours. (The umbrellas people carry follow the
   rain and have no switch of their own.)
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
@@ -57,10 +60,10 @@ moving on its own.
   theme's own weather rather than quietly asking the other service.
 - **Occasional visitors.** Santa's sleigh, fireworks, lightning and birds.
 - **Traffic and shop hours.** The car count is an explicit setting rather than a curve — at
-  its lowest a single sporadic car — and the road quietens by itself at dusk. Shops, the school,
-  the bar and the towers can be given opening hours: outside them nobody stands at the glass and
-  the windows stay dark, even at night. Houses are homes and are unaffected. The toggle is off by
-  default.
+  its lowest a single sporadic car — and the road quietens by itself at dusk. The shops and the
+  towers can be given opening hours: outside them nobody stands at the glass, and the windows and
+  the lamp by the door stay dark, even at night. Houses are homes and are unaffected. The toggle is
+  off by default. By day every lamp by a door is off.
 - **Realistic moon phases**, as an optional switch. Halloween overrides it — the carved moon
   is the theme's own — and shows the switch off and locked while that theme is showing, without
   overwriting what you chose.

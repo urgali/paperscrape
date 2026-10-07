@@ -58,11 +58,10 @@ class VehicleOccupantScaleTest {
      *
      * v4.19 gives a plain car one of three bodies, picked from its own immutable identity
      * ([CarShell.forCar]) so that nothing per-frame can move it. A test cannot therefore *ask*
-     * for a body -- it has to find a vehicle that is one. [delayForShell] does that by nudging
-     * `startDelaySeconds` by a millionth of a second at a time until the hash lands where it is
-     * wanted, which moves the car by well under a pixel and leaves the production rule untouched.
-     * That is deliberately harder than exposing a setter: a seam that let a test choose the body
-     * would be a seam that let anything else choose it too.
+     * for a body -- it has to find a vehicle that is one, and [gridDelayForShell] picks the queue slot
+     * that produces it (see [carSpecFor]); the nudge of a millionth of a second it replaced is the
+     * history below. That is deliberately harder than exposing a setter: a seam that let a test choose
+     * the body would be a seam that let anything else choose it too.
      */
     private fun frameWithOneCar(
         type: CarType,

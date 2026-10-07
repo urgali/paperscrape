@@ -660,11 +660,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=None,
         help=(
-            "restrict --apply/--apply-trailing to these targets; repeatable. The pending set "
-            "mixes drift with decisions -- the two tree sprites' leading margin IS a shared blit "
-            "origin and must not be cropped -- so an all-or-nothing --apply cannot express "
-            "'crop the three that drifted'. v4.31 needed exactly that and the command could not "
-            "say it, which is why the crop it performed is reproducible now."
+            "restrict --apply/--apply-trailing to these targets; repeatable. An all-or-nothing "
+            "--apply could not express 'crop the three that drifted' while the pending set mixed "
+            "drift with decisions (the two tree sprites, whose leading margin is a shared blit "
+            "origin, are in EXCLUSIONS since v5.10G); v4.31 needed exactly that, which is why the "
+            "crop it performed is reproducible now."
         ),
     )
     normalise.set_defaults(func=cmd_normalize)

@@ -16,14 +16,18 @@ import org.junit.Test
  *    parasols and the six seasonal decorations keep **nothing** at 0; the buildings keep their three
  *    shops (exempt from density, `keepCandidate`'s KDoc), which is why their switch is not one of these;
  *  - the effects that select from a pool through [CandidateThreshold] -- clouds, rain and snow, birds,
- *    sailboats, dolphins -- admit no candidate at 0, for every candidate and every effect offset;
+ *    sailboats, dolphins, the two mountain layers -- admit no candidate at 0, for every candidate and
+ *    every effect offset;
  *  - the stars, by `PaperRenderer.starCountFor`, which the renderer and the settings screen both ask
  *    (none below 1/70, so *Show Stars* reads off there too); the rainbow and the theme's own rain, whose
  *    rule sits inside `PaperRenderer`, by its source: the rainbow returns when its visibility, which
- *    multiplies the opacity, is 0. The renderer cannot be built on the JVM (`ROADMAP.md` B5).
+ *    multiplies the opacity, is 0. The renderer cannot be built on the JVM (`ROADMAP.md` B5);
+ *  - the distant houses on the mountains (v5.11), switched on at 0 %: no place of any mountain stands
+ *    one, the renderer returns before drawing, and the gallery card stands none either.
  *
- * And the ones left out, for what they keep at 0: one car (`CarSelection`), the people (their night
- * density is a slider of its own), the mountains (at least one).
+ * And the ones left out, for what they keep at 0: one car (`CarSelection`) and the people (their
+ * night density is a slider of its own). The mountains were counted here until v5.11 as keeping one at
+ * 0; they keep none, as every pooled effect (inventory I-414), and their switch reads off there since.
  */
 class NothingAtZeroTest {
 
@@ -116,6 +120,34 @@ class NothingAtZeroTest {
             "the theme's own rain and snow must still return at 0 intensity",
             precipitation.contains("if (!precip.visible || precip.intensity <= 0f) return"),
         )
+    }
+
+    @Test
+    fun `switched on at 0 percent, no distant house stands on any mountain, in the scene or on the card`() {
+        val atZero = DistantHousesConfig(visible = true, density = 0f)
+        assertFalse(atZero.drawsAny)
+        for (theme in ThemeCatalog.ALL) {
+            for (layer in listOf(EffectId.MOUNTAINS_BACK, EffectId.MOUNTAINS_FRONT)) {
+                val layerSeed = theme.id.hashCode() xor (layer * -0x61c88647)
+                for (mountain in 0 until PaperRenderer.MOUNTAIN_POOL_SIZE) {
+                    val seed = DistantHouses.seedFor(layerSeed, mountain)
+                    for (slot in DistantHouses.SLOTS.indices) {
+                        assertFalse("${theme.id}: a distant house at 0 %", DistantHouses.stands(seed, slot, 0f))
+                    }
+                }
+            }
+            val c = defaultCustomizationFor(theme.id).copy(distantHouses = atZero)
+            assertTrue("${theme.id}: the card stands one at 0 %", ThemePreviewScenes.forTheme(theme, c).peaks.all { it.houses.isEmpty() })
+            // ...and above 0 they do stand, or "none" would be saying nothing -- on the themes whose
+            // mountains are on as they ship (Beach and Big City ship theirs off).
+            val on = c.copy(distantHouses = DistantHousesConfig(visible = true, density = 1f))
+            if (on.mountainsFront.drawsAny || on.mountainsBack.drawsAny) {
+                assertTrue("${theme.id}: none on the card at 100 %", ThemePreviewScenes.forTheme(theme, on).peaks.any { it.houses.isNotEmpty() })
+            }
+        }
+        val renderer = source("engine/PaperRenderer.kt")
+        val draw = renderer.substring(renderer.indexOf("private fun drawDistantHouses("))
+        assertTrue("the renderer must still return before drawing at 0 %", draw.contains("if (!config.drawsAny) return"))
     }
 
     private fun source(path: String): String {

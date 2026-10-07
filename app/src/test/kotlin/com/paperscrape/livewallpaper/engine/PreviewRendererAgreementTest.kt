@@ -330,9 +330,18 @@ class PreviewRendererAgreementTest {
 
     /** Every sprite any family of the neighbourhood can place. */
     private val buildingSprites: Set<Int> = NeighbourhoodTable.FAMILIES.values
-        .flatMap { it.slots }.flatMap { it.options }
+        .flatMap { it.slots }.flatMap { it.options + it.heights }
         .flatMap { piece -> piece.parts.filter { it.res != 0 }.map { it.res } }
         .toSet()
+
+    /** The families each building sprite belongs to: what a card building is drawn as, read off its parts. */
+    private val familiesOfSprite: Map<Int, Set<SceneSpace.SceneVariant>> = HashMap<Int, MutableSet<SceneSpace.SceneVariant>>().also { out ->
+        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+            for (piece in family.slots.flatMap { it.options + it.heights }) {
+                for (part in piece.parts) if (part.res != 0) out.getOrPut(part.res) { mutableSetOf() } += variant
+            }
+        }
+    }
 
     @Test
     fun `every building the gallery draws is a deal the composer makes for its declared identity`() {
@@ -367,8 +376,13 @@ class PreviewRendererAgreementTest {
      *
      * The preview used to invent its own: a tower 15 % towards white, a restaurant 30 %, a bar
      * 15 % towards black -- so a gallery card showed the user a colour no building of theirs
-     * could ever be, and the eight editable colours were not what the card was showing. The wall
+     * could ever be, and the editable colours were not what the card was showing. The wall
      * masks now carry `colorFor` exactly, which is also what makes the card react to an edit.
+     *
+     * **The pair of what it is drawn as** (v5.11): a tower the towers' pair, a restaurant, school or
+     * bar the shops', a house the houses' -- the family read off the building's own sprites, since the
+     * card stands its towers at depths the scene keeps for shops. On every built-in the towers' and the
+     * shops' pairs differ, so a building coloured by the wrong one is caught.
      */
     @Test
     fun `a preview building wears one of its category's two colours`() {
@@ -381,16 +395,15 @@ class PreviewRendererAgreementTest {
             // or Sunset's hour before sunset -- where a wall is between its two
             // colours exactly as the wallpaper's is at that minute.
             val dayBlend = ThemePreviewScenes.cardPhase(ThemeCatalog.byId(theme.id), night).dayBlend
-            val allowed = listOf(
-                SceneObjectType.HOUSE to c.houses,
-                SceneObjectType.SKYSCRAPER to c.buildings,
-            ).flatMap { (_, config) ->
-                listOf(
+            assertTrue("${theme.id}: towers and shops share a colour", c.buildings.colorDay1 != c.shops.colorDay1)
+            for (item in scene.items) {
+                val drawnAs = item.parts.mapNotNull { familiesOfSprite[it.resId] }.reduceOrNull { a, b -> a intersect b } ?: continue
+                assertEquals("theme ${theme.id}: a card building of no single family: $drawnAs", 1, drawnAs.size)
+                val config = c.buildingColoursFor(drawnAs.single())!!
+                val allowed = setOf(
                     SceneColour.blendArgb(config.colorNight1, config.colorDay1, dayBlend),
                     SceneColour.blendArgb(config.colorNight2, config.colorDay2, dayBlend),
                 )
-            }.toSet()
-            for (item in scene.items) {
                 for (part in item.parts) {
                     if (part.resId !in buildingSprites || !part.added) continue
                     val tint = part.tint ?: continue
@@ -398,8 +411,8 @@ class PreviewRendererAgreementTest {
                     // constants every window in the scene reads.
                     if (tint == SceneObjectRenderer.windowGlassColor(1f - dayBlend)) continue
                     assertTrue(
-                        "theme ${theme.id}: a wall mask is tinted ${Integer.toHexString(tint)}, " +
-                            "which is neither of its category's two colours",
+                        "theme ${theme.id}: a ${drawnAs.single()}'s wall mask is tinted ${Integer.toHexString(tint)}, " +
+                            "which is neither of its pair's two colours",
                         tint in allowed,
                     )
                     checked++
@@ -418,7 +431,7 @@ class PreviewRendererAgreementTest {
      */
     @Test
     fun `every mask the gallery draws is an added blit and every fixed layer is not`() {
-        val masks = NeighbourhoodTable.FAMILIES.values.flatMap { it.slots }.flatMap { it.options }
+        val masks = NeighbourhoodTable.FAMILIES.values.flatMap { it.slots }.flatMap { it.options + it.heights }
             .flatMap { piece ->
                 piece.parts.filter { it.role == PartRole.WALL_MASK || it.role == PartRole.GLASS_MASK }
             }.map { it.res }.toSet()

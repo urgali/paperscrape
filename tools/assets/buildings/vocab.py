@@ -110,9 +110,13 @@ def sign_plate(g: Group, host, x0, y0, x1, y1, relief, amp, emblem="disc", colou
 
 
 def lantern(g: Group, host, x, y, relief, amp, margin=0.5):
-    """Wall lantern: dark bracket + yellow light (fixed; the real lamp is the runtime's LAMP)."""
+    """Wall lantern: dark bracket and a pane of glass, which lights with the building's windows.
+
+    The pane was yellow in the fixed layer until v5.11, so the bar's lantern burned at noon beside
+    a lamp that -- since v5.11 -- does not (inventory I-408). As glass it takes the glass mask's
+    colour: cool by day, warm at night, and dark while the bar is closed, as its windows are."""
     g.add(rect(x - 0.8, y - 5, x + 0.8, y), DARK, host=host, margin=margin, label="lantern bracket")
-    g.add(chamfered(x - 2.2, y - 9, x + 2.2, y - 4, 0.6), YELLOW, relief=relief, amp=amp * 0.4, host=host, margin=margin, label="lantern")
+    g.add(chamfered(x - 2.2, y - 9, x + 2.2, y - 4, 0.6), GLASS, relief=relief, amp=amp * 0.4, host=host, margin=margin, label="lantern")
 
 
 def chimney(g: Group, x, y_top, w, h, relief, amp, fill=CHIMNEY):

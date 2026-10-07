@@ -53,7 +53,7 @@ class BuildingRoofSnowTest {
      */
     private val BUILDING_SNOW: Set<Int> = NeighbourhoodTable.FAMILIES.values
         .flatMap { it.slots }
-        .flatMap { it.options }
+        .flatMap { it.options + it.heights }
         .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW }.map { it.res } }
         .toSet()
 
@@ -66,14 +66,18 @@ class BuildingRoofSnowTest {
     /** The snow a family may wear, and the piece whose blit anchors its roofline. */
     private fun buildingRoofed(variant: SceneSpace.SceneVariant): Roofed {
         val family = NeighbourhoodTable.FAMILIES.getValue(variant)
-        val snow = family.slots.flatMap { it.options }
+        val snow = family.slots.flatMap { it.options + it.heights }
             .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW }.map { it.res } }
             .toSet()
         // The ground floor (or the tower's body): the first fixed card of the first slot, which
-        // every deal of the family places, so it is always on screen to measure against.
-        val reference = family.slots.first().options.first()
-            .parts.first { it.role == PartRole.FIXED }.res
-        return Roofed(snow, setOf(reference), aboveTop = true)
+        // every deal of the family places, so it is always on screen to measure against. Since
+        // v5.11 the tower's body is one of three heights by a coin of its own, so the reference
+        // is whichever of the three the deal gave it.
+        val first = family.slots.first()
+        val reference = (first.options + first.heights)
+            .map { piece -> piece.parts.first { it.role == PartRole.FIXED }.res }
+            .toSet()
+        return Roofed(snow, reference, aboveTop = true)
     }
 
     /**

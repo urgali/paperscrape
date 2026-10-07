@@ -208,7 +208,9 @@ class ThemePreviewSceneTest {
     @Test
     fun `a city is a skyline, over the houses the scene gives it too`() {
         val scene = sceneFor("city")
-        val towers = scene.items.count { item -> item.parts.any { it.resId == R.drawable.tower_tier1_fx } }
+        // A tower is any of its three bodies since v5.11, each counted by its first tier.
+        val tiers = setOf(R.drawable.tower_tier1_fx, R.drawable.tower_tier1_short_fx, R.drawable.tower_tier1_tall_fx)
+        val towers = scene.items.count { item -> item.parts.any { it.resId in tiers } }
         assertTrue("expected a skyline, got $towers towers", towers >= 4)
         assertTrue(scene.peaks.isEmpty())
         assertTrue("the city's own houses", scene.contains(R.drawable.house_large_ground_fx))

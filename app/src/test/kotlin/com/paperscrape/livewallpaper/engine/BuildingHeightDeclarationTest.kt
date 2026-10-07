@@ -38,7 +38,7 @@ import org.junit.Test
  * |---|---|---|---|
  * | `HOUSE_SMALL` | 110 u = 5.76 m | 96.2 – 135.4 u | 5.04 – 7.09 m |
  * | `HOUSE_LARGE` | 145 u = 7.60 m | 136.9 – 207.0 u | 7.17 – 10.85 m |
- * | `TOWER` | 182 u = 15.60 m | 197.3 – 202.3 u | 16.91 – 17.34 m |
+ * | `TOWER` | 182 u = 15.60 m | 169.4 – 250.1 u | 14.52 – 21.44 m |
  * | `RESTAURANT` | **56 u = 4.78 m** | 56.0 u | 4.78 m |
  * | `SCHOOL` | **72 u = 6.15 m** | 74.0 u | 6.32 m |
  * | `BAR` | **74.5 u = 6.24 m** | 54.1 – 74.5 u | 4.53 – 6.24 m |
@@ -55,7 +55,7 @@ import org.junit.Test
  * variant's `metresTall` and `spriteUnitsTall`, and the family's own `unitsTall` -- so the
  * renderer's `metresTall / unitsTall`, which is the only quantity a blit's size depends on, is
  * **0.085417 m per piece unit before and after**. `all six families draw at the common metre`
- * pins that, and `no shop is drawn at a different size than it was in v5.3` pins the corollary.
+ * pins that, and `correcting the two shops moved no pixel of either` pins the corollary.
  * Nothing in either building moved; what moved is nine shops on eight themes, because the
  * separation pass places a shop by its declared height.
  *
@@ -78,7 +78,8 @@ class BuildingHeightDeclarationTest {
      * own units.
      *
      * Enumerated rather than sampled: the deals are a product of the slots' options and repeat
-     * counts, and every family's product is small enough to walk (4, 6, 2, 1 and 2 of them).
+     * counts, and every family's product is small enough to walk (4, 6, 6, 1, 1 and 2 of them; the
+     * tower's six are its three heights under its two crowns).
      */
     private fun drawnExtents(variant: SceneSpace.SceneVariant): List<Float> {
         val f = family(variant)
@@ -87,7 +88,9 @@ class BuildingHeightDeclarationTest {
         for (slot in f.slots) {
             val next = mutableListOf<List<Pair<BuildingPiece, Int>>>()
             for (prefix in deals) {
-                for (option in slot.options) {
+                // A slot with heights draws one of them by its own coin, not its dealt option
+                // (the towers since v5.11), so its heights are the alternatives that are drawn.
+                for (option in slot.heights.ifEmpty { slot.options }) {
                     for (repeats in slot.repeatMin..slot.repeatMax) {
                         next += prefix + (option to repeats)
                     }
@@ -117,8 +120,12 @@ class BuildingHeightDeclarationTest {
 
     @Test
     fun `every family varies around what it declares`() {
-        // Within a quarter either way for the houses, whose slots add and drop a storey; the
-        // tower's two deals differ only by a crown, so it barely varies at all. **The two shops
+        // Within a quarter either way for the houses, whose slots add and drop a storey. **The
+        // tower varies like the large house since v5.11** (inventory I-402, the maintainer's choice B
+        // of 2026-10-06): three bodies -- two tiers, the old three, and three grown by three rows --
+        // each a storey taller for the hall where its people stand (I-406), under the two crowns, so
+        // 0.93 to 1.37 of the 15.6 m it declares. The declaration stays the middle body's family,
+        // and so does the scale every piece is drawn at (`correcting the tower moved no pixel`). **The two shops
         // are in this list since v5.4** -- they used to have a method of their own recording that
         // they drew a little over half their declaration, which is the defect item 113 closed.
         // The restaurant has one deal and hits its declaration exactly; the bar declares its
@@ -127,7 +134,7 @@ class BuildingHeightDeclarationTest {
         val bounds = mapOf(
             SceneSpace.SceneVariant.HOUSE_SMALL to (0.85f to 1.25f),
             SceneSpace.SceneVariant.HOUSE_LARGE to (0.90f to 1.45f),
-            SceneSpace.SceneVariant.TOWER to (1.05f to 1.15f),
+            SceneSpace.SceneVariant.TOWER to (0.90f to 1.40f),
             SceneSpace.SceneVariant.RESTAURANT to (1.00f to 1.00f),
             // v5.6F: the school has one deal and draws 74 piece units against the 72 it declares
             // -- its turret cornice tops out at -73.5 and the sprite grid rounds it to -74. 1.03
@@ -235,7 +242,7 @@ class BuildingHeightDeclarationTest {
      * Every family draws at the one metre the scene measures everything else in.
      *
      * This is what makes the table above readable at all: `unitsTall` is derived from the drawing's
-     * own metre (`8.2 m / 96 u = 0.08542`), so a piece unit is the same length in all five
+     * own metre (`8.2 m / 96 u = 0.08542`), so a piece unit is the same length in all six
      * families and a door drawn 20 units tall is 1.71 m whichever building it is in. A family that
      * drifted off it would put its windows and doors out of scale with its own people, which is a
      * different and worse fault than being a short building.

@@ -106,7 +106,7 @@ internal object NeighbourhoodComposer {
             val slot = slots[index]
             val choice = (stableFraction(tileFractionX, depthFraction, 3.7f * index + 11.3f) * slot.options.size)
                 .toInt().coerceIn(0, slot.options.size - 1)
-            val piece = slot.options[choice]
+            val piece = pieceFor(slot, choice, tileFractionX, depthFraction)
             val span = slot.repeatMax - slot.repeatMin + 1
             val repeats = slot.repeatMin +
                 (stableFraction(tileFractionX, depthFraction, 5.1f * index + 23.9f) * span)
@@ -138,7 +138,7 @@ internal object NeighbourhoodComposer {
         if (silhouette == null) {
             deal(family, spec.tileFractionX, spec.depthFraction, into)
         } else {
-            deal(family, silhouette, into)
+            deal(family, silhouette, spec.tileFractionX, spec.depthFraction, into)
         }
     }
 
@@ -147,15 +147,22 @@ internal object NeighbourhoodComposer {
      *
      * The stacking is [deal]'s own, with the two hashes replaced by the silhouette's two arrays --
      * so a dealt building and a hashed one at the same silhouette are the same building, piece for
-     * piece and window index for window index.
+     * piece and window index for window index. The identity `(tileFractionX, depthFraction)` is
+     * still the building's own: a slot with [BuildingSlot.heights] reads its height coin off it.
      */
-    fun deal(family: BuildingFamily, silhouette: SilhouetteDeal.Silhouette, into: Deal) {
+    fun deal(
+        family: BuildingFamily,
+        silhouette: SilhouetteDeal.Silhouette,
+        tileFractionX: Float,
+        depthFraction: Float,
+        into: Deal,
+    ) {
         into.size = 0
         var baseY = 0f
         var windows = 0
         val slots = family.slots
         for (index in slots.indices) {
-            val piece = slots[index].options[silhouette.choices[index]]
+            val piece = pieceFor(slots[index], silhouette.choices[index], tileFractionX, depthFraction)
             for (repeat in 0 until silhouette.repeats[index]) {
                 into.add(piece, baseY, windows)
                 windows += piece.windows.size
@@ -164,6 +171,37 @@ internal object NeighbourhoodComposer {
         }
         into.windowCount = windows
     }
+
+    /**
+     * The piece a slot gives one building: the dealt option, or -- for a slot with
+     * [BuildingSlot.heights] -- the height that building's own coin picks ([heightIndex]).
+     */
+    private fun pieceFor(slot: BuildingSlot, choice: Int, tileFractionX: Float, depthFraction: Float): BuildingPiece {
+        val heights = slot.heights
+        if (heights.isEmpty()) return slot.options[choice]
+        return heights[heightIndex(tileFractionX, depthFraction, heights.size)]
+    }
+
+    /**
+     * Which of [count] heights the building at `(tileFractionX, depthFraction)` stands at (v5.11,
+     * the towers: inventory I-402, the maintainer's choice B of 2026-10-06).
+     *
+     * **A coin of its own, beside the deal and not in it.** Put into the catalogue, three bodies under
+     * two crowns would make six tower silhouettes, and [SilhouetteDeal] would re-deal the crowns of
+     * every theme -- Christmas's density of 0.67 was set to keep a spire among its domes. Read off the
+     * building's identity on its own channel instead, the crowns stay where they were and each tower
+     * draws a third of the time short, as it was, and tall. An integer hash of both coordinates at
+     * full precision, like the colour coin, so it shares nothing with the density's threshold.
+     */
+    fun heightIndex(tileFractionX: Float, depthFraction: Float, count: Int): Int =
+        (CandidateNoise.value(tileFractionX.toRawBits(), depthFraction.toRawBits(), HEIGHT_COIN_CHANNEL) * count)
+            .toInt().coerceIn(0, count - 1)
+
+    /**
+     * The height coin's channel. 511 is the one the proposals were photographed with, so each built-in
+     * tower is the height the maintainer saw; nothing else in the engine reads it.
+     */
+    private const val HEIGHT_COIN_CHANNEL = 511
 
     /** Four pieces covers the tallest family (ground + two storeys + roof); the rest grow. */
     private const val INITIAL_CAPACITY = 4

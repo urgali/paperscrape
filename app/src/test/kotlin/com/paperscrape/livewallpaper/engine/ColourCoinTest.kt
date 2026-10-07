@@ -25,7 +25,7 @@ class ColourCoinTest {
     private fun marked(c: SceneCustomization): SceneCustomization {
         fun ObjectVariantConfig.m() = copy(colorDay1 = one, colorNight1 = one, colorDay2 = two, colorNight2 = two)
         return c.copy(
-            houses = c.houses.m(), buildings = c.buildings.m(), trees = c.trees.m(), cars = c.cars.m(),
+            houses = c.houses.m(), buildings = c.buildings.m(), shops = c.shops.m(), trees = c.trees.m(), cars = c.cars.m(),
             snowmen = c.snowmen.m(), gifts = c.gifts.m(), penguins = c.penguins.m(), bunnies = c.bunnies.m(),
             easterEggs = c.easterEggs.m(), pumpkins = c.pumpkins.m(),
         )
@@ -99,20 +99,24 @@ class ColourCoinTest {
     fun `the gallery card positions wear the colours the cards were approved with`() {
         val id = ThemePreviewScenes.PreviewIdentity
         val c = marked(defaultCustomizationFor("sunset"))
-        fun wears(type: SceneObjectType, x: Float, d: Float) =
-            if (c.colorFor(StaticSceneObject(type, depthFraction = d, tileFractionX = x), 1f) == one) 1 else 2
+        // Asked as the card asks it (v5.11): by the drawing, because three of the card's towers stand
+        // at depths the scene keeps for shops, and the coin by the position.
+        fun wears(type: SceneObjectType, variant: SceneSpace.SceneVariant, x: Float, d: Float) =
+            if (c.wallColourFor(StaticSceneObject(type, depthFraction = d, tileFractionX = x), variant, 1f) == one) 1 else 2
         val sky = SceneObjectType.SKYSCRAPER
+        val tower = SceneSpace.SceneVariant.TOWER
         assertEquals(
             // As v5.7A approved them, read off the pre-v5.7F coin: towers 2 1 1 2, restaurant 1,
             // school 1, bar 2, large house 1, small house 2.
             listOf(2, 1, 1, 2, 1, 1, 2, 1, 2),
             listOf(
-                wears(sky, id.TOWER_X[0], id.TOWER_DEPTH[0]), wears(sky, id.TOWER_X[1], id.TOWER_DEPTH[1]),
-                wears(sky, id.TOWER_X[2], id.TOWER_DEPTH[2]), wears(sky, id.TOWER_X[3], id.TOWER_DEPTH[3]),
-                wears(sky, id.RESTAURANT_X, id.RESTAURANT_DEPTH), wears(sky, id.SCHOOL_X, id.SCHOOL_DEPTH),
-                wears(sky, id.BAR_X, id.BAR_DEPTH),
-                wears(SceneObjectType.HOUSE, id.HOUSE_LARGE_X, id.HOUSE_LARGE_DEPTH),
-                wears(SceneObjectType.HOUSE, id.HOUSE_SMALL_X, id.HOUSE_SMALL_DEPTH),
+                wears(sky, tower, id.TOWER_X[0], id.TOWER_DEPTH[0]), wears(sky, tower, id.TOWER_X[1], id.TOWER_DEPTH[1]),
+                wears(sky, tower, id.TOWER_X[2], id.TOWER_DEPTH[2]), wears(sky, tower, id.TOWER_X[3], id.TOWER_DEPTH[3]),
+                wears(sky, SceneSpace.SceneVariant.RESTAURANT, id.RESTAURANT_X, id.RESTAURANT_DEPTH),
+                wears(sky, SceneSpace.SceneVariant.SCHOOL, id.SCHOOL_X, id.SCHOOL_DEPTH),
+                wears(sky, SceneSpace.SceneVariant.BAR, id.BAR_X, id.BAR_DEPTH),
+                wears(SceneObjectType.HOUSE, SceneSpace.SceneVariant.HOUSE_LARGE, id.HOUSE_LARGE_X, id.HOUSE_LARGE_DEPTH),
+                wears(SceneObjectType.HOUSE, SceneSpace.SceneVariant.HOUSE_SMALL, id.HOUSE_SMALL_X, id.HOUSE_SMALL_DEPTH),
             ),
         )
     }

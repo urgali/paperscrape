@@ -440,8 +440,23 @@ class SpriteGeometryTest {
      * *And the sentence this paragraph exists to make unavoidable, again.* **The maintainer moved
      * this line, after seeing a measurement on the device**, and the pass that needed it did not.
      * Putting it back to 42 MiB means the scene has no school in it.
+     *
+     * ### v5.11 raises it to 45 MiB, for the towers' heights and hall and the distant houses
+     *
+     * The set decodes to **46 231 596 B**, 1 838 880 more than v5.10's 44 392 716: 23 PNGs added --
+     * the short and the tall towers' first tiers and the tall one's second, the hall's door bays,
+     * the wide snow cap of the short tower, the three distant houses with their snow -- and the
+     * tower's first tier redrawn taller for the hall. 44 MiB is 94 252 B short of it, so 45 is the
+     * next whole MiB, with 954 324 B to spare. Nothing was traded: the drawings are the ones the
+     * maintainer chose from the photographs of 2026-10-06, and the distant houses are off as every
+     * theme ships, so a scene that does not turn them on never decodes their twelve files.
+     *
+     * **The maintainer moved this line** on 2026-10-07, asked with the photographs and the
+     * memory beside them: *«Sì, va bene così (consigliato)»* (the question said the drawings'
+     * memory limit would rise "a little", about the 1.1 MB by which the set passed 43 MiB; the
+     * ceiling itself rises by 2 MiB, because 44 does not hold it).
      */
-    private val decodedByteBudget = 43L * 1024L * 1024L
+    private val decodedByteBudget = 45L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {
@@ -487,7 +502,7 @@ class SpriteGeometryTest {
         // v4.32 frozen into a second number; nothing read it and the shipped set had been over it
         // since v5.0. It is gone, and this line is what it was for: the figure, on every build.
         val neighbourhood = NeighbourhoodTable.FAMILIES.values
-            .flatMap { family -> family.slots.flatMap { slot -> slot.options.flatMap { piece -> piece.parts } } }
+            .flatMap { family -> family.slots.flatMap { slot -> (slot.options + slot.heights).flatMap { piece -> piece.parts } } }
             .map { it.res }.filter { it != 0 }.toSet()
             .map { drawableName(it) }
         val neighbourhoodBytes = neighbourhood.sumOf { name -> pngSize(name).let { (w, h) -> w.toLong() * h * 4L } }
@@ -526,8 +541,8 @@ class SpriteGeometryTest {
      *
      * `tools/assets/paperscrape_assets/normalize.py` defines these three families and refuses a
      * set whose "members must share a canvas", because one origin serves them all. The Kotlin side
-     * of that rule is here: `drawPerson`, `drawWindowOccupant` and `drawCarDriver` each blit
-     * whichever member the lookup picked through one `*_ANCHOR_Y_UNITS`, and that constant is the
+     * of that rule is here: `drawPersonLayers` blits whichever member the lookup picked -- for the
+     * walker, for `drawWindowOccupant` and for `drawSeatedOccupant` -- through one `*_ANCHOR_Y_UNITS`, and that constant is the
      * canvas height in local units -- it is what puts the sprite's bottom edge on the caller's
      * y=0.
      *

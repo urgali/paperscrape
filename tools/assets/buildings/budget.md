@@ -1,13 +1,25 @@
 # The neighbourhood's sprite bytes (written by build_neighbourhood.py --budget)
 
-Shipped perimeter (76 PNG, the six building families): 5390244 B decoded, 5326452 B uploaded (level 0, crop + 1 texel).
+Shipped perimeter (99 PNG, the six building families and the distant houses): 7229124 B decoded, 7147636 B uploaded (level 0, crop + 1 texel).
 
 No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, over the whole sprite set, which prints its margin -- and this perimeter's share of it -- on every build.
 
-## Concept 1, mix: 76 PNG, 5390244 B decoded, 5326452 B uploaded
+## Concept 1, mix: 99 PNG, 7229124 B decoded, 7147636 B uploaded
 
 | PNG | px | decoded B | uploaded B |
 |---|---|---:|---:|
+| distant_chalet_fx_q1 | 93x75 | 27900 | 27156 |
+| distant_chalet_mg_q1 | 57x42 | 9576 | 9184 |
+| distant_chalet_mw_q1 | 93x75 | 27900 | 27156 |
+| distant_chalet_snow_fx_q1 | 78x48 | 14976 | 14352 |
+| distant_cottage_fx_q1 | 75x78 | 23400 | 22484 |
+| distant_cottage_mg_q1 | 15x21 | 1260 | 1140 |
+| distant_cottage_mw_q1 | 75x78 | 23400 | 22484 |
+| distant_cottage_snow_fx_q1 | 60x45 | 10800 | 10560 |
+| distant_tall_fx_q1 | 63x99 | 24948 | 23668 |
+| distant_tall_mg_q1 | 18x45 | 3240 | 3240 |
+| distant_tall_mw_q1 | 63x99 | 24948 | 23668 |
+| distant_tall_snow_fx_q1 | 48x45 | 8640 | 8448 |
 | k1_ground_house_a_fx_q1 | 186x96 | 71424 | 70680 |
 | k1_ground_house_a_mg_q1 | 45x42 | 7560 | 7216 |
 | k1_ground_house_a_mw_q1 | 186x96 | 71424 | 70680 |
@@ -47,7 +59,7 @@ No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, 
 | k2_b_insegna_mw_q1 | 207x156 | 129168 | 128544 |
 | k2_b_insegna_snow_fx_q1 | 183x99 | 72468 | 70616 |
 | k2_b_smusso_fx_q1 | 222x168 | 149184 | 147628 |
-| k2_b_smusso_mg_q1 | 147x102 | 59976 | 58000 |
+| k2_b_smusso_mg_q1 | 165x102 | 67320 | 65600 |
 | k2_b_smusso_mw_q1 | 222x168 | 149184 | 147628 |
 | k2_b_smusso_snow_fx_q1 | 216x54 | 46656 | 45580 |
 | k2_crown_dome_fx_q1 | 99x93 | 36828 | 36456 |
@@ -64,13 +76,23 @@ No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, 
 | k2_s_orologio_c_mg_q1 | 294x51 | 59976 | 57232 |
 | k2_s_orologio_c_mw_q1 | 330x228 | 300960 | 300048 |
 | k2_s_orologio_c_snow_fx_q1 | 324x93 | 120528 | 119784 |
+| k2_t_bay_door_fx_q1 | 39x42 | 6552 | 6384 |
+| k2_t_bay_door_mg_q1 | 39x42 | 6552 | 6384 |
 | k2_t_bay_fx_q1 | 42x36 | 6048 | 5600 |
 | k2_t_bay_mg_q1 | 42x36 | 6048 | 5600 |
-| k2_t_gradini_1_fx_q1 | 210x342 | 287280 | 286440 |
-| k2_t_gradini_1_mg_q1 | 168x69 | 46368 | 44488 |
-| k2_t_gradini_1_mw_q1 | 210x342 | 287280 | 286440 |
+| k2_t_gradini_1_fx_q1 | 210x378 | 317520 | 316680 |
+| k2_t_gradini_1_mg_q1 | 54x69 | 14904 | 13936 |
+| k2_t_gradini_1_mw_q1 | 210x378 | 317520 | 316680 |
+| k2_t_gradini_1_short_fx_q1 | 207x342 | 283176 | 281520 |
+| k2_t_gradini_1_short_mg_q1 | 54x69 | 14904 | 13936 |
+| k2_t_gradini_1_short_mw_q1 | 207x342 | 283176 | 281520 |
+| k2_t_gradini_1_tall_fx_q1 | 210x444 | 372960 | 371280 |
+| k2_t_gradini_1_tall_mg_q1 | 51x69 | 14076 | 13400 |
+| k2_t_gradini_1_tall_mw_q1 | 210x444 | 372960 | 371280 |
 | k2_t_gradini_2_fx_q1 | 168x132 | 88704 | 88032 |
 | k2_t_gradini_2_mw_q1 | 168x132 | 88704 | 88032 |
+| k2_t_gradini_2_tall_fx_q1 | 168x168 | 112896 | 112224 |
+| k2_t_gradini_2_tall_mw_q1 | 168x168 | 112896 | 112224 |
 | k2_t_gradini_3_fx_q1 | 120x96 | 46080 | 45600 |
 | k2_t_gradini_3_mw_q1 | 120x96 | 46080 | 45600 |
 | k2_t_gradini_snow_l1_fx_q1 | 27x27 | 2916 | 2704 |
@@ -78,6 +100,7 @@ No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, 
 | k2_t_gradini_snow_r1_fx_q1 | 27x27 | 2916 | 2600 |
 | k2_t_gradini_snow_r2_fx_q1 | 30x27 | 3240 | 3016 |
 | k2_t_gradini_snow_top_fx_q1 | 114x33 | 15048 | 14012 |
+| k2_t_gradini_snow_top_wide_fx_q1 | 162x33 | 21384 | 19964 |
 | k2_t_row3_fx_q1 | 90x27 | 9720 | 9152 |
 | k2_t_row3_mg_q1 | 90x27 | 9720 | 9152 |
 | k2_t_row4_fx_q1 | 129x27 | 13932 | 13312 |

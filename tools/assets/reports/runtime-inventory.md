@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 421 |
-| Unique contents | 421 |
-| Bytes on disk | 1293.9 KB |
-| Decoded `ARGB_8888` | 44.39 MB |
-| Of which transparent padding | 18.75 MB (42 %) |
+| Files | 444 |
+| Unique contents | 444 |
+| Bytes on disk | 1327.8 KB |
+| Decoded `ARGB_8888` | 46.23 MB |
+| Of which transparent padding | 18.80 MB (41 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -20,23 +20,23 @@ from the shipped PNGs; nothing is copied from documentation.
 | `cloud_body` | 798x396 | 1.26 MB | 0 % |
 | `rainbow_arc` | 594x297 | 0.71 MB | 0 % |
 | `sun_glow` | 396x396 | 0.63 MB | 1 % |
+| `tower_tier1_tall_fx` | 210x444 | 0.37 MB | 2 % |
+| `tower_tier1_tall_mw` | 210x444 | 0.37 MB | 2 % |
 | `tree_fir` | 240x366 | 0.35 MB | 0 % |
+| `tower_tier1_fx` | 210x378 | 0.32 MB | 1 % |
+| `tower_tier1_mw` | 210x378 | 0.32 MB | 1 % |
 | `school_fx` | 330x231 | 0.30 MB | 1 % |
 | `school_mw` | 330x228 | 0.30 MB | 1 % |
-| `santa_sleigh_scene` | 594x123 | 0.29 MB | 2 % |
-| `santa_sleigh_trot` | 594x123 | 0.29 MB | 2 % |
-| `tower_tier1_fx` | 210x342 | 0.29 MB | 1 % |
-| `tower_tier1_mw` | 210x342 | 0.29 MB | 1 % |
 
 ## Every sprite
 
 | Sprite | Size | Mode | Content bbox | Padding | Opaque RGB | Grid |
 |---|---|---|---|---|---|---|
-| `bar_chamfer_fx` | 222x168 | RGBA | 0,1,220,166 | 3 % | 324 | yes |
-| `bar_chamfer_mg` | 147x102 | RGBA | 2,2,145,100 | 7 % | 1 | yes |
+| `bar_chamfer_fx` | 222x168 | RGBA | 0,1,220,166 | 3 % | 299 | yes |
+| `bar_chamfer_mg` | 165x102 | RGBA | 2,2,165,100 | 5 % | 1 | yes |
 | `bar_chamfer_mw` | 222x168 | RGBA | 0,1,220,166 | 3 % | 1 | yes |
 | `bar_chamfer_snow_fx` | 216x54 | RGBA | 2,2,216,54 | 5 % | 39 | yes |
-| `bar_signboard_fx` | 207x228 | RGBA | 2,1,206,226 | 3 % | 327 | yes |
+| `bar_signboard_fx` | 207x228 | RGBA | 2,1,206,226 | 3 % | 310 | yes |
 | `bar_signboard_mg` | 141x102 | RGBA | 0,2,139,100 | 5 % | 1 | yes |
 | `bar_signboard_mw` | 207x156 | RGBA | 2,0,206,156 | 1 % | 1 | yes |
 | `bar_signboard_snow_fx` | 183x99 | RGBA | 1,2,181,97 | 6 % | 34 | yes |
@@ -65,6 +65,18 @@ from the shipped PNGs; nothing is copied from documentation.
 | `gift_ribbon` | 120x120 | RGBA | 0,0,120,120 | 0 % | 12 | yes |
 | `ground_flowers_bloom` | 108x36 | RGBA | 4,4,108,36 | 14 % | 120 | yes |
 | `ground_flowers_dry` | 108x36 | RGBA | 4,4,108,36 | 14 % | 147 | yes |
+| `house_distant_chalet_fx` | 93x75 | RGBA | 0,2,93,73 | 5 % | 24 | yes |
+| `house_distant_chalet_mg` | 57x42 | RGBA | 2,1,57,40 | 10 % | 1 | yes |
+| `house_distant_chalet_mw` | 93x75 | RGBA | 0,2,93,73 | 5 % | 1 | yes |
+| `house_distant_chalet_snow_fx` | 78x48 | RGBA | 0,2,78,46 | 8 % | 33 | yes |
+| `house_distant_cottage_fx` | 75x78 | RGBA | 2,2,73,77 | 9 % | 31 | yes |
+| `house_distant_cottage_mg` | 15x21 | RGBA | 0,2,15,19 | 19 % | 1 | yes |
+| `house_distant_cottage_mw` | 75x78 | RGBA | 2,2,73,77 | 9 % | 1 | yes |
+| `house_distant_cottage_snow_fx` | 60x45 | RGBA | 0,2,60,44 | 7 % | 39 | yes |
+| `house_distant_tall_fx` | 63x99 | RGBA | 2,2,61,97 | 10 % | 12 | yes |
+| `house_distant_tall_mg` | 18x45 | RGBA | 0,0,18,45 | 0 % | 1 | yes |
+| `house_distant_tall_mw` | 63x99 | RGBA | 2,2,61,97 | 10 % | 1 | yes |
+| `house_distant_tall_snow_fx` | 48x45 | RGBA | 0,0,47,43 | 6 % | 37 | yes |
 | `house_large_ground_fx` | 261x96 | RGBA | 0,2,259,94 | 5 % | 192 | yes |
 | `house_large_ground_mg` | 120x45 | RGBA | 0,2,120,43 | 9 % | 1 | yes |
 | `house_large_ground_mw` | 261x93 | RGBA | 0,2,259,93 | 3 % | 0 | yes |
@@ -416,6 +428,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `sun_glow` | 396x396 | RGBA | 1,1,395,395 | 1 % | 1 | yes |
 | `taxi_checker` | 120x27 | RGBA | 0,0,119,26 | 5 % | 7 | yes |
 | `taxi_sign` | 42x18 | RGBA | 0,0,42,18 | 0 % | 8 | yes |
+| `tower_bay_door_fx` | 39x42 | RGBA | 0,1,37,41 | 10 % | 1 | yes |
+| `tower_bay_door_mg` | 39x42 | RGBA | 0,1,37,41 | 10 % | 1 | yes |
 | `tower_bay_fx` | 42x36 | RGBA | 2,2,40,36 | 15 % | 1 | yes |
 | `tower_bay_mg` | 42x36 | RGBA | 2,2,40,36 | 15 % | 1 | yes |
 | `tower_crown_dome_fx` | 99x93 | RGBA | 0,1,97,92 | 4 % | 43 | yes |
@@ -435,11 +449,20 @@ from the shipped PNGs; nothing is copied from documentation.
 | `tower_snow_right1_fx` | 27x27 | RGBA | 1,2,25,25 | 24 % | 45 | yes |
 | `tower_snow_right2_fx` | 30x27 | RGBA | 2,1,29,25 | 20 % | 29 | yes |
 | `tower_snow_top_fx` | 114x33 | RGBA | 2,2,113,31 | 14 % | 48 | yes |
-| `tower_tier1_fx` | 210x342 | RGBA | 0,0,210,340 | 1 % | 219 | yes |
-| `tower_tier1_mg` | 168x69 | RGBA | 2,2,166,67 | 8 % | 1 | yes |
-| `tower_tier1_mw` | 210x342 | RGBA | 0,0,210,340 | 1 % | 1 | yes |
-| `tower_tier2_fx` | 168x132 | RGBA | 1,2,168,132 | 2 % | 65 | yes |
+| `tower_snow_top_wide_fx` | 162x33 | RGBA | 1,2,160,31 | 14 % | 35 | yes |
+| `tower_tier1_fx` | 210x378 | RGBA | 0,0,210,376 | 1 % | 209 | yes |
+| `tower_tier1_mg` | 54x69 | RGBA | 2,2,52,67 | 13 % | 1 | yes |
+| `tower_tier1_mw` | 210x378 | RGBA | 0,0,210,376 | 1 % | 1 | yes |
+| `tower_tier1_short_fx` | 207x342 | RGBA | 0,2,207,340 | 1 % | 241 | yes |
+| `tower_tier1_short_mg` | 54x69 | RGBA | 2,2,52,67 | 13 % | 1 | yes |
+| `tower_tier1_short_mw` | 207x342 | RGBA | 0,2,206,340 | 2 % | 1 | yes |
+| `tower_tier1_tall_fx` | 210x444 | RGBA | 1,2,209,442 | 2 % | 255 | yes |
+| `tower_tier1_tall_mg` | 51x69 | RGBA | 2,2,51,67 | 9 % | 1 | yes |
+| `tower_tier1_tall_mw` | 210x444 | RGBA | 1,2,209,442 | 2 % | 1 | yes |
+| `tower_tier2_fx` | 168x132 | RGBA | 1,2,168,132 | 2 % | 13 | yes |
 | `tower_tier2_mw` | 168x132 | RGBA | 1,2,168,132 | 2 % | 0 | yes |
+| `tower_tier2_tall_fx` | 168x168 | RGBA | 0,2,168,168 | 1 % | 12 | yes |
+| `tower_tier2_tall_mw` | 168x168 | RGBA | 0,2,168,168 | 1 % | 0 | yes |
 | `tower_tier3_fx` | 120x96 | RGBA | 0,2,119,95 | 4 % | 9 | yes |
 | `tower_tier3_mw` | 120x96 | RGBA | 0,2,119,95 | 4 % | 1 | yes |
 | `tree_canopy` | 303x198 | RGBA | 0,0,303,198 | 0 % | 36 | yes |

@@ -200,7 +200,28 @@ class SpriteDrawScaleTest {
             "tower_snow_right1_fx", "tower_snow_right2_fx", "tower_snow_top_fx",
             "tower_tier1_fx", "tower_tier1_mg", "tower_tier1_mw", "tower_tier2_fx",
             "tower_tier2_mw", "tower_tier3_fx", "tower_tier3_mw",
+            // v5.11: the short and the tall bodies, the hall's two windows by the door, and the
+            // short body's wide snow cap.
+            "tower_bay_door_fx", "tower_bay_door_mg", "tower_snow_top_wide_fx",
+            "tower_tier1_short_fx", "tower_tier1_short_mg", "tower_tier1_short_mw",
+            "tower_tier1_tall_fx", "tower_tier1_tall_mg", "tower_tier1_tall_mw",
+            "tower_tier2_tall_fx", "tower_tier2_tall_mw",
         )
+        // -- the distant houses on the mountains (v5.11) ---------------------------------------
+        //
+        // Each drawing is scaled to `SceneSpace.distantHousePixelsTall` over its own height, and on
+        // a mountain that is the floor's size: the mountains stand above
+        // `SceneSpace.DISTANT_HOUSE_FLOOR_Y_FRACTION`, where the projection gives less
+        // (`DistantHousesTest`). One path per drawing, because each has its own height.
+        for ((index, stem) in listOf("house_distant_cottage", "house_distant_chalet", "house_distant_tall").withIndex()) {
+            val piece = NeighbourhoodTable.DISTANT_HOUSES[index]
+            put(
+                DrawPath("distant house", SpriteScale.SCENE_UNITS) { v ->
+                    SceneSpace.distantHousePixelsTall(SceneSpace.DISTANT_HOUSE_FLOOR_Y_FRACTION, v.heightPx) / piece.height
+                },
+                "${stem}_fx", "${stem}_mg", "${stem}_mw", "${stem}_snow_fx",
+            )
+        }
         neighbourhood(
             "restaurant", SceneSpace.SceneVariant.RESTAURANT,
             "restaurant_pavilion_fx", "restaurant_pavilion_mg", "restaurant_pavilion_mw",
@@ -903,8 +924,21 @@ class SpriteDrawScaleTest {
      * *And the decision, which is the maintainer's.* Both ceilings were put in front of them with
      * these numbers and the device measurement beside them, and both were moved by one MiB. The
      * pass did not move either on its own authority, and the school does not fit under 16.
+     *
+     * ### v5.11 raises it to 18 MiB, for the towers' heights and hall and the distant houses
+     *
+     * The set uploads **18 493 088 B** at the reference 1080x2340, 667 296 past 17 MiB; 18 MiB
+     * leaves **381 280 B**. The 18 that v5.6F measured and did not need is needed now: the tall and
+     * the short towers' tiers and the hall are drawings of the tower's own width, ink to their
+     * edges as every facade is. The distant houses add little here -- their canvases are small and
+     * drawn at the floor of `SceneSpace.distantHousePixelsTall` -- and none at all to a scene that
+     * leaves them off, which is every theme as it ships. The page they all go into is measured on the
+     * device by `GlAtlasOccupancyTest`, whose sweep has the distant houses on since v5.11.
+     *
+     * *The decision, again the maintainer's*: *«Sì, va bene così (consigliato)»*, 2026-10-07, asked
+     * with the photographs.
      */
-    private val uploadedTexelBudget = 17L * 1024L * 1024L
+    private val uploadedTexelBudget = 18L * 1024L * 1024L
 
     @Test
     fun `the shipped sprite set stays inside the texture memory it uploads`() {

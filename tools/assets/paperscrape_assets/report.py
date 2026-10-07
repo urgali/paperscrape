@@ -41,7 +41,7 @@ SHEET_LABEL_HEIGHT = 16
 BUDGET_PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school")
 BUDGET_PERIMETER_EXCLUDES = "_q"
 
-#: `Shipped perimeter (76 PNG, the six building families): 5390244 B decoded, 5326452 B uploaded ...`
+#: `Shipped perimeter (99 PNG, the six building families and the distant houses): 7229124 B decoded, 7147636 B uploaded ...`
 _BUDGET_MD_PERIMETER = re.compile(
     r"Shipped perimeter \((\d+) PNG[^)]*\): (\d+) B decoded, (\d+) B uploaded"
 )

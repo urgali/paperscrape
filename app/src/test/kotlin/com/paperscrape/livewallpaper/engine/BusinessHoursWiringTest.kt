@@ -45,22 +45,24 @@ class BusinessHoursWiringTest {
     }
 
     /**
-     * And the one thing a home must still do: light its windows on the sky's own night.
+     * And a door's lamp lights with its own building's glass: a home's on the sky's own night, a
+     * shop's and a tower's only while they are open.
      *
-     * The composer passes `night` -- the unscaled `1f - dayBlend` -- to the porch light and to the
-     * house's glass, which is what makes an evening street look inhabited. A change that routed
-     * everything through `glassNight` would put a home on shop hours without failing the test
-     * above.
+     * Since v5.11 (inventory I-405 and I-409, the maintainer's «sì» of 2026-10-06) the composer hands
+     * the lamp `glassNight`, the number the building's glass crossfades on -- until then the lamp was
+     * given the unscaled night, so a closed shop's lamp burned beside its dark glass. A home's
+     * `glassNight` *is* the unscaled `1f - dayBlend` (the test above pins the house branch), which is
+     * what keeps an evening street inhabited; this pins both halves of that.
      */
     @Test
-    fun `a home's lamps follow the sky, not the trade`() {
+    fun `a door's lamp lights with its building's glass, a home's on the sky's night`() {
         val body = composer()
         assertTrue(
-            "the porch light must ride the sky's night",
-            body.contains("nightGlow = night)"),
+            "the lamp must light on the building's own glassNight",
+            body.contains("drawPorchLight(canvas, x = part.x, y = footY + part.y, lit = glassNight)"),
         )
         assertTrue(
-            "the unscaled night must be what a house's glass is given",
+            "the unscaled night must be what a house's glass -- and so its lamp -- is given",
             Regex("""val night = \(1f - dayBlend\)""").containsMatchIn(renderer()),
         )
     }

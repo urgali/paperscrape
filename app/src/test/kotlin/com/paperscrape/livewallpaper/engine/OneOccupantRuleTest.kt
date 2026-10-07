@@ -101,7 +101,7 @@ class OneOccupantRuleTest {
         var panes = 0
         for ((variant, family) in NeighbourhoodTable.FAMILIES) {
             for (slot in family.slots) {
-                for (piece in slot.options) {
+                for (piece in slot.options + slot.heights) {
                     for (window in piece.windows) {
                         val scale = window.w * 0.85f / SceneObjectRenderer.WINDOW_OCCUPANT_DIVISOR_UNITS
                         assertEquals(

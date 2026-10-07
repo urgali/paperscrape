@@ -82,7 +82,7 @@ class MoonPhaseControlTest {
      * Stated separately from the two cases above because it is the property a future edit is most
      * likely to break: making interactivity depend on the stored value as well would produce a
      * switch that is locked *on* for a user who had phases enabled, which looks reasonable and is
-     * the same dead end v3.0's Live Weather switch was in ([LiveWeatherUiState.switchIsInteractive]
+     * the same dead end v3.0's Live Weather switch was in ([LiveWeatherUiState]
      * carries that history).
      */
     @Test

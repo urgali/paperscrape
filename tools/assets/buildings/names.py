@@ -53,6 +53,11 @@ PREFIXES: dict[str, str] = {
     # Piece names (a piece is a stackable unit; its cards are the groups above). `k1_roof_turret_b`
     # is a piece whose two cards are the gable and the little tower, so it needs a name of its own
     # and longest-prefix matching keeps the three apart.
+    # The distant houses on the mountains (v5.11): named for what they are from the start, so the
+    # group names -- their wobble seeds -- are English already.
+    "distant_cottage": "house_distant_cottage",
+    "distant_chalet": "house_distant_chalet",
+    "distant_tall": "house_distant_tall",
     "k1_roof_turret_b": "house_large_roof_turret",
     "k2_t_gradini": "tower_body",
 }

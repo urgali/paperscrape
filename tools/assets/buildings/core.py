@@ -70,12 +70,14 @@ TERRACOTTA = "#A9573F"       # the roof tile: the sail's red brought towards the
 SLATE = "#4B5566"            # the slate: the ink brought towards the daytime glass
 INK_ROOF = "#1A1410"
 #: SCHOOL repeats COMMERCIAL's two values rather than aliasing them: the school is drawn from the
-#: same BUILDINGS colours the restaurant and the bar are, and `decompose` subtracts these exact
-#: strings from the rendered art to get the fixed layer -- a different base would requantise every
-#: pixel of it.
+#: same colours the restaurant and the bar are (the Shops category since v5.11, BUILDINGS before),
+#: and `decompose` subtracts these exact strings from the rendered art to get the fixed layer -- a
+#: different base would requantise every pixel of it. These are the generator's base, not the
+#: colours the app draws: the masks are weights, and the wall colour is the user's at the blit.
 WALL_DAY = {"HOUSE": "#F3E6D0", "COMMERCIAL": "#5C6A78", "SKYSCRAPER": "#5C6A78", "SCHOOL": "#5C6A78"}
 WALL_NIGHT = {"HOUSE": "#6B5F52", "COMMERCIAL": "#303842", "SKYSCRAPER": "#303842", "SCHOOL": "#303842"}
-#: The shipped perimeter this accounting covers: every PNG of the six families. Duplicated in
+#: The shipped perimeter this accounting covers: every PNG of the six families and of the distant houses
+#: (v5.11, which share the houses' prefix). Duplicated in
 #: `paperscrape_assets.report.BUDGET_PERIMETER_PREFIXES`, which cannot import this module;
 #: `tests/test_budget.py` asserts the two selections agree on the real tree.
 #:
@@ -87,7 +89,7 @@ PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school")
 #: the neighbourhood was being redrawn: the old neighbourhood's 3 400 236 B plus the 862 920 B then
 #: free under the whole sprite set's decoded-bytes gate (36 MiB at the time) -- the most the new one
 #: could weigh without breaking it. That gate (`SpriteGeometryTest.decodedByteBudget`, the whole
-#: set) has since been raised on the maintainer's word, to 43 MiB, and this copy of its old margin
+#: set) has since been raised on the maintainer's word, to 43 MiB and then 45, and this copy of its old margin
 #: was never retired: the shipped mix has been over it since v5.0, and `budget.md` printed "over
 #: budget" for eight releases while nothing read it. The one ceiling is the gate; this report
 #: measures, and `SpriteGeometryTest` prints the neighbourhood's share of the gate on every build.
@@ -408,9 +410,17 @@ class Piece:
 
 @dataclass
 class Slot:
+    """The alternatives one slot of a family may be dealt, and how many times the piece repeats.
+
+    `heights` (v5.11) are alternatives the deal does **not** choose between: the engine gives each
+    instance one of them by a coin of its own (`NeighbourhoodComposer`), so they vary a building's
+    height without growing the silhouette catalogue `SilhouetteDeal` deals from -- which would
+    re-deal the crowns of every theme. `options` then holds the one piece the deal sees.
+    """
     options: list
     rmin: int = 1
     rmax: int = 1
+    heights: list = field(default_factory=list)
 
 
 @dataclass
@@ -431,16 +441,29 @@ class Building:
 
 
 # ------------------------------------------------------------------ production
-def build_concept(concept: str, buildings: dict, out: Path):
-    """Renders each group once, writes SVG/PNG; returns (table, pieces, files)."""
+def build_concept(concept: str, buildings: dict, out: Path, extras=()):
+    """Renders each group once, writes SVG/PNG; returns (table, pieces, files).
+
+    `extras` are pieces that belong to no family -- `(piece, kind)` pairs, the distant houses since
+    v5.11 -- rendered and declared like any other, and listed in `pieces` but in no table row."""
     svg_dir, png_dir = out / concept / "svg", out / concept / "png"
     for d in (svg_dir, png_dir):
         d.mkdir(parents=True, exist_ok=True)
         for f in d.iterdir():
             f.unlink()
     rendered: dict[str, list[Layer]] = {}
+    signatures: dict[str, tuple] = {}
     files: dict[str, tuple[int, int]] = {}
     pieces: dict[str, dict] = {}
+
+    def signature(g):
+        """A group's cards in its own canvas frame. Two groups may share a name -- the name is the
+        wobble seed and the PNG's name -- only if they are the same cards moved by whole units, which
+        renders the same pixels; anything else would ship one group's pixels under the other's
+        coordinates."""
+        ox, oy, _, _ = g.canvas()
+        return tuple((tuple((round(x - ox, 5), round(y - oy, 5)) for x, y in p.points), repr(p.fill), p.relief, p.opacity)
+                     for p in g.parts)
 
     def piece_entry(piece: Piece, kind):
         if piece.name in pieces:
@@ -451,7 +474,10 @@ def build_concept(concept: str, buildings: dict, out: Path):
         for g, px, py in piece.ordered():
             if g.snow and not body_done:
                 parts.append(("OCCUPANTS", 0, 0.0, 0.0)); body_done = True
+            if g.name in signatures and signatures[g.name] != signature(g):
+                raise ValueError(f"two different groups are both called {g.name!r}")
             if g.name not in rendered:
+                signatures[g.name] = signature(g)
                 rendered[g.name] = decompose(g, bases, svg_dir)
                 for layer in rendered[g.name]:
                     pname = f"{g.name}_{layer.suffix}"
@@ -471,11 +497,14 @@ def build_concept(concept: str, buildings: dict, out: Path):
     for family in FAMILIES:
         b = buildings[family]
         for s in b.slots:
-            for p in s.options:
+            for p in s.options + s.heights:
                 piece_entry(p, b.kind)
         table[family] = {"unitsTall": round(b.units_tall, 3), "shadowHalf": round(b.shadow_half, 1), "kind": b.kind,
-                         "slots": [{"options": [p.name for p in s.options], "rmin": s.rmin, "rmax": s.rmax} for s in b.slots],
+                         "slots": [{"options": [p.name for p in s.options], "rmin": s.rmin, "rmax": s.rmax,
+                                    "heights": [p.name for p in s.heights]} for s in b.slots],
                          "hues": b.hues, "satLift": b.sat_lift}
+    for piece, kind in extras:
+        piece_entry(piece, kind)
     return table, pieces, files
 
 
@@ -500,7 +529,7 @@ def budget(concepts, files_by: dict, out: Path):
     rep = {"shipped_perimeter": {"files": len(shipped), "decoded": sum(v[0] for v in shipped.values()),
                                  "uploaded_level0": sum(v[1] for v in shipped.values())}, "concepts": {}}
     lines = ["# The neighbourhood's sprite bytes (written by build_neighbourhood.py --budget)", "",
-             f"Shipped perimeter ({len(shipped)} PNG, the six building families): {rep['shipped_perimeter']['decoded']} B decoded, "
+             f"Shipped perimeter ({len(shipped)} PNG, the six building families and the distant houses): {rep['shipped_perimeter']['decoded']} B decoded, "
              f"{rep['shipped_perimeter']['uploaded_level0']} B uploaded (level 0, crop + 1 texel).", "",
              "No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, over the whole "
              "sprite set, which prints its margin -- and this perimeter's share of it -- on every build.", ""]

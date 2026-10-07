@@ -16,7 +16,7 @@ internal enum class WindowBuildingKind {
     /** Shopfronts and the bar -- street-level glass, so an occupant reads as staff or a customer. */
     COMMERCIAL,
 
-    /** Tower blocks, whose window grid v4.1 opens up for the first time. */
+    /** Tower blocks: since v5.11 their people stand at the six windows of the entrance storey. */
     SKYSCRAPER,
 
     /**
@@ -119,10 +119,15 @@ internal object WindowOccupants {
     const val COMMERCIAL_RATE = 0.40f
 
     /**
-     * Tower blocks have a large window grid, so the per-window rate has to be *low* or the
-     * building reads as a doll's house with a face in every pane.
+     * A tower's people are at its entrance storey, behind street-level glass like a shop's, so they
+     * come at a shop's rate (v5.11, inventory I-406). Until v5.11 a tower's three bust windows stood
+     * among its grid of small ones, at 0.12, "or the building reads as a doll's house with a face in
+     * every pane" -- and at 0.12 three panes dealt nobody most of the time. Since v5.11 the six panes
+     * are the hall's -- four over the canopy, one each side of the door -- and the grid above holds
+     * no bust at all, so the rate is the one street-level glass has: two or three people a tower,
+     * thinned by the opening hours as a shop's are.
      */
-    const val SKYSCRAPER_RATE = 0.12f
+    const val SKYSCRAPER_RATE = COMMERCIAL_RATE
 
     /**
      * A school has **four** panes, and at the commercial rate four panes is an empty school.

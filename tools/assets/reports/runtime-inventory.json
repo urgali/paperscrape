@@ -22,44 +22,44 @@
       "content_row_max": 0.9863636363636363,
       "content_width": 220,
       "decoded_bytes": 149184,
-      "distinct_colour_count": 389,
-      "file_bytes": 5657,
+      "distinct_colour_count": 364,
+      "file_bytes": 5427,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 168,
       "mode": "RGBA",
       "name": "bar_chamfer_fx",
       "on_grid": true,
-      "opaque_rgb_count": 324,
-      "pixels_sha256": "9d8cfd2fb57d098f8ee477e0b87f7bb4067f0abb5467e6d1d18622804cc9afc4",
-      "sha256": "2936fd4f0bd27ea8d0ae451fa4bd7d789e77c6fa9046b44b426d2f3ceb56c331",
+      "opaque_rgb_count": 299,
+      "pixels_sha256": "308fe94f71a2d25bb32393473e2b0ecd71dad083259c495970cda38b18d9c8f8",
+      "sha256": "5a40a10b79fc247bfab5946a4961a96b2f79aff0f192735e4176a9531b505df1",
       "transparent_padding_bytes": 3984,
       "transparent_padding_fraction": 0.026705276705276705,
       "width": 222
     },
     {
       "content_band_centre_x": [
-        0.5458500066562777,
-        0.495098344652834
+        0.5533704870226236,
+        0.434350081505247
       ],
       "content_band_coverage": [
-        0.25488796917368345,
-        0.6246610532324818
+        0.26655815700513336,
+        0.5480155252284963
       ],
       "content_bbox": [
         2,
         2,
-        145,
+        165,
         100
       ],
       "content_column_max": 0.673469387755102,
-      "content_coverage": 0.43977451120308264,
+      "content_coverage": 0.40728684111681485,
       "content_height": 98,
-      "content_row_max": 0.8461538461538461,
-      "content_width": 143,
-      "decoded_bytes": 59976,
-      "distinct_colour_count": 27,
-      "file_bytes": 908,
+      "content_row_max": 0.7423312883435583,
+      "content_width": 163,
+      "decoded_bytes": 67320,
+      "distinct_colour_count": 48,
+      "file_bytes": 1138,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 102,
@@ -67,11 +67,11 @@
       "name": "bar_chamfer_mg",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "afd82aff89764d29626e019910d61177881b961d0679cc9ff7648ae198af4c8c",
-      "sha256": "e0ba875dd69c66728da2d5fc3f560fba986d8b2a7d56d48a592386e075ccb503",
-      "transparent_padding_bytes": 3920,
-      "transparent_padding_fraction": 0.06535947712418301,
-      "width": 147
+      "pixels_sha256": "367e66370f69811a6e7b6d720f0fbbc28d813065c3d98518b17b99caf5ba84ba",
+      "sha256": "b6f2e0b6dc284bdaf116e77b33d61fbfae7b2066736f73008e82f59f4d5bcc0b",
+      "transparent_padding_bytes": 3424,
+      "transparent_padding_fraction": 0.050861556743909686,
+      "width": 165
     },
     {
       "content_band_centre_x": [
@@ -166,28 +166,28 @@
       "content_row_max": 1.0,
       "content_width": 204,
       "decoded_bytes": 188784,
-      "distinct_colour_count": 400,
-      "file_bytes": 5496,
+      "distinct_colour_count": 383,
+      "file_bytes": 5414,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 228,
       "mode": "RGBA",
       "name": "bar_signboard_fx",
       "on_grid": true,
-      "opaque_rgb_count": 327,
-      "pixels_sha256": "e7e951bb92bb9bf54d7a1a2f6b76f64dd2682921bd4ecff6bd883731ed9106b8",
-      "sha256": "ba9bfc64b14837be4af37fe6972166803641117f7c5b5219f4c385e51b77a27b",
+      "opaque_rgb_count": 310,
+      "pixels_sha256": "77946cbaf8a2992a541a703d1db261098973f5f0d51842bc44f7e1d30c1f963a",
+      "sha256": "c85cb30c4c242cb6b04c37f87c4207957bf7e3e89b3fd20ea0e4a26b7e5706fb",
       "transparent_padding_bytes": 5184,
       "transparent_padding_fraction": 0.02745995423340961,
       "width": 207
     },
     {
       "content_band_centre_x": [
-        0.5407457166796683,
+        0.48633504263782645,
         0.6646296256046522
       ],
       "content_band_coverage": [
-        0.29246806636323597,
+        0.3343121421230363,
         0.437380707678755
       ],
       "content_bbox": [
@@ -197,13 +197,13 @@
         100
       ],
       "content_column_max": 0.7346938775510204,
-      "content_coverage": 0.36492438702099544,
+      "content_coverage": 0.3858464249008956,
       "content_height": 98,
       "content_row_max": 0.5827338129496403,
       "content_width": 139,
       "decoded_bytes": 57528,
-      "distinct_colour_count": 27,
-      "file_bytes": 692,
+      "distinct_colour_count": 46,
+      "file_bytes": 867,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 102,
@@ -211,8 +211,8 @@
       "name": "bar_signboard_mg",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "341ca75b76476bfb3ad28383be07d734defd2ceabdd8053c4d95b74489b9a031",
-      "sha256": "9d284624ee6d149b5bf3a8a0d318903ee877385a1c32fb010c71137aa5250f11",
+      "pixels_sha256": "3f03ffbf999f131d80a421b8cce3732cd91975ab06743a3f3e133c8b01d80a87",
+      "sha256": "b44156db0268f25ee8169afbcfa9166f9bef439799afaf94a32d800bc9522697",
       "transparent_padding_bytes": 3040,
       "transparent_padding_fraction": 0.05284383256848839,
       "width": 141
@@ -1188,6 +1188,438 @@
       "transparent_padding_bytes": 2240,
       "transparent_padding_fraction": 0.1440329218106996,
       "width": 108
+    },
+    {
+      "content_band_centre_x": [
+        0.4859774885241778,
+        0.501680466396414
+      ],
+      "content_band_coverage": [
+        0.4728110599078341,
+        0.8390083632019116
+      ],
+      "content_bbox": [
+        0,
+        2,
+        93,
+        73
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6584885658034226,
+      "content_height": 71,
+      "content_row_max": 0.967741935483871,
+      "content_width": 93,
+      "decoded_bytes": 27900,
+      "distinct_colour_count": 71,
+      "file_bytes": 1164,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 75,
+      "mode": "RGBA",
+      "name": "house_distant_chalet_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 24,
+      "pixels_sha256": "ef72c2c0ba116e2e281f6c127ca009f37b9c718ec5abbd78718e6bb591f14053",
+      "sha256": "c1be8368ab80431d6a3c14a6fa899a11a48ddb44c6f0b99b050f0fa7a75841c8",
+      "transparent_padding_bytes": 1488,
+      "transparent_padding_fraction": 0.05333333333333334,
+      "width": 93
+    },
+    {
+      "content_band_centre_x": [
+        0.5145454545454545,
+        0.5028708133971292
+      ],
+      "content_band_coverage": [
+        0.16267942583732056,
+        0.4318181818181818
+      ],
+      "content_bbox": [
+        2,
+        1,
+        57,
+        40
+      ],
+      "content_column_max": 0.4358974358974359,
+      "content_coverage": 0.3006993006993007,
+      "content_height": 39,
+      "content_row_max": 0.5636363636363636,
+      "content_width": 55,
+      "decoded_bytes": 9576,
+      "distinct_colour_count": 21,
+      "file_bytes": 361,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 42,
+      "mode": "RGBA",
+      "name": "house_distant_chalet_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "eb3779d4ccfebceea0567c7c4c3f0039303965c9c224150e9687469116390b1f",
+      "sha256": "86189a8e19553dd68b4f83a8d8d1bb30236586ce4a26e97594233a14ad0325fc",
+      "transparent_padding_bytes": 996,
+      "transparent_padding_fraction": 0.10401002506265664,
+      "width": 57
+    },
+    {
+      "content_band_centre_x": [
+        0.4861282696560665,
+        0.5052999883220596
+      ],
+      "content_band_coverage": [
+        0.43317972350230416,
+        0.7150537634408602
+      ],
+      "content_bbox": [
+        0,
+        2,
+        93,
+        73
+      ],
+      "content_column_max": 0.9436619718309859,
+      "content_coverage": 0.5761017719218537,
+      "content_height": 71,
+      "content_row_max": 0.967741935483871,
+      "content_width": 93,
+      "decoded_bytes": 27900,
+      "distinct_colour_count": 68,
+      "file_bytes": 963,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 75,
+      "mode": "RGBA",
+      "name": "house_distant_chalet_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "8f7eb39f9927270adde96c5730e629d5fc79642bdee906c659d37a3aca0efcfb",
+      "sha256": "8c9f44b615db0a3107d1f2e1f53b9a1c33b31fc920e0001dfe42295f0bb15bab",
+      "transparent_padding_bytes": 1488,
+      "transparent_padding_fraction": 0.05333333333333334,
+      "width": 93
+    },
+    {
+      "content_band_centre_x": [
+        0.497440349002849,
+        0.3977827001387211
+      ],
+      "content_band_coverage": [
+        0.3356643356643357,
+        0.3339160839160839
+      ],
+      "content_bbox": [
+        0,
+        2,
+        78,
+        46
+      ],
+      "content_column_max": 0.6136363636363636,
+      "content_coverage": 0.3347902097902098,
+      "content_height": 44,
+      "content_row_max": 0.6153846153846154,
+      "content_width": 78,
+      "decoded_bytes": 14976,
+      "distinct_colour_count": 121,
+      "file_bytes": 2066,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 48,
+      "mode": "RGBA",
+      "name": "house_distant_chalet_snow_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 33,
+      "pixels_sha256": "db2e8575abd023ce9500ea2a743be2b5f749623826f4d10bd7cdc7705a4f2c28",
+      "sha256": "ea04059cd430d6302279873a0f50fa9dc654ea0d63e08ebc5626fe8dd7ac8c3c",
+      "transparent_padding_bytes": 1248,
+      "transparent_padding_fraction": 0.08333333333333333,
+      "width": 78
+    },
+    {
+      "content_band_centre_x": [
+        0.46989343468216704,
+        0.4932482152308904
+      ],
+      "content_band_coverage": [
+        0.5755614769699277,
+        0.8087472201630838
+      ],
+      "content_bbox": [
+        2,
+        2,
+        73,
+        77
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6937089201877934,
+      "content_height": 75,
+      "content_row_max": 0.9577464788732394,
+      "content_width": 71,
+      "decoded_bytes": 23400,
+      "distinct_colour_count": 83,
+      "file_bytes": 1126,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 78,
+      "mode": "RGBA",
+      "name": "house_distant_cottage_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 31,
+      "pixels_sha256": "215caebc6060bbc5b500461115667b2496ef9150b6c3ef7203ef0af5b83c3191",
+      "sha256": "0ac8943a03b65315dc19bade0e46cad7a18966995a8e71dea02f75b9ba0751fd",
+      "transparent_padding_bytes": 2100,
+      "transparent_padding_fraction": 0.08974358974358974,
+      "width": 75
+    },
+    {
+      "content_band_centre_x": [
+        0.5,
+        0.508130081300813
+      ],
+      "content_band_coverage": [
+        1.0,
+        0.9111111111111111
+      ],
+      "content_bbox": [
+        0,
+        2,
+        15,
+        19
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.9529411764705882,
+      "content_height": 17,
+      "content_row_max": 1.0,
+      "content_width": 15,
+      "decoded_bytes": 1260,
+      "distinct_colour_count": 11,
+      "file_bytes": 144,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 21,
+      "mode": "RGBA",
+      "name": "house_distant_cottage_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "7aceabc463082c95e171785eebea7b730089e6b79b8d43afb05e80b3571cc947",
+      "sha256": "558995f16bb70956f76f0a563901df1093304458a07a7418c9106a7dc0356655",
+      "transparent_padding_bytes": 240,
+      "transparent_padding_fraction": 0.19047619047619047,
+      "width": 15
+    },
+    {
+      "content_band_centre_x": [
+        0.46989343468216704,
+        0.5109737304232519
+      ],
+      "content_band_coverage": [
+        0.5755614769699277,
+        0.7283172720533728
+      ],
+      "content_bbox": [
+        2,
+        2,
+        73,
+        77
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6529577464788733,
+      "content_height": 75,
+      "content_row_max": 0.9577464788732394,
+      "content_width": 71,
+      "decoded_bytes": 23400,
+      "distinct_colour_count": 80,
+      "file_bytes": 867,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 78,
+      "mode": "RGBA",
+      "name": "house_distant_cottage_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "eb162bce9a2eecc724a2d4ca2c3014534fe6b7376a0d52ac8691dfb1456726da",
+      "sha256": "c29ec330cf03449045461a6f9f323f5f726a00a0cf05471aede6e3641cc015af",
+      "transparent_padding_bytes": 2100,
+      "transparent_padding_fraction": 0.08974358974358974,
+      "width": 75
+    },
+    {
+      "content_band_centre_x": [
+        0.4983541233541234,
+        0.2320469798657718
+      ],
+      "content_band_coverage": [
+        0.3817460317460317,
+        0.2365079365079365
+      ],
+      "content_bbox": [
+        0,
+        2,
+        60,
+        44
+      ],
+      "content_column_max": 0.42857142857142855,
+      "content_coverage": 0.30912698412698414,
+      "content_height": 42,
+      "content_row_max": 0.6,
+      "content_width": 60,
+      "decoded_bytes": 10800,
+      "distinct_colour_count": 127,
+      "file_bytes": 1386,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 45,
+      "mode": "RGBA",
+      "name": "house_distant_cottage_snow_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 39,
+      "pixels_sha256": "a2df7f03c4a02a7fcdd7c4a8ab775646b7781d18e549e8654f53cc6a380315df",
+      "sha256": "a620769633ba53aa296d9718d76039d2a508a95e0408ac5b08e037ed105bc9cb",
+      "transparent_padding_bytes": 720,
+      "transparent_padding_fraction": 0.06666666666666667,
+      "width": 60
+    },
+    {
+      "content_band_centre_x": [
+        0.48848923713954573,
+        0.49288135593220334
+      ],
+      "content_band_coverage": [
+        0.6170212765957447,
+        0.7768361581920904
+      ],
+      "content_bbox": [
+        2,
+        2,
+        61,
+        97
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6977698483496878,
+      "content_height": 95,
+      "content_row_max": 0.9661016949152542,
+      "content_width": 59,
+      "decoded_bytes": 24948,
+      "distinct_colour_count": 49,
+      "file_bytes": 747,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 99,
+      "mode": "RGBA",
+      "name": "house_distant_tall_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 12,
+      "pixels_sha256": "2efd8649a115e73819779d79155e6d621076c23b0e8d2d0d19f35fa2bb34b868",
+      "sha256": "dfa489da31de826a41cb3c5f99348cc5f36b677070178e8270496ae1d3781d1c",
+      "transparent_padding_bytes": 2528,
+      "transparent_padding_fraction": 0.10133076799743466,
+      "width": 63
+    },
+    {
+      "content_band_centre_x": [
+        0.5,
+        0.5
+      ],
+      "content_band_coverage": [
+        0.8181818181818182,
+        0.782608695652174
+      ],
+      "content_bbox": [
+        0,
+        0,
+        18,
+        45
+      ],
+      "content_column_max": 0.8,
+      "content_coverage": 0.8,
+      "content_height": 45,
+      "content_row_max": 1.0,
+      "content_width": 18,
+      "decoded_bytes": 3240,
+      "distinct_colour_count": 13,
+      "file_bytes": 188,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 45,
+      "mode": "RGBA",
+      "name": "house_distant_tall_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "20dc618f5c6fb3f80e1961a343c0d956a64c3bc38a7c95f1802229918f43a4c8",
+      "sha256": "7db2a25c04c1dddcf4f485b7ae06aebadb45bfd5972e3e95de28fa47161d626c",
+      "transparent_padding_bytes": 0,
+      "transparent_padding_fraction": 0.0,
+      "width": 18
+    },
+    {
+      "content_band_centre_x": [
+        0.49098735539413507,
+        0.4955725036895802
+      ],
+      "content_band_coverage": [
+        0.5452578434908042,
+        0.6528954802259888
+      ],
+      "content_bbox": [
+        2,
+        2,
+        61,
+        97
+      ],
+      "content_column_max": 0.9157894736842105,
+      "content_coverage": 0.59964317573595,
+      "content_height": 95,
+      "content_row_max": 0.9661016949152542,
+      "content_width": 59,
+      "decoded_bytes": 24948,
+      "distinct_colour_count": 53,
+      "file_bytes": 671,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 99,
+      "mode": "RGBA",
+      "name": "house_distant_tall_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "d908667d64be4dc2fc22d35e5289686e273830c056d8d5ba8f6c37b81ccc62fa",
+      "sha256": "2338d3e370bc00caba9038b5232d243aa14fdbef73fca825ef69fb47d82a1c9c",
+      "transparent_padding_bytes": 2528,
+      "transparent_padding_fraction": 0.10133076799743466,
+      "width": 63
+    },
+    {
+      "content_band_centre_x": [
+        0.5077996498116412,
+        0.26573110004526934
+      ],
+      "content_band_coverage": [
+        0.40628166160081053,
+        0.2727272727272727
+      ],
+      "content_bbox": [
+        0,
+        0,
+        47,
+        43
+      ],
+      "content_column_max": 0.46511627906976744,
+      "content_coverage": 0.3379515091538842,
+      "content_height": 43,
+      "content_row_max": 0.7446808510638298,
+      "content_width": 47,
+      "decoded_bytes": 8640,
+      "distinct_colour_count": 95,
+      "file_bytes": 1191,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 45,
+      "mode": "RGBA",
+      "name": "house_distant_tall_snow_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 37,
+      "pixels_sha256": "c4d995b6b372f966178b951970f2269f3a53b89bdebe686e13e6637803b3de03",
+      "sha256": "3eb9cf135db1e075c9cf1165e10e500e5704131d77b5170c8ee545fe57aace34",
+      "transparent_padding_bytes": 556,
+      "transparent_padding_fraction": 0.06435185185185185,
+      "width": 48
     },
     {
       "content_band_centre_x": [
@@ -13827,6 +14259,78 @@
     },
     {
       "content_band_centre_x": [
+        0.4792779977701742,
+        0.4965489162045833
+      ],
+      "content_band_coverage": [
+        0.95,
+        0.9418918918918919
+      ],
+      "content_bbox": [
+        0,
+        1,
+        37,
+        41
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.9459459459459459,
+      "content_height": 40,
+      "content_row_max": 1.0,
+      "content_width": 37,
+      "decoded_bytes": 6552,
+      "distinct_colour_count": 19,
+      "file_bytes": 277,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 42,
+      "mode": "RGBA",
+      "name": "tower_bay_door_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "e19833672a74329ecc5193c310db2bce85438a8a31560ee9eab295d0962f14b8",
+      "sha256": "40cad195907043856dfe799ba7d47ea0dbb498fddcbaa1e0a62ebaa98e78a887",
+      "transparent_padding_bytes": 632,
+      "transparent_padding_fraction": 0.09645909645909646,
+      "width": 39
+    },
+    {
+      "content_band_centre_x": [
+        0.4792779977701742,
+        0.4965489162045833
+      ],
+      "content_band_coverage": [
+        0.95,
+        0.9418918918918919
+      ],
+      "content_bbox": [
+        0,
+        1,
+        37,
+        41
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.9459459459459459,
+      "content_height": 40,
+      "content_row_max": 1.0,
+      "content_width": 37,
+      "decoded_bytes": 6552,
+      "distinct_colour_count": 19,
+      "file_bytes": 255,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 42,
+      "mode": "RGBA",
+      "name": "tower_bay_door_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "6af506a96261e309eb83e93cc4a0187f8fbe73d87761ed2efd6d3e325f1b584a",
+      "sha256": "d4fff27de979acbb323aabeca4830bbeb4c09f874e24b6f16d5bf9813e215f2e",
+      "transparent_padding_bytes": 632,
+      "transparent_padding_fraction": 0.09645909645909646,
+      "width": 39
+    },
+    {
+      "content_band_centre_x": [
         0.49826635846372686,
         0.4868421052631579
       ],
@@ -14511,63 +15015,99 @@
     },
     {
       "content_band_centre_x": [
-        0.49313497392442507,
-        0.49662863007171565
+        0.49647277048372607,
+        0.4895713192617061
       ],
       "content_band_coverage": [
-        0.9803641456582634,
-        0.9826050420168068
+        0.9748427672955975,
+        0.7064989517819706
+      ],
+      "content_bbox": [
+        1,
+        2,
+        160,
+        31
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.8360442420299284,
+      "content_height": 29,
+      "content_row_max": 0.9874213836477987,
+      "content_width": 159,
+      "decoded_bytes": 21384,
+      "distinct_colour_count": 76,
+      "file_bytes": 1594,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 33,
+      "mode": "RGBA",
+      "name": "tower_snow_top_wide_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 35,
+      "pixels_sha256": "2b8bee8aef97f5269b5cc5b4953f9e1121d408f8a9ef4bb0f0e9164991d9f1c6",
+      "sha256": "71569181062ad84d24d3c85746345021053e1cec7579710c90310e02fbe5c403",
+      "transparent_padding_bytes": 2940,
+      "transparent_padding_fraction": 0.13748597081930417,
+      "width": 162
+    },
+    {
+      "content_band_centre_x": [
+        0.4932998992059395,
+        0.4967375766536469
+      ],
+      "content_band_coverage": [
+        0.9812563323201621,
+        0.983839918946302
       ],
       "content_bbox": [
         0,
         0,
         210,
-        340
+        376
       ],
       "content_column_max": 1.0,
-      "content_coverage": 0.9814845938375351,
-      "content_height": 340,
+      "content_coverage": 0.982548125633232,
+      "content_height": 376,
       "content_row_max": 1.0,
       "content_width": 210,
-      "decoded_bytes": 287280,
-      "distinct_colour_count": 243,
-      "file_bytes": 4078,
+      "decoded_bytes": 317520,
+      "distinct_colour_count": 233,
+      "file_bytes": 5272,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 342,
+      "height": 378,
       "mode": "RGBA",
       "name": "tower_tier1_fx",
       "on_grid": true,
-      "opaque_rgb_count": 219,
-      "pixels_sha256": "8cf2cc0c242ff351b6014183c912b06eb2f959ba7e31e3a833ff5914d377c977",
-      "sha256": "e48c134bf24693fc30b799cadae5e7b612e1aeea6300b2bf64ab98c802eca140",
+      "opaque_rgb_count": 209,
+      "pixels_sha256": "d68f23d4139bbebba9c1c3c2ccd5dd84c3b4c1546984bc61bd48fbb39e7d0d21",
+      "sha256": "b688d8a626c35a9e319717dc12d5ac9724c2a45adf9f1ba4986cbf4eadae398b",
       "transparent_padding_bytes": 1680,
-      "transparent_padding_fraction": 0.005847953216374269,
+      "transparent_padding_fraction": 0.005291005291005291,
       "width": 210
     },
     {
       "content_band_centre_x": [
-        0.5073553254228014,
-        0.49912632564446097
+        0.5002393617021277,
+        0.5041489361702127
       ],
       "content_band_coverage": [
-        0.45865091463414637,
-        0.2791943828529194
+        0.94,
+        0.9115151515151515
       ],
       "content_bbox": [
         2,
         2,
-        166,
+        52,
         67
       ],
       "content_column_max": 1.0,
-      "content_coverage": 0.3675422138836773,
+      "content_coverage": 0.9255384615384615,
       "content_height": 65,
-      "content_row_max": 0.524390243902439,
-      "content_width": 164,
-      "decoded_bytes": 46368,
-      "distinct_colour_count": 26,
-      "file_bytes": 603,
+      "content_row_max": 0.96,
+      "content_width": 50,
+      "decoded_bytes": 14904,
+      "distinct_colour_count": 20,
+      "file_bytes": 315,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 69,
@@ -14575,46 +15115,262 @@
       "name": "tower_tier1_mg",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "059f0fcbc113ae30b790ce215f4bd9db0d528a4aa67806ec2513b150321886d8",
-      "sha256": "bad6b040bf7d80741dd1c91dec1b954eadccd1b385995b0d99e937f878934a1e",
-      "transparent_padding_bytes": 3728,
-      "transparent_padding_fraction": 0.08040027605244997,
-      "width": 168
+      "pixels_sha256": "02b3ab6301c04e7ba326d8ea2a98f4dd0f210978e3b44d0f2ad8326f82ec865b",
+      "sha256": "f62f61006348c78c290436f7fd1271b1d2e3f85c088798848e5031e8f2c35222",
+      "transparent_padding_bytes": 1904,
+      "transparent_padding_fraction": 0.12775093934514226,
+      "width": 54
     },
     {
       "content_band_centre_x": [
-        0.4967133493117518,
-        0.4960845854089667
+        0.4932998992059395,
+        0.4850854501871109
       ],
       "content_band_coverage": [
-        0.8731932773109243,
-        0.7968627450980392
+        0.9812563323201621,
+        0.48958966565349543
       ],
       "content_bbox": [
         0,
         0,
         210,
-        340
+        376
       ],
-      "content_column_max": 1.0,
-      "content_coverage": 0.8350280112044818,
-      "content_height": 340,
+      "content_column_max": 0.973404255319149,
+      "content_coverage": 0.7354229989868287,
+      "content_height": 376,
       "content_row_max": 1.0,
       "content_width": 210,
-      "decoded_bytes": 287280,
-      "distinct_colour_count": 128,
-      "file_bytes": 2440,
+      "decoded_bytes": 317520,
+      "distinct_colour_count": 120,
+      "file_bytes": 2854,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 342,
+      "height": 378,
       "mode": "RGBA",
       "name": "tower_tier1_mw",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "93035f77fa8dfcc39842484e2a39da4637b53d0fbe7eb83bd2bd652dad7dd78e",
-      "sha256": "91195b2052c46f285332dbea4cb16f1c59f488786bb98909a2e929cb34415714",
+      "pixels_sha256": "0415e52442b2945289b39c3b44456df05da3150901885bbf591ece90bd603412",
+      "sha256": "bdae77ee621aa455ce6e69113c949ace4f8f5a19c17a16ac21ce60f6e5051fb8",
       "transparent_padding_bytes": 1680,
-      "transparent_padding_fraction": 0.005847953216374269,
+      "transparent_padding_fraction": 0.005291005291005291,
+      "width": 210
+    },
+    {
+      "content_band_centre_x": [
+        0.4972718682261513,
+        0.5047904941656063
+      ],
+      "content_band_coverage": [
+        0.9859931966955379,
+        0.970185518680502
+      ],
+      "content_bbox": [
+        0,
+        2,
+        207,
+        340
+      ],
+      "content_column_max": 0.9970414201183432,
+      "content_coverage": 0.9780893576880199,
+      "content_height": 338,
+      "content_row_max": 0.9951690821256038,
+      "content_width": 207,
+      "decoded_bytes": 283176,
+      "distinct_colour_count": 286,
+      "file_bytes": 6142,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 342,
+      "mode": "RGBA",
+      "name": "tower_tier1_short_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 241,
+      "pixels_sha256": "3cb229b2a238d1cfc8f8c9c979d694d2bfcad6e6476948556ae2509e1856d770",
+      "sha256": "c24859b4857e779fe5dc3dee4cf7fbc52f0e747c2d2077afa0529703b7621ab0",
+      "transparent_padding_bytes": 3312,
+      "transparent_padding_fraction": 0.011695906432748537,
+      "width": 207
+    },
+    {
+      "content_band_centre_x": [
+        0.5072739726027398,
+        0.5010291262135922
+      ],
+      "content_band_coverage": [
+        0.9125,
+        0.9363636363636364
+      ],
+      "content_bbox": [
+        2,
+        2,
+        52,
+        67
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.9246153846153846,
+      "content_height": 65,
+      "content_row_max": 0.94,
+      "content_width": 50,
+      "decoded_bytes": 14904,
+      "distinct_colour_count": 19,
+      "file_bytes": 292,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 69,
+      "mode": "RGBA",
+      "name": "tower_tier1_short_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "f5bb2e6c78a92fa1c6ccba378be31afe13949b7b6346541e13aafc5fb263a75f",
+      "sha256": "7c6bbabdf2cf9fc96e1a21117ab741819581523315c0e089f9411a2c9f25fbd6",
+      "transparent_padding_bytes": 1904,
+      "transparent_padding_fraction": 0.12775093934514226,
+      "width": 54
+    },
+    {
+      "content_band_centre_x": [
+        0.49968580933404527,
+        0.5046143987473288
+      ],
+      "content_band_coverage": [
+        0.9907795714367783,
+        0.4160395243292928
+      ],
+      "content_bbox": [
+        0,
+        2,
+        206,
+        340
+      ],
+      "content_column_max": 0.9644970414201184,
+      "content_coverage": 0.7034095478830356,
+      "content_height": 338,
+      "content_row_max": 1.0,
+      "content_width": 206,
+      "decoded_bytes": 283176,
+      "distinct_colour_count": 133,
+      "file_bytes": 3281,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 342,
+      "mode": "RGBA",
+      "name": "tower_tier1_short_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "211d50e176a5b6995cc4d424ae6ce59651683b0b3dc2ae0b1564f159d554cc5c",
+      "sha256": "253be4f5e491de6fc7d3432f708cec443ac9da48225e7101c5f4d2258fa66f0f",
+      "transparent_padding_bytes": 4664,
+      "transparent_padding_fraction": 0.016470322343701445,
+      "width": 207
+    },
+    {
+      "content_band_centre_x": [
+        0.5014442100546189,
+        0.4987693333907676
+      ],
+      "content_band_coverage": [
+        0.9940996503496503,
+        0.9951267482517483
+      ],
+      "content_bbox": [
+        1,
+        2,
+        209,
+        442
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.9946131993006992,
+      "content_height": 440,
+      "content_row_max": 1.0,
+      "content_width": 208,
+      "decoded_bytes": 372960,
+      "distinct_colour_count": 282,
+      "file_bytes": 6041,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 444,
+      "mode": "RGBA",
+      "name": "tower_tier1_tall_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 255,
+      "pixels_sha256": "b84e626b28144617817e6f938dc68837851b7b69791c38abac77563080e7d322",
+      "sha256": "01968c4591d5aa2ea5ead965706eaaf12cc104221dfdb65413296542461808f4",
+      "transparent_padding_bytes": 6880,
+      "transparent_padding_fraction": 0.018447018447018446,
+      "width": 210
+    },
+    {
+      "content_band_centre_x": [
+        0.501691284248506,
+        0.5030755771833181
+      ],
+      "content_band_coverage": [
+        0.923469387755102,
+        0.9233147804576376
+      ],
+      "content_bbox": [
+        2,
+        2,
+        51,
+        67
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.9233908948194662,
+      "content_height": 65,
+      "content_row_max": 0.9387755102040817,
+      "content_width": 49,
+      "decoded_bytes": 14076,
+      "distinct_colour_count": 17,
+      "file_bytes": 282,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 69,
+      "mode": "RGBA",
+      "name": "tower_tier1_tall_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "610c5546ae0589e602065bf2540438065d70dae110e0f34ce5b6f8e0e140ef1b",
+      "sha256": "4183e7b8144406d0f60b471a92d1e32d28e3e798b907ff16e3e889d544171b6e",
+      "transparent_padding_bytes": 1336,
+      "transparent_padding_fraction": 0.09491332764990054,
+      "width": 51
+    },
+    {
+      "content_band_centre_x": [
+        0.5014442100546189,
+        0.4906497413623373
+      ],
+      "content_band_coverage": [
+        0.9940996503496503,
+        0.5635052447552448
+      ],
+      "content_bbox": [
+        1,
+        2,
+        209,
+        442
+      ],
+      "content_column_max": 0.9818181818181818,
+      "content_coverage": 0.7788024475524475,
+      "content_height": 440,
+      "content_row_max": 1.0,
+      "content_width": 208,
+      "decoded_bytes": 372960,
+      "distinct_colour_count": 138,
+      "file_bytes": 3372,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 444,
+      "mode": "RGBA",
+      "name": "tower_tier1_tall_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "defb493e535bbd983c35c5ff75838813ef6fd69682463ae74ad2e25d6c9116c3",
+      "sha256": "12878552f92ef4317f454138c2ad8bfd10d614aa542c1feac8b29fbcb6a840b9",
+      "transparent_padding_bytes": 6880,
+      "transparent_padding_fraction": 0.018447018447018446,
       "width": 210
     },
     {
@@ -14638,29 +15394,29 @@
       "content_row_max": 0.9820359281437125,
       "content_width": 167,
       "decoded_bytes": 88704,
-      "distinct_colour_count": 96,
-      "file_bytes": 1691,
+      "distinct_colour_count": 44,
+      "file_bytes": 946,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 132,
       "mode": "RGBA",
       "name": "tower_tier2_fx",
       "on_grid": true,
-      "opaque_rgb_count": 65,
-      "pixels_sha256": "0ad4ddfd8ba705415bf4208f26f730dc3887b9d47a8cfb721c15e6693fea0aee",
-      "sha256": "4a6f66d93d69528b988c25686672dcb1f521eecf42f65a656391c9502775b569",
+      "opaque_rgb_count": 13,
+      "pixels_sha256": "aa509711856755b4a5adc0d1e7fb3f272e422026b212509e6afb031c3f6e71ce",
+      "sha256": "3481873b065574294933e71d21871af97723c7a2a79a8dc2212fc47255925eba",
       "transparent_padding_bytes": 1864,
       "transparent_padding_fraction": 0.021013708513708512,
       "width": 168
     },
     {
       "content_band_centre_x": [
-        0.5044363328138244,
-        0.49517219741119767
+        0.5027603399176044,
+        0.4971612542312896
       ],
       "content_band_coverage": [
-        0.8877015200368493,
-        0.8263473053892215
+        0.9714417319207739,
+        0.9663749424228466
       ],
       "content_bbox": [
         1,
@@ -14669,13 +15425,13 @@
         132
       ],
       "content_column_max": 1.0,
-      "content_coverage": 0.8570244127130354,
+      "content_coverage": 0.9689083371718102,
       "content_height": 130,
       "content_row_max": 0.9820359281437125,
       "content_width": 167,
       "decoded_bytes": 88704,
-      "distinct_colour_count": 56,
-      "file_bytes": 1064,
+      "distinct_colour_count": 42,
+      "file_bytes": 720,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 132,
@@ -14683,10 +15439,82 @@
       "name": "tower_tier2_mw",
       "on_grid": true,
       "opaque_rgb_count": 0,
-      "pixels_sha256": "8cbee6dd6731730cf8448964d68559c8b22c1659a16bc0dd2440ea01d214cf6e",
-      "sha256": "dc81bcc01c4ee86c37f05142bd4b099c53fc179dcb7aa10d13084684d6e46f59",
+      "pixels_sha256": "caee4fbb875a9a3c94fb7ae592d2eb47e304e15da6dc1d337c8200ea1d8ae851",
+      "sha256": "dd6e61bdbeb2f0dd96c20b3267a1f481b11e62bb2ea2a5cd9548784c609b23d9",
       "transparent_padding_bytes": 1864,
       "transparent_padding_fraction": 0.021013708513708512,
+      "width": 168
+    },
+    {
+      "content_band_centre_x": [
+        0.50274532689574,
+        0.4986283797642033
+      ],
+      "content_band_coverage": [
+        0.9633534136546185,
+        0.9657200229489387
+      ],
+      "content_bbox": [
+        0,
+        2,
+        168,
+        168
+      ],
+      "content_column_max": 0.9939759036144579,
+      "content_coverage": 0.9645367183017786,
+      "content_height": 166,
+      "content_row_max": 0.9821428571428571,
+      "content_width": 168,
+      "decoded_bytes": 112896,
+      "distinct_colour_count": 50,
+      "file_bytes": 1074,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 168,
+      "mode": "RGBA",
+      "name": "tower_tier2_tall_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 12,
+      "pixels_sha256": "b8aace7aafc1cab23b782552bc133b1e901fb1ae4319ad454fbe252d50c1c823",
+      "sha256": "e8d15955ac0933495a48d0b67055b4348f99b5f3082681287d6bab2ccc20729a",
+      "transparent_padding_bytes": 1344,
+      "transparent_padding_fraction": 0.011904761904761904,
+      "width": 168
+    },
+    {
+      "content_band_centre_x": [
+        0.50274532689574,
+        0.4986283797642033
+      ],
+      "content_band_coverage": [
+        0.9633534136546185,
+        0.9657200229489387
+      ],
+      "content_bbox": [
+        0,
+        2,
+        168,
+        168
+      ],
+      "content_column_max": 0.9939759036144579,
+      "content_coverage": 0.9645367183017786,
+      "content_height": 166,
+      "content_row_max": 0.9821428571428571,
+      "content_width": 168,
+      "decoded_bytes": 112896,
+      "distinct_colour_count": 46,
+      "file_bytes": 841,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 168,
+      "mode": "RGBA",
+      "name": "tower_tier2_tall_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 0,
+      "pixels_sha256": "4eca85237cab6ef70252d877806a08d9a1b173c835c3c7912a11d96c9012edde",
+      "sha256": "1dad8b458da4c1bb650bc1cc4521e5cb8a8d20c8e201d6b2a9bd1f296241fdb9",
+      "transparent_padding_bytes": 1344,
+      "transparent_padding_fraction": 0.011904761904761904,
       "width": 168
     },
     {

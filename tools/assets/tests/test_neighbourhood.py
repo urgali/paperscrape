@@ -40,14 +40,16 @@ REGISTRY_PATH = TOOL_ROOT / "sources/sprites.json"
 
 
 def every_group():
-    """Every `Group` of every piece of every family, built fresh."""
-    from build_neighbourhood import families
+    """Every `Group` of every piece of every family, built fresh -- the tower's three heights and
+    the distant houses (v5.11) included, which belong to no option list of their own."""
+    from build_neighbourhood import families, extras
     groups = []
-    for building in families().values():
-        for slot in building.slots:
-            for piece in slot.options:
-                for group, _x, _y in piece.ordered():
-                    groups.append(group)
+    pieces = [piece for building in families().values() for slot in building.slots
+              for piece in list(slot.options) + list(slot.heights)]
+    pieces += [piece for piece, _kind in extras()]
+    for piece in pieces:
+        for group, _x, _y in piece.ordered():
+            groups.append(group)
     return groups
 
 
@@ -116,10 +118,10 @@ class ShippedSetTest(unittest.TestCase):
         self.assertEqual([], stray)
 
     def test_every_piece_of_the_table_ships_and_is_declared(self):
-        from build_neighbourhood import families
+        from build_neighbourhood import families, extras
         from core import build_concept
         out = TOOL_ROOT / "buildings" / "out"
-        _table, _pieces, files = build_concept("mix", families(), out)
+        _table, _pieces, files = build_concept("mix", families(), out, extras())
         for name in sorted(files):
             shipped = production(name)
             with self.subTest(sprite=shipped):

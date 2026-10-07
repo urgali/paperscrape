@@ -3,7 +3,7 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.R
 
 /**
- * What each of the six building families is made of. **Generated** by
+ * What each of the six building families is made of, and the distant houses. **Generated** by
  * `tools/assets/buildings/build_neighbourhood.py`; edit that script, not this file.
  *
  * A family is a list of SLOTS, bottom-up. A slot holds the alternative PIECES the composer may
@@ -13,8 +13,8 @@ import com.paperscrape.livewallpaper.R
  * silhouettes rather than one facade repeated.
  *
  * [PartRole] is what a part is *for*, not how it looks:
- * - `FIXED` is art that never takes a tint (awnings, plaques, lanterns, stone steps, the busts'
- *   cream frames) plus the fixed term of every tinted card;
+ * - `FIXED` is art that never takes a tint (awnings, plaques, the lanterns' brackets, stone steps,
+ *   the busts' cream frames) plus the fixed term of every tinted card;
  * - `WALL_MASK` and `GLASS_MASK` are weight masks **summed** over the fixed layer at the blit,
  *   the system the people have used since v4.30 -- a weight interpolates, an index does not, and
  *   an index is what left a 63/255 halo when this was tried the other way round;
@@ -47,7 +47,20 @@ internal class BuildingPiece(
     val beaconX: Float, val beaconY: Float,
 )
 
-internal class BuildingSlot(val options: List<BuildingPiece>, val repeatMin: Int, val repeatMax: Int)
+/**
+ * One slot of a family: the [options] the deal chooses between and how many times the piece repeats.
+ *
+ * [heights], where a slot has them, are alternatives the deal does **not** choose between: each
+ * instance takes one by a coin of its own (`NeighbourhoodComposer.heightIndex`), in place of the one
+ * piece in [options]. The towers' three bodies (v5.11) vary a skyline's height this way without
+ * growing the catalogue `SilhouetteDeal` deals from, which would have re-dealt every theme's crowns.
+ */
+internal class BuildingSlot(
+    val options: List<BuildingPiece>,
+    val repeatMin: Int,
+    val repeatMax: Int,
+    val heights: List<BuildingPiece> = emptyList(),
+)
 
 internal class BuildingFamily(
     /** The height the piece stack is drawn in, which [SceneSpace.SceneVariant] scales to. */
@@ -186,49 +199,169 @@ internal object NeighbourhoodTable {
     )
 
     private val TOWER_BODY = BuildingPiece(
-        176.00f,
+        188.00f,
         listOf(
-        BuildingPart(R.drawable.tower_tier1_fx, -34.00f, -109.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_tier1_mw, -34.00f, -109.00f, PartRole.WALL_MASK),
-        BuildingPart(R.drawable.tower_tier1_mg, -28.00f, -24.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_tier2_fx, -27.00f, -148.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_tier2_mw, -27.00f, -148.00f, PartRole.WALL_MASK),
-        BuildingPart(R.drawable.tower_tier3_fx, -19.00f, -177.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_tier3_mw, -19.00f, -177.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_tier1_fx, -34.00f, -121.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_tier1_mw, -34.00f, -121.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_tier1_mg, -9.00f, -24.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_tier2_fx, -27.00f, -160.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_tier2_mw, -27.00f, -160.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_tier3_fx, -19.00f, -189.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_tier3_mw, -19.00f, -189.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_bay_door_fx, -30.00f, -23.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_door_mg, -30.00f, -23.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_door_fx, 18.00f, -23.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_door_mg, 18.00f, -23.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, -31.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, -31.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, -15.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, -15.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, 1.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, 1.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, 17.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, 17.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -113.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -113.00f, PartRole.GLASS_MASK),
         BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -101.00f, PartRole.FIXED),
         BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -101.00f, PartRole.GLASS_MASK),
         BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -89.00f, PartRole.FIXED),
         BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -89.00f, PartRole.GLASS_MASK),
         BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -77.00f, PartRole.FIXED),
         BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -77.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -65.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -65.00f, PartRole.GLASS_MASK),
         BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -53.00f, PartRole.FIXED),
         BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -53.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -41.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -41.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_bay_fx, -28.00f, -65.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_bay_mg, -28.00f, -65.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_bay_fx, 8.00f, -65.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_bay_mg, 8.00f, -65.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -155.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -155.00f, PartRole.GLASS_MASK),
         BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -143.00f, PartRole.FIXED),
         BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -143.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -119.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -119.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_bay_fx, -7.00f, -132.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_bay_mg, -7.00f, -132.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -131.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -131.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier3_fx, -15.00f, -183.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier3_mg, -15.00f, -183.00f, PartRole.GLASS_MASK),
         BuildingPart(R.drawable.tower_row_tier3_fx, -15.00f, -171.00f, PartRole.FIXED),
         BuildingPart(R.drawable.tower_row_tier3_mg, -15.00f, -171.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_row_tier3_fx, -15.00f, -159.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_row_tier3_mg, -15.00f, -159.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.tower_snow_left1_fx, -34.00f, -123.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_right1_fx, 25.00f, -123.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_left2_fx, -27.00f, -163.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_right2_fx, 17.00f, -163.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_top_fx, -19.00f, -191.00f, PartRole.SNOW),
+        BuildingPart(0, -13.00f, -26.50f, PartRole.LAMP),
+        ),
+        listOf(BuildingWindow(-30.00f, -22.00f, 12.00f, 12.00f), BuildingWindow(18.00f, -22.00f, 12.00f, 12.00f), BuildingWindow(-30.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(-14.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(2.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(18.00f, -40.00f, 12.00f, 11.00f)),
+        listOf(BuildingWindow(-27.00f, -45.00f, 18.00f, 0f), BuildingWindow(9.00f, -45.00f, 18.00f, 0f), BuildingWindow(-27.00f, -105.00f, 18.00f, 0f), BuildingWindow(9.00f, -105.00f, 18.00f, 0f)),
+        0.00f, 0.00f, 0.00f, 0.00f,
+    )
+
+    private val TOWER_BODY_SHORT = BuildingPiece(
+        148.00f,
+        listOf(
+        BuildingPart(R.drawable.tower_tier1_short_fx, -34.00f, -109.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_tier1_short_mw, -34.00f, -109.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_tier1_short_mg, -9.00f, -24.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_tier2_fx, -27.00f, -148.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_tier2_mw, -27.00f, -148.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_bay_door_fx, -30.00f, -23.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_door_mg, -30.00f, -23.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_door_fx, 18.00f, -23.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_door_mg, 18.00f, -23.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, -31.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, -31.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, -15.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, -15.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, 1.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, 1.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, 17.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, 17.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -101.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -101.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -89.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -89.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -77.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -77.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -65.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -65.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -53.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -53.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -143.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -143.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -131.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -131.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -119.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -119.00f, PartRole.GLASS_MASK),
         BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
         BuildingPart(R.drawable.tower_snow_left1_fx, -34.00f, -111.00f, PartRole.SNOW),
         BuildingPart(R.drawable.tower_snow_right1_fx, 25.00f, -111.00f, PartRole.SNOW),
-        BuildingPart(R.drawable.tower_snow_left2_fx, -27.00f, -151.00f, PartRole.SNOW),
-        BuildingPart(R.drawable.tower_snow_right2_fx, 17.00f, -151.00f, PartRole.SNOW),
-        BuildingPart(R.drawable.tower_snow_top_fx, -19.00f, -179.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_top_wide_fx, -27.00f, -151.00f, PartRole.SNOW),
         BuildingPart(0, -13.00f, -26.50f, PartRole.LAMP),
         ),
-        listOf(BuildingWindow(-27.00f, -64.00f, 12.00f, 11.00f), BuildingWindow(9.00f, -64.00f, 12.00f, 11.00f), BuildingWindow(-6.00f, -131.00f, 12.00f, 11.00f)),
-        listOf(BuildingWindow(-27.00f, -33.00f, 18.00f, 0f), BuildingWindow(9.00f, -33.00f, 18.00f, 0f), BuildingWindow(-27.00f, -93.00f, 18.00f, 0f), BuildingWindow(9.00f, -93.00f, 18.00f, 0f)),
+        listOf(BuildingWindow(-30.00f, -22.00f, 12.00f, 12.00f), BuildingWindow(18.00f, -22.00f, 12.00f, 12.00f), BuildingWindow(-30.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(-14.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(2.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(18.00f, -40.00f, 12.00f, 11.00f)),
+        listOf(BuildingWindow(-27.00f, -45.00f, 18.00f, 0f), BuildingWindow(9.00f, -45.00f, 18.00f, 0f), BuildingWindow(-27.00f, -93.00f, 18.00f, 0f), BuildingWindow(9.00f, -93.00f, 18.00f, 0f)),
+        0.00f, 0.00f, 0.00f, 0.00f,
+    )
+
+    private val TOWER_BODY_TALL = BuildingPiece(
+        224.00f,
+        listOf(
+        BuildingPart(R.drawable.tower_tier1_tall_fx, -34.00f, -145.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_tier1_tall_mw, -34.00f, -145.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_tier1_tall_mg, -9.00f, -24.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_tier2_tall_fx, -27.00f, -197.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_tier2_tall_mw, -27.00f, -197.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_tier3_fx, -19.00f, -225.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_tier3_mw, -19.00f, -225.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.tower_bay_door_fx, -30.00f, -23.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_door_mg, -30.00f, -23.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_door_fx, 18.00f, -23.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_door_mg, 18.00f, -23.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, -31.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, -31.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, -15.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, -15.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, 1.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, 1.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_bay_fx, 17.00f, -41.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_bay_mg, 17.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -137.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -137.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -125.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -125.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -113.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -113.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -101.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -101.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -89.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -89.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -77.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -77.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -65.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -65.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier1_fx, -28.00f, -53.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier1_mg, -28.00f, -53.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -191.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -191.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -179.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -179.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -167.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -167.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier2_fx, -23.00f, -155.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier2_mg, -23.00f, -155.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier3_fx, -15.00f, -219.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier3_mg, -15.00f, -219.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.tower_row_tier3_fx, -15.00f, -207.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.tower_row_tier3_mg, -15.00f, -207.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.tower_snow_left1_fx, -34.00f, -147.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_right1_fx, 25.00f, -147.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_left2_fx, -27.00f, -199.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_right2_fx, 17.00f, -199.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.tower_snow_top_fx, -19.00f, -227.00f, PartRole.SNOW),
+        BuildingPart(0, -13.00f, -26.50f, PartRole.LAMP),
+        ),
+        listOf(BuildingWindow(-30.00f, -22.00f, 12.00f, 12.00f), BuildingWindow(18.00f, -22.00f, 12.00f, 12.00f), BuildingWindow(-30.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(-14.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(2.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(18.00f, -40.00f, 12.00f, 11.00f)),
+        listOf(BuildingWindow(-27.00f, -45.00f, 18.00f, 0f), BuildingWindow(9.00f, -45.00f, 18.00f, 0f), BuildingWindow(-27.00f, -129.00f, 18.00f, 0f), BuildingWindow(9.00f, -129.00f, 18.00f, 0f)),
         0.00f, 0.00f, 0.00f, 0.00f,
     )
 
@@ -322,6 +455,48 @@ internal object NeighbourhoodTable {
         0.00f, 0.00f, 0.00f, 0.00f,
     )
 
+    private val HOUSE_DISTANT_COTTAGE = BuildingPiece(
+        23.00f,
+        listOf(
+        BuildingPart(R.drawable.house_distant_cottage_fx, -12.00f, -24.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.house_distant_cottage_mw, -12.00f, -24.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.house_distant_cottage_mg, -6.00f, -11.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.house_distant_cottage_snow_fx, -10.00f, -25.00f, PartRole.SNOW),
+        ),
+        listOf(),
+        listOf(),
+        0.00f, 0.00f, 0.00f, 0.00f,
+    )
+
+    private val HOUSE_DISTANT_CHALET = BuildingPiece(
+        22.00f,
+        listOf(
+        BuildingPart(R.drawable.house_distant_chalet_fx, -15.00f, -23.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.house_distant_chalet_mw, -15.00f, -23.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.house_distant_chalet_mg, -10.00f, -16.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.house_distant_chalet_snow_fx, -13.00f, -24.00f, PartRole.SNOW),
+        ),
+        listOf(),
+        listOf(),
+        0.00f, 0.00f, 0.00f, 0.00f,
+    )
+
+    private val HOUSE_DISTANT_TALL = BuildingPiece(
+        30.00f,
+        listOf(
+        BuildingPart(R.drawable.house_distant_tall_fx, -10.00f, -31.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.house_distant_tall_mw, -10.00f, -31.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.house_distant_tall_mg, -3.00f, -19.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.house_distant_tall_snow_fx, -8.00f, -32.00f, PartRole.SNOW),
+        ),
+        listOf(),
+        listOf(),
+        0.00f, 0.00f, 0.00f, 0.00f,
+    )
+
     val FAMILIES: Map<SceneSpace.SceneVariant, BuildingFamily> = mapOf(
         SceneSpace.SceneVariant.HOUSE_SMALL to BuildingFamily(
             67.434f, 30.0f, WindowBuildingKind.HOUSE,
@@ -342,7 +517,7 @@ internal object NeighbourhoodTable {
         SceneSpace.SceneVariant.TOWER to BuildingFamily(
             182.634f, 35.0f, WindowBuildingKind.SKYSCRAPER,
             listOf(
-                BuildingSlot(listOf(TOWER_BODY), 1, 1),
+                BuildingSlot(listOf(TOWER_BODY), 1, 1, heights = listOf(TOWER_BODY_SHORT, TOWER_BODY, TOWER_BODY_TALL)),
                 BuildingSlot(listOf(TOWER_CROWN_SPIRE, TOWER_CROWN_DOME), 1, 1),
             ),
         ),
@@ -378,4 +553,11 @@ internal object NeighbourhoodTable {
             ),
         ),
     )
+
+    /**
+     * The distant houses on the mountains (v5.11), in the order `DistantHouses` deals them: the
+     * cottage, the chalet, the tall house. Each piece's `height` is its drawing's own, roof peak to
+     * foot, which is what `SceneSpace.distantHousePixelsTall` sizes.
+     */
+    val DISTANT_HOUSES: List<BuildingPiece> = listOf(HOUSE_DISTANT_COTTAGE, HOUSE_DISTANT_CHALET, HOUSE_DISTANT_TALL)
 }

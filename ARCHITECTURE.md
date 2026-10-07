@@ -70,8 +70,8 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
 |---|---|
 | `PaperWallpaperService.kt` | `WallpaperService` + inner `PaperEngine`. Owns the render thread, the `Canvas` fallback loop, surface lifecycle, preference collection, location and weather refresh. Holds the Live Weather loop: a two-minute check tick that only fetches once an hour, unless an input in `LiveWeatherInputs` changed or the location did; the tick comes sooner when a try for the phone's position falls due (`SolarDaySchedule.nextPassDelayMillis`). It also records, once, that the home screen has moved the wallpaper with a swipe (`SwipeReport`, `onOffsetsChanged`), which *Swipe scroll* waits for. |
 | `WallpaperEngineCensus.kt` | Whether this process is drawing the phone's wallpaper: its engines that are not a picker's preview, counted. The settings screen's top button reads it to say "PaperScrape is your wallpaper". Counted from the engines rather than asked of `WallpaperManager.getWallpaperInfo()`, which names PaperScrape as soon as the system has opened a connection, engine or not (after a force-stop, over a blank home screen). |
-| `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains, hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
-| `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, buildings, trees, parasols, seasonal decorations), the road, cars and people. |
+| `PaperRenderer.kt` | Draws sky, stars, sun/moon, clouds, precipitation, rainbow, mountains (each followed at once by the distant houses standing on it, v5.11), hills, lake and its decorations, birds, falling leaves. Owns scroll/parallax state and the depth mapping constants. |
+| `SceneObjectRenderer.kt` | Draws ground-anchored scene objects (houses, towers, shops, trees, parasols, seasonal decorations), the road, cars and people. Since v5.11 a tower whose foot stands on the hill's crest is drawn a little forward (`SceneSpace.towerDrawnDepth`, the drawn depth only), and the order is sorted by that drawn depth once per layout, never per frame. |
 | `SpriteBlitter.kt` | The single sprite-blitting path, shared by both renderers, plus the `SpriteScale` convention selector and the one definition of `SPRITE_PIXELS_PER_UNIT`. |
 | `SceneCanvas.kt` | The drawing interface both renderers target, plus `SceneShape`, the closed polygon drawn in place of `Path`. |
 | `CanvasSceneTarget.kt` | `SceneCanvas` over `android.graphics.Canvas`: the settings preview and the EGL fallback. Owns a `GradientShaderCache`, so its three gradient entry points reuse shaders instead of building one per call. |
@@ -84,7 +84,7 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
 | `SceneTransform.kt` | The `save`/`restore`/`translate`/`scale`/`rotate` arithmetic, as pure testable code. |
 | `SceneObject.kt` | Scene object data model (`StaticSceneObject`, `CarObject`, `SceneObjectLayout`) and `SceneObjectCatalog`, which generates candidate slots per category. The twelve built-in streets place their three shops together, so no spot of the street holds the same shop on more than a few themes; saved and mixed themes are not part of it. The plan (`planShopPositions`) is not computed when the app starts: `ShopPlanTable.kt` holds its answer. |
 | `SceneTheme.kt` | Theme data model and built-in theme catalog. |
-| `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, lake, birds config. |
+| `SceneCustomization.kt` | Per-category visibility/density/colour configuration plus sky, stars, clouds, precipitation, rainbow, mountains, distant houses, lake, birds config. Since v5.11 the shops (restaurant, school, bar) have a colour pair of their own, `shops`, beside the towers' `buildings`; which pair a building wears follows what it is drawn as (`buildingColoursFor`), and each built-in theme starts its towers and shops from colours of its own (`builtInTowerColours`, `builtInShopColours`). |
 | `LiveWeatherSceneRules.kt` | Which layer's settings win while Live Weather is active — clouds and the lightning flash. Pure, because the defect it prevents is not a wrong value in any one layer but the layers disagreeing: rain from an empty sky, or a flash over a dry scene. Three layers, one rule. |
 | `StormAtmosphere.kt` | How much the weather darkens the scene, and what that darkening does to a colour. One pure `strength(...) -> 0..1` feeds sky darkening, cloud darkening and sun attenuation, so the three cannot disagree about how bad the weather is. `dim` pulls a colour toward its own Rec. 601 luminance and then down, which keeps the blend relative to the theme's palette rather than substituting a storm one. Applied *on top of* the day/night colour, so the two are orthogonal and combine. |
 | `CloudBand.kt` | Where the cloud band sits and what hangs off it: the clouds, the rain's fall origin, and the lightning's origin. Pure, and separate, so all three are derived from one function and cannot drift apart: a copy of the arithmetic at each call site would let the bolts be born above the band instead of inside it. |
@@ -112,7 +112,7 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
 | `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview, which builds its objects from the same sprites at the same offsets; `PalmSpriteLayout.kt` does the same for a palm's two parts. |
 | `NeighbourhoodTable.kt` | **Generated** (`tools/assets/buildings/build_neighbourhood.py`): what each of the six building families is made of, as a list of slots, each holding the alternative pieces one instance may be dealt. A part is `FIXED` art, a `WALL_MASK`/`GLASS_MASK` weight summed at the blit, a `SNOW` layer, or a call-out (`LAMP`, `OCCUPANTS`) to a behaviour at the piece's own declared coordinates. |
 | `SpriteOccluderTable.kt` | **Generated** (`tools/assets/build_occluder_table.py`): where the ink is in every drawing an occlusion box has to speak for — the three palm crowns, the oak's two, the parasol's procedural fan — as a content box in object units plus the drawing's fullest row and fullest column. The layout pass and `ShopFrontVisibilityTest` both read this and build their own rectangle from it; `SpriteOccluderTableFreshnessTest` re-measures it straight from the PNG so it cannot fall behind a redraw. |
-| `NeighbourhoodComposer.kt` | Deals one building out of that table — one alternative and one repeat count per slot, from the object's own stable identity — and stacks the pieces bottom-up. Read by **both** things that draw a building, the wallpaper and the gallery card, so there is one composer and no copy. `Deal` is owned and reused by its caller, so a scene does not allocate a list per building per frame. |
+| `NeighbourhoodComposer.kt` | Deals one building out of that table — one alternative and one repeat count per slot, from the object's own stable identity — and stacks the pieces bottom-up. A slot with `heights` (the tower's body, v5.11) gives each building one of its heights by a coin of its own (`heightIndex`), so the silhouette deal and the crowns are untouched. Read by **both** things that draw a building, the wallpaper and the gallery card, so there is one composer and no copy. `Deal` is owned and reused by its caller, so a scene does not allocate a list per building per frame. |
 | `SceneColour.kt` | The one blend the colour rules are built from: `ColorUtils.blendARGB`'s arithmetic without the framework call, so `colorFor` and `windowGlassColor` run on the host and the JVM suite can evaluate them. `SceneColourBlendTest` (instrumented) proves the two identical over a sweep. |
 | `SpriteCache.kt` / `SpriteCacheIndex.kt` | The bitmap cache and its bookkeeping. The index is `SpriteCache`'s own `private val` — ids, byte counts and LRU order in `IntArray`s, deliberately free of Android types so the eviction logic is unit-testable, and cleared by the same `clear()` the memory-pressure path calls. |
 | `MemoryPressurePolicy.kt` | What an `onTrimMemory` level means for a wallpaper, as a pure decision. Notably `TRIM_MEMORY_UI_HIDDEN` is *not* treated as pressure, though its numeric value sits above `RUNNING_CRITICAL`: for a wallpaper it only means the settings screen closed. |
@@ -130,6 +130,8 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
 | `PeopleColours.kt` | What colour each of a person's four regions wears, dealt afresh each time a walker crosses the scene and deterministic in theme, person and crossing. |
 | `PeopleLayerTable.kt` | **Generated** (`tools/generate_people_layers.py`, which also writes the artwork): which drawables make up each person, the fixed art and one weight mask per colourable region. |
 | `PrecipitationContrast.kt` | The rule that carries the rain's colour away from the sky it falls across (`standOffFromSky`), kept outside the renderer so the JVM test measures the function the renderer draws with. |
+| `DistantHouses.kt` | The distant houses on the mountains (v5.11): five places a mountain, which of them stand at an amount (a share that only adds as it rises), which of the three drawings, which of the houses' two colours, and whether its window lights at night (four in five) — each a coin of its own from the mountain's seed. Drawn by `PaperRenderer.drawDistantHouses`, sized by `SceneSpace.distantHousePixelsTall`. |
+| `BuildingGroundContrast.kt` | The measure the towers' and shops' starting colours are chosen by (v5.11): CIE76 ΔE against the ground behind them, at least 20 by day and 10 by night. Read by the tests, and by `defaultCustomizationFor` for a theme that is not built in (`withStartingBuildingColours` in `SceneCustomization.kt`: a copy of a built-in theme takes that theme's pairs, any other theme the first approved pair that clears the gates against its own ground); never by the drawing: a colour the user picks is drawn whatever it measures. |
 | `SilhouetteDeal.kt` | Which of its category's silhouettes each building slot was dealt: a stratified deal over the slots (`SeededBalance.rankOf`) rather than a hash per slot, so a street shows a spread of silhouettes rather than a clump. |
 
 ### Other packages
@@ -980,7 +982,7 @@ authored in is declared per sprite in `tools/assets/sources/sprites.json` and re
 `SceneObjectRenderer.variantFor` resolves which drawing a static object is
 (small or large house; tower, restaurant, bar or school) once, and both the size and the
 dispatch come from that one answer. A house takes its family from the silhouette it was
-dealt (`SilhouetteDeal`); towers and shops choose by depth rather than by a position hash, so towers sit on the skyline and shop fronts among the houses.
+dealt (`SilhouetteDeal`); towers and shops choose by depth rather than by a position hash, so towers sit on the skyline and shop fronts among the houses. The colour pair follows the same answer: a tower wears the Buildings colours and a restaurant, bar or school the Shops colours (v5.11), so a building cannot be drawn as one and coloured as the other.
 
 **The variant chooses a family, not a picture.** All six dispatch to one
 `drawNeighbourhoodBuilding`, which builds the silhouette the building was dealt (from its position, for one nobody dealt): the
@@ -1220,6 +1222,18 @@ The archive uses `SceneCustomization.toJson`, the same serialisation `CustomThem
 saved themes with -- so a customised built-in and a saved theme are the same bytes in two places
 rather than two formats to keep in step, and the backup format gets both for free.
 
+**The shops' colours and what was stored before them (v5.11).** Until v5.11 the shops wore the
+Buildings colours. A JSON payload with no `shops` block -- a theme's archive, a saved theme, a
+backup's themes, a theme file -- is read with the Buildings colours it carries, modes included, so
+it keeps the look it had. The flat live edit is the one place that keeps only what the user touched:
+where it holds a Buildings colour, the shops and the towers are read as the pair the old build drew
+them in (that colour, the old slate for the rest); where it holds none, both start from the theme's
+new colours, as a theme never edited does. The first edit since writes that reading into the keys
+and marks the space (`scratch_knows_shops`), so *Reset Shops* and *Reset Buildings* afterwards mean
+the theme's own colours -- on a theme that is not built in, the ones `withStartingBuildingColours`
+chooses for it (a copy of a built-in theme, that theme's). The
+distant houses are absent from every older payload and read off.
+
 ### Backup and theme-share formats
 
 Two documents, `prefs/AppBackup.kt` and `prefs/ThemeShare.kt`, with **separate schema versions and
@@ -1412,7 +1426,8 @@ the same function rather than the second crossfade it would otherwise have neede
 Every building but a house has its night scaled by the business openness before it
 reaches those ramps (`BusinessHours`, off by default and then arithmetically absent): outside
 their hours the shops, the bar, the school and the towers hold their unlit daytime glass whatever the sky
-does, and their window occupants' dealt count thins the same way. The houses' windows never
+does, and their window occupants' dealt count thins the same way. The lamp by a door lights with the same
+`glassNight` since v5.11: unlit paper by day, lit at night, dark while the building is closed. The houses' windows never
 consult it — one line, `glassNight`, which `BusinessHoursWiringTest` pins along with the occupant
 path's own exemption, the way `SkyscraperWindowTest` pins the colour coupling.
 
@@ -2059,7 +2074,7 @@ The two tables below are a selection, not the whole suite: the JVM layer first, 
 | `SpriteCacheIndexTest` | Cache bookkeeping: byte accounting, LRU eviction order, eviction to a byte budget, slot reuse, growth, repeated fill/release cycles |
 | `SceneTimeTest` | Bounded time base: accumulation past the 12.14-day Float freeze point, range and smoothness of every helper at one-day/twelve-day/one-year uptime, cycle continuity across wraps, walk-frame ordering, absence of NaN/infinity |
 | `SliderDragStateTest` | Slider drag handover: thumb tracks the finger, exactly one commit per drag, no commit when a drag returns to its origin, no snap-back while a write is in flight, correct ordering for two rapid drags |
-| `SceneCustomizationStructureTest` | Structural vs cosmetic classification for all 12 categories, the static/car separation that keeps cars running, and a reflection guard that fails if a new category is added without updating the comparison |
+| `SceneCustomizationStructureTest` | Structural vs cosmetic classification for all 13 categories (the shops' colours-only one among them), the static/car separation that keeps cars running, and a reflection guard that fails if a new category is added without updating the comparison |
 | `IntLruSlotsTest` | Bounded LRU slot allocation: capacity is never exceeded under a continuous stream of new keys, exact LRU eviction order, slot recycling, hot-key retention |
 | `SceneObjectCullingTest` | Off-screen culling: no early clipping at either edge and continuous visibility while scrolling |
 | `SceneObjectTileCullingTest` | Tile enumeration: bit-exact equality with the fixed three-copy loop over a sweep of more than 50 000 cases, agreement with a brute-force scan of offsets -40..+40, the `floor` start-offset contract, inclusive behaviour at both edges, exact tile boundaries, degenerate tile widths, out-of-range anchors, and that two copies of one object can never overlap |
@@ -2229,8 +2244,9 @@ decision**: none is visible on the phone, and working on one is new work.
     wholesale. It also fills in first-draw order, so a scene whose sprite set exceeds
     2048² pushes its *later* sprites — the objects and people, which benefit most —
     out to standalone textures. Neither has been observed to matter, and neither is
-    worth fixing before it does: 583 of the page's 2048
-    rows in use and no sprite standalone (measured on the BV6600, 2026-09-27).
+    worth fixing before it does: 614 of the page's 2048
+    rows in use and no sprite standalone, every built-in theme swept with the distant houses on at
+    100 % (`GlAtlasOccupancyTest`, measured on the BV6600, 2026-10-07).
 12. **Each engine has its own EGL context**, so the picker's preview engine and the
     live engine do not share textures the way they share `SpriteCache`'s bitmaps.
     Measured on the BV6600 on 2026-09-28: `dumpsys meminfo`'s GL memory for the process reads

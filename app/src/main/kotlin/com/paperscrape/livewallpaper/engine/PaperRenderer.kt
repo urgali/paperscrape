@@ -1279,10 +1279,6 @@ class PaperRenderer(
     // groundY for a given depthFraction comes from SceneSpace.groundYFraction, which is the one
     // place the ground plane is defined.
 
-    // Deterministic per-layer "noise" seed so the silhouette shape is stable across frames
-    // but different per layer/theme.
-    private fun layerSeed(layer: Int): Long = (theme.id.hashCode().toLong() * 31 + layer)
-
     fun onSizeChanged(width: Int, height: Int) {
         screenWidth = width
         screenHeight = height
@@ -2784,6 +2780,8 @@ class PaperRenderer(
                 val x = baseX + tileOffset * tileWidth
                 if (x < -width || x > screenWidth + width) continue
                 drawSoftMountain(canvas, x, baseY, width, peakHeight * heightJitter)
+                // Its distant houses, before the next mountain is drawn over them (v5.11).
+                drawDistantHouses(canvas, x, baseY, width, peakHeight * heightJitter, DistantHouses.seedFor(seed, i), dayPhase.dayBlend)
             }
         }
     }
@@ -2830,6 +2828,56 @@ class PaperRenderer(
         canvas.drawShape(mountainShape, mountainPaint)
         MountainSilhouette.rightHalf(mountainShape, cx, baseY, width, height)
         canvas.drawShape(mountainShape, mountainPaint)
+    }
+
+    /**
+     * The distant houses on one mountain (v5.11, inventory I-407): see [DistantHouses] for where, how
+     * many and how large. Drawn from the same pieces the village's houses are, in the same paper: the
+     * wall a weight mask summed in one of the houses' two colours, the glass in the scene's glass --
+     * lit at night, in four houses of five -- and the snow over the roof only with the winter palette.
+     * Nothing drawn while the switch is off or at 0 %, which is every theme as it ships.
+     */
+    private fun drawDistantHouses(
+        canvas: SceneCanvas,
+        cx: Float,
+        baseY: Float,
+        width: Float,
+        height: Float,
+        seed: Int,
+        dayBlend: Float,
+    ) {
+        val config = sceneCustomization.distantHouses
+        if (!config.drawsAny) return
+        val pieces = NeighbourhoodTable.DISTANT_HOUSES
+        val halfWidth = width / 2f
+        val night = (1f - dayBlend).coerceIn(0f, 1f)
+        val winter = sceneCustomization.winterColorsEnabled
+        for (slot in DistantHouses.SLOTS.indices) {
+            if (!DistantHouses.stands(seed, slot, config.density)) continue
+            val along = DistantHouses.along(seed, slot)
+            val surface = DistantHouses.surfaceY(baseY, height, along)
+            val pixelsTall = SceneSpace.distantHousePixelsTall(surface / screenHeight, screenHeight.toFloat())
+            val footY = DistantHouses.footY(surface, DistantHouses.slope(height, halfWidth, along), pixelsTall)
+            val piece = pieces[DistantHouses.design(seed, slot, pieces.size)]
+            val wall = sceneCustomization.houses.colorAt(DistantHouses.colourVariant(seed, slot), dayBlend)
+            val glass = SceneObjectRenderer.windowGlassColor(night * DistantHouses.litShare(seed, slot))
+            val s = pixelsTall / piece.height
+            canvas.save()
+            canvas.translate(cx + along * halfWidth, footY)
+            canvas.scale(s, s)
+            val parts = piece.parts
+            for (index in parts.indices) {
+                val part = parts[index]
+                when (part.role) {
+                    PartRole.WALL_MASK -> sprites.drawTintedAdded(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS, wall)
+                    PartRole.GLASS_MASK -> sprites.drawTintedAdded(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS, glass)
+                    PartRole.FIXED -> sprites.draw(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS)
+                    PartRole.SNOW -> if (winter) sprites.draw(canvas, part.res, part.x, part.y, SpriteScale.SCENE_UNITS)
+                    PartRole.LAMP, PartRole.OCCUPANTS -> Unit
+                }
+            }
+            canvas.restore()
+        }
     }
 
     /**
@@ -3576,15 +3624,14 @@ class PaperRenderer(
         // variation=1 gives the full [0.04, 0.22] range, variation=0 collapses the amplitude
         // to 0 (a perfectly flat hill at the center line). Never scaled *up* past 1 here
         // specifically so it can never exceed the proven-safe range -- the UI clamps to 0..1 too.
-        val v = hillsVariation.coerceIn(0f, 1f)
-        val centerFraction = 0.13f
-        val maxAmpFraction = 0.09f
-        val amp = maxAmpFraction * v
+        // The wave itself -- `0.13 +/- 0.09 x variation`, two cycles a tile -- is
+        // [SceneSpace.hillCrestFraction], the one statement of the crest, which the towers are
+        // planted by too (v5.11, [SceneSpace.towerDrawnDepth]).
         // A small per-layer/theme phase offset so a theme with (hypothetically, in the future)
         // more than one layer doesn't render every layer's wave perfectly in sync -- with
         // layerCount 1 it no longer de-syncs anything, but it still shifts the one wave by a
         // per-theme phase, so each theme gets its own hill line.
-        val phase = (layerSeed(layer) % 628L) / 100f
+        val phase = SceneSpace.hillCrestPhase(theme.id, layer)
 
         // One pixel of overlap past each end of the tile (v5.8C): two copies of this shape meet
         // at the tile edge, and on the `Canvas` backend both anti-aliased edges covered the same
@@ -3595,7 +3642,7 @@ class PaperRenderer(
         // heights, and the 64 samples themselves are where they always were.
         val seam = HILL_TILE_SEAM_OVERLAP_PX
         path.moveTo(startX - seam, top + height)
-        path.lineTo(startX - seam, top + height * (centerFraction + amp * sin(phase)))
+        path.lineTo(startX - seam, top + height * SceneSpace.hillCrestFraction(0f, hillsVariation, phase))
         // 2 full sine cycles per tile, sampled densely (64 points) for a smooth curve -- cheap
         // here since this whole path is cached and only rebuilt on a theme, size or
         // [hillsVariation] change, not per frame.
@@ -3603,7 +3650,7 @@ class PaperRenderer(
         var lastY = top + height
         for (i in 0..samples) {
             val f = i / samples.toFloat()
-            val heightFrac = centerFraction + amp * sin(f * 4f * kotlin.math.PI.toFloat() + phase)
+            val heightFrac = SceneSpace.hillCrestFraction(f, hillsVariation, phase)
             val x = startX + f * width
             val y = top + height * heightFrac
             path.lineTo(x, y)

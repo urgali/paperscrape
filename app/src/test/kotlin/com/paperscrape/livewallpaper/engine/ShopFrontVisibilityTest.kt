@@ -395,7 +395,7 @@ class ShopFrontVisibilityTest {
         val f = NeighbourhoodTable.FAMILIES.getValue(v)
         var left = 0f
         var right = 0f
-        for (slot in f.slots) for (piece in slot.options) for (part in piece.parts) {
+        for (slot in f.slots) for (piece in slot.options + slot.heights) for (part in piece.parts) {
             if (part.res == 0 || part.role == PartRole.SNOW || part.role == PartRole.LAMP || part.role == PartRole.OCCUPANTS) continue
             val (l, r) = inkColumns(part.res) ?: continue
             left = minOf(left, part.x + l / 3f)

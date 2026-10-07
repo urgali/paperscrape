@@ -10,11 +10,12 @@ one run, so they cannot drift apart.
 
 **The colour rule, which is the whole of the colour system.** Every wall surface descends from
 `SceneCustomization.colorFor(spec, dayBlend)`, that is from one of the two user-editable colours
-of the object's category (HOUSES for the two houses; BUILDINGS for the tower, the restaurant and
-the bar, which share them). There is no per-instance hue and no colour of a piece's own: each
-tinted card is `w * wall + (1 - w) * k` with `k` only ink (#2B2A33) or white, baked as a weight
-into the piece's own wall mask. So a piece ships two masks at most -- one wall, one glass -- and
-never a colour variant, and the eight editable colours are the whole palette.
+of the object's category (HOUSES for the two houses and, since v5.11, the distant houses;
+BUILDINGS for the tower; SHOPS for the restaurant, the school and the bar, which wore the BUILDINGS
+colours until v5.11). There is no per-instance hue and no colour of a piece's own: each tinted card
+is `w * wall + (1 - w) * k` with `k` only ink (#2B2A33) or white, baked as a weight into the piece's
+own wall mask. So a piece ships two masks at most -- one wall, one glass -- and never a colour
+variant, and the twelve editable colours are the whole palette.
 
 Run from `tools/assets/` with the asset venv:
 
@@ -69,17 +70,20 @@ vocab.DOOR = W(0.40, DARK)         # door: 60 % towards the ink
 vocab.CHIMNEY = W(0.60, DARK)      # chimney, box: 40 % towards the ink
 vocab.SIDE = None
 vocab.TOP = None
-import k1_box, k2_profile, school   # noqa: E402  (they import the constants already substituted)
+import k1_box, k2_profile, school, distant   # noqa: E402  (they import the constants already substituted)
 k2_profile.W_TIER2 = W(0.90, WHITE)
 
 HERE = Path(__file__).resolve().parent
 TABLE_KT = core.REPO / "app/src/main/kotlin/com/paperscrape/livewallpaper/engine/NeighbourhoodTable.kt"
 REGISTRY = core.TOOL_ROOT / "sources/sprites.json"
 
-#: The 34 PNGs the redraw replaces: every shipped sprite of the six families. The palm is not one
+#: The prefixes of every shipped sprite of the six families (and, through `house_`, of the distant
+#: houses since v5.11), which a run deletes and writes again --
+#: `tower_` since v5.11, which added tower bodies and could otherwise leave one it no longer draws
+#: behind, still in `res/` and in the registry. (The v5.0 redraw replaced 34 PNGs.) The palm is not one
 #: of them (item 25 keeps it as shipped) and neither is anything a house shares with the rest of
 #: the scene, which is why this is a prefix list and not `startswith("house")`.
-RETIRED_PREFIXES = ("house_", "skyscraper_", "restaurant_", "bar_", "school_")
+RETIRED_PREFIXES = ("house_", "skyscraper_", "tower_", "restaurant_", "bar_", "school_")
 
 #: Why a registry entry for one of these has no SVG. The people's layers (v4.30) set the shape of
 #: this: a sprite written by a generator from its own drawing code has no source file to re-render
@@ -112,7 +116,11 @@ def families(house_roofs_small=("gable", "mansard"),
     return {
         "HOUSE_SMALL": Building("HOUSE_SMALL", [Slot([k1["gh_a"]]), Slot([k1["sh_a"]], 0, 1), Slot(hs_roofs)], 30.0, [0.0], 0.0),
         "HOUSE_LARGE": Building("HOUSE_LARGE", [Slot([k1["gh_b"]]), Slot([k1["sh_b"]], 1, 2), Slot(hl_roofs)], 42.0, [0.0], 0.0),
-        "TOWER": Building("TOWER", [Slot([k2_profile.tower_body()]), Slot([crown[c]() for c in crowns])], 35.0, [0.0], 0.0),
+        # v5.11: three heights, by a coin of the engine's own rather than by the deal -- see
+        # `core.Slot.heights` -- so the deal still sees one body and hands out the crowns it did.
+        "TOWER": Building("TOWER", [Slot([k2_profile.tower_body("mid")],
+                                         heights=[k2_profile.tower_body(s) for s in ("short", "mid", "tall")]),
+                                    Slot([crown[c]() for c in crowns])], 35.0, [0.0], 0.0),
         "RESTAURANT": Building("RESTAURANT", [Slot([k2_profile.r_pavilion()])], 50.0, [0.0], 0.0),
         "BAR": Building("BAR", [Slot([bars[b]() for b in bar_figures])], 33.0, [0.0], 0.0),
         # v5.6F. One figure and one deal, like the restaurant: `SilhouetteDeal` enumerates a
@@ -122,8 +130,13 @@ def families(house_roofs_small=("gable", "mansard"),
     }
 
 
+def extras():
+    """The pieces that belong to no family: the distant houses (v5.11), drawn in the houses' paper."""
+    return [(piece, "HOUSE") for piece in distant.pieces()]
+
+
 # ------------------------------------------------------------------ the Kotlin table
-def kotlin_table(table: dict, pieces: dict) -> str:
+def kotlin_table(table: dict, pieces: dict, distant_names: list) -> str:
     blocks = []
     for pname, p in pieces.items():
         parts = []
@@ -147,9 +160,13 @@ def kotlin_table(table: dict, pieces: dict) -> str:
             f"    )")
     rows = []
     for family, t in table.items():
-        slots = ",\n".join(
-            f"                BuildingSlot(listOf({', '.join(production(o).upper() for o in s['options'])}), {s['rmin']}, {s['rmax']})"
-            for s in t["slots"])
+        def slot_kt(s):
+            heights = ""
+            if s["heights"]:
+                heights = f", heights = listOf({', '.join(production(o).upper() for o in s['heights'])})"
+            return (f"                BuildingSlot(listOf({', '.join(production(o).upper() for o in s['options'])}), "
+                    f"{s['rmin']}, {s['rmax']}{heights})")
+        slots = ",\n".join(slot_kt(s) for s in t["slots"])
         rows.append(
             (FAMILY_NOTES.get(family, "")) +
             f"        SceneSpace.SceneVariant.{family} to BuildingFamily(\n"
@@ -158,12 +175,13 @@ def kotlin_table(table: dict, pieces: dict) -> str:
             f"        ),")
     body = "\n\n".join(blocks)
     families_map = "\n".join(rows)
+    distant_list = ", ".join(production(n).upper() for n in distant_names)
     return f'''package com.paperscrape.livewallpaper.engine
 
 import com.paperscrape.livewallpaper.R
 
 /**
- * What each of the six building families is made of. **Generated** by
+ * What each of the six building families is made of, and the distant houses. **Generated** by
  * `tools/assets/buildings/build_neighbourhood.py`; edit that script, not this file.
  *
  * A family is a list of SLOTS, bottom-up. A slot holds the alternative PIECES the composer may
@@ -173,8 +191,8 @@ import com.paperscrape.livewallpaper.R
  * silhouettes rather than one facade repeated.
  *
  * [PartRole] is what a part is *for*, not how it looks:
- * - `FIXED` is art that never takes a tint (awnings, plaques, lanterns, stone steps, the busts'
- *   cream frames) plus the fixed term of every tinted card;
+ * - `FIXED` is art that never takes a tint (awnings, plaques, the lanterns' brackets, stone steps,
+ *   the busts' cream frames) plus the fixed term of every tinted card;
  * - `WALL_MASK` and `GLASS_MASK` are weight masks **summed** over the fixed layer at the blit,
  *   the system the people have used since v4.30 -- a weight interpolates, an index does not, and
  *   an index is what left a 63/255 halo when this was tried the other way round;
@@ -207,7 +225,20 @@ internal class BuildingPiece(
     val beaconX: Float, val beaconY: Float,
 )
 
-internal class BuildingSlot(val options: List<BuildingPiece>, val repeatMin: Int, val repeatMax: Int)
+/**
+ * One slot of a family: the [options] the deal chooses between and how many times the piece repeats.
+ *
+ * [heights], where a slot has them, are alternatives the deal does **not** choose between: each
+ * instance takes one by a coin of its own (`NeighbourhoodComposer.heightIndex`), in place of the one
+ * piece in [options]. The towers' three bodies (v5.11) vary a skyline's height this way without
+ * growing the catalogue `SilhouetteDeal` deals from, which would have re-dealt every theme's crowns.
+ */
+internal class BuildingSlot(
+    val options: List<BuildingPiece>,
+    val repeatMin: Int,
+    val repeatMax: Int,
+    val heights: List<BuildingPiece> = emptyList(),
+)
 
 internal class BuildingFamily(
     /** The height the piece stack is drawn in, which [SceneSpace.SceneVariant] scales to. */
@@ -224,6 +255,13 @@ internal object NeighbourhoodTable {{
     val FAMILIES: Map<SceneSpace.SceneVariant, BuildingFamily> = mapOf(
 {families_map}
     )
+
+    /**
+     * The distant houses on the mountains (v5.11), in the order `DistantHouses` deals them: the
+     * cottage, the chalet, the tall house. Each piece's `height` is its drawing's own, roof peak to
+     * foot, which is what `SceneSpace.distantHousePixelsTall` sizes.
+     */
+    val DISTANT_HOUSES: List<BuildingPiece> = listOf({distant_list})
 }}
 '''
 
@@ -303,7 +341,8 @@ def rewrite_registry(entries: list[dict]) -> tuple[int, int]:
 # ------------------------------------------------------------------ main
 def main(argv: list[str]) -> int:
     out = HERE / "out"
-    table, pieces, files = build_concept("mix", families(), out)
+    distant_houses = extras()
+    table, pieces, files = build_concept("mix", families(), out, distant_houses)
     png_dir = out / "mix" / "png"
     print(f"drawn: {len(files)} PNGs, {len(pieces)} pieces, {len(table)} families")
 
@@ -313,7 +352,7 @@ def main(argv: list[str]) -> int:
                 (RES / f"{shipped}.png").unlink()
         for name in files:
             shutil.copyfile(png_dir / f"{name}.png", RES / f"{production(name)}.png")
-        TABLE_KT.write_text(kotlin_table(table, pieces), encoding="utf-8")
+        TABLE_KT.write_text(kotlin_table(table, pieces, [p.name for p, _ in distant_houses]), encoding="utf-8")
         print(f"res: wrote {len(files)} PNGs and {TABLE_KT.name}")
 
     if "--registry" in argv:

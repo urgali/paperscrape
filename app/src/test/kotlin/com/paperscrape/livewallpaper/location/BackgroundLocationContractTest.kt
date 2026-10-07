@@ -38,9 +38,11 @@ import org.junit.Test
  *
  * **Not verified on a phone: the Network provider.** The emulator's network location provider is
  * disabled (`enabled=false, allowed=false`, no Wi-Fi or cell infrastructure behind it), so the
- * runtime proof covers GPS only. The permission and the code path are shared -- [DeviceLocationProvider]
- * treats the two kinds identically apart from which provider name it asks -- but that is an inference,
- * and it stays one on the maintainer's decision of 2026-09-29.
+ * runtime proof covers GPS only. [DeviceLocationProvider] asks both kinds through the same code; they
+ * differ in the provider asked and in the permission that allows it -- Network needs only the
+ * approximate one, GPS the precise one (below) -- and the Network branch on the approximate permission
+ * alone is the one the GPS proof does not reach. That it works is an inference, and it stays one on
+ * the maintainer's decision of 2026-09-29.
  */
 class BackgroundLocationContractTest {
 

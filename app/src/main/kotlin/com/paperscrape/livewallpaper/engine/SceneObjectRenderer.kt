@@ -35,6 +35,14 @@ data class GroundGeometry(
 
 private class StaticRuntime(val spec: StaticSceneObject) {
     val idleSeed = SceneObjectRenderer.idleSeedOf(spec)
+
+    /**
+     * The depth this object is drawn at: its own, except a tower brought forward off the hill's crest
+     * (v5.11, [SceneSpace.towerDrawnDepth]). Where it stands and how large it is follow it; everything
+     * that identifies the object -- its colour, its deal, its height, whether it stands at all -- reads
+     * [spec]'s own depth. Set when the list is built, and again when *Hills variation* moves the crest.
+     */
+    var drawDepth = spec.depthFraction
 }
 
 private class CarRuntime(val spec: CarObject, val layoutIndex: Int, val selectionRank: Int) {
@@ -94,9 +102,12 @@ class SceneObjectRenderer(
      * or a slider belonging to an entirely different part of the scene, discarded every car's
      * in-flight position along the road and restarted it from its start delay.
      *
-     * Four cases:
+     * Five cases:
      *  - **cosmetic** (any colour, seasonal palette flag, or a section drawn by `PaperRenderer`
      *    such as clouds or the lake): nothing is rebuilt, every runtime keeps its state;
+     *  - **hills variation** (since v5.11): the crest moves, so the towers planted by it are given
+     *    their drawn depths again and the list re-sorted by them ([plantedAndSorted]); no runtime is
+     *    rebuilt and every one keeps its state;
      *  - **static structure** (a category's visibility or density, or the palms switch, which
      *    changes the species of a kept slot): the static runtime list is rebuilt, cars are
      *    untouched and keep running;
@@ -112,7 +123,13 @@ class SceneObjectRenderer(
         set(value) {
             val previous = field
             field = value
-            if (!previous.staticStructurallyEquals(value)) rebuildStaticRuntimes()
+            if (!previous.staticStructurallyEquals(value)) {
+                rebuildStaticRuntimes()
+            } else if (previous.hillsVariation != value.hillsVariation) {
+                // The crest moved, and the towers planted by it move with it: the drawn depths, and
+                // the draw order they decide. Nothing else of the list changes.
+                staticRuntimes = plantedAndSorted(staticRuntimes)
+            }
             // Cars split the structural case in two. Visibility genuinely changes the set of
             // runtimes and rebuilds as before. A density change -- day or night slider -- needs
             // nothing at all here: since v4.22 [update] re-derives the count every frame from the
@@ -135,10 +152,12 @@ class SceneObjectRenderer(
      * `staticRuntimes.sortedBy { it.spec.depthFraction }` inside the per-frame loop, which
      * allocated a fresh list and re-sorted it on every single frame -- for a value that cannot
      * change while the list is alive, since `depthFraction` is a `val` on an immutable spec.
+     * Since v5.11 the key is the depth each object is *drawn* at ([StaticRuntime.drawDepth]), which
+     * differs from it only for a tower on the hill's crest and changes only with *Hills variation*.
      *
      * The list is now rebuilt only when the set of rendered objects genuinely changes (a
      * category's visibility or density, or the palms switch -- see [customization]), and the sort
-     * runs as part of that rebuild. `sortedBy` is stable, so objects sharing a depth keep their original
+     * runs as part of that rebuild; a change of *Hills variation* re-sorts it without a rebuild. `sortedBy` is stable, so objects sharing a depth keep their original
      * relative order and the draw order matches what the per-frame sort produced.
      */
     private var staticRuntimes: List<StaticRuntime> = buildStaticRuntimes()
@@ -153,7 +172,25 @@ class SceneObjectRenderer(
         // it has to rebuild this list -- `staticStructurallyEquals` compares both fields. See
         // [SceneCustomization.palmSpeciesApplied].
         .map { StaticRuntime(customization.palmSpeciesApplied(it, layoutPlantsPalms)) }
-        .sortedBy { it.spec.depthFraction }
+        .let(::plantedAndSorted)
+
+    /**
+     * [runtimes] with every tower's drawn depth set from the crest ([SceneSpace.towerDrawnDepth]) and
+     * in draw order: back to front by the depth each is drawn at. `sortedBy` is stable, so objects at
+     * one depth keep the layout's order, as they always have; the towers the crest moves forward are
+     * the only objects whose place in the order can change.
+     */
+    private fun plantedAndSorted(runtimes: List<StaticRuntime>): List<StaticRuntime> {
+        val phase = SceneSpace.hillCrestPhase(themeId)
+        for (r in runtimes) {
+            r.drawDepth = if (r.spec.type == SceneObjectType.SKYSCRAPER) {
+                SceneSpace.towerDrawnDepth(r.spec.depthFraction, r.spec.tileFractionX, customization.hillsVariation, phase)
+            } else {
+                r.spec.depthFraction
+            }
+        }
+        return runtimes.sortedBy { it.drawDepth }
+    }
 
     /**
      * Sorted by lane, far first, for the same reason [staticRuntimes] is sorted by depth: draw
@@ -404,9 +441,16 @@ class SceneObjectRenderer(
          * `Canvas`.
          */
         fun effectiveScaleFor(spec: StaticSceneObject, screenHeightPx: Float): Float =
+            effectiveScaleFor(spec, spec.depthFraction, screenHeightPx)
+
+        /**
+         * The same, for [spec] drawn at [drawDepth] -- a tower brought forward off the crest
+         * ([SceneSpace.towerDrawnDepth]) is as large as the projection makes it where it is drawn.
+         */
+        fun effectiveScaleFor(spec: StaticSceneObject, drawDepth: Float, screenHeightPx: Float): Float =
             variantFor(spec).baseScale *
                 spec.scale *
-                SceneSpace.depthScale(spec.depthFraction) *
+                SceneSpace.depthScale(drawDepth) *
                 SceneSpace.sceneScale(screenHeightPx)
 
         // v4.1 removed `PEDESTRIAN_COUNT` and `PEDESTRIAN_THRESHOLD_SALT` from here. The pool size
@@ -427,6 +471,21 @@ class SceneObjectRenderer(
          */
         const val WINDOW_GLASS_DAY = 0xFFB9CBD9.toInt()
         const val WINDOW_GLASS_NIGHT = 0xFFFFE79A.toInt()
+
+        /** A door lamp's bulb lit, and its glow: the colour every lamp had at every hour until v5.11. */
+        const val LAMP_LIT = 0xFFFFD97A.toInt()
+
+        /** A door lamp's bulb by day: paper, the warm grey of the buildings' cream trim. */
+        const val LAMP_UNLIT = 0xFFCFC5AE.toInt()
+
+        /** How strongly the glow round a lit bulb is painted: its night alpha, as it always was. */
+        const val LAMP_GLOW_ALPHA = 150f
+
+        /** A door lamp's bulb at [lit] (0 by day, 1 at full night): paper to light, on the glass's ramp. */
+        fun lampBulbColour(lit: Float): Int = SceneColour.blendArgb(LAMP_UNLIT, LAMP_LIT, lit.coerceIn(0f, 1f))
+
+        /** The alpha of the glow round a door lamp at [lit]: none until it lights. */
+        fun lampGlowAlpha(lit: Float): Int = (LAMP_GLOW_ALPHA * lit.coerceIn(0f, 1f)).toInt()
 
         /**
          * What a window is, as a colour: cool glass by day, warm light at night.
@@ -1731,10 +1790,11 @@ class SceneObjectRenderer(
         // allocates no iterator.
         for (runtimeIndex in staticRuntimes.indices) {
             val r = staticRuntimes[runtimeIndex]
-            val groundY = screenHeight * SceneSpace.groundYFraction(r.spec.depthFraction)
+            val groundY = screenHeight * SceneSpace.groundYFraction(r.drawDepth)
             // Both are properties of the object, so they are computed once here rather than once
-            // per tile copy: drawStaticObject is handed the scale it must draw at.
-            val effectiveScale = effectiveScaleFor(r.spec, screenHeight)
+            // per tile copy: drawStaticObject is handed the scale it must draw at. At the depth it is
+            // drawn at, which is its own but for a tower off the crest (v5.11).
+            val effectiveScale = effectiveScaleFor(r.spec, r.drawDepth, screenHeight)
             val halfWidth = MAX_OBJECT_HALF_WIDTH_UNITS * effectiveScale
             val x = anchorX(r.spec, geom)
 
@@ -2445,11 +2505,12 @@ class SceneObjectRenderer(
         val family = NeighbourhoodTable.FAMILIES[variant] ?: return
         val spec = r.spec
         // Every wall surface of this building descends from this one value (the glass masks take
-        // [windowGlassColor] instead): one of the two colours the user can edit for the object's
-        // category. The pieces carry the rest as weights in their own wall mask -- a roof is the
-        // wall towards the ink, a cornice is the wall towards white -- so nothing here invents a
-        // colour. See [NeighbourhoodTable].
-        val wallColor = customization.colorFor(spec, dayBlend)
+        // [windowGlassColor] instead): one of the two colours the user can edit for what the building
+        // is drawn as -- the houses', the towers' (Buildings) or, since v5.11, the shops' own
+        // ([buildingColoursFor]). The pieces carry the rest as weights in their own wall mask -- a
+        // roof is the wall towards the ink, a cornice is the wall towards white -- so nothing here
+        // invents a colour. See [NeighbourhoodTable].
+        val wallColor = customization.wallColourFor(spec, variant, dayBlend)
         val night = (1f - dayBlend).coerceIn(0f, 1f)
         // A house lights its windows because somebody is in; a business lights them while it is
         // open. `businessOpenness` is the closing fade, and at 1 -- the default, the toggle off --
@@ -2469,7 +2530,8 @@ class SceneObjectRenderer(
         val winter = customization.winterColorsEnabled
         // **Indexed, not iterated, all the way down.** A `for (x in list)` over a `List` allocates
         // an iterator, and this loop runs for every part of every piece of every building on every
-        // frame -- 42 parts on a tower alone, 33 of them blits. That is garbage a 30 Hz loop does
+        // frame -- 42 to 58 parts on a tower alone (its three heights and a crown, since v5.11), 39 to
+        // 55 of them sprites. That is garbage a 30 Hz loop does
         // not have to make, and the `Canvas` path, which is the one already closest to its budget,
         // is where it would be felt first. The same goes for the `withIndex()` the occupant branch
         // used to use.
@@ -2491,7 +2553,9 @@ class SceneObjectRenderer(
                     // `winterColorsEnabled` is already a palette override, so the two would be
                     // indistinguishable. That shortcut was rejected when this was defect D-8.
                     PartRole.SNOW -> if (winter) drawSprite(canvas, part.res, part.x, footY + part.y)
-                    PartRole.LAMP -> drawPorchLight(canvas, x = part.x, y = footY + part.y, nightGlow = night)
+                    // The lamp lights with the glass beside it (v5.11, inventory I-405 and I-409): on
+                    // the same `glassNight`, so a shop's or a tower's stays dark while it is closed.
+                    PartRole.LAMP -> drawPorchLight(canvas, x = part.x, y = footY + part.y, lit = glassNight)
                     PartRole.OCCUPANTS -> {
                         val windows = piece.windows
                         for (windowIndex in windows.indices) {
@@ -2561,12 +2625,24 @@ class SceneObjectRenderer(
     private fun litWindowAlpha(nightGlow: Float): Int =
         (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
 
-    /** Shared cozy detail: a soft porch light glowing warmer at night, next to the door. */
-    private fun drawPorchLight(canvas: SceneCanvas, x: Float, y: Float, nightGlow: Float) {
-        fillPaint.color = 0xFFFFD97A.toInt()
-        fillPaint.setAlphaWithoutAllocating((60 + nightGlow * 90).toInt())
-        canvas.drawCircle(x, y, 6f, fillPaint)
-        fillPaint.setAlphaWithoutAllocating(255)
+    /**
+     * The lamp beside a door: a dot of paper by day that lights with the windows (v5.11, inventory
+     * I-405; the maintainer's «sì» of 2026-10-06).
+     *
+     * [lit] is the building's own `glassNight` -- the number its glass crossfades on: the night for a
+     * house, the night times the opening hours for a shop and a tower (I-409) -- so a lamp is never
+     * lit beside dark glass. The bulb goes from its paper, [LAMP_UNLIT], to [LAMP_LIT] on it, and the
+     * glow round it appears only as it lights. Fully lit it is the lamp it always was at night; until
+     * v5.11 it was that lamp at noon too, glow and all.
+     */
+    private fun drawPorchLight(canvas: SceneCanvas, x: Float, y: Float, lit: Float) {
+        val glow = lampGlowAlpha(lit)
+        if (glow > 0) {
+            fillPaint.color = LAMP_LIT
+            fillPaint.setAlphaWithoutAllocating(glow)
+            canvas.drawCircle(x, y, 6f, fillPaint)
+        }
+        fillPaint.color = lampBulbColour(lit)
         canvas.drawCircle(x, y, 2.6f, fillPaint)
     }
 

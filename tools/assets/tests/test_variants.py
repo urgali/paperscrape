@@ -278,9 +278,6 @@ class ShippedVariantsTest(unittest.TestCase):
                 )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 class ByConstructionIdentityTest(unittest.TestCase):
     """The twenty-four identities the pixel-based duplicate check made visible, **and their end**.
 

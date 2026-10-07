@@ -157,7 +157,8 @@ jobs:
         # Open-Meteo key was readable in every published release with `strings`. Live Weather runs
         # on Open-Meteo's keyless free tier, and a user's own key from Settings still upgrades to
         # the higher-limit endpoint. No workflow reads a secret named `OPENMETEO_API_KEY`, and
-        # `ShippedApkContractTest` fails the build if anything starts to: one left in the
+        # `ShippedApkContractTest` fails the build if the old `PAPERSCRAPE_OPENMETEO_API_KEY` is
+        # injected again or any `buildConfigField` is read from the environment: one left in the
         # repository's settings changes no build, and removing it is harmless.
         run: |
           missing=()

@@ -37,7 +37,17 @@ data class PreviewItem(val x: Float, val y: Float, val scale: Float, val parts: 
  * card's ground line. The painter gives it the wallpaper's own silhouette -- the parabolic arch of
  * [MountainSilhouette] -- in every theme; there is no desert variant, because the wallpaper has none.
  */
-data class PreviewPeak(val x: Float, val peakY: Float, val halfWidth: Float, val colour: Int)
+data class PreviewPeak(
+    val x: Float,
+    val peakY: Float,
+    val halfWidth: Float,
+    val colour: Int,
+    /**
+     * The distant houses standing on this mountain (v5.11), painted right after it and before the
+     * next one, as the wallpaper paints them: empty unless the theme turns them on above 0 %.
+     */
+    val houses: List<PreviewItem> = emptyList(),
+)
 
 /** A horizontal band of water. */
 data class PreviewBand(val top: Float, val bottom: Float, val colour: Int)
@@ -349,7 +359,7 @@ object ThemePreviewScenes {
 
         val ground = blendRgb(c.hillsColorNight, c.hillsColorDay, dayBlend)
 
-        val peaks = buildPeaks(c, dayBlend)
+        val peaks = buildPeaks(c, dayBlend, winter)
         val lake = lakeBand(c, dayBlend)
 
         val backdrop = mutableListOf<PreviewItem>()
@@ -771,18 +781,77 @@ object ThemePreviewScenes {
      * at all -- it draws the Desert's mountains exactly as every other theme's -- so the card
      * showed a horizon the scene never has.
      */
-    private fun buildPeaks(c: SceneCustomization, dayBlend: Float): List<PreviewPeak> {
+    private fun buildPeaks(c: SceneCustomization, dayBlend: Float, winter: Boolean): List<PreviewPeak> {
         val out = mutableListOf<PreviewPeak>()
-        if (c.mountainsBack.visible) {
+        var index = 0
+        // At 0 % the wallpaper draws no mountain of the layer, so neither does the card (v5.11, I-414).
+        if (c.mountainsBack.drawsAny) {
             val colour = blendRgb(c.mountainsBack.colorNight, c.mountainsBack.colorDay, dayBlend)
-            for ((x, y, w) in BACK_PEAKS) out += PreviewPeak(x, y, w, colour)
+            for ((x, y, w) in BACK_PEAKS) out += PreviewPeak(x, y, w, colour, distantHouses(c, x, y, w, index++, dayBlend, winter))
         }
-        if (c.mountainsFront.visible) {
+        if (c.mountainsFront.drawsAny) {
             val colour = blendRgb(c.mountainsFront.colorNight, c.mountainsFront.colorDay, dayBlend)
-            for ((x, y, w) in FRONT_PEAKS) out += PreviewPeak(x, y, w, colour)
+            for ((x, y, w) in FRONT_PEAKS) out += PreviewPeak(x, y, w, colour, distantHouses(c, x, y, w, index++, dayBlend, winter))
         }
         return out
     }
+
+    /**
+     * The distant houses on one of the card's mountains (v5.11): **the card follows the switch**, as
+     * everything it draws does -- none while *Distant houses* is off or at 0 %, which is every theme
+     * as it ships, and on, the wallpaper's three drawings, snow with the winter palette, and the
+     * wallpaper's own coins for each house's colour (one of the houses' two) and window (lit in four
+     * houses of five) from a seed per mountain of the card. One house a mountain, two from 50 %, at the
+     * wallpaper's own places across the slope ([DistantHouses.SLOTS]); the drawings take turns from
+     * mountain to mountain, so a card shows all three.
+     */
+    private fun distantHouses(
+        c: SceneCustomization,
+        x: Float,
+        peakY: Float,
+        halfWidth: Float,
+        mountain: Int,
+        dayBlend: Float,
+        winter: Boolean,
+    ): List<PreviewItem> {
+        if (!drawn(c.distantHouses.visible, c.distantHouses.density)) return emptyList()
+        // The painter's own base line for a mountain (`ui/ThemePreview.kt`): the horizon, two units down.
+        val base = ThemePreviewScene.HORIZON_UNITS + 2f
+        val height = base - peakY
+        val places = if (c.distantHouses.density >= 0.5f) CARD_HOUSE_PLACES_TWO else CARD_HOUSE_PLACES_ONE
+        val seed = DistantHouses.seedFor(CARD_HOUSE_SEED, mountain)
+        val out = mutableListOf<PreviewItem>()
+        for ((n, slot) in places.withIndex()) {
+            val along = DistantHouses.SLOTS[slot]
+            val piece = NeighbourhoodTable.DISTANT_HOUSES[(mountain + n) % NeighbourhoodTable.DISTANT_HOUSES.size]
+            val surface = DistantHouses.surfaceY(base, height, along)
+            val foot = DistantHouses.footY(surface, DistantHouses.slope(height, halfWidth, along), CARD_HOUSE_UNITS_TALL)
+            val wall = c.houses.colorAt(DistantHouses.colourVariant(seed, slot), dayBlend)
+            val glass = SceneObjectRenderer.windowGlassColor((1f - dayBlend) * DistantHouses.litShare(seed, slot))
+            val parts = mutableListOf<PreviewSprite>()
+            for (part in piece.parts) {
+                when (part.role) {
+                    PartRole.FIXED -> parts += PreviewSprite(part.res, part.x, part.y)
+                    PartRole.WALL_MASK -> parts += PreviewSprite(part.res, part.x, part.y, wall, added = true)
+                    PartRole.GLASS_MASK -> parts += PreviewSprite(part.res, part.x, part.y, glass, added = true)
+                    PartRole.SNOW -> if (winter) parts += PreviewSprite(part.res, part.x, part.y)
+                    PartRole.LAMP, PartRole.OCCUPANTS -> Unit
+                }
+            }
+            out += PreviewItem(x + along * halfWidth, foot, CARD_HOUSE_UNITS_TALL / piece.height, parts)
+        }
+        return out
+    }
+
+    /** The card's own layer seed for its distant houses' coins: one card, one fixed set of houses. */
+    private const val CARD_HOUSE_SEED = 0x0CA4D
+
+    /** How tall a distant house stands on the card, in card units: a fifth of the card's large house. */
+    private const val CARD_HOUSE_UNITS_TALL = 9f
+
+    /** Which of [DistantHouses.SLOTS] the card's houses take on a mountain, below 50 % and from it. */
+    private val CARD_HOUSE_PLACES_ONE = intArrayOf(3)
+    private val CARD_HOUSE_PLACES_TWO = intArrayOf(1, 3)
 
     private val BACK_PEAKS = listOf(
         Triple(50f, 108f, 46f), Triple(120f, 116f, 40f), Triple(205f, 104f, 52f), Triple(280f, 118f, 44f),
@@ -920,13 +989,16 @@ object ThemePreviewScenes {
         openness: Float,
     ): List<PreviewSprite> {
         val family = NeighbourhoodTable.FAMILIES[variant] ?: return emptyList()
-        // The real object, so the real `colorFor`: which of the category's two colours this
-        // building wears is `variantIndexFor`'s answer about this very position, not a choice the
-        // preview makes. The preview used to invent its own blends here -- a tower 15 % towards
-        // white, a restaurant 30 % -- which showed the user a colour no building of theirs would
-        // ever be.
+        // The real object, so the real coin: which of the two colours this building wears is
+        // `variantIndexFor`'s answer about this very position, not a choice the preview makes. The
+        // preview used to invent its own blends here -- a tower 15 % towards white, a restaurant
+        // 30 % -- which showed the user a colour no building of theirs would ever be.
+        //
+        // **Which pair, by what the card draws** (v5.11): three of the card's four towers stand at
+        // depths the scene keeps for shops ([PreviewIdentity]), so asking by the object's depth would
+        // paint them in the shops' colours. The card names the drawing, and the drawing names the pair.
         val spec = StaticSceneObject(type, depthFraction = depth, tileFractionX = tileX)
-        val wall = c.colorFor(spec, dayBlend)
+        val wall = c.wallColourFor(spec, variant, dayBlend)
         // `SceneObjectRenderer.drawNeighbourhoodBuilding`'s glass: a house's windows lit by the night
         // alone, a business's by the night and its opening hours at the card's hour. Until v5.9G the
         // card lit every building by the night alone, so with opening hours on a midnight card's

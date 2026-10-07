@@ -89,13 +89,34 @@ class WindowOccupantsTest {
         }
     }
 
-    /** A tower must be sparser than a home, or it reads as a doll's house. */
+    /**
+     * A tower's people stand at its entrance storey, at the rate of street-level glass (v5.11,
+     * inventory I-406; the maintainer's B2 with two windows by the door, 2026-10-06).
+     *
+     * Until v5.11 a tower's three bust windows stood among its grid of small ones, so its rate was
+     * held *below* a home's -- a face in every pane up a tower reads as a doll's house -- and at 0.12
+     * the three panes dealt nobody most of the time. The doll's house is now kept off by the drawing:
+     * every bust window of every body is in the hall, the six of it, and the grid above holds none;
+     * so the rate is a shop's. Both halves are asserted, because the rate alone would let a later
+     * body put busts up the grid at a shop's rate.
+     */
     @Test
-    fun `skyscrapers are sparser per window than houses`() {
-        assertTrue(
-            WindowOccupants.rateFor(WindowBuildingKind.SKYSCRAPER) <
-                WindowOccupants.rateFor(WindowBuildingKind.HOUSE),
+    fun `a tower's people stand in its hall, at the shops' rate`() {
+        assertEquals(
+            WindowOccupants.rateFor(WindowBuildingKind.COMMERCIAL),
+            WindowOccupants.rateFor(WindowBuildingKind.SKYSCRAPER),
+            0f,
         )
+        val tower = NeighbourhoodTable.FAMILIES.getValue(SceneSpace.SceneVariant.TOWER)
+        val bodies = tower.slots[0].heights.ifEmpty { tower.slots[0].options }
+        assertEquals("three bodies", 3, bodies.size)
+        for (body in bodies) {
+            assertEquals("the hall's six windows", 6, body.windows.size)
+            for (window in body.windows) {
+                assertTrue("a bust window at y=${window.y} is above the 44-unit hall", window.y >= -44f)
+            }
+        }
+        for (crown in tower.slots[1].options) assertTrue("a crown holds no bust", crown.windows.isEmpty())
     }
 
     // -------------------------------------------------------------- variety

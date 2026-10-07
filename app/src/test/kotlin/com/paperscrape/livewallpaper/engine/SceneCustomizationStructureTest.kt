@@ -66,7 +66,31 @@ class SceneCustomizationStructureTest {
         "bunnies" to { c -> c.copy(bunnies = c.bunnies.copy(colorDay1 = c.bunnies.colorDay1 xor 0x00FFFFFF)) },
         "easterEggs" to { c -> c.copy(easterEggs = c.easterEggs.copy(colorDay1 = c.easterEggs.colorDay1 xor 0x00FFFFFF)) },
         "pumpkins" to { c -> c.copy(pumpkins = c.pumpkins.copy(colorDay1 = c.pumpkins.colorDay1 xor 0x00FFFFFF)) },
+        "shops" to { c -> c.copy(shops = c.shops.copy(colorDay2 = c.shops.colorDay2 xor 0x00FFFFFF)) },
     )
+
+    /**
+     * The categories that are colours and nothing else, so neither list above can hold them: the
+     * shops (v5.11), whose standing is the Buildings switch and which a second switch would contradict.
+     * Their two non-colour fields exist because the storage is generic, and nothing reads them --
+     * `the shops' switch and density move nothing` holds that.
+     */
+    private val colourOnlyCategories = listOf("shops")
+
+    @Test
+    fun `the shops' switch and density move nothing`() {
+        for (theme in ThemeCatalog.ALL) {
+            val c = defaultCustomizationFor(theme.id)
+            val moved = c.copy(shops = c.shops.copy(visible = !c.shops.visible, density = 0f))
+            assertTrue("${theme.id}: the shops' fields are not structural", c.staticStructurallyEquals(moved))
+            val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).staticObjects
+            assertEquals(
+                "${theme.id}: the same objects stand",
+                layout.filter { c.keepCandidate(it) },
+                layout.filter { moved.keepCandidate(it) },
+            )
+        }
+    }
 
     // --- Identity -------------------------------------------------------------------------------
 
@@ -238,19 +262,20 @@ class SceneCustomizationStructureTest {
             .map { it.name }
         assertEquals(
             "SceneCustomization has ObjectVariantConfig fields not covered here: $configFields",
-            // 13 until v2.7 removed the balloons outright -- category, sprites, toggle and all.
-            12,
+            // 13 until v2.7 removed the balloons outright -- category, sprites, toggle and all; 13
+            // again since v5.11 brought the shops' colours.
+            13,
             configFields.size,
         )
         assertEquals(
-            "every category needs a density mutation",
+            "every category needs a density mutation, or is colours only",
             configFields.size,
-            densityMutations.size,
+            densityMutations.size + colourOnlyCategories.size,
         )
         assertEquals(
-            "every category needs a visibility mutation",
+            "every category needs a visibility mutation, or is colours only",
             configFields.size,
-            visibilityMutations.size,
+            visibilityMutations.size + colourOnlyCategories.size,
         )
     }
 

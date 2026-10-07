@@ -47,7 +47,6 @@ the same pose can carry any object later without new artwork.
 """
 from __future__ import annotations
 
-import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -65,10 +64,6 @@ from build_people_concepts import (Sprite, cut, oval, quad, shade, ground_shadow
                                    CHILD_SUMMER_RISE, CHILD_GROUND)
 from paperscrape_assets import raster  # noqa: E402
 from paperscrape_assets.inventory import measure_raster  # noqa: E402
-
-_spec = importlib.util.spec_from_file_location("skin", REPO / "tools" / "generate_skin_variants.py")
-skin_tool = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(skin_tool)
 
 RES = REPO / "app" / "src" / "main" / "res" / "drawable-nodpi"
 STYLE = "relief_eyes"

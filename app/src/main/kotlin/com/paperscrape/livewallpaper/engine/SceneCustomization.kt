@@ -41,7 +41,45 @@ data class MountainLayerConfig(
     val colorDay: Int,
     val colorNight: Int,
     val autoMode: AutoColorMode = AutoColorMode.MANUAL,
-)
+) {
+    /**
+     * Whether the layer draws a mountain: switched on and above 0 %. At 0 % `CandidateThreshold` keeps
+     * no candidate of the pool, so the layer draws none (v5.11, inventory I-414: its switch read on
+     * there, and the gallery card drew it).
+     */
+    val drawsAny: Boolean get() = visible && density > 0f
+}
+
+/**
+ * The distant houses: little houses standing on the mountains (v5.11, the maintainer's choice of
+ * 2026-10-06 from the photographs: on the mountains, off as it ships, the switch on World & scene
+ * under *Mountains*, every theme, 50 % when turned on, three drawings mixed).
+ *
+ * A switch and an amount, nothing else: their colours are the houses' own ([SceneCustomization.houses],
+ * one coin per house), their snow is the winter palette's, their windows light at night as a
+ * house's do -- see [DistantHouses]. They stand on the mountains, so with both mountain layers off
+ * there is nothing to stand on and the switch says so (`SettingsUiModel.distantHouses`).
+ *
+ * **Off when absent.** Nothing written before v5.11 carries it, and a user who updates must not
+ * find houses on the mountains they did not ask for: [OFF] is what every older payload, preference
+ * store and backup reads as.
+ */
+data class DistantHousesConfig(
+    val visible: Boolean,
+    /** 0f..1f -- the share of the places on the mountains that hold a house. */
+    val density: Float,
+) {
+    /** Whether any house is drawn: switched on and above 0 %, as every other amount at 0 is. */
+    val drawsAny: Boolean get() = visible && density > 0f
+
+    companion object {
+        /** Where the amount starts when the switch is first turned on, and what a tap at 0 % restores. */
+        const val STARTING_DENSITY = 0.5f
+
+        /** What a theme ships with, and what data written before v5.11 reads as. */
+        val OFF = DistantHousesConfig(visible = false, density = STARTING_DENSITY)
+    }
+}
 
 /** A body of water, drawn as its own independent backdrop band (not part of the hill/object
  * row-placement system, for the same safety reasons as [MountainLayerConfig]), plus two nested
@@ -267,7 +305,27 @@ data class BirdsConfig(    val visible: Boolean,
  */
 data class SceneCustomization(
     val houses: ObjectVariantConfig,
+    /**
+     * The Buildings category: whether the towers and the three shops stand, how many towers, the
+     * business hours -- and, since v5.11, **the towers' colours only**. The shops wear [shops].
+     */
     val buildings: ObjectVariantConfig,
+    /**
+     * The colours of the three shops -- the restaurant, the school and the bar (v5.11, the
+     * maintainer's *«voglio che i negozi abbiano colore a se, aggiungiamolo»* of 2026-10-06).
+     *
+     * **Colours only.** Whether the shops stand is [buildings]' switch, as it always was: they are
+     * one candidate pool with the towers, and a second switch for the same objects would be two
+     * controls that can disagree. So [ObjectVariantConfig.visible] and [ObjectVariantConfig.density]
+     * here are read by nothing -- not by [keepCandidate], not by [staticStructurallyEquals] -- and
+     * the settings show no switch or slider for them.
+     *
+     * **Data written before v5.11 has no such field**, and the shops were drawn in the Buildings
+     * colours stored beside it: a saved theme, a theme's archive, a backup or a theme file is read
+     * with those (`sceneCustomizationFromJson`), and so is the live edit where it stored a Buildings
+     * colour (`WallpaperPrefs.readFlatCustomization`) -- a theme keeps the look it had.
+     */
+    val shops: ObjectVariantConfig,
     val cars: ObjectVariantConfig,
     val parasols: ObjectVariantConfig,
     /**
@@ -536,6 +594,8 @@ data class SceneCustomization(
     val mountainsBack: MountainLayerConfig = MountainLayerConfig(
         visible = true, density = 0.5f, colorDay = 0xFF3E8F68.toInt(), colorNight = 0xFF8FA69C.toInt(),
     ),
+    /** The little houses on the mountains, off as every theme ships: see [DistantHousesConfig]. */
+    val distantHouses: DistantHousesConfig = DistantHousesConfig.OFF,
     // Off by default -- unlike mountains, not every theme's landscape should have a lake
     // appearing in it unless the user actually wants one.
     val lake: LakeConfig = LakeConfig(
@@ -613,6 +673,22 @@ data class SceneCustomization(
                 visible = true,
                 density = 0.65f, // see houses' own comment on this same default-density change
                 // Matches the wall color PaperScrape always used before this became configurable.
+                // **Not a built-in theme's towers any more** (v5.11): each of the twelve starts from a
+                // pair of its own ([builtInTowerColours]). This stays the slate it always was, as
+                // the value a payload without a Buildings block reads, a theme nobody built in
+                // (a shuffled one) draws, and the colour every theme's towers had until v5.11.
+                colorDay1 = 0xFF454B57.toInt(),
+                colorNight1 = 0xFF262A31.toInt(),
+                colorDay2 = 0xFF5C6A78.toInt(),
+                colorNight2 = 0xFF303842.toInt(),
+            ),
+            // The shops' own colours since v5.11. Here the Buildings slate, because that is what the
+            // shops of a theme nobody built in were drawn in, and what a payload with neither block
+            // reads; the twelve built-ins start from their own ([builtInTowerColours]). Visibility
+            // and density are inert -- see [SceneCustomization.shops].
+            shops = ObjectVariantConfig(
+                visible = true,
+                density = 1f,
                 colorDay1 = 0xFF454B57.toInt(),
                 colorNight1 = 0xFF262A31.toInt(),
                 colorDay2 = 0xFF5C6A78.toInt(),
@@ -1029,8 +1105,45 @@ private fun blend(config: ObjectVariantConfig, variant: Int, dayBlend: Float): I
     return SceneColour.blendArgb(night, day, dayBlend.coerceIn(0f, 1f))
 }
 
+/**
+ * The pair a building drawn as [variant] wears: the houses', the towers' (the Buildings category)
+ * or, since v5.11, the shops' own -- the restaurant, the school and the bar. Null for anything that
+ * is not one of the six building families.
+ *
+ * Asked by the drawing, not by the object's type: one candidate pool holds the towers and the shops
+ * ([SceneObjectType.SKYSCRAPER] both), and which of the two a building is follows from what it is
+ * drawn as -- by its depth in the scene (`SceneObjectRenderer.variantFor`), by its row on the gallery
+ * card, which stands towers at depths the scene keeps for shops (`ThemePreviewScenes.PreviewIdentity`).
+ */
+fun SceneCustomization.buildingColoursFor(variant: SceneSpace.SceneVariant): ObjectVariantConfig? = when (variant) {
+    SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE -> houses
+    SceneSpace.SceneVariant.TOWER -> buildings
+    SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR -> shops
+    else -> null
+}
+
+/**
+ * The colour [spec] wears at [dayBlend]: one of its category's two colours, by its own coin. A
+ * building takes the pair of what it is drawn as ([buildingColoursFor]), so a shop wears the shops'
+ * colours and a tower the towers'.
+ */
 fun SceneCustomization.colorFor(spec: StaticSceneObject, dayBlend: Float): Int {
-    val config = configFor(spec.type) ?: return 0xFFFFFFFF.toInt()
+    val config = (if (spec.type == SceneObjectType.SKYSCRAPER) {
+        buildingColoursFor(SceneObjectRenderer.variantFor(spec))
+    } else {
+        configFor(spec.type)
+    }) ?: return 0xFFFFFFFF.toInt()
+    return blend(config, variantIndexFor(spec), dayBlend)
+}
+
+/**
+ * The wall colour of [spec] drawn as the building [variant], at [dayBlend]: [colorFor]'s coin over
+ * the pair [buildingColoursFor] names. For a caller that decides the drawing itself -- the gallery
+ * card, whose towers stand at depths the scene keeps for shops -- so its colour follows the drawing
+ * as the wallpaper's does.
+ */
+fun SceneCustomization.wallColourFor(spec: StaticSceneObject, variant: SceneSpace.SceneVariant, dayBlend: Float): Int {
+    val config = buildingColoursFor(variant) ?: return colorFor(spec, dayBlend)
     return blend(config, variantIndexFor(spec), dayBlend)
 }
 
@@ -1084,11 +1197,14 @@ fun SceneCustomization.parasolStripeColor(wedgeIndex: Int, dayBlend: Float): Int
  * The starting-point [SceneCustomization] for a given theme -- what a user sees the *first* time
  * they open "World & scene" or "Seasons & decorations" for it, before they've changed anything
  * themselves. Every theme starts from [SceneCustomization.DEFAULT] with its own hill, sky, sun and
- * moon colours and its own Santa default; the themes listed below then adjust structural
+ * moon colours and its own Santa default -- and, on the twelve built-in themes since v5.11, its own
+ * towers' and shops' starting colours ([builtInTowerColours], [builtInShopColours]); the themes listed below then adjust structural
  * categories (City's towers, the winter themes' parasols) and seasonal ones (Christmas's snowmen
  * and gifts, Easter's bunnies and eggs) alike. Nothing is locked in: the user can change any of it
  * and save the result as an override (from "Themes") or as a theme of their own (from "Advanced &
- * about"). Themes not listed here (including custom/random ones) get that base unchanged.
+ * about"). Themes not listed here get that base unchanged -- except that a theme which is not built in
+ * (a custom or random one) starts its towers and shops from colours chosen against its own ground
+ * ([withStartingBuildingColours]).
  */
 fun defaultCustomizationFor(themeId: String): SceneCustomization {
     // Derived from the theme's own existing (currently fixed, non-user-editable) farthest-layer
@@ -1109,6 +1225,8 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
         sun = SceneCustomization.DEFAULT.sun.copy(color = theme.sunColor),
         moon = SceneCustomization.DEFAULT.moon.copy(color = theme.moonColor),
         santaEnabled = theme.hasSantaSleigh,
+        buildings = builtInTowerColours(themeId) ?: SceneCustomization.DEFAULT.buildings,
+        shops = builtInShopColours(themeId) ?: SceneCustomization.DEFAULT.shops,
     )
     return when (themeId) {
         "winter" -> base.copy(
@@ -1276,8 +1394,168 @@ fun defaultCustomizationFor(themeId: String): SceneCustomization {
             buildings = base.buildings.copy(density = 1f),
             houses = base.houses.copy(density = 0.3f),
         )
-        else -> base
+        // Every other id: a theme of the user's own, a random one, an imported one -- whose towers and
+        // shops start from colours chosen against its own ground, by the twelve's rule (v5.11).
+        else -> if (themeId in BUILT_IN_TOWER_COLOURS) base else base.withStartingBuildingColours(theme)
     }
+}
+
+/**
+ * The towers' starting colours on a built-in theme, or null for any other id (v5.11, inventory
+ * I-401; the maintainer's *«procedi con B ma che i colori non siano troppo uguali al terreno
+ * altrimenti non si capisce niente»* of 2026-10-06).
+ *
+ * Until v5.11 every theme's towers were the one slate pair of [SceneCustomization.DEFAULT], and on
+ * Big City they all but vanished against hills of the same grey (inventory I-410). Each theme now
+ * starts from two colours of its own palette -- brick and ochre on Autumn, powder blue and lilac grey
+ * on Winter, terracotta and whitewash on Desert, red and blue on Christmas, gold and lavender on New
+ * Year's Eve, coral and sea green on Beach, steel and sand on Big City -- **and each passes the
+ * ground rule**: CIE76 dE at least [BuildingGroundContrast.DAY_GATE] from the hills and from every
+ * mountain layer the theme shows, by day, and [BuildingGroundContrast.NIGHT_GATE] by night
+ * (`BuildingGroundContrastTest`, which also says where the two gates come from). The night colour
+ * is the day colour carried 55 % of the way to the scene's ink, `#15161C`, written out so the user
+ * edits it like any other.
+ *
+ * **Only the start.** Color 1 and Color 2 of *Buildings* are the user's to change as they always
+ * were; a theme whose look is already stored -- edited and archived, saved in the gallery, restored
+ * from a backup, imported -- keeps the colours stored with it until *Reset Buildings to default*.
+ * The density and the switch are [SceneCustomization.DEFAULT]'s, which a theme below may change.
+ */
+internal fun builtInTowerColours(themeId: String): ObjectVariantConfig? {
+    val pair = BUILT_IN_TOWER_COLOURS[themeId] ?: return null
+    return SceneCustomization.DEFAULT.buildings.copy(
+        colorDay1 = pair[0], colorNight1 = pair[1], colorDay2 = pair[2], colorNight2 = pair[3],
+    )
+}
+
+/** Day 1, night 1, day 2, night 2 for each built-in theme. See [builtInTowerColours]. */
+private val BUILT_IN_TOWER_COLOURS: Map<String, IntArray> = mapOf(
+    "sunset" to intArrayOf(0xFFD98C6E.toInt(), 0xFF6D4B40.toInt(), 0xFFC8A884.toInt(), 0xFF65574A.toInt()),
+    "autumn" to intArrayOf(0xFF9A4E3A.toInt(), 0xFF502F29.toInt(), 0xFFDCB07A.toInt(), 0xFF6E5B46.toInt()),
+    "winter" to intArrayOf(0xFF8DA6C0.toInt(), 0xFF4B5665.toInt(), 0xFFB0A8C0.toInt(), 0xFF5A5765.toInt()),
+    "desert" to intArrayOf(0xFF9E5539.toInt(), 0xFF523229.toInt(), 0xFFEFE3D0.toInt(), 0xFF77726D.toInt()),
+    "christmas" to intArrayOf(0xFFA85049.toInt(), 0xFF573030.toInt(), 0xFF8FA3BC.toInt(), 0xFF4B5564.toInt()),
+    "new_year" to intArrayOf(0xFFC2A35E.toInt(), 0xFF625539.toInt(), 0xFFA69AC4.toInt(), 0xFF565167.toInt()),
+    "beach" to intArrayOf(0xFFE39A80.toInt(), 0xFF715149.toInt(), 0xFF86C2BE.toInt(), 0xFF476364.toInt()),
+    "city" to intArrayOf(0xFF8A96AA.toInt(), 0xFF494F5B.toInt(), 0xFFC2A27F.toInt(), 0xFF625548.toInt()),
+    "tundra" to intArrayOf(0xFF94ADC3.toInt(), 0xFF4E5967.toInt(), 0xFF7F8FA3.toInt(), 0xFF444C58.toInt()),
+    "easter" to intArrayOf(0xFFDDA4B6.toInt(), 0xFF6F5561.toInt(), 0xFFA4C6DC.toInt(), 0xFF556572.toInt()),
+    "halloween" to intArrayOf(0xFF6E5A80.toInt(), 0xFF3D3449.toInt(), 0xFFA86A3C.toInt(), 0xFF573B2A.toInt()),
+    "spring" to intArrayOf(0xFFB49CC6.toInt(), 0xFF5C5268.toInt(), 0xFFE2BE96.toInt(), 0xFF716152.toInt()),
+)
+
+/**
+ * The shops' starting colours on a built-in theme, or null for any other id (v5.11, inventory I-403;
+ * the maintainer's *«voglio che i negozi abbiano colore a se, aggiungiamolo»* of 2026-10-06).
+ *
+ * Until v5.11 the restaurant, the school and the bar wore the towers' slate and were the darkest
+ * thing in the street. They start from **the houses' pair** -- the look the maintainer chose from the
+ * photographs, the shops among the houses in the houses' paper -- except where that pair does not
+ * pass the ground rule of [builtInTowerColours] against the hills a shop stands on
+ * ([BuildingGroundContrast]): on the three snow themes the houses' cream is 15.7 to 16.8 from the
+ * snow by day, so the shops take a warmer stone; on Beach the first cream is 17.7 from the sand by day
+ * and its night 2.3 from the night sand, so the shops take a whiter paper and a darker night.
+ * `BuildingGroundContrastTest` holds all twelve to it.
+ *
+ * **Only the start**, like the towers': Color 1 and Color 2 of *Shops* are the user's to change, and
+ * a theme stored before v5.11 keeps the Buildings colours its shops were drawn in.
+ */
+internal fun builtInShopColours(themeId: String): ObjectVariantConfig? {
+    if (themeId !in BUILT_IN_TOWER_COLOURS) return null
+    val pair = when (themeId) {
+        "winter", "christmas", "tundra" -> SNOW_THEME_SHOP_COLOURS
+        "beach" -> BEACH_SHOP_COLOURS
+        else -> {
+            val houses = SceneCustomization.DEFAULT.houses
+            intArrayOf(houses.colorDay1, houses.colorNight1, houses.colorDay2, houses.colorNight2)
+        }
+    }
+    return SceneCustomization.DEFAULT.shops.copy(
+        colorDay1 = pair[0], colorNight1 = pair[1], colorDay2 = pair[2], colorNight2 = pair[3],
+    )
+}
+
+/** Stone rather than cream on snow: 23.5 to 25.0 from it by day. The nights are the houses'. */
+private val SNOW_THEME_SHOP_COLOURS =
+    intArrayOf(0xFFE2CDAE.toInt(), 0xFF6B5F52.toInt(), 0xFFD8BFAE.toInt(), 0xFF5C4A45.toInt())
+
+/** Whiter paper on the sand by day, and nights darker than the night sand: 22.9-24.0 and 14.3-15.6. */
+private val BEACH_SHOP_COLOURS =
+    intArrayOf(0xFFF2EBE0.toInt(), 0xFF524440.toInt(), 0xFFF5E0D6.toInt(), 0xFF4E403B.toInt())
+
+/**
+ * The towers' and the shops' starting colours on a theme that is **not built in**, by the twelve's rule
+ * (v5.11, inventory I-419; the maintainer's *«Ripararlo prima di pubblicare»* of 2026-10-07, asked with
+ * the photographs of Big City's slate towers vanishing into its hills).
+ *
+ * Until then such a theme started from [SceneCustomization.DEFAULT]: the slate every tower had before
+ * v5.11, and for the shops the same slate. On a random theme ("Shuffle a random theme") the slate towers
+ * went under the night gate on about one hill colour in eight, and the shops were the darkest thing in
+ * the street again; a theme of the user's own copied from Big City, after "Reset Buildings to default",
+ * had the towers of inventory I-410 back, 3.8 from its hills by day.
+ *
+ * - **A copy of a built-in theme** -- what "Save current look as..." and a saved version write: the
+ *   [SceneTheme] of the theme it was saved from, under a new id -- starts from that theme's pairs
+ *   ([builtInTowerColours], [builtInShopColours]), recognised by its sky and hills, which a copy carries
+ *   unchanged. A copy of Big City reset to default has Big City's steel and sand.
+ * - **Any other theme** -- a random one ([RandomSceneGenerator]), or one imported from a file whose sky
+ *   and hills are no built-in theme's -- takes the first pair that clears [BuildingGroundContrast]'s
+ *   gates against its own ground ([clearestPair]): for the towers, among the twelve towers' pairs, Big
+ *   City's first (the plainest of them); for the shops, the houses' pair, then the snow themes' stone,
+ *   then Beach's paper, then the towers' pairs. The ground is this customization's: the theme's hills
+ *   and, for a tower, the mountains it shows ([SceneCustomization.DEFAULT]'s, on such a theme).
+ *
+ * **Only the start**, as on the twelve: the colours stored with a theme -- saved, edited and archived,
+ * restored, imported -- are its own and are read as stored; this is what "Reset Buildings to default"
+ * and "Reset Shops to default" bring back on it. Only the colours: the switch and the amount stay this
+ * customization's.
+ */
+internal fun SceneCustomization.withStartingBuildingColours(theme: SceneTheme): SceneCustomization {
+    val copied = ThemeCatalog.ALL.firstOrNull { it.sharesPaletteWith(theme) }
+    val towerPair = copied?.let { BUILT_IN_TOWER_COLOURS.getValue(it.id) }
+        ?: clearestPair(TOWER_CANDIDATES, this, SceneSpace.SceneVariant.TOWER)
+    val shopPair = copied?.let { builtInShopColours(it.id) }
+        ?.let { intArrayOf(it.colorDay1, it.colorNight1, it.colorDay2, it.colorNight2) }
+        ?: clearestPair(SHOP_CANDIDATES, this, SceneSpace.SceneVariant.RESTAURANT)
+    return copy(buildings = buildings.withPair(towerPair), shops = shops.withPair(shopPair))
+}
+
+/** Whether [other]'s sky and hills are this theme's: a saved copy carries them unchanged ([SceneTheme.equals] compares ids). */
+private fun SceneTheme.sharesPaletteWith(other: SceneTheme): Boolean =
+    skyDay.contentEquals(other.skyDay) && skyNight.contentEquals(other.skyNight) &&
+        hillColorsDay.contentEquals(other.hillColorsDay) && hillColorsNight.contentEquals(other.hillColorsNight)
+
+/**
+ * The first of [candidates] (day 1, night 1, day 2, night 2) that clears both of
+ * [BuildingGroundContrast]'s gates against [ground] for a building drawn as [variant]; if none does, the
+ * one that comes closest ([BuildingGroundContrast.margin]).
+ */
+internal fun clearestPair(candidates: List<IntArray>, ground: SceneCustomization, variant: SceneSpace.SceneVariant): IntArray {
+    var best = candidates.first()
+    var bestMargin = Float.NEGATIVE_INFINITY
+    for (pair in candidates) {
+        val margin = BuildingGroundContrast.margin(ground, variant, pair)
+        if (margin >= 1f) return pair
+        if (margin > bestMargin) { best = pair; bestMargin = margin }
+    }
+    return best
+}
+
+private fun ObjectVariantConfig.withPair(pair: IntArray) =
+    copy(colorDay1 = pair[0], colorNight1 = pair[1], colorDay2 = pair[2], colorNight2 = pair[3])
+
+/** The towers' candidates for a theme that is not built in: the twelve built-in pairs, Big City's first. */
+private val TOWER_CANDIDATES: List<IntArray> =
+    listOf(BUILT_IN_TOWER_COLOURS.getValue("city")) + BUILT_IN_TOWER_COLOURS.filterKeys { it != "city" }.values
+
+/** The shops' candidates for a theme that is not built in: the three pairs the twelve's shops start from, then the towers'. */
+private val SHOP_CANDIDATES: List<IntArray> = run {
+    val houses = SceneCustomization.DEFAULT.houses
+    listOf(
+        intArrayOf(houses.colorDay1, houses.colorNight1, houses.colorDay2, houses.colorNight2),
+        SNOW_THEME_SHOP_COLOURS,
+        BEACH_SHOP_COLOURS,
+    ) + TOWER_CANDIDATES
 }
 
 // --- Structural vs cosmetic change detection -------------------------------------------------

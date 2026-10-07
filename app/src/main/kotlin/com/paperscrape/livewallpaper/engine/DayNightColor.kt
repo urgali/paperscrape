@@ -329,6 +329,7 @@ object DayNightColor {
 fun SceneCustomization.withResolvedDayNightColors(): SceneCustomization = copy(
     houses = houses.resolved(),
     buildings = buildings.resolved(),
+    shops = shops.resolved(),
     cars = cars.resolved(),
     parasols = parasols.resolved(),
     people = people.resolved(),

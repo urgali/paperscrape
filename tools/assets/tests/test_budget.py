@@ -135,13 +135,17 @@ class BudgetReportTest(unittest.TestCase):
         # 26 were added: the prefix list said `skyscraper` and the towers are `tower_*`, so the
         # test's own name ("six families") was the one thing it did not check. The number is
         # pinned rather than derived because the point is that the perimeter is read from the
-        # shipped drawable set and not from whatever the concept run happened to draw.
+        # shipped drawable set and not from whatever the concept run happened to draw. 76 until
+        # v5.11, which added the tower's two other heights and its door bays (11) and the distant
+        # houses (12, `house_distant_*`: they share the houses' prefix and are counted with them).
         rep, _, md = self._run({"house_a": (24, 24)})
         perimeter = rep["shipped_perimeter"]
-        self.assertEqual(76, perimeter["files"])
+        self.assertEqual(99, perimeter["files"])
         self.assertIn(f"Shipped perimeter ({perimeter['files']} PNG", md)
         towers = [n for n in (p.stem for p in RUNTIME_DIR.glob("tower_*.png"))]
-        self.assertEqual(26, len(towers), "the towers are part of the perimeter")
+        self.assertEqual(37, len(towers), "the towers are part of the perimeter")
+        distant = [n for n in (p.stem for p in RUNTIME_DIR.glob("house_distant_*.png"))]
+        self.assertEqual(12, len(distant), "and so are the distant houses")
         # The concept's own PNG is not in it: the perimeter is read from the shipped drawable set.
         self.assertNotEqual(perimeter["files"], rep["concepts"]["mix"]["files"])
 

@@ -25,6 +25,7 @@ import com.paperscrape.livewallpaper.engine.toJsonString
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
 import com.paperscrape.livewallpaper.engine.PeopleDensity
 import com.paperscrape.livewallpaper.engine.MountainLayerConfig
+import com.paperscrape.livewallpaper.engine.DistantHousesConfig
 import com.paperscrape.livewallpaper.engine.LakeConfig
 import com.paperscrape.livewallpaper.engine.BirdsConfig
 import com.paperscrape.livewallpaper.engine.BirdColorWeight
@@ -268,6 +269,11 @@ data class WallpaperSettings(
  * (e.g. City's dense towers, Christmas's snowmen). */
 enum class ObjectCategory {
     HOUSES, BUILDINGS, CARS, PARASOLS, TREES,
+    // The shops' colours (v5.11), and nothing else: whether they stand is BUILDINGS' switch, so the
+    // two non-colour keys exist here only because the storage is generic, like PEOPLE's colours.
+    // A preference store written before v5.11 has none of these keys: see
+    // `WallpaperPrefs.readFlatCustomization` for how its shops are read.
+    SHOPS,
     // People are a category for visibility and density only. They have no colour: their artwork
     // is finished, four kinds across two seasons, and a tint over it is the mistake
     // `DESIGN_NOTES.md` decision 25 exists to prevent. The four colour keys below exist for every
@@ -506,6 +512,18 @@ class WallpaperPrefs internal constructor(
         val HALLOWEEN_ENABLED = booleanPreferencesKey("halloween_enabled")
         val HORROR_SKY_ENABLED = booleanPreferencesKey("horror_sky_enabled")
         val SANTA_ENABLED = booleanPreferencesKey("santa_enabled")
+
+        /** The distant houses on the mountains (v5.11). Absent reads off, at 50 %. */
+        val DISTANT_HOUSES_VISIBLE = booleanPreferencesKey("distant_houses_visible")
+        val DISTANT_HOUSES_DENSITY = floatPreferencesKey("distant_houses_density")
+
+        /**
+         * Whether the live edit's keys were written by a build that knows the shops have colours of
+         * their own (v5.11). Absent in a store written before -- whose shops were drawn in the
+         * Buildings colours -- and set by the first edit since, which carries those colours over into
+         * the shops' own keys first ([ensureFreshPendingTheme]). See [readFlatCustomization].
+         */
+        val SCRATCH_KNOWS_SHOPS = booleanPreferencesKey("scratch_knows_shops")
     }
 
     private fun readVariantConfig(prefs: Preferences, category: ObjectCategory, default: ObjectVariantConfig): ObjectVariantConfig =
@@ -582,7 +600,8 @@ class WallpaperPrefs internal constructor(
         val defaults = defaultCustomizationFor(themeId)
         return SceneCustomization(
             houses = readVariantConfig(prefs, ObjectCategory.HOUSES, defaults.houses),
-            buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, defaults.buildings),
+            buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, towersDrawnIn(prefs, defaults.buildings)),
+            shops = readShops(prefs, defaults),
             cars = readVariantConfig(prefs, ObjectCategory.CARS, defaults.cars),
             parasols = readVariantConfig(prefs, ObjectCategory.PARASOLS, defaults.parasols),
         people = readVariantConfig(prefs, ObjectCategory.PEOPLE, defaults.people),
@@ -625,6 +644,10 @@ class WallpaperPrefs internal constructor(
                 colorDay = prefs[Keys.mountainColorDay(false)] ?: defaults.mountainsBack.colorDay,
                 colorNight = prefs[Keys.mountainColorNight(false)] ?: defaults.mountainsBack.colorNight,
                 autoMode = AutoColorMode.fromStorageId(prefs[Keys.mountainAutoMode(false)]),
+            ),
+            distantHouses = DistantHousesConfig(
+                visible = prefs[Keys.DISTANT_HOUSES_VISIBLE] ?: defaults.distantHouses.visible,
+                density = prefs[Keys.DISTANT_HOUSES_DENSITY] ?: defaults.distantHouses.density,
             ),
             lake = LakeConfig(
                 visible = prefs[Keys.LAKE_VISIBLE] ?: defaults.lake.visible,
@@ -708,6 +731,57 @@ class WallpaperPrefs internal constructor(
         )
     }
 
+    /**
+     * The shops' colours in the live edit.
+     *
+     * **A store written before v5.11 has no shop keys, and its shops were drawn in the Buildings
+     * colours.** Where such a live edit holds a Buildings colour the user chose, the shops are read
+     * as the Buildings pair the old build drew them in: each colour the key it stored, or the slate
+     * every theme's buildings had before v5.11 ([SceneCustomization.DEFAULT]'s), and the two modes the
+     * stored ones -- the theme keeps the look it had. Where it holds none, the shops start from the
+     * theme's own new colours, as the towers do. The first edit made since carries that reading into
+     * the shops' own keys and marks the space ([Keys.SCRATCH_KNOWS_SHOPS],
+     * [ensureFreshPendingTheme]), after which the shop keys are read like any other category's -- so
+     * "Reset Shops to default" means the theme's shop colours, not the Buildings ones.
+     */
+    private fun readShops(prefs: Preferences, defaults: SceneCustomization): ObjectVariantConfig {
+        if (prefs[Keys.SCRATCH_KNOWS_SHOPS] == true || !holdsCategoryColour(prefs, ObjectCategory.BUILDINGS)) {
+            return readVariantConfig(prefs, ObjectCategory.SHOPS, defaults.shops)
+        }
+        val drawnIn = SceneCustomization.DEFAULT.buildings
+        return defaults.shops.copy(
+            colorDay1 = prefs[Keys.colorDay1(ObjectCategory.BUILDINGS)] ?: drawnIn.colorDay1,
+            colorNight1 = prefs[Keys.colorNight1(ObjectCategory.BUILDINGS)] ?: drawnIn.colorNight1,
+            colorDay2 = prefs[Keys.colorDay2(ObjectCategory.BUILDINGS)] ?: drawnIn.colorDay2,
+            colorNight2 = prefs[Keys.colorNight2(ObjectCategory.BUILDINGS)] ?: drawnIn.colorNight2,
+            autoMode1 = AutoColorMode.fromStorageId(prefs[Keys.autoMode1(ObjectCategory.BUILDINGS)]),
+            autoMode2 = AutoColorMode.fromStorageId(prefs[Keys.autoMode2(ObjectCategory.BUILDINGS)]),
+        )
+    }
+
+    /**
+     * What the live edit's Buildings keys are read against: the theme's defaults -- or, for a live edit
+     * written before v5.11 that holds a Buildings colour the user chose, the slate its towers were
+     * drawn in for the colours it did not store. Such a pair keeps the look it had (the colours stored,
+     * the slate for the rest) instead of mixing the user's colour with the theme's new starting ones;
+     * a live edit that never touched the Buildings colours takes the new ones, as a theme never edited
+     * does. Carried into the keys by [carryShopsOver] at the first edit since.
+     */
+    private fun towersDrawnIn(prefs: Preferences, defaults: ObjectVariantConfig): ObjectVariantConfig {
+        if (prefs[Keys.SCRATCH_KNOWS_SHOPS] == true || !holdsCategoryColour(prefs, ObjectCategory.BUILDINGS)) return defaults
+        val slate = SceneCustomization.DEFAULT.buildings
+        return defaults.copy(
+            colorDay1 = slate.colorDay1, colorNight1 = slate.colorNight1,
+            colorDay2 = slate.colorDay2, colorNight2 = slate.colorNight2,
+        )
+    }
+
+    /** Whether the live edit holds any of [category]'s four colours or two modes. */
+    private fun holdsCategoryColour(prefs: Preferences, category: ObjectCategory): Boolean =
+        prefs[Keys.colorDay1(category)] != null || prefs[Keys.colorNight1(category)] != null ||
+            prefs[Keys.colorDay2(category)] != null || prefs[Keys.colorNight2(category)] != null ||
+            prefs[Keys.autoMode1(category)] != null || prefs[Keys.autoMode2(category)] != null
+
     /** Every theme that has a persisted customization of its own, keyed by theme id. */
     private fun readThemeCustomizations(prefs: Preferences): Map<String, SceneCustomization> {
         val out = HashMap<String, SceneCustomization>()
@@ -747,6 +821,7 @@ class WallpaperPrefs internal constructor(
         }
         variant(ObjectCategory.HOUSES, c.houses)
         variant(ObjectCategory.BUILDINGS, c.buildings)
+        variant(ObjectCategory.SHOPS, c.shops)
         variant(ObjectCategory.CARS, c.cars)
         variant(ObjectCategory.PARASOLS, c.parasols)
         variant(ObjectCategory.PEOPLE, c.people)
@@ -775,6 +850,8 @@ class WallpaperPrefs internal constructor(
             this[Keys.mountainColorNight(front)] = m.colorNight
             this[Keys.mountainAutoMode(front)] = m.autoMode.storageId
         }
+        this[Keys.DISTANT_HOUSES_VISIBLE] = c.distantHouses.visible
+        this[Keys.DISTANT_HOUSES_DENSITY] = c.distantHouses.density
         this[Keys.LAKE_VISIBLE] = c.lake.visible
         this[Keys.LAKE_COLOR_DAY] = c.lake.colorDay
         this[Keys.LAKE_COLOR_NIGHT] = c.lake.colorNight
@@ -1160,6 +1237,20 @@ class WallpaperPrefs internal constructor(
     suspend fun setHillsColorNight(color: Int, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.HILLS_COLOR_NIGHT] = color
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /** *Show distant houses* on [forThemeId] (v5.11). */
+    suspend fun setDistantHousesVisible(visible: Boolean, forThemeId: String) =
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.DISTANT_HOUSES_VISIBLE] = visible
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /** The distant houses' amount on [forThemeId], 0..1 (v5.11). */
+    suspend fun setDistantHousesDensity(density: Float, forThemeId: String) =
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.DISTANT_HOUSES_DENSITY] = density.coerceIn(0f, 1f)
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
@@ -1650,6 +1741,11 @@ class WallpaperPrefs internal constructor(
             remove(Keys.mountainColorDay(front))
             remove(Keys.mountainColorNight(front))
         }
+        remove(Keys.DISTANT_HOUSES_VISIBLE)
+        remove(Keys.DISTANT_HOUSES_DENSITY)
+        // The marker belongs to the space it describes: an empty space holds no Buildings colour,
+        // so the shops read the theme's own either way, and the edit that fills it sets it again.
+        remove(Keys.SCRATCH_KNOWS_SHOPS)
         remove(Keys.LAKE_VISIBLE)
         remove(Keys.LAKE_COLOR_DAY)
         remove(Keys.LAKE_COLOR_NIGHT)
@@ -1744,7 +1840,10 @@ class WallpaperPrefs internal constructor(
      */
     private fun MutablePreferences.ensureFreshPendingTheme(forThemeId: String) {
         val outgoing = this[Keys.PENDING_CUSTOMIZATION_THEME_ID]
-        if (outgoing == forThemeId) return
+        if (outgoing == forThemeId) {
+            carryShopsOver(forThemeId)
+            return
+        }
         // **Archive, do not destroy.** Until v4.3 this branch called
         // [clearAllThemeCustomizationKeys] and nothing else, which is exactly right for stopping
         // the leak it was written for and exactly wrong for the user's data: the scratch space is
@@ -1779,6 +1878,34 @@ class WallpaperPrefs internal constructor(
         } else {
             savedLookFor(forThemeId)?.let { writeFlatCustomization(it) }
         }
+        // Written by this build, whose writer gives the shops keys of their own.
+        this[Keys.SCRATCH_KNOWS_SHOPS] = true
+    }
+
+    /**
+     * A live edit written before v5.11, edited again: the shops' colours it is read with
+     * ([readShops]) written into the shops' own keys, and the towers' colours it did not store written
+     * as the slate it is read with ([towersDrawnIn]), once, and the space marked as this build's. From
+     * then on the keys are the truth, as every other category's are -- so a reset of either page
+     * means the theme's own colours.
+     */
+    private fun MutablePreferences.carryShopsOver(themeId: String) {
+        if (this[Keys.SCRATCH_KNOWS_SHOPS] == true) return
+        if (holdsCategoryColour(this, ObjectCategory.BUILDINGS)) {
+            val slate = SceneCustomization.DEFAULT.buildings
+            if (this[Keys.colorDay1(ObjectCategory.BUILDINGS)] == null) this[Keys.colorDay1(ObjectCategory.BUILDINGS)] = slate.colorDay1
+            if (this[Keys.colorNight1(ObjectCategory.BUILDINGS)] == null) this[Keys.colorNight1(ObjectCategory.BUILDINGS)] = slate.colorNight1
+            if (this[Keys.colorDay2(ObjectCategory.BUILDINGS)] == null) this[Keys.colorDay2(ObjectCategory.BUILDINGS)] = slate.colorDay2
+            if (this[Keys.colorNight2(ObjectCategory.BUILDINGS)] == null) this[Keys.colorNight2(ObjectCategory.BUILDINGS)] = slate.colorNight2
+            val shops = readShops(this, defaultCustomizationFor(themeId))
+            this[Keys.colorDay1(ObjectCategory.SHOPS)] = shops.colorDay1
+            this[Keys.colorNight1(ObjectCategory.SHOPS)] = shops.colorNight1
+            this[Keys.colorDay2(ObjectCategory.SHOPS)] = shops.colorDay2
+            this[Keys.colorNight2(ObjectCategory.SHOPS)] = shops.colorNight2
+            this[Keys.autoMode1(ObjectCategory.SHOPS)] = shops.autoMode1.storageId
+            this[Keys.autoMode2(ObjectCategory.SHOPS)] = shops.autoMode2.storageId
+        }
+        this[Keys.SCRATCH_KNOWS_SHOPS] = true
     }
 
     /**

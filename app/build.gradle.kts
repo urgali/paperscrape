@@ -51,9 +51,9 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72, v5.10 → 73. Ordinary bumps: one release, one step.
-        versionCode = 73
-        versionName = "5.10"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72, v5.10 → 73, v5.11 → 74. Ordinary bumps: one release, one step.
+        versionCode = 74
+        versionName = "5.11"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //
@@ -69,8 +69,8 @@ android {
         //
         // Shipping a secret to every user is not a thing a build file should make easy, so the
         // mechanism is gone rather than merely unused: there is no env var to set and no field to
-        // read. The maintainer decided in v5.3 to drop the higher-limit endpoint rather than run a
-        // proxy for it.
+        // read. The maintainer decided in v5.3 to drop the app's own access to the higher-limit
+        // endpoint (his key) rather than run a proxy for it; a user's own key still reaches it (below).
         //
         // **Nothing about Live Weather changes for a user.** Open-Meteo's free tier needs no key
         // (`OpenMeteoProvider` builds the keyless api.open-meteo.com URL), and a user who enters

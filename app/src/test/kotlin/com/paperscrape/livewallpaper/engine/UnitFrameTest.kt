@@ -41,7 +41,7 @@ import org.junit.Test
  * did. So the frame is **propagated through local `val` declarations**: a `val` whose initialiser
  * resolves to one frame carries that frame afterwards, and a `val` whose initialiser contains a
  * conversion becomes a conversion itself. Both known defects are inside what this sees, and
- * `theRuleBitesOnAMixedExpression` renders that claim falsifiable.
+ * `the rule bites on a mixed expression` renders that claim falsifiable.
  *
  * ### A frame is a transform, not a sprite
  *

@@ -21,43 +21,90 @@ R = dict(amp=0.9, relief=(1.9, 2.6))
 B = dict(amp=0.75, relief=(1.5, 2.0))
 
 
-def tower_body():
-    """Three stepped tiers: three cards (one per tier, each cropped to its own box: a single
-    sheet was 45 % empty), the windows in stamped rows, the bays with stamped glass."""
-    p = Piece("k2_t_gradini", 176)
-    t1, t2, t3 = rect(-33, -108, 33, 0), rect(-26, -148, 26, -108), rect(-18, -176, 18, -148)
-    g = Group("k2_t_gradini_1")
+#: The towers' three heights (v5.11, inventory I-402; the maintainer's choice B of 2026-10-06): a
+#: short body of two tiers, the three-tier body every tower had until v5.11 (a storey taller since, with
+#: the hall), and a tall one. Each is the same
+#: stepped figure grown or shrunk by whole window rows -- 12 units, one storey of the row stamps --
+#: so the three read as one family and every row, bay and snow cap sits on the same grid.
+#: `tier1_rows` and `tier2_rows` are rows added to (or, below zero, taken from) the first and second
+#: tiers; `tier3` is whether the third, narrowest tier stands on top. The engine gives each tower one
+#: of the three by a coin of its own, so the crowns the deal hands out are the ones they were.
+TOWER_SHAPES = {
+    "short": dict(tier1_rows=-1, tier2_rows=0, tier3=False),
+    "mid": dict(tier1_rows=0, tier2_rows=0, tier3=True),
+    "tall": dict(tier1_rows=2, tier2_rows=1, tier3=True),
+}
+
+
+def tower_body(shape="mid"):
+    """Three stepped tiers -- two on the short body -- as one card per tier (each cropped to its
+    own box: a single sheet was 45 % empty), the windows in stamped rows, the bays with stamped
+    glass. `shape` is a key of [TOWER_SHAPES].
+
+    **The entrance storey is where the people are** (v5.11, inventory I-406: the maintainer's B2 of
+    2026-10-06, *«ok B2 ma ci devono essere due finestre con persone anche accanto alla porta»*). The
+    hall is a storey taller than it was -- 44 units, which is what grows every body by one row of 12 --
+    with a row of four large windows over the canopy and, beside the door, two more where two small
+    ones were: the six windows a bust stands in. Everything above is small windows, the second tier's
+    bay included. Until v5.11 the people's windows were two at mid-height and one on the second tier,
+    among the small ones, at the towers' own low rate, so a tower rarely showed anyone.
+
+    A card's group name is its wobble seed and its PNG's name, so a tier keeps one name where it is
+    one card (tier 3 on the mid and the tall body; tier 2 on the short and the mid; every snow cap but
+    the short body's wide one) and takes a suffix where it is not."""
+    k = TOWER_SHAPES[shape]
+    hall_top = -44
+    h1 = 108 + 12 + 12 * k["tier1_rows"]
+    h2 = 40 + 12 * k["tier2_rows"]
+    top1, top2 = -h1, -h1 - h2
+    top3 = top2 - 28
+    total = -top3 if k["tier3"] else -top2
+    suffix = "" if shape == "mid" else "_" + shape
+    p = Piece("k2_t_gradini" + suffix, total)
+    t1, t2, t3 = rect(-33, top1, 33, 0), rect(-26, top2, 26, top1), rect(-18, top3, 18, top2)
+    g = Group("k2_t_gradini_1" + suffix)
     g.face("t1", t1)
     g.add(t1, WALL, relief=T["relief"], amp=T["amp"])
-    g.add(rect(-33, -26, 33, 0), BASE_LIGHT, amp=T["amp"] * 0.5)
+    g.add(rect(-33, hall_top, 33, 0), BASE_LIGHT, amp=T["amp"] * 0.5)
     g.add(chamfered(-16, -27.5, 16, -24, 0.8), TRIM, relief=T["relief"], amp=T["amp"] * 0.6, host="t1", label="canopy")
     glass_door(g, "t1", -8, -23, 16, 21, T["relief"], T["amp"])
-    grid_windows(g, "t1", [-27, 21], [-21], 6, 8, T["amp"])
-    rows(p, g, "t1", row_stamp("k2_t_row5", 5, 6, 7, 12, T["amp"]), 5, 6, 7, 12, -27, [-100, -88, -76, -52, -40])
+    # The two beside the door, the size of a bust's pane.
+    door_bay = bay_glass("k2_t_bay_door", 12, 12, T["amp"])
+    for x in (-30, 18):
+        win, _ = bay_window(g, "t1", x, -22, 12, 12, T["relief"], T["amp"], frame=1.5, sill=False, glass=False)
+        p.windows.append(win); p.stamp(door_bay, x, -22)
+    # The four over the canopy.
     bay = bay_glass("k2_t_bay", 12, 11, T["amp"])
-    for x in (-27, 9):
-        win, _ = bay_window(g, "t1", x, -64, 12, 11, T["relief"], T["amp"], frame=1.5, sill=False, glass=False)
-        p.windows.append(win); p.stamp(bay, x, -64)
-    p.lights += [(-27, -33, 18), (9, -33, 18), (-27, -93, 18), (9, -93, 18)]
+    for x in (-30, -14, 2, 18):
+        win, _ = bay_window(g, "t1", x, -40, 12, 11, T["relief"], T["amp"], frame=1.5, sill=False, glass=False)
+        p.windows.append(win); p.stamp(bay, x, -40)
+    # Small windows up the rest of the first tier, every 12 units from the top down to the hall.
+    ys = list(range(top1 + 8, hall_top - 7, 12))
+    rows(p, g, "t1", row_stamp("k2_t_row5", 5, 6, 7, 12, T["amp"]), 5, 6, 7, 12, -27, ys)
+    # Christmas strings under the lowest and the highest row of the first tier.
+    p.lights += [(-27, ys[-1] + 7, 18), (9, ys[-1] + 7, 18), (-27, ys[0] + 7, 18), (9, ys[0] + 7, 18)]
     p.lamps.append((-13, -26.5))
     p.place(g)
-    g2 = Group("k2_t_gradini_2")
+    g2 = Group("k2_t_gradini_2" + ("_tall" if k["tier2_rows"] else ""))
     g2.face("t2", t2)
     g2.add(t2, W_TIER2 or W(0.92, CREAM), relief=T["relief"], amp=T["amp"])
-    rows(p, g2, "t2", row_stamp("k2_t_row4", 4, 6, 7, 12, T["amp"]), 4, 6, 7, 12, -22, [-142, -118])
-    win, _ = bay_window(g2, "t2", -6, -131, 12, 11, T["relief"], T["amp"], frame=1.5, sill=False, glass=False)
-    p.windows.append(win); p.stamp(bay, -6, -131)
+    ys2 = [top1 - 10 - 12 * r for r in range(3 + k["tier2_rows"])][::-1]
+    rows(p, g2, "t2", row_stamp("k2_t_row4", 4, 6, 7, 12, T["amp"]), 4, 6, 7, 12, -22, ys2)
     p.place(g2)
-    g3 = Group("k2_t_gradini_3")
-    g3.face("t3", t3)
-    g3.add(t3, WALL, relief=T["relief"], amp=T["amp"])
-    rows(p, g3, "t3", row_stamp("k2_t_row3", 3, 6, 7, 11, T["amp"]), 3, 6, 7, 11, -14, [-170, -158])
-    p.place(g3)
-    p.place(snow_cap("k2_t_gradini_snow_l1", [[(-33, -108), (-26, -108)]], T["amp"], body=3.5))
-    p.place(snow_cap("k2_t_gradini_snow_r1", [[(26, -108), (33, -108)]], T["amp"], body=3.5))
-    p.place(snow_cap("k2_t_gradini_snow_l2", [[(-26, -148), (-18, -148)]], T["amp"], body=3.5))
-    p.place(snow_cap("k2_t_gradini_snow_r2", [[(18, -148), (26, -148)]], T["amp"], body=3.5))
-    p.place(snow_cap("k2_t_gradini_snow_top", [[(-18, -176), (18, -176)]], T["amp"], body=3.5))
+    if k["tier3"]:
+        g3 = Group("k2_t_gradini_3")
+        g3.face("t3", t3)
+        g3.add(t3, WALL, relief=T["relief"], amp=T["amp"])
+        rows(p, g3, "t3", row_stamp("k2_t_row3", 3, 6, 7, 11, T["amp"]), 3, 6, 7, 11, -14, [top2 - 22, top2 - 10])
+        p.place(g3)
+    p.place(snow_cap("k2_t_gradini_snow_l1", [[(-33, top1), (-26, top1)]], T["amp"], body=3.5))
+    p.place(snow_cap("k2_t_gradini_snow_r1", [[(26, top1), (33, top1)]], T["amp"], body=3.5))
+    if k["tier3"]:
+        p.place(snow_cap("k2_t_gradini_snow_l2", [[(-26, top2), (-18, top2)]], T["amp"], body=3.5))
+        p.place(snow_cap("k2_t_gradini_snow_r2", [[(18, top2), (26, top2)]], T["amp"], body=3.5))
+        p.place(snow_cap("k2_t_gradini_snow_top", [[(-18, top3), (18, top3)]], T["amp"], body=3.5))
+    else:
+        p.place(snow_cap("k2_t_gradini_snow_top_wide", [[(-26, top2), (26, top2)]], T["amp"], body=3.5))
     return p
 
 

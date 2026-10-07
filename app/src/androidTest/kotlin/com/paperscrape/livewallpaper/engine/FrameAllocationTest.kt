@@ -20,7 +20,10 @@ import org.junit.runner.RunWith
  * them all removed on 2026-09-30, and this is what keeps them removed: every built-in theme by day
  * and by night, the lake at its busiest, rain, snow, a storm driven by Live Weather, the sleigh and
  * the fireworks, each warmed up past the moment the traffic arrives and then drawn for
- * [COUNTED_FRAMES] frames while ART counts what this thread allocates.
+ * [COUNTED_FRAMES] frames while ART counts what this thread allocates. Since v5.11 also the distant
+ * houses on the mountains, by day, at night and under snow, and a scene with everything on at once:
+ * the houses at 100 %, opening hours (the lamps and the glass of the shut shops), the lake at its
+ * busiest, the decorations and the weather.
  *
  * The frames are drawn by the real [PaperRenderer] into a [SceneCanvas] that does nothing, so the
  * count is the scene's own: the two backends allocate nothing per frame of their own (the GL one
@@ -97,6 +100,22 @@ class FrameAllocationTest {
         )
     }
 
+    /** The distant houses on, at 100 % (v5.11): every place of every mountain stands a house. */
+    private val distantHouses: (SceneCustomization) -> SceneCustomization = {
+        it.copy(distantHouses = DistantHousesConfig(visible = true, density = 1f))
+    }
+
+    /** Everything on at once (v5.11): the distant houses, opening hours, the lake, decorations, rain. */
+    private val everything: (SceneCustomization) -> SceneCustomization = { c ->
+        val full = { o: ObjectVariantConfig -> o.copy(visible = true, density = 1f) }
+        busyLake(rain(distantHouses(c))).copy(
+            businessHoursEnabled = true,
+            houses = full(c.houses), buildings = full(c.buildings), trees = full(c.trees), parasols = full(c.parasols),
+            snowmen = full(c.snowmen), gifts = full(c.gifts), pumpkins = full(c.pumpkins),
+            easterEggs = full(c.easterEggs), bunnies = full(c.bunnies), penguins = full(c.penguins),
+        )
+    }
+
     private val scenes = listOf(
         Scene("sunset-noon", "sunset", 13f),
         Scene("sunset-night", "sunset", 1f),
@@ -113,6 +132,11 @@ class FrameAllocationTest {
         Scene("desert-afternoon", "desert", 15f),
         Scene("tundra-night", "tundra", 2f),
         Scene("lake-busy", "sunset", 13f, customise = busyLake),
+        Scene("distant-houses-noon", "autumn", 12f, customise = distantHouses),
+        Scene("distant-houses-midnight", "autumn", 0f, customise = distantHouses),
+        Scene("distant-houses-snow-night", "winter", 23f, customise = { distantHouses(snow(it)) }),
+        Scene("everything-on-evening", "city", 21f, customise = everything),
+        Scene("everything-on-night", "christmas", 1f, events = true, customise = everything),
         Scene(
             "live-storm", "sunset", 13f,
             weather = LiveWeatherSnapshot(

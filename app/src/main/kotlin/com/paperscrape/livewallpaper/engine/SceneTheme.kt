@@ -256,7 +256,8 @@ object ThemeCatalog {
         }
         if (id != null) {
             // A user-saved replacement for a built-in theme takes priority over the hardcoded
-            // default; "Reset to default" is just removing that override (see CustomThemeStore).
+            // default; removing it is half of the gallery's "Reset to default", which also clears
+            // the theme's edits from the menus (see CustomThemeStore, `resetBuiltinToDefault`).
             CustomThemeRegistry.overrideThemeFor(id)?.let { return it }
         }
         ALL.firstOrNull { it.id == id }?.let { return it }

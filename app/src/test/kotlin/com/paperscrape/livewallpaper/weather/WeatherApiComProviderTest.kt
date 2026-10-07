@@ -17,7 +17,7 @@ import org.junit.Test
  * complete or correct — deferred item **D8**. WeatherAPI.com publishes its condition vocabulary as
  * machine-readable JSON, that file is committed verbatim at
  * `src/test/resources/weather/weatherapi-conditions.json`, and
- * [everyPublishedConditionCodeIsMapped] walks all 60 entries. A code the provider adds, or one this
+ * `every published condition code is mapped` walks all 60 entries. A code the provider adds, or one this
  * table forgets, is a test failure rather than a silent `UNKNOWN` on somebody's wallpaper.
  *
  * No test here touches the network. Every response body is a literal.

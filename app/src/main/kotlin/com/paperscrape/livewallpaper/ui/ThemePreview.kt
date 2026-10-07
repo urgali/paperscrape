@@ -106,6 +106,8 @@ private fun drawScene(
         // One polygon rather than the wallpaper's two halves: see `MountainSilhouette.whole`.
         MountainSilhouette.whole(shape, peak.x, base, peak.halfWidth * 2f, base - peak.peakY)
         target.drawShape(shape, paint)
+        // Its distant houses, before the next mountain covers what it covers (v5.11).
+        for (house in peak.houses) drawItem(house, target, blitter)
     }
 
     // The hills: one silhouette with a gentle wave, matching the single hill layer the scene

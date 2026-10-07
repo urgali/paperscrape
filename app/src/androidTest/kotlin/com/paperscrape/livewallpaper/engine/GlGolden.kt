@@ -220,9 +220,15 @@ object GlGolden {
                 dayPhase = GoldenScene.day(),
                 themeId = themeId,
                 customise = { base ->
+                    // The people at their fullest, and since v5.11 the distant houses at 100 % on both
+                    // mountain layers of every theme (Beach and Big City ship theirs off): the most a
+                    // wallpaper left running can have drawn.
                     base.copy(
                         people = base.people.copy(visible = true, density = 1f),
                         peopleNightDensity = 1f,
+                        distantHouses = DistantHousesConfig(visible = true, density = 1f),
+                        mountainsFront = base.mountainsFront.copy(visible = true, density = 1f),
+                        mountainsBack = base.mountainsBack.copy(visible = true, density = 1f),
                     )
                 },
             )

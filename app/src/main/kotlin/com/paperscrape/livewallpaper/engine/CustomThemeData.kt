@@ -10,9 +10,10 @@ import org.json.JSONObject
  *
  * Both [theme] and [layout] are complete snapshots — everything needed to render the scene
  * except the seasonal-decoration slots, which [SceneObjectCatalog.layoutFor] deals from the
- * entry's id at load, as it does for a built-in. This is what makes "Reset to default" trivial:
- * it just deletes the override, and [ThemeCatalog.byId] naturally falls back to the
- * hardcoded built-in again.
+ * entry's id at load, as it does for a built-in. This is what makes the saved-version half of
+ * "Reset to default" trivial: deleting the override is enough for [ThemeCatalog.byId] to fall back
+ * to the hardcoded built-in again (the gallery's reset also clears the theme's edits from the menus,
+ * `resetBuiltinToDefault`).
  */
 data class CustomThemeEntry(
     val id: String,
@@ -326,6 +327,9 @@ fun objectVariantConfigFromJson(json: JSONObject, default: ObjectVariantConfig):
 fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("houses", houses.toJson())
     put("buildings", buildings.toJson())
+    // The shops' own colours (v5.11). A payload without them is read with the Buildings colours
+    // beside it, which is what its shops were drawn in -- see `sceneCustomizationFromJson`.
+    put("shops", shops.toJson())
     put("cars", cars.toJson())
     put("parasols", parasols.toJson())
     put("people", people.toJson())
@@ -369,6 +373,11 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
         put("colorDay", mountainsBack.colorDay)
         put("colorNight", mountainsBack.colorNight)
         put("autoMode", mountainsBack.autoMode.storageId)
+    })
+    // The distant houses (v5.11). Absent from every older payload, which reads them off.
+    put("distantHouses", JSONObject().apply {
+        put("visible", distantHouses.visible)
+        put("density", distantHouses.density.toDouble())
     })
     put("lake", JSONObject().apply {
         put("visible", lake.visible)
@@ -435,9 +444,17 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
 fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
     val defaults = SceneCustomization.DEFAULT
     if (json == null) return defaults
+    val buildings = json.optJSONObject("buildings")?.let { objectVariantConfigFromJson(it, defaults.buildings) } ?: defaults.buildings
     return SceneCustomization(
         houses = json.optJSONObject("houses")?.let { objectVariantConfigFromJson(it, defaults.houses) } ?: defaults.houses,
-        buildings = json.optJSONObject("buildings")?.let { objectVariantConfigFromJson(it, defaults.buildings) } ?: defaults.buildings,
+        buildings = buildings,
+        // **A payload written before v5.11 has no shops of its own, and its shops were drawn in its
+        // Buildings colours**: the two were one pair until the shops got theirs. So the shops of such
+        // a payload are read as those colours -- a theme saved, archived, backed up or shared before
+        // v5.11 keeps the look it had -- and a field missing from a shops block written since falls
+        // back the same way. Visibility and density come with them and are read by nothing
+        // (`SceneCustomization.shops`).
+        shops = json.optJSONObject("shops")?.let { objectVariantConfigFromJson(it, buildings) } ?: buildings,
         cars = json.optJSONObject("cars")?.let { objectVariantConfigFromJson(it, defaults.cars) } ?: defaults.cars,
         parasols = json.optJSONObject("parasols")?.let { objectVariantConfigFromJson(it, defaults.parasols) } ?: defaults.parasols,
         // Absent from every payload written before v76.12, which is why it falls back to the
@@ -496,6 +513,13 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
                 autoMode = AutoColorMode.fromStorageId(it.optString("autoMode")),
             )
         } ?: defaults.mountainsBack,
+        // Off when absent: nobody who updates finds houses on the mountains they did not ask for.
+        distantHouses = json.optJSONObject("distantHouses")?.let {
+            DistantHousesConfig(
+                visible = it.optBoolean("visible", defaults.distantHouses.visible),
+                density = it.optFinite("density", defaults.distantHouses.density).coerceIn(0f, 1f),
+            )
+        } ?: defaults.distantHouses,
         lake = json.optJSONObject("lake")?.let {
             LakeConfig(
                 visible = it.optBoolean("visible", defaults.lake.visible),

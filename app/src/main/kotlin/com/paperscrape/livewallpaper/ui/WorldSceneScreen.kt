@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.SwipeLeft
 import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Cottage
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Filter
 import androidx.compose.material.icons.outlined.FilterDrama
@@ -24,6 +25,8 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Waves
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import com.paperscrape.livewallpaper.engine.SceneTheme
@@ -39,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.LakeConfig
@@ -204,7 +208,7 @@ internal fun WorldSceneScreen(
         SettingsGroup {
             SettingsNavigationRow(
                 title = "Cities",
-                supporting = "Houses and buildings",
+                supporting = "Houses, towers and shops",
                 icon = Icons.Outlined.LocationCity,
                 onClick = { activeSection = "cities" },
             )
@@ -219,6 +223,18 @@ internal fun WorldSceneScreen(
                 supporting = "Front and back layers",
                 icon = Icons.Outlined.Terrain,
                 onClick = { activeSection = "mountains" },
+            )
+            // Under Mountains because they stand on them (v5.11, the maintainer's choice of
+            // 2026-10-06). The row says what the switch would: on only while houses stand.
+            SettingsNavigationRow(
+                title = "Distant houses",
+                supporting = SettingsUiModel.distantHouses(
+                    customization.distantHouses.visible,
+                    customization.distantHouses.density,
+                    mountainsShown(customization),
+                ).summary,
+                icon = Icons.Outlined.Cottage,
+                onClick = { activeSection = "distanthouses" },
             )
             SettingsNavigationRow(
                 title = "Trees",
@@ -409,6 +425,11 @@ internal fun WorldSceneScreen(
         "cities" -> CitiesSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "hills" -> HillsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "mountains" -> MountainsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
+        "distanthouses" -> DistantHousesSubScreen(
+            customization, forThemeId, prefs, scope,
+            onOpenMountains = { activeSection = "mountains" },
+            onOpenHouses = { activeSection = "cities" },
+        ) { activeSection = null }
         "trees" -> TreesSubScreen(customization, themeHasPalms, palmsOnlyFirs, forThemeId, prefs, scope) { activeSection = null }
         "parasols" -> ParasolsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "lake" -> LakeSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
@@ -417,6 +438,9 @@ internal fun WorldSceneScreen(
         "birds" -> BirdsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
     }
 }
+
+/** Whether either mountain layer draws a mountain -- on and above 0 % -- which is what the distant houses stand on. */
+private fun mountainsShown(c: SceneCustomization): Boolean = c.mountainsFront.drawsAny || c.mountainsBack.drawsAny
 
 private fun onOffSummary(visible: Boolean, subject: String): String =
     if (visible) "$subject on" else "$subject off"
@@ -430,6 +454,22 @@ private fun densitySummary(visible: Boolean, density: Float): String =
 internal const val BUILDINGS_DENSITY_LINE =
     "Thins out the towers behind the houses. The shops among the houses always stay while Show " +
         "Buildings is on."
+
+/** The line over the Buildings colours (v5.11): they are the towers' -- the shops have their own. */
+internal const val BUILDINGS_COLOUR_LINE =
+    "These are the towers' colours - the shops have their own, below. Each tower randomly uses Color 1 " +
+        "or Color 2, and blends into its night version as it gets dark."
+
+/**
+ * How far down the Buildings section a tap on the Shops line brings into view, in pixels: the title
+ * and the *Show Buildings* row below it, with room to spare at any density the app runs at.
+ */
+private const val BUILDINGS_SWITCH_REACH_PX = 480f
+
+/** The line over the Houses colours (v5.11): the distant houses on the mountains wear them too. */
+internal const val HOUSES_COLOUR_LINE =
+    "Each house randomly uses Color 1 or Color 2, and blends into its night version as it gets dark. " +
+        "The distant houses on the mountains wear these colours too."
 
 /**
  * A car density as the slider prints it (v5.10E, inventory I-217): the per cent, and at the bottom
@@ -830,28 +870,44 @@ private fun RainbowSubScreen(customization: SceneCustomization, forThemeId: Stri
 @Composable
 private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
+    val buildingsSwitch = remember { BringIntoViewRequester() }
     SettingsFormSubScreen("Cities", onBack) {
         ObjectCategorySection(
             title = "Houses", config = customization.houses, category = ObjectCategory.HOUSES,
             forThemeId = forThemeId, prefs = prefs, scope = scope, noneAtZero = true,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+            colourLine = HOUSES_COLOUR_LINE,
         )
         // **The slider thins the towers only** (v5.10E, inventory I-216): the shops among the houses
         // stand whatever it says (`SceneCustomization.keepCandidate` keeps every building candidate
         // below `SceneSpace.BUILDING_TOWER_MAX_DEPTH`'s line), so "Density: 0%" left them all there.
-        // It is called what it moves, and the line under it says what stays.
-        ObjectCategorySection(
-            title = "Buildings", config = customization.buildings, category = ObjectCategory.BUILDINGS,
+        // It is called what it moves, and the line under it says what stays. **And its colours are the
+        // towers'** since v5.11: the shops have their own, below.
+        Column(modifier = Modifier.bringIntoViewRequester(buildingsSwitch)) {
+            ObjectCategorySection(
+                title = "Buildings", config = customization.buildings, category = ObjectCategory.BUILDINGS,
+                forThemeId = forThemeId, prefs = prefs, scope = scope,
+                onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+                densityLabel = "Towers",
+                afterDensity = {
+                    Text(
+                        BUILDINGS_DENSITY_LINE,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                colourLine = BUILDINGS_COLOUR_LINE,
+            )
+        }
+        ShopsSection(
+            config = customization.shops,
+            buildingsVisible = customization.buildings.visible,
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
-            densityLabel = "Towers",
-            afterDensity = {
-                Text(
-                    BUILDINGS_DENSITY_LINE,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
+            // The top of the section -- its title and *Show Buildings* -- not the whole of it: the
+            // section is taller than the screen, and brought into view whole it showed its colours
+            // with the switch just above the edge (seen on the BV6600).
+            onGoToBuildings = { scope.launch { buildingsSwitch.bringIntoView(Rect(0f, 0f, 1f, BUILDINGS_SWITCH_REACH_PX)) } },
         )
         SettingSwitchRow(
             title = "Business hours",
@@ -928,6 +984,68 @@ private fun HillsSubScreen(customization: SceneCustomization, forThemeId: String
     editingTarget?.let { target ->
         ColorPickerDialog(title = target.label, initialColor = target.color,
             onConfirm = { c -> target.onChange(c); editingTarget = null }, onDismiss = { editingTarget = null })
+    }
+}
+
+/**
+ * The distant houses (v5.11, inventory I-407; the maintainer's choices of 2026-10-06): a switch, an
+ * amount, and where their colours come from -- *«nel toggle per accenderle sotto "montagne" va scritto
+ * che il colore lo ereditano da un altro menu»*. The switch follows `AI_PROJECT_RULES.md` 8.7 through
+ * [SettingsUiModel.distantHouses]: off at 0 % with the tap bringing back 50 %, off with no mountain
+ * layer on with the tap going to Mountains; the stored choice is never rewritten.
+ */
+@Composable
+private fun DistantHousesSubScreen(
+    customization: SceneCustomization,
+    forThemeId: String,
+    prefs: WallpaperPrefs,
+    scope: CoroutineScope,
+    onOpenMountains: () -> Unit,
+    onOpenHouses: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val config = customization.distantHouses
+    val mountains = mountainsShown(customization)
+    val state = SettingsUiModel.distantHouses(config.visible, config.density, mountains)
+    SettingsFormSubScreen("Distant houses", onBack) {
+        SettingSwitchRow(
+            title = "Show distant houses",
+            subtitle = when {
+                state.needsMountains ->
+                    "They stand on the mountains, and no mountain is shown (both layers off or at 0%). Tap to open Mountains" +
+                        if (config.visible) " - your choice is kept." else "."
+                state.noneAtZero -> "None at 0% - tap to bring them back"
+                else -> "Little houses far away on the mountains, with snow on their roofs when the winter " +
+                    "palette is on and lit windows at night"
+            },
+            checked = state.shownOn,
+            onCheckedChange = { wanted ->
+                when (val tap = SettingsUiModel.distantHousesTap(wanted, config.visible, config.density, mountains)) {
+                    is DistantHousesTap.SetVisible -> scope.launch { prefs.setDistantHousesVisible(tap.visible, forThemeId) }
+                    is DistantHousesTap.Restore -> scope.launch {
+                        prefs.setDistantHousesDensity(tap.amount, forThemeId)
+                        prefs.setDistantHousesVisible(true, forThemeId)
+                    }
+                    is DistantHousesTap.OpenMountains -> {
+                        if (tap.storeOn) scope.launch { prefs.setDistantHousesVisible(true, forThemeId) }
+                        onOpenMountains()
+                    }
+                }
+            },
+        )
+        PreferenceSlider(
+            label = { shown -> Text("Amount: ${(shown * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium) },
+            value = config.density,
+            onCommit = { committed -> scope.launch { prefs.setDistantHousesDensity(committed, forThemeId) } },
+            valueRange = 0f..1f,
+            enabled = SettingsUiModel.amountSliderEnabled(config.visible) && mountains,
+        )
+        SettingsRow(
+            title = "Colours: from Houses",
+            supporting = "The distant houses wear the houses' Color 1 and Color 2, day and night. " +
+                "Tap to change them in Houses.",
+            onClick = onOpenHouses,
+        )
     }
 }
 

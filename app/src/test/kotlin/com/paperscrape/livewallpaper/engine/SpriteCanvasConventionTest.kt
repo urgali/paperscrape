@@ -162,7 +162,9 @@ class SpriteCanvasConventionTest {
         // 421 in v5.6F: the school is the sixth building family and ships four layers of its
         // own -- `school_fx`, `school_mw`, `school_mg` and `school_snow_fx`. The sixteen vehicle
         // sprites were redrawn in the same release and none of them was added or removed.
-        assertEquals("421 sprites are expected", 421, all.size)
+        // 444 in v5.11: the towers' short and tall bodies (3 + 3 + 2 layers), the hall's windows by
+        // the door (2), the short body's wide snow cap (1), and the three distant houses (4 each).
+        assertEquals("444 sprites are expected", 444, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -195,7 +197,11 @@ class SpriteCanvasConventionTest {
         // put three back: its fixed art, its wall mask and its snow cap each reach an edge of the
         // canvas the piece was cut to, exactly as the other families' do, and only its glass mask
         // does not.
-        assertEquals("214 of them reach a canvas edge", 214, touching)
+        // 230 in v5.11: the new pieces reach the canvas they were cut to as every piece does -- the
+        // short and the tall towers' first tiers and the tall one's second (fixed art and wall mask
+        // each), the short body's wide snow cap, and each distant house's fixed art, wall mask and
+        // snow. Sixteen; their glass masks and the hall's bay stamp do not.
+        assertEquals("230 of them reach a canvas edge", 230, touching)
     }
 
     private companion object {

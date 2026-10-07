@@ -27,7 +27,8 @@ import org.junit.runner.RunWith
  * No frame draws the whole set, and the atlas is a per-process allocation that accumulates across
  * everything the process has drawn. Sweeping the built-in themes in one context is the closest a
  * test can get to what a wallpaper left running does, which is the case v4.29 measured on the
- * device.
+ * device. Since v5.11 the sweep has the distant houses on, at 100 % on every mountain, and the
+ * mountains on where a theme ships them off: their twelve drawings are in the atlas too.
  */
 @RunWith(AndroidJUnit4::class)
 class GlAtlasOccupancyTest {

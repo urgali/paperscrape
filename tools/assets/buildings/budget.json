@@ -1,15 +1,87 @@
 {
  "shipped_perimeter": {
-  "files": 76,
-  "decoded": 5390244,
-  "uploaded_level0": 5326452
+  "files": 99,
+  "decoded": 7229124,
+  "uploaded_level0": 7147636
  },
  "concepts": {
   "mix": {
-   "files": 76,
-   "decoded": 5390244,
-   "uploaded_level0": 5326452,
+   "files": 99,
+   "decoded": 7229124,
+   "uploaded_level0": 7147636,
    "per_file": {
+    "distant_chalet_fx": {
+     "w": 93,
+     "h": 75,
+     "decoded": 27900,
+     "uploaded": 27156
+    },
+    "distant_chalet_mg": {
+     "w": 57,
+     "h": 42,
+     "decoded": 9576,
+     "uploaded": 9184
+    },
+    "distant_chalet_mw": {
+     "w": 93,
+     "h": 75,
+     "decoded": 27900,
+     "uploaded": 27156
+    },
+    "distant_chalet_snow_fx": {
+     "w": 78,
+     "h": 48,
+     "decoded": 14976,
+     "uploaded": 14352
+    },
+    "distant_cottage_fx": {
+     "w": 75,
+     "h": 78,
+     "decoded": 23400,
+     "uploaded": 22484
+    },
+    "distant_cottage_mg": {
+     "w": 15,
+     "h": 21,
+     "decoded": 1260,
+     "uploaded": 1140
+    },
+    "distant_cottage_mw": {
+     "w": 75,
+     "h": 78,
+     "decoded": 23400,
+     "uploaded": 22484
+    },
+    "distant_cottage_snow_fx": {
+     "w": 60,
+     "h": 45,
+     "decoded": 10800,
+     "uploaded": 10560
+    },
+    "distant_tall_fx": {
+     "w": 63,
+     "h": 99,
+     "decoded": 24948,
+     "uploaded": 23668
+    },
+    "distant_tall_mg": {
+     "w": 18,
+     "h": 45,
+     "decoded": 3240,
+     "uploaded": 3240
+    },
+    "distant_tall_mw": {
+     "w": 63,
+     "h": 99,
+     "decoded": 24948,
+     "uploaded": 23668
+    },
+    "distant_tall_snow_fx": {
+     "w": 48,
+     "h": 45,
+     "decoded": 8640,
+     "uploaded": 8448
+    },
     "k1_ground_house_a_fx": {
      "w": 186,
      "h": 96,
@@ -245,10 +317,10 @@
      "uploaded": 147628
     },
     "k2_b_smusso_mg": {
-     "w": 147,
+     "w": 165,
      "h": 102,
-     "decoded": 59976,
-     "uploaded": 58000
+     "decoded": 67320,
+     "uploaded": 65600
     },
     "k2_b_smusso_mw": {
      "w": 222,
@@ -346,6 +418,18 @@
      "decoded": 120528,
      "uploaded": 119784
     },
+    "k2_t_bay_door_fx": {
+     "w": 39,
+     "h": 42,
+     "decoded": 6552,
+     "uploaded": 6384
+    },
+    "k2_t_bay_door_mg": {
+     "w": 39,
+     "h": 42,
+     "decoded": 6552,
+     "uploaded": 6384
+    },
     "k2_t_bay_fx": {
      "w": 42,
      "h": 36,
@@ -360,21 +444,57 @@
     },
     "k2_t_gradini_1_fx": {
      "w": 210,
-     "h": 342,
-     "decoded": 287280,
-     "uploaded": 286440
+     "h": 378,
+     "decoded": 317520,
+     "uploaded": 316680
     },
     "k2_t_gradini_1_mg": {
-     "w": 168,
+     "w": 54,
      "h": 69,
-     "decoded": 46368,
-     "uploaded": 44488
+     "decoded": 14904,
+     "uploaded": 13936
     },
     "k2_t_gradini_1_mw": {
      "w": 210,
+     "h": 378,
+     "decoded": 317520,
+     "uploaded": 316680
+    },
+    "k2_t_gradini_1_short_fx": {
+     "w": 207,
      "h": 342,
-     "decoded": 287280,
-     "uploaded": 286440
+     "decoded": 283176,
+     "uploaded": 281520
+    },
+    "k2_t_gradini_1_short_mg": {
+     "w": 54,
+     "h": 69,
+     "decoded": 14904,
+     "uploaded": 13936
+    },
+    "k2_t_gradini_1_short_mw": {
+     "w": 207,
+     "h": 342,
+     "decoded": 283176,
+     "uploaded": 281520
+    },
+    "k2_t_gradini_1_tall_fx": {
+     "w": 210,
+     "h": 444,
+     "decoded": 372960,
+     "uploaded": 371280
+    },
+    "k2_t_gradini_1_tall_mg": {
+     "w": 51,
+     "h": 69,
+     "decoded": 14076,
+     "uploaded": 13400
+    },
+    "k2_t_gradini_1_tall_mw": {
+     "w": 210,
+     "h": 444,
+     "decoded": 372960,
+     "uploaded": 371280
     },
     "k2_t_gradini_2_fx": {
      "w": 168,
@@ -387,6 +507,18 @@
      "h": 132,
      "decoded": 88704,
      "uploaded": 88032
+    },
+    "k2_t_gradini_2_tall_fx": {
+     "w": 168,
+     "h": 168,
+     "decoded": 112896,
+     "uploaded": 112224
+    },
+    "k2_t_gradini_2_tall_mw": {
+     "w": 168,
+     "h": 168,
+     "decoded": 112896,
+     "uploaded": 112224
     },
     "k2_t_gradini_3_fx": {
      "w": 120,
@@ -429,6 +561,12 @@
      "h": 33,
      "decoded": 15048,
      "uploaded": 14012
+    },
+    "k2_t_gradini_snow_top_wide_fx": {
+     "w": 162,
+     "h": 33,
+     "decoded": 21384,
+     "uploaded": 19964
     },
     "k2_t_row3_fx": {
      "w": 90,

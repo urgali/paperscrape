@@ -1,5 +1,6 @@
 package com.paperscrape.livewallpaper.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -49,6 +50,7 @@ internal fun defaultDensityOf(category: ObjectCategory, forThemeId: String): Flo
     return when (category) {
         ObjectCategory.HOUSES -> d.houses
         ObjectCategory.BUILDINGS -> d.buildings
+        ObjectCategory.SHOPS -> d.shops
         ObjectCategory.CARS -> d.cars
         ObjectCategory.PARASOLS -> d.parasols
         ObjectCategory.TREES -> d.trees
@@ -115,6 +117,11 @@ internal fun ObjectCategorySection(
     /** Rendered directly under the density slider -- the cars put their night twin here, so the
      * pair reads as a pair instead of being split by the colour section. */
     afterDensity: @Composable () -> Unit = {},
+    /**
+     * The line over the two colour pairs: what the colours are for. Buildings says they are the
+     * towers' since the shops have their own (v5.11), Houses that the distant houses wear them too.
+     */
+    colourLine: String = "Each one randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showTitle) SectionTitle(title)
@@ -161,7 +168,7 @@ internal fun ObjectCategorySection(
         afterDensity()
 
         Text(
-            "Each one randomly uses Color 1 or Color 2, and blends into its night version as it gets dark.",
+            colourLine,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -190,6 +197,57 @@ internal fun ObjectCategorySection(
     }
 }
 
+/**
+ * The shops' colours (v5.11, inventory I-403; the maintainer's *«voglio che i negozi abbiano colore a
+ * se, aggiungiamolo»* of 2026-10-06): the restaurant, the school and the bar.
+ *
+ * **Colours only, and a reset.** Whether the shops stand is *Show Buildings*' (one candidate pool), so
+ * there is no switch and no slider here; with *Show Buildings* off the line says so and a tap on it
+ * goes to that switch ([onGoToBuildings], `AI_PROJECT_RULES.md` 8.7), the colours staying editable as
+ * every category's do while its switch is off.
+ */
+@Composable
+internal fun ShopsSection(
+    config: ObjectVariantConfig,
+    buildingsVisible: Boolean,
+    forThemeId: String,
+    prefs: WallpaperPrefs,
+    scope: CoroutineScope,
+    onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
+    onGoToBuildings: () -> Unit,
+) {
+    val category = ObjectCategory.SHOPS
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionTitle("Shops")
+        Text(
+            SettingsUiModel.shopsLine(buildingsVisible),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (buildingsVisible) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+            modifier = if (buildingsVisible) Modifier else Modifier.clickable(onClick = onGoToBuildings),
+        )
+        DayNightColorPair(
+            dayLabel = "Day Color 1", nightLabel = "Night Color 1",
+            dayColor = config.colorDay1, nightColor = config.colorNight1, mode = config.autoMode1,
+            onEditDay = { onEditColor("Shops - Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c, forThemeId) } } },
+            onEditNight = { onEditColor("Shops - Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setCategoryAutoMode1(category, it, forThemeId) } },
+        )
+        DayNightColorPair(
+            dayLabel = "Day Color 2", nightLabel = "Night Color 2",
+            dayColor = config.colorDay2, nightColor = config.colorNight2, mode = config.autoMode2,
+            onEditDay = { onEditColor("Shops - Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c, forThemeId) } } },
+            onEditNight = { onEditColor("Shops - Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c, forThemeId) } } },
+            onModeChange = { scope.launch { prefs.setCategoryAutoMode2(category, it, forThemeId) } },
+        )
+        OutlinedButton(
+            onClick = { scope.launch { prefs.resetCategory(category, forThemeId) } },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Reset Shops to default")
+        }
+    }
+}
+
 /** Visibility, day/night colour and density for one of the two mountain layers. */
 @Composable
 internal fun MountainLayerSection(
@@ -202,11 +260,21 @@ internal fun MountainLayerSection(
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // On only while the layer draws a mountain (v5.11, inventory I-414, decision 40): at 0 % it
+        // draws none, so the switch reads off, the line says why, and a tap brings the theme's amount back.
+        val shown = SettingsUiModel.amountSwitch(config.visible, config.density)
         SettingSwitchRow(
             title = title,
-            subtitle = "Show/hide this layer",
-            checked = config.visible,
-            onCheckedChange = { scope.launch { prefs.setMountainVisible(front, it, forThemeId) } },
+            subtitle = if (shown.noneAtZero) NONE_AT_ZERO_LINE else "Show/hide this layer",
+            checked = shown.shownOn,
+            onCheckedChange = { wanted ->
+                val d = defaultCustomizationFor(forThemeId)
+                scope.applyAmountTap(
+                    SettingsUiModel.amountTap(wanted, config.density, (if (front) d.mountainsFront else d.mountainsBack).density),
+                    setVisible = { prefs.setMountainVisible(front, it, forThemeId) },
+                    setAmount = { prefs.setMountainDensity(front, it, forThemeId) },
+                )
+            },
         )
         DayNightColorPair(
             dayLabel = "Day Color", nightLabel = "Night Color",

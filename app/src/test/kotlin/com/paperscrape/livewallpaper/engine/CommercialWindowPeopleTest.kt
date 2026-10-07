@@ -58,7 +58,7 @@ class CommercialWindowPeopleTest {
     fun `every piece that declares windows asks for its occupants`() {
         for ((variant, family) in NeighbourhoodTable.FAMILIES) {
             for ((slotIndex, slot) in family.slots.withIndex()) {
-                for (piece in slot.options) {
+                for (piece in slot.options + slot.heights) {
                     if (piece.windows.isEmpty()) continue
                     assertTrue(
                         "$variant slot $slotIndex has a piece with ${piece.windows.size} windows " +
@@ -121,9 +121,11 @@ class CommercialWindowPeopleTest {
         // tower has three bay windows a person can actually be seen in, and its other windows are
         // stamped rows far too small to hold a figure. Written down because "16 -> 3" is the kind
         // of number that looks like a regression until somebody says it was chosen.
+        // **Six since v5.11** (inventory I-406, the maintainer's B2 of 2026-10-06): the hall's four
+        // windows over the canopy and the two beside the door, on every one of the three bodies.
         assertEquals(
-            "the tower's bays are three",
-            listOf(3), windowCounts(family(SceneSpace.SceneVariant.TOWER)),
+            "the tower's hall windows are six",
+            listOf(6), windowCounts(family(SceneSpace.SceneVariant.TOWER)),
         )
         assertEquals(
             "the restaurant's frontage is three panes",
@@ -148,7 +150,7 @@ class CommercialWindowPeopleTest {
     fun `every declared window is a real opening above the ground`() {
         for ((variant, family) in NeighbourhoodTable.FAMILIES) {
             for (slot in family.slots) {
-                for (piece in slot.options) {
+                for (piece in slot.options + slot.heights) {
                     for (window in piece.windows) {
                         assertTrue(
                             "$variant declares a ${window.w}x${window.h} window, which is not an opening",
@@ -255,7 +257,8 @@ class CommercialWindowPeopleTest {
         for (slot in family.slots) {
             val next = mutableSetOf<Int>()
             for (sofar in counts) {
-                for (option in slot.options) {
+                // A slot with heights draws one of them, not its dealt option (the towers, v5.11).
+                for (option in slot.heights.ifEmpty { slot.options }) {
                     for (repeats in slot.repeatMin..slot.repeatMax) {
                         next += sofar + option.windows.size * repeats
                     }

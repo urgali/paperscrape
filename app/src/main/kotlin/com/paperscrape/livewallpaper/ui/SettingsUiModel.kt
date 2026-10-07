@@ -275,6 +275,41 @@ data class AmountSwitchUiState(
     val noneAtZero: Boolean,
 )
 
+/**
+ * The *Distant houses* switch and its row on World & scene (v5.11, inventory I-407; the maintainer's
+ * choices of 2026-10-06), under the rule of `AI_PROJECT_RULES.md` 8.7: on only while houses stand.
+ *
+ * They stand on the mountains, so they need the switch on, an amount above 0 % and at least one
+ * mountain layer on; otherwise the switch reads off, the line says which, and a tap goes where it is
+ * put right -- the amount back to 50 %, or the Mountains page. The stored choice is never rewritten.
+ *
+ * @property shownOn on, above 0 % and with mountains to stand on.
+ * @property noneAtZero on, with the mountains, and at 0 %: the amount is why none stands.
+ * @property needsMountains both mountain layers off: there is nowhere to stand, whatever is stored.
+ * @property summary the row's state on World & scene.
+ */
+data class DistantHousesUiState(
+    val shownOn: Boolean,
+    val noneAtZero: Boolean,
+    val needsMountains: Boolean,
+    val summary: String,
+)
+
+/** What a tap on the *Distant houses* switch does. */
+sealed interface DistantHousesTap {
+    /** The switch's own flag. */
+    data class SetVisible(val visible: Boolean) : DistantHousesTap
+
+    /** On, at 0 %: the amount back to [amount] and the flag on, so the houses appear. */
+    data class Restore(val amount: Float) : DistantHousesTap
+
+    /**
+     * No mountain to stand on: the Mountains page, where that is put right -- with the switch stored
+     * on first when the tap asked for it ([storeOn]), so the houses are there once a layer is.
+     */
+    data class OpenMountains(val storeOn: Boolean) : DistantHousesTap
+}
+
 /** What a tap on an [AmountSwitchUiState] switch writes. */
 sealed interface AmountTap {
     /** The ordinary case: the switch's own flag. */
@@ -695,6 +730,52 @@ object SettingsUiModel {
                 LocationRequestOutcome.KEEP_PREVIOUS
             }
     }
+
+    /** See [DistantHousesUiState]. [mountainsShown]: either mountain layer's switch on. */
+    fun distantHouses(visible: Boolean, density: Float, mountainsShown: Boolean): DistantHousesUiState {
+        val needsMountains = !mountainsShown
+        val noneAtZero = visible && mountainsShown && density <= 0f
+        val shownOn = visible && mountainsShown && density > 0f
+        return DistantHousesUiState(
+            shownOn = shownOn,
+            noneAtZero = noneAtZero,
+            needsMountains = needsMountains,
+            summary = when {
+                shownOn -> "On - ${(density * 100).toInt()}%"
+                noneAtZero -> "None at 0%"
+                visible && needsMountains -> "Off - needs Mountains"
+                else -> "Off"
+            },
+        )
+    }
+
+    /**
+     * What a tap that moves the *Distant houses* switch to [wanted] does: the Mountains page while
+     * there is no mountain to stand on, the amount back to
+     * [com.paperscrape.livewallpaper.engine.DistantHousesConfig.STARTING_DENSITY] when it is turned on
+     * at 0 %, and otherwise the flag.
+     */
+    fun distantHousesTap(wanted: Boolean, visible: Boolean, density: Float, mountainsShown: Boolean): DistantHousesTap =
+        when {
+            !mountainsShown -> DistantHousesTap.OpenMountains(storeOn = wanted && !visible)
+            wanted && density <= 0f ->
+                DistantHousesTap.Restore(com.paperscrape.livewallpaper.engine.DistantHousesConfig.STARTING_DENSITY)
+            else -> DistantHousesTap.SetVisible(wanted)
+        }
+
+    /**
+     * The line of the Shops section (v5.11, `AI_PROJECT_RULES.md` 8.7): what the shops are and that
+     * their colours are their own -- or, with *Show Buildings* off, that they are not standing and why,
+     * since the shops stand by that switch and have none of their own.
+     */
+    fun shopsLine(buildingsVisible: Boolean): String =
+        if (buildingsVisible) {
+            "The restaurant, the school and the bar, among the houses. Their colours are their own: " +
+                "each shop randomly uses Color 1 or Color 2, and blends into its night version as it gets dark."
+        } else {
+            "Off - the shops stand while Show Buildings is on, above. Tap here to go to it; the colours " +
+                "below are kept."
+        }
 
     /** See [AmountSwitchUiState]. */
     fun amountSwitch(visible: Boolean, amount: Float): AmountSwitchUiState =
