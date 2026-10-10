@@ -47,28 +47,40 @@ def ground_house_B():
     return p
 
 
-def storey_house_A():
-    g = Group("k1_storey_house_a")
-    p = Piece("k1_storey_house_a", 22)
-    wall_face(g, "wall", rect(-30, -22, 30, 0), WALL, relief=H["relief"], amp=H["amp"])
-    win, sill = bay_window(g, "wall", -22, -18, 13, 12, H["relief"], H["amp"])
-    p.windows.append(win); p.lights.append(sill)
-    grid_windows(g, "wall", [12], [-17], 8, 10, H["amp"])
-    p.lights.append((12, -7, 8))
+#: A storey's windows (v5.12, inventory I-505; version A of the proposals, the maintainer's *«va bene A
+#: come avevi consigliato»* of 2026-10-09): **every window of a storey the same** -- the bay a person
+#: has always stood at, 13 x 12 units with its cream frame and its sill -- two on the small house's 60
+#: units, three on the large house's 84, evenly along the wall. Until v5.12 a storey had that one bay
+#: and, beside it, one or three bare grid windows of 8 x 10, the mismatch the maintainer saw. The first
+#: of each row is where the bay always was, and is drawn first: a group's cards are seeded by their
+#: index, so the wall and that bay are the cards they were. A person may stand at any of them, and a
+#: storey still brings the people one window did (`Piece.people`): the number at a house is the one it
+#: always had.
+STOREY_BAY_W, STOREY_BAY_H, STOREY_BAY_Y = 13, 12, -18
+STOREY_BAYS_SMALL = (-22, 9)
+STOREY_BAYS_LARGE = (-34, -6.5, 21)
+
+
+def storey(name, half, bays):
+    """A storey of [half] x 2 units with a row of identical bays at the x of [bays]."""
+    g = Group(name)
+    p = Piece(name, 22)
+    wall_face(g, "wall", rect(-half, -22, half, 0), WALL, relief=H["relief"], amp=H["amp"])
+    for x in bays:
+        win, sill = bay_window(g, "wall", x, STOREY_BAY_Y, STOREY_BAY_W, STOREY_BAY_H, H["relief"], H["amp"])
+        p.windows.append(win)
+        p.lights.append(sill)
+    p.people = 1
     p.place(g)
     return p
+
+
+def storey_house_A():
+    return storey("k1_storey_house_a", 30, STOREY_BAYS_SMALL)
 
 
 def storey_house_B():
-    g = Group("k1_storey_house_b")
-    p = Piece("k1_storey_house_b", 22)
-    wall_face(g, "wall", rect(-42, -22, 42, 0), WALL, relief=H["relief"], amp=H["amp"])
-    win, sill = bay_window(g, "wall", -34, -18, 13, 12, H["relief"], H["amp"])
-    p.windows.append(win); p.lights.append(sill)
-    grid_windows(g, "wall", [-6, 10, 26], [-17], 8, 10, H["amp"])
-    p.lights += [(-6, -7, 8), (10, -7, 8), (26, -7, 8)]
-    p.place(g)
-    return p
+    return storey("k1_storey_house_b", 42, STOREY_BAYS_LARGE)
 
 
 # --- roofs ---------------------------------------------------------------------------------------

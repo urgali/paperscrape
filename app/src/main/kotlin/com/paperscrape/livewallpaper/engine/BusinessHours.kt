@@ -6,11 +6,17 @@ package com.paperscrape.livewallpaper.engine
  * ### What it governs, and what it does not
  *
  * The shops, the school, the bar and the towers ([WindowBuildingKind.COMMERCIAL],
- * [WindowBuildingKind.SCHOOL] and [WindowBuildingKind.SKYSCRAPER]): inside their hours they behave
- * exactly as they always have — occupants at the glass, windows lit at night. Outside them nobody
- * stands at a window and the glass stays in its unlit daytime colour whatever the hour. Houses are
- * deliberately not businesses: their windows glowing at night are the effect that keeps the scene
- * alive, and [WindowBuildingKind.HOUSE] never consults this. The pedestrians on the pavement are
+ * [WindowBuildingKind.SCHOOL] and [WindowBuildingKind.SKYSCRAPER]), in two groups since v5.12, each
+ * with its switch and its hours -- the shops' (the restaurant, the school, the bar) and the towers' --
+ * a building by what it is drawn as (`SceneCustomization.opennessFor`): inside their hours they behave
+ * as they always have — occupants at the glass, windows lit at night. Outside them nobody stands at a
+ * window and the glass is unlit: the day's glass by day, at night the dark glass of a house's unlit
+ * window (`SceneObjectRenderer.businessGlassColor`; until v5.12 it kept the day's pale glass at night).
+ * Across a closing the people **walk out**, one at a time, over the first half of the fade, and across
+ * an opening they walk in ([WindowRoster.presentCount], [WindowWalk.Doorway]; v5.12 -- until then they
+ * vanished one at a time across the whole fade). Houses are deliberately not
+ * businesses: their windows lit at night -- half of them since v5.12 (`WindowRoster`) -- are the effect
+ * that keeps the scene alive, and [WindowBuildingKind.HOUSE] never consults this. The pedestrians on the pavement are
  * untouched — the hours govern windows, not the street.
  *
  * The school reaches this by the same rule every non-house does (`kind != HOUSE`), and that is a

@@ -895,6 +895,20 @@ private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: Strin
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    // The towers' own opening hours (v5.12), under the amount of what keeps them.
+                    OpeningHoursGroup(
+                        title = "Tower opening hours",
+                        line = TOWER_HOURS_LINE,
+                        lockedLine = TOWER_HOURS_LOCKED_LINE,
+                        state = SettingsUiModel.towerHours(
+                            customization.towerHoursEnabled, customization.buildings.visible, customization.buildings.density,
+                        ),
+                        openHour = customization.towerOpenHour,
+                        closeHour = customization.towerCloseHour,
+                        onEnabled = { scope.launch { prefs.setTowerHoursEnabled(it, forThemeId) } },
+                        onOpen = { scope.launch { prefs.setTowerOpenHour(it, forThemeId) } },
+                        onClose = { scope.launch { prefs.setTowerCloseHour(it, forThemeId) } },
+                    )
                 },
                 colourLine = BUILDINGS_COLOUR_LINE,
             )
@@ -908,38 +922,20 @@ private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: Strin
             // section is taller than the screen, and brought into view whole it showed its colours
             // with the switch just above the edge (seen on the BV6600).
             onGoToBuildings = { scope.launch { buildingsSwitch.bringIntoView(Rect(0f, 0f, 1f, BUILDINGS_SWITCH_REACH_PX)) } },
+            openingHours = {
+                OpeningHoursGroup(
+                    title = "Shop opening hours",
+                    line = SHOP_HOURS_LINE,
+                    lockedLine = SHOP_HOURS_LOCKED_LINE,
+                    state = SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible),
+                    openHour = customization.shopOpenHour,
+                    closeHour = customization.shopCloseHour,
+                    onEnabled = { scope.launch { prefs.setShopHoursEnabled(it, forThemeId) } },
+                    onOpen = { scope.launch { prefs.setShopOpenHour(it, forThemeId) } },
+                    onClose = { scope.launch { prefs.setShopCloseHour(it, forThemeId) } },
+                )
+            },
         )
-        SettingSwitchRow(
-            title = "Business hours",
-            subtitle = "Shops and towers keep opening hours: outside them nobody stands at " +
-                "their windows and the glass stays dark even at night. Houses are homes and " +
-                "keep their evening lights.",
-            checked = customization.businessHoursEnabled,
-            onCheckedChange = { scope.launch { prefs.setBusinessHoursEnabled(it, forThemeId) } },
-        )
-        if (customization.businessHoursEnabled) {
-            PreferenceSlider(
-                label = { shown -> Text("Open from: ${formatHour(shown)}", style = MaterialTheme.typography.bodyMedium) },
-                value = customization.businessOpenHour,
-                onCommit = { committed -> scope.launch { prefs.setBusinessOpenHour(quantiseToQuarterHour(committed), forThemeId) } },
-                storedAs = ::quantiseToQuarterHour,
-                valueRange = 0f..24f,
-            )
-            PreferenceSlider(
-                label = { shown -> Text("Until: ${formatHour(shown)}", style = MaterialTheme.typography.bodyMedium) },
-                value = customization.businessCloseHour,
-                onCommit = { committed -> scope.launch { prefs.setBusinessCloseHour(quantiseToQuarterHour(committed), forThemeId) } },
-                storedAs = ::quantiseToQuarterHour,
-                valueRange = 0f..24f,
-            )
-            Text(
-                "The hours follow the scene's own clock, so a frozen time of day obeys them " +
-                    "too. Closing past midnight works (09:00 until 02:00). Setting both to the " +
-                    "same time means always open.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
     editingTarget?.let { target ->
         ColorPickerDialog(title = target.label, initialColor = target.color,
@@ -947,7 +943,80 @@ private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: Strin
     }
 }
 
-/** A decimal hour as the clock text the two business sliders print, quantised to 15 minutes. */
+/**
+ * One group of opening hours (v5.12): its switch and, while it is on, its two hours. Two groups since
+ * the maintainer's *«vorrei inoltre aggiungere uno slide per orari solo grattacieli e solo negozi, al
+ * momento è globale per grattacieli e negozi»* (2026-10-09): the towers', in Buildings, and the shops'
+ * -- the restaurant, the school and the bar -- in Shops, each reset with its own page.
+ *
+ * The switch reads on only while there is a building of its group to keep the hours
+ * ([SettingsUiModel.towerHours], [SettingsUiModel.shopHours]; `AI_PROJECT_RULES.md` 8.7); locked, it
+ * says what is missing, and the stored choice and hours are kept.
+ */
+@Composable
+private fun OpeningHoursGroup(
+    title: String,
+    line: String,
+    lockedLine: String,
+    state: DependentSwitchUiState,
+    openHour: Float,
+    closeHour: Float,
+    onEnabled: (Boolean) -> Unit,
+    onOpen: (Float) -> Unit,
+    onClose: (Float) -> Unit,
+) {
+    SettingSwitchRow(
+        title = title,
+        subtitle = if (state.interactive) line else lockedLine,
+        checked = state.shownOn,
+        enabled = state.interactive,
+        onCheckedChange = onEnabled,
+    )
+    if (state.shownOn) {
+        PreferenceSlider(
+            label = { shown -> Text("Open from: ${formatHour(shown)}", style = MaterialTheme.typography.bodyMedium) },
+            value = openHour,
+            onCommit = { committed -> onOpen(quantiseToQuarterHour(committed)) },
+            storedAs = ::quantiseToQuarterHour,
+            valueRange = 0f..24f,
+        )
+        PreferenceSlider(
+            label = { shown -> Text("Until: ${formatHour(shown)}", style = MaterialTheme.typography.bodyMedium) },
+            value = closeHour,
+            onCommit = { committed -> onClose(quantiseToQuarterHour(committed)) },
+            storedAs = ::quantiseToQuarterHour,
+            valueRange = 0f..24f,
+        )
+        Text(
+            HOURS_CLOCK_LINE,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** The towers' group's line, with its switch interactive. */
+private const val TOWER_HOURS_LINE =
+    "The towers keep opening hours: outside them nobody stands at their windows and the glass stays dark, even at night."
+
+/** The towers' group's line while there is no tower to keep the hours. */
+private const val TOWER_HOURS_LOCKED_LINE =
+    "Needs Show Buildings on and Towers above 0%; your choice is kept until then."
+
+/** The shops' group's line, with its switch interactive. */
+private const val SHOP_HOURS_LINE =
+    "The restaurant, the school and the bar keep opening hours: outside them nobody stands at their " +
+        "windows and the glass stays dark, even at night. Houses are homes and keep no hours."
+
+/** The shops' group's line while there is no shop to keep the hours. */
+private const val SHOP_HOURS_LOCKED_LINE = "Needs Show Buildings on, above; your choice is kept until then."
+
+/** Under each group's two hours. */
+private const val HOURS_CLOCK_LINE =
+    "The hours follow the scene's own clock, so a frozen time of day obeys them too. Closing past " +
+        "midnight works (09:00 until 02:00). Setting both to the same time means always open."
+
+/** A decimal hour as the clock text the opening-hours sliders print, quantised to 15 minutes. */
 private fun formatHour(hour: Float): String {
     val q = quantiseToQuarterHour(hour)
     val h = q.toInt() % 24

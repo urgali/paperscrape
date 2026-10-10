@@ -2834,7 +2834,8 @@ class PaperRenderer(
      * The distant houses on one mountain (v5.11, inventory I-407): see [DistantHouses] for where, how
      * many and how large. Drawn from the same pieces the village's houses are, in the same paper: the
      * wall a weight mask summed in one of the houses' two colours, the glass in the scene's glass --
-     * lit at night, in four houses of five -- and the snow over the roof only with the winter palette.
+     * lit at night in four houses of five, the fifth dark glass as an unlit window of the village is
+     * (v5.12) -- and the snow over the roof only with the winter palette.
      * Nothing drawn while the switch is off or at 0 %, which is every theme as it ships.
      */
     private fun drawDistantHouses(
@@ -2860,7 +2861,7 @@ class PaperRenderer(
             val footY = DistantHouses.footY(surface, DistantHouses.slope(height, halfWidth, along), pixelsTall)
             val piece = pieces[DistantHouses.design(seed, slot, pieces.size)]
             val wall = sceneCustomization.houses.colorAt(DistantHouses.colourVariant(seed, slot), dayBlend)
-            val glass = SceneObjectRenderer.windowGlassColor(night * DistantHouses.litShare(seed, slot))
+            val glass = DistantHouses.glassColour(seed, slot, night)
             val s = pixelsTall / piece.height
             canvas.save()
             canvas.translate(cx + along * halfWidth, footY)

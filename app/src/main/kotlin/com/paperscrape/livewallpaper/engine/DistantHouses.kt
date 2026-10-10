@@ -37,11 +37,12 @@ internal object DistantHouses {
     /** How far a place moves either way, as a share of the half-width. */
     const val SLOT_JITTER = 0.12f
 
-    /** The share of the houses with a lit window at night; the rest show a glimmer of it. */
+    /**
+     * The share of the houses with a lit window at night; the rest are dark glass, as a window of the
+     * village left unlit is (v5.12, inventory I-513: until then they kept 15 % of the light, a pale
+     * window that read at night as a lit one of cold light).
+     */
     const val LIT_SHARE = 0.8f
-
-    /** How lit the window of a house that is not lit is, at full night. */
-    const val UNLIT_GLOW = 0.15f
 
     /**
      * How far a house's foot is sunk into the mountain beyond what its slope needs, as a share of its
@@ -102,8 +103,15 @@ internal object DistantHouses {
     /** Which of the houses' two colours (0 = Color 1, 1 = Color 2) the house at [slot] wears. */
     fun colourVariant(seed: Int, slot: Int): Int = if (CandidateNoise.value(seed, slot, CH_COLOUR) < 0.5f) 0 else 1
 
-    /** How lit the window of the house at [slot] is at full night: 1, or [UNLIT_GLOW] for one in five. */
-    fun litShare(seed: Int, slot: Int): Float = if (CandidateNoise.value(seed, slot, CH_LIT) < LIT_SHARE) 1f else UNLIT_GLOW
+    /** Whether the window of the house at [slot] is lit at night: four houses in five ([LIT_SHARE]). */
+    fun isLit(seed: Int, slot: Int): Boolean = CandidateNoise.value(seed, slot, CH_LIT) < LIT_SHARE
+
+    /**
+     * The glass of the house at [slot] at [nightGlow]: the lit window's, or -- one in five -- the dark
+     * glass of a window left unlit, both from the day's glass as every window in the scene.
+     */
+    fun glassColour(seed: Int, slot: Int, nightGlow: Float): Int =
+        if (isLit(seed, slot)) SceneObjectRenderer.windowGlassColor(nightGlow) else SceneObjectRenderer.unlitWindowGlassColor(nightGlow)
 
     /** The mountain's surface at [along] of its half-width: `MountainSilhouette`'s parabola. */
     fun surfaceY(baseY: Float, height: Float, along: Float): Float = baseY - height * (1f - along * along)

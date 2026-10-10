@@ -342,11 +342,23 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     // before v4.22 has no such key, and reading falls back to that theme's own daytime car
     // density -- the upgrade rule PeopleDensity.resolveNightDensity states, applied to a payload.
     put("carsNightDensity", carsNightDensity.toDouble())
-    // The business hours (v4.22). Absent from every older payload; reading falls back to the
-    // defaults, whose toggle-off state renders identically to the feature not existing.
-    put("businessHoursEnabled", businessHoursEnabled)
-    put("businessOpenHour", businessOpenHour.toDouble())
-    put("businessCloseHour", businessCloseHour.toDouble())
+    // The opening hours (v4.22), in two groups since v5.12: the shops' and the towers'. Absent from
+    // every payload before v4.22, where reading falls back to the defaults, whose switch-off state
+    // renders identically to the feature not existing; a payload written from v4.22 to v5.11 holds
+    // one setting for both, which `sceneCustomizationFromJson` reads into each.
+    put("shopHoursEnabled", shopHoursEnabled)
+    put("shopOpenHour", shopOpenHour.toDouble())
+    put("shopCloseHour", shopCloseHour.toDouble())
+    put("towerHoursEnabled", towerHoursEnabled)
+    put("towerOpenHour", towerOpenHour.toDouble())
+    put("towerCloseHour", towerCloseHour.toDouble())
+    // And the one setting of before, still written -- as the shops' -- so the shape stays additive
+    // ([CUSTOM_THEME_SCHEMA_VERSION]: no field removed, no bump) and a build before v5.12 reading this
+    // payload reads hours it knows (`AI_PROJECT_RULES.md` 9.4, best effort): for the shops as stored,
+    // for its towers the same. This build reads it only where a group has no field of its own.
+    put("businessHoursEnabled", shopHoursEnabled)
+    put("businessOpenHour", shopOpenHour.toDouble())
+    put("businessCloseHour", shopCloseHour.toDouble())
     put("trees", trees.toJson())
     put("snowmen", snowmen.toJson())
     put("gifts", gifts.toJson())
@@ -472,9 +484,17 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
             json.optJSONObject("cars")?.optFinite("density", defaults.cars.density)
                 ?: defaults.cars.density,
         ),
-        businessHoursEnabled = json.optBoolean("businessHoursEnabled", defaults.businessHoursEnabled),
-        businessOpenHour = json.optFinite("businessOpenHour", defaults.businessOpenHour),
-        businessCloseHour = json.optFinite("businessCloseHour", defaults.businessCloseHour),
+        // **One setting until v5.12, two since** (the maintainer's decision of 2026-10-09: whoever had
+        // the hours on finds them on in both groups, at the same hours). A payload written before has
+        // `businessHours*` alone, the setting that held for the shops and the towers alike, and each
+        // group reads it where it has no field of its own -- a theme saved, archived, backed up or
+        // shared before v5.12 opens and closes as it did. A payload written since has both groups'.
+        shopHoursEnabled = json.optBoolean("shopHoursEnabled", json.optBoolean("businessHoursEnabled", defaults.shopHoursEnabled)),
+        shopOpenHour = json.optFinite("shopOpenHour", json.optFinite("businessOpenHour", defaults.shopOpenHour)),
+        shopCloseHour = json.optFinite("shopCloseHour", json.optFinite("businessCloseHour", defaults.shopCloseHour)),
+        towerHoursEnabled = json.optBoolean("towerHoursEnabled", json.optBoolean("businessHoursEnabled", defaults.towerHoursEnabled)),
+        towerOpenHour = json.optFinite("towerOpenHour", json.optFinite("businessOpenHour", defaults.towerOpenHour)),
+        towerCloseHour = json.optFinite("towerCloseHour", json.optFinite("businessCloseHour", defaults.towerCloseHour)),
         trees = json.optJSONObject("trees")?.let { objectVariantConfigFromJson(it, defaults.trees) } ?: defaults.trees,
         // Seasonal decorations ARE part of a saved custom theme's JSON now -- per-theme editable
         // and saveable exactly like the structural categories above (see the ObjectCategory doc

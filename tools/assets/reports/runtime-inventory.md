@@ -7,8 +7,8 @@ from the shipped PNGs; nothing is copied from documentation.
 |---|---|
 | Files | 444 |
 | Unique contents | 444 |
-| Bytes on disk | 1327.8 KB |
-| Decoded `ARGB_8888` | 46.23 MB |
+| Bytes on disk | 1336.8 KB |
+| Decoded `ARGB_8888` | 46.31 MB |
 | Of which transparent padding | 18.80 MB (41 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
@@ -32,12 +32,12 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Sprite | Size | Mode | Content bbox | Padding | Opaque RGB | Grid |
 |---|---|---|---|---|---|---|
-| `bar_chamfer_fx` | 222x168 | RGBA | 0,1,220,166 | 3 % | 299 | yes |
-| `bar_chamfer_mg` | 165x102 | RGBA | 2,2,165,100 | 5 % | 1 | yes |
+| `bar_chamfer_fx` | 222x168 | RGBA | 0,1,220,166 | 3 % | 318 | yes |
+| `bar_chamfer_mg` | 165x105 | RGBA | 2,2,165,103 | 5 % | 1 | yes |
 | `bar_chamfer_mw` | 222x168 | RGBA | 0,1,220,166 | 3 % | 1 | yes |
 | `bar_chamfer_snow_fx` | 216x54 | RGBA | 2,2,216,54 | 5 % | 39 | yes |
-| `bar_signboard_fx` | 207x228 | RGBA | 2,1,206,226 | 3 % | 310 | yes |
-| `bar_signboard_mg` | 141x102 | RGBA | 0,2,139,100 | 5 % | 1 | yes |
+| `bar_signboard_fx` | 207x228 | RGBA | 2,1,206,226 | 3 % | 326 | yes |
+| `bar_signboard_mg` | 138x102 | RGBA | 1,2,136,100 | 6 % | 1 | yes |
 | `bar_signboard_mw` | 207x156 | RGBA | 2,0,206,156 | 1 % | 1 | yes |
 | `bar_signboard_snow_fx` | 183x99 | RGBA | 1,2,181,97 | 6 % | 34 | yes |
 | `bird_body` | 51x21 | RGBA | 2,1,50,20 | 15 % | 8 | yes |
@@ -95,8 +95,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `house_large_roof_turret_tower_mg` | 18x63 | RGBA | 1,2,17,61 | 17 % | 1 | yes |
 | `house_large_roof_turret_tower_mw` | 87x174 | RGBA | 1,2,86,173 | 4 % | 1 | yes |
 | `house_large_roof_turret_tower_snow_fx` | 51x60 | RGBA | 2,0,51,60 | 4 % | 35 | yes |
-| `house_large_storey_fx` | 258x72 | RGBA | 0,1,256,72 | 2 % | 85 | yes |
-| `house_large_storey_mg` | 210x36 | RGBA | 2,0,208,36 | 2 % | 1 | yes |
+| `house_large_storey_fx` | 258x72 | RGBA | 0,1,256,72 | 2 % | 129 | yes |
+| `house_large_storey_mg` | 207x39 | RGBA | 2,0,207,37 | 6 % | 1 | yes |
 | `house_large_storey_mw` | 258x72 | RGBA | 0,1,256,72 | 2 % | 1 | yes |
 | `house_small_ground_fx` | 186x96 | RGBA | 1,1,186,94 | 4 % | 193 | yes |
 | `house_small_ground_mg` | 45x42 | RGBA | 2,0,45,40 | 9 % | 1 | yes |
@@ -108,8 +108,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `house_small_roof_mansard_mg` | 18x18 | RGBA | 1,0,17,17 | 16 % | 1 | yes |
 | `house_small_roof_mansard_mw` | 207x105 | RGBA | 2,2,205,105 | 4 % | 1 | yes |
 | `house_small_roof_mansard_snow_fx` | 132x36 | RGBA | 2,2,130,35 | 11 % | 32 | yes |
-| `house_small_storey_fx` | 186x75 | RGBA | 1,0,186,74 | 2 % | 92 | yes |
-| `house_small_storey_mg` | 132x36 | RGBA | 2,0,130,36 | 3 % | 1 | yes |
+| `house_small_storey_fx` | 186x75 | RGBA | 1,0,186,74 | 2 % | 115 | yes |
+| `house_small_storey_mg` | 135x39 | RGBA | 2,2,135,39 | 7 % | 1 | yes |
 | `house_small_storey_mw` | 186x75 | RGBA | 1,0,186,74 | 2 % | 1 | yes |
 | `leaf_pile` | 108x21 | RGBA | 0,0,108,21 | 0 % | 31 | yes |
 | `lightning_bolt` | 90x252 | RGBA | 0,0,90,252 | 0 % | 1 | yes |
@@ -415,8 +415,8 @@ from the shipped PNGs; nothing is copied from documentation.
 | `sailboat_sail` | 183x180 | RGBA | 3,0,182,180 | 2 % | 77 | yes |
 | `santa_sleigh_scene` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
 | `santa_sleigh_trot` | 594x123 | RGBA | 0,1,592,122 | 2 % | 831 | yes |
-| `school_fx` | 330x231 | RGBA | 1,0,328,230 | 1 % | 495 | yes |
-| `school_mg` | 294x51 | RGBA | 2,2,292,49 | 9 % | 1 | yes |
+| `school_fx` | 330x231 | RGBA | 1,0,328,230 | 1 % | 516 | yes |
+| `school_mg` | 294x114 | RGBA | 2,2,292,112 | 5 % | 1 | yes |
 | `school_mw` | 330x228 | RGBA | 1,0,328,228 | 1 % | 1 | yes |
 | `school_snow_fx` | 324x93 | RGBA | 2,0,322,93 | 1 % | 43 | yes |
 | `snow_pile` | 108x21 | RGBA | 0,0,108,21 | 0 % | 11 | yes |

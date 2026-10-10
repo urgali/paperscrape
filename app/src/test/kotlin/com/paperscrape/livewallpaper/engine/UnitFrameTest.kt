@@ -6,8 +6,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **Seven length systems in this project are all called `_UNITS`, and this is what stops two of
- * them being compared.** `BACKLOG_v4_25.md` item 61 is the search that found the class; this is
+ * **Every length system in this project is called `_UNITS` -- [frames] lists them -- and this is what
+ * stops two of them being compared.** `BACKLOG_v4_25.md` item 61 is the search that found the class; this is
  * proposal **C** of the three it lists, taken in v4.26.
  *
  * ### The rule, in one sentence
@@ -114,6 +114,9 @@ class UnitFrameTest {
         "CHILD_" to setOf("walk"),
         "HOUSE_" to setOf("building"),
         "CHRISTMAS_LIGHT_" to setOf("building"),
+        // v5.12: the chimney smoke's lengths, in the house piece's own frame -- the one its chimney's
+        // point (`BuildingPiece.smokeX/smokeY`) is declared in (`ChimneySmoke`).
+        "SMOKE_" to setOf("building"),
         "CLOUD_" to setOf("cloud"),
         "STAR_" to setOf("star"),
         "CELESTIAL_" to setOf("celestial"),

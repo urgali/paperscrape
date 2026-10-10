@@ -84,10 +84,15 @@ class SettingsGateScenesTest {
             dayPhase = GoldenScene.night(),
             themeId = "desert",
             customise = {
+                // Both groups of hours on at the default day, the shops' and the towers' (v5.12):
+                // the one setting this scene had until then, so the frame is the one it pinned.
                 it.copy(
-                    businessHoursEnabled = true,
-                    businessOpenHour = DEFAULT_BUSINESS_OPEN_HOUR,
-                    businessCloseHour = DEFAULT_BUSINESS_CLOSE_HOUR,
+                    shopHoursEnabled = true,
+                    shopOpenHour = DEFAULT_BUSINESS_OPEN_HOUR,
+                    shopCloseHour = DEFAULT_BUSINESS_CLOSE_HOUR,
+                    towerHoursEnabled = true,
+                    towerOpenHour = DEFAULT_BUSINESS_OPEN_HOUR,
+                    towerCloseHour = DEFAULT_BUSINESS_CLOSE_HOUR,
                 )
             },
             focus = listOf(facadesBand(SettingsGates.BUSINESS_HOURS_GATE)),

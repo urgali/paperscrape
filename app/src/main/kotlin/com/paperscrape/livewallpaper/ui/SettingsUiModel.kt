@@ -777,6 +777,23 @@ object SettingsUiModel {
                 "below are kept."
         }
 
+    /**
+     * *Shop opening hours* (v5.12, the maintainer's *«vorrei inoltre aggiungere uno slide per orari solo
+     * grattacieli e solo negozi»* of 2026-10-09): on only while there are shops to keep them
+     * (`AI_PROJECT_RULES.md` 8.7). The restaurant, the school and the bar stand while *Show Buildings*
+     * is on, whatever the Towers amount (`SceneCustomization.keepCandidate`), so that switch is the one
+     * thing that stops them; the stored choice is kept, and back the moment it is on.
+     */
+    fun shopHours(stored: Boolean, buildingsVisible: Boolean): DependentSwitchUiState =
+        dependentSwitch(stored, available = buildingsVisible)
+
+    /**
+     * *Tower opening hours* (v5.12): on only while there are towers to keep them -- *Show Buildings* on
+     * and the Towers amount above 0 %, the two things that stop every tower. See [shopHours].
+     */
+    fun towerHours(stored: Boolean, buildingsVisible: Boolean, towersAmount: Float): DependentSwitchUiState =
+        dependentSwitch(stored, available = buildingsVisible && towersAmount > 0f)
+
     /** See [AmountSwitchUiState]. */
     fun amountSwitch(visible: Boolean, amount: Float): AmountSwitchUiState =
         AmountSwitchUiState(shownOn = visible && amount > 0f, noneAtZero = amount <= 0f)

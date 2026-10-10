@@ -269,7 +269,7 @@ class LinesSayWhatTheyDoTest {
             "Sun/Cloud Height", // the arc of the sun and the moon, and the clouds' band
             "Variation", // the hills' outline
             "Snow piles", "Leaf piles", // shown only under their palette
-            "Open from", "Until", // shown only with Business hours on
+            "Open from", "Until", // shown only while their group's opening hours read on
         )
         for (file in listOf("ui/WorldSceneScreen.kt", "ui/SceneCategorySections.kt", "ui/SeasonsScreen.kt")) {
             val text = source(file)

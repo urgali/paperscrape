@@ -71,7 +71,7 @@ class DistantHousesTest {
                     for (slot in DistantHouses.SLOTS.indices) {
                         designs[DistantHouses.design(s, slot, 3)]++
                         colours[DistantHouses.colourVariant(s, slot)]++
-                        if (DistantHouses.litShare(s, slot) == 1f) lit++
+                        if (DistantHouses.isLit(s, slot)) lit++
                         total++
                     }
                 }

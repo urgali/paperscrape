@@ -87,6 +87,20 @@ class CanvasGradientAllocationTest {
 
         override fun drawShape(shape: SceneShape, paint: Paint) = delegate.drawShape(shape, paint)
 
+        override fun drawSpriteClipped(
+            resId: Int,
+            source: SpriteSource,
+            left: Float,
+            top: Float,
+            tintColor: Int,
+            alpha: Int,
+            additive: Boolean,
+            clipLeft: Float,
+            clipTop: Float,
+            clipRight: Float,
+            clipBottom: Float,
+        ) = delegate.drawSpriteClipped(resId, source, left, top, tintColor, alpha, additive, clipLeft, clipTop, clipRight, clipBottom)
+
         override fun drawSprite(
             resId: Int,
             source: SpriteSource,

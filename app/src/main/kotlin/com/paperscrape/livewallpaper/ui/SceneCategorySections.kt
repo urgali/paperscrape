@@ -201,10 +201,11 @@ internal fun ObjectCategorySection(
  * The shops' colours (v5.11, inventory I-403; the maintainer's *«voglio che i negozi abbiano colore a
  * se, aggiungiamolo»* of 2026-10-06): the restaurant, the school and the bar.
  *
- * **Colours only, and a reset.** Whether the shops stand is *Show Buildings*' (one candidate pool), so
- * there is no switch and no slider here; with *Show Buildings* off the line says so and a tap on it
- * goes to that switch ([onGoToBuildings], `AI_PROJECT_RULES.md` 8.7), the colours staying editable as
- * every category's do while its switch is off.
+ * **Colours, opening hours and a reset.** Whether the shops stand is *Show Buildings*' (one candidate
+ * pool), so there is no *Show* switch and no amount here; with *Show Buildings* off the line says so and
+ * a tap on it goes to that switch ([onGoToBuildings], `AI_PROJECT_RULES.md` 8.7), the colours staying
+ * editable as every category's do while its switch is off. Since v5.12 the shops keep opening hours of
+ * their own ([openingHours]), which "Reset Shops to default" puts back with the colours.
  */
 @Composable
 internal fun ShopsSection(
@@ -215,6 +216,8 @@ internal fun ShopsSection(
     scope: CoroutineScope,
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
     onGoToBuildings: () -> Unit,
+    /** The shops' opening hours (v5.12), between the line and the colours, as the towers' are in Buildings. */
+    openingHours: @Composable () -> Unit = {},
 ) {
     val category = ObjectCategory.SHOPS
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -225,6 +228,7 @@ internal fun ShopsSection(
             color = if (buildingsVisible) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
             modifier = if (buildingsVisible) Modifier else Modifier.clickable(onClick = onGoToBuildings),
         )
+        openingHours()
         DayNightColorPair(
             dayLabel = "Day Color 1", nightLabel = "Night Color 1",
             dayColor = config.colorDay1, nightColor = config.colorNight1, mode = config.autoMode1,

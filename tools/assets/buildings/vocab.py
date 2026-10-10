@@ -4,8 +4,12 @@
 Each function adds cards to a Group in piece space and, where needed, declares the host face
 for the containment check. The sizes of the openings DERIVE from what has to fit inside them:
 a bust (49x57 u of canvas, drawn at 0.85*w/60 -> 0.69 w wide, 0.81 w tall) wants an almost
-square pane of >= 12 u (= 10-17 px on the BV6600); a grid window hosts nothing and is the
-building's texture (6-9 u), with no frame: at 5-13 px a frame is a line.
+square pane of about 12 u (= 10-17 px on the BV6600): the houses' storeys 13 x 12 and ground floors
+14 x 13, the shops' 12-16. Since v5.12 the school's upper floor and the corner bar's hold people at
+11 x 11 too -- every window of a floor the same, and a person may stand at any of them -- where a bust
+is drawn 15 % smaller than at 13, the bust being sized by its pane. A grid window hosts nothing and is
+the building's texture (5-9 u), with no frame: at 5-13 px a frame is a line -- the towers' rows, and
+the turret's two 5 x 7; a dormer's pane (5-6 u) hosts nobody either.
 """
 from core import (W, WALL, _rgb, _hex, mix, CREAM, CREAM_U, RED, RED_U, WOOD, WOOD_U, YELLOW, STONE, SNOW, SNOW_S, SNOW_L,
                   DARK, TERRACOTTA, SLATE, INK_ROOF, Group, rect, chamfered, arch, disc, half_disc, scallops, offset)
@@ -37,6 +41,8 @@ def grid_windows(g: Group, host, cols_x, rows_y, w, h, amp=0.0, fill=GLASS, marg
     for y in rows_y:
         for x in cols_x:
             g.add(chamfered(x, y, x + w, y + h, 0.5), fill, amp=amp * 0.4, host=host, margin=margin, label="grid window")
+            if fill == GLASS:
+                g.panes.append((x, y, w, h))
 
 
 def bay_glass(name, w, h, amp, chamfer=0.6):
@@ -54,6 +60,7 @@ def bay_window(g: Group, host, x, y, w, h, relief, amp, frame=2.0, sill=True, ch
           host=host, margin=margin, label="bay window")
     if glass:
         g.add(chamfered(x, y, x + w, y + h, chamfer * 0.6), GLASS, amp=amp * 0.4)
+        g.panes.append((x, y, w, h))
     if sill:
         g.add(chamfered(x - frame - 1.5, y + h + frame, x + w + frame + 1.5, y + h + frame + 1.8, 0.6), CREAM,
               relief=relief, amp=amp * 0.6, host=host, margin=margin * 0.6, label="sill")
@@ -160,6 +167,7 @@ def dormer(g: Group, host, cx, y_base, w, h, relief, amp, fill=WALL, roof=ROOF_T
     g.add(rect(cx - w / 2, y_base - h, cx + w / 2, y_base), fill, relief=relief, amp=amp * 0.6, host=host, margin=margin, rests=True, label="dormer")
     g.add([(cx - w / 2 - 1.5, y_base - h + 0.5), (cx, y_base - h - w * 0.45), (cx + w / 2 + 1.5, y_base - h + 0.5)], roof, relief=relief, amp=amp * 0.6)
     g.add(chamfered(cx - w * 0.28, y_base - h * 0.85, cx + w * 0.28, y_base - h * 0.2, 0.4), GLASS, amp=amp * 0.3)
+    g.panes.append((cx - w * 0.28, y_base - h * 0.85, w * 0.56, h * 0.65))
 
 
 def shaded(paper, t=0.34):

@@ -137,6 +137,9 @@ def extras():
 
 # ------------------------------------------------------------------ the Kotlin table
 def kotlin_table(table: dict, pieces: dict, distant_names: list) -> str:
+    # The panes are a house's (v5.12): what its night lights or leaves dark, pane by pane. Every other
+    # building lights all its glass together, so its pieces carry none.
+    house_pieces = {o for f in ("HOUSE_SMALL", "HOUSE_LARGE") for slot in table[f]["slots"] for o in slot["options"] + slot["heights"]}
     blocks = []
     for pname, p in pieces.items():
         parts = []
@@ -150,6 +153,13 @@ def kotlin_table(table: dict, pieces: dict, distant_names: list) -> str:
                 parts.append(f"        BuildingPart(R.drawable.{production(name)}, {x:.2f}f, {y:.2f}f, PartRole.{kt}),")
         wins = ", ".join(f"BuildingWindow({x:.2f}f, {y:.2f}f, {w:.2f}f, {h:.2f}f)" for x, y, w, h in p["windows"])
         lights = ", ".join(f"BuildingWindow({x:.2f}f, {y:.2f}f, {w:.2f}f, 0f)" for x, y, w in p["lights"])
+        people = ""
+        if p["people"] != len(p["windows"]):
+            people = f"        people = {p['people']},\n"
+        panes = ""
+        if pname in house_pieces and p["panes"]:
+            panes = ("        panes = listOf(" +
+                     ", ".join(f"BuildingWindow({x:.2f}f, {y:.2f}f, {w:.2f}f, {h:.2f}f)" for x, y, w, h in p["panes"]) + "),\n")
         blocks.append(
             f"    private val {production(pname).upper()} = BuildingPiece(\n"
             f"        {p['height']:.2f}f,\n"
@@ -157,6 +167,7 @@ def kotlin_table(table: dict, pieces: dict, distant_names: list) -> str:
             f"        listOf({wins}),\n"
             f"        listOf({lights}),\n"
             f"        {p['smoke'][0]:.2f}f, {p['smoke'][1]:.2f}f, {p['beacon'][0]:.2f}f, {p['beacon'][1]:.2f}f,\n"
+            + people + panes +
             f"    )")
     rows = []
     for family, t in table.items():
@@ -203,8 +214,9 @@ import com.paperscrape.livewallpaper.R
  *   the artwork.
  *
  * **Every wall surface descends from one of the two editable colours of the object's category**;
- * the glass mask takes the scene's fixed day/night glass colour
- * (`SceneObjectRenderer.windowGlassColor`). A card is `w * wall + (1 - w) * k` with `k` only ink
+ * the glass mask takes the scene's fixed day/night glass colours (`SceneObjectRenderer.windowGlassColor`;
+ * at night the dark glass of `unlitWindowGlassColor` for a business while it is shut, and for a house
+ * with its lit panes laid over it as flat cards, v5.12). A card is `w * wall + (1 - w) * k` with `k` only ink
  * or white, and `w` is baked into the wall mask; so there is no colour variant in this set and no
  * colour of a piece's own. See the script's own doc comment.
  */
@@ -212,7 +224,10 @@ internal enum class PartRole {{ FIXED, SNOW, WALL_MASK, GLASS_MASK, LAMP, OCCUPA
 
 internal class BuildingPart(val res: Int, val x: Float, val y: Float, val role: PartRole)
 
-/** An opening a bust may stand in, or (with `h` = 0) a sill a light string may hang from. */
+/**
+ * An opening a bust may stand in, a pane of a house's glass (`BuildingPiece.panes`, v5.12), or (with
+ * `h` = 0) a sill a light string may hang from.
+ */
 internal class BuildingWindow(val x: Float, val y: Float, val w: Float, val h: Float)
 
 internal class BuildingPiece(
@@ -223,6 +238,22 @@ internal class BuildingPiece(
     val lights: List<BuildingWindow>,
     val smokeX: Float, val smokeY: Float,
     val beaconX: Float, val beaconY: Float,
+    /**
+     * A house piece's panes of glass (v5.12), each one a window its night may light or leave dark:
+     * first the [windows], in their order -- pane `k` is window `k` for every `k` below
+     * `windows.size` -- then the rest, the dormers and the turret's small windows. Empty for the other
+     * buildings, which light all their glass together while they are open.
+     */
+    val panes: List<BuildingWindow> = emptyList(),
+    /**
+     * How many of its building's people this piece brings, as a count of windows (v5.12): its own
+     * window count, except where a piece gained windows in v5.12 -- the storeys, the school's upper
+     * floor, the bars' -- and brings the people it did before. The number of people at a building's
+     * windows is one of the scene's quantities the maintainer keeps, and the table he approved said it
+     * stays (*«il resto si a tutto»*, 2026-10-09): it is dealt over this
+     * ([NeighbourhoodComposer.Deal.peopleWindows]), the windows they stand at over all of them.
+     */
+    val people: Int = windows.size,
 )
 
 /**
@@ -317,7 +348,7 @@ def registry_entries(png_dir: Path, files: dict) -> list[dict]:
 
 
 def rewrite_registry(entries: list[dict]) -> tuple[int, int]:
-    """Replace the five families' declarations with this run's, idempotently.
+    """Replace the six families' and the distant houses' declarations with this run's, idempotently.
 
     An entry goes if this run produces one under that name (it is being replaced) **or** if it is
     one of the flat facades the redraw retires. Testing the prefixes alone is not enough and not

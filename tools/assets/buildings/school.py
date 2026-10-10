@@ -7,29 +7,35 @@ three steps, each of which is a number in this file rather than a preference:
  - **S2_C** (round v5.6C) put four bay windows on the ground floor. S2 as first proposed declared
    *no* windows a bust could stand in -- its ground floor was the tower's 6x7 window texture -- so
    "a school shows children" would have been a rule about an empty set. The four panes are 13x15
-   units, over the 12 `vocab`'s docstring requires for a bust, and the porch light moved from the
+   units, larger than the pane of about 12 units `vocab`'s docstring gives a bust, and the porch light moved from the
    side of the door (12, -18) to over the canopy (0, -28) because the right-hand row used to run
    through the doorway and through the light's own halo.
  - **B_pencil** (round v5.6E) hangs a cream plaque with a red pencil on the facade, between the
    upper windows and over the porch light that lights it. It costs **no new PNG and no new atlas
    row**: the plaque sits inside canvases the school already has, and its colours are the fixed
-   ones `sign_plate` already uses. The price is paid in windows -- the two upper rows go from four
-   panes to three (`k2_t_row3`, the tower's own stamp, already shipped) to clear 38 units of wall
-   in the middle.
+   ones `sign_plate` already uses. The price was paid in windows -- the upper floor's row of small
+   bare panes, two groups of four, became two groups of three, to clear 38 units of wall in the middle.
+ - **The upper floor's windows** (v5.12, inventory I-505; version A of the proposals, the maintainer's
+   *«va bene A come avevi consigliato»* of 2026-10-09): every window of a floor the same, so the six
+   small bare panes of before became four framed windows, two each side of the plaque, 11 x 11 units
+   -- two 14-unit frames 2 units apart, 30 of the 36 units between the wall's edge (x +-52) and the
+   plaque (x +-16) --
+   framed like the ground floor's, without a sill. They are added **after** the plaque and the pencil
+   ([upper_bays]), for the reason below.
 
 **The group is named `k2_s_orologio_c` (Italian for «S2 Clock», corrected), and that name is load-bearing.** `core.Group.add` seeds
 each card's wobble from `name#index`, so renaming the group moves every vertex by up to a unit and
 the drawing stops being the one the maintainer approved -- measured in v5.6E, where rendering the
 six sign variants under six names produced +-8 kB of pure cropping noise. `names.py` maps it to the
 shipped `school_*`, exactly as it maps `k2_r_padiglione` to `restaurant_pavilion`. The plaque and
-the emblem are added **last** for the same reason: every card before them keeps the index, and
-therefore the seed, it had without the sign.
+the emblem were added after every card the school had, for the same reason: every card before them
+keeps the index, and therefore the seed, it had without the sign. Only the upper floor's four windows
+(v5.12, [upper_bays]) come after them.
 """
 from core import Group, Piece, W, WALL, CREAM, DARK, YELLOW, RED, rect, chamfered, disc
 import math
 import vocab
-from vocab import TRIM, steps, door, snow_cap, row_stamp, rows, bay_window
-import k2_profile
+from vocab import TRIM, steps, door, snow_cap, bay_window
 
 #: The school's own hand: wobble amplitude and shadow-paper offset. Between the restaurant's
 #: (0.9 / 1.9, 2.6) and the tower's (1.1 / 2.4, 3.2), which is where a 72-unit building belongs.
@@ -93,17 +99,31 @@ def shell(name):
     return g, p, W2, H
 
 
-def upper_rows(g, p):
-    """The two upper rows: three panes each, at the tower's own stamp and its own wobble.
+#: The upper floor's four windows (v5.12): left x of each, their top, and their pane.
+UPPER_BAYS = (-48, -32, 21, 37)
+UPPER_BAY_Y = -45
+UPPER_BAY = (11, 11)
 
-    Four each is what S2_C drew, and `B_pencil` trades the fourth pane of each row for the 38
-    units of clear wall the plaque stands on. `k2_t_row3` is `tower_row_tier3`, already shipped
-    and already drawn at `k2_profile.T["amp"]`, so the school pays nothing for it.
+
+def upper_bays(g, p):
+    """The upper floor: four framed windows, two each side of the plaque, at the end of the cards.
+
+    The school's cards are seeded by their index (see above), and until v5.12 the upper floor was a
+    row of stamps, in two groups, that added no card to the body; so the four windows are added after every card
+    the school had, and the ground bays, the plaque and the pencil keep the wobble the maintainer
+    approved. The Christmas strings hang under the two pairs, where they hung under the two groups,
+    and first in the list as they were: which strings of a building light is dealt by their order.
+
+    A child may stand at any of them; the school still brings the children its four windows below
+    did (`Piece.people`), so a classroom's number is the one it always had.
     """
-    stamp = row_stamp("k2_t_row3", 3, 6, 7, 11, k2_profile.T["amp"])
-    rows(p, g, "wall", stamp, 3, 6, 7, 11, -47, [-44])
-    rows(p, g, "wall", stamp, 3, 6, 7, 11, 19, [-44])
-    p.lights += [(-47, -37, 28), (19, -37, 28)]
+    w, h = UPPER_BAY
+    for x in UPPER_BAYS:
+        win, _ = bay_window(g, "wall", x, UPPER_BAY_Y, w, h, S["relief"], S["amp"], frame=1.5, sill=False)
+        p.windows.append(win)
+    sill_y = UPPER_BAY_Y + h + 1.5
+    p.lights[:0] = [(UPPER_BAYS[0], sill_y, UPPER_BAYS[1] + w - UPPER_BAYS[0]),
+                    (UPPER_BAYS[2], sill_y, UPPER_BAYS[3] + w - UPPER_BAYS[2])]
 
 
 def ground_bays(g, p):
@@ -147,11 +167,12 @@ def pencil(g, cx, cy, h):
 def school():
     """The one piece the family is made of."""
     g, p, W2, H = shell("k2_s_orologio_c")
-    upper_rows(g, p)
     ground_bays(g, p)
     p.lamps.append(LAMP)
     plaque(g)
     pencil(g, EMBLEM_CENTRE[0], EMBLEM_CENTRE[1], EMBLEM_HEIGHT)
+    upper_bays(g, p)
+    p.people = len(BAYS_GROUND)
     p.place(g)
     p.place(snow_cap(
         g.name + "_snow",

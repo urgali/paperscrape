@@ -18,6 +18,10 @@ import com.paperscrape.livewallpaper.R
  * by, and only for a part with no [tint]: the palm, which the wallpaper shades rather than tints
  * (`SceneObjectRenderer.drawPalmTree`, [nightShadeFor]). Full daylight, the default, draws the art
  * as authored.
+ *
+ * A part with a [rectWidth] is no sprite: a flat card [rectWidth] x [rectHeight] at ([ox], [oy]) in
+ * [tint] -- a house's lit window over its dark glass at night (v5.12), as the wallpaper lays it
+ * (`SceneObjectRenderer.drawLitPanes`). [resId] is 0 then.
  */
 data class PreviewSprite(
     val resId: Int,
@@ -27,6 +31,8 @@ data class PreviewSprite(
     val alpha: Int = 255,
     val added: Boolean = false,
     val shade: Int = SpriteBlitter.UNTINTED,
+    val rectWidth: Float = 0f,
+    val rectHeight: Float = 0f,
 )
 
 /** An object standing at [x] on the ground line [y], drawn at [scale]. */
@@ -334,10 +340,15 @@ object ThemePreviewScenes {
         // this one number, so the card is one moment of the wallpaper's day and not a mixture.
         val phase = cardPhase(theme, night)
         val dayBlend = phase.dayBlend
-        // How open the businesses are at the card's hour, the wallpaper's own [BusinessHours] rule:
-        // 1 with the toggle off, which is the default, so only a user who turns opening hours on
-        // sees a night card's shops and towers go dark as the wallpaper's do (v5.9G, I-38).
-        val openness = BusinessHours.opennessAt(c.businessHoursEnabled, c.businessOpenHour, c.businessCloseHour, cardHour(theme, night))
+        // The card's hour, at which each building is as open as the wallpaper's own [BusinessHours]
+        // rule makes it -- by its group, the shops' or the towers' hours (v5.12), by what it is drawn
+        // as ([SceneCustomization.opennessFor]): 1 with a group's switch off, which is the default, so
+        // only a user who turns opening hours on sees a night card's shops or towers go dark as the
+        // wallpaper's do (v5.9G, I-38).
+        val hour = cardHour(theme, night)
+        // The theme's seed for who stands at a house's windows, the wallpaper's own (`themeId.hashCode()`
+        // in `SceneObjectRenderer`): which of a house's windows the card lights at night follows it.
+        val seed = theme.id.hashCode()
         // Palms where the switch puts them, read the way the wallpaper reads it: on a layout that
         // plants palms, with it off the palm slots draw the ordinary tree; on one that plants none,
         // with it on the tree slots draw palms (v5.10C, `palmsShown`). Asked of the layout rather
@@ -444,7 +455,7 @@ object ThemePreviewScenes {
 
         fun tower(x: Float, y: Float, fit: Float, index: Int) = buildingItem(
             x, y, fit, SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
-            PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, dayBlend, winter, openness,
+            PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, dayBlend, winter, hour, seed,
         )
 
         if (c.buildings.visible) {
@@ -461,27 +472,27 @@ object ThemePreviewScenes {
             }
             items += buildingItem(128f, ROW_RESTAURANT, 0.38f,
                 SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, openness)
+                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, hour, seed)
         }
         if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(80f, ROW_HOUSE_LARGE, 0.40f,
                 SceneSpace.SceneVariant.HOUSE_LARGE, SceneObjectType.HOUSE,
-                PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, dayBlend, winter, openness)
+                PreviewIdentity.HOUSE_LARGE_X, PreviewIdentity.HOUSE_LARGE_DEPTH, c, dayBlend, winter, hour, seed)
         }
         if (c.buildings.visible) {
             items += buildingItem(176f, ROW_SCHOOL, 0.40f,
                 SceneSpace.SceneVariant.SCHOOL, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, winter, openness)
+                PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, winter, hour, seed)
         }
         if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(236f, ROW_HOUSE_SMALL, 0.40f,
                 SceneSpace.SceneVariant.HOUSE_SMALL, SceneObjectType.HOUSE,
-                PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, dayBlend, winter, openness)
+                PreviewIdentity.HOUSE_SMALL_X, PreviewIdentity.HOUSE_SMALL_DEPTH, c, dayBlend, winter, hour, seed)
         }
         if (c.buildings.visible) {
             items += buildingItem(300f, ROW_BAR, 0.42f,
                 SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, dayBlend, winter, openness)
+                PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, dayBlend, winter, hour, seed)
         }
 
         // --- trees ------------------------------------------------------------------------------
@@ -827,7 +838,7 @@ object ThemePreviewScenes {
             val surface = DistantHouses.surfaceY(base, height, along)
             val foot = DistantHouses.footY(surface, DistantHouses.slope(height, halfWidth, along), CARD_HOUSE_UNITS_TALL)
             val wall = c.houses.colorAt(DistantHouses.colourVariant(seed, slot), dayBlend)
-            val glass = SceneObjectRenderer.windowGlassColor((1f - dayBlend) * DistantHouses.litShare(seed, slot))
+            val glass = DistantHouses.glassColour(seed, slot, 1f - dayBlend)
             val parts = mutableListOf<PreviewSprite>()
             for (part in piece.parts) {
                 when (part.role) {
@@ -986,7 +997,8 @@ object ThemePreviewScenes {
         c: SceneCustomization,
         dayBlend: Float,
         snow: Boolean,
-        openness: Float,
+        hour: Float,
+        seed: Int,
     ): List<PreviewSprite> {
         val family = NeighbourhoodTable.FAMILIES[variant] ?: return emptyList()
         // The real object, so the real coin: which of the two colours this building wears is
@@ -1004,11 +1016,29 @@ object ThemePreviewScenes {
         // card lit every building by the night alone, so with opening hours on a midnight card's
         // shops and towers glowed where the wallpaper's are dark.
         val night = 1f - dayBlend
-        val glass = SceneObjectRenderer.windowGlassColor(
-            if (family.kind == WindowBuildingKind.HOUSE) night else night * openness,
-        )
+        val openness = c.opennessFor(variant, hour)
+        val glass = if (family.kind == WindowBuildingKind.HOUSE) {
+            SceneObjectRenderer.windowGlassColor(night)
+        } else {
+            SceneObjectRenderer.businessGlassColor(night, openness)
+        }
         val deal = NeighbourhoodComposer.Deal()
         NeighbourhoodComposer.deal(family, tileX, depth, deal)
+        // A house at night lights half its windows, as the wallpaper's does (v5.12, inventory I-520):
+        // the same rule from the same seeds -- the theme's and the house's -- at the first moment of
+        // its roster, since a card is one moment and does not move. The people are not drawn (the card
+        // leaves them out, §9 of DESIGN_NOTES.md), but the windows they would stand at are among the
+        // lit ones, as on the wallpaper.
+        val litPanes = if (family.kind == WindowBuildingKind.HOUSE && night > 0f) {
+            val buildingSeed = SceneObjectRenderer.buildingSeedOf(spec)
+            val people = WindowOccupants.occupantCount(seed, buildingSeed, deal.peopleWindows, family.kind)
+            val roster = WindowRoster.plan(seed, buildingSeed, deal.windowCount, deal.paneCount, people, house = true)
+            WindowRoster.litMask(WindowRoster.stateAt(roster, SceneTime.ZERO))
+        } else {
+            -1
+        }
+        val maskGlass = if (litPanes != -1) SceneObjectRenderer.unlitWindowGlassColor(night) else glass
+        val inset = SceneObjectRenderer.LIT_PANE_INSET
         val parts = mutableListOf<PreviewSprite>()
         for (index in 0 until deal.size) {
             val placed = deal[index]
@@ -1017,7 +1047,18 @@ object ThemePreviewScenes {
                 when (part.role) {
                     PartRole.FIXED -> parts += PreviewSprite(part.res, part.x, y)
                     PartRole.WALL_MASK -> parts += PreviewSprite(part.res, part.x, y, wall, added = true)
-                    PartRole.GLASS_MASK -> parts += PreviewSprite(part.res, part.x, y, glass, added = true)
+                    PartRole.GLASS_MASK -> {
+                        parts += PreviewSprite(part.res, part.x, y, maskGlass, added = true)
+                        if (litPanes != -1) {
+                            for ((k, box) in placed.piece.panes.withIndex()) {
+                                if (litPanes and (1 shl (placed.firstPane + k)) == 0) continue
+                                parts += PreviewSprite(
+                                    0, box.x + inset, placed.baseY + box.y + inset, glass,
+                                    rectWidth = box.w - 2f * inset, rectHeight = box.h - 2f * inset,
+                                )
+                            }
+                        }
+                    }
                     PartRole.SNOW -> if (snow) parts += PreviewSprite(part.res, part.x, y)
                     PartRole.LAMP, PartRole.OCCUPANTS -> Unit
                 }
@@ -1051,10 +1092,11 @@ object ThemePreviewScenes {
         c: SceneCustomization,
         dayBlend: Float,
         snow: Boolean,
-        openness: Float,
+        hour: Float,
+        seed: Int,
     ): PreviewItem = PreviewItem(
         x, y, neighbourhoodScale(variant, fit),
-        neighbourhood(variant, type, tileX, depth, c, dayBlend, snow, openness),
+        neighbourhood(variant, type, tileX, depth, c, dayBlend, snow, hour, seed),
     )
 
     /**

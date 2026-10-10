@@ -14,7 +14,7 @@ import org.junit.Test
  * building was one flat facade, so "what it draws" was a single number read off one blit, and this
  * test asserted the two were equal — which is how the tower was found declaring **196** units for
  * a building that measured **182**, reading 7.1 % short next to houses that read exactly what they
- * declared. That correction shipped in v4.30 and is pinned below, because it is still true.
+ * declared. That correction shipped in v4.15 and is pinned below, because it is still true.
  *
  * **v5.0 made "what it draws" a range.** A building is now a stack of pieces dealt per instance,
  * so a small house with a storey is taller than one without and a large house with a turret is
@@ -221,7 +221,7 @@ class BuildingHeightDeclarationTest {
     }
 
     /**
-     * The correction v4.30 made to the tower, still standing.
+     * The correction v4.15 made to the tower, still standing.
      *
      * The scale a variant is drawn at is `metres * pixelsPerMetre / spriteUnitsTall`; 15.6/182 and
      * the old 16.8/196 are the same metres-per-unit, so the same 3.857 px per unit comes out. If a

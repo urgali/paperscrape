@@ -31,7 +31,9 @@ class PaintAlphaEquivalenceTest {
 
     private val colours: IntArray = intArrayOf(
         0xFFFFD97A.toInt(), // porch light
-        0xFFE4E4DC.toInt(), // chimney smoke
+        0xFFE4E4DC.toInt(), // chimney smoke by day
+        0xFF9AA0AA.toInt(), // chimney smoke at night (v5.12)
+        0xFFBFC2C3.toInt(), // chimney smoke at dusk, half way between the two (v5.12)
         0xFFFFFFFF.toInt(), // the lightning veil, a star
         0xFF000000.toInt(),
         0xFF9DB7D5.toInt(), // a rain colour

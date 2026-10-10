@@ -48,9 +48,22 @@ class SkyscraperWindowTest {
             "a glass mask must be an added tint, not an untinted blit; found:\n$branch",
             branch.contains("drawTintedAdded"),
         )
+        // Since v5.12 the mask carries `unlitGlass`: the glass colour, or -- a house at night, which
+        // lights half its windows -- the dark glass its lit panes are laid over (`drawLitPanes`, which
+        // takes the lit `glassColor`). Both come from the window functions, never from the wall.
         assertTrue(
-            "and it must carry glassColor, not the wall; found:\n$branch",
-            branch.contains("glassColor") && !branch.contains("wallColor"),
+            "and it must carry the glass, not the wall; found:\n$branch",
+            branch.contains("unlitGlass") && !branch.contains("wallColor"),
+        )
+        val unlit = Regex("""val unlitGlass = [^\n]*""").find(renderer)?.value
+            ?: error("unlitGlass is not computed in SceneObjectRenderer.kt")
+        assertTrue(
+            "unlitGlass must be the unlit window's colour for a lit house, and glassColor otherwise; found:\n$unlit",
+            unlit.contains("if (houseLights) unlitWindowGlassColor(glassNight) else glassColor"),
+        )
+        assertTrue(
+            "and the lit panes over it must take glassColor",
+            Regex("""drawLitPanes\([^\n]*unlitGlass, glassColor\)""").containsMatchIn(renderer),
         )
         val source = Regex("""val glassColor = [^\n]*""").find(renderer)?.value
             ?: error("glassColor is not computed in SceneObjectRenderer.kt")
@@ -100,6 +113,22 @@ class SkyscraperWindowTest {
         assertTrue(
             "businessOpenness must be on the else side of the house test; found:\n$line",
             line.indexOf("WindowBuildingKind.HOUSE") < line.indexOf("businessOpenness"),
+        )
+        // Since v5.12 a shut business's glass is the dark glass at night (decision 58): the glass
+        // colour's else side asks businessGlassColor with the openness, and that function is made of
+        // the two window functions and nothing else.
+        val glass = Regex("""val glassColor = [^\n]*""").find(renderer)?.value
+            ?: error("glassColor is not computed in SceneObjectRenderer.kt")
+        assertTrue(
+            "a business's glass must be businessGlassColor(night, businessOpenness), a house's windowGlassColor; found:\n$glass",
+            glass.contains("WindowBuildingKind.HOUSE) windowGlassColor(glassNight) else businessGlassColor(night, businessOpenness)"),
+        )
+        val body = Regex("""fun businessGlassColor\([^)]*\): Int[^\n]*(\n[^\n]*){5}""").find(renderer)?.value
+            ?: error("businessGlassColor not found in SceneObjectRenderer.kt")
+        assertTrue(
+            "businessGlassColor must blend the unlit window toward the lit one; found:\n$body",
+            body.contains("unlitWindowGlassColor(nightGlow)") && body.contains("windowGlassColor(nightGlow)") &&
+                !body.contains("WINDOW_GLASS_") && !body.contains("UNLIT_GLASS_NIGHT"),
         )
     }
 

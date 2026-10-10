@@ -1,10 +1,10 @@
 # The neighbourhood's sprite bytes (written by build_neighbourhood.py --budget)
 
-Shipped perimeter (99 PNG, the six building families and the distant houses): 7229124 B decoded, 7147636 B uploaded (level 0, crop + 1 texel).
+Shipped perimeter (99 PNG, the six building families and the distant houses): 7308072 B decoded, 7224996 B uploaded (level 0, crop + 1 texel).
 
 No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, over the whole sprite set, which prints its margin -- and this perimeter's share of it -- on every build.
 
-## Concept 1, mix: 99 PNG, 7229124 B decoded, 7147636 B uploaded
+## Concept 1, mix: 99 PNG, 7308072 B decoded, 7224996 B uploaded
 
 | PNG | px | decoded B | uploaded B |
 |---|---|---:|---:|
@@ -49,17 +49,17 @@ No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, 
 | k1_roof_turret_b_tower_mw_q1 | 87x174 | 60552 | 60204 |
 | k1_roof_turret_b_tower_snow_fx_q1 | 51x60 | 12240 | 12000 |
 | k1_storey_house_a_fx_q1 | 186x75 | 55800 | 55800 |
-| k1_storey_house_a_mg_q1 | 132x36 | 19008 | 18720 |
+| k1_storey_house_a_mg_q1 | 135x39 | 21060 | 20368 |
 | k1_storey_house_a_mw_q1 | 186x75 | 55800 | 55800 |
 | k1_storey_house_b_fx_q1 | 258x72 | 74304 | 74016 |
-| k1_storey_house_b_mg_q1 | 210x36 | 30240 | 29952 |
+| k1_storey_house_b_mg_q1 | 207x39 | 32292 | 31312 |
 | k1_storey_house_b_mw_q1 | 258x72 | 74304 | 74016 |
 | k2_b_insegna_fx_q1 | 207x228 | 188784 | 187048 |
-| k2_b_insegna_mg_q1 | 141x102 | 57528 | 56000 |
+| k2_b_insegna_mg_q1 | 138x102 | 56304 | 54800 |
 | k2_b_insegna_mw_q1 | 207x156 | 129168 | 128544 |
 | k2_b_insegna_snow_fx_q1 | 183x99 | 72468 | 70616 |
 | k2_b_smusso_fx_q1 | 222x168 | 149184 | 147628 |
-| k2_b_smusso_mg_q1 | 165x102 | 67320 | 65600 |
+| k2_b_smusso_mg_q1 | 165x105 | 69300 | 67568 |
 | k2_b_smusso_mw_q1 | 222x168 | 149184 | 147628 |
 | k2_b_smusso_snow_fx_q1 | 216x54 | 46656 | 45580 |
 | k2_crown_dome_fx_q1 | 99x93 | 36828 | 36456 |
@@ -73,7 +73,7 @@ No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, 
 | k2_r_padiglione_mw_q1 | 315x138 | 173880 | 172072 |
 | k2_r_padiglione_snow_fx_q1 | 312x72 | 89856 | 86800 |
 | k2_s_orologio_c_fx_q1 | 330x231 | 304920 | 303996 |
-| k2_s_orologio_c_mg_q1 | 294x51 | 59976 | 57232 |
+| k2_s_orologio_c_mg_q1 | 294x114 | 134064 | 130816 |
 | k2_s_orologio_c_mw_q1 | 330x228 | 300960 | 300048 |
 | k2_s_orologio_c_snow_fx_q1 | 324x93 | 120528 | 119784 |
 | k2_t_bay_door_fx_q1 | 39x42 | 6552 | 6384 |

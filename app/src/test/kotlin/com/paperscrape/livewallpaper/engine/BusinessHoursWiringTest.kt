@@ -7,8 +7,9 @@ import org.junit.Test
 /**
  * The business hours reach **both** window systems, and only in the buildings that are businesses.
  *
- * Lights and occupants are two separate call paths -- the lit overlays ride `nightGlow`, the
- * figures come from `drawWindowOccupant` -- and one schedule must govern both: touch one and the
+ * Lights and occupants are two separate call paths -- the glass's light rides the building's
+ * `glassNight` (its glass mask's colour, `businessGlassColor`, and its door lamp), the
+ * figures come from each building's doorway (`WindowWalk.Doorway`, v5.12) -- and one schedule must govern both: touch one and the
  * other silently stays open. No pixel test can prove a *pair* of call sites is wired (a frame
  * where both respond cannot say they respond for the same reason), so this pins the call sites
  * themselves, the way [SkyscraperWindowTest] already pins the window-colour coupling by reading
@@ -45,6 +46,39 @@ class BusinessHoursWiringTest {
     }
 
     /**
+     * **Whose hours** (v5.12): the openness a building is drawn with is its own group's -- the shops'
+     * or the towers' -- asked of [SceneCustomization.opennessFor] with what it is drawn as, the rule
+     * its colours follow (`OpeningHoursGroupsTest` holds the rule itself), at the frame's hour; and it
+     * is that openness, not another, the occupants are thinned by.
+     */
+    @Test
+    fun `a building keeps its own group's hours, at the frame's hour`() {
+        val body = composer()
+        assertTrue(
+            "the openness must be the building's group's, by what it is drawn as",
+            body.contains("val businessOpenness = customization.opennessFor(variant, frameHour)"),
+        )
+        // The occupants (v5.12): walked out and in at the hours by the building's doorway, which is
+        // moved on once a frame with the same group's openness at the same hour, by the same rule --
+        // what it is drawn as -- and handed to the figures the building is drawn with.
+        assertTrue(
+            "the doorways must be given the same openness",
+            drawSource("advanceDoorways").contains(
+                "doorway.advance(roster, layout, elapsed, customization.opennessFor(variantFor(r.spec), frameHour), settle)",
+            ),
+        )
+        assertTrue(
+            "and the building drawn with its doorway",
+            body.contains("WindowWalk.figuresAt(roster, layout, elapsed, r.doorway, windowFigures)"),
+        )
+        assertTrue("the frame's hour is the hour draw() was given", renderer().contains("frameHour = hour24"))
+        assertTrue(
+            "the doorways are moved on after the hour is set",
+            renderer().indexOf("advanceDoorways(elapsedSeconds)") > renderer().indexOf("frameHour = hour24"),
+        )
+    }
+
+    /**
      * And a door's lamp lights with its own building's glass: a home's on the sky's own night, a
      * shop's and a tower's only while they are open.
      *
@@ -69,12 +103,21 @@ class BusinessHoursWiringTest {
 
     // ---------------------------------------------------------------- the occupants, once
 
+    /**
+     * Since v5.12 the hours reach the occupants through a building's doorway ([WindowWalk.Doorway]),
+     * which walks them out and in: every building that is not a house is given one, and a house none
+     * -- without a doorway every person of the roster is in, whatever the hour.
+     */
     @Test
     fun `every commercial occupant goes through the openness and every house occupant does not`() {
-        val occupant = drawSource("drawWindowOccupant")
+        val give = drawSource("giveRosters")
         assertTrue(
-            "the occupant path must gate on the building kind, houses exempt",
-            occupant.contains("if (kind == WindowBuildingKind.HOUSE) 1f else businessOpenness"),
+            "the house test must be the building's kind",
+            give.contains("val house = family.kind == WindowBuildingKind.HOUSE"),
+        )
+        assertTrue(
+            "and every building but a house must keep a doorway",
+            give.contains("if (!house) r.doorway = WindowWalk.Doorway()"),
         )
     }
 

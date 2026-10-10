@@ -31,8 +31,9 @@ import org.junit.runner.RunWith
  * shows no site in either). The scene scrolls, as the wallpaper does.
  *
  * **Events are not frames.** A firework burst, a gift thrown from the sleigh and a sleigh setting
- * off are an object each when they happen -- every few seconds, not every frame -- so the two
- * scenes that have them are held to "fewer objects than a tenth of the frames" and log their exact
+ * off are an object each when they happen -- every few seconds, not every frame -- so the three
+ * scenes that have them (Christmas and New Year's Eve at night, and everything on at once at
+ * Christmas) are held to "fewer objects than a tenth of the frames" and log their exact
  * count; every other scene is held to zero.
  *
  * `Debug.startAllocCounting` is deprecated (its counts are coarse and global), and on API 29 it
@@ -51,8 +52,28 @@ class FrameAllocationTest {
         val customise: (SceneCustomization) -> SceneCustomization = { it },
     )
 
-    /** Draws nothing, allocates nothing: the renderer's own allocations are what is counted. */
+    /**
+     * Draws nothing, allocates nothing: the renderer's own allocations are what is counted. It counts the
+     * sprites cut to a box -- people walking out of a window or into one (v5.12) -- so a scene that is
+     * meant to have somebody walking can be seen to have had them.
+     */
     private object NothingCanvas : SceneCanvas {
+        var clipped = 0
+        override fun drawSpriteClipped(
+            resId: Int,
+            source: SpriteSource,
+            left: Float,
+            top: Float,
+            tintColor: Int,
+            alpha: Int,
+            additive: Boolean,
+            clipLeft: Float,
+            clipTop: Float,
+            clipRight: Float,
+            clipBottom: Float,
+        ) {
+            clipped++
+        }
         override fun save() = Unit
         override fun restore() = Unit
         override fun translate(dx: Float, dy: Float) = Unit
@@ -109,7 +130,7 @@ class FrameAllocationTest {
     private val everything: (SceneCustomization) -> SceneCustomization = { c ->
         val full = { o: ObjectVariantConfig -> o.copy(visible = true, density = 1f) }
         busyLake(rain(distantHouses(c))).copy(
-            businessHoursEnabled = true,
+            shopHoursEnabled = true, towerHoursEnabled = true,
             houses = full(c.houses), buildings = full(c.buildings), trees = full(c.trees), parasols = full(c.parasols),
             snowmen = full(c.snowmen), gifts = full(c.gifts), pumpkins = full(c.pumpkins),
             easterEggs = full(c.easterEggs), bunnies = full(c.bunnies), penguins = full(c.penguins),
@@ -199,6 +220,91 @@ class FrameAllocationTest {
             if (objects > allowed) failures += "$line (allowed $allowed)"
         }
         assertTrue("a steady frame allocated:\n${failures.joinToString("\n")}\n\nall scenes:\n$report", failures.isEmpty())
+    }
+
+    /**
+     * **And while somebody walks** (v5.12): a person walking out of a window or into one is drawn cut
+     * to the pane, at a position worked out per frame ([WindowWalk]) -- and that allocates nothing
+     * either. Two kinds of walk, each seen to happen ([NothingCanvas.clipped] counts the cut blits):
+     *
+     *  - **the roster's**: Autumn at night, started where a person is walking from window to window --
+     *    found by drawing frames a second apart until one has a cut blit;
+     *  - **the hours'**: the shops' and the towers' hours on, and the hour moved on a minute at a time
+     *    across a closing -- as the real clock moves it, if faster -- so the doorways walk their people out;
+     *    swept once uncounted first, for the first uses of the code the minutes reach (see there).
+     */
+    @Test
+    fun aFrameWithPeopleWalkingAllocatesNothing() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        fun renderer(customise: (SceneCustomization) -> SceneCustomization = { it }) = PaperRenderer(WIDTH, HEIGHT, context).apply {
+            theme = ThemeCatalog.byId("autumn")
+            sceneCustomization = customise(defaultCustomizationFor("autumn"))
+            lightningStrikesEnabled = false
+            scrollSpeed = 0f
+        }
+        val night = SunPositionCalculator.compute(hour24 = 23f)
+
+        // The roster: the first second at which somebody is seen walking -- from 30 s on, so the warm-up
+        // before it never starts the scene's clock below zero, which the wallpaper's never is.
+        val probe = renderer()
+        var start = -1.0
+        for (second in 30..900) {
+            NothingCanvas.clipped = 0
+            probe.draw(NothingCanvas, night, SceneTime(second.toDouble()), FRAME)
+            if (NothingCanvas.clipped > 0) { start = second.toDouble(); break }
+        }
+        assertTrue("nobody walked from window to window in 15 minutes of Autumn", start > 0.0)
+        check(start - 1.0 - WARM_UP_FRAMES * FRAME >= 0.0)
+        val walking = renderer()
+        var time = SceneTime(start - 1.0 - WARM_UP_FRAMES * FRAME)
+        repeat(WARM_UP_FRAMES) { time += FRAME; walking.draw(NothingCanvas, night, time, FRAME) }
+        NothingCanvas.clipped = 0
+        val rosterObjects = allocationsDuring {
+            repeat(COUNTED_FRAMES) { time += FRAME; walking.draw(NothingCanvas, night, time, FRAME) }
+        }
+        val rosterCut = NothingCanvas.clipped
+        Log.i(TAG, "walking from window to window: $rosterObjects objects over $COUNTED_FRAMES frames, $rosterCut cut blits")
+
+        // The hours: open 09:00-20:00, the hour moved on from 18:40 to 20:10 a minute every ten frames,
+        // each minute's day phase made before the count (a DayPhase is an object).
+        //
+        // **Swept once uncounted, on a renderer of its own, before the count** (v5.12C). The minutes move
+        // the people's colour clock, and a pedestrian's colours re-dealt across them run code that no frame
+        // of the warm-up at one minute runs -- `PeopleColours.keepingSpread`, whose first run in the process
+        // resolves the string constant of a parameter's null check: one object for the life of the process,
+        // no frame's. Counted alone this sweep found it (1 in 910 frames, on the v5.12B2 build too, ART's
+        // allocation tracker naming the site); in the whole suite a test before it had run that code. The
+        // count is the second sweep's, on a fresh renderer: every frame's, and only those.
+        val hoursOn: (SceneCustomization) -> SceneCustomization = {
+            it.copy(shopHoursEnabled = true, shopOpenHour = 9f, shopCloseHour = 20f, towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 20f)
+        }
+        val minutes = (0..90).map { SunPositionCalculator.compute(hour24 = 18f + (40 + it) / 60f) }
+        val firstUses = renderer(hoursOn)
+        var firstClock = SceneTime(0.0)
+        repeat(WARM_UP_FRAMES) { firstClock += FRAME; firstUses.draw(NothingCanvas, minutes[0], firstClock, FRAME) }
+        val firstSweepObjects = allocationsDuring {
+            for (minute in minutes.indices) {
+                val phase = minutes[minute]
+                repeat(10) { firstClock += FRAME; firstUses.draw(NothingCanvas, phase, firstClock, FRAME) }
+            }
+        }
+        val closing = renderer(hoursOn)
+        var clock = SceneTime(0.0)
+        repeat(WARM_UP_FRAMES) { clock += FRAME; closing.draw(NothingCanvas, minutes[0], clock, FRAME) }
+        NothingCanvas.clipped = 0
+        val hoursObjects = allocationsDuring {
+            for (minute in minutes.indices) {
+                val phase = minutes[minute]
+                repeat(10) { clock += FRAME; closing.draw(NothingCanvas, phase, clock, FRAME) }
+            }
+        }
+        val hoursCut = NothingCanvas.clipped
+        Log.i(TAG, "walking out at closing: $hoursObjects objects over ${minutes.size * 10} frames, $hoursCut cut blits (the uncounted first sweep: $firstSweepObjects)")
+
+        assertTrue("the roster's walk was not drawn while counting ($rosterCut cut blits)", rosterCut > 0)
+        assertTrue("nobody walked out at closing while counting ($hoursCut cut blits)", hoursCut > 0)
+        assertEquals("a frame with somebody walking from window to window allocated", 0, rosterObjects)
+        assertEquals("a frame with somebody walking out at closing allocated", 0, hoursObjects)
     }
 
     private companion object {

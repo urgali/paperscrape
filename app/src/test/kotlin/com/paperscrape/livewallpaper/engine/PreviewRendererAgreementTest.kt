@@ -410,6 +410,9 @@ class PreviewRendererAgreementTest {
                     // The glass masks carry the window ramp, not the wall; they are the two
                     // constants every window in the scene reads.
                     if (tint == SceneObjectRenderer.windowGlassColor(1f - dayBlend)) continue
+                    // And a house's glass at night is the dark glass of its unlit windows, its lit
+                    // ones flat cards over it (v5.12): neither is a wall.
+                    if (tint == SceneObjectRenderer.unlitWindowGlassColor(1f - dayBlend) || part.rectWidth > 0f) continue
                     assertTrue(
                         "theme ${theme.id}: a ${drawnAs.single()}'s wall mask is tinted ${Integer.toHexString(tint)}, " +
                             "which is neither of its pair's two colours",

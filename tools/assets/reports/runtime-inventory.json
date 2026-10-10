@@ -22,64 +22,64 @@
       "content_row_max": 0.9863636363636363,
       "content_width": 220,
       "decoded_bytes": 149184,
-      "distinct_colour_count": 364,
-      "file_bytes": 5427,
+      "distinct_colour_count": 383,
+      "file_bytes": 6606,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 168,
       "mode": "RGBA",
       "name": "bar_chamfer_fx",
       "on_grid": true,
-      "opaque_rgb_count": 299,
-      "pixels_sha256": "308fe94f71a2d25bb32393473e2b0ecd71dad083259c495970cda38b18d9c8f8",
-      "sha256": "5a40a10b79fc247bfab5946a4961a96b2f79aff0f192735e4176a9531b505df1",
+      "opaque_rgb_count": 318,
+      "pixels_sha256": "3c282f5631370a4e7f1f5e91a77f3e6c8d5a1dba9ca211b9c4e6654d55f26a61",
+      "sha256": "b16c138af95b37de5844959b78eaaff8b17bce740c51566331a63e4170244296",
       "transparent_padding_bytes": 3984,
       "transparent_padding_fraction": 0.026705276705276705,
       "width": 222
     },
     {
       "content_band_centre_x": [
-        0.5533704870226236,
-        0.434350081505247
+        0.6584227003587645,
+        0.43575405328714983
       ],
       "content_band_coverage": [
-        0.26655815700513336,
-        0.5480155252284963
+        0.30969325153374233,
+        0.5279682425117286
       ],
       "content_bbox": [
         2,
         2,
         165,
-        100
+        103
       ],
-      "content_column_max": 0.673469387755102,
-      "content_coverage": 0.40728684111681485,
-      "content_height": 98,
+      "content_column_max": 0.7029702970297029,
+      "content_coverage": 0.4199113162850027,
+      "content_height": 101,
       "content_row_max": 0.7423312883435583,
       "content_width": 163,
-      "decoded_bytes": 67320,
-      "distinct_colour_count": 48,
-      "file_bytes": 1138,
+      "decoded_bytes": 69300,
+      "distinct_colour_count": 51,
+      "file_bytes": 1047,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 102,
+      "height": 105,
       "mode": "RGBA",
       "name": "bar_chamfer_mg",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "367e66370f69811a6e7b6d720f0fbbc28d813065c3d98518b17b99caf5ba84ba",
-      "sha256": "b6f2e0b6dc284bdaf116e77b33d61fbfae7b2066736f73008e82f59f4d5bcc0b",
-      "transparent_padding_bytes": 3424,
-      "transparent_padding_fraction": 0.050861556743909686,
+      "pixels_sha256": "dde431fce9a8969064b89723fcd691f427d98e7d0074665e049994c44b6a805c",
+      "sha256": "319fe71a0a7afd6c5a7ffba070404a4c85574e436ccb2970d7a168d421edb009",
+      "transparent_padding_bytes": 3448,
+      "transparent_padding_fraction": 0.04975468975468975,
       "width": 165
     },
     {
       "content_band_centre_x": [
-        0.5034594664198063,
+        0.4839245957477004,
         0.5661828177987874
       ],
       "content_band_coverage": [
-        0.7240022172949002,
+        0.5681263858093126,
         0.5329134720700985
       ],
       "content_bbox": [
@@ -89,13 +89,13 @@
         166
       ],
       "content_column_max": 0.9696969696969697,
-      "content_coverage": 0.6278787878787879,
+      "content_coverage": 0.5504132231404959,
       "content_height": 165,
       "content_row_max": 0.9863636363636363,
       "content_width": 220,
       "decoded_bytes": 149184,
       "distinct_colour_count": 146,
-      "file_bytes": 3015,
+      "file_bytes": 3158,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 168,
@@ -103,8 +103,8 @@
       "name": "bar_chamfer_mw",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "70de68b1a7d60663de6b728304d7277429a49ca13e52b67036b6a64cb1d6afd5",
-      "sha256": "0c02122c0bc9bfee12179bfd3128aa62f2cbf155f094c73d2bad6655c8084235",
+      "pixels_sha256": "05dca65e32522d7249e9d81b5bfdc274893d2b088bb9a382f05db87677fa809c",
+      "sha256": "c8ef5dbd355af4fa8b78dcdb43eaa7a7e8f6fdd4094cefacde1c515df90dc996",
       "transparent_padding_bytes": 3984,
       "transparent_padding_fraction": 0.026705276705276705,
       "width": 222
@@ -166,44 +166,44 @@
       "content_row_max": 1.0,
       "content_width": 204,
       "decoded_bytes": 188784,
-      "distinct_colour_count": 383,
-      "file_bytes": 5414,
+      "distinct_colour_count": 399,
+      "file_bytes": 6200,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 228,
       "mode": "RGBA",
       "name": "bar_signboard_fx",
       "on_grid": true,
-      "opaque_rgb_count": 310,
-      "pixels_sha256": "77946cbaf8a2992a541a703d1db261098973f5f0d51842bc44f7e1d30c1f963a",
-      "sha256": "c85cb30c4c242cb6b04c37f87c4207957bf7e3e89b3fd20ea0e4a26b7e5706fb",
+      "opaque_rgb_count": 326,
+      "pixels_sha256": "fa81af407fd0cf91d5129e5b9de622eda2071cf7c94ebe5a22221d288335c6b7",
+      "sha256": "79fd6d9a340e5cf070aef046ec60af7ccc73183c642eb5a115a739468db8db80",
       "transparent_padding_bytes": 5184,
       "transparent_padding_fraction": 0.02745995423340961,
       "width": 207
     },
     {
       "content_band_centre_x": [
-        0.48633504263782645,
-        0.6646296256046522
+        0.5260179270825118,
+        0.6546927256225679
       ],
       "content_band_coverage": [
-        0.3343121421230363,
-        0.437380707678755
+        0.4260015117157974,
+        0.45034013605442175
       ],
       "content_bbox": [
-        0,
+        1,
         2,
-        139,
+        136,
         100
       ],
       "content_column_max": 0.7346938775510204,
-      "content_coverage": 0.3858464249008956,
+      "content_coverage": 0.4381708238851096,
       "content_height": 98,
-      "content_row_max": 0.5827338129496403,
-      "content_width": 139,
-      "decoded_bytes": 57528,
-      "distinct_colour_count": 46,
-      "file_bytes": 867,
+      "content_row_max": 0.674074074074074,
+      "content_width": 135,
+      "decoded_bytes": 56304,
+      "distinct_colour_count": 47,
+      "file_bytes": 905,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 102,
@@ -211,20 +211,20 @@
       "name": "bar_signboard_mg",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "3f03ffbf999f131d80a421b8cce3732cd91975ab06743a3f3e133c8b01d80a87",
-      "sha256": "b44156db0268f25ee8169afbcfa9166f9bef439799afaf94a32d800bc9522697",
-      "transparent_padding_bytes": 3040,
-      "transparent_padding_fraction": 0.05284383256848839,
-      "width": 141
+      "pixels_sha256": "10d87c2c21452345f850e3a1c987ef6cc74c879e57a13b5cf3479316a1249303",
+      "sha256": "618c9840f943c93df1fff0998b7547a2fb5233a9266eb7b34914b711f128e0a5",
+      "transparent_padding_bytes": 3384,
+      "transparent_padding_fraction": 0.06010230179028133,
+      "width": 138
     },
     {
       "content_band_centre_x": [
-        0.46567098591352424,
-        0.4498254493167457
+        0.4637441999700644,
+        0.44981238901269394
       ],
       "content_band_coverage": [
-        0.7052538964303671,
-        0.6058949220713926
+        0.5762946204122674,
+        0.5988562091503268
       ],
       "content_bbox": [
         2,
@@ -233,13 +233,13 @@
         156
       ],
       "content_column_max": 0.9935897435897436,
-      "content_coverage": 0.6555744092508798,
+      "content_coverage": 0.5875754147812972,
       "content_height": 156,
       "content_row_max": 1.0,
       "content_width": 204,
       "decoded_bytes": 129168,
-      "distinct_colour_count": 140,
-      "file_bytes": 2491,
+      "distinct_colour_count": 142,
+      "file_bytes": 2741,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 156,
@@ -247,8 +247,8 @@
       "name": "bar_signboard_mw",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "372bbbbb4a191a9cadca9618464dc9593378292c913e201e864cbd02dbeb84d8",
-      "sha256": "6c7b3a0f7c558a2c113400cd969bf41921fc8f0f84990186305bcbfa1cbab4f4",
+      "pixels_sha256": "fc533ae61eab17c9b1ab23b81c1668d68b11e211ace650232d80b3babe6777da",
+      "sha256": "17e52059f1473f57805cd5eca29311539f47ce4404b7a1a7cc94adcfabafdf1e",
       "transparent_padding_bytes": 1872,
       "transparent_padding_fraction": 0.014492753623188406,
       "width": 207
@@ -2290,65 +2290,65 @@
       "content_row_max": 1.0,
       "content_width": 256,
       "decoded_bytes": 74304,
-      "distinct_colour_count": 101,
-      "file_bytes": 1381,
+      "distinct_colour_count": 145,
+      "file_bytes": 2907,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 72,
       "mode": "RGBA",
       "name": "house_large_storey_fx",
       "on_grid": true,
-      "opaque_rgb_count": 85,
-      "pixels_sha256": "b25e405d8b2e11d13b78a5d41409747cc95ebcf2171a5487bc9eb2397a37168e",
-      "sha256": "9375f246416ef55e5e77bc3292df7bd81ec7bd2765fb7b9dcbd2969cf227e122",
+      "opaque_rgb_count": 129,
+      "pixels_sha256": "926fba512a58bcb1dde057e6fe4bb9570fa4c09971352fa736e45eade8bf659f",
+      "sha256": "2db5661c70e4dd856f7547d5b6797a2900c9131b51f1a241acf1aee58411ba2f",
       "transparent_padding_bytes": 1600,
       "transparent_padding_fraction": 0.02153316106804479,
       "width": 258
     },
     {
       "content_band_centre_x": [
-        0.4663610021191138,
-        0.4704520551435925
+        0.49593382544704107,
+        0.4954325976116245
       ],
       "content_band_coverage": [
-        0.5078209277238404,
-        0.5137540453074434
+        0.5829268292682926,
+        0.5563543003851091
       ],
       "content_bbox": [
         2,
         0,
-        208,
-        36
+        207,
+        37
       ],
       "content_column_max": 1.0,
-      "content_coverage": 0.5107874865156419,
-      "content_height": 36,
-      "content_row_max": 0.5679611650485437,
-      "content_width": 206,
-      "decoded_bytes": 30240,
-      "distinct_colour_count": 26,
-      "file_bytes": 537,
+      "content_coverage": 0.5692814765985498,
+      "content_height": 37,
+      "content_row_max": 0.5853658536585366,
+      "content_width": 205,
+      "decoded_bytes": 32292,
+      "distinct_colour_count": 25,
+      "file_bytes": 447,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 36,
+      "height": 39,
       "mode": "RGBA",
       "name": "house_large_storey_mg",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "b8204cf2aee1cce58345094b26dd058aa516b27f66449434c5f88501f4aa3973",
-      "sha256": "09af22f9c4fd2030bc34fe63388334d855a33fa63784545e17cfd1668ed02e82",
-      "transparent_padding_bytes": 576,
-      "transparent_padding_fraction": 0.01904761904761905,
-      "width": 210
+      "pixels_sha256": "5a65e91aff60518dcb44109994481d70c707d59591acc1587958820081c5521c",
+      "sha256": "158475833b29ae092cc6e180014622ad256cd38fa886f97d3020840b2c263626",
+      "transparent_padding_bytes": 1952,
+      "transparent_padding_fraction": 0.060448408274495234,
+      "width": 207
     },
     {
       "content_band_centre_x": [
-        0.5486025099508808,
-        0.5688363306892779
+        0.4974683862679544,
+        0.5211116205522182
       ],
       "content_band_coverage": [
-        0.6589285714285714,
-        0.7438151041666666
+        0.45066964285714284,
+        0.4696180555555556
       ],
       "content_bbox": [
         0,
@@ -2357,13 +2357,13 @@
         72
       ],
       "content_column_max": 1.0,
-      "content_coverage": 0.7019696302816901,
+      "content_coverage": 0.4602772887323944,
       "content_height": 71,
       "content_row_max": 0.98046875,
       "content_width": 256,
       "decoded_bytes": 74304,
-      "distinct_colour_count": 52,
-      "file_bytes": 1010,
+      "distinct_colour_count": 61,
+      "file_bytes": 1335,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 72,
@@ -2371,8 +2371,8 @@
       "name": "house_large_storey_mw",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "cfa081e2d1453de6192258cfbd70e2f9e6b852d5a0efbe98b4ba290d544e4073",
-      "sha256": "4c60c97a7d26710d34c10027a66d8a3c7eb18d710c7e3cf0c3d7d24796697498",
+      "pixels_sha256": "7587e72aa2aa8ab100c9071be90d04d971e7df1419365117dbd909fb5eb8887d",
+      "sha256": "2e042183e9cd69a5a78a68954e3c43de6386ffe707e90386cd0580e694aeb8ad",
       "transparent_padding_bytes": 1600,
       "transparent_padding_fraction": 0.02153316106804479,
       "width": 258
@@ -2758,65 +2758,65 @@
       "content_row_max": 1.0,
       "content_width": 185,
       "decoded_bytes": 55800,
-      "distinct_colour_count": 117,
-      "file_bytes": 1517,
+      "distinct_colour_count": 140,
+      "file_bytes": 2302,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 75,
       "mode": "RGBA",
       "name": "house_small_storey_fx",
       "on_grid": true,
-      "opaque_rgb_count": 92,
-      "pixels_sha256": "440ef52e943e332e6907285369884900f1c6f110a0797e4c4cf06702f3fb335a",
-      "sha256": "1d240ea40f00b641d360e530ade074624973126416e21efb3e787ed3bc37fc3b",
+      "opaque_rgb_count": 115,
+      "pixels_sha256": "4724c89874c3a666be550fbe95734b26b69c7e0c68e30fe68bdb483a6d7d7ddf",
+      "sha256": "113da649788b3f3c08f4bb12aaf87426f2f21df428352b17710ed5b89ad52820",
       "transparent_padding_bytes": 1040,
       "transparent_padding_fraction": 0.01863799283154122,
       "width": 186
     },
     {
       "content_band_centre_x": [
-        0.4134019886363636,
-        0.4200228071169538
+        0.5073503846321005,
+        0.5018859690921768
       ],
       "content_band_coverage": [
-        0.4774305555555556,
-        0.4787326388888889
+        0.5781119465329991,
+        0.5931935100910171
       ],
       "content_bbox": [
         2,
-        0,
-        130,
-        36
+        2,
+        135,
+        39
       ],
       "content_column_max": 1.0,
-      "content_coverage": 0.4780815972222222,
-      "content_height": 36,
-      "content_row_max": 0.515625,
-      "content_width": 128,
-      "decoded_bytes": 19008,
-      "distinct_colour_count": 27,
-      "file_bytes": 398,
+      "content_coverage": 0.5858565332249542,
+      "content_height": 37,
+      "content_row_max": 0.6015037593984962,
+      "content_width": 133,
+      "decoded_bytes": 21060,
+      "distinct_colour_count": 24,
+      "file_bytes": 341,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 36,
+      "height": 39,
       "mode": "RGBA",
       "name": "house_small_storey_mg",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "6c9e5e40d8c0bfc0ded39904286943617951a68d0001c44f42971dc70a3e2be0",
-      "sha256": "b14e134d402dec6b9cfb1d7bd92418a2b8e9eaf7063529b28c797796685c9bbb",
-      "transparent_padding_bytes": 576,
-      "transparent_padding_fraction": 0.030303030303030304,
-      "width": 132
+      "pixels_sha256": "cd7302977feedd0c83c881e9efa025b29716d98e3f70113f1db8e62a56d99606",
+      "sha256": "819835c505d7d0a701cc5153ad6b86d283554feaef636e3188c91a12b205abc8",
+      "transparent_padding_bytes": 1376,
+      "transparent_padding_fraction": 0.06533713200379868,
+      "width": 135
     },
     {
       "content_band_centre_x": [
-        0.5645725221311668,
-        0.5620891455972101
+        0.5049884080972163,
+        0.4963084313056885
       ],
       "content_band_coverage": [
-        0.6726077428780132,
-        0.7246165084002922
+        0.5075237399561724,
+        0.5326515704894084
       ],
       "content_bbox": [
         1,
@@ -2825,13 +2825,13 @@
         74
       ],
       "content_column_max": 1.0,
-      "content_coverage": 0.6986121256391526,
+      "content_coverage": 0.5200876552227903,
       "content_height": 74,
       "content_row_max": 0.9783783783783784,
       "content_width": 185,
       "decoded_bytes": 55800,
-      "distinct_colour_count": 58,
-      "file_bytes": 938,
+      "distinct_colour_count": 62,
+      "file_bytes": 1161,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 75,
@@ -2839,8 +2839,8 @@
       "name": "house_small_storey_mw",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "0c0bc1914f5db7bdde7ff7e0a77de12621a33597b2534c824389c60fe6eb50db",
-      "sha256": "bd2417e6bb2471688dd379b99407546bf5a97043fc7c7ec506f1ead09b548a01",
+      "pixels_sha256": "c17ee3084af433b97fca1a4858a96adb7952d33201ac20817b256422e53bb80a",
+      "sha256": "29eddc477e474303273a640ccb5d7149de044fddffb5ade899fec9385092db9f",
       "transparent_padding_bytes": 1040,
       "transparent_padding_fraction": 0.01863799283154122,
       "width": 186
@@ -13810,65 +13810,65 @@
       "content_row_max": 0.9938837920489296,
       "content_width": 327,
       "decoded_bytes": 304920,
-      "distinct_colour_count": 613,
-      "file_bytes": 9992,
+      "distinct_colour_count": 634,
+      "file_bytes": 12677,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 231,
       "mode": "RGBA",
       "name": "school_fx",
       "on_grid": true,
-      "opaque_rgb_count": 495,
-      "pixels_sha256": "66bc5cbf7f54568649909ab9c4f38da898b606375b47e1641ec87559e6a2e146",
-      "sha256": "81ec633d99a8e2c21ac8186fe60d598cbe87666605c2b8356b0e03b407ab02b6",
+      "opaque_rgb_count": 516,
+      "pixels_sha256": "e37d89957f21a6b23e838d39a7434ff78210baa4359250b9fe4365ab7c62e1b4",
+      "sha256": "cbbf236612702a76bd7812bfa6c3c08559468d4b5dc7c6332b57f2653926459d",
       "transparent_padding_bytes": 4080,
       "transparent_padding_fraction": 0.01338055883510429,
       "width": 330
     },
     {
       "content_band_centre_x": [
-        0.5052050005924872,
-        0.49046538938715206
+        0.4959583641015313,
+        0.4976812483986522
       ],
       "content_band_coverage": [
-        0.5235382308845578,
-        0.523132183908046
+        0.28984326018808776,
+        0.4472100313479624
       ],
       "content_bbox": [
         2,
         2,
         292,
-        49
+        112
       ],
-      "content_column_max": 1.0,
-      "content_coverage": 0.5233308877476156,
-      "content_height": 47,
+      "content_column_max": 0.7363636363636363,
+      "content_coverage": 0.3685266457680251,
+      "content_height": 110,
       "content_row_max": 0.5551724137931034,
       "content_width": 290,
-      "decoded_bytes": 59976,
+      "decoded_bytes": 134064,
       "distinct_colour_count": 28,
-      "file_bytes": 622,
+      "file_bytes": 1222,
       "fully_opaque": false,
       "has_alpha_channel": true,
-      "height": 51,
+      "height": 114,
       "mode": "RGBA",
       "name": "school_mg",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "264b78e084112d7359950767477f5225ae839788e6c52973ec4bec28658b4c60",
-      "sha256": "5df07910e65eb4a3f2fa9e8d0879965809c8e62075b3a054fdd831b257a91ae1",
-      "transparent_padding_bytes": 5456,
-      "transparent_padding_fraction": 0.09096972122182206,
+      "pixels_sha256": "f4d34cf1079d81c648f18061c4eb95dc3972f2648333b79c4761d642333c51a9",
+      "sha256": "70b96a35b0bbf221fa906e2414c3807ed2094c7730b18b7924378cbf467e4fdc",
+      "transparent_padding_bytes": 6464,
+      "transparent_padding_fraction": 0.04821577753908581,
       "width": 294
     },
     {
       "content_band_centre_x": [
-        0.4988607141051887,
-        0.5027345824319626
+        0.5007124115409431,
+        0.5026111685672827
       ],
       "content_band_coverage": [
-        0.4154729330972692,
-        0.5317345351145448
+        0.2648478995654273,
+        0.44951445893020014
       ],
       "content_bbox": [
         1,
@@ -13877,13 +13877,13 @@
         228
       ],
       "content_column_max": 0.7192982456140351,
-      "content_coverage": 0.47360373410590695,
+      "content_coverage": 0.35718117924781373,
       "content_height": 228,
       "content_row_max": 0.9938837920489296,
       "content_width": 327,
       "decoded_bytes": 300960,
-      "distinct_colour_count": 184,
-      "file_bytes": 4797,
+      "distinct_colour_count": 185,
+      "file_bytes": 5695,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 228,
@@ -13891,8 +13891,8 @@
       "name": "school_mw",
       "on_grid": true,
       "opaque_rgb_count": 1,
-      "pixels_sha256": "d0b32d8cf7fec9d902070a09dd523aa74b1899d126178bf78381651252a376cf",
-      "sha256": "ee4e976cf446d429459a4db589cf453e407def1b281c59449568a0f873d2c07f",
+      "pixels_sha256": "0d66ca400770e4d87935e378a2932ff775bcfe60379e3cc5181335246009b779",
+      "sha256": "51a1f2f28f420bd330c5df8aa866dc7c34f95a47611231421153d786ae9cd1d3",
       "transparent_padding_bytes": 2736,
       "transparent_padding_fraction": 0.00909090909090909,
       "width": 330

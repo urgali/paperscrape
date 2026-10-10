@@ -108,7 +108,11 @@ byte-identical pair** (`validate` and `SpriteVariantTest` both fail on one).
 | `CloudCoverage.kt` | How many clouds a cover fraction means, shared by the theme's own setting and Live Weather's. |
 | `PeopleDensity.kt` | How many pedestrians a density setting means, on the same pattern -- and the day/night crossfade model the car count borrows (`CarSelection.densityAt`): one "a crossfade, not a threshold" rule, two users. |
 | `CarSelection.kt` | Which cars a density means: an explicit count from 1 to every slot, filled in an order whose every prefix has the largest minimum loop gap, seeded per theme, applied per frame against each runtime's stored rank and only ever off screen. |
-| `BusinessHours.kt` | How open the shops, the school and the towers are at a scene hour: a toggle that defaults to bitwise-off, `open == close` as always-open, wraparound spans, and a boundary fade that is `SunPositionCalculator.smoothEdge`'s own twilight over the opening span. Runs on `DayPhase.hour24` -- the hour that moved the sun -- never a clock of its own. |
+| `BusinessHours.kt` | How open a business is at a scene hour: a switch that defaults to bitwise-off, `open == close` as always-open, wraparound spans, and a boundary fade that is `SunPositionCalculator.smoothEdge`'s own twilight over the opening span. Runs on `DayPhase.hour24` -- the hour that moved the sun -- never a clock of its own. Two groups since v5.12, each with its switch and its hours: the shops (the restaurant, the school, the bar) and the towers, a building by what it is drawn as (`SceneCustomization.opennessFor`). |
+| `WindowRoster.kt` | Who stands at a building's windows and, in a house, which are lit at night, at each moment of the scene's clock (v5.12): half a house's windows lit, theirs among them; the number of people the one each building had, each one the same person from window to window; one change at a time every couple of minutes -- a light that fades to another, or a person who moves -- walked forward through a building's own states and back. Worked out once per building when the scene's objects are built, read per frame without allocating. |
+| `WindowWalk.kt` | How a person at a window walks out of it and into another (v5.12): a building's windows measured once, the walk's pace and path (a house's windows are rooms, a business's floor is one room), the lights in step with the walker, and each business's doorway, which walks its people out and in at the hours one at a time and takes its number at once across a cut (the hour jumping, the opening hours changed). Fills a reused array of figures per building per frame, reading the roster's clock once for the building (its lights too); past the building's longest move since the roster's last change it does not look for a walker (v5.12C). |
+| `SpriteClip.kt` | The arithmetic of a sprite blit cut to a box on the GPU backend: the quad cut in the sprite's own coordinates and its texture rectangle in proportion ([`SceneCanvas.drawSpriteClipped`](#the-two-backends), v5.12). Pure, held on the JVM by `SpriteClipTest`. |
+| `ChimneySmoke.kt` | The smoke over a house's chimney as numbers (v5.12): four puffs born on the cap that rise, bend with the wind, grow and fade over eight seconds, each chimney on its own beat; light grey by day and a middle grey at night; and only where the autumn or the winter palette is on. |
 | `TreeSpriteLayout.kt` | Where a tree's trunk, crown, snow cap and bare branches sit, stated once for both the wallpaper renderer and the gallery preview, which builds its objects from the same sprites at the same offsets; `PalmSpriteLayout.kt` does the same for a palm's two parts. |
 | `NeighbourhoodTable.kt` | **Generated** (`tools/assets/buildings/build_neighbourhood.py`): what each of the six building families is made of, as a list of slots, each holding the alternative pieces one instance may be dealt. A part is `FIXED` art, a `WALL_MASK`/`GLASS_MASK` weight summed at the blit, a `SNOW` layer, or a call-out (`LAMP`, `OCCUPANTS`) to a behaviour at the piece's own declared coordinates. |
 | `SpriteOccluderTable.kt` | **Generated** (`tools/assets/build_occluder_table.py`): where the ink is in every drawing an occlusion box has to speak for — the three palm crowns, the oak's two, the parasol's procedural fan — as a content box in object units plus the drawing's fullest row and fullest column. The layout pass and `ShopFrontVisibilityTest` both read this and build their own rectangle from it; `SpriteOccluderTableFreshnessTest` re-measures it straight from the PNG so it cannot fall behind a redraw. |
@@ -378,6 +382,21 @@ interface admitting arbitrary `Path`s, clips or `Xfermode`s would be one the GPU
 backend could not honour, and a call site could then compile while producing a
 different picture on each backend.
 
+**The one cut it admits is a box on a single sprite blit** (v5.12):
+`drawSpriteClipped` draws only the part of a sprite inside a box given in the sprite's own
+coordinates, and nothing else is affected by it -- it is not clip state. It exists for the people at
+the windows, who walk out of a window and into another instead of appearing and vanishing
+(`WindowWalk`): a walker is drawn whole and at full strength, every layer of the figure cut by the
+same box (the region masks are summed over the fixed layer, so a mask left uncut would add its colour
+over the wall). Both backends draw it the same way: GL cuts the sprite's quad and its texture
+rectangle in proportion (`SpriteClip`), a smaller quad from the same atlas entry in the same batch;
+`Canvas` intersects its clip with the box for the one `drawBitmap`, between a `save` and a `restore`.
+They differ only at the cut edge, by less than a pixel -- `Canvas` clips to whole device pixels, GL
+multisamples the cut -- the difference the edges of circles and lines already have.
+`ClippedSpriteAgreementTest` holds the two to one picture on the device (a window bust cut at five
+places from each side, plain and mirrored -- twenty cuts: inside the box within 2 levels of the whole
+bust on `Canvas` and 3 on GL, measured; outside it, nothing).
+
 `Paint` is passed through rather than decomposed into arguments: reading `color`,
 `alpha`, `style`, `strokeWidth` and `strokeCap` allocates nothing, and it left the
 renderers' existing paint bookkeeping untouched. Paint *shaders* are the exception
@@ -557,6 +576,20 @@ Because the colour is resolved by the *blend* rather than by the shader, the Can
 seeing the people exactly as the GPU draws them. Resolving it in the shader would have put every
 Canvas check of a person on a backend it cannot run.
 
+**A sprite cut to a box is a smaller quad, not a state** (v5.12, `drawSpriteClipped`). The content
+quad is computed as for a whole sprite, then cut to the box in the sprite's own coordinates -- before
+the transform, where the quad and the box are both axis-aligned, so the cut is exact under the mirror
+a walking person is drawn with -- and the texture rectangle is cut in the same proportion
+(`SpriteClip`). A side the box does not cut keeps its coordinate and its texture coordinate to the
+bit, so a box round the whole sprite draws the whole sprite. No uniform, no scissor and no blend state
+change: the cut sprite is six vertices in the open batch, and `GlDrawCallTest` counts one draw call
+for a frame with somebody walking as for any other. A scissor rectangle would have been the obvious
+way and would have ended the batch at every walker. **`drawSprite` and `drawSpriteClipped` share no
+body** (v5.12C): the whole sprite is the call the frame makes most, and routed through one function with
+the cut's arguments it grew past what ART inlines into -- the transform's scale, `useTexture` and
+`ensureRoom` became calls of their own on every sprite, 5 to 21 % more cycles on the sprite path on the
+BV6600's `perf` build (`simpleperf`). The whole sprite's body is v5.12B's, to the character.
+
 **Fully transparent draws are skipped.** Under premultiplied blending a zero-alpha
 primitive contributes exactly nothing, and the scene fades a lot of things through
 zero: precipitation, leaves, star twinkle, the sleigh's edge fade.
@@ -720,8 +753,10 @@ reason at a different scale — see the sprite blitting and asset sections.
 
 ### Sprite blitting
 
-Every sprite goes through `SpriteBlitter`, which exposes exactly two entry
-points — `draw` (baked-in colours) and `drawTinted` — over one private `blit`.
+Every sprite goes through `SpriteBlitter`: `draw` (baked-in colours), `drawTinted` and
+`drawTintedAdded` (summed, the people's region masks) over one private `blit`, and `drawClipped`,
+which puts a box through the same oversample for a sprite of which only a part is drawn (a person
+walking out of a window, v5.12).
 The tint colour and the alpha are passed explicitly on every blit rather than left
 as paint state, so no blit inherits either from whatever was drawn before it. How
 they are applied is the backend's business: `CanvasSceneTarget` builds a
@@ -1190,7 +1225,7 @@ Both keep the callers' own addressing, so they decide which value a
 slot receives and nothing about which slot is which. `PedestrianPopulation` deals
 the four person kinds, the three group sizes, the three skin tones, the two
 directions and the two pavement rows; `WindowOccupants` deals a building's
-occupant count across its own panes; `SilhouetteDeal` deals each building category's silhouettes. The stability contract is untouched:
+occupant count, over the windows it had before v5.12, and their first windows across all of its own; `SilhouetteDeal` deals each building category's silhouettes. The stability contract is untouched:
 a slot's value is still a pure function of `(seed, slot)`, so lowering a density
 still removes particular slots and leaves the rest exactly as they were.
 
@@ -1300,8 +1335,10 @@ The objects in front take the same moment too: a tree, a car or a decoration wea
 palm carries `nightShadeAt` as a `PreviewSprite.shade` that the painter hands to `SpriteBlitter.draw`
 as the wallpaper does, the clouds blend their pair on the same `dayBlend`, a pumpkin is carved
 where `halloweenEnabled` is on, and a penguin's belly is `SceneObjectRenderer.PENGUIN_BELLY_COLOR`.
-The card draws no porch light,
-car lamp, beacon, wheel or window occupant, at any hour.
+At night a house lights the windows the wallpaper's would at the first moment of its roster (v5.12:
+the same `WindowRoster` from the same seeds, the lit panes as `PreviewSprite`s with a `rectWidth`, flat
+cards the painter draws over the dark glass). The card draws no porch light, car lamp, beacon, wheel,
+window occupant or chimney smoke, at any hour.
 
 It holds **no Android type beyond resource ids**, which is what makes "what does this theme's
 preview contain" a unit-testable question; `ThemePreviewSceneTest` pins the characteristic object
@@ -1415,21 +1452,59 @@ settings.themeId
 
 ### Windows, and what colour one is
 
-Every window in the scene crossfades between two constants on the frame's own `nightGlow`:
-`SceneObjectRenderer.WINDOW_GLASS_DAY` (`#B9CBD9`, cool glass) and `WINDOW_GLASS_NIGHT`
-(`#FFE79A`, warm light). `windowGlassColor` is the only place that blends them.
+Every window in the scene crossfades from the day's glass on the frame's own `nightGlow`:
+`SceneObjectRenderer.WINDOW_GLASS_DAY` (`#B9CBD9`, cool glass) to `WINDOW_GLASS_NIGHT` (`#FFE79A`,
+warm light) when it is lit, and to `UNLIT_GLASS_NIGHT` (`#343B47`, dark glass) when it is not (v5.12).
+`windowGlassColor` and `unlitWindowGlassColor` are the only places that blend those constants (a
+house's window across a change is blended between the two results, `drawLitPanes`, and a shop's or a
+tower's across its closing, `businessGlassColor`), and four places
+read them: the buildings (`drawNeighbourhoodBuilding`), the distant houses on the mountains
+(`PaperRenderer.drawDistantHouses`, through `DistantHouses.glassColour`), and the gallery card for the
+buildings and for the distant houses (`ThemePreviewScenes.neighbourhood`, `distantHouses`), which reads
+the same functions rather than a second crossfade.
 
-**There is one caller.** Every window of every building is a `GLASS_MASK` part, and
-the composer computes the colour once per building and hands it to all of them; the gallery preview reads
-the same function rather than the second crossfade it would otherwise have needed.
+**A piece's glass is one `GLASS_MASK` part**, and the composer computes its colour once per
+building. A shop, the school, the bar and a tower light all their glass together, and their night is
+scaled by the opening hours of their group -- the shops' or the towers', by what the building is drawn
+as (`SceneCustomization.opennessFor`, the rule its colours follow; both off by default and then
+arithmetically absent): outside their hours their glass is unlit -- the day's glass by day, the dark
+glass at night, reached on the same openness (`businessGlassColor`, v5.12) -- and their window
+occupants set off one at a time over the first half of a closing, while the glass is still at least
+half lit (out of sight before it is, with an opening span of half an hour or more; with a quarter of an
+hour the last can still be walking out with the glass 40 % lit, measured in v5.12C), and walk in over
+the second half of an opening (`WindowRoster.presentCount`). **A house lights half its windows at
+night** (v5.12): its glass mask is drawn in the dark glass and each lit pane is a flat card laid over
+it, the pane less `LIT_PANE_INSET` (`drawLitPanes`), at the panes the generator lists for each house
+piece (`BuildingPiece.panes`). Which panes are lit, and who stands at the windows of a building (a
+tower's never move), is the building's `WindowRoster` -- and at the hours how many of them are in, its
+doorway: worked out once when the scene's objects are built
+(`giveRosters`) and read every frame from the scene's clock, so it changes one thing at a time, every
+couple of minutes, and allocates nothing. By day both colours are the day's glass and a house is drawn
+as it always was. The lamp by a door lights with the building's `glassNight` since v5.11: unlit paper
+by day, lit at night, dark while a shop or a tower is closed. The houses' windows never consult the
+opening hours — one line, `glassNight`, which `BusinessHoursWiringTest` pins along with the occupant
+path's own exemption (a house keeps no doorway), the way `SkyscraperWindowTest` pins the colour coupling.
 
-Every building but a house has its night scaled by the business openness before it
-reaches those ramps (`BusinessHours`, off by default and then arithmetically absent): outside
-their hours the shops, the bar, the school and the towers hold their unlit daytime glass whatever the sky
-does, and their window occupants' dealt count thins the same way. The lamp by a door lights with the same
-`glassNight` since v5.11: unlit paper by day, lit at night, dark while the building is closed. The houses' windows never
-consult it — one line, `glassNight`, which `BusinessHoursWiringTest` pins along with the occupant
-path's own exemption, the way `SkyscraperWindowTest` pins the colour coupling.
+**Nobody at a window appears or vanishes: they walk** (v5.12, `WindowWalk`). When the roster moves a
+person, they walk sideways out of their window, hidden by the wall beside it, and into the other from
+its side -- along one floor in one stretch, to another floor out of one window, a few seconds on the
+stairs and into the other; the same person, whose look is dealt from the window they first stood at
+(`WindowRoster.Plan.origin`). A house's windows are rooms, so its walker is seen only through the two
+windows of the move; a business's floor is one room, most of its windows side by side behind posts
+narrower than a person, so its walker is seen through every window of the floor they pass. At the hours, each business's `WindowWalk.Doorway`
+walks its people out, the last in the order of before first, and in, one at a time -- the one part of
+the windows that remembers, because the hours move a minute at a time and a walk takes seconds; it is
+kept on the building's runtime and handed on when the list is rebuilt. A cut -- the hour jumping more
+than five minutes between two frames (the screen off for an hour, a fixed hour moved, the clock set),
+or the opening hours changed (`SceneCustomization.sameOpeningHours`) -- settles the doorways at once,
+as the sky and the glass change at once; any other change of the settings leaves a walker walking.
+Everybody of a building is worked out once for its frame into `WindowWalk.Figures` (reused arrays):
+whoever stands still is drawn as before v5.12, whoever walks is drawn cut to each pane they are seen
+through (`drawSpriteClipped`), in front of anybody standing there; a light a walker takes along lights
+before they reach the window and goes out once they have left it (`WindowWalk.litAmount`).
+`WindowWalkTest` holds it on the JVM over every building of the twelve streets frame by frame,
+`WindowWalkRenderTest` on the real renderer on the device, `FrameAllocationTest` and `GlDrawCallTest`
+while somebody walks.
 
 **A tintable window asset is a white mask.** It is a *weight* mask summed over the
 piece's fixed layer rather than a whole sprite multiplied by a colour — the people's system —
@@ -1519,8 +1594,9 @@ a collision would silently skip a needed rebuild).
 The static and car lists are compared separately so that changing, say, house
 density rebuilds the static objects **without** resetting every car's in-flight
 `progress` along the road. Rebuilding the static list is visually free, since
-`StaticRuntime` holds only an `idleSeed` derived deterministically from its
-spec; rebuilding the car list is not, which is why it is gated on the cars'
+what a `StaticRuntime` holds is derived deterministically from its spec -- its
+`idleSeed`, its drawn depth, a building's roster and windows -- except a building's
+doorway at the hours, which the rebuild hands to the new list (v5.12); rebuilding the car list is not, which is why it is gated on the cars'
 **visibility** alone. A car *density* change rebuilds nothing at all:
 the slider maps to an explicit count (1 car at 0%, all ten slots at
 100% — `CarSelection`), every inventory slot keeps a ticking runtime whatever
@@ -2244,9 +2320,9 @@ decision**: none is visible on the phone, and working on one is new work.
     wholesale. It also fills in first-draw order, so a scene whose sprite set exceeds
     2048² pushes its *later* sprites — the objects and people, which benefit most —
     out to standalone textures. Neither has been observed to matter, and neither is
-    worth fixing before it does: 614 of the page's 2048
+    worth fixing before it does: 612 of the page's 2048
     rows in use and no sprite standalone, every built-in theme swept with the distant houses on at
-    100 % (`GlAtlasOccupancyTest`, measured on the BV6600, 2026-10-07).
+    100 % (`GlAtlasOccupancyTest`, measured on the BV6600, 2026-10-10).
 12. **Each engine has its own EGL context**, so the picker's preview engine and the
     live engine do not share textures the way they share `SpriteCache`'s bitmaps.
     Measured on the BV6600 on 2026-09-28: `dumpsys meminfo`'s GL memory for the process reads

@@ -13,12 +13,19 @@ and were removed in v5.9C (inventory row I-22).
 from core import (Group, Piece, W, WALL, CREAM, DARK, YELLOW, RED, rect, chamfered, disc, half_disc)
 W_TIER2 = None
 from vocab import (BASE_DARK, BASE_LIGHT, TRIM, ROOF_SLATE, DOOR, GLASS,
-                   wall_face, grid_windows, bay_window, door, glass_door, steps, awning, sign_plate, lantern,
+                   wall_face, bay_window, door, glass_door, steps, awning, sign_plate, lantern,
                    snow_cap, row_stamp, rows, bay_glass)
 
 T = dict(amp=1.1, relief=(2.4, 3.2))
 R = dict(amp=0.9, relief=(1.9, 2.6))
 B = dict(amp=0.75, relief=(1.5, 2.0))
+
+#: The left x of the two windows upstairs on each bar (v5.12): 12 x 11 with frame and sill on the bar
+#: with the signboard, 11 x 11 framed like the ground floor on the corner bar. On the bar with the
+#: signboard the first is the window a person has always stood at; the corner bar had nobody upstairs
+#: until v5.12.
+B_SIGNBOARD_UPSTAIRS = (8, -12)
+B_CHAMFER_UPSTAIRS = (-10, 6)
 
 
 #: The towers' three heights (v5.11, inventory I-402; the maintainer's choice B of 2026-10-06): a
@@ -172,10 +179,16 @@ def b_signboard():
         win, _ = bay_window(g, "wall", x, -20, 13, 12, B["relief"], B["amp"], frame=1.5, sill=False)
         p.windows.append(win)
     p.lights += [(-8, -6.5, 30)]
-    win, sill = bay_window(g, "wall", 8, -40, 12, 11, B["relief"], B["amp"])
-    p.windows.append(win); p.lights.append(sill)
-    grid_windows(g, "wall", [-24], [-40], 8, 10, B["amp"])
-    p.lights += [(-24, -30, 8)]
+    # Upstairs (v5.12, inventory I-505 and I-509; version A of the proposals): two windows the same,
+    # the bay a person has always stood at (x 8) and its twin where a bare small one was. Both stand
+    # right of the lantern over the door (x -22.2..-17.8): the small window of before sat on it, and
+    # the two read as one tall shape.
+    for x in B_SIGNBOARD_UPSTAIRS:
+        win, sill = bay_window(g, "wall", x, -40, 12, 11, B["relief"], B["amp"])
+        p.windows.append(win)
+        p.lights.append(sill)
+    # A person may stand at any of the four; the bar brings the people its three windows did.
+    p.people = 3
     p.lamps.append((-20, -27))
     p.place(g)
     p.place(snow_cap("k2_b_insegna_snow", [[(-33, -50), (-10, -50)], [(-8, -72), (26, -72)]], B["amp"], body=3.5))
@@ -198,8 +211,15 @@ def b_chamfer():
     steps(g, "wall", 17.5, 32.5, 0, 1, 2.0, B["relief"], B["amp"])
     door(g, "wall", 19, -22, 12, 20, B["relief"], B["amp"], "flat")
     lantern(g, "wall", 20, -22.5, B["relief"], B["amp"])
-    grid_windows(g, "wall", [-26, -8, 10], [-40], 7, 9, B["amp"])
-    p.lights += [(-26, -31, 7), (-8, -31, 7), (10, -31, 7)]
+    # Upstairs (v5.12, inventory I-505 and I-508; version A of the proposals): two windows the same,
+    # framed like the ground floor's, both right of the plaque (x -32..-14). Of the three bare small
+    # windows of before, the first was drawn over the lower half of the plaque, red bar and all.
+    for x in B_CHAMFER_UPSTAIRS:
+        win, _ = bay_window(g, "wall", x, -41, 11, 11, B["relief"], B["amp"], frame=1.5, sill=False)
+        p.windows.append(win)
+        p.lights.append((x, -41 + 11 + 1.5, 11))
+    # A person may stand at any of the five; the bar brings the people its three windows below did.
+    p.people = 3
     p.lamps.append((20, -27))
     p.place(g)
     p.place(snow_cap("k2_b_smusso_snow", [[(-36, -52), (20, -52)], [(21, -51), (35, -37)]], B["amp"], body=3.5))

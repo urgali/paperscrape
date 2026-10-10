@@ -477,8 +477,8 @@ class VehicleAndShopFrontTest {
     /**
      * The lamps are dark by day, come up with the windows, and stop short of being a light source.
      *
-     * The ramp is the windows' own, so a car lights up when a house does; the ceiling is below it,
-     * so a lamp stays a lamp. Zero for the whole first third of the evening is what makes the
+     * The ramp is the vehicles' own (`vehicleLampRamp`, called a window's until v5.12); the ceiling is
+     * below its full strength, so a lamp stays a lamp. Zero for the whole first third of the evening is what makes the
      * feature free at noon, and every call site is behind that zero.
      */
     @Test
@@ -490,8 +490,8 @@ class VehicleAndShopFrontTest {
         val full = litVehicleAlphaAt(1f)
         assertTrue("lit at night, $full", full in 150..220)
         assertTrue(
-            "and never brighter than the windows behind it",
-            full < litWindowAlphaAt(1f),
+            "and never at the ramp's full strength: a lamp, not a light source",
+            full < vehicleLampRampAt(1f),
         )
         assertTrue(
             "a car takes the shared lamp pair too",
@@ -730,9 +730,9 @@ class VehicleAndShopFrontTest {
 
     /** `litVehicleAlpha` is private; this is its published behaviour, read off the source. */
     private fun litVehicleAlphaAt(nightGlow: Float): Int =
-        (litWindowAlphaAt(nightGlow) * 0.8f).toInt()
+        (vehicleLampRampAt(nightGlow) * 0.8f).toInt()
 
-    private fun litWindowAlphaAt(nightGlow: Float): Int =
+    private fun vehicleLampRampAt(nightGlow: Float): Int =
         (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
 
     private fun luminanceAt(image: java.awt.image.BufferedImage, x: Int, y: Int): Int {

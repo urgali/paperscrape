@@ -203,6 +203,20 @@ object GlGolden {
         DrawCount(gl.drawCalls, gl.drawnVertices, gl.spriteBlits)
     }
 
+    /**
+     * One frame of [draw] on the GPU backend, read back: for a test that sets one operation on both
+     * backends side by side (`ClippedSpriteAgreementTest`). The frame starts cleared to opaque black,
+     * as every frame of the wallpaper does ([GlSceneTarget.beginFrame]), in the same pbuffer context
+     * [render] builds.
+     */
+    fun drawOnce(draw: (SceneCanvas) -> Unit): Bitmap = withContext { gl ->
+        gl.beginFrame()
+        draw(gl)
+        gl.endFrame()
+        GLES20.glFinish()
+        readFramebuffer()
+    }
+
     /** What one context ended up holding after a sweep. */
     data class Occupancy(val entries: Int, val standalone: Int, val rowsUsed: Int)
 

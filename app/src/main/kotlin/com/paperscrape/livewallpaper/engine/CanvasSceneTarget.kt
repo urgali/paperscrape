@@ -6,6 +6,7 @@ import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
+import androidx.core.graphics.withClip
 
 /**
  * The `android.graphics.Canvas` backend: every [SceneCanvas] operation maps to the Canvas call the
@@ -166,6 +167,32 @@ class CanvasSceneTarget : SceneCanvas {
         // reports the sprite as uploaded, because it holds no durable copy to justify releasing it.
         require().drawBitmap(source.bitmapFor(resId), left, top, spritePaint)
         if (additive) spritePaint.xfermode = null
+    }
+
+    /**
+     * The one blit, inside its box: the canvas's clip intersected with it for this `drawBitmap` alone
+     * and put back after it (`withClip`, inline: a `save`, a `clipRect` and a `restoreToCount`, nothing
+     * allocated). `clipRect` on a software canvas cuts at whole device pixels -- the GPU backend's cut is
+     * multisampled -- and that sub-pixel difference at the cut edge is all that separates the two (see
+     * [SceneCanvas.drawSpriteClipped]).
+     */
+    override fun drawSpriteClipped(
+        resId: Int,
+        source: SpriteSource,
+        left: Float,
+        top: Float,
+        tintColor: Int,
+        alpha: Int,
+        additive: Boolean,
+        clipLeft: Float,
+        clipTop: Float,
+        clipRight: Float,
+        clipBottom: Float,
+    ) {
+        if (alpha <= 0 || clipLeft >= clipRight || clipTop >= clipBottom) return
+        require().withClip(clipLeft, clipTop, clipRight, clipBottom) {
+            drawSprite(resId, source, left, top, tintColor, alpha, additive)
+        }
     }
 
     private companion object {

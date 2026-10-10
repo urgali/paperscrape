@@ -114,6 +114,21 @@ class LakeWaterlineOrderTest {
             val c = -m[0] * sn + m[2] * cs; val d = -m[1] * sn + m[3] * cs
             m[0] = a; m[1] = b; m[2] = c; m[3] = d
         }
+        // A sprite cut to a box (v5.12, a person walking out of a window) is recorded as the blit it is.
+        override fun drawSpriteClipped(
+            resId: Int,
+            source: SpriteSource,
+            left: Float,
+            top: Float,
+            tintColor: Int,
+            alpha: Int,
+            additive: Boolean,
+            clipLeft: Float,
+            clipTop: Float,
+            clipRight: Float,
+            clipBottom: Float,
+        ) = drawSprite(resId, source, left, top, tintColor, alpha, additive)
+
         override fun drawSprite(resId: Int, source: SpriteSource, left: Float, top: Float, tintColor: Int, alpha: Int, additive: Boolean) {
             blits += Blit(resId, m[4], m[5])
         }

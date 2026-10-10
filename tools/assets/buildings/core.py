@@ -221,6 +221,9 @@ class Group:
     parts: list = field(default_factory=list)
     faces: dict = field(default_factory=dict)
     checks: list = field(default_factory=list)   # (kind, child_bbox, host, margin, label)
+    #: The window panes drawn into this group (v5.12), (x, y, w, h) in its own frame: every pane of
+    #: glass a house's night can light or leave dark -- see `vocab.bay_window` and the table's `panes`.
+    panes: list = field(default_factory=list)
     _n: int = 0
 
     def face(self, name, points):
@@ -392,6 +395,11 @@ class Piece:
     stamps: list = field(default_factory=list)     # (Group, x, y) stamps (glass) drawn AFTER the bodies
     smoke: tuple = (0.0, 0.0)
     beacon: tuple = (0.0, 0.0)
+    #: How many of the building's people this piece brings, as a count of windows (v5.12): None for
+    #: one per window. A piece that gained windows in v5.12 says how many it had before, because the
+    #: number of people at a building's windows is the maintainer's and did not move with them
+    #: (`WindowOccupants.occupantCount`); the new windows are more places to stand, not more people.
+    people: int | None = None
 
     def place(self, group, x=0.0, y=0.0):
         self.groups.append((group, x, y))
@@ -491,7 +499,17 @@ def build_concept(concept: str, buildings: dict, out: Path, extras=()):
         for x, y in piece.lamps:
             parts.append(("LAMP", 0, x, y))
         pieces[piece.name] = {"height": piece.height, "parts": parts, "windows": piece.windows,
-                              "lights": piece.lights, "smoke": piece.smoke, "beacon": piece.beacon}
+                              "lights": piece.lights, "smoke": piece.smoke, "beacon": piece.beacon,
+                              "panes": panes_of(piece),
+                              "people": len(piece.windows) if piece.people is None else piece.people}
+
+    def panes_of(piece: Piece):
+        """Every pane of glass of the piece, in piece space (v5.12): first the windows a bust may
+        stand in, in their own order -- so pane k is window k for every k below `len(windows)` --
+        then the rest (the dormers, the turret's small windows) in the order they were drawn."""
+        rest = [(px + x, py + y, w, h) for g, px, py in piece.ordered() for (x, y, w, h) in g.panes]
+        hosts = [tuple(w) for w in piece.windows]
+        return [tuple(w) for w in piece.windows] + [r for r in rest if r not in hosts]
 
     table = {}
     for family in FAMILIES:
@@ -568,7 +586,9 @@ def shifted_colour(hexc, hue_deg, sat_lift):
 
 
 def stack_instance(table_entry, pieces, tile_x, depth):
-    """Reproduces the Kotlin composer's choice: (piece, baseY, first window index)."""
+    """The Kotlin composer's hash path for an undealt slot: (piece, baseY, first window index). It
+    reads neither a dealt silhouette (SilhouetteDeal, v5.5) nor a slot's heights (v5.11), so a tower
+    comes out as its mid body; nothing in tools/ calls it, or [composite_instance], today."""
     placed, base_y, wcount = [], 0.0, 0
     for si, s in enumerate(table_entry["slots"]):
         opt = min(int(instance_fraction(tile_x, depth, 3.7 * si + 11.3) * len(s["options"])), len(s["options"]) - 1)

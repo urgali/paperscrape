@@ -295,6 +295,21 @@ class BuildingRoofSnowTest {
             matrix.preRotate(degrees)
         }
 
+        // A sprite cut to a box (v5.12, a person walking out of a window) is recorded as the blit it is.
+        override fun drawSpriteClipped(
+            resId: Int,
+            source: SpriteSource,
+            left: Float,
+            top: Float,
+            tintColor: Int,
+            alpha: Int,
+            additive: Boolean,
+            clipLeft: Float,
+            clipTop: Float,
+            clipRight: Float,
+            clipBottom: Float,
+        ) = drawSprite(resId, source, left, top, tintColor, alpha, additive)
+
         override fun drawSprite(
             resId: Int,
             source: SpriteSource,

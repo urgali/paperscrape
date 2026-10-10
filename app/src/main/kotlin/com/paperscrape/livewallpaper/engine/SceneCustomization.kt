@@ -307,7 +307,8 @@ data class SceneCustomization(
     val houses: ObjectVariantConfig,
     /**
      * The Buildings category: whether the towers and the three shops stand, how many towers, the
-     * business hours -- and, since v5.11, **the towers' colours only**. The shops wear [shops].
+     * towers' opening hours ([towerHoursEnabled]; the shops' are the Shops section's since v5.12,
+     * [shopHoursEnabled]) -- and, since v5.11, **the towers' colours only**. The shops wear [shops].
      */
     val buildings: ObjectVariantConfig,
     /**
@@ -373,25 +374,37 @@ data class SceneCustomization(
      */
     val carsNightDensity: Float = DEFAULT_CARS_NIGHT_DENSITY,
     /**
-     * Whether the commercial buildings keep opening hours at all.
+     * Whether the shops -- the restaurant, the school and the bar -- keep opening hours at all.
      *
      * **Off by default, and off means bitwise-identical to before the feature existed**: every
-     * window and every occupant behaves as it always has, and the two hours below are inert (the
-     * settings screen only lets them be edited while this is on). See [BusinessHours] for what
-     * "open" and "closed" do, which buildings count as a business, and why the houses never do.
+     * shop is as open as it always was -- its glass lit at night, its people at their windows -- and
+     * the two hours below are inert (the settings screen only lets them be edited while this is on). See [BusinessHours] for what
+     * "open" and "closed" do, and why the houses never keep hours.
+     *
+     * **One of two groups since v5.12** (the maintainer's *«vorrei inoltre aggiungere uno slide per
+     * orari solo grattacieli e solo negozi»*, 2026-10-09): the shops' hours here, the towers' in
+     * [towerHoursEnabled]. Which group a building follows is what it is drawn as -- the rule its
+     * colours follow ([opennessFor], [buildingColoursFor]). Data stored before v5.12 had one setting
+     * for both, and is read into both (`WallpaperPrefs`, `sceneCustomizationFromJson`).
      */
-    val businessHoursEnabled: Boolean = false,
+    val shopHoursEnabled: Boolean = false,
     /**
-     * When the businesses open, decimal hours 0..24.
+     * When the shops open, decimal hours 0..24.
      *
      * `open == close` means always open — "always closed" is the buildings' visibility switch,
      * not an hour. The pair may wrap midnight (09:00–02:00 is a valid business day). The default
-     * pair is only a seed for the editors: it means nothing until [businessHoursEnabled] is on,
+     * pair is only a seed for the editors: it means nothing until [shopHoursEnabled] is on,
      * and an ordinary shop day is the least surprising place for the sliders to start.
      */
-    val businessOpenHour: Float = DEFAULT_BUSINESS_OPEN_HOUR,
-    /** When the businesses close — see [businessOpenHour] for the boundary rules. */
-    val businessCloseHour: Float = DEFAULT_BUSINESS_CLOSE_HOUR,
+    val shopOpenHour: Float = DEFAULT_BUSINESS_OPEN_HOUR,
+    /** When the shops close — see [shopOpenHour] for the boundary rules. */
+    val shopCloseHour: Float = DEFAULT_BUSINESS_CLOSE_HOUR,
+    /** Whether the towers keep opening hours: [shopHoursEnabled]'s twin for the Buildings category. */
+    val towerHoursEnabled: Boolean = false,
+    /** When the towers open, by [shopOpenHour]'s rules. */
+    val towerOpenHour: Float = DEFAULT_BUSINESS_OPEN_HOUR,
+    /** When the towers close, by [shopOpenHour]'s rules. */
+    val towerCloseHour: Float = DEFAULT_BUSINESS_CLOSE_HOUR,
     val trees: ObjectVariantConfig,
     // Fall Colors / Winter Colors: NOT their own placeable object category (no
     // visibility/density/color-variant shape like the seasonal decorations below) -- they're a
@@ -800,11 +813,11 @@ const val DEFAULT_PEOPLE_NIGHT_DENSITY = 1f
 const val DEFAULT_CARS_NIGHT_DENSITY = 1f
 
 /**
- * Where the business-hours editors start, inert until the toggle is on.
+ * Where the opening-hours editors start, the shops' and the towers', inert until their group's switch is on.
  *
- * Not derived, and not derivable: a default shop day is a seed for two sliders nobody has moved,
- * behind a toggle that defaults to off. 09:00–20:00 is stated as "an ordinary shop day" and
- * carries no other meaning; with the toggle off the rendered scene is identical whatever these
+ * Not derived, and not derivable: a default shop day is a seed for each group's two sliders nobody has moved,
+ * behind switches that default to off. 09:00–20:00 is stated as "an ordinary shop day" and
+ * carries no other meaning; with a group's switch off the rendered scene is identical whatever these
  * hold, which `BusinessHours.opennessAt` guarantees by returning 1 before reading them.
  */
 const val DEFAULT_BUSINESS_OPEN_HOUR = 9f
@@ -1120,6 +1133,30 @@ fun SceneCustomization.buildingColoursFor(variant: SceneSpace.SceneVariant): Obj
     SceneSpace.SceneVariant.TOWER -> buildings
     SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR -> shops
     else -> null
+}
+
+/**
+ * Whether [other] keeps the same opening hours as this -- both groups' switches and hours (v5.12B2). A change of
+ * them is a cut for the people at the windows (`WindowWalk.Doorway.advance`): switched on at night, a shop's glass
+ * goes dark at once and its people, walked out, would walk behind it. Any other change of the settings leaves
+ * whoever is walking out or in to go on.
+ */
+fun SceneCustomization.sameOpeningHours(other: SceneCustomization): Boolean =
+    shopHoursEnabled == other.shopHoursEnabled && shopOpenHour == other.shopOpenHour && shopCloseHour == other.shopCloseHour &&
+        towerHoursEnabled == other.towerHoursEnabled && towerOpenHour == other.towerOpenHour && towerCloseHour == other.towerCloseHour
+
+/**
+ * How open a building drawn as [variant] is at [hour24], 0 (closed) .. 1 (open): the towers by the
+ * towers' hours, the restaurant, the school and the bar by the shops' (v5.12), a house always 1 --
+ * houses keep no hours ([BusinessHours]). The same rule as [buildingColoursFor], by what the building
+ * is drawn as, so a building's hours and its colours are always the same group's, on the wallpaper
+ * and on the gallery card.
+ */
+fun SceneCustomization.opennessFor(variant: SceneSpace.SceneVariant, hour24: Float): Float = when (variant) {
+    SceneSpace.SceneVariant.TOWER -> BusinessHours.opennessAt(towerHoursEnabled, towerOpenHour, towerCloseHour, hour24)
+    SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR ->
+        BusinessHours.opennessAt(shopHoursEnabled, shopOpenHour, shopCloseHour, hour24)
+    else -> 1f
 }
 
 /**

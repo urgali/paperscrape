@@ -25,9 +25,10 @@ package com.paperscrape.livewallpaper.engine
  *   photographs, Autumn's first brick `#B9714A` on the orange hill (12.9) melted into it, and Big
  *   City's steel `#8A96AA` (20.6) stood clear. The gate is that last one: the weakest pair the
  *   photographs showed reading by itself.
- * - **By night, 10.** At night every tower's and shop's windows are lit, and the lit panes draw the
- *   building's outline whatever the wall does (photographed at midnight in v5.11A): what the wall
- *   still has to do is stay a paper of its own. Big City's first slate at night, `#262A31` on
+ * - **By night, 10.** At night an open tower's or shop's windows are all lit -- every one, with its
+ *   group's opening hours off, as every theme ships -- and the lit panes draw the building's outline
+ *   whatever the wall does (photographed at midnight in v5.11A); shut, its glass has been dark since
+ *   v5.12, like a house's unlit window. What the wall still has to do is stay a paper of its own. Big City's first slate at night, `#262A31` on
  *   `#1B1D26`, is 6.3 and its body was gone between the lit rows; its second, `#303842`, is 12.5 and
  *   its edge was there. The gate sits between them.
  *

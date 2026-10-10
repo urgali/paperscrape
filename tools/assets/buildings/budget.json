@@ -1,14 +1,14 @@
 {
  "shipped_perimeter": {
   "files": 99,
-  "decoded": 7229124,
-  "uploaded_level0": 7147636
+  "decoded": 7308072,
+  "uploaded_level0": 7224996
  },
  "concepts": {
   "mix": {
    "files": 99,
-   "decoded": 7229124,
-   "uploaded_level0": 7147636,
+   "decoded": 7308072,
+   "uploaded_level0": 7224996,
    "per_file": {
     "distant_chalet_fx": {
      "w": 93,
@@ -257,10 +257,10 @@
      "uploaded": 55800
     },
     "k1_storey_house_a_mg": {
-     "w": 132,
-     "h": 36,
-     "decoded": 19008,
-     "uploaded": 18720
+     "w": 135,
+     "h": 39,
+     "decoded": 21060,
+     "uploaded": 20368
     },
     "k1_storey_house_a_mw": {
      "w": 186,
@@ -275,10 +275,10 @@
      "uploaded": 74016
     },
     "k1_storey_house_b_mg": {
-     "w": 210,
-     "h": 36,
-     "decoded": 30240,
-     "uploaded": 29952
+     "w": 207,
+     "h": 39,
+     "decoded": 32292,
+     "uploaded": 31312
     },
     "k1_storey_house_b_mw": {
      "w": 258,
@@ -293,10 +293,10 @@
      "uploaded": 187048
     },
     "k2_b_insegna_mg": {
-     "w": 141,
+     "w": 138,
      "h": 102,
-     "decoded": 57528,
-     "uploaded": 56000
+     "decoded": 56304,
+     "uploaded": 54800
     },
     "k2_b_insegna_mw": {
      "w": 207,
@@ -318,9 +318,9 @@
     },
     "k2_b_smusso_mg": {
      "w": 165,
-     "h": 102,
-     "decoded": 67320,
-     "uploaded": 65600
+     "h": 105,
+     "decoded": 69300,
+     "uploaded": 67568
     },
     "k2_b_smusso_mw": {
      "w": 222,
@@ -402,9 +402,9 @@
     },
     "k2_s_orologio_c_mg": {
      "w": 294,
-     "h": 51,
-     "decoded": 59976,
-     "uploaded": 57232
+     "h": 114,
+     "decoded": 134064,
+     "uploaded": 130816
     },
     "k2_s_orologio_c_mw": {
      "w": 330,

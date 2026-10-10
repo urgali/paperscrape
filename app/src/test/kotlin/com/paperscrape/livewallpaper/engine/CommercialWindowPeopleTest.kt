@@ -47,10 +47,12 @@ class CommercialWindowPeopleTest {
      *
      * **v5.0 moved where the answer lives.** There is no longer a draw function per building to
      * read: one composer draws all six families, and whether a building asks for occupants is a
-     * property of its **pieces** -- a piece that declares windows carries an `OCCUPANTS` part, and
-     * the composer hands it the building's own total. So the source half of this test asks the one
-     * question the source can still lose (does the composer pass the *building's* count, or a
-     * piece's?), and the coverage half is asked of the table, over every deal, which is stronger
+     * property of its **pieces** -- a piece that declares windows carries an `OCCUPANTS` part. Since
+     * v5.12 the building's total goes into its roster, with the measure of its windows, once, when the
+     * list is built (`giveRosters`), and the composer hands them to every piece's occupants with the
+     * building-wide window index. So the source half of this test asks the questions the source can
+     * still lose (is the roster dealt over the *building's* windows, or a piece's? does the branch
+     * number them building-wide?), and the coverage half is asked of the table, over every deal, which is stronger
      * than the five function bodies it replaces: a sixth family, or a new piece with a window on
      * it, is covered the day it is added.
      */
@@ -81,13 +83,14 @@ class CommercialWindowPeopleTest {
     }
 
     /**
-     * The composer passes the **building's** window count, not a piece's.
+     * The people are dealt over the **building's** windows, not a piece's.
      *
-     * Occupancy is a count dealt across a building's panes, so handing `drawWindowOccupant` a
-     * piece's own two windows instead of the building's four would deal the wrong number and no
-     * assertion about [WindowOccupants] would notice. The index passed has to be the building-wide
-     * one for the same reason -- two pieces both numbering their windows from zero would put the
-     * same person in both.
+     * Occupancy is a count dealt across a building's panes, so dealing it over a piece's own two
+     * windows instead of the building's four would deal the wrong number and no assertion about
+     * [WindowOccupants] would notice; since v5.12 the count reaches the drawing through the building's
+     * roster, made from its whole deal (`giveRosters`). The index the occupants' branch passes has to
+     * be the building-wide one for the same reason -- two pieces both numbering their windows from zero
+     * would put the same person in both.
      */
     @Test
     fun `the occupant call site is given the building's own numbering`() {
@@ -96,25 +99,46 @@ class CommercialWindowPeopleTest {
         assertTrue("no OCCUPANTS branch in SceneObjectRenderer.kt", at > 0)
         val branch = text.substring(at, minOf(at + 700, text.length))
         assertTrue(
-            "the occupant call must be given the building's total, not a piece's; found:\n$branch",
-            branch.contains("deal.windowCount"),
+            "the index must be the building-wide one; found:\n$branch",
+            branch.contains("placed.firstWindow"),
+        )
+        // Since v5.12 the total reaches the people through the building's roster and its windows,
+        // both made from the whole building's deal when the list is built (`giveRosters`): the plan is
+        // dealt over the building's windows, and the layout measures every one of them.
+        val give = text.substringAfter("private fun giveRosters(").substringBefore("\n    private fun ")
+        assertTrue(
+            "the roster must be dealt over the building's total, not a piece's; found:\n$give",
+            give.contains("themeSeed, buildingSeed, deal.windowCount, deal.paneCount, people,"),
         )
         assertTrue(
-            "and the index must be the building-wide one; found:\n$branch",
-            branch.contains("placed.firstWindow"),
+            "and the windows measured must be the whole building's; found:\n$give",
+            give.contains("WindowWalk.layoutOf(deal, open = !house)"),
         )
     }
 
     /** The pane counts the artwork actually declares, per family and per deal. */
     @Test
     fun `the declared pane counts match the artwork`() {
+        // **v5.12: the windows a person may stand at, and the windows their number is dealt over.**
+        // Every window of a storey is the same since then and holds a person (inventory I-505, the
+        // maintainer's choice A of 2026-10-09), so a small house's storey has two and a large house's
+        // three; the people a building shows are still dealt over the windows it had, one a storey
+        // (`BuildingPiece.people`, `WindowPeopleCountTest`).
         assertEquals(
-            "a small house draws one or two windows",
-            listOf(1, 2), windowCounts(family(SceneSpace.SceneVariant.HOUSE_SMALL)),
+            "a small house draws one window, or three with its storey",
+            listOf(1, 3), windowCounts(family(SceneSpace.SceneVariant.HOUSE_SMALL)),
         )
         assertEquals(
-            "a large house three or four",
-            listOf(3, 4), windowCounts(family(SceneSpace.SceneVariant.HOUSE_LARGE)),
+            "and deals its people over one or two, as before v5.12",
+            listOf(1, 2), peopleCounts(family(SceneSpace.SceneVariant.HOUSE_SMALL)),
+        )
+        assertEquals(
+            "a large house five or eight",
+            listOf(5, 8), windowCounts(family(SceneSpace.SceneVariant.HOUSE_LARGE)),
+        )
+        assertEquals(
+            "and deals its people over three or four",
+            listOf(3, 4), peopleCounts(family(SceneSpace.SceneVariant.HOUSE_LARGE)),
         )
         // **The tower lost thirteen panes and that is the drawing, not a bug.** The shipped facade
         // painted a 4x4 grid into `skyscraper_wall` and stood a bust at all sixteen; the redrawn
@@ -132,8 +156,17 @@ class CommercialWindowPeopleTest {
             listOf(3), windowCounts(family(SceneSpace.SceneVariant.RESTAURANT)),
         )
         assertEquals(
-            "both bar figures draw three",
-            listOf(3), windowCounts(family(SceneSpace.SceneVariant.BAR)),
+            "the bar with the signboard draws four, the corner bar five (two upstairs each, v5.12)",
+            listOf(4, 5), windowCounts(family(SceneSpace.SceneVariant.BAR)),
+        )
+        assertEquals(
+            "and both deal their people over three",
+            listOf(3), peopleCounts(family(SceneSpace.SceneVariant.BAR)),
+        )
+        assertEquals(
+            "the school eight, its people over its four below",
+            listOf(8) to listOf(4),
+            windowCounts(family(SceneSpace.SceneVariant.SCHOOL)) to peopleCounts(family(SceneSpace.SceneVariant.SCHOOL)),
         )
     }
 
@@ -219,7 +252,7 @@ class CommercialWindowPeopleTest {
             for (b in 0 until 40) {
                 val count = WindowOccupants.occupantCount(
                     seed, b * 100_003,
-                    windowCounts(family(SceneSpace.SceneVariant.BAR)).single(),
+                    peopleCounts(family(SceneSpace.SceneVariant.BAR)).single(),
                     WindowBuildingKind.COMMERCIAL,
                 )
                 assertTrue("an empty bar at seed $seed building $b", count >= 1)
@@ -252,7 +285,12 @@ class CommercialWindowPeopleTest {
     private fun family(variant: SceneSpace.SceneVariant) = NeighbourhoodTable.FAMILIES.getValue(variant)
 
     /** Every distinct number of windows a family can be dealt, ascending. */
-    private fun windowCounts(family: BuildingFamily): List<Int> {
+    private fun windowCounts(family: BuildingFamily): List<Int> = counts(family) { it.windows.size }
+
+    /** Every distinct number of windows a family's people can be dealt over (v5.12), ascending. */
+    private fun peopleCounts(family: BuildingFamily): List<Int> = counts(family) { it.people }
+
+    private fun counts(family: BuildingFamily, of: (BuildingPiece) -> Int): List<Int> {
         var counts = listOf(0)
         for (slot in family.slots) {
             val next = mutableSetOf<Int>()
@@ -260,7 +298,7 @@ class CommercialWindowPeopleTest {
                 // A slot with heights draws one of them, not its dealt option (the towers, v5.11).
                 for (option in slot.heights.ifEmpty { slot.options }) {
                     for (repeats in slot.repeatMin..slot.repeatMax) {
-                        next += sofar + option.windows.size * repeats
+                        next += sofar + of(option) * repeats
                     }
                 }
             }
@@ -287,10 +325,12 @@ class CommercialWindowPeopleTest {
             // was actually reported. `WindowOccupantsTest` measures the school on its own.
             if (variant != SceneSpace.SceneVariant.BAR && variant != SceneSpace.SceneVariant.RESTAURANT) continue
             // The count this building is actually dealt, from its own position -- not a constant,
-            // because a family's deals can differ in how many windows they have.
+            // because a family's deals can differ in how many windows they have -- over the windows
+            // the renderer deals over (`giveRosters`: `deal.peopleWindows`, three for either bar since
+            // v5.12, whose fourth and fifth windows bring nobody).
             val deal = NeighbourhoodComposer.Deal()
             NeighbourhoodComposer.deal(family(variant), spec.tileFractionX, spec.depthFraction, deal)
-            val windows = deal.windowCount
+            val windows = deal.peopleWindows
             buildings++
             occupants += WindowOccupants.occupantCount(
                 seed, (spec.tileFractionX * 100_003f).toInt(), windows, WindowBuildingKind.COMMERCIAL,

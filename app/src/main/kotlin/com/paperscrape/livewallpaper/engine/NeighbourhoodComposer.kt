@@ -28,13 +28,15 @@ package com.paperscrape.livewallpaper.engine
  */
 internal object NeighbourhoodComposer {
 
-    /** One piece of a dealt building: the piece, the height its foot stands at, and the index its
+    /** One piece of a dealt building: the piece, the height its foot stands at, the index its
      *  first window takes in the building's own window numbering (which is what decides who is
-     *  standing at it -- see `WindowOccupants`). */
+     *  standing at it -- see `WindowOccupants`), and the index its first pane takes in the building's
+     *  own pane numbering (a house's night, v5.12 -- see `WindowRoster`). */
     class Placed {
         var piece: BuildingPiece = EMPTY
         var baseY: Float = 0f
         var firstWindow: Int = 0
+        var firstPane: Int = 0
     }
 
     /**
@@ -54,15 +56,28 @@ internal object NeighbourhoodComposer {
         var size: Int = 0
             internal set
 
-        /** How many windows the whole building has, which is the denominator the window busts
-         *  are dealt over. (Christmas strings are spread over the building's light sills, which
-         *  the renderer counts separately.) */
+        /** How many windows the whole building has, which is what the window busts are placed
+         *  over: a person may stand at any of them. (Christmas strings are spread over the
+         *  building's light sills, which the renderer counts separately.) */
         var windowCount: Int = 0
+            internal set
+
+        /**
+         * How many people the building brings, as a count of windows: the sum of its pieces'
+         * [BuildingPiece.people], which is what the number of window busts is dealt over (v5.12).
+         * Equal to [windowCount] for every building whose pieces gained no window in v5.12; for the
+         * others it is the count they had, so a building shows the people it always showed.
+         */
+        var peopleWindows: Int = 0
+            internal set
+
+        /** How many panes of glass the whole building has ([BuildingPiece.panes]): a house's only. */
+        var paneCount: Int = 0
             internal set
 
         operator fun get(index: Int): Placed = slots[index]!!
 
-        internal fun add(piece: BuildingPiece, baseY: Float, firstWindow: Int) {
+        internal fun add(piece: BuildingPiece, baseY: Float, firstWindow: Int, firstPane: Int) {
             if (size == slots.size) {
                 slots = slots.copyOf(slots.size * 2)
             }
@@ -70,6 +85,7 @@ internal object NeighbourhoodComposer {
             slot.piece = piece
             slot.baseY = baseY
             slot.firstWindow = firstWindow
+            slot.firstPane = firstPane
             size++
         }
     }
@@ -101,6 +117,8 @@ internal object NeighbourhoodComposer {
         into.size = 0
         var baseY = 0f
         var windows = 0
+        var people = 0
+        var panes = 0
         val slots = family.slots
         for (index in slots.indices) {
             val slot = slots[index]
@@ -112,12 +130,16 @@ internal object NeighbourhoodComposer {
                 (stableFraction(tileFractionX, depthFraction, 5.1f * index + 23.9f) * span)
                     .toInt().coerceIn(0, span - 1)
             for (repeat in 0 until repeats) {
-                into.add(piece, baseY, windows)
+                into.add(piece, baseY, windows, panes)
                 windows += piece.windows.size
+                people += piece.people
+                panes += piece.panes.size
                 baseY -= piece.height
             }
         }
         into.windowCount = windows
+        into.peopleWindows = people
+        into.paneCount = panes
     }
 
     /**
@@ -160,16 +182,22 @@ internal object NeighbourhoodComposer {
         into.size = 0
         var baseY = 0f
         var windows = 0
+        var people = 0
+        var panes = 0
         val slots = family.slots
         for (index in slots.indices) {
             val piece = pieceFor(slots[index], silhouette.choices[index], tileFractionX, depthFraction)
             for (repeat in 0 until silhouette.repeats[index]) {
-                into.add(piece, baseY, windows)
+                into.add(piece, baseY, windows, panes)
                 windows += piece.windows.size
+                people += piece.people
+                panes += piece.panes.size
                 baseY -= piece.height
             }
         }
         into.windowCount = windows
+        into.peopleWindows = people
+        into.paneCount = panes
     }
 
     /**

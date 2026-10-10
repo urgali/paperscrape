@@ -16,6 +16,8 @@ import android.graphics.Path
  * The operation set is deliberately the exact set the renderers already used, no wider: an interface
  * that admitted arbitrary `Path`s, clips or `Xfermode`s would be one the GPU backend could not
  * honour, and a call site could then compile while producing a different picture on each backend.
+ * The one cut it does admit is a box on a single sprite blit ([drawSpriteClipped], v5.12), which both
+ * backends draw the same way and which reaches nothing else.
  *
  * [Paint] is passed through rather than being decomposed into arguments. Reading `color`, `alpha`,
  * `style`, `strokeWidth` and `strokeCap` off a paint allocates nothing, and it keeps the renderers'
@@ -135,6 +137,47 @@ interface SceneCanvas {
          * can express it without a second blend state. See the two implementations for how.
          */
         additive: Boolean,
+    )
+
+    /**
+     * [drawSprite], keeping only the part of the sprite inside the box [clipLeft]..[clipRight] x
+     * [clipTop]..[clipBottom], given in the same coordinates as [left] and [top] -- the coordinates
+     * the current transform maps (v5.12). The rest of the sprite is not drawn at all; the part inside
+     * is drawn as [drawSprite] draws it, within the few levels of rounding each backend's cut adds (2 to
+     * 3 of 255, measured by `ClippedSpriteAgreementTest`), and a box that holds the whole sprite draws the
+     * whole sprite to the bit.
+     *
+     * **A box on one blit, not a clip.** The interface admits no clip state, for the reason in this
+     * interface's own note: a clip the GPU backend could not honour on every primitive would let a call
+     * site compile and draw two different pictures. A box handed to one sprite blit is something both
+     * backends express exactly, and nothing else is affected by it:
+     *
+     * - **GL** cuts the sprite's quad to the box in the sprite's own coordinates and the texture
+     *   rectangle with it, in proportion ([SpriteClip]) -- a smaller quad from the same atlas, in the
+     *   same batch, with no state changed: a cut sprite costs what a whole one does;
+     * - **Canvas** intersects its clip with the box for the one `drawBitmap`, inside a `save`/`restore`.
+     *
+     * The two differ only at the cut edge, by less than a pixel -- `Canvas` clips a box to whole device
+     * pixels, GL rasterises the cut edge with its 4x multisampling -- the kind of difference §10 rule 9
+     * of `DESIGN_NOTES.md` accepts at the edges of circles and lines, and names for a cut sprite.
+     *
+     * What it is for: a person walking out of a window, or into one, is drawn whole and at full
+     * strength, and only the part of them inside the pane is seen ([WindowWalk]); every layer of the
+     * person is cut by the same box, so the summed masks still recompose ([additive]).
+     */
+    @Suppress("LongParameterList")
+    fun drawSpriteClipped(
+        resId: Int,
+        source: SpriteSource,
+        left: Float,
+        top: Float,
+        tintColor: Int,
+        alpha: Int,
+        additive: Boolean,
+        clipLeft: Float,
+        clipTop: Float,
+        clipRight: Float,
+        clipBottom: Float,
     )
 }
 

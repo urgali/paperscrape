@@ -74,35 +74,44 @@ class CarNightDensityTest {
         val defaults = SceneCustomization.DEFAULT
         val saved = defaults.copy(cars = defaults.cars.copy(density = 0.4f))
         val json = JSONObject(saved.toJson().toString())
-        // What a pre-v4.22 build wrote: no night key, no business keys.
+        // What a pre-v4.22 build wrote: no night key, no opening hours of either shape.
         json.remove("carsNightDensity")
-        json.remove("businessHoursEnabled")
-        json.remove("businessOpenHour")
-        json.remove("businessCloseHour")
+        for (key in listOf("business", "shop", "tower")) {
+            json.remove("${key}HoursEnabled")
+            json.remove("${key}OpenHour")
+            json.remove("${key}CloseHour")
+        }
 
         val loaded = sceneCustomizationFromJson(json)
         assertEquals(
             "the night density must resolve to the payload's own daytime value",
             0.4f, loaded.carsNightDensity, 1e-6f,
         )
-        assertFalse("the business hours must arrive switched off", loaded.businessHoursEnabled)
+        assertFalse("the shops' hours must arrive switched off", loaded.shopHoursEnabled)
+        assertFalse("and the towers'", loaded.towerHoursEnabled)
     }
 
     @Test
-    fun `a v4_22 payload round-trips all four new fields`() {
+    fun `a payload round-trips the night density and both groups of opening hours`() {
         val defaults = SceneCustomization.DEFAULT
         val set = defaults.copy(
             cars = defaults.cars.copy(density = 0.9f),
             carsNightDensity = 0.15f,
-            businessHoursEnabled = true,
-            businessOpenHour = 8.25f,
-            businessCloseHour = 1.75f,
+            shopHoursEnabled = true,
+            shopOpenHour = 8.25f,
+            shopCloseHour = 1.75f,
+            towerHoursEnabled = false,
+            towerOpenHour = 7.5f,
+            towerCloseHour = 19f,
         )
         val loaded = sceneCustomizationFromJson(JSONObject(set.toJson().toString()))
         assertEquals(0.15f, loaded.carsNightDensity, 1e-6f)
-        assertTrue(loaded.businessHoursEnabled)
-        assertEquals(8.25f, loaded.businessOpenHour, 1e-6f)
-        assertEquals(1.75f, loaded.businessCloseHour, 1e-6f)
+        assertTrue(loaded.shopHoursEnabled)
+        assertEquals(8.25f, loaded.shopOpenHour, 1e-6f)
+        assertEquals(1.75f, loaded.shopCloseHour, 1e-6f)
+        assertFalse(loaded.towerHoursEnabled)
+        assertEquals(7.5f, loaded.towerOpenHour, 1e-6f)
+        assertEquals(19f, loaded.towerCloseHour, 1e-6f)
     }
 
     // ---------------------------------------------------------------- structural consequence

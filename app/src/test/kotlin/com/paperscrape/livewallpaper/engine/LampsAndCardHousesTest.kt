@@ -71,7 +71,7 @@ class LampsAndCardHousesTest {
         val pair = setOf(on.houses.colorAt(0, dayBlend), on.houses.colorAt(1, dayBlend))
         val glass = setOf(
             SceneObjectRenderer.windowGlassColor(1f - dayBlend),
-            SceneObjectRenderer.windowGlassColor((1f - dayBlend) * DistantHouses.UNLIT_GLOW),
+            SceneObjectRenderer.unlitWindowGlassColor(1f - dayBlend),
         )
         val walls = peaks.flatMap { it.houses }.flatMap { it.parts }.filter { it.added && it.tint != null }
             .map { it.tint!! }.filter { it !in glass }
@@ -84,10 +84,12 @@ class LampsAndCardHousesTest {
             val night = 1f - ThemePreviewScenes.cardPhase(t, true).dayBlend
             for (part in ThemePreviewScenes.forTheme(t, c, forceNight = true).peaks.flatMap { it.houses }.flatMap { it.parts }) {
                 if (part.added && part.tint == SceneObjectRenderer.windowGlassColor(night)) tints += 1
-                if (part.added && part.tint == SceneObjectRenderer.windowGlassColor(night * DistantHouses.UNLIT_GLOW)) tints += 2
+                if (part.added && part.tint == SceneObjectRenderer.unlitWindowGlassColor(night)) tints += 2
             }
         }
         assertTrue("lit windows on the night cards", 1 in tints)
+        // And the fifth house's window dark glass, as an unlit window of the village is (v5.12, I-513).
+        assertTrue("dark windows on the night cards", 2 in tints)
     }
 
     private fun repoRoot(): File {

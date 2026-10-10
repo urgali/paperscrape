@@ -449,6 +449,8 @@ class ThemePreviewTruthTest {
             for (forceNight in listOf(null, true)) {
                 for (item in drawOrder(ThemePreviewScenes.forTheme(theme, c, forceNight))) {
                     for (part in item.parts) {
+                        // A house's lit window at night is a flat card of the house, no sprite (v5.12).
+                        if (part.rectWidth > 0f) continue
                         val name = nameOf(part.resId)
                         if (familyOf(name) == null) unknown += name
                     }
@@ -733,17 +735,35 @@ class ThemePreviewTruthTest {
         val palmShades = variantSpecs(SceneObjectType.PALM_TREE).map { c.nightShadeFor(it, d) }.toSet()
         val carPaints = VARIANT_CARS.map { c.colorFor(it, d) }.toSet()
         // `drawNeighbourhoodBuilding`'s glass: a house lit by the night alone, a business by the
-        // night times its opening hours at the card's own hour ([BusinessHours], 1 with the toggle off).
-        val openness = BusinessHours.opennessAt(c.businessHoursEnabled, c.businessOpenHour, c.businessCloseHour, ThemePreviewScenes.cardHour(theme, night))
+        // night times its group's opening hours at the card's own hour -- the towers' for a tower, the
+        // shops' for a shop, by what it is drawn as (v5.12; [BusinessHours], 1 with a group's switch off).
+        val hour = ThemePreviewScenes.cardHour(theme, night)
         for (item in drawOrder(scene)) {
-            val house = item.parts.any { familyOf(nameOf(it.resId))?.startsWith("HOUSE_") == true }
+            val family = item.parts.firstNotNullOfOrNull { familyOf(nameOf(it.resId)) }
+            val house = family?.startsWith("HOUSE_") == true
+            val variant = SceneSpace.SceneVariant.entries.firstOrNull { it.name == family }
+            val openness = if (variant == null) 1f else c.opennessFor(variant, hour)
             for (part in item.parts.filter { it.resId in GLASS_MASKS }) {
-                val expected = SceneObjectRenderer.windowGlassColor(if (house) 1f - d else (1f - d) * openness)
+                // A house's glass is the dark glass of its unlit windows at night, and its lit ones are
+                // flat cards over it in the lit glass (v5.12, `drawLitPanes`; by day the two are one colour).
+                val expected = if (house) {
+                    SceneObjectRenderer.unlitWindowGlassColor(1f - d)
+                } else {
+                    SceneObjectRenderer.businessGlassColor(1f - d, openness)
+                }
                 if (part.tint != expected) {
                     out += "$label: R7 a ${if (house) "house's" else "business's"} window at x=%.0f is ${hex(part.tint)} on the card, the wallpaper lights it ${hex(expected)} at dayBlend %.3f, openness %.3f"
                         .format(item.x, d, openness)
                 }
                 seen?.let { val k = if (house) "HOUSE_GLASS" else if (openness < 1f && d < 1f) "CLOSED_BUSINESS_GLASS" else "BUSINESS_GLASS"; it[k] = (it[k] ?: 0) + 1 }
+            }
+            for (part in item.parts.filter { it.rectWidth > 0f }) {
+                val expected = SceneObjectRenderer.windowGlassColor(1f - d)
+                if (!house || part.tint != expected) {
+                    out += "$label: R7 a lit window at x=%.0f is ${hex(part.tint)} on ${if (house) "a house" else "a building that is not a house"}, the wallpaper lights it ${hex(expected)} at dayBlend %.3f"
+                        .format(item.x, d)
+                }
+                seen?.let { it["HOUSE_LIT_WINDOW"] = (it["HOUSE_LIT_WINDOW"] ?: 0) + 1 }
             }
             for (part in item.parts) {
                 val name = nameOf(part.resId)
@@ -821,12 +841,18 @@ class ThemePreviewTruthTest {
         fails += checkObjectColours("beach with every decoration out and its night colours edited", beach, edited, null)
         val (autumn, landscape) = editedLandscape()
         fails += checkObjectColours("autumn with every landscape colour edited (forced night)", autumn, landscape, true)
-        // Opening hours on, 09:00 to 18:00: the midnight and 19:00 cards find the businesses shut.
+        // Opening hours on, 09:00 to 18:00: the midnight and 19:00 cards find the businesses shut --
+        // both groups, then each alone (v5.12), so a tower shut beside an open shop is asked too.
         for (id in listOf("autumn", "sunset", "new_year")) {
             val theme = ThemeCatalog.byId(id)
-            val hours = defaultCustomizationFor(id).copy(businessHoursEnabled = true, businessOpenHour = 9f, businessCloseHour = 18f)
-            fails += checkObjectColours("$id with opening hours 9-18", theme, hours, null, seenAtNight)
-            fails += checkObjectColours("$id with opening hours 9-18 (forced night)", theme, hours, true, seenAtNight)
+            val base = defaultCustomizationFor(id)
+            val shops = base.copy(shopHoursEnabled = true, shopOpenHour = 9f, shopCloseHour = 18f)
+            val towers = base.copy(towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 18f)
+            val both = shops.copy(towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 18f)
+            for ((name, hours) in listOf("both groups" to both, "shops only" to shops, "towers only" to towers)) {
+                fails += checkObjectColours("$id with opening hours 9-18, $name", theme, hours, null, seenAtNight)
+                fails += checkObjectColours("$id with opening hours 9-18, $name (forced night)", theme, hours, true, seenAtNight)
+            }
         }
         println("v5.9G R7: parts checked on night cards, by category: $seenAtNight")
         for ((theme, _) in builtIns()) {
@@ -835,7 +861,7 @@ class ThemePreviewTruthTest {
         }
         report(fails)
         // Not vacuous: every category R7 reads was asked about at night at least once.
-        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "CLOSED_BUSINESS_GLASS")) {
+        for (category in listOf("TREE", "CAR", "PALM_TREE", "SNOWMAN", "GIFT", "PENGUIN", "BUNNY", "EASTER_EGG", "PUMPKIN", "HOUSE_GLASS", "HOUSE_LIT_WINDOW", "CLOSED_BUSINESS_GLASS")) {
             assertTrue("R7 never met a $category on a night card: $seenAtNight", (seenAtNight[category] ?: 0) > 0)
         }
     }

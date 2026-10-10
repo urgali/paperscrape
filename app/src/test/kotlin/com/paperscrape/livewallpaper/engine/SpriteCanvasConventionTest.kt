@@ -201,7 +201,13 @@ class SpriteCanvasConventionTest {
         // short and the tall towers' first tiers and the tall one's second (fixed art and wall mask
         // each), the short body's wide snow cap, and each distant house's fixed art, wall mask and
         // snow. Sixteen; their glass masks and the hall's bay stamp do not.
-        assertEquals("230 of them reach a canvas edge", 230, touching)
+        // 229 in v5.12: the bar with the signboard's glass mask no longer reaches its canvas's left
+        // edge. Its leftmost glass was the small upstairs window at x -24, cut to the edge of the
+        // glass layer; that window is gone (it sat on the lantern, inventory I-509), the two upstairs
+        // windows stand right of the lantern, and the lantern's own pane is now the leftmost glass,
+        // inside the margin. The fourteen other layers the windows of v5.12 redrew reach, or do not
+        // reach, an edge as they did.
+        assertEquals("229 of them reach a canvas edge", 229, touching)
     }
 
     private companion object {

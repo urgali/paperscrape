@@ -23,8 +23,8 @@ internal enum class WindowBuildingKind {
      * The school, and the only kind whose windows say anything about *who* is behind them.
      *
      * It is street-level glass like the restaurant and the bar, so its hours are [COMMERCIAL]'s:
-     * it keeps business hours, its panes go dark when it closes, and its occupants leave one at a
-     * time across the closing fade. A value of its own is about the two rules that read the kind
+     * it keeps business hours, its panes go dark when it closes, and its occupants walk out one at a
+     * time over the first half of the closing fade. A value of its own is about the two rules that read the kind
      * -- [WindowOccupants.occupantAt] makes its occupants children and [WindowOccupants.rateFor]
      * gives it [WindowOccupants.SCHOOL_RATE] -- and about keeping the restaurant and the bar out
      * of both. A flag on [BuildingFamily] would have been a second axis for a question this one
@@ -81,8 +81,13 @@ internal data class WindowOccupant(
  * ### The boundary this does not cross, and the one place it does
  *
  * This object decides **who stands at a window**. It has no opinion about the window: not its
- * sprite, its size, its position, its colour, its lit/dark state, nor whether it is drawn at all.
- * Those remain entirely the building drawing code's business, untouched by v4.1.
+ * sprite, its size, its position, its colour, nor whether it is drawn at all. Those remain entirely
+ * the building drawing code's business, untouched by v4.1. **Since v5.12 a house's window with
+ * somebody at it is lit at night** -- a house lights half its windows, and theirs among them
+ * ([WindowRoster], which places every building's people from this object's count and rank, moves a
+ * house's, a shop's and the school's with the clock, and walks them from window to window and out and
+ * in at the hours, [WindowWalk]); so who stands at a window now decides that it is lit, and nothing
+ * here decides the rest of a window's look.
  *
  * Since v5.6 the building [WindowBuildingKind] reaches [occupantAt] for **one** purpose: a school
  * shows children. [WindowBuildingKind.SCHOOL] forces the age to [PersonAge.CHILD] and nothing
@@ -113,8 +118,9 @@ internal object WindowOccupants {
     const val HOUSE_RATE = 0.34f
 
     /**
-     * Commercial frontage is busier than a home during the day and has three panes, about as many
-     * as a house, so a slightly higher rate still yields only one or two figures per building.
+     * Commercial frontage is busier than a home during the day and deals its people over three
+     * windows (a bar's fourth and fifth, added in v5.12, bring nobody: `BuildingPiece.people`), about as
+     * many as a house, so a slightly higher rate still yields only one or two figures per building.
      */
     const val COMMERCIAL_RATE = 0.40f
 
@@ -125,12 +131,14 @@ internal object WindowOccupants {
      * every pane" -- and at 0.12 three panes dealt nobody most of the time. Since v5.11 the six panes
      * are the hall's -- four over the canopy, one each side of the door -- and the grid above holds
      * no bust at all, so the rate is the one street-level glass has: two or three people a tower,
-     * thinned by the opening hours as a shop's are.
+     * who walk out and in at the opening hours as a shop's do ([WindowWalk]).
      */
     const val SKYSCRAPER_RATE = COMMERCIAL_RATE
 
     /**
-     * A school has **four** panes, and at the commercial rate four panes is an empty school.
+     * A school's people are dealt over **four** windows -- its four ground-floor panes, the count it
+     * kept when v5.12 gave it four more upstairs (`BuildingPiece.people`) -- and at the commercial rate
+     * four is an empty school.
      *
      * The rate and the pane count multiply, and 0.40 was set for a three-pane frontage where one
      * or two figures is a shop with somebody in it. Measured on the shipped themes before the
@@ -140,8 +148,8 @@ internal object WindowOccupants {
      * that is shut.
      *
      * 0.60 deals two or three of the four ([SeededBalance.drawCount] rounds `windowCount * rate`,
-     * so 2.4 becomes 2 or 3 by the seed), which is a classroom at each end of the frontage and
-     * one in the middle. It is still a *rate* and not a guarantee: nothing here forces a count,
+     * so 2.4 becomes 2 or 3 by the seed), who stand at any of its eight windows and move between
+     * them ([WindowRoster]). It is still a *rate* and not a guarantee: nothing here forces a count,
      * and the business hours thin it the same way they thin a shop's, so an evening school empties
      * pane by pane exactly as the bar does.
      */
@@ -192,15 +200,18 @@ internal object WindowOccupants {
         SeededBalance.drawCount(seed, CH_PRESENT_COUNT, buildingSeed, windowCount, rateFor(kind))
 
     /**
-     * Whether this window has someone at it.
+     * Whether this window has someone at it, while nobody has moved and nobody is walking.
      *
      * The [windowCount] windows are ranked on [CH_PRESENT] and the first [occupantCount] of them
      * are occupied -- a seeded permutation of a fixed count rather than a coin per pane. Which
      * window a given seed picks is as free as it was; how many it picks is no longer left to a
      * handful of independent draws.
      *
-     * Never consults the clock, so an occupant does not flicker in and out between frames the way
-     * a lit-window flicker legitimately can.
+     * Never consults the clock: this is the rule the scene's people start from. Since v5.12 the scene
+     * reads it through [WindowRoster]'s first state -- the same count and the same ranks, over all the
+     * windows a building has -- which then moves them one at a time, minutes apart, a tower's not at
+     * all, and walks them out and in at the hours ([WindowWalk]); `WindowRosterTest` (houses, shops, the
+     * school) and `WindowWalkTest` (the towers) hold the two to the same windows.
      */
     fun isOccupied(
         seed: Int,
@@ -210,28 +221,44 @@ internal object WindowOccupants {
         kind: WindowBuildingKind,
         /**
          * How open the building is, 0..1 -- [BusinessHours] for commercial kinds, constantly 1
-         * for houses. Applied to the dealt count, not per window: at openness x a building shows
-         * `round(count · x)` of its occupants, so across a closing fade they leave one at a time
-         * in reverse deal order, and at 1 the expression is bitwise the pre-v4.22 one.
+         * for houses. Applied to the dealt count, not per window: at openness x a building has
+         * [WindowRoster.presentCount] of its occupants in -- one fewer at each step of the first half of
+         * a closing fade, so the last is out while its glass is still half lit (v5.12; until then
+         * `round(count · x)`, across the whole fade) -- leaving in reverse deal order; at 1 the
+         * expression is bitwise the pre-v4.22 one.
          */
         openness: Float = 1f,
+        /**
+         * What the count is dealt over: the building's windows as they were when its number of
+         * people was set (`NeighbourhoodComposer.Deal.peopleWindows`, v5.12), while the windows they
+         * stand at are ranked over all [windowCount] of them. Equal to [windowCount] where no window
+         * was added.
+         */
+        peopleWindows: Int = windowCount,
     ): Boolean {
         if (windowIndex < 0 || windowIndex >= windowCount) return false
-        val dealt = occupantCount(seed, buildingSeed, windowCount, kind)
-        val occupied =
-            if (openness >= 1f) dealt
-            else Math.round(dealt * openness.coerceIn(0f, 1f))
+        val dealt = occupantCount(seed, buildingSeed, peopleWindows, kind)
+        val occupied = WindowRoster.presentCount(dealt, openness)
         if (occupied <= 0) return false
         if (occupied >= windowCount) return true
-        return SeededBalance.rankOf(
+        return rankOf(seed, buildingSeed, windowIndex, windowCount) < occupied
+    }
+
+    /**
+     * Where window [windowIndex] falls in its building's seeded order of [windowCount] windows, 0 first:
+     * the first [occupantCount] are the ones somebody stands at, and across a closing fade the last of
+     * them leave first. Read by [isOccupied] and, since v5.12, by [WindowRoster], whose first state
+     * places the people by it -- the same seed, channel and address, so the same windows.
+     */
+    fun rankOf(seed: Int, buildingSeed: Int, windowIndex: Int, windowCount: Int): Int =
+        SeededBalance.rankOf(
             seed,
             CH_PRESENT,
             windowIndex,
             windowCount,
             addressStride = WINDOW_ADDRESS_STRIDE,
             addressOffset = buildingSeed * BUILDING_ADDRESS_STRIDE + ADDRESS_BIAS,
-        ) < occupied
-    }
+        )
 
     /**
      * Who is at this window.

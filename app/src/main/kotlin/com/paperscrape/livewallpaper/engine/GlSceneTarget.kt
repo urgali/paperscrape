@@ -727,6 +727,17 @@ internal class GlSceneTarget : SceneCanvas {
         }
     }
 
+    /**
+     * One sprite, whole: the call the frame makes most.
+     *
+     * **It keeps its own body, and [drawSpriteClipped] shares none of it** (v5.12C). Routed through one
+     * function with the cut's four extra arguments and a branch, as v5.12B2 first wrote it, the method grew
+     * past what ART inlines into, and the three small calls this body makes -- [SceneTransform.uniformScale],
+     * [useTexture], [ensureRoom] -- became calls of their own on every sprite: on the BV6600's `perf` build
+     * the sprite path took 5 % more cycles at midnight and 21 % more at noon (`simpleperf`, our render
+     * thread, Autumn, one profile each). The arithmetic here is v5.12B's to the character, so a whole sprite
+     * is the quad it was.
+     */
     override fun drawSprite(
         resId: Int,
         source: SpriteSource,
@@ -812,6 +823,82 @@ internal class GlSceneTarget : SceneCanvas {
         mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
         mappedVertex(m3x, m3y, u0, v1, r, g, bl, al)
     }
+
+    /**
+     * The same quad as [drawSprite], cut to its box with its texture rectangle ([SpriteClip]): a
+     * smaller quad from the same atlas entry, in the same batch, with no GL state changed -- a cut
+     * sprite costs six vertices like a whole one, and `GlDrawCallTest` counts the same draws. Its own
+     * body, as [drawSprite] has its own: see there. Only a person walking out of a window or into one is
+     * drawn this way (v5.12).
+     */
+    override fun drawSpriteClipped(
+        resId: Int,
+        source: SpriteSource,
+        left: Float,
+        top: Float,
+        tintColor: Int,
+        alpha: Int,
+        additive: Boolean,
+        clipLeft: Float,
+        clipTop: Float,
+        clipRight: Float,
+        clipBottom: Float,
+    ) {
+        if (alpha <= 0) return
+        val level = SpriteDetailLevel.levelFor(transform.uniformScale())
+        var index = textures.find(resId, level)
+        if (index < 0) {
+            index = textures.register(resId, level, source.bitmapFor(resId))
+            if (index < 0) return
+            source.onSpriteUploaded(resId)
+        }
+        val width = textures.widthAt(index)
+        val height = textures.heightAt(index)
+        // Cut in the sprite's own coordinates, before the transform, where the quad and the box are both
+        // axis-aligned: exact under the mirror a walker is drawn with. A side the box does not cut keeps
+        // [drawSprite]'s numbers to the bit.
+        val cut = clippedQuad
+        val inside = SpriteClip.clip(
+            left + width * textures.contentLeftAt(index), top + height * textures.contentTopAt(index),
+            left + width * textures.contentRightAt(index), top + height * textures.contentBottomAt(index),
+            textures.u0At(index), textures.v0At(index), textures.u1At(index), textures.v1At(index),
+            clipLeft, clipTop, clipRight, clipBottom, cut,
+        )
+        if (!inside) return
+        spriteBlits++
+        useTexture(textures.handleAt(index))
+        ensureRoom(6)
+        val quadLeft = cut[SpriteClip.LEFT]
+        val quadTop = cut[SpriteClip.TOP]
+        val right = cut[SpriteClip.RIGHT]
+        val bottom = cut[SpriteClip.BOTTOM]
+        val u0 = cut[SpriteClip.U0]
+        val v0 = cut[SpriteClip.V0]
+        val u1 = cut[SpriteClip.U1]
+        val v1 = cut[SpriteClip.V1]
+        val r = Color.red(tintColor) * INV_255
+        val g = Color.green(tintColor) * INV_255
+        val bl = Color.blue(tintColor) * INV_255
+        // The tint's alpha ignored and the sign of the vertex alpha meaning "summed", as in [drawSprite].
+        val al = if (additive) -(alpha * INV_255) else alpha * INV_255
+        val m0x = transform.mapX(quadLeft, quadTop)
+        val m0y = transform.mapY(quadLeft, quadTop)
+        val m1x = transform.mapX(right, quadTop)
+        val m1y = transform.mapY(right, quadTop)
+        val m2x = transform.mapX(right, bottom)
+        val m2y = transform.mapY(right, bottom)
+        val m3x = transform.mapX(quadLeft, bottom)
+        val m3y = transform.mapY(quadLeft, bottom)
+        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
+        mappedVertex(m1x, m1y, u1, v0, r, g, bl, al)
+        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
+        mappedVertex(m0x, m0y, u0, v0, r, g, bl, al)
+        mappedVertex(m2x, m2y, u1, v1, r, g, bl, al)
+        mappedVertex(m3x, m3y, u0, v1, r, g, bl, al)
+    }
+
+    /** [SpriteClip.clip]'s output, reused: the cut quad and its texture rectangle. */
+    private val clippedQuad = FloatArray(SpriteClip.SIZE)
 
     // --- Shared tessellation -----------------------------------------------------------------
 

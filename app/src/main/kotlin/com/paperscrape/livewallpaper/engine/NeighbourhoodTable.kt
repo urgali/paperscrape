@@ -25,8 +25,9 @@ import com.paperscrape.livewallpaper.R
  *   the artwork.
  *
  * **Every wall surface descends from one of the two editable colours of the object's category**;
- * the glass mask takes the scene's fixed day/night glass colour
- * (`SceneObjectRenderer.windowGlassColor`). A card is `w * wall + (1 - w) * k` with `k` only ink
+ * the glass mask takes the scene's fixed day/night glass colours (`SceneObjectRenderer.windowGlassColor`;
+ * at night the dark glass of `unlitWindowGlassColor` for a business while it is shut, and for a house
+ * with its lit panes laid over it as flat cards, v5.12). A card is `w * wall + (1 - w) * k` with `k` only ink
  * or white, and `w` is baked into the wall mask; so there is no colour variant in this set and no
  * colour of a piece's own. See the script's own doc comment.
  */
@@ -34,7 +35,10 @@ internal enum class PartRole { FIXED, SNOW, WALL_MASK, GLASS_MASK, LAMP, OCCUPAN
 
 internal class BuildingPart(val res: Int, val x: Float, val y: Float, val role: PartRole)
 
-/** An opening a bust may stand in, or (with `h` = 0) a sill a light string may hang from. */
+/**
+ * An opening a bust may stand in, a pane of a house's glass (`BuildingPiece.panes`, v5.12), or (with
+ * `h` = 0) a sill a light string may hang from.
+ */
 internal class BuildingWindow(val x: Float, val y: Float, val w: Float, val h: Float)
 
 internal class BuildingPiece(
@@ -45,6 +49,22 @@ internal class BuildingPiece(
     val lights: List<BuildingWindow>,
     val smokeX: Float, val smokeY: Float,
     val beaconX: Float, val beaconY: Float,
+    /**
+     * A house piece's panes of glass (v5.12), each one a window its night may light or leave dark:
+     * first the [windows], in their order -- pane `k` is window `k` for every `k` below
+     * `windows.size` -- then the rest, the dormers and the turret's small windows. Empty for the other
+     * buildings, which light all their glass together while they are open.
+     */
+    val panes: List<BuildingWindow> = emptyList(),
+    /**
+     * How many of its building's people this piece brings, as a count of windows (v5.12): its own
+     * window count, except where a piece gained windows in v5.12 -- the storeys, the school's upper
+     * floor, the bars' -- and brings the people it did before. The number of people at a building's
+     * windows is one of the scene's quantities the maintainer keeps, and the table he approved said it
+     * stays (*«il resto si a tutto»*, 2026-10-09): it is dealt over this
+     * ([NeighbourhoodComposer.Deal.peopleWindows]), the windows they stand at over all of them.
+     */
+    val people: Int = windows.size,
 )
 
 /**
@@ -84,6 +104,7 @@ internal object NeighbourhoodTable {
         listOf(BuildingWindow(-23.00f, -22.00f, 14.00f, 13.00f)),
         listOf(BuildingWindow(-23.00f, -7.00f, 14.00f, 0f)),
         0.00f, 0.00f, 0.00f, 0.00f,
+        panes = listOf(BuildingWindow(-23.00f, -22.00f, 14.00f, 13.00f)),
     )
 
     private val HOUSE_SMALL_STOREY = BuildingPiece(
@@ -91,12 +112,14 @@ internal object NeighbourhoodTable {
         listOf(
         BuildingPart(R.drawable.house_small_storey_fx, -30.00f, -22.00f, PartRole.FIXED),
         BuildingPart(R.drawable.house_small_storey_mw, -30.00f, -22.00f, PartRole.WALL_MASK),
-        BuildingPart(R.drawable.house_small_storey_mg, -23.00f, -18.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.house_small_storey_mg, -23.00f, -19.00f, PartRole.GLASS_MASK),
         BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
         ),
-        listOf(BuildingWindow(-22.00f, -18.00f, 13.00f, 12.00f)),
-        listOf(BuildingWindow(-22.00f, -4.00f, 13.00f, 0f), BuildingWindow(12.00f, -7.00f, 8.00f, 0f)),
+        listOf(BuildingWindow(-22.00f, -18.00f, 13.00f, 12.00f), BuildingWindow(9.00f, -18.00f, 13.00f, 12.00f)),
+        listOf(BuildingWindow(-22.00f, -4.00f, 13.00f, 0f), BuildingWindow(9.00f, -4.00f, 13.00f, 0f)),
         0.00f, 0.00f, 0.00f, 0.00f,
+        people = 1,
+        panes = listOf(BuildingWindow(-22.00f, -18.00f, 13.00f, 12.00f), BuildingWindow(9.00f, -18.00f, 13.00f, 12.00f)),
     )
 
     private val HOUSE_SMALL_ROOF_GABLE = BuildingPiece(
@@ -124,6 +147,7 @@ internal object NeighbourhoodTable {
         listOf(),
         listOf(),
         14.50f, -31.00f, 0.00f, 0.00f,
+        panes = listOf(BuildingWindow(-10.52f, -10.80f, 5.04f, 5.20f)),
     )
 
     private val HOUSE_LARGE_GROUND = BuildingPiece(
@@ -138,6 +162,7 @@ internal object NeighbourhoodTable {
         listOf(BuildingWindow(-36.00f, -22.00f, 14.00f, 13.00f), BuildingWindow(-10.00f, -22.00f, 14.00f, 13.00f)),
         listOf(BuildingWindow(-36.00f, -7.00f, 14.00f, 0f), BuildingWindow(-10.00f, -7.00f, 14.00f, 0f)),
         0.00f, 0.00f, 0.00f, 0.00f,
+        panes = listOf(BuildingWindow(-36.00f, -22.00f, 14.00f, 13.00f), BuildingWindow(-10.00f, -22.00f, 14.00f, 13.00f)),
     )
 
     private val HOUSE_LARGE_STOREY = BuildingPiece(
@@ -148,9 +173,11 @@ internal object NeighbourhoodTable {
         BuildingPart(R.drawable.house_large_storey_mg, -35.00f, -18.00f, PartRole.GLASS_MASK),
         BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
         ),
-        listOf(BuildingWindow(-34.00f, -18.00f, 13.00f, 12.00f)),
-        listOf(BuildingWindow(-34.00f, -4.00f, 13.00f, 0f), BuildingWindow(-6.00f, -7.00f, 8.00f, 0f), BuildingWindow(10.00f, -7.00f, 8.00f, 0f), BuildingWindow(26.00f, -7.00f, 8.00f, 0f)),
+        listOf(BuildingWindow(-34.00f, -18.00f, 13.00f, 12.00f), BuildingWindow(-6.50f, -18.00f, 13.00f, 12.00f), BuildingWindow(21.00f, -18.00f, 13.00f, 12.00f)),
+        listOf(BuildingWindow(-34.00f, -4.00f, 13.00f, 0f), BuildingWindow(-6.50f, -4.00f, 13.00f, 0f), BuildingWindow(21.00f, -4.00f, 13.00f, 0f)),
         0.00f, 0.00f, 0.00f, 0.00f,
+        people = 1,
+        panes = listOf(BuildingWindow(-34.00f, -18.00f, 13.00f, 12.00f), BuildingWindow(-6.50f, -18.00f, 13.00f, 12.00f), BuildingWindow(21.00f, -18.00f, 13.00f, 12.00f)),
     )
 
     private val HOUSE_LARGE_ROOF_GABLE = BuildingPiece(
@@ -165,6 +192,7 @@ internal object NeighbourhoodTable {
         listOf(),
         listOf(),
         25.00f, -23.52f, 0.00f, 0.00f,
+        panes = listOf(BuildingWindow(-18.80f, -17.65f, 5.60f, 5.85f)),
     )
 
     private val HOUSE_LARGE_ROOF_MANSARD = BuildingPiece(
@@ -179,6 +207,7 @@ internal object NeighbourhoodTable {
         listOf(),
         listOf(),
         26.50f, -35.00f, 0.00f, 0.00f,
+        panes = listOf(BuildingWindow(-22.52f, -10.80f, 5.04f, 5.20f), BuildingWindow(11.48f, -10.80f, 5.04f, 5.20f)),
     )
 
     private val HOUSE_LARGE_ROOF_TURRET = BuildingPiece(
@@ -196,6 +225,7 @@ internal object NeighbourhoodTable {
         listOf(),
         listOf(BuildingWindow(28.50f, -11.00f, 5.00f, 0f)),
         -31.00f, -20.00f, 0.00f, 0.00f,
+        panes = listOf(BuildingWindow(28.50f, -30.00f, 5.00f, 7.00f), BuildingWindow(28.50f, -18.00f, 5.00f, 7.00f)),
     )
 
     private val TOWER_BODY = BuildingPiece(
@@ -411,14 +441,15 @@ internal object NeighbourhoodTable {
         listOf(
         BuildingPart(R.drawable.bar_signboard_fx, -34.00f, -73.00f, PartRole.FIXED),
         BuildingPart(R.drawable.bar_signboard_mw, -34.00f, -50.00f, PartRole.WALL_MASK),
-        BuildingPart(R.drawable.bar_signboard_mg, -24.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.bar_signboard_mg, -23.00f, -41.00f, PartRole.GLASS_MASK),
         BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
         BuildingPart(R.drawable.bar_signboard_snow_fx, -34.00f, -75.00f, PartRole.SNOW),
         BuildingPart(0, -20.00f, -27.00f, PartRole.LAMP),
         ),
-        listOf(BuildingWindow(-8.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(9.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(8.00f, -40.00f, 12.00f, 11.00f)),
-        listOf(BuildingWindow(-8.00f, -6.50f, 30.00f, 0f), BuildingWindow(8.00f, -27.00f, 12.00f, 0f), BuildingWindow(-24.00f, -30.00f, 8.00f, 0f)),
+        listOf(BuildingWindow(-8.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(9.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(8.00f, -40.00f, 12.00f, 11.00f), BuildingWindow(-12.00f, -40.00f, 12.00f, 11.00f)),
+        listOf(BuildingWindow(-8.00f, -6.50f, 30.00f, 0f), BuildingWindow(8.00f, -27.00f, 12.00f, 0f), BuildingWindow(-12.00f, -27.00f, 12.00f, 0f)),
         0.00f, 0.00f, 0.00f, 0.00f,
+        people = 3,
     )
 
     private val BAR_CHAMFER = BuildingPiece(
@@ -426,14 +457,15 @@ internal object NeighbourhoodTable {
         listOf(
         BuildingPart(R.drawable.bar_chamfer_fx, -36.00f, -53.00f, PartRole.FIXED),
         BuildingPart(R.drawable.bar_chamfer_mw, -36.00f, -53.00f, PartRole.WALL_MASK),
-        BuildingPart(R.drawable.bar_chamfer_mg, -31.00f, -41.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.bar_chamfer_mg, -31.00f, -42.00f, PartRole.GLASS_MASK),
         BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
         BuildingPart(R.drawable.bar_chamfer_snow_fx, -37.00f, -55.00f, PartRole.SNOW),
         BuildingPart(0, 20.00f, -27.00f, PartRole.LAMP),
         ),
-        listOf(BuildingWindow(-30.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(-13.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(4.00f, -20.00f, 13.00f, 12.00f)),
-        listOf(BuildingWindow(-30.00f, -6.50f, 30.00f, 0f), BuildingWindow(-26.00f, -31.00f, 7.00f, 0f), BuildingWindow(-8.00f, -31.00f, 7.00f, 0f), BuildingWindow(10.00f, -31.00f, 7.00f, 0f)),
+        listOf(BuildingWindow(-30.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(-13.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(4.00f, -20.00f, 13.00f, 12.00f), BuildingWindow(-10.00f, -41.00f, 11.00f, 11.00f), BuildingWindow(6.00f, -41.00f, 11.00f, 11.00f)),
+        listOf(BuildingWindow(-30.00f, -6.50f, 30.00f, 0f), BuildingWindow(-10.00f, -28.50f, 11.00f, 0f), BuildingWindow(6.00f, -28.50f, 11.00f, 0f)),
         0.00f, 0.00f, 0.00f, 0.00f,
+        people = 3,
     )
 
     private val SCHOOL = BuildingPiece(
@@ -441,18 +473,15 @@ internal object NeighbourhoodTable {
         listOf(
         BuildingPart(R.drawable.school_fx, -54.00f, -74.00f, PartRole.FIXED),
         BuildingPart(R.drawable.school_mw, -54.00f, -74.00f, PartRole.WALL_MASK),
-        BuildingPart(R.drawable.school_mg, -49.00f, -25.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_row_tier3_fx, -48.00f, -45.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_row_tier3_mg, -48.00f, -45.00f, PartRole.GLASS_MASK),
-        BuildingPart(R.drawable.tower_row_tier3_fx, 18.00f, -45.00f, PartRole.FIXED),
-        BuildingPart(R.drawable.tower_row_tier3_mg, 18.00f, -45.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.school_mg, -49.00f, -46.00f, PartRole.GLASS_MASK),
         BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
         BuildingPart(R.drawable.school_snow_fx, -54.00f, -76.00f, PartRole.SNOW),
         BuildingPart(0, 0.00f, -28.00f, PartRole.LAMP),
         ),
-        listOf(BuildingWindow(-48.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(-30.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(17.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(35.00f, -24.00f, 13.00f, 15.00f)),
-        listOf(BuildingWindow(-47.00f, -37.00f, 28.00f, 0f), BuildingWindow(19.00f, -37.00f, 28.00f, 0f), BuildingWindow(-48.00f, -7.50f, 13.00f, 0f), BuildingWindow(-30.00f, -7.50f, 13.00f, 0f), BuildingWindow(17.00f, -7.50f, 13.00f, 0f), BuildingWindow(35.00f, -7.50f, 13.00f, 0f)),
+        listOf(BuildingWindow(-48.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(-30.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(17.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(35.00f, -24.00f, 13.00f, 15.00f), BuildingWindow(-48.00f, -45.00f, 11.00f, 11.00f), BuildingWindow(-32.00f, -45.00f, 11.00f, 11.00f), BuildingWindow(21.00f, -45.00f, 11.00f, 11.00f), BuildingWindow(37.00f, -45.00f, 11.00f, 11.00f)),
+        listOf(BuildingWindow(-48.00f, -32.50f, 27.00f, 0f), BuildingWindow(21.00f, -32.50f, 27.00f, 0f), BuildingWindow(-48.00f, -7.50f, 13.00f, 0f), BuildingWindow(-30.00f, -7.50f, 13.00f, 0f), BuildingWindow(17.00f, -7.50f, 13.00f, 0f), BuildingWindow(35.00f, -7.50f, 13.00f, 0f)),
         0.00f, 0.00f, 0.00f, 0.00f,
+        people = 4,
     )
 
     private val HOUSE_DISTANT_COTTAGE = BuildingPiece(

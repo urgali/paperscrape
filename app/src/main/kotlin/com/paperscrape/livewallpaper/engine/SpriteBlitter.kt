@@ -39,7 +39,8 @@ enum class SpriteScale {
 
 /**
  * The single sprite-blitting path: every sprite in the app is drawn through [draw], [drawTinted] or
- * [drawTintedAdded], and all three reach the canvas through one private `blit`.
+ * [drawTintedAdded], and all three reach the canvas through one private `blit`; a sprite of which only
+ * a part is drawn -- a person walking out of a window, cut to its pane -- goes through [drawClipped].
  *
  * Both renderers used to carry their own copies of this, one pair of functions per scale
  * convention, which meant the same four-line blit existed six times over and the paint flags, the
@@ -168,7 +169,53 @@ class SpriteBlitter(private val context: Context) : SpriteSource {
     }
 
     /**
-     * The one place a sprite bitmap actually reaches the canvas.
+     * Same placement as [draw] and [drawTinted], keeping only the part of the sprite inside the box
+     * [clipLeft]..[clipRight] x [clipTop]..[clipBottom], given in the caller's own coordinates -- the
+     * ones [originX] and [originY] are in. [SceneCanvas.drawSpriteClipped] is the operation; this puts
+     * the box through the same oversample [blit] puts the origin through. [tintColor] [UNTINTED] for
+     * fixed art; [additive] as for [drawTintedAdded]. A person walking out of a window, or into it, is
+     * the one caller (v5.12).
+     */
+    fun drawClipped(
+        canvas: SceneCanvas,
+        resId: Int,
+        originX: Float,
+        originY: Float,
+        scale: SpriteScale,
+        tintColor: Int,
+        additive: Boolean,
+        clipLeft: Float,
+        clipTop: Float,
+        clipRight: Float,
+        clipBottom: Float,
+    ) {
+        when (scale) {
+            SpriteScale.SCENE_UNITS -> {
+                canvas.save()
+                canvas.scale(1f / SPRITE_PIXELS_PER_UNIT, 1f / SPRITE_PIXELS_PER_UNIT)
+                canvas.drawSpriteClipped(
+                    resId,
+                    this,
+                    originX * SPRITE_PIXELS_PER_UNIT,
+                    originY * SPRITE_PIXELS_PER_UNIT,
+                    tintColor,
+                    255,
+                    additive,
+                    clipLeft * SPRITE_PIXELS_PER_UNIT,
+                    clipTop * SPRITE_PIXELS_PER_UNIT,
+                    clipRight * SPRITE_PIXELS_PER_UNIT,
+                    clipBottom * SPRITE_PIXELS_PER_UNIT,
+                )
+                canvas.restore()
+            }
+
+            SpriteScale.CANVAS_PIXELS ->
+                canvas.drawSpriteClipped(resId, this, originX, originY, tintColor, 255, additive, clipLeft, clipTop, clipRight, clipBottom)
+        }
+    }
+
+    /**
+     * Where a whole sprite reaches the canvas ([drawClipped] is where part of one does).
      *
      * [SpriteScale.SCENE_UNITS] divides the oversample back out with a single `canvas.scale()` and
      * pre-multiplies the origin by the same factor, so the `drawBitmap` call itself needs no

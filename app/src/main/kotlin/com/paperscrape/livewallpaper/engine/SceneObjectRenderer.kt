@@ -43,6 +43,23 @@ private class StaticRuntime(val spec: StaticSceneObject) {
      * [spec]'s own depth. Set when the list is built, and again when *Hills variation* moves the crest.
      */
     var drawDepth = spec.depthFraction
+
+    /**
+     * A building's roster (v5.12): who stands at its windows and, in a house, which are lit at night,
+     * at each moment -- worked out once when the list is built, read every frame ([WindowRoster]).
+     * Null for everything that is not a building with windows; a tower's people do not move from window
+     * to window, so its roster is its first state for ever.
+     */
+    var roster: WindowRoster.Plan? = null
+
+    /** The building's windows, measured once with its roster: where its people walk ([WindowWalk]). */
+    var windowLayout: WindowWalk.Layout? = null
+
+    /**
+     * Who of a shop, the school, a bar or a tower is in at its hours, and who is walking out or in
+     * ([WindowWalk.Doorway]); null for a house, which keeps no hours.
+     */
+    var doorway: WindowWalk.Doorway? = null
 }
 
 private class CarRuntime(val spec: CarObject, val layoutIndex: Int, val selectionRank: Int) {
@@ -116,13 +133,21 @@ class SceneObjectRenderer(
      *  - **car density**: nothing is rebuilt at all. The count change is applied per car, off
      *    screen, by [update]'s membership sync -- see [retargetCarRuntimes].
      *
-     * Rebuilding the static list is visually free: [StaticRuntime] holds only `idleSeed`, derived
-     * deterministically from its spec, so a rebuilt object resumes exactly where the old one was.
+     * Whichever of them it is, a change of the opening hours is also a cut for the doorways: the people
+     * walking out or in at the hours take their places at once ([advanceDoorways]).
+     *
+     * Rebuilding the static list is visually free: a [StaticRuntime] holds its `idleSeed`, its drawn
+     * depth and (a building) its roster and its windows, all derived deterministically from its spec,
+     * the theme's seed and the crest, so a rebuilt object resumes exactly where the old one was; and the
+     * one thing a building remembers, its doorway at the hours, is handed to the new list
+     * ([rebuildStaticRuntimes]).
      */
     var customization: SceneCustomization = customization
         set(value) {
             val previous = field
             field = value
+            // A change of the opening hours is a cut for the people at the hours (see [advanceDoorways]).
+            if (!previous.sameOpeningHours(value)) doorwaysSettle = true
             if (!previous.staticStructurallyEquals(value)) {
                 rebuildStaticRuntimes()
             } else if (previous.hillsVariation != value.hillsVariation) {
@@ -173,6 +198,36 @@ class SceneObjectRenderer(
         // [SceneCustomization.palmSpeciesApplied].
         .map { StaticRuntime(customization.palmSpeciesApplied(it, layoutPlantsPalms)) }
         .let(::plantedAndSorted)
+        .also(::giveRosters)
+
+    /**
+     * Every building its [StaticRuntime.roster] and its [StaticRuntime.windowLayout], once, as the list
+     * is built, and every one that keeps hours its [StaticRuntime.doorway]: state, not a per-frame
+     * computation (`AI_PROJECT_RULES.md` 5.2). The roster and the layout are a function of the
+     * building's spec and the theme's seed alone, so a list rebuilt for another reason gives each
+     * building the ones it had, and the picture does not move; a tower's people stay at their windows
+     * (`moves = false`). The doorway is the one thing that remembers -- who is walking out or in at the
+     * hours ([WindowWalk]) -- and [rebuildStaticRuntimes] hands it on.
+     */
+    private fun giveRosters(runtimes: List<StaticRuntime>) {
+        val deal = NeighbourhoodComposer.Deal()
+        for (r in runtimes) {
+            val spec = r.spec
+            if (spec.type != SceneObjectType.HOUSE && spec.type != SceneObjectType.SKYSCRAPER) continue
+            val family = NeighbourhoodTable.FAMILIES[variantFor(spec)] ?: continue
+            NeighbourhoodComposer.deal(family, spec, deal)
+            val buildingSeed = buildingSeedOf(spec)
+            val people = WindowOccupants.occupantCount(themeSeed, buildingSeed, deal.peopleWindows, family.kind)
+            val house = family.kind == WindowBuildingKind.HOUSE
+            r.roster = WindowRoster.plan(
+                themeSeed, buildingSeed, deal.windowCount, deal.paneCount, people,
+                house = house,
+                moves = family.kind != WindowBuildingKind.SKYSCRAPER,
+            )
+            r.windowLayout = WindowWalk.layoutOf(deal, open = !house)
+            if (!house) r.doorway = WindowWalk.Doorway()
+        }
+    }
 
     /**
      * [runtimes] with every tower's drawn depth set from the crest ([SceneSpace.towerDrawnDepth]) and
@@ -224,7 +279,15 @@ class SceneObjectRenderer(
     }
 
     private fun rebuildStaticRuntimes() {
+        val previous = staticRuntimes
         staticRuntimes = buildStaticRuntimes()
+        // Whoever was walking out or in at the hours goes on walking: a building's doorway is handed to
+        // the runtime of the same building in the new list (the specs are the layout's own objects).
+        for (r in staticRuntimes) {
+            val doorway = r.doorway ?: continue
+            val before = previous.firstOrNull { it.spec === r.spec }?.doorway ?: continue
+            doorway.copyFrom(before)
+        }
     }
 
     /**
@@ -263,15 +326,17 @@ class SceneObjectRenderer(
     private val sprites = SpriteBlitter(context)
 
     /**
-     * This frame's commercial openness, 0..1 -- see [BusinessHours] and [draw]'s `hour24`.
+     * This frame's hour of the scene, for the opening hours -- see [BusinessHours] and [draw]'s
+     * `hour24`. A building asks [SceneCustomization.opennessFor] at it, with what it is drawn as: the
+     * shops and the towers keep hours of their own since v5.12, by the rule their colours follow.
      *
      * A field set once per frame rather than a parameter threaded through every building call:
-     * the two systems it governs (the glass colour of non-house windows and [drawWindowOccupant])
-     * sit several frames deep in the draw tree, and the value is a per-frame constant like the
-     * paints are.
-     * 1 whenever the toggle is off, which is the default -- and 1 must render bitwise as before.
+     * the two systems it governs (the glass colour of non-house windows, and who is in at the hours,
+     * [advanceDoorways]) sit several frames deep in the draw tree, and the value is a per-frame constant
+     * like the paints are. With a group's switch off its openness is 1 whatever the hour, which is the
+     * default -- and 1 must render bitwise as before.
      */
-    private var businessOpenness = 1f
+    private var frameHour = 12f
 
     /** This frame's scene clock, in seconds of the day. See [PeopleColours.clockSeconds]. */
     private var clockSeconds = PeopleColours.clockSeconds(12f)
@@ -461,8 +526,9 @@ class SceneObjectRenderer(
         // had one (`config.density` plus `peopleNightDensity`) since well before this release.
 
         /**
-         * Cool glass by day, warm light at night: the two ends every window in the scene
-         * crossfades between, on the scene's own `nightGlow`.
+         * Cool glass by day, warm light at night: the two ends every lit window in the scene
+         * crossfades between, on the scene's own `nightGlow` (an unlit one goes to
+         * [UNLIT_GLASS_NIGHT] instead, v5.12).
          *
          * Both values were already in the file -- the day one as the restaurant's inline literal,
          * the night one both there and as the colour `skyscraper_wall_lit` and `house_window_lit`
@@ -488,11 +554,12 @@ class SceneObjectRenderer(
         fun lampGlowAlpha(lit: Float): Int = (LAMP_GLOW_ALPHA * lit.coerceIn(0f, 1f)).toInt()
 
         /**
-         * What a window is, as a colour: cool glass by day, warm light at night.
+         * What a lit window is, as a colour: cool glass by day, warm light at night.
          *
          * One pair, because there is one answer. It was already the restaurant's, written inline;
-         * every window in the neighbourhood now reads the same two constants rather than a second
-         * pair that could drift from it.
+         * every lit window in the scene reads the same two constants rather than a second pair that
+         * could drift from it, and an unlit one ([unlitWindowGlassColor], v5.12) starts from the same
+         * day's glass.
          *
          * In the companion rather than on the instance since v5.0, because the gallery preview
          * asks the same question and the answer must not be copied there -- see
@@ -500,6 +567,46 @@ class SceneObjectRenderer(
          */
         fun windowGlassColor(nightGlow: Float): Int =
             SceneColour.blendArgb(WINDOW_GLASS_DAY, WINDOW_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
+
+        /**
+         * A window that stays dark at night, at full night: dark glass (v5.12). A house lights half its
+         * windows ([WindowRoster]) and the others go from the day's glass to this one on the same
+         * `nightGlow` the lit ones warm on; a distant house's unlit window too. Chosen in round A
+         * against the grey the photographs set beside it: it reads as a window with the light off,
+         * where the grey read as a lit window of cold light.
+         */
+        const val UNLIT_GLASS_NIGHT = 0xFF343B47.toInt()
+
+        /** An unlit window at [nightGlow]: the day's glass going to [UNLIT_GLASS_NIGHT]. */
+        fun unlitWindowGlassColor(nightGlow: Float): Int =
+            SceneColour.blendArgb(WINDOW_GLASS_DAY, UNLIT_GLASS_NIGHT, nightGlow.coerceIn(0f, 1f))
+
+        /**
+         * A shop's, the school's or a tower's glass at [nightGlow], [openness] open (its group's opening
+         * hours, [SceneCustomization.opennessFor]): the lit window's colour while it is open, the dark
+         * glass of an unlit window while it is shut, and across its closing fade the one going to the
+         * other -- so at night a closed business is dark like a house's unlit window, and by day both
+         * are the day's glass (v5.12, the maintainer's *«Scuri, come le case (consigliato)»* of
+         * 2026-10-09, asked with the photographs; until then a closed business kept the day's pale glass
+         * at night). Open -- every business with its group's switch off -- it is [windowGlassColor] to
+         * the bit, the colour it always was; and by day, when the two ends are the same colour, it is that
+         * colour to the bit too, not a blend of it with itself that a channel's rounding takes one step down.
+         */
+        fun businessGlassColor(nightGlow: Float, openness: Float): Int {
+            val lit = windowGlassColor(nightGlow)
+            if (openness >= 1f) return lit
+            val unlit = unlitWindowGlassColor(nightGlow)
+            return if (unlit == lit) lit else SceneColour.blendArgb(unlit, lit, openness.coerceIn(0f, 1f))
+        }
+
+        /**
+         * How far inside its pane a house's lit window is laid over the dark glass, in piece units: the
+         * glass mask's cut edge wobbles by up to 0.3 of a unit, and the light must not cross it.
+         */
+        const val LIT_PANE_INSET = 0.4f
+
+        /** A building's own seed for who stands at its windows: its place along the tile, fixed for life. */
+        fun buildingSeedOf(spec: StaticSceneObject): Int = (spec.tileFractionX * 100_003f).toInt()
 
         /**
          * A 22-unit occupant box, read today only by `UnitFrameTest` and `SpriteDrawScaleTest`;
@@ -1424,6 +1531,38 @@ class SceneObjectRenderer(
     }
 
     /**
+     * [drawPersonLayers], only the part inside the box [clipLeft]..[clipRight] x [clipTop]..[clipBottom]
+     * (in the same units as [x] and [y]): a person walking out of a window, or into it, cut to its pane
+     * (v5.12, [WindowWalk]). **Every layer is cut by the same box**, the fixed art and each region's
+     * mask alike: the masks are summed over the fixed layer, and a mask left whole beside a cut fixed
+     * layer would add its colour over the wall -- a halo of the person's shirt where the person is not.
+     */
+    private fun drawPersonLayersClipped(
+        canvas: SceneCanvas,
+        slots: IntArray,
+        x: Float,
+        y: Float,
+        colours: IntArray,
+        clipLeft: Float,
+        clipTop: Float,
+        clipRight: Float,
+        clipBottom: Float,
+    ) {
+        sprites.drawClipped(
+            canvas, slots[PeopleLayerTable.FIXED], x, y, SpriteScale.SCENE_UNITS, SpriteBlitter.UNTINTED,
+            additive = false, clipLeft = clipLeft, clipTop = clipTop, clipRight = clipRight, clipBottom = clipBottom,
+        )
+        for (region in PeopleLayerTable.SKIN until PeopleLayerTable.SLOTS) {
+            val resId = slots[region]
+            if (resId == 0) continue
+            sprites.drawClipped(
+                canvas, resId, x, y, SpriteScale.SCENE_UNITS, colours[region],
+                additive = true, clipLeft = clipLeft, clipTop = clipTop, clipRight = clipRight, clipBottom = clipBottom,
+            )
+        }
+    }
+
+    /**
      * Scratch for one figure's colours, reused between figures.
      *
      * Indexed by [PeopleLayerTable]'s own slot numbers so that the array lines up with the slots
@@ -1762,25 +1901,20 @@ class SceneObjectRenderer(
      * the set that passed the same predicate before.
      *
      * [hour24] is the scene's effective clock hour -- `DayPhase.hour24`, the value that moved the
-     * sun this frame, never a clock read of this class's own. It exists for the business hours:
-     * [businessOpenness] is derived from it once per frame and consumed by the commercial and
-     * tower drawing below. Defaulted to noon so the many tests that draw a frame directly keep
-     * compiling. It also drives the people's colour clock ([clockSeconds]); with the default
-     * customization (`businessHoursEnabled = false`) only the openness stops depending on it,
-     * being constantly 1.
+     * sun this frame, never a clock read of this class's own. It exists for the opening hours:
+     * kept as [frameHour], at which the shops' and the towers' drawing below asks how open each
+     * building is. Defaulted to noon so the many tests that draw a frame directly keep compiling.
+     * It also drives the people's colour clock ([clockSeconds]); with the default customization
+     * (both groups' hours off) only the openness stops depending on it, being constantly 1.
      */
     fun draw(canvas: SceneCanvas, geom: GroundGeometry, dayBlend: Float, elapsedSeconds: SceneTime, screenWidth: Float, screenHeight: Float, hour24: Float = 12f) {
         // v4.30: the people's colours are dealt per crossing off this same clock, for the reason
         // [PeopleColours] gives -- `elapsedSeconds` restarts with the process and would deal the
         // same opening hand every time. Kept for the frame rather than threaded down to
-        // [drawPeople], exactly as [businessOpenness] is.
+        // [drawPeople], exactly as [frameHour] is.
         clockSeconds = PeopleColours.clockSeconds(hour24)
-        businessOpenness = BusinessHours.opennessAt(
-            customization.businessHoursEnabled,
-            customization.businessOpenHour,
-            customization.businessCloseHour,
-            hour24,
-        )
+        frameHour = hour24
+        advanceDoorways(elapsedSeconds)
         leafSourceCount = 0
         drawGroundFlowers(canvas, geom, screenWidth, screenHeight)
         drawGroundPiles(canvas, geom, screenWidth, screenHeight)
@@ -1862,6 +1996,33 @@ class SceneObjectRenderer(
             drawCar(canvas, c, screenWidth, screenHeight, dayBlend)
         }
     }
+
+    /**
+     * Every building that keeps hours, its doorway moved on to this frame ([WindowWalk.Doorway]): who
+     * walks out or in as its group's hours open and close it. Every one of them, seen or not, once a
+     * frame, so a building scrolled into view is where its clock says and not where it was last seen.
+     * A few comparisons a building; nothing allocated.
+     */
+    private fun advanceDoorways(elapsed: SceneTime) {
+        // A cut, not a change: the hour jumped since the last frame, or the opening hours were changed.
+        // The doorways then take their numbers at once ([WindowWalk.Doorway.advance]).
+        val settle = doorwaysSettle || WindowWalk.hourJumped(doorwayHour, frameHour)
+        doorwaysSettle = false
+        doorwayHour = frameHour
+        for (index in staticRuntimes.indices) {
+            val r = staticRuntimes[index]
+            val doorway = r.doorway ?: continue
+            val roster = r.roster ?: continue
+            val layout = r.windowLayout ?: continue
+            doorway.advance(roster, layout, elapsed, customization.opennessFor(variantFor(r.spec), frameHour), settle)
+        }
+    }
+
+    /** The hour the doorways last moved on at ([advanceDoorways]); NaN before the first frame. */
+    private var doorwayHour = Float.NaN
+
+    /** Set when the opening hours change: the next frame is a cut for the doorways ([advanceDoorways]). */
+    private var doorwaysSettle = false
 
     private val personKinds = arrayOf("man", "woman", "boy", "girl")
 
@@ -2484,9 +2645,11 @@ class SceneObjectRenderer(
      * **What the deal costs and what it buys.** The stack is the silhouette the generator dealt
      * this slot ([SilhouetteDeal]; the position hash for an undealt one), so two neighbours carry
      * two silhouettes; that is the whole point of the redraw, and it is also the reason a tower is
-     * more blits than it was. Counted from the table and confirmed by the phone: a tower is **33**
-     * blits against the shipped facade's **6** (three tiers, nine stamped window rows, three bays
-     * and a crown), a large house 9 to 14, a small house 5 to 9, each shop 3. A count is not a
+     * more blits than it was. Counted from the table and confirmed by the phone in v5.0: a tower was
+     * **33** blits against the shipped facade's **6** (three tiers, nine stamped window rows, three
+     * bays and a crown); since v5.11's three heights it is 35 to 49 (39 to 55 with the winter's snow),
+     * a large house 9 to 14, a small house 5 to 9, each shop 3 -- and since v5.12 a house at night
+     * adds a flat card for each lit pane. A count is not a
      * cost, so it was **measured as frame cost on the `perf` build** before this shipped -- see
      * the v5.0 report for the milliseconds, which is the number that decides whether a blit count
      * matters.
@@ -2504,25 +2667,43 @@ class SceneObjectRenderer(
     ) {
         val family = NeighbourhoodTable.FAMILIES[variant] ?: return
         val spec = r.spec
-        // Every wall surface of this building descends from this one value (the glass masks take
-        // [windowGlassColor] instead): one of the two colours the user can edit for what the building
+        // Every wall surface of this building descends from this one value (the glass masks take the
+        // window colours instead, [windowGlassColor] and [unlitWindowGlassColor]): one of the two colours the user can edit for what the building
         // is drawn as -- the houses', the towers' (Buildings) or, since v5.11, the shops' own
         // ([buildingColoursFor]). The pieces carry the rest as weights in their own wall mask -- a
         // roof is the wall towards the ink, a cornice is the wall towards white -- so nothing here
         // invents a colour. See [NeighbourhoodTable].
         val wallColor = customization.wallColourFor(spec, variant, dayBlend)
         val night = (1f - dayBlend).coerceIn(0f, 1f)
-        // A house lights its windows because somebody is in; a business lights them while it is
-        // open. `businessOpenness` is the closing fade, and at 1 -- the default, the toggle off --
+        // A house lights half its windows at night, every one somebody stands at among them
+        // ([WindowRoster]); a business lights them while it is open. `businessOpenness` is the closing fade of this building's group -- the shops' or the
+        // towers' hours, by what it is drawn as -- and at 1 -- the default, the group's switch off --
         // this is arithmetically `1f - dayBlend`, the expression it always was. See [BusinessHours].
+        // Shut, a business's glass is the dark glass of an unlit window at night ([businessGlassColor],
+        // v5.12) and its lamp is dark: `glassNight` is what the lamp lights on.
+        val businessOpenness = customization.opennessFor(variant, frameHour)
         val glassNight = if (family.kind == WindowBuildingKind.HOUSE) night else night * businessOpenness
-        val glassColor = windowGlassColor(glassNight)
+        val glassColor = if (family.kind == WindowBuildingKind.HOUSE) windowGlassColor(glassNight) else businessGlassColor(night, businessOpenness)
         // The pieces are drawn in the height the family declares; the variant states what that
         // height is on screen, so an unusual authored size is absorbed here rather than corrected
         // per asset (AI_PROJECT_RULES 7.3).
         val scale = variant.spriteUnitsTall / family.unitsTall
         val deal = neighbourhoodDeal
         NeighbourhoodComposer.deal(family, spec, deal)
+        // Who is at the windows now, standing or walking, and in a house which are lit ([WindowRoster],
+        // [WindowWalk], v5.12): worked out once for the building's frame, from the roster and the
+        // windows measured when the list was built and the doorway its hours keep.
+        val roster = r.roster
+        val layout = r.windowLayout
+        if (roster != null && layout != null) {
+            WindowWalk.figuresAt(roster, layout, elapsed, r.doorway, windowFigures)
+        } else {
+            windowFigures.count = 0
+        }
+        // A house at night lights half its windows: its glass is dark glass and the lit panes are laid
+        // over it. By day both are the day's glass, so the house is drawn as it always was.
+        val houseLights = roster != null && layout != null && family.kind == WindowBuildingKind.HOUSE && glassNight > 0f
+        val unlitGlass = if (houseLights) unlitWindowGlassColor(glassNight) else glassColor
 
         drawGroundShadow(canvas, family.shadowHalf * scale)
         canvas.save()
@@ -2545,8 +2726,10 @@ class SceneObjectRenderer(
                 when (part.role) {
                     PartRole.WALL_MASK ->
                         sprites.drawTintedAdded(canvas, part.res, part.x, footY + part.y, SpriteScale.SCENE_UNITS, wallColor)
-                    PartRole.GLASS_MASK ->
-                        sprites.drawTintedAdded(canvas, part.res, part.x, footY + part.y, SpriteScale.SCENE_UNITS, glassColor)
+                    PartRole.GLASS_MASK -> {
+                        sprites.drawTintedAdded(canvas, part.res, part.x, footY + part.y, SpriteScale.SCENE_UNITS, unlitGlass)
+                        if (houseLights) drawLitPanes(canvas, roster, layout, placed, unlitGlass, glassColor)
+                    }
                     PartRole.FIXED -> drawSprite(canvas, part.res, part.x, footY + part.y)
                     // A layer *on* the roof, cut to that roof's own outline, never the roof tinted
                     // white: tinting would repaint the building rather than cover it, and
@@ -2556,13 +2739,13 @@ class SceneObjectRenderer(
                     // The lamp lights with the glass beside it (v5.11, inventory I-405 and I-409): on
                     // the same `glassNight`, so a shop's or a tower's stays dark while it is closed.
                     PartRole.LAMP -> drawPorchLight(canvas, x = part.x, y = footY + part.y, lit = glassNight)
-                    PartRole.OCCUPANTS -> {
+                    PartRole.OCCUPANTS -> if (roster != null && layout != null) {
                         val windows = piece.windows
                         for (windowIndex in windows.indices) {
                             val window = windows[windowIndex]
-                            drawWindowOccupant(
-                                canvas, r, window.x, footY + window.y, window.w, window.h,
-                                family.kind, placed.firstWindow + windowIndex, deal.windowCount,
+                            drawWindowPeople(
+                                canvas, r, roster, layout, family.kind, placed.firstWindow + windowIndex,
+                                window.x, footY + window.y, window.w, window.h,
                             )
                         }
                     }
@@ -2588,11 +2771,12 @@ class SceneObjectRenderer(
                 }
             }
         }
+        val smokes = ChimneySmoke.smokes(customization)
         for (index in 0 until deal.size) {
             val placed = deal[index]
             val piece = placed.piece
-            if (family.kind == WindowBuildingKind.HOUSE && piece.smokeY != 0f) {
-                drawChimneySmoke(canvas, r, x = piece.smokeX, topY = placed.baseY + piece.smokeY)
+            if (smokes && family.kind == WindowBuildingKind.HOUSE && piece.smokeY != 0f) {
+                drawChimneySmoke(canvas, r, elapsed, dayBlend, x = piece.smokeX, topY = placed.baseY + piece.smokeY)
             }
             if (family.kind == WindowBuildingKind.SKYSCRAPER && piece.beaconY != 0f) {
                 fillPaint.color = 0xFFE85D4A.toInt()
@@ -2602,27 +2786,69 @@ class SceneObjectRenderer(
         canvas.restore()
     }
 
+    /**
+     * The lit windows of one piece of a house at night, laid over its dark glass (v5.12): each pane
+     * its roster lights, in the building's numbering ([NeighbourhoodComposer.Placed.firstPane]), as a
+     * flat card the size of the pane less [LIT_PANE_INSET], in the lit glass's colour -- or, across a
+     * change, faded between the dark glass and the lit, each fade when it has to start
+     * ([WindowWalk.litAmount]: a window somebody walks out of goes dark once they are out of it), on the
+     * roster's clock [windowFigures] was filled at for this building -- read once for the building, not
+     * once a pane. A rect a lit pane, in the frame's one fill paint; nothing allocated.
+     */
+    private fun drawLitPanes(
+        canvas: SceneCanvas,
+        roster: WindowRoster.Plan,
+        layout: WindowWalk.Layout,
+        placed: NeighbourhoodComposer.Placed,
+        unlitGlass: Int,
+        litGlass: Int,
+    ) {
+        val panes = placed.piece.panes
+        if (panes.isEmpty()) return
+        for (k in panes.indices) {
+            val pane = placed.firstPane + k
+            if (pane >= roster.panes) break
+            val amount = WindowWalk.litAmount(roster, layout, windowFigures, pane)
+            if (amount <= 0f) continue
+            val box = panes[k]
+            fillPaint.color = if (amount >= 1f) litGlass else SceneColour.blendArgb(unlitGlass, litGlass, amount)
+            canvas.drawRect(
+                box.x + LIT_PANE_INSET, placed.baseY + box.y + LIT_PANE_INSET,
+                box.x + box.w - LIT_PANE_INSET, placed.baseY + box.y + box.h - LIT_PANE_INSET,
+                fillPaint,
+            )
+        }
+    }
+
     /** Reused across buildings and frames: see [NeighbourhoodComposer.Deal] for why it is owned
      *  here rather than returned fresh. */
     private val neighbourhoodDeal = NeighbourhoodComposer.Deal()
 
     /**
-     * How lit a vehicle's lamps are, on the `litWindowAlpha` ramp.
+     * How lit a vehicle's lamps are, on the [vehicleLampRamp].
      *
      * Vehicles were the one thing in the scene that did not change between noon and midnight: the
      * houses lit their windows, the shops lit their frontages, and the traffic stayed exactly as
-     * bright as it had been at midday, police beacon included. This reuses `litWindowAlpha`'s
-     * curve -- dark until nightGlow 0.35, full at 0.80 -- and takes 80% of it so that a lamp reads
-     * as a lamp rather than as a light source: at a hundred and forty pixels a car is two small
-     * warm marks, and anything stronger is a neon toy.
+     * bright as it had been at midday, police beacon included. This takes the ramp's curve -- dark
+     * until nightGlow 0.35, full at 0.80 -- and 80% of it so that a lamp reads as a lamp rather than
+     * as a light source: at a hundred and forty pixels a car is two small warm marks, and anything
+     * stronger is a neon toy.
      *
      * Zero for the whole first third of the evening, which is what makes this free by day: every
      * call site is behind `if (alpha > 0)`, so at noon the vehicles cost exactly what they cost
      * before.
      */
-    private fun litVehicleAlpha(nightGlow: Float): Int = (litWindowAlpha(nightGlow) * 0.8f).toInt()
+    private fun litVehicleAlpha(nightGlow: Float): Int = (vehicleLampRamp(nightGlow) * 0.8f).toInt()
 
-    private fun litWindowAlpha(nightGlow: Float): Int =
+    /**
+     * The curve the vehicles' lamps come up on: dark until nightGlow 0.35, full (255) at 0.80.
+     *
+     * It was called `litWindowAlpha` until v5.12 (inventory I-515), after the lit-window overlays it
+     * once faded in; no window has read it since the windows became glass masks on
+     * [windowGlassColor]'s crossfade, and the lamps of [litVehicleAlpha] -- headlights, the police
+     * car's beacons, the taxi's sign -- are what it lights.
+     */
+    private fun vehicleLampRamp(nightGlow: Float): Int =
         (255f * ((nightGlow - 0.35f) / 0.45f).coerceIn(0f, 1f)).toInt()
 
     /**
@@ -2630,8 +2856,8 @@ class SceneObjectRenderer(
      * I-405; the maintainer's «sì» of 2026-10-06).
      *
      * [lit] is the building's own `glassNight` -- the number its glass crossfades on: the night for a
-     * house, the night times the opening hours for a shop and a tower (I-409) -- so a lamp is never
-     * lit beside dark glass. The bulb goes from its paper, [LAMP_UNLIT], to [LAMP_LIT] on it, and the
+     * house, the night times the opening hours for a shop and a tower (I-409) -- so a shop's or a
+     * tower's lamp is never lit while its glass is dark for the night. The bulb goes from its paper, [LAMP_UNLIT], to [LAMP_LIT] on it, and the
      * glow round it appears only as it lights. Fully lit it is the lamp it always was at night; until
      * v5.11 it was that lamp at noon too, glow and all.
      */
@@ -2647,50 +2873,94 @@ class SceneObjectRenderer(
     }
 
     /**
-     * Draws the occupant of one window, if [WindowOccupants] deals it one: a stable count per
-     * building at its kind's rate (about a third of house windows), ranked across the building's
-     * windows and thinned by the business hours for non-houses. It never reads the clock, so
-     * nobody pops in and out between frames.
+     * Everybody seen at one window this frame ([windowFigures], worked out once for the building): whoever
+     * stands still at it, drawn as they always were, and then whoever walks out of it, into it or past it,
+     * cut to the pane ([WindowWalk]) -- in front of anybody standing there. A house's walker is seen
+     * only at the two windows of their move, a business's through every window of the floor they cross.
+     * The count of people per building is the roster's ([WindowRoster]); the hours thin it by walking
+     * people out ([WindowWalk.Doorway]), never by fading them: a half-transparent person is a rendering
+     * artefact (the lesson the birds' dusk recorded).
      */
-    private fun drawWindowOccupant(
+    private fun drawWindowPeople(
         canvas: SceneCanvas,
         r: StaticRuntime,
+        roster: WindowRoster.Plan,
+        layout: WindowWalk.Layout,
+        kind: WindowBuildingKind,
+        window: Int,
         winX: Float,
         winY: Float,
         winW: Float,
         winH: Float,
+    ) {
+        val figures = windowFigures
+        for (f in 0 until figures.count) {
+            if (figures.still[f] != window) continue
+            drawWindowOccupant(canvas, r, roster.origin(figures.person[f]), kind, winX + winW / 2f, winY + winH, winW, facing = 1)
+        }
+        val paneLeft = winX + WindowWalk.PANE_INSET
+        val paneRight = winX + winW - WindowWalk.PANE_INSET
+        for (f in 0 until figures.count) {
+            if (figures.still[f] >= 0 || !figures.seenThrough(f, window, layout)) continue
+            val ref = figures.window[f]
+            val refWidth = layout.width[ref]
+            val x = figures.x[f]
+            val facing = figures.facing[f]
+            if (WindowWalk.bustRight(x, facing, refWidth) <= paneLeft || WindowWalk.bustLeft(x, facing, refWidth) >= paneRight) continue
+            // Cut at the pane's sides only: a walker never leaves the pane upward or downward, so the
+            // box reaches a unit past its top and its bottom and cuts nothing there.
+            drawWindowOccupant(
+                canvas, r, roster.origin(figures.person[f]), kind, x, layout.bottom(ref), refWidth, facing,
+                clipped = true, clipLeft = paneLeft, clipTop = winY - 1f, clipRight = paneRight, clipBottom = winY + winH + 1f,
+            )
+        }
+    }
+
+    /** One building's people this frame: see [drawWindowPeople]. Reused from building to building. */
+    private val windowFigures = WindowWalk.Figures()
+
+    /**
+     * Draws one person at a window: the person of the roster whose first window was [origin] -- whose
+     * address deals their look, so they are the same person at every window they go to -- standing on a
+     * sill at [cx], [cy], sized by a pane [winW] wide, facing [facing] (+1 as the artwork is drawn, -1
+     * mirrored, which is how somebody walking toward -x is drawn). [clipped]: only the part inside the
+     * box [clipLeft]..[clipRight] x [clipTop]..[clipBottom], in the building's units -- a walker cut to
+     * the pane they are seen through.
+     */
+    private fun drawWindowOccupant(
+        canvas: SceneCanvas,
+        r: StaticRuntime,
+        origin: Int,
         kind: WindowBuildingKind,
-        windowIndex: Int,
-        windowCount: Int,
+        cx: Float,
+        cy: Float,
+        winW: Float,
+        facing: Int,
+        clipped: Boolean = false,
+        clipLeft: Float = 0f,
+        clipTop: Float = 0f,
+        clipRight: Float = 0f,
+        clipBottom: Float = 0f,
     ) {
         // The building's own stable identity. `tileFractionX` is its position along the ground
         // tile, which is fixed for the life of the scene, so an occupant does not move house
         // between frames.
-        val buildingSeed = (r.spec.tileFractionX * 100_003f).toInt()
+        val buildingSeed = buildingSeedOf(r.spec)
         val seed = themeId.hashCode()
-        // v4.2 passes how many windows this building has, because occupancy is now a count dealt
-        // across the building's own panes rather than a coin flipped at each one. See
-        // [WindowOccupants.occupantCount] for the tail that removes.
-        //
-        // The business hours thin that dealt count rather than the occupants' alpha: a
-        // half-transparent person is a rendering artefact (the lesson the birds' dusk recorded),
-        // so across the closing fade the occupants leave one at a time, highest deal rank first.
-        // Houses never consult the hours -- see [BusinessHours].
-        val openness = if (kind == WindowBuildingKind.HOUSE) 1f else businessOpenness
-        if (!WindowOccupants.isOccupied(seed, buildingSeed, windowIndex, windowCount, kind, openness)) return
         // Indoors there is no season to read any more, and its absence is `BACKLOG_v4_25.md` item
         // 57 closed: `seasonIndexFor(INDOORS)` was always 0 -- the hat belongs to the street, not to
         // the room behind the pane -- so the winter column of this table named twelve recolours
         // nothing could ever select. [PeopleLayerTable.WINDOW] has one column.
         // Read as two integers rather than as a [WindowOccupant]: one object per lit window per frame
         // was 15 % of what the frame allocated once `setAlpha` stopped (v5.10A).
-        val occupantKind = WindowOccupants.occupantKindIndexAt(seed, buildingSeed, windowIndex, kind)
-        val occupantSkin = WindowOccupants.occupantSkinIndexAt(seed, buildingSeed, windowIndex)
+        val occupantKind = WindowOccupants.occupantKindIndexAt(seed, buildingSeed, origin, kind)
+        val occupantSkin = WindowOccupants.occupantSkinIndexAt(seed, buildingSeed, origin)
         val slots = PeopleLayerTable.WINDOW[occupantKind]
         // **A figure at a window does not cross anything**, so its colours are dealt from its own
-        // address and stay put. That is what it did before v4.30 too; what changed is that the
-        // deal is now over the same palettes the street uses instead of over three shipped PNGs.
-        val address = WindowOccupants.address(buildingSeed, windowIndex)
+        // address and stay put -- the address of the window it first stood at, wherever it walks to
+        // (v5.12). That is what it did before v4.30 too; what changed is that the deal is now over
+        // the same palettes the street uses instead of over three shipped PNGs.
+        val address = WindowOccupants.address(buildingSeed, origin)
         // On channels of their own: 41 and 42 are the pane's presence rank and its occupant's age
         // at this same address, and reading them again made the outfit follow the age and the head
         // colour follow which pane is lit (v5.8C; see [PeopleColours.CH_WINDOW_HEAD]).
@@ -2713,28 +2983,45 @@ class SceneObjectRenderer(
         // written beside it was wrong. `SpriteMeasurementClaimTest` pins the canvas width against
         // the shipped PNG and asserts the divisor is not it; `OneOccupantRuleTest` reads the 0.85
         // and the divisor back out of this function's own source and pins the head's share of the
-        // pane. Neither can drift without failing.
-        val cx = winX + winW / 2f
-        val cy = winY + winH
+        // pane, and `WindowWalkTest` holds [WindowWalk.bustScale] to the same expression. None can
+        // drift without failing.
         canvas.save()
         canvas.translate(cx, cy)
         // Not the canvas width -- see the note above. This is the tuned divisor, and 60 is what it
         // has always been; the canvas is 49 units.
         val s = (winW * 0.85f) / WINDOW_OCCUPANT_DIVISOR_UNITS
-        canvas.scale(s, s)
-        drawPersonLayers(canvas, slots, -WINDOW_HEAD_ANCHOR_X_UNITS, -WINDOW_HEAD_ANCHOR_Y_UNITS, colours)
+        canvas.scale(facing * s, s)
+        if (!clipped) {
+            drawPersonLayers(canvas, slots, -WINDOW_HEAD_ANCHOR_X_UNITS, -WINDOW_HEAD_ANCHOR_Y_UNITS, colours)
+        } else {
+            // The box, from the building's units into the bust's own: the inverse of the translate and
+            // the scale above, a mirrored bust's sides swapped.
+            val a = (clipLeft - cx) / (facing * s)
+            val b = (clipRight - cx) / (facing * s)
+            drawPersonLayersClipped(
+                canvas, slots, -WINDOW_HEAD_ANCHOR_X_UNITS, -WINDOW_HEAD_ANCHOR_Y_UNITS, colours,
+                minOf(a, b), (clipTop - cy) / s, maxOf(a, b), (clipBottom - cy) / s,
+            )
+        }
         canvas.restore()
     }
 
-    /** Shared cozy detail: 3 softly fading smoke puffs rising from a chimney top. */
-    private fun drawChimneySmoke(canvas: SceneCanvas, r: StaticRuntime, x: Float, topY: Float) {
-        fillPaint.color = 0xFFE4E4DC.toInt()
-        fillPaint.setAlphaWithoutAllocating(178)
-        canvas.drawCircle(x + 3f, topY + 6f, 3f, fillPaint)
-        fillPaint.setAlphaWithoutAllocating(127)
-        canvas.drawCircle(x + 6f, topY - 3f, 4f, fillPaint)
-        fillPaint.setAlphaWithoutAllocating(76)
-        canvas.drawCircle(x + 9f, topY - 13f, 5f, fillPaint)
+    /**
+     * The smoke over a house's chimney: [ChimneySmoke.PUFFS] puffs rising from the cap and fading,
+     * each chimney on its own beat, light grey by day and a middle grey at night (see [ChimneySmoke],
+     * which holds the numbers). A circle a puff, in the frame's one fill paint; nothing allocated.
+     * [x], [topY]: the middle of the cap.
+     */
+    private fun drawChimneySmoke(canvas: SceneCanvas, r: StaticRuntime, elapsed: SceneTime, dayBlend: Float, x: Float, topY: Float) {
+        fillPaint.color = ChimneySmoke.colour(dayBlend)
+        val beat = ChimneySmoke.beatOf(r.idleSeed)
+        for (puff in 0 until ChimneySmoke.PUFFS) {
+            val life = ChimneySmoke.life(elapsed, beat, puff)
+            val alpha = ChimneySmoke.alpha(life)
+            if (alpha < 1f) continue
+            fillPaint.setAlphaWithoutAllocating(alpha.toInt())
+            canvas.drawCircle(x + ChimneySmoke.dx(life), topY + ChimneySmoke.dy(life), ChimneySmoke.radius(life), fillPaint)
+        }
         fillPaint.setAlphaWithoutAllocating(255)
     }
 

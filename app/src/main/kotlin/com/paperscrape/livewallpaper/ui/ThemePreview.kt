@@ -95,7 +95,7 @@ private fun drawScene(
         paint.alpha = 255
     }
 
-    for (item in scene.backdrop) if (item.y < horizon) drawItem(item, target, blitter)
+    for (item in scene.backdrop) if (item.y < horizon) drawItem(item, target, blitter, paint)
 
     // The wallpaper's own mountain, `MountainSilhouette`'s parabolic arch, standing on the ground
     // line; the hills, drawn next, cover its foot. The card drew half-ellipses here, and dunes for
@@ -107,7 +107,7 @@ private fun drawScene(
         MountainSilhouette.whole(shape, peak.x, base, peak.halfWidth * 2f, base - peak.peakY)
         target.drawShape(shape, paint)
         // Its distant houses, before the next mountain covers what it covers (v5.11).
-        for (house in peak.houses) drawItem(house, target, blitter)
+        for (house in peak.houses) drawItem(house, target, blitter, paint)
     }
 
     // The hills: one silhouette with a gentle wave, matching the single hill layer the scene
@@ -134,10 +134,10 @@ private fun drawScene(
     // Immediately after the water, and in a pass of its own: see [ThemePreviewScene.water]. The
     // boats used to ride in `backdrop`, which is split at the horizon, so on the one theme whose
     // water reaches above the horizon they were painted under it and vanished.
-    for (item in scene.water) drawItem(item, target, blitter)
+    for (item in scene.water) drawItem(item, target, blitter, paint)
 
-    for (item in scene.backdrop) if (item.y >= horizon) drawItem(item, target, blitter)
-    for (item in scene.items) drawItem(item, target, blitter)
+    for (item in scene.backdrop) if (item.y >= horizon) drawItem(item, target, blitter, paint)
+    for (item in scene.items) drawItem(item, target, blitter, paint)
 
     if (scene.hasRoad) {
         paint.color = scene.roadColour
@@ -148,10 +148,10 @@ private fun drawScene(
             target.drawRect(x, (ROAD_TOP + ROAD_BOTTOM) / 2f - 0.8f, x + 16f, (ROAD_TOP + ROAD_BOTTOM) / 2f + 0.8f, paint)
             x += 36f
         }
-        for (item in scene.cars) drawItem(item, target, blitter)
+        for (item in scene.cars) drawItem(item, target, blitter, paint)
     }
 
-    for (item in scene.ground) drawItem(item, target, blitter)
+    for (item in scene.ground) drawItem(item, target, blitter, paint)
 
     // Rain, snow and falling leaves are drawn over the scene, the way the real precipitation layer
     // is. They were told apart from the stars by radius, and rain and snow are smaller than a leaf,
@@ -165,12 +165,16 @@ private fun drawScene(
     }
 }
 
-private fun drawItem(item: PreviewItem, target: CanvasSceneTarget, blitter: SpriteBlitter) {
+private fun drawItem(item: PreviewItem, target: CanvasSceneTarget, blitter: SpriteBlitter, paint: Paint) {
     target.save()
     target.translate(item.x, item.y)
     target.scale(item.scale, item.scale)
     for (part in item.parts) {
-        if (part.tint != null) {
+        if (part.rectWidth > 0f) {
+            // A flat card, not a sprite: a house's lit window over its dark glass at night (v5.12).
+            paint.color = part.tint ?: continue
+            target.drawRect(part.ox, part.oy, part.ox + part.rectWidth, part.oy + part.rectHeight, paint)
+        } else if (part.tint != null) {
             if (part.added) {
                 blitter.drawTintedAdded(target, part.resId, part.ox, part.oy, SpriteScale.SCENE_UNITS, part.tint, part.alpha)
             } else {

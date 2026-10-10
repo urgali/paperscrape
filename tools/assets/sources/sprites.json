@@ -1253,12 +1253,12 @@
    "name": "bar_chamfer_mg",
    "category": "building",
    "width": 165,
-   "height": 102,
+   "height": 105,
    "contentBox": [
     2,
     2,
     165,
-    100
+    103
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
@@ -1356,12 +1356,12 @@
   {
    "name": "bar_signboard_mg",
    "category": "building",
-   "width": 141,
+   "width": 138,
    "height": 102,
    "contentBox": [
-    0,
+    1,
     2,
-    139,
+    136,
     100
    ],
    "scale": "SCENE_UNITS",
@@ -2885,13 +2885,13 @@
   {
    "name": "house_large_storey_mg",
    "category": "house",
-   "width": 210,
-   "height": 36,
+   "width": 207,
+   "height": 39,
    "contentBox": [
     2,
     0,
-    208,
-    36
+    207,
+    37
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
@@ -3223,13 +3223,13 @@
   {
    "name": "house_small_storey_mg",
    "category": "house",
-   "width": 132,
-   "height": 36,
+   "width": 135,
+   "height": 39,
    "contentBox": [
     2,
-    0,
-    130,
-    36
+    2,
+    135,
+    39
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
@@ -11206,12 +11206,12 @@
    "name": "school_mg",
    "category": "building",
    "width": 294,
-   "height": 51,
+   "height": 114,
    "contentBox": [
     2,
     2,
     292,
-    49
+    112
    ],
    "scale": "SCENE_UNITS",
    "tint": "TINTABLE",
