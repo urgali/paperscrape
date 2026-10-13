@@ -39,12 +39,15 @@ import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.RainbowConfig
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
+import com.paperscrape.livewallpaper.engine.publicsCarriedOver
 import com.paperscrape.livewallpaper.engine.sceneCustomizationFromJson
+import com.paperscrape.livewallpaper.engine.themeKnownAs
 import com.paperscrape.livewallpaper.engine.toJson
 import com.paperscrape.livewallpaper.weather.LiveWeatherStatus
 import com.paperscrape.livewallpaper.weather.WeatherProviderId
 import org.json.JSONObject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -262,7 +265,8 @@ data class WallpaperSettings(
 
 /** Object categories that can be individually customized (visibility, density, 2x day/night
  * colors). The first 5 are structural (houses/buildings/cars/parasols/trees), then the shops (their
- * colours and, since v5.12, their opening hours) and the people (no colour); the rest are seasonal
+ * colours and, since v5.12, their opening hours), the public buildings (the same, since v5.13) and the
+ * people (no colour); the rest are seasonal
  * decorations (snowmen, gifts, etc.) -- both groups are
  * edited the same way, per-theme, via [WallpaperSettings.pendingCustomization], from the "World &
  * scene" and "Seasons & decorations" screens respectively. Both take their starting point from
@@ -276,6 +280,11 @@ enum class ObjectCategory {
     // A preference store written before v5.11 has none of these keys: see
     // `WallpaperPrefs.readFlatCustomization` for how its shops are read.
     SHOPS,
+    // The public buildings' colours -- the school, the fire station and the police station (v5.13) --
+    // and their opening hours (`PUBLIC_HOURS_ENABLED` and its two hours, which `resetCategory(PUBLICS)`
+    // puts back): whether they stand is BUILDINGS' switch, as for SHOPS. A store written before v5.13
+    // has none of these keys: see `WallpaperPrefs.readFlatCustomization` for how its publics are read.
+    PUBLICS,
     // People are a category for visibility and density only. They have no colour: their artwork
     // is finished, four kinds across two seasons, and a tint over it is the mistake
     // `DESIGN_NOTES.md` decision 25 exists to prevent. The four colour keys below exist for every
@@ -355,10 +364,12 @@ class WallpaperPrefs internal constructor(
         val CARS_NIGHT_DENSITY = floatPreferencesKey("cars_night_density")
 
         /**
-         * The opening hours, in two groups since v5.12: the shops' (the restaurant, the school and
-         * the bar) and the towers'. Absent keys read as the [SceneCustomization] defaults -- switch
-         * off, which renders identically to the feature not existing -- unless the store still holds
-         * the one setting of before ([BUSINESS_HOURS_ENABLED]), which each group reads in their place.
+         * The opening hours, in three groups since v5.13 (two in v5.12): the towers', the shops' (the
+         * restaurant, the bar and the shop) and the public buildings' ([PUBLIC_HOURS_ENABLED]: the school's,
+         * the two stations never closing). Absent keys read as the [SceneCustomization] defaults --
+         * switch off, which renders identically to the feature not existing -- unless the store still holds
+         * the one setting of before v5.12 ([BUSINESS_HOURS_ENABLED]), which each group reads in their place;
+         * absent public keys in a store written by the 5.12 read as its shops' hours.
          */
         val SHOP_HOURS_ENABLED = booleanPreferencesKey("shop_hours_enabled")
         val SHOP_OPEN_HOUR = floatPreferencesKey("shop_open_hour")
@@ -366,6 +377,16 @@ class WallpaperPrefs internal constructor(
         val TOWER_HOURS_ENABLED = booleanPreferencesKey("tower_hours_enabled")
         val TOWER_OPEN_HOUR = floatPreferencesKey("tower_open_hour")
         val TOWER_CLOSE_HOUR = floatPreferencesKey("tower_close_hour")
+
+        /**
+         * The third group's opening hours since v5.13, the public buildings' (the school, the fire
+         * station and the police station). A store written before has none, and the school kept the
+         * shops' hours: each reads the shops' in its place until the first edit since writes them
+         * ([carryPublicsOver], [Keys.SCRATCH_KNOWS_PUBLICS]).
+         */
+        val PUBLIC_HOURS_ENABLED = booleanPreferencesKey("public_hours_enabled")
+        val PUBLIC_OPEN_HOUR = floatPreferencesKey("public_open_hour")
+        val PUBLIC_CLOSE_HOUR = floatPreferencesKey("public_close_hour")
 
         /**
          * The one setting of the opening hours from v4.22 to v5.11, for the shops and the towers
@@ -542,6 +563,14 @@ class WallpaperPrefs internal constructor(
          * the shops' own keys first ([ensureFreshPendingTheme]). See [readFlatCustomization].
          */
         val SCRATCH_KNOWS_SHOPS = booleanPreferencesKey("scratch_knows_shops")
+
+        /**
+         * Whether the live edit's keys were written by a build that knows the public buildings have
+         * colours and hours of their own (v5.13). Absent in a store written before -- whose school wore
+         * the shops' colours and hours -- and set by the first edit since, which carries them over into
+         * the public buildings' own keys first ([carryPublicsOver]). See [readFlatCustomization].
+         */
+        val SCRATCH_KNOWS_PUBLICS = booleanPreferencesKey("scratch_knows_publics")
     }
 
     private fun readVariantConfig(prefs: Preferences, category: ObjectCategory, default: ObjectVariantConfig): ObjectVariantConfig =
@@ -556,7 +585,12 @@ class WallpaperPrefs internal constructor(
             autoMode2 = AutoColorMode.fromStorageId(prefs[Keys.autoMode2(category)]),
         )
 
-    val settingsFlow: Flow<WallpaperSettings> = store.data.recoveringFromReadErrors().map { prefs ->
+    // **Read again when the saved themes change** (v5.13, [CustomThemeRegistry.generationFlow]): a theme
+    // of the user's own resolves its defaults -- and the public buildings of a store written before v5.13
+    // -- through the registry, which its own collector fills in no fixed order with this one.
+    val settingsFlow: Flow<WallpaperSettings> = store.data.recoveringFromReadErrors()
+        .combine(CustomThemeRegistry.generationFlow) { prefs, _ -> prefs }
+        .map { prefs ->
         // Falls back to whichever theme's pending edit is currently tagged (see
         // PENDING_CUSTOMIZATION_THEME_ID) -- crucial for seasonal categories specifically:
         // editing just one (e.g. turning snowmen off for Christmas) must NOT silently reset every
@@ -616,10 +650,19 @@ class WallpaperPrefs internal constructor(
      */
     private fun readFlatCustomization(prefs: Preferences, themeId: String): SceneCustomization {
         val defaults = defaultCustomizationFor(themeId)
+        val shops = readShops(prefs, defaults)
+        // Each group's own keys, or -- in a store written before v5.12 -- the one setting both had.
+        val shopHoursEnabled = prefs[Keys.SHOP_HOURS_ENABLED] ?: prefs[Keys.BUSINESS_HOURS_ENABLED] ?: defaults.shopHoursEnabled
+        val shopOpenHour = prefs[Keys.SHOP_OPEN_HOUR] ?: prefs[Keys.BUSINESS_OPEN_HOUR] ?: defaults.shopOpenHour
+        val shopCloseHour = prefs[Keys.SHOP_CLOSE_HOUR] ?: prefs[Keys.BUSINESS_CLOSE_HOUR] ?: defaults.shopCloseHour
+        // The public buildings' (v5.13): their keys, or -- in a store written before -- the shops' hours,
+        // which the school kept until then, and the theme's defaults once this build has written the space.
+        val publicsKnown = prefs[Keys.SCRATCH_KNOWS_PUBLICS] == true
         return SceneCustomization(
             houses = readVariantConfig(prefs, ObjectCategory.HOUSES, defaults.houses),
             buildings = readVariantConfig(prefs, ObjectCategory.BUILDINGS, towersDrawnIn(prefs, defaults.buildings)),
-            shops = readShops(prefs, defaults),
+            shops = shops,
+            publics = readPublics(prefs, defaults, shops),
             cars = readVariantConfig(prefs, ObjectCategory.CARS, defaults.cars),
             parasols = readVariantConfig(prefs, ObjectCategory.PARASOLS, defaults.parasols),
         people = readVariantConfig(prefs, ObjectCategory.PEOPLE, defaults.people),
@@ -633,13 +676,16 @@ class WallpaperPrefs internal constructor(
             stored = prefs[Keys.CARS_NIGHT_DENSITY],
             dayDensity = prefs[Keys.density(ObjectCategory.CARS)] ?: defaults.cars.density,
         ),
-        // Each group's own keys, or -- in a store written before v5.12 -- the one setting both had.
-        shopHoursEnabled = prefs[Keys.SHOP_HOURS_ENABLED] ?: prefs[Keys.BUSINESS_HOURS_ENABLED] ?: defaults.shopHoursEnabled,
-        shopOpenHour = prefs[Keys.SHOP_OPEN_HOUR] ?: prefs[Keys.BUSINESS_OPEN_HOUR] ?: defaults.shopOpenHour,
-        shopCloseHour = prefs[Keys.SHOP_CLOSE_HOUR] ?: prefs[Keys.BUSINESS_CLOSE_HOUR] ?: defaults.shopCloseHour,
+        shopHoursEnabled = shopHoursEnabled,
+        shopOpenHour = shopOpenHour,
+        shopCloseHour = shopCloseHour,
         towerHoursEnabled = prefs[Keys.TOWER_HOURS_ENABLED] ?: prefs[Keys.BUSINESS_HOURS_ENABLED] ?: defaults.towerHoursEnabled,
         towerOpenHour = prefs[Keys.TOWER_OPEN_HOUR] ?: prefs[Keys.BUSINESS_OPEN_HOUR] ?: defaults.towerOpenHour,
         towerCloseHour = prefs[Keys.TOWER_CLOSE_HOUR] ?: prefs[Keys.BUSINESS_CLOSE_HOUR] ?: defaults.towerCloseHour,
+        publicHoursEnabled = prefs[Keys.PUBLIC_HOURS_ENABLED]
+            ?: if (publicsKnown) defaults.publicHoursEnabled else shopHoursEnabled,
+        publicOpenHour = prefs[Keys.PUBLIC_OPEN_HOUR] ?: if (publicsKnown) defaults.publicOpenHour else shopOpenHour,
+        publicCloseHour = prefs[Keys.PUBLIC_CLOSE_HOUR] ?: if (publicsKnown) defaults.publicCloseHour else shopCloseHour,
             trees = readVariantConfig(prefs, ObjectCategory.TREES, defaults.trees),
             snowmen = readVariantConfig(prefs, ObjectCategory.SNOWMEN, defaults.snowmen),
             gifts = readVariantConfig(prefs, ObjectCategory.GIFTS, defaults.gifts),
@@ -782,6 +828,23 @@ class WallpaperPrefs internal constructor(
     }
 
     /**
+     * The public buildings' colours in the live edit (v5.13).
+     *
+     * **A store written before v5.13 has no public keys, and its school wore the shops' colours.** Read
+     * as [publicsCarriedOver] says: the shops' colours [shops] where the user had changed them by hand,
+     * the theme's new pair where they had not. The first edit made since carries that reading into the
+     * public buildings' own keys and marks the space ([Keys.SCRATCH_KNOWS_PUBLICS], [carryPublicsOver]),
+     * after which they are read like any other category's -- so "Reset Public buildings to default" means
+     * the theme's public colours, not the shops'.
+     */
+    private fun readPublics(prefs: Preferences, defaults: SceneCustomization, shops: ObjectVariantConfig): ObjectVariantConfig =
+        if (prefs[Keys.SCRATCH_KNOWS_PUBLICS] == true || holdsCategoryColour(prefs, ObjectCategory.PUBLICS)) {
+            readVariantConfig(prefs, ObjectCategory.PUBLICS, defaults.publics)
+        } else {
+            publicsCarriedOver(shops, defaults)
+        }
+
+    /**
      * What the live edit's Buildings keys are read against: the theme's defaults -- or, for a live edit
      * written before v5.11 that holds a Buildings colour the user chose, the slate its towers were
      * drawn in for the colours it did not store. Such a pair keeps the look it had (the colours stored,
@@ -810,7 +873,7 @@ class WallpaperPrefs internal constructor(
         for ((key, value) in prefs.asMap()) {
             val id = key.name.removePrefix(THEME_CUSTOMIZATION_KEY_PREFIX)
             if (id === key.name || value !is String) continue
-            out[id] = sceneCustomizationFromJson(runCatching { JSONObject(value) }.getOrNull())
+            out[id] = sceneCustomizationFromJson(runCatching { JSONObject(value) }.getOrNull(), themeKnownAs(id))
         }
         return out
     }
@@ -844,6 +907,7 @@ class WallpaperPrefs internal constructor(
         variant(ObjectCategory.HOUSES, c.houses)
         variant(ObjectCategory.BUILDINGS, c.buildings)
         variant(ObjectCategory.SHOPS, c.shops)
+        variant(ObjectCategory.PUBLICS, c.publics)
         variant(ObjectCategory.CARS, c.cars)
         variant(ObjectCategory.PARASOLS, c.parasols)
         variant(ObjectCategory.PEOPLE, c.people)
@@ -862,7 +926,10 @@ class WallpaperPrefs internal constructor(
         this[Keys.TOWER_HOURS_ENABLED] = c.towerHoursEnabled
         this[Keys.TOWER_OPEN_HOUR] = c.towerOpenHour
         this[Keys.TOWER_CLOSE_HOUR] = c.towerCloseHour
-        // Both groups are written, so the one setting of before has nothing left to say.
+        this[Keys.PUBLIC_HOURS_ENABLED] = c.publicHoursEnabled
+        this[Keys.PUBLIC_OPEN_HOUR] = c.publicOpenHour
+        this[Keys.PUBLIC_CLOSE_HOUR] = c.publicCloseHour
+        // All three groups are written, so the one setting of before v5.12 has nothing left to say.
         remove(Keys.BUSINESS_HOURS_ENABLED)
         remove(Keys.BUSINESS_OPEN_HOUR)
         remove(Keys.BUSINESS_CLOSE_HOUR)
@@ -1209,7 +1276,7 @@ class WallpaperPrefs internal constructor(
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
-    /** The shops' opening hours on or off (the restaurant, the school and the bar; v5.12). */
+    /** The shops' opening hours on or off (the restaurant, the bar and the shop; v5.12). */
     suspend fun setShopHoursEnabled(enabled: Boolean, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.SHOP_HOURS_ENABLED] = enabled
@@ -1244,6 +1311,25 @@ class WallpaperPrefs internal constructor(
     suspend fun setTowerCloseHour(hour: Float, forThemeId: String) =
         store.editDurably { it.ensureFreshPendingTheme(forThemeId)
             it[Keys.TOWER_CLOSE_HOUR] = hour
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    /** The public buildings' opening hours on or off (the school's: the two stations never close; v5.13). */
+    suspend fun setPublicHoursEnabled(enabled: Boolean, forThemeId: String) =
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.PUBLIC_HOURS_ENABLED] = enabled
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    suspend fun setPublicOpenHour(hour: Float, forThemeId: String) =
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.PUBLIC_OPEN_HOUR] = hour
+            it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
+        }
+
+    suspend fun setPublicCloseHour(hour: Float, forThemeId: String) =
+        store.editDurably { it.ensureFreshPendingTheme(forThemeId)
+            it[Keys.PUBLIC_CLOSE_HOUR] = hour
             it[Keys.PENDING_CUSTOMIZATION_THEME_ID] = forThemeId
         }
 
@@ -1692,11 +1778,13 @@ class WallpaperPrefs internal constructor(
         prefs.removeCategoryKeys(category)
         // People carry a second density that lives outside the per-category keys; resetting the
         // category has to clear it too, or "reset to default" would leave the night population
-        // wherever the user had dragged it. Cars carry the same pair since v4.22, and the towers and
-        // the shops carry their opening hours -- same rule, same reason, for each: since v5.12
-        // "Reset Buildings to default" puts the towers' hours back and "Reset Shops to default" the
-        // shops'. The one setting of before is gone by now: [ensureFreshPendingTheme] above carried
-        // it into both groups' keys ([carryHoursOver]), so removing a group's keys leaves the other's.
+        // wherever the user had dragged it. Cars carry the same pair since v4.22, and the towers, the
+        // shops and the public buildings carry their opening hours -- same rule, same reason, for each:
+        // since v5.12 "Reset Buildings to default" puts the towers' hours back and "Reset Shops to
+        // default" the shops', and since v5.13 "Reset Public buildings to default" the public buildings'.
+        // The settings of before are gone by now: [ensureFreshPendingTheme] above carried the one setting
+        // into the groups' keys ([carryHoursOver], [carryPublicsOver]), so removing a group's keys leaves
+        // the others'.
         if (category == ObjectCategory.PEOPLE) prefs.remove(Keys.PEOPLE_NIGHT_DENSITY)
         if (category == ObjectCategory.CARS) prefs.remove(Keys.CARS_NIGHT_DENSITY)
         if (category == ObjectCategory.BUILDINGS) {
@@ -1708,6 +1796,11 @@ class WallpaperPrefs internal constructor(
             prefs.remove(Keys.SHOP_HOURS_ENABLED)
             prefs.remove(Keys.SHOP_OPEN_HOUR)
             prefs.remove(Keys.SHOP_CLOSE_HOUR)
+        }
+        if (category == ObjectCategory.PUBLICS) {
+            prefs.remove(Keys.PUBLIC_HOURS_ENABLED)
+            prefs.remove(Keys.PUBLIC_OPEN_HOUR)
+            prefs.remove(Keys.PUBLIC_CLOSE_HOUR)
         }
         // And the trees carry the Palms switch, which is on their page since v5.10C2 (the
         // maintainer: *«il flag non deve stare in summer ma in tree»*): "Reset Trees to default" puts
@@ -1790,6 +1883,9 @@ class WallpaperPrefs internal constructor(
         remove(Keys.TOWER_HOURS_ENABLED)
         remove(Keys.TOWER_OPEN_HOUR)
         remove(Keys.TOWER_CLOSE_HOUR)
+        remove(Keys.PUBLIC_HOURS_ENABLED)
+        remove(Keys.PUBLIC_OPEN_HOUR)
+        remove(Keys.PUBLIC_CLOSE_HOUR)
         remove(Keys.BUSINESS_HOURS_ENABLED)
         remove(Keys.BUSINESS_OPEN_HOUR)
         remove(Keys.BUSINESS_CLOSE_HOUR)
@@ -1809,6 +1905,7 @@ class WallpaperPrefs internal constructor(
         // The marker belongs to the space it describes: an empty space holds no Buildings colour,
         // so the shops read the theme's own either way, and the edit that fills it sets it again.
         remove(Keys.SCRATCH_KNOWS_SHOPS)
+        remove(Keys.SCRATCH_KNOWS_PUBLICS)
         remove(Keys.LAKE_VISIBLE)
         remove(Keys.LAKE_COLOR_DAY)
         remove(Keys.LAKE_COLOR_NIGHT)
@@ -1906,6 +2003,7 @@ class WallpaperPrefs internal constructor(
         if (outgoing == forThemeId) {
             carryShopsOver(forThemeId)
             carryHoursOver()
+            carryPublicsOver(forThemeId)
             return
         }
         // **Archive, do not destroy.** Until v4.3 this branch called
@@ -1938,12 +2036,13 @@ class WallpaperPrefs internal constructor(
         // page still means the theme's own factory values for that page, as its button says.
         val archived = this[Keys.themeCustomization(forThemeId)]
         if (archived != null) {
-            writeFlatCustomization(sceneCustomizationFromJson(runCatching { JSONObject(archived) }.getOrNull()))
+            writeFlatCustomization(sceneCustomizationFromJson(runCatching { JSONObject(archived) }.getOrNull(), themeKnownAs(forThemeId)))
         } else {
             savedLookFor(forThemeId)?.let { writeFlatCustomization(it) }
         }
-        // Written by this build, whose writer gives the shops keys of their own.
+        // Written by this build, whose writer gives the shops and the public buildings keys of their own.
         this[Keys.SCRATCH_KNOWS_SHOPS] = true
+        this[Keys.SCRATCH_KNOWS_PUBLICS] = true
     }
 
     /**
@@ -2000,6 +2099,29 @@ class WallpaperPrefs internal constructor(
         remove(Keys.BUSINESS_HOURS_ENABLED)
         remove(Keys.BUSINESS_OPEN_HOUR)
         remove(Keys.BUSINESS_CLOSE_HOUR)
+    }
+
+    /**
+     * A live edit written before v5.13, edited again: the public buildings' colours and hours it is read
+     * with ([readPublics], [readFlatCustomization]) written into their own keys, once, and the space
+     * marked as this build's -- after the shops' and the hours' own carrying over, which they are read
+     * from. From then on the keys are the truth, so an edit to the shops' colours or hours leaves the
+     * public buildings', and a reset of either page puts back that page's alone.
+     */
+    private fun MutablePreferences.carryPublicsOver(themeId: String) {
+        if (this[Keys.SCRATCH_KNOWS_PUBLICS] == true) return
+        val read = readFlatCustomization(this, themeId)
+        val publics = read.publics
+        this[Keys.colorDay1(ObjectCategory.PUBLICS)] = publics.colorDay1
+        this[Keys.colorNight1(ObjectCategory.PUBLICS)] = publics.colorNight1
+        this[Keys.colorDay2(ObjectCategory.PUBLICS)] = publics.colorDay2
+        this[Keys.colorNight2(ObjectCategory.PUBLICS)] = publics.colorNight2
+        this[Keys.autoMode1(ObjectCategory.PUBLICS)] = publics.autoMode1.storageId
+        this[Keys.autoMode2(ObjectCategory.PUBLICS)] = publics.autoMode2.storageId
+        this[Keys.PUBLIC_HOURS_ENABLED] = read.publicHoursEnabled
+        this[Keys.PUBLIC_OPEN_HOUR] = read.publicOpenHour
+        this[Keys.PUBLIC_CLOSE_HOUR] = read.publicCloseHour
+        this[Keys.SCRATCH_KNOWS_PUBLICS] = true
     }
 
     /**

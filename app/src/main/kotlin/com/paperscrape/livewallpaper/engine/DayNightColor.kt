@@ -330,6 +330,7 @@ fun SceneCustomization.withResolvedDayNightColors(): SceneCustomization = copy(
     houses = houses.resolved(),
     buildings = buildings.resolved(),
     shops = shops.resolved(),
+    publics = publics.resolved(),
     cars = cars.resolved(),
     parasols = parasols.resolved(),
     people = people.resolved(),

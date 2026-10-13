@@ -1,14 +1,14 @@
 {
  "shipped_perimeter": {
-  "files": 99,
-  "decoded": 7308072,
-  "uploaded_level0": 7224996
+  "files": 115,
+  "decoded": 8998596,
+  "uploaded_level0": 8897292
  },
  "concepts": {
   "mix": {
-   "files": 99,
-   "decoded": 7308072,
-   "uploaded_level0": 7224996,
+   "files": 115,
+   "decoded": 8998596,
+   "uploaded_level0": 8897292,
    "per_file": {
     "distant_chalet_fx": {
      "w": 93,
@@ -81,6 +81,54 @@
      "h": 45,
      "decoded": 8640,
      "uploaded": 8448
+    },
+    "fire_station_fx": {
+     "w": 258,
+     "h": 192,
+     "decoded": 198144,
+     "uploaded": 195584
+    },
+    "fire_station_mg": {
+     "w": 216,
+     "h": 39,
+     "decoded": 33696,
+     "uploaded": 31820
+    },
+    "fire_station_mw": {
+     "w": 258,
+     "h": 192,
+     "decoded": 198144,
+     "uploaded": 195584
+    },
+    "fire_station_snow_fx": {
+     "w": 243,
+     "h": 30,
+     "decoded": 29160,
+     "uploaded": 28920
+    },
+    "fire_station_tower_fx": {
+     "w": 63,
+     "h": 285,
+     "decoded": 71820,
+     "uploaded": 70432
+    },
+    "fire_station_tower_mg": {
+     "w": 18,
+     "h": 84,
+     "decoded": 6048,
+     "uploaded": 5904
+    },
+    "fire_station_tower_mw": {
+     "w": 63,
+     "h": 273,
+     "decoded": 68796,
+     "uploaded": 67208
+    },
+    "fire_station_tower_snow_fx": {
+     "w": 54,
+     "h": 48,
+     "decoded": 10368,
+     "uploaded": 9936
     },
     "k1_ground_house_a_fx": {
      "w": 186,
@@ -603,6 +651,54 @@
      "h": 27,
      "decoded": 18144,
      "uploaded": 17928
+    },
+    "police_station_fx": {
+     "w": 315,
+     "h": 222,
+     "decoded": 279720,
+     "uploaded": 278832
+    },
+    "police_station_mg": {
+     "w": 183,
+     "h": 135,
+     "decoded": 98820,
+     "uploaded": 96292
+    },
+    "police_station_mw": {
+     "w": 315,
+     "h": 204,
+     "decoded": 257040,
+     "uploaded": 256224
+    },
+    "police_station_snow_fx": {
+     "w": 312,
+     "h": 30,
+     "decoded": 37440,
+     "uploaded": 37200
+    },
+    "shop_fx": {
+     "w": 204,
+     "h": 177,
+     "decoded": 144432,
+     "uploaded": 144432
+    },
+    "shop_mg": {
+     "w": 159,
+     "h": 96,
+     "decoded": 61056,
+     "uploaded": 59408
+    },
+    "shop_mw": {
+     "w": 204,
+     "h": 177,
+     "decoded": 144432,
+     "uploaded": 143616
+    },
+    "shop_snow_fx": {
+     "w": 204,
+     "h": 63,
+     "decoded": 51408,
+     "uploaded": 50904
     }
    }
   }

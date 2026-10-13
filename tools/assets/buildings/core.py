@@ -37,7 +37,7 @@ DARK = "#2B2A33"               # the scene's dark ink (people, shadows) [M]
 RELIEF_T = 0.34                # shadow paper: mix(card, DARK, 0.34) [M] people
 M_PER_UNIT = 8.2 / 96.0        # common scale: the restaurant's (0.08542 m/u)
 
-FAMILIES = ("HOUSE_SMALL", "HOUSE_LARGE", "TOWER", "RESTAURANT", "BAR", "SCHOOL")
+FAMILIES = ("HOUSE_SMALL", "HOUSE_LARGE", "TOWER", "RESTAURANT", "BAR", "SCHOOL", "SHOP", "FIRE_STATION", "POLICE_STATION")
 #: The family reference height, in piece units, that `SceneVariant.spriteUnitsTall` is divided by.
 #: RESTAURANT and BAR carry the numbers v5.4 item 113 corrected them to (56 and 73, not 96 and
 #: 90.146): both had inherited the height of the two-storey facade the v5.0 redraw replaced, and
@@ -46,11 +46,17 @@ FAMILIES = ("HOUSE_SMALL", "HOUSE_LARGE", "TOWER", "RESTAURANT", "BAR", "SCHOOL"
 #: the regeneration of the shipped five families reproduces all 72 PNGs byte for byte and
 #: differed from the shipped table in exactly these two numbers.
 UNITS_TALL = {"HOUSE_SMALL": 5.76 / M_PER_UNIT, "HOUSE_LARGE": 7.6 / M_PER_UNIT, "TOWER": 15.6 / M_PER_UNIT,
-              "RESTAURANT": 56.0, "BAR": 73.0, "SCHOOL": 6.15 / M_PER_UNIT}
+              "RESTAURANT": 56.0, "BAR": 73.0, "SCHOOL": 6.15 / M_PER_UNIT,
+              # v5.13: each new building's own height at the common metre, crown to foot (`civic.py`); the
+              # fire station's tower peaks at 86 and its lamp reaches 91 on the grid, the school's kind of
+              # margin over a declaration (`BuildingHeightDeclarationTest`).
+              "SHOP": 56.0, "FIRE_STATION": 88.0, "POLICE_STATION": 70.0}
 #: The school is its own `WindowBuildingKind` since v5.6F: it is commercial glass on the street,
 #: but a school shows children and a restaurant and a bar must go on showing adults.
+#: The two stations (v5.13) are their own kind too: street glass like the shops, adults only.
 KIND = {"HOUSE_SMALL": "HOUSE", "HOUSE_LARGE": "HOUSE", "TOWER": "SKYSCRAPER", "RESTAURANT": "COMMERCIAL",
-        "BAR": "COMMERCIAL", "SCHOOL": "SCHOOL"}
+        "BAR": "COMMERCIAL", "SCHOOL": "SCHOOL", "SHOP": "COMMERCIAL", "FIRE_STATION": "STATION",
+        "POLICE_STATION": "STATION"}
 #: There are no per-family drawing tables here, and there should not be. Four stood in this spot
 #: until v5.8 -- pixels per unit, paper-shadow offset, vertex wobble and chamfer, one row per
 #: family -- and nothing read any of them: each drawing module sets its own sizes. v5.6 did not add
@@ -69,27 +75,39 @@ GLASS_DAY, GLASS_NIGHT = "#B9CBD9", "#FFE79A"
 TERRACOTTA = "#A9573F"       # the roof tile: the sail's red brought towards the wood
 SLATE = "#4B5566"            # the slate: the ink brought towards the daytime glass
 INK_ROOF = "#1A1410"
-#: SCHOOL repeats COMMERCIAL's two values rather than aliasing them: the school is drawn from the
-#: same colours the restaurant and the bar are (the Shops category since v5.11, BUILDINGS before),
+#: SCHOOL and STATION repeat COMMERCIAL's two values rather than aliasing them: the school was drawn from
+#: the restaurant's and the bar's colours until v5.13 (the Shops category from v5.11, BUILDINGS before)
+#: and from the public buildings' since,
 #: and `decompose` subtracts these exact strings from the rendered art to get the fixed layer -- a
 #: different base would requantise every pixel of it. These are the generator's base, not the
 #: colours the app draws: the masks are weights, and the wall colour is the user's at the blit.
-WALL_DAY = {"HOUSE": "#F3E6D0", "COMMERCIAL": "#5C6A78", "SKYSCRAPER": "#5C6A78", "SCHOOL": "#5C6A78"}
-WALL_NIGHT = {"HOUSE": "#6B5F52", "COMMERCIAL": "#303842", "SKYSCRAPER": "#303842", "SCHOOL": "#303842"}
-#: The shipped perimeter this accounting covers: every PNG of the six families and of the distant houses
-#: (v5.11, which share the houses' prefix). Duplicated in
+WALL_DAY = {"HOUSE": "#F3E6D0", "COMMERCIAL": "#5C6A78", "SKYSCRAPER": "#5C6A78", "SCHOOL": "#5C6A78",
+            "STATION": "#5C6A78"}
+WALL_NIGHT = {"HOUSE": "#6B5F52", "COMMERCIAL": "#303842", "SKYSCRAPER": "#303842", "SCHOOL": "#303842",
+              "STATION": "#303842"}
+#: The shipped perimeter this accounting covers: every PNG of the nine families and of the distant houses
+#: (v5.11, which share the houses' prefix; the shop and the two stations since v5.13). Duplicated in
 #: `paperscrape_assets.report.BUDGET_PERIMETER_PREFIXES`, which cannot import this module;
 #: `tests/test_budget.py` asserts the two selections agree on the real tree.
 #:
 #: **`tower`, not `skyscraper`** (v5.8B). The towers' PNGs are named `tower_*`, and the list said
 #: `skyscraper`, which matches no file: the "shipped perimeter" was five families and 50 PNGs, the
 #: 26 tower layers left out, while the concept it was compared with drew all six and 76.
-PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school")
+#:
+#: **A prefix is the start of a name up to an underscore** (v5.13): `fire_station` and `police_station`,
+#: not `fire` and `police`, whose first word also names the police car's stripe and light bar.
+PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school", "shop", "fire_station", "police_station")
+
+
+def in_perimeter(name: str) -> bool:
+    """Whether the sprite `name` (with or without `.png`) is one of the perimeter's: its name starts with a
+    prefix and an underscore."""
+    return any(name.startswith(prefix + "_") for prefix in PERIMETER_PREFIXES)
 #: **There is no `BUDGET` here any more** (v5.8B, item 138). It was 4 263 156 B, set at v4.32 when
 #: the neighbourhood was being redrawn: the old neighbourhood's 3 400 236 B plus the 862 920 B then
 #: free under the whole sprite set's decoded-bytes gate (36 MiB at the time) -- the most the new one
 #: could weigh without breaking it. That gate (`SpriteGeometryTest.decodedByteBudget`, the whole
-#: set) has since been raised on the maintainer's word, to 43 MiB and then 45, and this copy of its old margin
+#: set) has since been raised on the maintainer's word, to 43 MiB, then 45 and, in v5.13, 47, and this copy of its old margin
 #: was never retired: the shipped mix has been over it since v5.0, and `budget.md` printed "over
 #: budget" for eight releases while nothing read it. The one ceiling is the gate; this report
 #: measures, and `SpriteGeometryTest` prints the neighbourhood's share of the gate on every build.
@@ -540,14 +558,14 @@ def uploaded_bytes(path):
 def budget(concepts, files_by: dict, out: Path):
     shipped = {}
     for n in sorted(os.listdir(RES)):
-        if n.endswith(".png") and n.split("_")[0] in PERIMETER_PREFIXES and "_q" not in n:
+        if n.endswith(".png") and in_perimeter(n) and "_q" not in n:
             with Image.open(RES / n) as im:
                 size = im.size
             shipped[n[:-4]] = (size[0] * size[1] * 4, uploaded_bytes(RES / n))
     rep = {"shipped_perimeter": {"files": len(shipped), "decoded": sum(v[0] for v in shipped.values()),
                                  "uploaded_level0": sum(v[1] for v in shipped.values())}, "concepts": {}}
     lines = ["# The neighbourhood's sprite bytes (written by build_neighbourhood.py --budget)", "",
-             f"Shipped perimeter ({len(shipped)} PNG, the six building families and the distant houses): {rep['shipped_perimeter']['decoded']} B decoded, "
+             f"Shipped perimeter ({len(shipped)} PNG, the nine building families and the distant houses): {rep['shipped_perimeter']['decoded']} B decoded, "
              f"{rep['shipped_perimeter']['uploaded_level0']} B uploaded (level 0, crop + 1 texel).", "",
              "No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, over the whole "
              "sprite set, which prints its margin -- and this perimeter's share of it -- on every build.", ""]

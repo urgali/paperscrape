@@ -85,6 +85,104 @@ class WindowPeopleCountTest {
         assertTrue(buildings > 100)
     }
 
+    /**
+     * The restaurant, the school and the bar of each built-in street in the 5.12: people at the windows over the
+     * windows they were dealt over, and the colour (Color 1 or 2) their coin gave them -- read off the 5.12's tree
+     * with the 5.12's own code, a fact about the past, so a literal.
+     */
+    private val STOOD_5_12 = mapOf(
+        "sunset" to listOf("1/3c2", "3/4c1", "1/3c1"),
+        "autumn" to listOf("1/3c2", "2/4c1", "1/3c2"),
+        "winter" to listOf("1/3c2", "2/4c2", "1/3c2"),
+        "desert" to listOf("1/3c1", "2/4c1", "1/3c2"),
+        "christmas" to listOf("1/3c2", "2/4c2", "2/3c1"),
+        "new_year" to listOf("2/3c1", "3/4c1", "1/3c1"),
+        "beach" to listOf("1/3c2", "2/4c1", "1/3c1"),
+        "city" to listOf("1/3c2", "2/4c1", "2/3c2"),
+        "tundra" to listOf("1/3c2", "3/4c2", "2/3c2"),
+        "easter" to listOf("1/3c2", "2/4c2", "1/3c2"),
+        "halloween" to listOf("1/3c1", "3/4c2", "1/3c1"),
+        "spring" to listOf("1/3c2", "3/4c2", "1/3c1"),
+    )
+
+    /**
+     * **The restaurant, the school and the bar keep the people and the colour coin they had in the 5.12, on every
+     * built-in street** (v5.13). The places were planned again for six buildings and moved along the street, and the
+     * people at a building are dealt from where it stands: counted against the 5.12 theme by theme, seven of the
+     * twelve streets had a building with one person more or fewer, until each of the three took its identity from
+     * where it stood in the 5.12 (`StorefrontStreet.identities`). The number of people at a building is one of the
+     * quantities the maintainer keeps.
+     */
+    @Test
+    fun `the restaurant, the school and the bar keep their 5_12 people and colour on every built-in street`() {
+        for (theme in ThemeCatalog.ALL) {
+            val seed = theme.id.hashCode()
+            val c = defaultCustomizationFor(theme.id)
+            val ids = StorefrontStreet.identities(StorefrontStreet.places(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)), theme.id)!!
+            for (sf in listOf(Storefront.RESTAURANT, Storefront.SCHOOL, Storefront.BAR)) {
+                val deal = NeighbourhoodComposer.Deal()
+                SceneObjectRenderer.dealStorefront(sf.family, sf, ids[sf.ordinal], deal)
+                val people = WindowOccupants.occupantCount(seed, SceneObjectRenderer.buildingSeedOf(ids[sf.ordinal]), deal.peopleWindows, sf.family.kind)
+                val coin = if (c.storefrontWall(ids[sf.ordinal], sf, 1f) == c.storefrontColours(sf).colorDay1) 1 else 2
+                assertEquals("${theme.id} $sf", STOOD_5_12.getValue(theme.id)[sf.ordinal], "$people/${deal.peopleWindows}c$coin")
+            }
+        }
+        // And the wallpaper asks for them so: the renderer hands its theme to the identities, on the built-in
+        // street's own layout (read in its source, the renderer needing a phone).
+        var dir: java.io.File? = java.io.File(".").absoluteFile
+        var text = ""
+        while (dir != null && text.isEmpty()) {
+            for (prefix in listOf("", "app/")) {
+                val f = java.io.File(dir, "${prefix}src/main/kotlin/com/paperscrape/livewallpaper/engine/SceneObjectRenderer.kt")
+                if (f.isFile) text = f.readText()
+            }
+            dir = dir.parentFile
+        }
+        assertTrue(text.contains("StorefrontStreet.identities(\n        layout, themeId.takeIf { CustomThemeRegistry.overrideLayoutFor(it) == null },"))
+    }
+
+    /**
+     * The shop, the fire station and the police station as v5.13B gave them -- people over the windows they are
+     * dealt across, and which of their group's two colours (`c1`, `c2`) -- read from the 5.13B tree with its own
+     * code, by a probe run on it in v5.13B2.
+     */
+    private val NEW_THREE_5_13B: Map<String, List<String>> = mapOf(
+        "sunset" to listOf("1/3c1", "1/2c2", "1/3c1"),
+        "autumn" to listOf("1/3c1", "1/2c1", "2/3c2"),
+        "winter" to listOf("1/3c1", "1/2c2", "1/3c2"),
+        "desert" to listOf("1/3c1", "1/2c2", "1/3c2"),
+        "christmas" to listOf("1/3c2", "1/2c2", "2/3c1"),
+        "new_year" to listOf("2/3c1", "1/2c2", "1/3c2"),
+        "beach" to listOf("1/3c1", "0/2c1", "1/3c1"),
+        "city" to listOf("2/3c2", "1/2c2", "2/3c1"),
+        "tundra" to listOf("1/3c1", "0/2c2", "1/3c1"),
+        "easter" to listOf("1/3c2", "1/2c1", "2/3c2"),
+        "halloween" to listOf("1/3c2", "1/2c1", "2/3c2"),
+        "spring" to listOf("1/3c1", "1/2c1", "1/3c1"),
+    )
+
+    /**
+     * **All six keep the people and the colour coin v5.13B gave them, on every built-in street** (v5.13B2). The
+     * plan of the five places moved every place along the street, and the people at a building are dealt from
+     * its identity: the identities are the ones v5.13B gave (`StorefrontStreet.identities`), so the restaurant,
+     * the school and the bar keep the 5.12's (the test above) and the three new buildings v5.13B's.
+     */
+    @Test
+    fun `the shop and the two stations keep their v5_13B people and colour on every built-in street`() {
+        for (theme in ThemeCatalog.ALL) {
+            val seed = theme.id.hashCode()
+            val c = defaultCustomizationFor(theme.id)
+            val ids = StorefrontStreet.identities(StorefrontStreet.places(SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)), theme.id)!!
+            for ((k, sf) in listOf(Storefront.SHOP, Storefront.FIRE_STATION, Storefront.POLICE_STATION).withIndex()) {
+                val deal = NeighbourhoodComposer.Deal()
+                SceneObjectRenderer.dealStorefront(sf.family, sf, ids[sf.ordinal], deal)
+                val people = WindowOccupants.occupantCount(seed, SceneObjectRenderer.buildingSeedOf(ids[sf.ordinal]), deal.peopleWindows, sf.family.kind)
+                val coin = if (c.storefrontWall(ids[sf.ordinal], sf, 1f) == c.storefrontColours(sf).colorDay1) 1 else 2
+                assertEquals("${theme.id} $sf", NEW_THREE_5_13B.getValue(theme.id)[k], "$people/${deal.peopleWindows}c$coin")
+            }
+        }
+    }
+
     private fun windowsBefore(family: BuildingFamily, piece: BuildingPiece): Int {
         val variant = NeighbourhoodTable.FAMILIES.entries.first { it.value === family }.key
         val slots = WINDOWS_BEFORE.getValue(variant)

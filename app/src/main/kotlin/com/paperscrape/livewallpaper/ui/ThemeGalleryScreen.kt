@@ -657,6 +657,9 @@ internal fun snapshotEntry(
         // reproduces exactly the traffic that was on screen when the user pressed save --
         // `SavedThemeCarLayoutTest` pins that as an equality, not as an approximation.
         cars = rawLayout.cars,
+        // A place the loader moved on a saved street is saved where that theme stored it (v5.13B2): the copy
+        // keeps its buildings' colours and people, and its next load moves the place the same way.
+        placesAsSaved = rawLayout.placesAsSaved,
     )
     return CustomThemeEntry(id = targetId, name = targetName, theme = theme, layout = layout, customization = activeCustomization)
 }

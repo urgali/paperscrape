@@ -67,22 +67,27 @@ class SceneCustomizationStructureTest {
         "easterEggs" to { c -> c.copy(easterEggs = c.easterEggs.copy(colorDay1 = c.easterEggs.colorDay1 xor 0x00FFFFFF)) },
         "pumpkins" to { c -> c.copy(pumpkins = c.pumpkins.copy(colorDay1 = c.pumpkins.colorDay1 xor 0x00FFFFFF)) },
         "shops" to { c -> c.copy(shops = c.shops.copy(colorDay2 = c.shops.colorDay2 xor 0x00FFFFFF)) },
+        "publics" to { c -> c.copy(publics = c.publics.copy(colorNight1 = c.publics.colorNight1 xor 0x00FFFFFF)) },
     )
 
     /**
      * The categories that are colours and nothing else, so neither list above can hold them: the
-     * shops (v5.11), whose standing is the Buildings switch and which a second switch would contradict.
-     * Their two non-colour fields exist because the storage is generic, and nothing reads them --
-     * `the shops' switch and density move nothing` holds that.
+     * shops (v5.11) and the public buildings (v5.13), whose standing is the Buildings switch and which
+     * a second switch would contradict. Their two non-colour fields exist because the storage is
+     * generic, and nothing reads them -- `the shops' and the public buildings' switches and densities
+     * move nothing` holds that.
      */
-    private val colourOnlyCategories = listOf("shops")
+    private val colourOnlyCategories = listOf("shops", "publics")
 
     @Test
-    fun `the shops' switch and density move nothing`() {
+    fun `the shops' and the public buildings' switches and densities move nothing`() {
         for (theme in ThemeCatalog.ALL) {
             val c = defaultCustomizationFor(theme.id)
-            val moved = c.copy(shops = c.shops.copy(visible = !c.shops.visible, density = 0f))
-            assertTrue("${theme.id}: the shops' fields are not structural", c.staticStructurallyEquals(moved))
+            val moved = c.copy(
+                shops = c.shops.copy(visible = !c.shops.visible, density = 0f),
+                publics = c.publics.copy(visible = !c.publics.visible, density = 0f),
+            )
+            assertTrue("${theme.id}: the groups' fields are not structural", c.staticStructurallyEquals(moved))
             val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).staticObjects
             assertEquals(
                 "${theme.id}: the same objects stand",
@@ -263,8 +268,8 @@ class SceneCustomizationStructureTest {
         assertEquals(
             "SceneCustomization has ObjectVariantConfig fields not covered here: $configFields",
             // 13 until v2.7 removed the balloons outright -- category, sprites, toggle and all; 13
-            // again since v5.11 brought the shops' colours.
-            13,
+            // again since v5.11 brought the shops' colours, 14 since v5.13 brought the public buildings'.
+            14,
             configFields.size,
         )
         assertEquals(

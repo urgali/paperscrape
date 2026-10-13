@@ -4,7 +4,7 @@ package com.paperscrape.livewallpaper.engine
  * How far a building's wall stands from the ground behind it, and how far it has to (v5.11).
  *
  * The maintainer chose theme colours for the towers and a colour of their own for the shops on
- * 2026-10-06, with one condition: *«che i colori non siano troppo uguali al terreno altrimenti non si
+ * 2026-10-06 (and for the public buildings on 2026-10-11, v5.13), with one condition: *«che i colori non siano troppo uguali al terreno altrimenti non si
  * capisce niente»*. This is that condition as a number, so it is checked rather than looked at.
  *
  * ### The measure
@@ -21,7 +21,8 @@ package com.paperscrape.livewallpaper.engine
  * - **By day, 20.** Big City as it was until v5.11 shows the two ends: its second slate, `#5C6A78` on
  *   hills of `#5B6270`, is 3.8 and vanished; its first, `#454B57`, is 9.7 and read only through its
  *   window grid (inventory I-410, photographed in v5.11A). The slate is still
- *   [SceneCustomization.DEFAULT]'s, the start of a theme that is not built in. Among the colours the maintainer chose from the
+ *   [SceneCustomization.DEFAULT]'s, what a payload without a Buildings block reads; a theme that is not built in starts
+ *   since v5.11 from colours chosen against its own ground (`withStartingBuildingColours`). Among the colours the maintainer chose from the
  *   photographs, Autumn's first brick `#B9714A` on the orange hill (12.9) melted into it, and Big
  *   City's steel `#8A96AA` (20.6) stood clear. The gate is that last one: the weakest pair the
  *   photographs showed reading by itself.
@@ -49,8 +50,10 @@ internal object BuildingGroundContrast {
 
     /**
      * The ground a building of [variant] stands against in [c], at one end of the day: the hills,
-     * and for a tower every mountain layer that is shown. A shop stands below the hill's solid line
-     * with its roof below the crest, so only the hills are behind it.
+     * and for a tower every mountain layer that is shown. A building among the houses stands below the
+     * hill's solid line with its roof below the crest, so only the hills are behind it -- in each of the
+     * places alike (five on a built-in street since v5.13B2), which is what lets any of the six stand in any of
+     * them (v5.13).
      */
     fun groundBehind(c: SceneCustomization, variant: SceneSpace.SceneVariant, day: Boolean): IntArray {
         val hills = if (day) c.hillsColorDay else c.hillsColorNight
@@ -63,11 +66,27 @@ internal object BuildingGroundContrast {
     }
 
     /**
-     * The smallest dE between either of the two colours [variant] wears in [c] and the ground behind
-     * it, at one end of the day -- the number the gate is compared with.
+     * The smallest dE between either of the two colours a building drawn as [variant] wears in [c] and the
+     * ground behind it, at one end of the day -- the number the gate is compared with. **A place among the
+     * houses is the worse of its two groups** (v5.13): any of the six buildings can stand in it, so the
+     * shops' colours and the public buildings' both stand against its ground.
      */
     fun worstDeltaE(c: SceneCustomization, variant: SceneSpace.SceneVariant, day: Boolean): Float {
-        val pair = c.buildingColoursFor(variant) ?: return Float.MAX_VALUE
+        val pair = c.buildingColoursFor(variant)
+        if (pair != null) return worstDeltaE(c, variant, day, intArrayOf(pair.colorDay1, pair.colorNight1, pair.colorDay2, pair.colorNight2))
+        return when (variant) {
+            SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR ->
+                minOf(worstDeltaE(c, StorefrontGroup.SHOPS, variant, day), worstDeltaE(c, StorefrontGroup.PUBLIC, variant, day))
+            else -> Float.MAX_VALUE
+        }
+    }
+
+    /**
+     * The same for a group of the buildings among the houses (v5.13) standing in the place drawn as
+     * [variant] -- the restaurant's, the school's or the bar's row of the size table.
+     */
+    fun worstDeltaE(c: SceneCustomization, group: StorefrontGroup, variant: SceneSpace.SceneVariant, day: Boolean): Float {
+        val pair = c.groupColours(group)
         return worstDeltaE(c, variant, day, intArrayOf(pair.colorDay1, pair.colorNight1, pair.colorDay2, pair.colorNight2))
     }
 
@@ -87,7 +106,11 @@ internal object BuildingGroundContrast {
     fun margin(c: SceneCustomization, variant: SceneSpace.SceneVariant, pair: IntArray): Float =
         minOf(worstDeltaE(c, variant, true, pair) / DAY_GATE, worstDeltaE(c, variant, false, pair) / NIGHT_GATE)
 
-    /** Whether [variant]'s two colours in [c] clear both gates. */
+    /** Whether [variant]'s two colours in [c] clear both gates -- for a place among the houses, both groups' four. */
     fun passes(c: SceneCustomization, variant: SceneSpace.SceneVariant): Boolean =
         worstDeltaE(c, variant, day = true) >= DAY_GATE && worstDeltaE(c, variant, day = false) >= NIGHT_GATE
+
+    /** Whether [group]'s two colours in [c] clear both gates in the place drawn as [variant] (v5.13). */
+    fun passes(c: SceneCustomization, group: StorefrontGroup, variant: SceneSpace.SceneVariant): Boolean =
+        worstDeltaE(c, group, variant, day = true) >= DAY_GATE && worstDeltaE(c, group, variant, day = false) >= NIGHT_GATE
 }

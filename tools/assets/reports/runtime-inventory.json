@@ -22,17 +22,17 @@
       "content_row_max": 0.9863636363636363,
       "content_width": 220,
       "decoded_bytes": 149184,
-      "distinct_colour_count": 383,
-      "file_bytes": 6606,
+      "distinct_colour_count": 386,
+      "file_bytes": 6642,
       "fully_opaque": false,
       "has_alpha_channel": true,
       "height": 168,
       "mode": "RGBA",
       "name": "bar_chamfer_fx",
       "on_grid": true,
-      "opaque_rgb_count": 318,
-      "pixels_sha256": "3c282f5631370a4e7f1f5e91a77f3e6c8d5a1dba9ca211b9c4e6654d55f26a61",
-      "sha256": "b16c138af95b37de5844959b78eaaff8b17bce740c51566331a63e4170244296",
+      "opaque_rgb_count": 321,
+      "pixels_sha256": "300a67ba4a102d62e0a7654bf6528f02b8f0adf00de656e1b2f9f9b3b2b64eef",
+      "sha256": "5ca65b5312dbf72b5ba7d8a06c15e41b1c15d41d8a34332c8c963db2ed8aa943",
       "transparent_padding_bytes": 3984,
       "transparent_padding_fraction": 0.026705276705276705,
       "width": 222
@@ -936,6 +936,294 @@
       "transparent_padding_bytes": 0,
       "transparent_padding_fraction": 0.0,
       "width": 96
+    },
+    {
+      "content_band_centre_x": [
+        0.500945445726626,
+        0.4986818968565569
+      ],
+      "content_band_coverage": [
+        0.9607128056361376,
+        0.9477414007459594
+      ],
+      "content_bbox": [
+        2,
+        2,
+        256,
+        192
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.9542271031910485,
+      "content_height": 190,
+      "content_row_max": 0.984251968503937,
+      "content_width": 254,
+      "decoded_bytes": 198144,
+      "distinct_colour_count": 339,
+      "file_bytes": 6452,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 192,
+      "mode": "RGBA",
+      "name": "fire_station_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 274,
+      "pixels_sha256": "b3b065dc350ae6cb4332b4f91380ecb311a25a1e96fbba0e615ad890071df415",
+      "sha256": "3e6e5527f2139211fe6a1a296b2d1b69383bbd38012ef4e6cf1e8760e48e9107",
+      "transparent_padding_bytes": 5104,
+      "transparent_padding_fraction": 0.02575904392764858,
+      "width": 258
+    },
+    {
+      "content_band_centre_x": [
+        0.5076472470775472,
+        0.49666914594314915
+      ],
+      "content_band_coverage": [
+        0.5940076965365585,
+        0.6002076843198338
+      ],
+      "content_bbox": [
+        2,
+        2,
+        216,
+        37
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.597196261682243,
+      "content_height": 35,
+      "content_row_max": 0.6308411214953271,
+      "content_width": 214,
+      "decoded_bytes": 33696,
+      "distinct_colour_count": 26,
+      "file_bytes": 546,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 39,
+      "mode": "RGBA",
+      "name": "fire_station_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "63ffd30b3cb084cc3493c9583c6c60cd52d572aef33a6890c05f49b2a18d0643",
+      "sha256": "dc730a958803412de6cc71676b9c2db21f5b966d0270e6e17cdab25f46c048c3",
+      "transparent_padding_bytes": 3736,
+      "transparent_padding_fraction": 0.11087369420702754,
+      "width": 216
+    },
+    {
+      "content_band_centre_x": [
+        0.5333399436023382,
+        0.7100486733386683
+      ],
+      "content_band_coverage": [
+        0.5147009549338247,
+        0.29726481558226275
+      ],
+      "content_bbox": [
+        2,
+        2,
+        256,
+        191
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.4054076573761613,
+      "content_height": 189,
+      "content_row_max": 0.984251968503937,
+      "content_width": 254,
+      "decoded_bytes": 198144,
+      "distinct_colour_count": 116,
+      "file_bytes": 2436,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 192,
+      "mode": "RGBA",
+      "name": "fire_station_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "dd7d0f72e0ea46022bdced20cf6811e53365bfe0c9bfe9d17fa6f7628ab83c2a",
+      "sha256": "58e829c7c9bf66934a2323415b261f1f0cf054c3038f2603f7f2d3e3351128ad",
+      "transparent_padding_bytes": 6120,
+      "transparent_padding_fraction": 0.030886627906976744,
+      "width": 258
+    },
+    {
+      "content_band_centre_x": [
+        0.49518841077412173,
+        0.49418635302688274
+      ],
+      "content_band_coverage": [
+        0.9244072524407252,
+        0.7305439330543934
+      ],
+      "content_bbox": [
+        2,
+        0,
+        241,
+        30
+      ],
+      "content_column_max": 0.9666666666666667,
+      "content_coverage": 0.8274755927475593,
+      "content_height": 30,
+      "content_row_max": 1.0,
+      "content_width": 239,
+      "decoded_bytes": 29160,
+      "distinct_colour_count": 74,
+      "file_bytes": 2059,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 30,
+      "mode": "RGBA",
+      "name": "fire_station_snow_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 36,
+      "pixels_sha256": "c6e51f0549f89db934382e98519d83e7447cc1349fc596f15b21f0d1cb20d9c7",
+      "sha256": "6acbd890c43bcfaa549aab6ff64980dfa13daedf1052d5b806091f9cd3961fd7",
+      "transparent_padding_bytes": 480,
+      "transparent_padding_fraction": 0.01646090534979424,
+      "width": 243
+    },
+    {
+      "content_band_centre_x": [
+        0.5019939392663987,
+        0.5102831987753567
+      ],
+      "content_band_coverage": [
+        0.7245669108243228,
+        0.8753174786423459
+      ],
+      "content_bbox": [
+        2,
+        0,
+        63,
+        283
+      ],
+      "content_column_max": 0.9964664310954063,
+      "content_coverage": 0.8002085384927301,
+      "content_height": 283,
+      "content_row_max": 0.9180327868852459,
+      "content_width": 61,
+      "decoded_bytes": 71820,
+      "distinct_colour_count": 172,
+      "file_bytes": 2490,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 285,
+      "mode": "RGBA",
+      "name": "fire_station_tower_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 106,
+      "pixels_sha256": "c2c777b4c65ac2b880248ddec62c87ebcffa8763736654a39cc196aeb8e085d4",
+      "sha256": "43913c104ef3fa16bf486c68180bbf748d0217b540d3f7e528fbae53723470e7",
+      "transparent_padding_bytes": 2768,
+      "transparent_padding_fraction": 0.03854079643553328,
+      "width": 63
+    },
+    {
+      "content_band_centre_x": [
+        0.47233893557422973,
+        0.4795501022494888
+      ],
+      "content_band_coverage": [
+        0.7411764705882353,
+        0.7191176470588235
+      ],
+      "content_bbox": [
+        1,
+        2,
+        18,
+        82
+      ],
+      "content_column_max": 0.8,
+      "content_coverage": 0.7301470588235294,
+      "content_height": 80,
+      "content_row_max": 1.0,
+      "content_width": 17,
+      "decoded_bytes": 6048,
+      "distinct_colour_count": 20,
+      "file_bytes": 316,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 84,
+      "mode": "RGBA",
+      "name": "fire_station_tower_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "f2bc90535cb63ce2528e36cdb444ca4a678b0f47078bb1f71c5b638ee7215dc5",
+      "sha256": "4e17cccc25579792ede594d3220e57475ac0850899fe1de31e2fe55095d981dd",
+      "transparent_padding_bytes": 608,
+      "transparent_padding_fraction": 0.10052910052910052,
+      "width": 18
+    },
+    {
+      "content_band_centre_x": [
+        0.5088920953357787,
+        0.510929727618413
+      ],
+      "content_band_coverage": [
+        0.6921947638854906,
+        0.8664238008500303
+      ],
+      "content_bbox": [
+        2,
+        2,
+        63,
+        271
+      ],
+      "content_column_max": 0.9702602230483272,
+      "content_coverage": 0.7796331281613749,
+      "content_height": 269,
+      "content_row_max": 0.9180327868852459,
+      "content_width": 61,
+      "decoded_bytes": 68796,
+      "distinct_colour_count": 101,
+      "file_bytes": 1585,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 273,
+      "mode": "RGBA",
+      "name": "fire_station_tower_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 0,
+      "pixels_sha256": "858ee8d215d925da9cbcde89b6f210b201eb9af594365b6af24c0a9be2fef41f",
+      "sha256": "75fcd2461796683446faf57e0550dcec1e9bf5673824eddf1e0f2225711b2088",
+      "transparent_padding_bytes": 3160,
+      "transparent_padding_fraction": 0.04593290307576022,
+      "width": 63
+    },
+    {
+      "content_band_centre_x": [
+        0.5087202085402185,
+        0.2738412633305988
+      ],
+      "content_band_coverage": [
+        0.5214408233276158,
+        0.3156089193825043
+      ],
+      "content_bbox": [
+        0,
+        2,
+        53,
+        46
+      ],
+      "content_column_max": 0.5909090909090909,
+      "content_coverage": 0.41852487135506006,
+      "content_height": 44,
+      "content_row_max": 0.9811320754716981,
+      "content_width": 53,
+      "decoded_bytes": 10368,
+      "distinct_colour_count": 106,
+      "file_bytes": 1418,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 48,
+      "mode": "RGBA",
+      "name": "fire_station_tower_snow_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 44,
+      "pixels_sha256": "e633b399d8b30b20dd635da022f049b7e122470eac3b2be4a93678ab3c46404f",
+      "sha256": "c0c3346ba4d6db1b2d7ccea177eb48f719ebb16a057c611c46f42f56b1649781",
+      "transparent_padding_bytes": 1040,
+      "transparent_padding_fraction": 0.10030864197530864,
+      "width": 54
     },
     {
       "content_band_centre_x": [
@@ -13323,6 +13611,150 @@
     },
     {
       "content_band_centre_x": [
+        0.5008005225422287,
+        0.4994718267055966
+      ],
+      "content_band_coverage": [
+        0.8299825174825175,
+        0.9745033495033495
+      ],
+      "content_bbox": [
+        2,
+        0,
+        314,
+        221
+      ],
+      "content_column_max": 0.995475113122172,
+      "content_coverage": 0.9025699037011254,
+      "content_height": 221,
+      "content_row_max": 1.0,
+      "content_width": 312,
+      "decoded_bytes": 279720,
+      "distinct_colour_count": 553,
+      "file_bytes": 9224,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 222,
+      "mode": "RGBA",
+      "name": "police_station_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 461,
+      "pixels_sha256": "5b45a8e2213c65e68fdeedabf10f11969964bb7ccce06c36837590b56087e942",
+      "sha256": "a19d5eb3ed7baeea43dc120e33c3719cbd6072f4baef5456aed5f2a2e6a06328",
+      "transparent_padding_bytes": 3912,
+      "transparent_padding_fraction": 0.013985413985413985,
+      "width": 315
+    },
+    {
+      "content_band_centre_x": [
+        0.49694119529795155,
+        0.24391429672801754
+      ],
+      "content_band_coverage": [
+        0.3960464116888698,
+        0.24657186389029964
+      ],
+      "content_bbox": [
+        2,
+        2,
+        181,
+        133
+      ],
+      "content_column_max": 0.5801526717557252,
+      "content_coverage": 0.3207386242483688,
+      "content_height": 131,
+      "content_row_max": 0.7653631284916201,
+      "content_width": 179,
+      "decoded_bytes": 98820,
+      "distinct_colour_count": 27,
+      "file_bytes": 986,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 135,
+      "mode": "RGBA",
+      "name": "police_station_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "13aaf10d3725ef79ba3a4f6866c0586ed5531b37495a198efb33850eb097fbfd",
+      "sha256": "342dea23d4650f11be5320706e16c17f144e92883fdd3009f865360c59b63abb",
+      "transparent_padding_bytes": 5024,
+      "transparent_padding_fraction": 0.05083991094920057,
+      "width": 183
+    },
+    {
+      "content_band_centre_x": [
+        0.45481256534297304,
+        0.34555729043139116
+      ],
+      "content_band_coverage": [
+        0.4591901497842092,
+        0.46315689261233817
+      ],
+      "content_bbox": [
+        2,
+        1,
+        314,
+        203
+      ],
+      "content_column_max": 0.9801980198019802,
+      "content_coverage": 0.46117352119827365,
+      "content_height": 202,
+      "content_row_max": 1.0,
+      "content_width": 312,
+      "decoded_bytes": 257040,
+      "distinct_colour_count": 151,
+      "file_bytes": 3487,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 204,
+      "mode": "RGBA",
+      "name": "police_station_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "a2ea74dc7cb00c7a7beb78c79023f27870613b8d691e3675149324834d6fdfcc",
+      "sha256": "07f67a0842686d6c12fd8a4c7fbcc58705424734a2dcc0cfa37d84760da52fb9",
+      "transparent_padding_bytes": 4944,
+      "transparent_padding_fraction": 0.019234360410831,
+      "width": 315
+    },
+    {
+      "content_band_centre_x": [
+        0.48677742392590534,
+        0.4810778393580942
+      ],
+      "content_band_coverage": [
+        0.7696969696969697,
+        0.5437229437229437
+      ],
+      "content_bbox": [
+        2,
+        0,
+        310,
+        30
+      ],
+      "content_column_max": 1.0,
+      "content_coverage": 0.6567099567099567,
+      "content_height": 30,
+      "content_row_max": 0.8116883116883117,
+      "content_width": 308,
+      "decoded_bytes": 37440,
+      "distinct_colour_count": 109,
+      "file_bytes": 2440,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 30,
+      "mode": "RGBA",
+      "name": "police_station_snow_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 47,
+      "pixels_sha256": "d0c56abe1ac71c364faa1f08f0f727469ea82d4cf639ccc64c39b8409ca36a18",
+      "sha256": "20e9730a2d70162b5cae6a5b37766d3c179497b8a66e3987575933c5f5b75891",
+      "transparent_padding_bytes": 480,
+      "transparent_padding_fraction": 0.01282051282051282,
+      "width": 312
+    },
+    {
+      "content_band_centre_x": [
         0.49181850958205064,
         0.5072362278244631
       ],
@@ -13819,8 +14251,8 @@
       "name": "school_fx",
       "on_grid": true,
       "opaque_rgb_count": 516,
-      "pixels_sha256": "e37d89957f21a6b23e838d39a7434ff78210baa4359250b9fe4365ab7c62e1b4",
-      "sha256": "cbbf236612702a76bd7812bfa6c3c08559468d4b5dc7c6332b57f2653926459d",
+      "pixels_sha256": "01970b20ad4589da914c29a5e30660cf4b0ab83f60721ad88b7492e0c919b120",
+      "sha256": "42f8be4d7c64f6ab7289442cae0ddd1567bb1c8ab320704a174a082fefdf3382",
       "transparent_padding_bytes": 4080,
       "transparent_padding_fraction": 0.01338055883510429,
       "width": 330
@@ -13932,6 +14364,150 @@
       "transparent_padding_bytes": 1488,
       "transparent_padding_fraction": 0.012345679012345678,
       "width": 324
+    },
+    {
+      "content_band_centre_x": [
+        0.4929876169082861,
+        0.4940241597667571
+      ],
+      "content_band_coverage": [
+        0.7185598377281948,
+        0.9478052584670231
+      ],
+      "content_bbox": [
+        0,
+        1,
+        204,
+        176
+      ],
+      "content_column_max": 0.9885714285714285,
+      "content_coverage": 0.8338375350140056,
+      "content_height": 175,
+      "content_row_max": 0.9950980392156863,
+      "content_width": 204,
+      "decoded_bytes": 144432,
+      "distinct_colour_count": 751,
+      "file_bytes": 10798,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 177,
+      "mode": "RGBA",
+      "name": "shop_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 656,
+      "pixels_sha256": "40112594250eeed71786ec1ae9dcf94c599d5f198c160f60ac2dd53167755223",
+      "sha256": "8d22ad0d7cb34daaa7ac375a2ae2dcc36f76d073102454c64cc607573d660fb0",
+      "transparent_padding_bytes": 1632,
+      "transparent_padding_fraction": 0.011299435028248588,
+      "width": 204
+    },
+    {
+      "content_band_centre_x": [
+        0.4640789055936885,
+        0.6227781832693591
+      ],
+      "content_band_coverage": [
+        0.3139019662143451,
+        0.5038770423705344
+      ],
+      "content_bbox": [
+        0,
+        2,
+        157,
+        94
+      ],
+      "content_column_max": 0.8043478260869565,
+      "content_coverage": 0.40888950429243975,
+      "content_height": 92,
+      "content_row_max": 0.6496815286624203,
+      "content_width": 157,
+      "decoded_bytes": 61056,
+      "distinct_colour_count": 50,
+      "file_bytes": 1127,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 96,
+      "mode": "RGBA",
+      "name": "shop_mg",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "8b6dbce18fd0e3ba5d33aac8891f749e4324922c900dd934775bd80fc9a3b2f0",
+      "sha256": "0faaeb6e8cfc2d263c967e707bd178f4a094a31f5f3e1fa66fb37be137cda793",
+      "transparent_padding_bytes": 3280,
+      "transparent_padding_fraction": 0.05372117400419287,
+      "width": 159
+    },
+    {
+      "content_band_centre_x": [
+        0.49634820824881676,
+        0.3218410073014454
+      ],
+      "content_band_coverage": [
+        0.4084967320261438,
+        0.37812711291413115
+      ],
+      "content_bbox": [
+        0,
+        1,
+        204,
+        175
+      ],
+      "content_column_max": 0.7931034482758621,
+      "content_coverage": 0.39331192247013746,
+      "content_height": 174,
+      "content_row_max": 0.7794117647058824,
+      "content_width": 204,
+      "decoded_bytes": 144432,
+      "distinct_colour_count": 174,
+      "file_bytes": 3650,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 177,
+      "mode": "RGBA",
+      "name": "shop_mw",
+      "on_grid": true,
+      "opaque_rgb_count": 1,
+      "pixels_sha256": "c38c050759dc878279aa657dc8e06ad396adc5e5274b7919f0bd396e37d2c7e6",
+      "sha256": "3846ea04c30bca811ebc9ea923b32f6853b0051ae2af5e2b69b726c561de0bb0",
+      "transparent_padding_bytes": 2448,
+      "transparent_padding_fraction": 0.01694915254237288,
+      "width": 204
+    },
+    {
+      "content_band_centre_x": [
+        0.4668111455108359,
+        0.489776295133438
+      ],
+      "content_band_coverage": [
+        0.20838709677419354,
+        0.41096774193548385
+      ],
+      "content_bbox": [
+        2,
+        1,
+        202,
+        63
+      ],
+      "content_column_max": 0.45161290322580644,
+      "content_coverage": 0.3096774193548387,
+      "content_height": 62,
+      "content_row_max": 0.62,
+      "content_width": 200,
+      "decoded_bytes": 51408,
+      "distinct_colour_count": 181,
+      "file_bytes": 2792,
+      "fully_opaque": false,
+      "has_alpha_channel": true,
+      "height": 63,
+      "mode": "RGBA",
+      "name": "shop_snow_fx",
+      "on_grid": true,
+      "opaque_rgb_count": 59,
+      "pixels_sha256": "89fba59e836fdad78634abaf1cfe5c54eccbe8bd1474fa94ee7b48722d0cd78f",
+      "sha256": "5fcbd98bf0afaefda1c6ec132472915e42fb38ad9e355e452f4900d28b64d816",
+      "transparent_padding_bytes": 1808,
+      "transparent_padding_fraction": 0.03516962340491752,
+      "width": 204
     },
     {
       "content_band_centre_x": [

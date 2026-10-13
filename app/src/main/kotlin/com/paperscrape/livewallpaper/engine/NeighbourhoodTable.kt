@@ -3,7 +3,7 @@ package com.paperscrape.livewallpaper.engine
 import com.paperscrape.livewallpaper.R
 
 /**
- * What each of the six building families is made of, and the distant houses. **Generated** by
+ * What each of the nine building families is made of, and the distant houses. **Generated** by
  * `tools/assets/buildings/build_neighbourhood.py`; edit that script, not this file.
  *
  * A family is a list of SLOTS, bottom-up. A slot holds the alternative PIECES the composer may
@@ -59,7 +59,8 @@ internal class BuildingPiece(
     /**
      * How many of its building's people this piece brings, as a count of windows (v5.12): its own
      * window count, except where a piece gained windows in v5.12 -- the storeys, the school's upper
-     * floor, the bars' -- and brings the people it did before. The number of people at a building's
+     * floor, the bars' -- and brings the people it did before; and the shop and the two stations (v5.13), which
+     * bring fewer than their windows, at the shops' rate (`civic.py`). The number of people at a building's
      * windows is one of the scene's quantities the maintainer keeps, and the table he approved said it
      * stays (*«il resto si a tutto»*, 2026-10-09): it is dealt over this
      * ([NeighbourhoodComposer.Deal.peopleWindows]), the windows they stand at over all of them.
@@ -484,6 +485,58 @@ internal object NeighbourhoodTable {
         people = 4,
     )
 
+    private val SHOP = BuildingPiece(
+        56.00f,
+        listOf(
+        BuildingPart(R.drawable.shop_fx, -33.00f, -56.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.shop_mw, -33.00f, -56.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.shop_mg, -24.00f, -39.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.shop_snow_fx, -34.00f, -58.00f, PartRole.SNOW),
+        BuildingPart(0, -22.00f, -27.00f, PartRole.LAMP),
+        ),
+        listOf(BuildingWindow(-11.00f, -21.00f, 11.00f, 13.00f), BuildingWindow(3.00f, -21.00f, 11.00f, 13.00f), BuildingWindow(17.00f, -21.00f, 11.00f, 13.00f), BuildingWindow(-24.00f, -38.00f, 11.00f, 11.00f), BuildingWindow(13.00f, -38.00f, 11.00f, 11.00f)),
+        listOf(BuildingWindow(-11.00f, -6.50f, 39.00f, 0f)),
+        0.00f, 0.00f, 0.00f, 0.00f,
+        people = 3,
+    )
+
+    private val FIRE_STATION = BuildingPiece(
+        84.00f,
+        listOf(
+        BuildingPart(R.drawable.fire_station_tower_fx, 28.00f, -91.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.fire_station_tower_mw, 28.00f, -87.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.fire_station_tower_mg, 35.00f, -67.00f, PartRole.GLASS_MASK),
+        BuildingPart(R.drawable.fire_station_fx, -52.00f, -61.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.fire_station_mw, -52.00f, -61.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.fire_station_mg, -48.00f, -56.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.fire_station_tower_snow_fx, 29.00f, -89.00f, PartRole.SNOW),
+        BuildingPart(R.drawable.fire_station_snow_fx, -52.00f, -63.00f, PartRole.SNOW),
+        BuildingPart(0, 38.00f, -25.00f, PartRole.LAMP),
+        ),
+        listOf(BuildingWindow(-47.00f, -55.00f, 11.00f, 11.00f), BuildingWindow(-31.00f, -55.00f, 11.00f, 11.00f), BuildingWindow(-3.00f, -55.00f, 11.00f, 11.00f), BuildingWindow(13.00f, -55.00f, 11.00f, 11.00f)),
+        listOf(BuildingWindow(-47.00f, -42.50f, 27.00f, 0f), BuildingWindow(-3.00f, -42.50f, 27.00f, 0f)),
+        0.00f, 0.00f, 0.00f, 0.00f,
+        people = 2,
+    )
+
+    private val POLICE_STATION = BuildingPiece(
+        70.00f,
+        listOf(
+        BuildingPart(R.drawable.police_station_fx, -52.00f, -71.00f, PartRole.FIXED),
+        BuildingPart(R.drawable.police_station_mw, -52.00f, -65.00f, PartRole.WALL_MASK),
+        BuildingPart(R.drawable.police_station_mg, -16.00f, -55.00f, PartRole.GLASS_MASK),
+        BuildingPart(0, 0f, 0f, PartRole.OCCUPANTS),
+        BuildingPart(R.drawable.police_station_snow_fx, -52.00f, -67.00f, PartRole.SNOW),
+        BuildingPart(0, -17.00f, -20.00f, PartRole.LAMP),
+        ),
+        listOf(BuildingWindow(-15.00f, -24.00f, 12.00f, 13.00f), BuildingWindow(1.00f, -24.00f, 12.00f, 13.00f), BuildingWindow(-15.00f, -54.00f, 11.00f, 11.00f), BuildingWindow(1.00f, -54.00f, 11.00f, 11.00f), BuildingWindow(17.00f, -54.00f, 11.00f, 11.00f), BuildingWindow(33.00f, -54.00f, 11.00f, 11.00f)),
+        listOf(BuildingWindow(-15.00f, -9.50f, 12.00f, 0f), BuildingWindow(1.00f, -9.50f, 12.00f, 0f)),
+        0.00f, 0.00f, 0.00f, 0.00f,
+        people = 3,
+    )
+
     private val HOUSE_DISTANT_COTTAGE = BuildingPiece(
         23.00f,
         listOf(
@@ -526,61 +579,114 @@ internal object NeighbourhoodTable {
         0.00f, 0.00f, 0.00f, 0.00f,
     )
 
+    private val HOUSE_SMALL_FAMILY = BuildingFamily(
+        67.434f, 30.0f, WindowBuildingKind.HOUSE,
+        listOf(
+            BuildingSlot(listOf(HOUSE_SMALL_GROUND), 1, 1),
+            BuildingSlot(listOf(HOUSE_SMALL_STOREY), 0, 1),
+            BuildingSlot(listOf(HOUSE_SMALL_ROOF_GABLE, HOUSE_SMALL_ROOF_MANSARD), 1, 1),
+        ),
+    )
+
+    private val HOUSE_LARGE_FAMILY = BuildingFamily(
+        88.976f, 42.0f, WindowBuildingKind.HOUSE,
+        listOf(
+            BuildingSlot(listOf(HOUSE_LARGE_GROUND), 1, 1),
+            BuildingSlot(listOf(HOUSE_LARGE_STOREY), 1, 2),
+            BuildingSlot(listOf(HOUSE_LARGE_ROOF_GABLE, HOUSE_LARGE_ROOF_MANSARD, HOUSE_LARGE_ROOF_TURRET), 1, 1),
+        ),
+    )
+
+    private val TOWER_FAMILY = BuildingFamily(
+        182.634f, 35.0f, WindowBuildingKind.SKYSCRAPER,
+        listOf(
+            BuildingSlot(listOf(TOWER_BODY), 1, 1, heights = listOf(TOWER_BODY_SHORT, TOWER_BODY, TOWER_BODY_TALL)),
+            BuildingSlot(listOf(TOWER_CROWN_SPIRE, TOWER_CROWN_DOME), 1, 1),
+        ),
+    )
+
+    // **v5.4, item 113: 56 and 73, not 96 and 90.146.** Both families inherited the height of
+    // the two-storey facade the v5.0 redraw replaced, and `unitsTall` is the third of the
+    // three numbers that said so -- see [SceneSpace.SceneVariant.RESTAURANT]. The pavilion
+    // draws 56 piece units and the corner bar 53 or 73, measured off their own parts by
+    // `BuildingHeightDeclarationTest`. Each family's `unitsTall` moved by exactly the factor
+    // its variant's `metresTall` did, so `metresTall / unitsTall` -- the only quantity the
+    // blit scale depends on -- is unchanged and no piece of either building is drawn at a
+    // different size.
+    private val RESTAURANT_FAMILY = BuildingFamily(
+        56.0f, 50.0f, WindowBuildingKind.COMMERCIAL,
+        listOf(
+            BuildingSlot(listOf(RESTAURANT_PAVILION), 1, 1),
+        ),
+    )
+
+    private val BAR_FAMILY = BuildingFamily(
+        73.0f, 33.0f, WindowBuildingKind.COMMERCIAL,
+        listOf(
+            BuildingSlot(listOf(BAR_SIGNBOARD, BAR_CHAMFER), 1, 1),
+        ),
+    )
+
+    // **v5.6F: the sixth family.** One figure with one deal, drawn 74 piece units above the
+    // ground line against the 72 it declares -- the two are the turret cornice and the grid
+    // margin, and `BuildingHeightDeclarationTest` measures the ratio rather than trusting
+    // this sentence. Its `WindowBuildingKind` is its own: a school is street-level glass
+    // like the shops and the stations, and the only one of the six whose windows show only children.
+    private val SCHOOL_FAMILY = BuildingFamily(
+        72.0f, 40.0f, WindowBuildingKind.SCHOOL,
+        listOf(
+            BuildingSlot(listOf(SCHOOL), 1, 1),
+        ),
+    )
+
+    // **v5.13: the shop and the two stations.** No place of their own in the street: each of the six
+    // buildings among the houses stands in whichever of the places [StorefrontStreet] deals
+    // it, drawn at that place's metre, so these three have no [SceneSpace.SceneVariant] row and
+    // their `unitsTall` is their own drawing's height. The two stations are their own
+    // `WindowBuildingKind`: street glass, adults only.
+    private val SHOP_FAMILY = BuildingFamily(
+        56.0f, 32.0f, WindowBuildingKind.COMMERCIAL,
+        listOf(
+            BuildingSlot(listOf(SHOP), 1, 1),
+        ),
+    )
+
+    private val FIRE_STATION_FAMILY = BuildingFamily(
+        88.0f, 46.0f, WindowBuildingKind.STATION,
+        listOf(
+            BuildingSlot(listOf(FIRE_STATION), 1, 1),
+        ),
+    )
+
+    private val POLICE_STATION_FAMILY = BuildingFamily(
+        70.0f, 48.0f, WindowBuildingKind.STATION,
+        listOf(
+            BuildingSlot(listOf(POLICE_STATION), 1, 1),
+        ),
+    )
+
+    /** The families that have a row of their own in the size table, by that row. */
     val FAMILIES: Map<SceneSpace.SceneVariant, BuildingFamily> = mapOf(
-        SceneSpace.SceneVariant.HOUSE_SMALL to BuildingFamily(
-            67.434f, 30.0f, WindowBuildingKind.HOUSE,
-            listOf(
-                BuildingSlot(listOf(HOUSE_SMALL_GROUND), 1, 1),
-                BuildingSlot(listOf(HOUSE_SMALL_STOREY), 0, 1),
-                BuildingSlot(listOf(HOUSE_SMALL_ROOF_GABLE, HOUSE_SMALL_ROOF_MANSARD), 1, 1),
-            ),
-        ),
-        SceneSpace.SceneVariant.HOUSE_LARGE to BuildingFamily(
-            88.976f, 42.0f, WindowBuildingKind.HOUSE,
-            listOf(
-                BuildingSlot(listOf(HOUSE_LARGE_GROUND), 1, 1),
-                BuildingSlot(listOf(HOUSE_LARGE_STOREY), 1, 2),
-                BuildingSlot(listOf(HOUSE_LARGE_ROOF_GABLE, HOUSE_LARGE_ROOF_MANSARD, HOUSE_LARGE_ROOF_TURRET), 1, 1),
-            ),
-        ),
-        SceneSpace.SceneVariant.TOWER to BuildingFamily(
-            182.634f, 35.0f, WindowBuildingKind.SKYSCRAPER,
-            listOf(
-                BuildingSlot(listOf(TOWER_BODY), 1, 1, heights = listOf(TOWER_BODY_SHORT, TOWER_BODY, TOWER_BODY_TALL)),
-                BuildingSlot(listOf(TOWER_CROWN_SPIRE, TOWER_CROWN_DOME), 1, 1),
-            ),
-        ),
-        // **v5.4, item 113: 56 and 73, not 96 and 90.146.** Both families inherited the height of
-        // the two-storey facade the v5.0 redraw replaced, and `unitsTall` is the third of the
-        // three numbers that said so -- see [SceneSpace.SceneVariant.RESTAURANT]. The pavilion
-        // draws 56 piece units and the corner bar 53 or 73, measured off their own parts by
-        // `BuildingHeightDeclarationTest`. Each family's `unitsTall` moved by exactly the factor
-        // its variant's `metresTall` did, so `metresTall / unitsTall` -- the only quantity the
-        // blit scale depends on -- is unchanged and no piece of either building is drawn at a
-        // different size.
-        SceneSpace.SceneVariant.RESTAURANT to BuildingFamily(
-            56.0f, 50.0f, WindowBuildingKind.COMMERCIAL,
-            listOf(
-                BuildingSlot(listOf(RESTAURANT_PAVILION), 1, 1),
-            ),
-        ),
-        SceneSpace.SceneVariant.BAR to BuildingFamily(
-            73.0f, 33.0f, WindowBuildingKind.COMMERCIAL,
-            listOf(
-                BuildingSlot(listOf(BAR_SIGNBOARD, BAR_CHAMFER), 1, 1),
-            ),
-        ),
-        // **v5.6F: the sixth family.** One figure with one deal, drawn 74 piece units above the
-        // ground line against the 72 it declares -- the two are the turret cornice and the grid
-        // margin, and `BuildingHeightDeclarationTest` measures the ratio rather than trusting
-        // this sentence. Its `WindowBuildingKind` is its own: a school is street-level glass
-        // like the two shops, and the only one of the three whose windows show only children.
-        SceneSpace.SceneVariant.SCHOOL to BuildingFamily(
-            72.0f, 40.0f, WindowBuildingKind.SCHOOL,
-            listOf(
-                BuildingSlot(listOf(SCHOOL), 1, 1),
-            ),
-        ),
+        SceneSpace.SceneVariant.HOUSE_SMALL to HOUSE_SMALL_FAMILY,
+        SceneSpace.SceneVariant.HOUSE_LARGE to HOUSE_LARGE_FAMILY,
+        SceneSpace.SceneVariant.TOWER to TOWER_FAMILY,
+        SceneSpace.SceneVariant.RESTAURANT to RESTAURANT_FAMILY,
+        SceneSpace.SceneVariant.BAR to BAR_FAMILY,
+        SceneSpace.SceneVariant.SCHOOL to SCHOOL_FAMILY,
+    )
+
+    /**
+     * The six buildings that stand among the houses (v5.13), by what they are: the restaurant, the
+     * school and the bar are their size-table rows' families above, the shop and the two stations have
+     * none -- each of the six is drawn in whichever of the places [StorefrontStreet] deals it.
+     */
+    val STOREFRONTS: Map<Storefront, BuildingFamily> = mapOf(
+        Storefront.RESTAURANT to RESTAURANT_FAMILY,
+        Storefront.SCHOOL to SCHOOL_FAMILY,
+        Storefront.BAR to BAR_FAMILY,
+        Storefront.SHOP to SHOP_FAMILY,
+        Storefront.FIRE_STATION to FIRE_STATION_FAMILY,
+        Storefront.POLICE_STATION to POLICE_STATION_FAMILY,
     )
 
     /**

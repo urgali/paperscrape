@@ -325,6 +325,15 @@ class PaperRenderer(
     private val santaSleighEffect = SantaSleighEffect()
 
     /**
+     * The wallpaper has come back into view (v5.13): the street's places take other buildings, a new round
+     * of [StorefrontStreet] -- the maintainer's decision of 2026-10-12, whether the scene scrolls or not.
+     * Called by the engine on the render thread when it becomes visible, before the frame that shows it.
+     */
+    fun nextStreetRound() {
+        objectRenderer.streetRound++
+    }
+
+    /**
      * Keeps [objectRenderer] in step with the active theme and configuration.
      *
      * Runs every frame, so it is written to do as little as possible:
@@ -359,7 +368,7 @@ class PaperRenderer(
                 sceneCustomization,
                 context,
                 theme.id,
-            )
+            ).also { it.streetRound = existing.streetRound }
             objectRendererThemeId = theme.id
             objectRendererGeneration = currentGeneration
         } else {

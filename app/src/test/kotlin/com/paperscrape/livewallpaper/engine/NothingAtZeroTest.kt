@@ -71,14 +71,15 @@ class NothingAtZeroTest {
     }
 
     @Test
-    fun `the buildings keep their three shops at 0 percent, so their switch is not one of these`() {
+    fun `the buildings keep their five places at 0 percent, so their switch is not one of these`() {
         for (theme in ThemeCatalog.ALL) {
             val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
             val zero = allAtZero(defaultCustomizationFor(theme.id))
             val shops = layout.staticObjects.count {
                 it.type == SceneObjectType.SKYSCRAPER && zero.keepCandidate(it, layout.densityScheme)
             }
-            assertEquals("${theme.id}: shops standing at 0 %", 3, shops)
+            // Five since v5.13B2: the street's places among the houses, never thinned.
+            assertEquals("${theme.id}: places standing at 0 %", 5, shops)
         }
     }
 

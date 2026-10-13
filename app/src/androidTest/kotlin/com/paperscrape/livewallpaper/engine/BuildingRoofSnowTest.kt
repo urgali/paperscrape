@@ -51,7 +51,7 @@ class BuildingRoofSnowTest {
      * and a roof alternative that ships *without* a drift fails [everyBuildingWearsSnowInWinterAndNoneWithoutIt]
      * because its family will have a deal that blits none.
      */
-    private val BUILDING_SNOW: Set<Int> = NeighbourhoodTable.FAMILIES.values
+    private val BUILDING_SNOW: Set<Int> = (NeighbourhoodTable.FAMILIES.values + NeighbourhoodTable.STOREFRONTS.values)
         .flatMap { it.slots }
         .flatMap { it.options + it.heights }
         .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW }.map { it.res } }
@@ -64,8 +64,9 @@ class BuildingRoofSnowTest {
     )
 
     /** The snow a family may wear, and the piece whose blit anchors its roofline. */
-    private fun buildingRoofed(variant: SceneSpace.SceneVariant): Roofed {
-        val family = NeighbourhoodTable.FAMILIES.getValue(variant)
+    private fun buildingRoofed(variant: SceneSpace.SceneVariant): Roofed = familyRoofed(NeighbourhoodTable.FAMILIES.getValue(variant))
+
+    private fun familyRoofed(family: BuildingFamily, walls: Boolean = false): Roofed {
         val snow = family.slots.flatMap { it.options + it.heights }
             .flatMap { piece -> piece.parts.filter { it.role == PartRole.SNOW }.map { it.res } }
             .toSet()
@@ -73,10 +74,18 @@ class BuildingRoofSnowTest {
         // every deal of the family places, so it is always on screen to measure against. Since
         // v5.11 the tower's body is one of three heights by a coin of its own, so the reference
         // is whichever of the three the deal gave it.
+        //
+        // **A building among the houses is measured against its walls** (v5.13, `walls`): the six are one
+        // piece each, and the fire station's fixed card holds the lamp over its tower's roof, above the
+        // snow on the roof's slopes; each wall mask -- the block's and the tower's -- ends at its roofline.
         val first = family.slots.first()
-        val reference = (first.options + first.heights)
-            .map { piece -> piece.parts.first { it.role == PartRole.FIXED }.res }
-            .toSet()
+        val reference = if (walls) {
+            (first.options + first.heights).flatMap { piece -> piece.parts.filter { it.role == PartRole.WALL_MASK }.map { it.res } }.toSet()
+        } else {
+            (first.options + first.heights)
+                .map { piece -> piece.parts.first { it.role == PartRole.FIXED }.res }
+                .toSet()
+        }
         return Roofed(snow, reference, aboveTop = true)
     }
 
@@ -126,48 +135,74 @@ class BuildingRoofSnowTest {
         )
     }
 
+    /**
+     * **A place among the houses wears the snow of whichever building stands in it** (v5.13): the street
+     * deals any of the six to any place ([StorefrontStreet]), so each place is rendered once per building,
+     * scrolled to the first copy of it the street gives that building, and asked for that building's snow.
+     */
     @Test
     fun everyBuildingWearsSnowInWinterAndNoneWithoutIt() {
         for ((variant, roofed) in SNOW_BY_VARIANT) {
-            val layout = layoutFor(variant)
-            val winter = render(layout, winter = true, christmas = variant == SceneSpace.SceneVariant.FIR)
-            val plain = render(layout, winter = false, christmas = variant == SceneSpace.SceneVariant.FIR)
-
-            val caps = winter.filter { it.resId in roofed.snow }
-            assertTrue(
-                "$variant should wear one of ${roofed.snow.joinToString { nameOf(it) }} in winter",
-                caps.isNotEmpty(),
-            )
-
-            val refs = winter.filter { it.resId in roofed.reference }
-            assertTrue(
-                "$variant should blit its reference ${roofed.reference.joinToString { nameOf(it) }}",
-                refs.isNotEmpty(),
-            )
-            for (cap in caps) {
-                val ref = refs.minByOrNull { kotlin.math.abs(it.rect.centerX() - cap.rect.centerX()) }!!
-                val roofline = if (roofed.aboveTop) ref.rect.top else ref.rect.centerY()
-                assertTrue(
-                    "$variant: ${nameOf(cap.resId)} top ${cap.rect.top} should clear its " +
-                        "roofline $roofline (reference ${nameOf(ref.resId)})",
-                    cap.rect.top < roofline,
-                )
-                // Overlap, not containment: a crown is wider than the trunk that anchors it, so
-                // "centre inside the reference" would fail every tree on its own geometry.
-                assertTrue(
-                    "$variant: the snow should lie over its own building horizontally",
-                    cap.rect.right > ref.rect.left && cap.rect.left < ref.rect.right,
-                )
+            if (variant in PLACES) {
+                for (storefront in Storefront.ALL) {
+                    val copy = (0 until 200).first {
+                        StorefrontStreet.storefrontAt(THEME.hashCode(), StorefrontStreet.placeIndex(it, 0, 1)) == storefront
+                    }
+                    assertSnowed("$variant/$storefront", layoutFor(variant), familyRoofed(storefront.family, walls = true), christmas = false, copy = copy)
+                }
+            } else {
+                assertSnowed("$variant", layoutFor(variant), roofed, christmas = variant == SceneSpace.SceneVariant.FIR, copy = null)
             }
-
-            val stray = plain.filter { it.resId in ALL_ROOF_SNOW }
-            assertTrue(
-                "$variant: winter off must draw no roof snow at all, found " +
-                    stray.joinToString { nameOf(it.resId) },
-                stray.isEmpty(),
-            )
         }
     }
+
+    /**
+     * Renders [layout] with winter on and off -- scrolled so that copy [copy] of its one object stands in the
+     * middle of the screen, or at offset 0 -- and asserts [roofed]'s snow on the first and no roof snow on the
+     * second.
+     */
+    private fun assertSnowed(label: String, layout: List<StaticSceneObject>, roofed: Roofed, christmas: Boolean, copy: Int?) {
+        // X = U + (f + c) T, U = -s W p, T = 2W: copy c of the object at the screen's middle.
+        val offset = copy?.let { ((layout.first().tileFractionX + it) * 2f - 0.5f) / PaperRenderer.HILL_PARALLAX } ?: 0f
+        val winter = render(layout, winter = true, christmas = christmas, offset = offset)
+        val plain = render(layout, winter = false, christmas = christmas, offset = offset)
+
+        val caps = winter.filter { it.resId in roofed.snow }
+        assertTrue(
+            "$label should wear one of ${roofed.snow.joinToString { nameOf(it) }} in winter",
+            caps.isNotEmpty(),
+        )
+
+        val refs = winter.filter { it.resId in roofed.reference }
+        assertTrue(
+            "$label should blit its reference ${roofed.reference.joinToString { nameOf(it) }}",
+            refs.isNotEmpty(),
+        )
+        for (cap in caps) {
+            val ref = refs.minByOrNull { kotlin.math.abs(it.rect.centerX() - cap.rect.centerX()) }!!
+            val roofline = if (roofed.aboveTop) ref.rect.top else ref.rect.centerY()
+            assertTrue(
+                "$label: ${nameOf(cap.resId)} top ${cap.rect.top} should clear its " +
+                    "roofline $roofline (reference ${nameOf(ref.resId)})",
+                cap.rect.top < roofline,
+            )
+            // Overlap, not containment: a crown is wider than the trunk that anchors it, so
+            // "centre inside the reference" would fail every tree on its own geometry.
+            assertTrue(
+                "$label: the snow should lie over its own building horizontally",
+                cap.rect.right > ref.rect.left && cap.rect.left < ref.rect.right,
+            )
+        }
+
+        val stray = plain.filter { it.resId in ALL_ROOF_SNOW }
+        assertTrue(
+            "$label: winter off must draw no roof snow at all, found " +
+                stray.joinToString { nameOf(it.resId) },
+            stray.isEmpty(),
+        )
+    }
+
+    private val PLACES = setOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR)
 
     // ------------------------------------------------------------------ placement
 
@@ -219,8 +254,9 @@ class BuildingRoofSnowTest {
         layout: List<StaticSceneObject>,
         winter: Boolean,
         christmas: Boolean,
+        offset: Float = 0f,
     ): List<Blit> {
-        val themeId = "sunset"
+        val themeId = THEME
         val theme = ThemeCatalog.byId(themeId)
         val defaults = defaultCustomizationFor(themeId)
         val customization = defaults.copy(
@@ -253,8 +289,8 @@ class BuildingRoofSnowTest {
             renderer.theme = theme
             renderer.sceneCustomization = customization
             renderer.liveWeatherOverride = null
-            renderer.homeScreenOffset = 0f
-            renderer.swipeScrollEnabled = false
+            renderer.homeScreenOffset = offset
+            renderer.swipeScrollEnabled = offset != 0f
             renderer.scrollSpeed = 0f
             renderer.parallaxStrength = 1f
             renderer.draw(recorder, SunPositionCalculator.compute(hour24 = 13f), SceneTime(50.0), 0f)
@@ -364,6 +400,8 @@ class BuildingRoofSnowTest {
     }
 
     private companion object {
+        /** The theme every render uses: its seed is the street's. */
+        const val THEME = "sunset"
         const val WIDTH = 1080
         const val HEIGHT = 2400
     }

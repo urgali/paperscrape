@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """v5.0 -- the neighbourhood, drawn and declared.
 
-The six building families (small house, large house, tower, restaurant, bar, school) are no longer
-one flat facade each. The two houses are a STACK of pieces (ground floor, storeys, roof) chosen per
+The nine building families (small house, large house, tower, restaurant, bar, school and, since
+v5.13, the shop, the fire station and the police station, `civic.py`) are no longer one flat facade
+each. The two houses are a STACK of pieces (ground floor, storeys, roof) chosen per
 instance; the tower, the restaurant and the bar are one cut-out figure each. This script draws
 every piece, writes the PNGs into `res/drawable-nodpi`, writes the table the engine composes from,
 and writes the registry entries that describe them -- the four outputs that have to agree, from
@@ -11,11 +12,13 @@ one run, so they cannot drift apart.
 **The colour rule, which is the whole of the colour system.** Every wall surface descends from
 `SceneCustomization.colorFor(spec, dayBlend)`, that is from one of the two user-editable colours
 of the object's category (HOUSES for the two houses and, since v5.11, the distant houses;
-BUILDINGS for the tower; SHOPS for the restaurant, the school and the bar, which wore the BUILDINGS
-colours until v5.11). There is no per-instance hue and no colour of a piece's own: each tinted card
+BUILDINGS for the tower; SHOPS for the restaurant and the bar, which wore the BUILDINGS colours until
+v5.11, and for the shop since v5.13; PUBLICS for the school (SHOPS from v5.11, BUILDINGS before), the fire
+station and the police station since v5.13). There is no per-instance hue and no colour of a piece's own: each tinted card
 is `w * wall + (1 - w) * k` with `k` only ink (#2B2A33) or white, baked as a weight into the piece's
 own wall mask. So a piece ships two masks at most -- one wall, one glass -- and never a colour
-variant, and the twelve editable colours are the whole palette.
+variant, and the sixteen editable colours -- two a category, by day and by night, in the four categories
+above -- are the whole palette.
 
 Run from `tools/assets/` with the asset venv:
 
@@ -57,7 +60,14 @@ FAMILY_NOTES = {
         "        // ground line against the 72 it declares -- the two are the turret cornice and the grid\n"
         "        // margin, and `BuildingHeightDeclarationTest` measures the ratio rather than trusting\n"
         "        // this sentence. Its `WindowBuildingKind` is its own: a school is street-level glass\n"
-        "        // like the two shops, and the only one of the three whose windows show only children.\n"
+        "        // like the shops and the stations, and the only one of the six whose windows show only children.\n"
+    ),
+    "SHOP": (
+        "        // **v5.13: the shop and the two stations.** No place of their own in the street: each of the six\n"
+        "        // buildings among the houses stands in whichever of the places [StorefrontStreet] deals\n"
+        "        // it, drawn at that place's metre, so these three have no [SceneSpace.SceneVariant] row and\n"
+        "        // their `unitsTall` is their own drawing's height. The two stations are their own\n"
+        "        // `WindowBuildingKind`: street glass, adults only.\n"
     ),
 }
 # ---- the derivations, all of them functions of the wall (report v5.0 SS3) -------------------
@@ -70,20 +80,26 @@ vocab.DOOR = W(0.40, DARK)         # door: 60 % towards the ink
 vocab.CHIMNEY = W(0.60, DARK)      # chimney, box: 40 % towards the ink
 vocab.SIDE = None
 vocab.TOP = None
-import k1_box, k2_profile, school, distant   # noqa: E402  (they import the constants already substituted)
+import k1_box, k2_profile, school, distant, civic   # noqa: E402  (they import the constants already substituted)
 k2_profile.W_TIER2 = W(0.90, WHITE)
+
+#: The families that are a row of `SceneSpace.SceneVariant` (the size table), and the six that stand among the
+#: houses (v5.13), in `Storefront`'s order.
+VARIANT_FAMILIES = ("HOUSE_SMALL", "HOUSE_LARGE", "TOWER", "RESTAURANT", "BAR", "SCHOOL")
+STOREFRONT_FAMILIES = ("RESTAURANT", "SCHOOL", "BAR", "SHOP", "FIRE_STATION", "POLICE_STATION")
 
 HERE = Path(__file__).resolve().parent
 TABLE_KT = core.REPO / "app/src/main/kotlin/com/paperscrape/livewallpaper/engine/NeighbourhoodTable.kt"
 REGISTRY = core.TOOL_ROOT / "sources/sprites.json"
 
-#: The prefixes of every shipped sprite of the six families (and, through `house_`, of the distant
+#: The prefixes of every shipped sprite of the nine families (and, through `house_`, of the distant
 #: houses since v5.11), which a run deletes and writes again --
 #: `tower_` since v5.11, which added tower bodies and could otherwise leave one it no longer draws
 #: behind, still in `res/` and in the registry. (The v5.0 redraw replaced 34 PNGs.) The palm is not one
 #: of them (item 25 keeps it as shipped) and neither is anything a house shares with the rest of
 #: the scene, which is why this is a prefix list and not `startswith("house")`.
-RETIRED_PREFIXES = ("house_", "skyscraper_", "tower_", "restaurant_", "bar_", "school_")
+RETIRED_PREFIXES = ("house_", "skyscraper_", "tower_", "restaurant_", "bar_", "school_", "shop_", "fire_station_",
+                    "police_station_")
 
 #: Why a registry entry for one of these has no SVG. The people's layers (v4.30) set the shape of
 #: this: a sprite written by a generator from its own drawing code has no source file to re-render
@@ -127,6 +143,12 @@ def families(house_roofs_small=("gable", "mansard"),
         # catalogue of exactly one for it, which is what keeps `indexFor` off the rotation it
         # would otherwise take on a family with no alternatives to rotate through.
         "SCHOOL": Building("SCHOOL", [Slot([school.school()])], 40.0, [0.0], 0.0),
+        # v5.13: the shop and the two stations, one figure each like the restaurant and the school.
+        # None of them is a place in the street of its own: each of the six buildings among the houses
+        # may stand in any of the places there (`StorefrontStreet`), drawn at that place's metre.
+        "SHOP": Building("SHOP", [Slot([civic.shop()])], 32.0, [0.0], 0.0),
+        "FIRE_STATION": Building("FIRE_STATION", [Slot([civic.fire_station()])], 46.0, [0.0], 0.0),
+        "POLICE_STATION": Building("POLICE_STATION", [Slot([civic.police_station()])], 48.0, [0.0], 0.0),
     }
 
 
@@ -169,30 +191,32 @@ def kotlin_table(table: dict, pieces: dict, distant_names: list) -> str:
             f"        {p['smoke'][0]:.2f}f, {p['smoke'][1]:.2f}f, {p['beacon'][0]:.2f}f, {p['beacon'][1]:.2f}f,\n"
             + people + panes +
             f"    )")
-    rows = []
+    families = []
     for family, t in table.items():
         def slot_kt(s):
             heights = ""
             if s["heights"]:
                 heights = f", heights = listOf({', '.join(production(o).upper() for o in s['heights'])})"
-            return (f"                BuildingSlot(listOf({', '.join(production(o).upper() for o in s['options'])}), "
+            return (f"            BuildingSlot(listOf({', '.join(production(o).upper() for o in s['options'])}), "
                     f"{s['rmin']}, {s['rmax']}{heights})")
         slots = ",\n".join(slot_kt(s) for s in t["slots"])
-        rows.append(
-            (FAMILY_NOTES.get(family, "")) +
-            f"        SceneSpace.SceneVariant.{family} to BuildingFamily(\n"
-            f"            {t['unitsTall']}f, {t['shadowHalf']}f, WindowBuildingKind.{t['kind']},\n"
-            f"            listOf(\n{slots},\n            ),\n"
-            f"        ),")
+        families.append(
+            (FAMILY_NOTES.get(family, "").replace("        //", "    //")) +
+            f"    private val {family}_FAMILY = BuildingFamily(\n"
+            f"        {t['unitsTall']}f, {t['shadowHalf']}f, WindowBuildingKind.{t['kind']},\n"
+            f"        listOf(\n{slots},\n        ),\n"
+            f"    )")
     body = "\n\n".join(blocks)
-    families_map = "\n".join(rows)
+    families_vals = "\n\n".join(families)
+    families_map = "\n".join(f"        SceneSpace.SceneVariant.{f} to {f}_FAMILY," for f in VARIANT_FAMILIES)
+    storefronts_map = "\n".join(f"        Storefront.{f} to {f}_FAMILY," for f in STOREFRONT_FAMILIES)
     distant_list = ", ".join(production(n).upper() for n in distant_names)
     return f'''package com.paperscrape.livewallpaper.engine
 
 import com.paperscrape.livewallpaper.R
 
 /**
- * What each of the six building families is made of, and the distant houses. **Generated** by
+ * What each of the nine building families is made of, and the distant houses. **Generated** by
  * `tools/assets/buildings/build_neighbourhood.py`; edit that script, not this file.
  *
  * A family is a list of SLOTS, bottom-up. A slot holds the alternative PIECES the composer may
@@ -248,7 +272,8 @@ internal class BuildingPiece(
     /**
      * How many of its building's people this piece brings, as a count of windows (v5.12): its own
      * window count, except where a piece gained windows in v5.12 -- the storeys, the school's upper
-     * floor, the bars' -- and brings the people it did before. The number of people at a building's
+     * floor, the bars' -- and brings the people it did before; and the shop and the two stations (v5.13), which
+     * bring fewer than their windows, at the shops' rate (`civic.py`). The number of people at a building's
      * windows is one of the scene's quantities the maintainer keeps, and the table he approved said it
      * stays (*«il resto si a tutto»*, 2026-10-09): it is dealt over this
      * ([NeighbourhoodComposer.Deal.peopleWindows]), the windows they stand at over all of them.
@@ -283,8 +308,20 @@ internal object NeighbourhoodTable {{
 
 {body}
 
+{families_vals}
+
+    /** The families that have a row of their own in the size table, by that row. */
     val FAMILIES: Map<SceneSpace.SceneVariant, BuildingFamily> = mapOf(
 {families_map}
+    )
+
+    /**
+     * The six buildings that stand among the houses (v5.13), by what they are: the restaurant, the
+     * school and the bar are their size-table rows' families above, the shop and the two stations have
+     * none -- each of the six is drawn in whichever of the places [StorefrontStreet] deals it.
+     */
+    val STOREFRONTS: Map<Storefront, BuildingFamily> = mapOf(
+{storefronts_map}
     )
 
     /**
@@ -348,7 +385,7 @@ def registry_entries(png_dir: Path, files: dict) -> list[dict]:
 
 
 def rewrite_registry(entries: list[dict]) -> tuple[int, int]:
-    """Replace the six families' and the distant houses' declarations with this run's, idempotently.
+    """Replace the nine families' and the distant houses' declarations with this run's, idempotently.
 
     An entry goes if this run produces one under that name (it is being replaced) **or** if it is
     one of the flat facades the redraw retires. Testing the prefixes alone is not enough and not

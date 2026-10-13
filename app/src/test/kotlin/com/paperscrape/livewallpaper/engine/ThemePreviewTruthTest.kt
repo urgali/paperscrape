@@ -115,6 +115,11 @@ class ThemePreviewTruthTest {
         "santa_sleigh" to "SANTA",
         "star_sparkle" to "LIGHTS",
         "restaurant_" to "RESTAURANT",
+        // v5.13: the shop and the two stations, before `police_` -- the police car's livery -- which
+        // would otherwise claim the police station's layers for the traffic.
+        "police_station_" to "POLICE_STATION",
+        "fire_station_" to "FIRE_STATION",
+        "shop_" to "SHOP",
         "firetruck_" to "CAR",
         "palmtree_" to "PALM_TREE",
         "easteregg_" to "EASTER_EGG",
@@ -163,11 +168,22 @@ class ThemePreviewTruthTest {
         fun add(family: String, n: Int) {
             if (n > 0) out[family] = (out[family] ?: 0) + n
         }
+        // A place among the houses draws, in each copy of the tile, the building the street deals it
+        // (v5.13): in copy 0 of the first round -- the stretch the card draws -- the building at the place's
+        // rank across the tile. Since v5.13B2 a built-in street has five places and
+        // the card three, the middle one by depth of each row of the size table (`StorefrontStreet.cardPlaceOf`):
+        // the other two are left out on purpose (`DESIGN_NOTES.md` §9, "What the card leaves out").
+        val places = StorefrontStreet.places(layout)
+        val drawnByTheCard = listOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR)
+            .mapNotNull { StorefrontStreet.cardPlaceOf(places, it) }.toSet()
         for (raw in layout.staticObjects) {
             if (!c.keepCandidate(raw)) continue
             val spec = c.palmSpeciesApplied(raw, layout.hasPalmSlots())
-            val family = when (spec.type) {
-                SceneObjectType.HOUSE, SceneObjectType.SKYSCRAPER -> SceneObjectRenderer.variantFor(spec).name
+            if (StorefrontStreet.isPlace(spec) && places.indexOfFirst { it === raw } !in drawnByTheCard) continue
+            val family = when {
+                StorefrontStreet.isPlace(spec) ->
+                    StorefrontStreet.storefrontAt(theme.id.hashCode(), places.indexOfFirst { it === raw }).name
+                spec.type == SceneObjectType.HOUSE || spec.type == SceneObjectType.SKYSCRAPER -> SceneObjectRenderer.variantFor(spec).name
                 else -> spec.type.name
             }
             add(family, 1)
@@ -736,13 +752,20 @@ class ThemePreviewTruthTest {
         val carPaints = VARIANT_CARS.map { c.colorFor(it, d) }.toSet()
         // `drawNeighbourhoodBuilding`'s glass: a house lit by the night alone, a business by the
         // night times its group's opening hours at the card's own hour -- the towers' for a tower, the
-        // shops' for a shop, by what it is drawn as (v5.12; [BusinessHours], 1 with a group's switch off).
+        // shops' or the public buildings' for one of the six among the houses, by what it is (v5.12,
+        // v5.13; [BusinessHours], 1 with a group's switch off).
         val hour = ThemePreviewScenes.cardHour(theme, night)
         for (item in drawOrder(scene)) {
             val family = item.parts.firstNotNullOfOrNull { familyOf(nameOf(it.resId)) }
             val house = family?.startsWith("HOUSE_") == true
+            // One of the six among the houses keeps its group's hours (v5.13), a tower the towers'.
+            val storefront = Storefront.ALL.firstOrNull { it.name == family }
             val variant = SceneSpace.SceneVariant.entries.firstOrNull { it.name == family }
-            val openness = if (variant == null) 1f else c.opennessFor(variant, hour)
+            val openness = when {
+                storefront != null -> c.opennessFor(storefront, hour)
+                variant != null -> c.opennessFor(variant, hour)
+                else -> 1f
+            }
             for (part in item.parts.filter { it.resId in GLASS_MASKS }) {
                 // A house's glass is the dark glass of its unlit windows at night, and its lit ones are
                 // flat cards over it in the lit glass (v5.12, `drawLitPanes`; by day the two are one colour).
@@ -842,14 +865,19 @@ class ThemePreviewTruthTest {
         val (autumn, landscape) = editedLandscape()
         fails += checkObjectColours("autumn with every landscape colour edited (forced night)", autumn, landscape, true)
         // Opening hours on, 09:00 to 18:00: the midnight and 19:00 cards find the businesses shut --
-        // both groups, then each alone (v5.12), so a tower shut beside an open shop is asked too.
+        // every group, then each alone (two groups in v5.12, three since v5.13), so a tower shut beside an
+        // open shop is asked too, and a school shut beside the two stations, which never close.
         for (id in listOf("autumn", "sunset", "new_year")) {
             val theme = ThemeCatalog.byId(id)
             val base = defaultCustomizationFor(id)
             val shops = base.copy(shopHoursEnabled = true, shopOpenHour = 9f, shopCloseHour = 18f)
             val towers = base.copy(towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 18f)
-            val both = shops.copy(towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 18f)
-            for ((name, hours) in listOf("both groups" to both, "shops only" to shops, "towers only" to towers)) {
+            val publics = base.copy(publicHoursEnabled = true, publicOpenHour = 9f, publicCloseHour = 18f)
+            val all = shops.copy(
+                towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 18f,
+                publicHoursEnabled = true, publicOpenHour = 9f, publicCloseHour = 18f,
+            )
+            for ((name, hours) in listOf("all three groups" to all, "shops only" to shops, "towers only" to towers, "public buildings only" to publics)) {
                 fails += checkObjectColours("$id with opening hours 9-18, $name", theme, hours, null, seenAtNight)
                 fails += checkObjectColours("$id with opening hours 9-18, $name (forced night)", theme, hours, true, seenAtNight)
             }
@@ -1002,8 +1030,8 @@ class ThemePreviewTruthTest {
         const val CARD_FLOOR_TOLERANCE_UNITS = 0.05f
         val WATER_FAMILIES = setOf("SAILBOAT", "DOLPHIN")
 
-        /** R7: every glass mask a building of the neighbourhood can be dealt. */
-        val GLASS_MASKS: Set<Int> = NeighbourhoodTable.FAMILIES.values.flatMap { it.slots }.flatMap { it.options }
+        /** R7: every glass mask a building of the neighbourhood can be dealt -- the six among the houses' too (v5.13). */
+        val GLASS_MASKS: Set<Int> = (NeighbourhoodTable.FAMILIES.values + NeighbourhoodTable.STOREFRONTS.values).flatMap { it.slots }.flatMap { it.options + it.heights }
             .flatMap { piece -> piece.parts.filter { it.role == PartRole.GLASS_MASK } }.map { it.res }.toSet()
 
         /** R7: the card's tinted bodies, and the category whose two colours each one wears. */

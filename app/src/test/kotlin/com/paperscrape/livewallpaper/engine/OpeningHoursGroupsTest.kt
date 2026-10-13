@@ -12,12 +12,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * **The opening hours in two groups** (v5.12, the maintainer's *«vorrei inoltre aggiungere uno slide
- * per orari solo grattacieli e solo negozi, al momento è globale per grattacieli e negozi»*,
- * 2026-10-09): the shops -- the restaurant, the school and the bar -- keep the shops' hours, the towers
- * the towers', each building by what it is drawn as, the rule its colours follow; a house keeps none.
- * And **whoever had the hours on finds them on in both groups, at the same hours**: every payload
- * written before v5.12 holds one setting for both, and each group reads it.
+ * **The opening hours in three groups** (v5.12 made two, the maintainer's *«vorrei inoltre aggiungere
+ * uno slide per orari solo grattacieli e solo negozi, al momento è globale per grattacieli e negozi»*,
+ * 2026-10-09; v5.13 the third, his *«il resto accetto i consigliati»* of 2026-10-11): the towers keep
+ * the towers' hours, the shops -- the restaurant, the bar and the shop -- the shops', the public
+ * buildings -- the school, the fire station and the police station -- theirs, each building by what it
+ * is, the rule its colours follow; a house keeps none. And **whoever had the hours on finds them on**:
+ * every payload written before v5.12 holds one setting for all, and each group reads it; every payload
+ * written by the 5.12 holds the shops' and the towers', and the public buildings read the shops', which
+ * the school kept until then.
  *
  * The preference store's side of the same promise is `OpeningHoursPreferenceStoreTest`.
  */
@@ -25,23 +28,46 @@ class OpeningHoursGroupsTest {
 
     private val shopsOnly = SceneCustomization.DEFAULT.copy(shopHoursEnabled = true, shopOpenHour = 9f, shopCloseHour = 18f)
     private val towersOnly = SceneCustomization.DEFAULT.copy(towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 18f)
+    private val publicsOnly = SceneCustomization.DEFAULT.copy(publicHoursEnabled = true, publicOpenHour = 9f, publicCloseHour = 18f)
 
-    private val shops = listOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR)
+    private val shops = Storefront.ALL.filter { it.group == StorefrontGroup.SHOPS }
+    private val publics = Storefront.ALL.filter { it.group == StorefrontGroup.PUBLIC }
     private val houses = listOf(SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE)
+
+    @Test
+    fun `the groups are the ones the maintainer asked for`() {
+        assertEquals(listOf(Storefront.RESTAURANT, Storefront.BAR, Storefront.SHOP), shops)
+        assertEquals(listOf(Storefront.SCHOOL, Storefront.FIRE_STATION, Storefront.POLICE_STATION), publics)
+    }
 
     @Test
     fun `each building keeps its own group's hours, and a house keeps none`() {
         val midnight = 0f
-        // The shops' hours on: the shops shut at midnight, the towers open.
-        for (v in shops) assertEquals("$v follows the shops' hours", 0f, shopsOnly.opennessFor(v, midnight), 0f)
-        assertEquals("a tower does not follow the shops' hours", 1f, shopsOnly.opennessFor(SceneSpace.SceneVariant.TOWER, midnight), 0f)
-        // The towers' hours on: the other way round.
-        for (v in shops) assertEquals("$v does not follow the towers' hours", 1f, towersOnly.opennessFor(v, midnight), 0f)
+        // Each group's hours on alone: that group's buildings that keep hours shut at midnight (the stations
+        // never do, below), the other two groups stay open.
+        for (b in shops) {
+            assertEquals("$b follows the shops' hours", 0f, shopsOnly.opennessFor(b, midnight), 0f)
+            assertEquals("$b does not follow the towers'", 1f, towersOnly.opennessFor(b, midnight), 0f)
+            assertEquals("$b does not follow the public buildings'", 1f, publicsOnly.opennessFor(b, midnight), 0f)
+        }
+        for (b in publics) {
+            // The school keeps the public buildings' hours; the fire and the police station never close (2026-10-12).
+            val expected = if (b == Storefront.SCHOOL) 0f else 1f
+            assertEquals("$b and the public buildings' hours", expected, publicsOnly.opennessFor(b, midnight), 0f)
+            assertEquals("$b does not follow the shops'", 1f, shopsOnly.opennessFor(b, midnight), 0f)
+            assertEquals("$b does not follow the towers'", 1f, towersOnly.opennessFor(b, midnight), 0f)
+        }
         assertEquals("a tower follows the towers' hours", 0f, towersOnly.opennessFor(SceneSpace.SceneVariant.TOWER, midnight), 0f)
-        // At noon both are open; a house is open at every hour whatever either group says.
-        val both = shopsOnly.copy(towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 18f)
-        for (v in shops + SceneSpace.SceneVariant.TOWER) assertEquals(1f, both.opennessFor(v, 12f), 0f)
-        for (v in houses) for (h in 0..23) assertEquals("$v at $h:00", 1f, both.opennessFor(v, h.toFloat()), 0f)
+        assertEquals(1f, shopsOnly.opennessFor(SceneSpace.SceneVariant.TOWER, midnight), 0f)
+        assertEquals(1f, publicsOnly.opennessFor(SceneSpace.SceneVariant.TOWER, midnight), 0f)
+        // At noon all are open; a house is open at every hour whatever any group says.
+        val all = shopsOnly.copy(
+            towerHoursEnabled = true, towerOpenHour = 9f, towerCloseHour = 18f,
+            publicHoursEnabled = true, publicOpenHour = 9f, publicCloseHour = 18f,
+        )
+        for (b in Storefront.ALL) assertEquals(1f, all.opennessFor(b, 12f), 0f)
+        assertEquals(1f, all.opennessFor(SceneSpace.SceneVariant.TOWER, 12f), 0f)
+        for (v in houses) for (h in 0..23) assertEquals("$v at $h:00", 1f, all.opennessFor(v, h.toFloat()), 0f)
     }
 
     @Test
@@ -49,18 +75,61 @@ class OpeningHoursGroupsTest {
         val c = SceneCustomization.DEFAULT.copy(
             shopHoursEnabled = true, shopOpenHour = 8f, shopCloseHour = 13f,
             towerHoursEnabled = true, towerOpenHour = 14f, towerCloseHour = 22f,
+            publicHoursEnabled = true, publicOpenHour = 11f, publicCloseHour = 16f,
         )
-        assertEquals(1f, c.opennessFor(SceneSpace.SceneVariant.BAR, 10f), 0f)
+        assertEquals(1f, c.opennessFor(Storefront.BAR, 10f), 0f)
+        assertEquals(0f, c.opennessFor(Storefront.SCHOOL, 10f), 0f)
         assertEquals(0f, c.opennessFor(SceneSpace.SceneVariant.TOWER, 10f), 0f)
-        assertEquals(0f, c.opennessFor(SceneSpace.SceneVariant.BAR, 18f), 0f)
+        assertEquals(1f, c.opennessFor(Storefront.SCHOOL, 15f), 0f)
+        assertEquals(0f, c.opennessFor(Storefront.SHOP, 15f), 0f)
+        assertEquals(0f, c.opennessFor(Storefront.SCHOOL, 18f), 0f)
         assertEquals(1f, c.opennessFor(SceneSpace.SceneVariant.TOWER, 18f), 0f)
     }
 
+    /**
+     * **The fire station and the police station never close** (the maintainer, 2026-10-12: *«pompieri e
+     * polizia sono sempre aperti, 24 ore su 24, tutti i giorni, perché nella realtà non chiudono mai.
+     * L'interruttore e il "dalle / alle" degli edifici pubblici valgono solo per la scuola»*): at every hour,
+     * with every group's hours on at any span, their glass is the open one and their people are in.
+     */
     @Test
-    fun `with both switches off nothing depends on the hour, as before the hours existed`() {
-        for (v in SceneSpace.SceneVariant.entries) for (h in 0..23) {
-            assertEquals("$v at $h:00", 1f, SceneCustomization.DEFAULT.opennessFor(v, h.toFloat()), 0f)
+    fun `the fire and the police station are open at every hour, whatever the hours say`() {
+        assertEquals(listOf(Storefront.SCHOOL), publics.filter { it.keepsHours })
+        val spans = listOf(9f to 20f, 22f to 6f, 12f to 12.25f, 0f to 0.25f)
+        for ((open, close) in spans) {
+            val c = SceneCustomization.DEFAULT.copy(
+                shopHoursEnabled = true, shopOpenHour = open, shopCloseHour = close,
+                towerHoursEnabled = true, towerOpenHour = open, towerCloseHour = close,
+                publicHoursEnabled = true, publicOpenHour = open, publicCloseHour = close,
+            )
+            var schoolShut = false
+            for (q in 0 until 96) {
+                val h = q / 4f
+                assertEquals("fire station at $h, $open-$close", 1f, c.opennessFor(Storefront.FIRE_STATION, h), 0f)
+                assertEquals("police station at $h, $open-$close", 1f, c.opennessFor(Storefront.POLICE_STATION, h), 0f)
+                if (c.opennessFor(Storefront.SCHOOL, h) < 1f) schoolShut = true
+            }
+            assertTrue("the school does keep the hours $open-$close", schoolShut)
         }
+    }
+
+    @Test
+    fun `with every switch off nothing depends on the hour, as before the hours existed`() {
+        for (h in 0..23) {
+            for (v in SceneSpace.SceneVariant.entries) assertEquals("$v at $h:00", 1f, SceneCustomization.DEFAULT.opennessFor(v, h.toFloat()), 0f)
+            for (b in Storefront.ALL) assertEquals("$b at $h:00", 1f, SceneCustomization.DEFAULT.opennessFor(b, h.toFloat()), 0f)
+        }
+    }
+
+    @Test
+    fun `a change of any group's hours is a cut for the people at the hours, and nothing else is`() {
+        val c = SceneCustomization.DEFAULT
+        assertTrue(c.sameOpeningHours(c.copy(shops = c.shops.copy(colorDay1 = 1))))
+        assertFalse(c.sameOpeningHours(c.copy(publicHoursEnabled = true)))
+        assertFalse(c.sameOpeningHours(c.copy(publicOpenHour = 7f)))
+        assertFalse(c.sameOpeningHours(c.copy(publicCloseHour = 21f)))
+        assertFalse(c.sameOpeningHours(c.copy(shopHoursEnabled = true)))
+        assertFalse(c.sameOpeningHours(c.copy(towerCloseHour = 21f)))
     }
 
     /**
@@ -88,10 +157,10 @@ class OpeningHoursGroupsTest {
         }
     }
 
-    /** What a build from v4.22 to v5.11 wrote: the one setting, and nothing of the two groups. */
+    /** What a build from v4.22 to v5.11 wrote: the one setting, and nothing of the groups. */
     private fun writtenBefore512(enabled: Boolean, open: Float, close: Float): JSONObject {
         val json = JSONObject(SceneCustomization.DEFAULT.toJson().toString())
-        for (key in listOf("shop", "tower")) {
+        for (key in listOf("shop", "tower", "public")) {
             json.remove("${key}HoursEnabled"); json.remove("${key}OpenHour"); json.remove("${key}CloseHour")
         }
         json.put("businessHoursEnabled", enabled)
@@ -100,21 +169,51 @@ class OpeningHoursGroupsTest {
         return json
     }
 
+    /** What the 5.12 wrote: the shops' and the towers' hours, and the old setting as the shops'; no public buildings. */
+    private fun writtenBy512(shop: Triple<Boolean, Float, Float>, tower: Triple<Boolean, Float, Float>): JSONObject {
+        val json = JSONObject(SceneCustomization.DEFAULT.toJson().toString())
+        json.remove("publicHoursEnabled"); json.remove("publicOpenHour"); json.remove("publicCloseHour")
+        json.remove("publics")
+        json.put("shopHoursEnabled", shop.first); json.put("shopOpenHour", shop.second.toDouble()); json.put("shopCloseHour", shop.third.toDouble())
+        json.put("towerHoursEnabled", tower.first); json.put("towerOpenHour", tower.second.toDouble()); json.put("towerCloseHour", tower.third.toDouble())
+        json.put("businessHoursEnabled", shop.first); json.put("businessOpenHour", shop.second.toDouble()); json.put("businessCloseHour", shop.third.toDouble())
+        return json
+    }
+
     @Test
-    fun `a payload written before v5_12 with the hours on opens both groups at its hours`() {
+    fun `a payload written before v5_12 with the hours on opens every group at its hours`() {
         val c = sceneCustomizationFromJson(writtenBefore512(true, 8.25f, 1.75f))
-        assertTrue(c.shopHoursEnabled)
-        assertEquals(8.25f, c.shopOpenHour, 0f)
-        assertEquals(1.75f, c.shopCloseHour, 0f)
-        assertTrue(c.towerHoursEnabled)
-        assertEquals(8.25f, c.towerOpenHour, 0f)
-        assertEquals(1.75f, c.towerCloseHour, 0f)
-        // And off stays off in both, its hours kept for when a group is turned on.
+        for ((enabled, open, close) in listOf(
+            Triple(c.shopHoursEnabled, c.shopOpenHour, c.shopCloseHour),
+            Triple(c.towerHoursEnabled, c.towerOpenHour, c.towerCloseHour),
+            Triple(c.publicHoursEnabled, c.publicOpenHour, c.publicCloseHour),
+        )) {
+            assertTrue(enabled)
+            assertEquals(8.25f, open, 0f)
+            assertEquals(1.75f, close, 0f)
+        }
+        // And off stays off in all, its hours kept for when a group is turned on.
         val off = sceneCustomizationFromJson(writtenBefore512(false, 7f, 21f))
         assertFalse(off.shopHoursEnabled)
         assertFalse(off.towerHoursEnabled)
+        assertFalse(off.publicHoursEnabled)
         assertEquals(7f, off.towerOpenHour, 0f)
         assertEquals(21f, off.shopCloseHour, 0f)
+        assertEquals(21f, off.publicCloseHour, 0f)
+    }
+
+    @Test
+    fun `a payload written by the 5_12 opens the public buildings at the shops' hours, which the school kept`() {
+        val on = sceneCustomizationFromJson(writtenBy512(Triple(true, 10.5f, 18.75f), Triple(false, 6f, 23f)))
+        assertTrue("the shops' hours were on: the public buildings' are", on.publicHoursEnabled)
+        assertEquals(10.5f, on.publicOpenHour, 0f)
+        assertEquals(18.75f, on.publicCloseHour, 0f)
+        assertTrue(on.shopHoursEnabled)
+        assertEquals(10.5f, on.shopOpenHour, 0f)
+        assertFalse("the towers' hours are their own", on.towerHoursEnabled)
+        val off = sceneCustomizationFromJson(writtenBy512(Triple(false, 9f, 20f), Triple(true, 6f, 23f)))
+        assertFalse("the shops' hours were off: the public buildings' are", off.publicHoursEnabled)
+        assertTrue(off.towerHoursEnabled)
     }
 
     @Test
@@ -122,6 +221,7 @@ class OpeningHoursGroupsTest {
         val c = SceneCustomization.DEFAULT.copy(
             shopHoursEnabled = false, shopOpenHour = 10f, shopCloseHour = 16f,
             towerHoursEnabled = true, towerOpenHour = 6f, towerCloseHour = 23.5f,
+            publicHoursEnabled = true, publicOpenHour = 8.5f, publicCloseHour = 14.25f,
         )
         val json = JSONObject(c.toJson().toString())
         val back = sceneCustomizationFromJson(json)
@@ -131,13 +231,16 @@ class OpeningHoursGroupsTest {
         assertEquals(c.towerHoursEnabled, back.towerHoursEnabled)
         assertEquals(c.towerOpenHour, back.towerOpenHour, 0f)
         assertEquals(c.towerCloseHour, back.towerCloseHour, 0f)
+        assertEquals(c.publicHoursEnabled, back.publicHoursEnabled)
+        assertEquals(c.publicOpenHour, back.publicOpenHour, 0f)
+        assertEquals(c.publicCloseHour, back.publicCloseHour, 0f)
         // The old setting is still written, as the shops', for a build before v5.12 to read.
         assertEquals(false, json.getBoolean("businessHoursEnabled"))
         assertEquals(10.0, json.getDouble("businessOpenHour"), 0.0)
     }
 
     @Test
-    fun `a saved theme and a backup written before v5_12 open both groups at its hours`() {
+    fun `a saved theme and a backup written before v5_12 open every group at its hours`() {
         // A saved theme: the customization inside its entry.
         val entry = JSONObject().apply {
             put("id", "custom_1")
@@ -147,9 +250,10 @@ class OpeningHoursGroupsTest {
             put("customization", writtenBefore512(true, 7.5f, 22f))
         }
         val saved = customThemeEntryFromJson(entry).customization
-        assertTrue(saved.shopHoursEnabled && saved.towerHoursEnabled)
+        assertTrue(saved.shopHoursEnabled && saved.towerHoursEnabled && saved.publicHoursEnabled)
         assertEquals(7.5f, saved.towerOpenHour, 0f)
         assertEquals(22f, saved.shopCloseHour, 0f)
+        assertEquals(7.5f, saved.publicOpenHour, 0f)
         // A backup: written by this build, its customization put back in the shape of before.
         val backup = JSONObject(
             AppBackup.from(
@@ -161,8 +265,9 @@ class OpeningHoursGroupsTest {
         val parsed = parseAppBackup(backup.toString())
         assertTrue("a backup of that shape is read: $parsed", parsed is BackupParseResult.Ok)
         val winter = (parsed as BackupParseResult.Ok).backup.themeCustomizations.getValue("winter")
-        assertTrue(winter.shopHoursEnabled && winter.towerHoursEnabled)
+        assertTrue(winter.shopHoursEnabled && winter.towerHoursEnabled && winter.publicHoursEnabled)
         assertEquals(9.5f, winter.shopOpenHour, 0f)
         assertEquals(19.25f, winter.towerCloseHour, 0f)
+        assertEquals(19.25f, winter.publicCloseHour, 0f)
     }
 }

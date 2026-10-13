@@ -7,31 +7,41 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 /**
- * [ShopPlanTable] is the shop plan, to the bit.
+ * [ShopPlanTable] is the plan of the places, to the bit.
  *
  * The app stopped computing the plan when it starts (v5.10B): it cost ~566 ms of the main thread on
  * the BV6600 at every start of the wallpaper, for an answer that depends only on constants of the
- * code. [SceneObjectCatalog.planShopPositions] is still here and still the authority; this test runs
- * it and holds the table to its output. Anything that moves a shop's plan -- a street's generator, a
- * shop's width, an occluder -- fails here first, with the table it should now be written to
+ * code. [SceneObjectCatalog.planStreets] is still here and still the authority; this test runs it and
+ * holds the table to its output -- where each street's five places stand (v5.13B2) and where each tree
+ * or parasol the plan moved stands. Anything that moves a place -- a street's generator, a building's
+ * width, an occluder -- fails here first, with the table it should now be written to
  * `app/build/shop-plan/ShopPlanTable.kt`, to be copied over the committed one.
  */
 class ShopPlanTableTest {
 
     @Test
     fun `the committed table is the plan the planner computes, bit for bit`() {
-        val planned = SceneObjectCatalog.planShopPositions()
+        val planned = SceneObjectCatalog.planStreets()
         val folder = File("build/shop-plan").apply { mkdirs() }
         val written = File(folder, "ShopPlanTable.kt")
         written.writeText(ShopPlanTableSource.render(planned))
         val problems = ArrayList<String>()
-        for ((id, x) in planned) {
-            val table = ShopPlanTable.SHOP_X[id]
+        for ((id, plan) in planned) {
+            val table = ShopPlanTable.planFor(id)
             when {
-                x == null && table != null -> problems += "$id: the planner parks its shops by the fallback, the table places them"
-                x != null && table == null -> problems += "$id: the planner places its shops, the table has no row for it"
-                x != null && table != null && !x.map { it.toRawBits() }.equals(table.map { it.toRawBits() }) ->
-                    problems += "$id: planned ${x.joinToString()} against the table's ${table.joinToString()}"
+                plan == null && table != null -> problems += "$id: the planner parks its places by the fallback, the table places them"
+                plan != null && table == null -> problems += "$id: the planner places its places, the table has no row for it"
+                plan != null && table != null -> {
+                    if (!plan.placeX.map { it.toRawBits() }.equals(table.placeX.map { it.toRawBits() })) {
+                        problems += "$id: places planned ${plan.placeX.joinToString()} against the table's ${table.placeX.joinToString()}"
+                    }
+                    if (!plan.movedIndex.contentEquals(table.movedIndex) ||
+                        !plan.movedX.map { it.toRawBits() }.equals(table.movedX.map { it.toRawBits() })
+                    ) {
+                        problems += "$id: moved ${plan.movedIndex.joinToString()} to ${plan.movedX.joinToString()} " +
+                            "against the table's ${table.movedIndex.joinToString()} to ${table.movedX.joinToString()}"
+                    }
+                }
             }
         }
         for (id in ShopPlanTable.SHOP_X.keys - planned.keys) problems += "$id: in the table, not a built-in street"
@@ -47,7 +57,7 @@ class ShopPlanTableTest {
     /**
      * The streets the app lays out from the table are the streets the planner would have laid out:
      * every static object of every built-in theme, every field, in order. The positions above could
-     * agree while the table were applied to the wrong shop; this is what would catch it. A layout is
+     * agree while the table were applied to the wrong object; this is what would catch it. A layout is
      * the street followed by the theme's decorations (`layoutFor` appends them), so the street is its
      * first part.
      */
@@ -65,28 +75,42 @@ class ShopPlanTableTest {
 
 /** The source of [ShopPlanTable] for a plan: what the first test writes out. */
 internal object ShopPlanTableSource {
-    fun render(planned: Map<String, FloatArray?>): String = buildString {
+    fun render(planned: Map<String, SceneObjectCatalog.StreetPlan?>): String = buildString {
+        fun floats(x: FloatArray) = x.joinToString(", ") { "Float.fromBits(0x%08x) /* %s */".format(it.toRawBits(), it.toString()) }
         appendLine("package com.paperscrape.livewallpaper.engine")
         appendLine()
         appendLine("/**")
-        appendLine(" * Where the shops of each built-in street stand: [SceneObjectCatalog.planShopPositions]'s answer,")
-        appendLine(" * computed when this table was generated instead of at every start of the app (v5.10B).")
+        appendLine(" * Where the places among the houses of each built-in street stand, and where each tree or parasol")
+        appendLine(" * the plan moved to make room for them stands: [SceneObjectCatalog.planStreets]'s answer, computed")
+        appendLine(" * when this table was generated instead of at every start of the app (v5.10B; five places, and the")
+        appendLine(" * moves, since v5.13B2).")
         appendLine(" *")
-        appendLine(" * **Generated by `ShopPlanTableTest`; do not edit by hand.** A theme's row is its shops'")
-        appendLine(" * `tileFractionX`, deepest first -- restaurant, school, bar. A theme the plan could not place")
-        appendLine(" * has no row, and its street parks its shops the way the planner does then. The test fails")
-        appendLine(" * whenever this is not the planner's output to the bit, and writes the table it should be to")
-        appendLine(" * `app/build/shop-plan/ShopPlanTable.kt`. Each value is the float's exact bits, with the")
-        appendLine(" * decimal beside it for a reader.")
+        appendLine(" * **Generated by `ShopPlanTableTest`; do not edit by hand.** A theme's [SHOP_X] row is its places'")
+        appendLine(" * `tileFractionX`, deepest first; its [MOVED_INDEX] row the indices, in the street as generated, of")
+        appendLine(" * the trees and parasols the plan moved, and its [MOVED_X] row where each now stands. A theme the")
+        appendLine(" * plan could not place has no row, and its street parks its places the way the planner does then.")
+        appendLine(" * The test fails whenever this is not the planner's output to the bit, and writes the table it")
+        appendLine(" * should be to `app/build/shop-plan/ShopPlanTable.kt`. Each value is the float's exact bits, with")
+        appendLine(" * the decimal beside it for a reader.")
         appendLine(" */")
         appendLine("internal object ShopPlanTable {")
         appendLine("    val SHOP_X: Map<String, FloatArray> = mapOf(")
-        for ((id, x) in planned) {
-            if (x == null) continue
-            val values = x.joinToString(", ") { "Float.fromBits(0x%08x) /* %s */".format(it.toRawBits(), it.toString()) }
-            appendLine("        \"$id\" to floatArrayOf($values),")
-        }
+        for ((id, plan) in planned) if (plan != null) appendLine("        \"$id\" to floatArrayOf(${floats(plan.placeX)}),")
         appendLine("    )")
+        appendLine()
+        appendLine("    val MOVED_INDEX: Map<String, IntArray> = mapOf(")
+        for ((id, plan) in planned) if (plan != null) appendLine("        \"$id\" to intArrayOf(${plan.movedIndex.joinToString(", ")}),")
+        appendLine("    )")
+        appendLine()
+        appendLine("    val MOVED_X: Map<String, FloatArray> = mapOf(")
+        for ((id, plan) in planned) if (plan != null) appendLine("        \"$id\" to floatArrayOf(${floats(plan.movedX)}),")
+        appendLine("    )")
+        appendLine()
+        appendLine("    /** [id]'s plan, or null for a street the table does not place. */")
+        appendLine("    fun planFor(id: String): SceneObjectCatalog.StreetPlan? {")
+        appendLine("        val x = SHOP_X[id] ?: return null")
+        appendLine("        return SceneObjectCatalog.StreetPlan(x, MOVED_INDEX.getValue(id), MOVED_X.getValue(id))")
+        appendLine("    }")
         appendLine("}")
     }
 }

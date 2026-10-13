@@ -1,0 +1,3434 @@
+{
+ "tundra": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.024134570732712746,
+    "silhouette": 1,
+    "scale": 1.0183885097503662,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.16641554236412048,
+    "silhouette": 0,
+    "scale": 0.9299197196960449,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.22912876307964325,
+    "silhouette": 0,
+    "scale": 1.0412940979003906,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.35301268100738525,
+    "silhouette": 0,
+    "scale": 1.0587012767791748,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.46442070603370667,
+    "silhouette": 1,
+    "scale": 1.0787378549575806,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4899999797344208,
+    "silhouette": 0,
+    "scale": 1.0469661951065063,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6151430606842041,
+    "silhouette": 0,
+    "scale": 0.9727302193641663,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.029999999329447746,
+    "silhouette": 0,
+    "scale": 0.9372735023498535,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8593794703483582,
+    "silhouette": 1,
+    "scale": 1.0438817739486694,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.14000000059604645,
+    "silhouette": 0,
+    "scale": 0.9460159540176392,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.0787154957652092,
+    "silhouette": 9,
+    "scale": 0.9494737386703491,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.13384878635406494,
+    "silhouette": 6,
+    "scale": 0.9378616213798523,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.24603517353534698,
+    "silhouette": 8,
+    "scale": 1.0335257053375244,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.38471880555152893,
+    "silhouette": 3,
+    "scale": 0.9246426224708557,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.4588579535484314,
+    "silhouette": 5,
+    "scale": 0.9554253816604614,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5530620813369751,
+    "silhouette": 1,
+    "scale": 1.0675591230392456,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6639053225517273,
+    "silhouette": 7,
+    "scale": 0.9919523000717163,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7216071486473083,
+    "silhouette": 2,
+    "scale": 1.0568666458129883,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8737307190895081,
+    "silhouette": 4,
+    "scale": 1.0162849426269531,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9720115065574646,
+    "silhouette": 0,
+    "scale": 0.9641034007072449,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.05567014962434769,
+    "silhouette": -1,
+    "scale": 1.075810432434082,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.16432715952396393,
+    "silhouette": -1,
+    "scale": 0.9500662088394165,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.2418602555990219,
+    "silhouette": -1,
+    "scale": 0.971332311630249,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.3229646384716034,
+    "silhouette": -1,
+    "scale": 1.0232067108154297,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.4160025715827942,
+    "silhouette": -1,
+    "scale": 0.9839164018630981,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.584665060043335,
+    "silhouette": -1,
+    "scale": 0.9495813250541687,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.657444417476654,
+    "silhouette": -1,
+    "scale": 0.9675500392913818,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7836773991584778,
+    "silhouette": -1,
+    "scale": 0.9756456017494202,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8502374291419983,
+    "silhouette": -1,
+    "scale": 1.025367021560669,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9400800466537476,
+    "silhouette": -1,
+    "scale": 1.0790482759475708,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.13371549546718597,
+    "silhouette": -1,
+    "scale": 1.0673729181289673,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.07884878665208817,
+    "silhouette": -1,
+    "scale": 1.0250014066696167,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.30103516578674316,
+    "silhouette": -1,
+    "scale": 1.0275609493255615,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.32971879839897156,
+    "silhouette": -1,
+    "scale": 0.9553207755088806,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5138579607009888,
+    "silhouette": -1,
+    "scale": 1.047018051147461,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.4980620741844177,
+    "silhouette": -1,
+    "scale": 1.0690664052963257,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7189053297042847,
+    "silhouette": -1,
+    "scale": 1.0057138204574585,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.666607141494751,
+    "silhouette": -1,
+    "scale": 0.9588425159454346,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9287307262420654,
+    "silhouette": -1,
+    "scale": 0.9620578289031982,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9170114994049072,
+    "silhouette": -1,
+    "scale": 0.9632093906402588,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "spring": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.07007035613059998,
+    "silhouette": 0,
+    "scale": 1.0749499797821045,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.15110231935977936,
+    "silhouette": 0,
+    "scale": 1.0030977725982666,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.27306514978408813,
+    "silhouette": 1,
+    "scale": 0.9744454026222229,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.3448985517024994,
+    "silhouette": 1,
+    "scale": 1.0159118175506592,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4273809790611267,
+    "silhouette": 1,
+    "scale": 0.9296560287475586,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.28999999165534973,
+    "silhouette": 0,
+    "scale": 1.0350279808044434,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6306626200675964,
+    "silhouette": 0,
+    "scale": 0.9268006682395935,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.429999977350235,
+    "silhouette": 0,
+    "scale": 1.0307660102844238,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8731341361999512,
+    "silhouette": 0,
+    "scale": 0.922967791557312,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.14000000059604645,
+    "silhouette": 0,
+    "scale": 0.9575810432434082,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.04192408174276352,
+    "silhouette": 5,
+    "scale": 0.9254497289657593,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.15322498977184296,
+    "silhouette": 1,
+    "scale": 1.0380398035049438,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.26240140199661255,
+    "silhouette": 8,
+    "scale": 0.9517104029655457,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.35692572593688965,
+    "silhouette": 4,
+    "scale": 0.9490044116973877,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.444709837436676,
+    "silhouette": 6,
+    "scale": 1.0700523853302002,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5457698702812195,
+    "silhouette": 7,
+    "scale": 0.9950928688049316,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.647020697593689,
+    "silhouette": 2,
+    "scale": 0.9970084428787231,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7206789255142212,
+    "silhouette": 9,
+    "scale": 0.951251745223999,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8310099840164185,
+    "silhouette": 3,
+    "scale": 1.0276098251342773,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9186623096466064,
+    "silhouette": 0,
+    "scale": 0.9404016733169556,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.04531465470790863,
+    "silhouette": -1,
+    "scale": 0.991002082824707,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.12572510540485382,
+    "silhouette": -1,
+    "scale": 1.012607216835022,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.2696436941623688,
+    "silhouette": -1,
+    "scale": 0.9553620219230652,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.3716777563095093,
+    "silhouette": -1,
+    "scale": 0.9643468856811523,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.4785040020942688,
+    "silhouette": -1,
+    "scale": 1.023844838142395,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.5579992532730103,
+    "silhouette": -1,
+    "scale": 1.0259116888046265,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6217526793479919,
+    "silhouette": -1,
+    "scale": 0.9549256563186646,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7838987708091736,
+    "silhouette": -1,
+    "scale": 0.9499905109405518,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8465473055839539,
+    "silhouette": -1,
+    "scale": 1.0646189451217651,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9707337021827698,
+    "silhouette": -1,
+    "scale": 1.0070449113845825,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.0969240814447403,
+    "silhouette": -1,
+    "scale": 1.0019773244857788,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.09822499006986618,
+    "silhouette": -1,
+    "scale": 1.0084240436553955,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.3174014091491699,
+    "silhouette": -1,
+    "scale": 0.929120659828186,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.3019257187843323,
+    "silhouette": -1,
+    "scale": 1.0727343559265137,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.4997098445892334,
+    "silhouette": -1,
+    "scale": 0.9357967972755432,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.4907698631286621,
+    "silhouette": -1,
+    "scale": 1.025323510169983,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7020207047462463,
+    "silhouette": -1,
+    "scale": 0.9432109594345093,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6656789183616638,
+    "silhouette": -1,
+    "scale": 0.9997923374176025,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8860099911689758,
+    "silhouette": -1,
+    "scale": 0.9369842410087585,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8636623024940491,
+    "silhouette": -1,
+    "scale": 1.0790114402770996,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "halloween": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.024798955768346786,
+    "silhouette": 1,
+    "scale": 1.0469130277633667,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.18420018255710602,
+    "silhouette": 1,
+    "scale": 1.0156837701797485,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.24081170558929443,
+    "silhouette": 1,
+    "scale": 0.9570894837379456,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.37824422121047974,
+    "silhouette": 0,
+    "scale": 0.9345415830612183,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4453847110271454,
+    "silhouette": 0,
+    "scale": 1.0132728815078735,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.019999999552965164,
+    "silhouette": 0,
+    "scale": 0.9784104228019714,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.64028400182724,
+    "silhouette": 0,
+    "scale": 0.9654532670974731,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.26999998092651367,
+    "silhouette": 0,
+    "scale": 1.0385318994522095,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8241847157478333,
+    "silhouette": 0,
+    "scale": 1.0125761032104492,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.5099999904632568,
+    "silhouette": 0,
+    "scale": 0.9909345507621765,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.04857029393315315,
+    "silhouette": 8,
+    "scale": 0.9370368123054504,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.18183693289756775,
+    "silhouette": 0,
+    "scale": 1.0103132724761963,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.21702182292938232,
+    "silhouette": 4,
+    "scale": 0.9401357173919678,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.3837170898914337,
+    "silhouette": 9,
+    "scale": 0.9989255666732788,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.42771413922309875,
+    "silhouette": 3,
+    "scale": 0.9550659656524658,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5806651711463928,
+    "silhouette": 2,
+    "scale": 1.0189710855484009,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.623639702796936,
+    "silhouette": 6,
+    "scale": 0.9356557130813599,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.745093047618866,
+    "silhouette": 7,
+    "scale": 0.9621040225028992,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8663516044616699,
+    "silhouette": 5,
+    "scale": 0.9471761584281921,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9683138728141785,
+    "silhouette": 1,
+    "scale": 0.9731128811836243,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.05194484815001488,
+    "silhouette": -1,
+    "scale": 0.9678817987442017,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.15759210288524628,
+    "silhouette": -1,
+    "scale": 1.0263645648956299,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.24423253536224365,
+    "silhouette": -1,
+    "scale": 0.9362872838973999,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.3328348696231842,
+    "silhouette": -1,
+    "scale": 1.0629767179489136,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.4642445743083954,
+    "silhouette": -1,
+    "scale": 0.9287777543067932,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.5180945992469788,
+    "silhouette": -1,
+    "scale": 0.9882297515869141,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6313402652740479,
+    "silhouette": -1,
+    "scale": 0.97482830286026,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7514715194702148,
+    "silhouette": -1,
+    "scale": 0.9583502411842346,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8507814407348633,
+    "silhouette": -1,
+    "scale": 0.9835992455482483,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9162078499794006,
+    "silhouette": -1,
+    "scale": 1.0428762435913086,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.10357029736042023,
+    "silhouette": -1,
+    "scale": 0.9765833616256714,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.12683692574501038,
+    "silhouette": -1,
+    "scale": 1.030303716659546,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.2720218300819397,
+    "silhouette": -1,
+    "scale": 1.0122733116149902,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.32871708273887634,
+    "silhouette": -1,
+    "scale": 1.0461983680725098,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.48271414637565613,
+    "silhouette": -1,
+    "scale": 1.0171703100204468,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5256651639938354,
+    "silhouette": -1,
+    "scale": 1.026248812675476,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6786397099494934,
+    "silhouette": -1,
+    "scale": 1.0292906761169434,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6900930404663086,
+    "silhouette": -1,
+    "scale": 0.9497137069702148,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9213516116142273,
+    "silhouette": -1,
+    "scale": 0.9581459760665894,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9133138656616211,
+    "silhouette": -1,
+    "scale": 1.023956537246704,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "city": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.020526500418782234,
+    "silhouette": 0,
+    "scale": 1.0011417865753174,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.1639299839735031,
+    "silhouette": 0,
+    "scale": 1.0500203371047974,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.24152503907680511,
+    "silhouette": 0,
+    "scale": 1.0614522695541382,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.3205305337905884,
+    "silhouette": 1,
+    "scale": 0.9597310423851013,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.43389785289764404,
+    "silhouette": 0,
+    "scale": 0.9674910306930542,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.009999999776482582,
+    "silhouette": 0,
+    "scale": 1.0083085298538208,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6754087209701538,
+    "silhouette": 1,
+    "scale": 1.0079742670059204,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.14999999105930328,
+    "silhouette": 0,
+    "scale": 1.0036686658859253,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8307349681854248,
+    "silhouette": 1,
+    "scale": 1.0088655948638916,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.3799999952316284,
+    "silhouette": 0,
+    "scale": 0.9258459210395813,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.06237855926156044,
+    "silhouette": 8,
+    "scale": 1.0722851753234863,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.1663358509540558,
+    "silhouette": 0,
+    "scale": 1.0653921365737915,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.25656598806381226,
+    "silhouette": 3,
+    "scale": 0.9240311980247498,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.3435036838054657,
+    "silhouette": 4,
+    "scale": 1.0628228187561035,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.4515000581741333,
+    "silhouette": 5,
+    "scale": 0.9453763365745544,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.517552375793457,
+    "silhouette": 9,
+    "scale": 1.0485584735870361,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.625958263874054,
+    "silhouette": 6,
+    "scale": 0.9776118993759155,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7821088433265686,
+    "silhouette": 7,
+    "scale": 0.9266198873519897,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8378252387046814,
+    "silhouette": 1,
+    "scale": 0.9547387361526489,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9199309945106506,
+    "silhouette": 2,
+    "scale": 0.9286503791809082,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.05898798629641533,
+    "silhouette": -1,
+    "scale": 0.9228277802467346,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.12050561606884003,
+    "silhouette": -1,
+    "scale": 1.040589690208435,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.24712766706943512,
+    "silhouette": -1,
+    "scale": 0.9204577207565308,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.3593752682209015,
+    "silhouette": -1,
+    "scale": 0.9281662702560425,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.41722577810287476,
+    "silhouette": -1,
+    "scale": 1.0715861320495605,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.5401723980903625,
+    "silhouette": -1,
+    "scale": 0.9981277585029602,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6665365099906921,
+    "silhouette": -1,
+    "scale": 1.02234947681427,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7533170580863953,
+    "silhouette": -1,
+    "scale": 0.9228542447090149,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8571849465370178,
+    "silhouette": -1,
+    "scale": 1.075498104095459,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9370369911193848,
+    "silhouette": -1,
+    "scale": 1.0363863706588745,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.11737856268882751,
+    "silhouette": -1,
+    "scale": 1.041001319885254,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.11133585125207901,
+    "silhouette": -1,
+    "scale": 1.0098633766174316,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.31156599521636963,
+    "silhouette": -1,
+    "scale": 1.0017943382263184,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.2885036766529083,
+    "silhouette": -1,
+    "scale": 0.9252650737762451,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5065000653266907,
+    "silhouette": -1,
+    "scale": 1.045983076095581,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.46255236864089966,
+    "silhouette": -1,
+    "scale": 1.0140708684921265,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6809582710266113,
+    "silhouette": -1,
+    "scale": 0.9338134527206421,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7271088361740112,
+    "silhouette": -1,
+    "scale": 1.019882082939148,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8928252458572388,
+    "silhouette": -1,
+    "scale": 1.0765870809555054,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8649309873580933,
+    "silhouette": -1,
+    "scale": 1.0005168914794922,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "new_year": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.041494183242321014,
+    "silhouette": 0,
+    "scale": 1.0358291864395142,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.1240982860326767,
+    "silhouette": 1,
+    "scale": 1.0586944818496704,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.24133555591106415,
+    "silhouette": 0,
+    "scale": 0.974321722984314,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.32018908858299255,
+    "silhouette": 0,
+    "scale": 1.0671772956848145,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4606669247150421,
+    "silhouette": 1,
+    "scale": 0.9578884840011597,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4899999797344208,
+    "silhouette": 0,
+    "scale": 0.9328139424324036,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6837731003761292,
+    "silhouette": 0,
+    "scale": 1.0123006105422974,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.25999999046325684,
+    "silhouette": 0,
+    "scale": 0.9490975737571716,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8715532422065735,
+    "silhouette": 1,
+    "scale": 0.9458931684494019,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.019999999552965164,
+    "silhouette": 0,
+    "scale": 1.0554653406143188,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.04495985805988312,
+    "silhouette": 0,
+    "scale": 0.9332509636878967,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.18319645524024963,
+    "silhouette": 4,
+    "scale": 0.9988799095153809,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.25485318899154663,
+    "silhouette": 5,
+    "scale": 1.0642845630645752,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.3667803406715393,
+    "silhouette": 3,
+    "scale": 0.9401180744171143,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.4303341507911682,
+    "silhouette": 1,
+    "scale": 1.0630452632904053,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5690657496452332,
+    "silhouette": 9,
+    "scale": 0.9951938390731812,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6720795035362244,
+    "silhouette": 8,
+    "scale": 1.017509937286377,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7781322598457336,
+    "silhouette": 6,
+    "scale": 0.9882240295410156,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8446720242500305,
+    "silhouette": 2,
+    "scale": 1.0698784589767456,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9331331253051758,
+    "silhouette": 7,
+    "scale": 1.0047483444213867,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.0638561099767685,
+    "silhouette": -1,
+    "scale": 0.9728143811225891,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.15056750178337097,
+    "silhouette": -1,
+    "scale": 1.0136535167694092,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.21599633991718292,
+    "silhouette": -1,
+    "scale": 1.000939965248108,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.3606277406215668,
+    "silhouette": -1,
+    "scale": 0.9276878237724304,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.4275203049182892,
+    "silhouette": -1,
+    "scale": 0.9948312044143677,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.5800219178199768,
+    "silhouette": -1,
+    "scale": 0.9517356157302856,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6591006517410278,
+    "silhouette": -1,
+    "scale": 1.0606811046600342,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7534568309783936,
+    "silhouette": -1,
+    "scale": 0.9544079899787903,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.878929853439331,
+    "silhouette": -1,
+    "scale": 0.9757230877876282,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9166913032531738,
+    "silhouette": -1,
+    "scale": 1.0673065185546875,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.0999598577618599,
+    "silhouette": -1,
+    "scale": 0.9772548675537109,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.12819644808769226,
+    "silhouette": -1,
+    "scale": 1.0033082962036133,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.309853196144104,
+    "silhouette": -1,
+    "scale": 1.006677269935608,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.31178033351898193,
+    "silhouette": -1,
+    "scale": 0.9981254935264587,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.4853341579437256,
+    "silhouette": -1,
+    "scale": 0.9766518473625183,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5140657424926758,
+    "silhouette": -1,
+    "scale": 1.0633609294891357,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7270795106887817,
+    "silhouette": -1,
+    "scale": 0.9567826986312866,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7231322526931763,
+    "silhouette": -1,
+    "scale": 0.9945928454399109,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8996720314025879,
+    "silhouette": -1,
+    "scale": 1.0683841705322266,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8781331181526184,
+    "silhouette": -1,
+    "scale": 0.9730401039123535,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "sunset": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.0364326611161232,
+    "silhouette": 1,
+    "scale": 1.078029751777649,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.16369843482971191,
+    "silhouette": 1,
+    "scale": 1.0517523288726807,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.2711968421936035,
+    "silhouette": 1,
+    "scale": 1.076062560081482,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.36395376920700073,
+    "silhouette": 0,
+    "scale": 0.97672438621521,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4688020944595337,
+    "silhouette": 1,
+    "scale": 1.0738757848739624,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.19999998807907104,
+    "silhouette": 0,
+    "scale": 0.9341614842414856,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6796988844871521,
+    "silhouette": 0,
+    "scale": 1.025702953338623,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.44999998807907104,
+    "silhouette": 0,
+    "scale": 0.973712682723999,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8211811780929565,
+    "silhouette": 0,
+    "scale": 0.9691216349601746,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6299999952316284,
+    "silhouette": 1,
+    "scale": 1.030707597732544,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.025687217712402344,
+    "silhouette": 6,
+    "scale": 0.9865977168083191,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.13058894872665405,
+    "silhouette": 5,
+    "scale": 1.0391473770141602,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.2181929498910904,
+    "silhouette": 9,
+    "scale": 1.0619560480117798,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.3344182074069977,
+    "silhouette": 3,
+    "scale": 1.0025875568389893,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.4654253423213959,
+    "silhouette": 2,
+    "scale": 1.034688115119934,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5657214522361755,
+    "silhouette": 8,
+    "scale": 1.073563575744629,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6223679184913635,
+    "silhouette": 1,
+    "scale": 1.0027356147766113,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7568779587745667,
+    "silhouette": 4,
+    "scale": 0.9328737258911133,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8333448767662048,
+    "silhouette": 0,
+    "scale": 0.9942201375961304,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9809377789497375,
+    "silhouette": 7,
+    "scale": 1.0226209163665771,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.06607861816883087,
+    "silhouette": -1,
+    "scale": 0.9406077861785889,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.16134336590766907,
+    "silhouette": -1,
+    "scale": 1.031937599182129,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.22288337349891663,
+    "silhouette": -1,
+    "scale": 1.0060240030288696,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.3437577188014984,
+    "silhouette": -1,
+    "scale": 1.023422122001648,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.43898069858551025,
+    "silhouette": -1,
+    "scale": 0.9687358140945435,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.5338788032531738,
+    "silhouette": -1,
+    "scale": 1.0318547487258911,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6205548644065857,
+    "silhouette": -1,
+    "scale": 1.020902395248413,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.782854437828064,
+    "silhouette": -1,
+    "scale": 1.0116147994995117,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8482333421707153,
+    "silhouette": -1,
+    "scale": 1.0049818754196167,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9609691500663757,
+    "silhouette": -1,
+    "scale": 1.0576757192611694,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.08068721741437912,
+    "silhouette": -1,
+    "scale": 0.9423385858535767,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.07558894902467728,
+    "silhouette": -1,
+    "scale": 1.0710316896438599,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.2731929421424866,
+    "silhouette": -1,
+    "scale": 1.0213074684143066,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.2794182002544403,
+    "silhouette": -1,
+    "scale": 1.0165281295776367,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5204253196716309,
+    "silhouette": -1,
+    "scale": 0.9936423301696777,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5107214450836182,
+    "silhouette": -1,
+    "scale": 0.938758909702301,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6773679256439209,
+    "silhouette": -1,
+    "scale": 1.0332216024398804,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7018779516220093,
+    "silhouette": -1,
+    "scale": 0.9565531015396118,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8883448839187622,
+    "silhouette": -1,
+    "scale": 0.9352044463157654,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9259377717971802,
+    "silhouette": -1,
+    "scale": 1.0270997285842896,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "beach": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.02614041604101658,
+    "silhouette": 1,
+    "scale": 1.0419344902038574,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.11549513041973114,
+    "silhouette": 1,
+    "scale": 1.047428011894226,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.27699530124664307,
+    "silhouette": 0,
+    "scale": 1.0251444578170776,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.31648507714271545,
+    "silhouette": 0,
+    "scale": 0.9892803430557251,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.44126468896865845,
+    "silhouette": 0,
+    "scale": 1.0065563917160034,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.28999999165534973,
+    "silhouette": 0,
+    "scale": 0.9734134674072266,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6382458209991455,
+    "silhouette": 0,
+    "scale": 0.9800119400024414,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.03999999910593033,
+    "silhouette": 0,
+    "scale": 1.0638114213943481,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.818127453327179,
+    "silhouette": 1,
+    "scale": 1.0073275566101074,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.38999998569488525,
+    "silhouette": 0,
+    "scale": 0.9237272143363953,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.07178641855716705,
+    "silhouette": 7,
+    "scale": 1.0530542135238647,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.1831243485212326,
+    "silhouette": 9,
+    "scale": 1.0119000673294067,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.23516014218330383,
+    "silhouette": 0,
+    "scale": 1.0080342292785645,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.35695895552635193,
+    "silhouette": 8,
+    "scale": 0.9224134087562561,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.458593487739563,
+    "silhouette": 6,
+    "scale": 0.9445887804031372,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.524437427520752,
+    "silhouette": 2,
+    "scale": 0.9336445331573486,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6588125228881836,
+    "silhouette": 4,
+    "scale": 1.049802303314209,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7794575691223145,
+    "silhouette": 1,
+    "scale": 0.9851971864700317,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8602217435836792,
+    "silhouette": 3,
+    "scale": 1.0626922845840454,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9477843046188354,
+    "silhouette": 5,
+    "scale": 0.9209237694740295,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.024696117267012596,
+    "silhouette": -1,
+    "scale": 0.9662514328956604,
+    "depthFraction": 0.18000000715255737,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.14414970576763153,
+    "silhouette": -1,
+    "scale": 1.0297348499298096,
+    "depthFraction": 0.2711111307144165,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.23043151199817657,
+    "silhouette": -1,
+    "scale": 1.070844054222107,
+    "depthFraction": 0.36222222447395325,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.34756818413734436,
+    "silhouette": -1,
+    "scale": 1.0232445001602173,
+    "depthFraction": 0.4533333480358124,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.4156063497066498,
+    "silhouette": -1,
+    "scale": 1.008597731590271,
+    "depthFraction": 0.5444444417953491,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.5625527501106262,
+    "silhouette": -1,
+    "scale": 1.0531847476959229,
+    "depthFraction": 0.635555624961853,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.6608952283859253,
+    "silhouette": -1,
+    "scale": 1.0640678405761719,
+    "depthFraction": 0.7266666889190674,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.7365279793739319,
+    "silhouette": -1,
+    "scale": 1.0664763450622559,
+    "depthFraction": 0.8177778124809265,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.8389759063720703,
+    "silhouette": -1,
+    "scale": 1.0523595809936523,
+    "depthFraction": 0.9088888764381409,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.963873565196991,
+    "silhouette": -1,
+    "scale": 0.9558714628219604,
+    "depthFraction": 1,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.12678641080856323,
+    "silhouette": -1,
+    "scale": 1.0571143627166748,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.12812435626983643,
+    "silhouette": -1,
+    "scale": 1.0354762077331543,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.2901601493358612,
+    "silhouette": -1,
+    "scale": 1.0710958242416382,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.30195894837379456,
+    "silhouette": -1,
+    "scale": 0.9920272827148438,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5135934948921204,
+    "silhouette": -1,
+    "scale": 0.9962772727012634,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.4694374203681946,
+    "silhouette": -1,
+    "scale": 1.0779972076416016,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.713812530040741,
+    "silhouette": -1,
+    "scale": 0.9219117164611816,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7244575619697571,
+    "silhouette": -1,
+    "scale": 1.049118995666504,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9152217507362366,
+    "silhouette": -1,
+    "scale": 0.9289867877960205,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8927842974662781,
+    "silhouette": -1,
+    "scale": 1.0497413873672485,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "winter": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.08076202869415283,
+    "silhouette": 0,
+    "scale": 0.9677444696426392,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.1727096289396286,
+    "silhouette": 1,
+    "scale": 1.0429449081420898,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.2764289379119873,
+    "silhouette": 0,
+    "scale": 0.9470628499984741,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.3554851710796356,
+    "silhouette": 0,
+    "scale": 1.0622467994689941,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.45955294370651245,
+    "silhouette": 0,
+    "scale": 1.072284460067749,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4899999797344208,
+    "silhouette": 0,
+    "scale": 1.0405608415603638,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6397795677185059,
+    "silhouette": 1,
+    "scale": 0.9647132754325867,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.14999999105930328,
+    "silhouette": 0,
+    "scale": 0.9251735806465149,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8350935578346252,
+    "silhouette": 1,
+    "scale": 1.0661535263061523,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.25999999046325684,
+    "silhouette": 0,
+    "scale": 1.0171840190887451,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.0345330685377121,
+    "silhouette": 5,
+    "scale": 0.9572497010231018,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.1746443510055542,
+    "silhouette": 4,
+    "scale": 1.077846646308899,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.22584271430969238,
+    "silhouette": 9,
+    "scale": 1.0449529886245728,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.37845736742019653,
+    "silhouette": 3,
+    "scale": 0.9666298627853394,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.44188234210014343,
+    "silhouette": 1,
+    "scale": 1.0114405155181885,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5789019465446472,
+    "silhouette": 7,
+    "scale": 0.9204769730567932,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6562532186508179,
+    "silhouette": 2,
+    "scale": 1.0349022150039673,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7201352119445801,
+    "silhouette": 6,
+    "scale": 1.0015954971313477,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8247137665748596,
+    "silhouette": 8,
+    "scale": 0.9615193605422974,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.980019211769104,
+    "silhouette": 0,
+    "scale": 1.0050082206726074,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.07931762933731079,
+    "silhouette": -1,
+    "scale": 1.0484665632247925,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.14387285709381104,
+    "silhouette": -1,
+    "scale": 1.065637230873108,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.22990454733371735,
+    "silhouette": -1,
+    "scale": 0.9815195798873901,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.3165664076805115,
+    "silhouette": -1,
+    "scale": 0.9480869770050049,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.4159800708293915,
+    "silhouette": -1,
+    "scale": 0.9205175042152405,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.5497859716415405,
+    "silhouette": -1,
+    "scale": 0.9584556221961975,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6536861062049866,
+    "silhouette": -1,
+    "scale": 1.056896448135376,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7816585898399353,
+    "silhouette": -1,
+    "scale": 0.922816276550293,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8821900486946106,
+    "silhouette": -1,
+    "scale": 0.9711849093437195,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9218547940254211,
+    "silhouette": -1,
+    "scale": 0.9700703620910645,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.08953306823968887,
+    "silhouette": -1,
+    "scale": 1.019794225692749,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.11964435130357742,
+    "silhouette": -1,
+    "scale": 1.025888442993164,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.28084272146224976,
+    "silhouette": -1,
+    "scale": 0.9709247350692749,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.32345736026763916,
+    "silhouette": -1,
+    "scale": 0.9254710674285889,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.4968823492527008,
+    "silhouette": -1,
+    "scale": 0.9837926626205444,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5239019393920898,
+    "silhouette": -1,
+    "scale": 1.0715590715408325,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7112532258033752,
+    "silhouette": -1,
+    "scale": 0.9925554990768433,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6651352047920227,
+    "silhouette": -1,
+    "scale": 0.9813525676727295,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.879713773727417,
+    "silhouette": -1,
+    "scale": 0.9940800666809082,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9250192046165466,
+    "silhouette": -1,
+    "scale": 0.9756840467453003,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "autumn": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.05295628309249878,
+    "silhouette": 1,
+    "scale": 0.9826762676239014,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.16639375686645508,
+    "silhouette": 0,
+    "scale": 1.052922248840332,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.23214343190193176,
+    "silhouette": 1,
+    "scale": 0.9792602062225342,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.3701750338077545,
+    "silhouette": 0,
+    "scale": 0.9709591269493103,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.45878511667251587,
+    "silhouette": 1,
+    "scale": 1.0737351179122925,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.1899999976158142,
+    "silhouette": 0,
+    "scale": 1.0330543518066406,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6404668688774109,
+    "silhouette": 0,
+    "scale": 0.9988217949867249,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4099999964237213,
+    "silhouette": 0,
+    "scale": 1.036285161972046,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.827076256275177,
+    "silhouette": 1,
+    "scale": 1.0462672710418701,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6399999856948853,
+    "silhouette": 1,
+    "scale": 0.9319038987159729,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.0375373400747776,
+    "silhouette": 7,
+    "scale": 1.0744597911834717,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.12888804078102112,
+    "silhouette": 6,
+    "scale": 0.9405272603034973,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.2839879095554352,
+    "silhouette": 8,
+    "scale": 0.9707786440849304,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.33845192193984985,
+    "silhouette": 9,
+    "scale": 0.9957112669944763,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.464175820350647,
+    "silhouette": 4,
+    "scale": 0.9573776125907898,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5206937193870544,
+    "silhouette": 3,
+    "scale": 1.0574512481689453,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6191186308860779,
+    "silhouette": 2,
+    "scale": 1.06210458278656,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7600656747817993,
+    "silhouette": 0,
+    "scale": 0.9958789944648743,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.821475088596344,
+    "silhouette": 1,
+    "scale": 1.05925452709198,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9289723038673401,
+    "silhouette": 5,
+    "scale": 0.9437391757965088,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.08230344206094742,
+    "silhouette": -1,
+    "scale": 0.9250979423522949,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.150909423828125,
+    "silhouette": -1,
+    "scale": 0.9527367353439331,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.2193766087293625,
+    "silhouette": -1,
+    "scale": 1.0692228078842163,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.3653598427772522,
+    "silhouette": -1,
+    "scale": 0.9364413022994995,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.4721669852733612,
+    "silhouette": -1,
+    "scale": 0.9688863158226013,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.5527933239936829,
+    "silhouette": -1,
+    "scale": 0.935742974281311,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6170323491096497,
+    "silhouette": -1,
+    "scale": 1.0038455724716187,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7346358895301819,
+    "silhouette": -1,
+    "scale": 1.0771377086639404,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8701608180999756,
+    "silhouette": -1,
+    "scale": 1.0697814226150513,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9702196717262268,
+    "silhouette": -1,
+    "scale": 1.0586767196655273,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.09253734350204468,
+    "silhouette": -1,
+    "scale": 0.9695014953613281,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.07388804107904434,
+    "silhouette": -1,
+    "scale": 0.9962371587753296,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.33898791670799255,
+    "silhouette": -1,
+    "scale": 1.0075002908706665,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.2834519147872925,
+    "silhouette": -1,
+    "scale": 1.0781463384628296,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5191758275032043,
+    "silhouette": -1,
+    "scale": 1.0643818378448486,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.46569371223449707,
+    "silhouette": -1,
+    "scale": 0.9366440176963806,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6741186380386353,
+    "silhouette": -1,
+    "scale": 1.0476001501083374,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7050656676292419,
+    "silhouette": -1,
+    "scale": 1.0308079719543457,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8764750957489014,
+    "silhouette": -1,
+    "scale": 0.9304337501525879,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8739722967147827,
+    "silhouette": -1,
+    "scale": 0.9492613077163696,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "desert": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.03640931099653244,
+    "silhouette": 1,
+    "scale": 0.9296314716339111,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.1500028818845749,
+    "silhouette": 0,
+    "scale": 1.014053225517273,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.23445582389831543,
+    "silhouette": 0,
+    "scale": 0.9904706478118896,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.3706870377063751,
+    "silhouette": 1,
+    "scale": 1.035693645477295,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.43348783254623413,
+    "silhouette": 0,
+    "scale": 1.0023102760314941,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.3999999761581421,
+    "silhouette": 0,
+    "scale": 1.0023961067199707,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6177752017974854,
+    "silhouette": 1,
+    "scale": 0.9322250485420227,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.019999999552965164,
+    "silhouette": 0,
+    "scale": 1.063840389251709,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8424195647239685,
+    "silhouette": 1,
+    "scale": 1.0202891826629639,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.5099999904632568,
+    "silhouette": 1,
+    "scale": 0.9794751405715942,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.0645553469657898,
+    "silhouette": 8,
+    "scale": 0.9598203897476196,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.1522541344165802,
+    "silhouette": 5,
+    "scale": 0.9986815452575684,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.2544148564338684,
+    "silhouette": 9,
+    "scale": 0.973518431186676,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.34990137815475464,
+    "silhouette": 0,
+    "scale": 0.9700434803962708,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.4508856534957886,
+    "silhouette": 2,
+    "scale": 1.063964605331421,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5626632571220398,
+    "silhouette": 6,
+    "scale": 1.0429584980010986,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6670699715614319,
+    "silhouette": 3,
+    "scale": 1.0418083667755127,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7463943362236023,
+    "silhouette": 4,
+    "scale": 0.9849147796630859,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8845396041870117,
+    "silhouette": 7,
+    "scale": 0.9249262809753418,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9399233460426331,
+    "silhouette": 1,
+    "scale": 0.9722957611083984,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.037289127707481384,
+    "silhouette": -1,
+    "scale": 1.009064793586731,
+    "depthFraction": 0.18000000715255737,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.12121154367923737,
+    "silhouette": -1,
+    "scale": 0.9964375495910645,
+    "depthFraction": 0.2711111307144165,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.25910958647727966,
+    "silhouette": -1,
+    "scale": 1.0350762605667114,
+    "depthFraction": 0.36222222447395325,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.3415870666503906,
+    "silhouette": -1,
+    "scale": 1.071415662765503,
+    "depthFraction": 0.4533333480358124,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.47788095474243164,
+    "silhouette": -1,
+    "scale": 0.999916672706604,
+    "depthFraction": 0.5444444417953491,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.5327520966529846,
+    "silhouette": -1,
+    "scale": 0.9234170317649841,
+    "depthFraction": 0.635555624961853,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.6645024418830872,
+    "silhouette": -1,
+    "scale": 1.0212929248809814,
+    "depthFraction": 0.7266666889190674,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.7368239760398865,
+    "silhouette": -1,
+    "scale": 1.066195011138916,
+    "depthFraction": 0.8177778124809265,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.8631290793418884,
+    "silhouette": -1,
+    "scale": 1.0753353834152222,
+    "depthFraction": 0.9088888764381409,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.9474846124649048,
+    "silhouette": -1,
+    "scale": 1.0072040557861328,
+    "depthFraction": 1,
+    "type": "PALM_TREE"
+   },
+   {
+    "tileFractionX": 0.11955534666776657,
+    "silhouette": -1,
+    "scale": 1.0780844688415527,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.09725413471460342,
+    "silhouette": -1,
+    "scale": 1.0314867496490479,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.3094148635864258,
+    "silhouette": -1,
+    "scale": 1.0797467231750488,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.29490137100219727,
+    "silhouette": -1,
+    "scale": 0.9766038060188293,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.505885660648346,
+    "silhouette": -1,
+    "scale": 1.0510963201522827,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5076632499694824,
+    "silhouette": -1,
+    "scale": 0.9651148915290833,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7220699787139893,
+    "silhouette": -1,
+    "scale": 1.0672647953033447,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6913943290710449,
+    "silhouette": -1,
+    "scale": 0.9547151327133179,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9395396113395691,
+    "silhouette": -1,
+    "scale": 0.9943055510520935,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.8849233388900757,
+    "silhouette": -1,
+    "scale": 0.9450874328613281,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "easter": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.040841322392225266,
+    "silhouette": 0,
+    "scale": 0.9767166376113892,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.11513671278953552,
+    "silhouette": 0,
+    "scale": 1.0000869035720825,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.2271866649389267,
+    "silhouette": 1,
+    "scale": 0.9794774055480957,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.3308698534965515,
+    "silhouette": 1,
+    "scale": 1.028046727180481,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.46869808435440063,
+    "silhouette": 1,
+    "scale": 1.0505492687225342,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.07000000029802322,
+    "silhouette": 0,
+    "scale": 0.9852567315101624,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6499029994010925,
+    "silhouette": 0,
+    "scale": 1.0094707012176514,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4399999976158142,
+    "silhouette": 0,
+    "scale": 0.9531891345977783,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8214640021324158,
+    "silhouette": 0,
+    "scale": 1.0016748905181885,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.25999999046325684,
+    "silhouette": 0,
+    "scale": 1.0165938138961792,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.038560666143894196,
+    "silhouette": 3,
+    "scale": 0.9244270920753479,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.1711988002061844,
+    "silhouette": 6,
+    "scale": 1.026452898979187,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.2150079905986786,
+    "silhouette": 8,
+    "scale": 1.0722699165344238,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.32096970081329346,
+    "silhouette": 2,
+    "scale": 1.0015521049499512,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.41978856921195984,
+    "silhouette": 5,
+    "scale": 0.9300073981285095,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5477918982505798,
+    "silhouette": 1,
+    "scale": 0.9390721321105957,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6263054609298706,
+    "silhouette": 4,
+    "scale": 1.0432977676391602,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7746402621269226,
+    "silhouette": 9,
+    "scale": 1.078866958618164,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.8518243432044983,
+    "silhouette": 0,
+    "scale": 0.9911457896232605,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9679247140884399,
+    "silhouette": 7,
+    "scale": 1.0641182661056519,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.07021424919366837,
+    "silhouette": -1,
+    "scale": 1.0391384363174438,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.17846859991550446,
+    "silhouette": -1,
+    "scale": 0.939959704875946,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.2754308581352234,
+    "silhouette": -1,
+    "scale": 1.0694377422332764,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.37964004278182983,
+    "silhouette": -1,
+    "scale": 0.9947786927223206,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.4465629756450653,
+    "silhouette": -1,
+    "scale": 0.9453665614128113,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.5824319124221802,
+    "silhouette": -1,
+    "scale": 0.927559494972229,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6599646806716919,
+    "silhouette": -1,
+    "scale": 1.0147398710250854,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7448694705963135,
+    "silhouette": -1,
+    "scale": 1.0748167037963867,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8646831512451172,
+    "silhouette": -1,
+    "scale": 0.9881601333618164,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9459167718887329,
+    "silhouette": -1,
+    "scale": 0.9286092519760132,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.09356066584587097,
+    "silhouette": -1,
+    "scale": 0.9517903327941895,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.11619880050420761,
+    "silhouette": -1,
+    "scale": 0.9893207550048828,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.27000799775123596,
+    "silhouette": -1,
+    "scale": 1.0703754425048828,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.2659696936607361,
+    "silhouette": -1,
+    "scale": 0.9654877185821533,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.4747885763645172,
+    "silhouette": -1,
+    "scale": 1.0525020360946655,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.49279189109802246,
+    "silhouette": -1,
+    "scale": 1.0523278713226318,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.681305468082428,
+    "silhouette": -1,
+    "scale": 0.9552567005157471,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7196402549743652,
+    "silhouette": -1,
+    "scale": 0.9278755187988281,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9068243503570557,
+    "silhouette": -1,
+    "scale": 0.9523791074752808,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9129247069358826,
+    "silhouette": -1,
+    "scale": 0.9274816513061523,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ },
+ "christmas": {
+  "cars": [],
+  "densityScheme": 2,
+  "staticObjects": [
+   {
+    "tileFractionX": 0.07468433678150177,
+    "silhouette": 1,
+    "scale": 1.0332725048065186,
+    "depthFraction": 0,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.17122825980186462,
+    "silhouette": 1,
+    "scale": 0.9473312497138977,
+    "depthFraction": 0.08888889104127884,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.23613537847995758,
+    "silhouette": 0,
+    "scale": 0.9477571845054626,
+    "depthFraction": 0.17777778208255768,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.362263023853302,
+    "silhouette": 0,
+    "scale": 0.9227209687232971,
+    "depthFraction": 0.2666666805744171,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.4596801698207855,
+    "silhouette": 0,
+    "scale": 1.0107297897338867,
+    "depthFraction": 0.05000000074505806,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.29999998211860657,
+    "silhouette": 0,
+    "scale": 1.0766785144805908,
+    "depthFraction": 0.444444477558136,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6599244475364685,
+    "silhouette": 1,
+    "scale": 0.9403373003005981,
+    "depthFraction": 0.15000000596046448,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.14999999105930328,
+    "silhouette": 0,
+    "scale": 1.0362536907196045,
+    "depthFraction": 0.6222222447395325,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.8393445014953613,
+    "silhouette": 1,
+    "scale": 0.9639145731925964,
+    "depthFraction": 0.25,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.6499999761581421,
+    "silhouette": 1,
+    "scale": 0.962461531162262,
+    "depthFraction": 0.800000011920929,
+    "type": "SKYSCRAPER"
+   },
+   {
+    "tileFractionX": 0.020182959735393524,
+    "silhouette": 8,
+    "scale": 0.9805557727813721,
+    "depthFraction": 0.2800000011920929,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.1829787790775299,
+    "silhouette": 9,
+    "scale": 0.9611216187477112,
+    "depthFraction": 0.6200000047683716,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.22206835448741913,
+    "silhouette": 0,
+    "scale": 1.015589952468872,
+    "depthFraction": 0.32999998331069946,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.3750593960285187,
+    "silhouette": 5,
+    "scale": 0.98171466588974,
+    "depthFraction": 0.7024999856948853,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.445365846157074,
+    "silhouette": 2,
+    "scale": 0.9651778340339661,
+    "depthFraction": 0.3799999952316284,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.5496967434883118,
+    "silhouette": 1,
+    "scale": 1.0430009365081787,
+    "depthFraction": 0.7849999666213989,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.6362152099609375,
+    "silhouette": 4,
+    "scale": 0.9865078330039978,
+    "depthFraction": 0.4300000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.7685791850090027,
+    "silhouette": 7,
+    "scale": 1.0324021577835083,
+    "depthFraction": 0.8675000071525574,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.878950297832489,
+    "silhouette": 3,
+    "scale": 0.9740824699401855,
+    "depthFraction": 0.47999998927116394,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.9773464798927307,
+    "silhouette": 6,
+    "scale": 0.9949468970298767,
+    "depthFraction": 0.949999988079071,
+    "type": "HOUSE"
+   },
+   {
+    "tileFractionX": 0.05183029919862747,
+    "silhouette": -1,
+    "scale": 1.01585054397583,
+    "depthFraction": 0.18000000715255737,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.17344924807548523,
+    "silhouette": -1,
+    "scale": 1.0475168228149414,
+    "depthFraction": 0.2711111307144165,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.2841413617134094,
+    "silhouette": -1,
+    "scale": 1.0177186727523804,
+    "depthFraction": 0.36222222447395325,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.36837682127952576,
+    "silhouette": -1,
+    "scale": 0.9697315096855164,
+    "depthFraction": 0.4533333480358124,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.4709096848964691,
+    "silhouette": -1,
+    "scale": 0.9455357789993286,
+    "depthFraction": 0.5444444417953491,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.51505446434021,
+    "silhouette": -1,
+    "scale": 1.0139859914779663,
+    "depthFraction": 0.635555624961853,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.6654488444328308,
+    "silhouette": -1,
+    "scale": 0.9354683756828308,
+    "depthFraction": 0.7266666889190674,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.7368259429931641,
+    "silhouette": -1,
+    "scale": 0.997102677822113,
+    "depthFraction": 0.8177778124809265,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.8485910892486572,
+    "silhouette": -1,
+    "scale": 0.9824286103248596,
+    "depthFraction": 0.9088888764381409,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.9550619125366211,
+    "silhouette": -1,
+    "scale": 1.0282670259475708,
+    "depthFraction": 1,
+    "type": "TREE"
+   },
+   {
+    "tileFractionX": 0.0751829594373703,
+    "silhouette": -1,
+    "scale": 0.9497710466384888,
+    "depthFraction": 0.2800000011920929,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.12797877192497253,
+    "silhouette": -1,
+    "scale": 1.045643925666809,
+    "depthFraction": 0.6200000047683716,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.2770683467388153,
+    "silhouette": -1,
+    "scale": 1.058452844619751,
+    "depthFraction": 0.32999998331069946,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.3200593888759613,
+    "silhouette": -1,
+    "scale": 1.0621061325073242,
+    "depthFraction": 0.7024999856948853,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.5003658533096313,
+    "silhouette": -1,
+    "scale": 1.0636643171310425,
+    "depthFraction": 0.3799999952316284,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.4946967363357544,
+    "silhouette": -1,
+    "scale": 0.9556100368499756,
+    "depthFraction": 0.7849999666213989,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.6912152171134949,
+    "silhouette": -1,
+    "scale": 1.0295143127441406,
+    "depthFraction": 0.4300000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.7135791778564453,
+    "silhouette": -1,
+    "scale": 1.0628817081451416,
+    "depthFraction": 0.8675000071525574,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9339503049850464,
+    "silhouette": -1,
+    "scale": 0.9280286431312561,
+    "depthFraction": 0.47999998927116394,
+    "type": "PARASOL"
+   },
+   {
+    "tileFractionX": 0.9223464727401733,
+    "silhouette": -1,
+    "scale": 0.9676594138145447,
+    "depthFraction": 0.949999988079071,
+    "type": "PARASOL"
+   }
+  ]
+ }
+}

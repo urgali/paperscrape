@@ -39,8 +39,8 @@ android {
         // because no v1.2 was ever released; the counter has no obligation to be contiguous, only
         // monotonic, and leaving the gap is more honest than renumbering a release that never was.
         //
-        // Android refuses to install a lower `versionCode` over a higher one, so anything still
-        // carrying the pre-release internal builds (which reached 76) must be uninstalled first —
+        // Android refuses to install a lower `versionCode` over a higher one, so up to v5.12 (75) anything
+        // still carrying the pre-release internal builds (which reached 76) had to be uninstalled first —
         // and uninstalling clears the DataStore, which is where settings and custom themes live.
         //
         // **v5.0 is a rename, not a second bump.** This release was prepared as 4.32 and renamed
@@ -51,9 +51,9 @@ android {
         // not "which release is this", and bumping it twice in one round is exactly how v4.31
         // walked into `adb install -r`'s silent downgrade refusal (`BACKLOG_v4_31.md` item 111).
         //
-        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72, v5.10 → 73, v5.11 → 74, v5.12 → 75. Ordinary bumps: one release, one step.
-        versionCode = 75
-        versionName = "5.12"
+        // v5.0 → 63, v5.1 → 64, v5.2 → 65, v5.3 → 66, v5.4 → 67, v5.5 → 68, v5.6 → 69, v5.7 → 70, v5.8 → 71, v5.9 → 72, v5.10 → 73, v5.11 → 74, v5.12 → 75, v5.13 → 76. Ordinary bumps: one release, one step.
+        versionCode = 76
+        versionName = "5.13"
 
         // **No API key is baked into this app, and none may be.** `ShippedApkContractTest` enforces it.
         //

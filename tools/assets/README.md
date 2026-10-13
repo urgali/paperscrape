@@ -105,7 +105,7 @@ concepts/                 the drawing scripts of the people, the lake and the sk
 The generators that write artwork into `res/drawable-nodpi`:
 
 - **The buildings.** From `tools/assets`, `python3 -m buildings.build_neighbourhood --res
-  --registry --budget` draws every piece of the six building families into `buildings/out/`
+  --registry --budget` draws every piece of the nine building families into `buildings/out/`
   (gitignored); `--res` copies them into the runtime directory and writes
   `engine/NeighbourhoodTable.kt`, `--registry` rewrites their entries in `sources/sprites.json`,
   and `--budget` writes `buildings/budget.json` and `budget.md`. `validate` checks the budget
@@ -140,7 +140,7 @@ The other entries carry `source.kind = "none"`, which `validate` counts as gaps,
 though nothing is lost: a generator writes each of them, and `source.reason` names
 it. They are the people's layer files, which `tools/generate_people_layers.py`
 writes as a fixed layer and up to four region weight masks per shape, and the
-pieces of the six building families, which `buildings/build_neighbourhood.py`
+pieces of the nine building families, which `buildings/build_neighbourhood.py`
 writes as a fixed layer and at most a wall and a glass mask — each decomposed from
 the generator's own drawing of the shape. They have no SVG of their own because
 `render` regenerates a sprite from an SVG, and a mask is a *view* of a drawing, not

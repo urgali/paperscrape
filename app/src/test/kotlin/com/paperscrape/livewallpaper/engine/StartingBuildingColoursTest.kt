@@ -82,6 +82,7 @@ class StartingBuildingColoursTest {
         val chosen = HashMap<String, Int>()
         var worstTower = Float.MAX_VALUE
         var worstShop = Float.MAX_VALUE
+        var worstPublic = Float.MAX_VALUE
         var hue = 0f
         while (hue < 360f) {
             val day = hsv(hue, sd, vd)
@@ -95,14 +96,17 @@ class StartingBuildingColoursTest {
             val base = SceneCustomization.DEFAULT.copy(hillsColorDay = day, hillsColorNight = night)
             val c = base.withStartingBuildingColours(theme)
             assertTrue("hue $hue: the towers", BuildingGroundContrast.passes(c, SceneSpace.SceneVariant.TOWER))
+            // Since v5.13 a place among the houses is checked for both its groups: the shops' and the public buildings'.
             for (v in shopVariants) assertTrue("hue $hue: $v", BuildingGroundContrast.passes(c, v))
+            for (v in shopVariants) assertTrue("hue $hue: the public buildings at $v", BuildingGroundContrast.passes(c, StorefrontGroup.PUBLIC, v))
             worstTower = minOf(worstTower, BuildingGroundContrast.margin(c, SceneSpace.SceneVariant.TOWER, c.buildings.pair()))
             worstShop = minOf(worstShop, BuildingGroundContrast.margin(c, SceneSpace.SceneVariant.RESTAURANT, c.shops.pair()))
+            worstPublic = minOf(worstPublic, BuildingGroundContrast.margin(c, SceneSpace.SceneVariant.SCHOOL, c.publics.pair()))
             val key = "%08X".format(c.buildings.colorDay1)
             chosen[key] = (chosen[key] ?: 0) + 1
             hue += 0.5f
         }
-        println("random themes, 720 hill hues: tower pairs chosen by day colour 1 $chosen; worst margin towers $worstTower, shops $worstShop")
+        println("random themes, 720 hill hues: tower pairs chosen by day colour 1 $chosen; worst margin towers $worstTower, shops $worstShop, public buildings $worstPublic")
     }
 
     @Test
@@ -116,6 +120,7 @@ class StartingBuildingColoursTest {
             val c = defaultCustomizationFor("custom:copy-${theme.id}")
             assertArrayEquals("towers of a copy of ${theme.id}", builtInTowerColours(theme.id)!!.pair(), c.buildings.pair())
             assertArrayEquals("shops of a copy of ${theme.id}", builtInShopColours(theme.id)!!.pair(), c.shops.pair())
+            assertArrayEquals("public buildings of a copy of ${theme.id}", builtInPublicColours(theme.id)!!.pair(), c.publics.pair())
             // Only the colours: the switch and the amount are the base's, not the built-in theme's own.
             assertEquals(SceneCustomization.DEFAULT.buildings.density, c.buildings.density)
         }

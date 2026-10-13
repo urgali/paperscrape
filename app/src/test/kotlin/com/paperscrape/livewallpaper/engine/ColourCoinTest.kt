@@ -25,7 +25,8 @@ class ColourCoinTest {
     private fun marked(c: SceneCustomization): SceneCustomization {
         fun ObjectVariantConfig.m() = copy(colorDay1 = one, colorNight1 = one, colorDay2 = two, colorNight2 = two)
         return c.copy(
-            houses = c.houses.m(), buildings = c.buildings.m(), shops = c.shops.m(), trees = c.trees.m(), cars = c.cars.m(),
+            houses = c.houses.m(), buildings = c.buildings.m(), shops = c.shops.m(), publics = c.publics.m(),
+            trees = c.trees.m(), cars = c.cars.m(),
             snowmen = c.snowmen.m(), gifts = c.gifts.m(), penguins = c.penguins.m(), bunnies = c.bunnies.m(),
             easterEggs = c.easterEggs.m(), pumpkins = c.pumpkins.m(),
         )
@@ -50,10 +51,23 @@ class ColourCoinTest {
         val byType = HashMap<SceneObjectType, IntArray>()
         for (theme in ThemeCatalog.ALL) {
             val c = marked(defaultCustomizationFor(theme.id))
-            for (o in standing(theme.id)) {
+            val standing = standing(theme.id)
+            // A place among the houses has no colour of its own since v5.13: each of the six buildings
+            // that stand in the places wears its group's pair by the coin of its identity, so the six
+            // identities are counted in the places' stead.
+            val identities = StorefrontStreet.identities(StorefrontStreet.places(
+                SceneObjectCatalog.layoutFor(theme.id, ThemeCatalog.byId(theme.id).accentColor),
+            ), theme.id).orEmpty()
+            for (o in standing.filterNot { StorefrontStreet.isPlace(it) }) {
                 val colour = c.colorFor(o, 1f)
                 assertTrue("${o.type} wore neither colour", colour == one || colour == two)
                 val slot = byType.getOrPut(if (o.type == SceneObjectType.PALM_TREE) SceneObjectType.TREE else o.type) { IntArray(2) }
+                if (colour == one) { first++; slot[0]++ } else { second++; slot[1]++ }
+            }
+            for ((k, identity) in identities.withIndex()) {
+                val colour = c.storefrontWall(identity, Storefront.ALL[k], 1f)
+                assertTrue("${Storefront.ALL[k]} wore neither colour", colour == one || colour == two)
+                val slot = byType.getOrPut(SceneObjectType.SKYSCRAPER) { IntArray(2) }
                 if (colour == one) { first++; slot[0]++ } else { second++; slot[1]++ }
             }
         }
@@ -100,9 +114,18 @@ class ColourCoinTest {
         val id = ThemePreviewScenes.PreviewIdentity
         val c = marked(defaultCustomizationFor("sunset"))
         // Asked as the card asks it (v5.11): by the drawing, because three of the card's towers stand
-        // at depths the scene keeps for shops, and the coin by the position.
-        fun wears(type: SceneObjectType, variant: SceneSpace.SceneVariant, x: Float, d: Float) =
-            if (c.wallColourFor(StaticSceneObject(type, depthFraction = d, tileFractionX = x), variant, 1f) == one) 1 else 2
+        // at depths the scene keeps for its places, and the coin by the position -- and its three rows
+        // among the houses by the building each draws (v5.13), whichever it is: the coin is the row's.
+        fun wears(type: SceneObjectType, variant: SceneSpace.SceneVariant, x: Float, d: Float): Int {
+            val spec = StaticSceneObject(type, depthFraction = d, tileFractionX = x)
+            val colours = if (variant == SceneSpace.SceneVariant.TOWER || type == SceneObjectType.HOUSE) {
+                setOf(c.wallColourFor(spec, variant, 1f))
+            } else {
+                Storefront.ALL.map { c.storefrontWall(spec, it, 1f) }.toSet()
+            }
+            assertEquals("one coin for the row, whichever building it draws", 1, colours.size)
+            return if (colours.single() == one) 1 else 2
+        }
         val sky = SceneObjectType.SKYSCRAPER
         val tower = SceneSpace.SceneVariant.TOWER
         assertEquals(
@@ -124,17 +147,19 @@ class ColourCoinTest {
     /**
      * The whole of what the maintainer authorised: the colour moves, the objects do not. Stated
      * structurally, because it is structural -- the coin is not an input to [keepCandidate] -- and
-     * pinned as the count v5.7F measured with the old coin and the new one alike (300, Christmas's
-     * fifth tower included), so a later change that did couple them would move it.
+     * pinned as a count (300 when v5.7F measured it with the old coin and the new one alike; what it is
+     * today, and why it moved, is beside the assertion), so a later change that did couple them would move it.
      */
     @Test
     fun `the coin does not decide which objects stand`() {
         val total = ThemeCatalog.ALL.sumOf { standing(it.id).size }
         // 300 until v5.8C; 295 since the density threshold reads a real fraction (item 134,
         // `DensityResolutionTest`): five objects on the step 0.65 cuts through went -- a house, a
-        // tree, a palm and two gifts -- and none appeared. This test is about the coin, which
-        // still decides no object's presence, as the loop below shows.
-        assertEquals("objects wearing a colour pair that stand at the twelve defaults", 295, total)
+        // tree, a palm and two gifts -- and none appeared. 302 since v5.13B2: two more places on each
+        // of the twelve streets (24, never thinned) and the 17 towers that stood on the two candidates
+        // that became places gone; the trees and parasols the plan moved stand as they stood. This test
+        // is about the coin, which still decides no object's presence, as the loop below shows.
+        assertEquals("objects wearing a colour pair that stand at the twelve defaults", 302, total)
         // And recolouring every category leaves the same set standing, object for object.
         for (theme in ThemeCatalog.ALL) {
             val c = defaultCustomizationFor(theme.id)

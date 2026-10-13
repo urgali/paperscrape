@@ -5,11 +5,11 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Metric | Value |
 |---|---|
-| Files | 444 |
-| Unique contents | 444 |
-| Bytes on disk | 1336.8 KB |
-| Decoded `ARGB_8888` | 46.31 MB |
-| Of which transparent padding | 18.80 MB (41 %) |
+| Files | 460 |
+| Unique contents | 460 |
+| Bytes on disk | 1387.4 KB |
+| Decoded `ARGB_8888` | 48.00 MB |
+| Of which transparent padding | 18.85 MB (39 %) |
 | Off the 3x authoring grid | 0 |
 | Byte-identical duplicate groups | 0 |
 
@@ -32,7 +32,7 @@ from the shipped PNGs; nothing is copied from documentation.
 
 | Sprite | Size | Mode | Content bbox | Padding | Opaque RGB | Grid |
 |---|---|---|---|---|---|---|
-| `bar_chamfer_fx` | 222x168 | RGBA | 0,1,220,166 | 3 % | 318 | yes |
+| `bar_chamfer_fx` | 222x168 | RGBA | 0,1,220,166 | 3 % | 321 | yes |
 | `bar_chamfer_mg` | 165x105 | RGBA | 2,2,165,103 | 5 % | 1 | yes |
 | `bar_chamfer_mw` | 222x168 | RGBA | 0,1,220,166 | 3 % | 1 | yes |
 | `bar_chamfer_snow_fx` | 216x54 | RGBA | 2,2,216,54 | 5 % | 39 | yes |
@@ -58,6 +58,14 @@ from the shipped PNGs; nothing is copied from documentation.
 | `dolphin_body` | 342x171 | RGBA | 1,3,342,171 | 2 % | 117 | yes |
 | `easteregg_pattern` | 96x57 | RGBA | 0,0,96,57 | 0 % | 2 | yes |
 | `easteregg_shell` | 96x120 | RGBA | 0,0,96,120 | 0 % | 17 | yes |
+| `fire_station_fx` | 258x192 | RGBA | 2,2,256,192 | 3 % | 274 | yes |
+| `fire_station_mg` | 216x39 | RGBA | 2,2,216,37 | 11 % | 1 | yes |
+| `fire_station_mw` | 258x192 | RGBA | 2,2,256,191 | 3 % | 1 | yes |
+| `fire_station_snow_fx` | 243x30 | RGBA | 2,0,241,30 | 2 % | 36 | yes |
+| `fire_station_tower_fx` | 63x285 | RGBA | 2,0,63,283 | 4 % | 106 | yes |
+| `fire_station_tower_mg` | 18x84 | RGBA | 1,2,18,82 | 10 % | 1 | yes |
+| `fire_station_tower_mw` | 63x273 | RGBA | 2,2,63,271 | 5 % | 0 | yes |
+| `fire_station_tower_snow_fx` | 54x48 | RGBA | 0,2,53,46 | 10 % | 44 | yes |
 | `firetruck_body` | 300x159 | RGBA | 2,1,297,157 | 4 % | 105 | yes |
 | `firetruck_ladder` | 150x21 | RGBA | 0,0,150,21 | 0 % | 8 | yes |
 | `firework` | 240x240 | RGBA | 9,9,231,231 | 14 % | 13 | yes |
@@ -402,6 +410,10 @@ from the shipped PNGs; nothing is copied from documentation.
 | `person_woman_winter_walk2_ms` | 117x252 | RGBA | 1,34,115,179 | 44 % | 1 | yes |
 | `person_woman_winter_walk2_mt` | 117x252 | RGBA | 3,89,114,195 | 60 % | 1 | yes |
 | `police_lightbar` | 60x18 | RGBA | 0,0,60,18 | 0 % | 7 | yes |
+| `police_station_fx` | 315x222 | RGBA | 2,0,314,221 | 1 % | 461 | yes |
+| `police_station_mg` | 183x135 | RGBA | 2,2,181,133 | 5 % | 1 | yes |
+| `police_station_mw` | 315x204 | RGBA | 2,1,314,203 | 2 % | 1 | yes |
+| `police_station_snow_fx` | 312x30 | RGBA | 2,0,310,30 | 1 % | 47 | yes |
 | `police_stripe` | 120x27 | RGBA | 0,0,119,26 | 5 % | 4 | yes |
 | `pumpkin_body` | 114x90 | RGBA | 0,0,114,90 | 0 % | 31 | yes |
 | `pumpkin_face` | 114x90 | RGBA | 30,30,84,75 | 76 % | 1 | yes |
@@ -419,6 +431,10 @@ from the shipped PNGs; nothing is copied from documentation.
 | `school_mg` | 294x114 | RGBA | 2,2,292,112 | 5 % | 1 | yes |
 | `school_mw` | 330x228 | RGBA | 1,0,328,228 | 1 % | 1 | yes |
 | `school_snow_fx` | 324x93 | RGBA | 2,0,322,93 | 1 % | 43 | yes |
+| `shop_fx` | 204x177 | RGBA | 0,1,204,176 | 1 % | 656 | yes |
+| `shop_mg` | 159x96 | RGBA | 0,2,157,94 | 5 % | 1 | yes |
+| `shop_mw` | 204x177 | RGBA | 0,1,204,175 | 2 % | 1 | yes |
+| `shop_snow_fx` | 204x63 | RGBA | 2,1,202,63 | 4 % | 59 | yes |
 | `snow_pile` | 108x21 | RGBA | 0,0,108,21 | 0 % | 11 | yes |
 | `snowman_body` | 114x222 | RGBA | 0,0,114,222 | 0 % | 37 | yes |
 | `snowman_nose` | 39x12 | RGBA | 0,0,39,12 | 0 % | 1 | yes |

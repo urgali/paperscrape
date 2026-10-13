@@ -7,7 +7,8 @@ import org.junit.Test
 /**
  * **Half the windows of a house lit at night, and the lights and the people changing one at a time**
  * (v5.12, inventory I-506 and the maintainer's decisions of 2026-10-09; [WindowRoster]). Asked of every
- * house, shop and school candidate of the twelve built-in streets, as the renderer builds its rosters.
+ * house of the twelve built-in streets and of the six buildings among the houses of each, as the renderer
+ * builds their rosters.
  */
 class WindowRosterTest {
 
@@ -15,21 +16,37 @@ class WindowRosterTest {
         val layout = WindowWalk.layoutOf(deal, open = family.kind != WindowBuildingKind.HOUSE)
     }
 
-    /** Every house, shop and school of the twelve streets with its roster, as `SceneObjectRenderer.giveRosters` builds it. */
+    /**
+     * Every house of the twelve streets with its roster, as `SceneObjectRenderer.giveRoster` makes one, and the
+     * six buildings among the houses of every street with theirs, as the renderer has made them since v5.13
+     * (`SceneObjectRenderer.storefronts`: each from its identity, dealt by `dealStorefront`); a place itself
+     * has no roster.
+     */
     private val buildings: List<Building> by lazy {
         val out = mutableListOf<Building>()
         for (theme in ThemeCatalog.ALL) {
             val seed = theme.id.hashCode()
-            for (spec in SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).staticObjects) {
-                if (spec.type != SceneObjectType.HOUSE && spec.type != SceneObjectType.SKYSCRAPER) continue
-                val family = NeighbourhoodTable.FAMILIES[SceneObjectRenderer.variantFor(spec)] ?: continue
-                if (family.kind == WindowBuildingKind.SKYSCRAPER) continue
-                val deal = NeighbourhoodComposer.Deal()
-                NeighbourhoodComposer.deal(family, spec, deal)
+            fun add(spec: StaticSceneObject, family: BuildingFamily, deal: NeighbourhoodComposer.Deal) {
                 val buildingSeed = SceneObjectRenderer.buildingSeedOf(spec)
                 val people = WindowOccupants.occupantCount(seed, buildingSeed, deal.peopleWindows, family.kind)
                 val plan = WindowRoster.plan(seed, buildingSeed, deal.windowCount, deal.paneCount, people, family.kind == WindowBuildingKind.HOUSE)
                 out += Building(theme.id, spec, family, deal, plan)
+            }
+            val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
+            for (spec in layout.staticObjects) {
+                if (spec.type != SceneObjectType.HOUSE && spec.type != SceneObjectType.SKYSCRAPER) continue
+                if (StorefrontStreet.isPlace(spec)) continue
+                val family = NeighbourhoodTable.FAMILIES[SceneObjectRenderer.variantFor(spec)] ?: continue
+                if (family.kind == WindowBuildingKind.SKYSCRAPER) continue
+                val deal = NeighbourhoodComposer.Deal()
+                NeighbourhoodComposer.deal(family, spec, deal)
+                add(spec, family, deal)
+            }
+            val identities = StorefrontStreet.identities(layout, theme.id)!!
+            for ((k, storefront) in Storefront.ALL.withIndex()) {
+                val deal = NeighbourhoodComposer.Deal()
+                SceneObjectRenderer.dealStorefront(storefront.family, storefront, identities[k], deal)
+                add(identities[k], storefront.family, deal)
             }
         }
         out
@@ -41,7 +58,12 @@ class WindowRosterTest {
     @Test
     fun `the twelve streets give enough houses and shops to test, each within a state's 32 windows`() {
         assertTrue("houses: ${houses().size}", houses().size > 60)
-        assertTrue("shops and schools: ${shops().size}", shops().size >= 36)
+        assertEquals("the six buildings among the houses of every street", 6 * ThemeCatalog.ALL.size, shops().size)
+        assertEquals(
+            "the shop and the two stations among them",
+            3 * ThemeCatalog.ALL.size,
+            shops().count { it.family === NeighbourhoodTable.STOREFRONTS.getValue(Storefront.SHOP) || it.family.kind == WindowBuildingKind.STATION },
+        )
         // Every building fits a state's two halves.
         for (b in buildings) assertTrue(b.deal.windowCount <= WindowRoster.MAX_PANES && b.deal.paneCount <= WindowRoster.MAX_PANES)
     }

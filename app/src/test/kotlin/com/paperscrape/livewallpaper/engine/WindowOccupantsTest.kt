@@ -124,17 +124,41 @@ class WindowOccupantsTest {
     /**
      * The reported defect: the faces must not all be the same person.
      *
-     * **The school is excluded, and it is the only exclusion.** It is excluded because it is the
-     * one kind whose whole purpose is to *not* show all four -- a school shows children -- and the
-     * two halves it does show are asserted directly below, balanced against each other. An
-     * exclusion with nothing in its place would be the shape of a rule quietly dropped.
+     * **The school and the stations are excluded, and they are the only exclusions.** They are the
+     * kinds whose whole purpose is to *not* show all four -- a school shows children, a station adults
+     * (v5.13) -- and the two halves each does show are asserted directly below, balanced against each
+     * other. An exclusion with nothing in its place would be the shape of a rule quietly dropped.
      */
     @Test
     fun `all four kinds of person appear at windows of every building kind`() {
-        for (kind in WindowBuildingKind.entries - WindowBuildingKind.SCHOOL) {
+        for (kind in WindowBuildingKind.entries - WindowBuildingKind.SCHOOL - WindowBuildingKind.STATION) {
             val windows = if (kind == WindowBuildingKind.SKYSCRAPER) 16 else 4
             val seen = occupants(kind, windows).map { it.age to it.sex }.toSet()
             assertEquals("$kind produced only $seen", 4, seen.size)
+        }
+    }
+
+    /**
+     * **The fire station and the police station show adults only** (v5.13, the maintainer's *«Ai pompieri
+     * e alla polizia stanno solo adulti»* of 2026-10-11): the man and the woman, in roughly equal numbers,
+     * at the shops' rate -- the school's rule turned the other way, the same one field changed.
+     */
+    @Test
+    fun `a station shows both adults and never a child`() {
+        val all = occupants(WindowBuildingKind.STATION, 4, buildings = 200)
+        assertTrue("too few samples: ${all.size}", all.size > 200)
+        val counts = all.groupingBy { it.kindIndex }.eachCount()
+        assertEquals("a station must show the man and the woman and nobody else", setOf(0, 1), counts.keys)
+        for ((kindIndex, n) in counts) assertEquals("kind $kindIndex share", 0.5f, n.toFloat() / all.size, 0.07f)
+        assertEquals(WindowOccupants.COMMERCIAL_RATE, WindowOccupants.rateFor(WindowBuildingKind.STATION), 0f)
+        // The draw path's reading agrees with the object's, window by window.
+        for (building in 0 until 50) for (window in 0 until 6) {
+            val o = WindowOccupants.occupantAt(7, building * 977, window, WindowBuildingKind.STATION)
+            assertEquals(o.kindIndex, WindowOccupants.occupantKindIndexAt(7, building * 977, window, WindowBuildingKind.STATION))
+            // Sex and skin are the address's whatever the kind: the same face, one age older.
+            val house = WindowOccupants.occupantAt(7, building * 977, window, WindowBuildingKind.HOUSE)
+            assertEquals(house.sex, o.sex)
+            assertEquals(house.skinIndex, o.skinIndex)
         }
     }
 

@@ -35,10 +35,16 @@ moving on its own.
   people, mountains, clouds, stars, rainbows, the lake and its boats and dolphins: each can be
   shown, hidden, thinned out, and — where the artwork allows it — recoloured, with separate day
   and night colours; the hills can be recoloured and varied. Every theme, a random one included,
-  starts its towers in colours that stand out from its hills. The shops — the restaurant, the school
-  and the bar — have colours of their own and stand with the towers, and small houses far away on
-  the mountains can be turned on, in the houses' colours. (The umbrellas people carry follow the
-  rain and have no switch of their own.)
+  starts its towers in colours that stand out from its hills. The buildings come in three groups,
+  each with colours of its own and a page of its own under World & scene, Landscape (beside the
+  houses' page): the towers and offices on the skyline; among the houses, the shops — the restaurant,
+  the bar and a shop — and the public buildings — the school, a fire station and a police station.
+  Each of the twelve themes has all six buildings among the houses: as the scenery scrolls they take
+  turns in five places every two screens, about three on a screen, in an order of their own, never two
+  alike on the screen, and each time you come back to the home screen they are dealt again. Small houses
+  far away on the mountains can be
+  turned on, in the houses' colours. (The umbrellas people carry follow the rain and have no switch
+  of their own.)
 - **Seasonal decorations** on any theme at any time of year: snowmen, presents,
   pumpkins, Easter eggs, penguins, rabbits, wildflowers, and snow that settles on
   roofs and trees.
@@ -52,9 +58,10 @@ moving on its own.
 - **Traffic and pedestrians.** Two lanes of cars, taxis, police cars and fire engines,
   each carrying an occupant; people walking the ground between the buildings and the
   road, dressed for the season. Behind the windows there are people too — and behind the
-  school's, children — and now and then one of them walks out of a window and into another (a
-  tower's stay at theirs); when a shop or a tower with opening hours closes, its people walk out one
-  at a time, and walk in when it opens. Nobody at a window appears or vanishes: they walk.
+  school's, children; behind the fire and the police station's, grown-ups — and now and then one of
+  them walks out of a window and into another (a tower's stay at theirs); when a building with opening
+  hours closes, its people walk out one at a time, and walk in when it opens. Nobody at a window
+  appears or vanishes: they walk.
 - **Houses, day and night.** A house lights half its windows at night, every one with somebody at it among
   them, and leaves the rest dark; now and then, one at a time, a light goes out as another
   comes on. Every window of a floor matches, framed, on the houses, the school and the bars. Chimneys smoke — a slow column rising from the top and fading, light grey by day
@@ -68,11 +75,11 @@ moving on its own.
 - **Occasional visitors.** Santa's sleigh, fireworks, lightning and birds.
 - **Traffic and opening hours.** The car count is an explicit setting rather than a curve — at
   its lowest a single sporadic car — with a night amount of its own that the road fades to at
-  dusk (as it comes, the same as the day's). The shops (the
-  restaurant, the school and the bar) and the towers can each be given opening hours of their
-  own: outside them nobody stands at the glass, and the windows and the lamp by the door stay
-  unlit — dark glass at night, like a house's unlit windows. Houses are homes and are unaffected.
-  Both switches are off by default. By day every lamp by a door is off.
+  dusk (as it comes, the same as the day's). The towers, the shops (the restaurant, the bar and
+  the shop) and the school can each be given opening hours of their own: outside them nobody stands
+  at the glass, and the windows and the lamp by the door stay unlit — dark glass at night, like a
+  house's unlit windows. The fire station and the police station never close, and houses are homes
+  and are unaffected. All three switches are off by default. By day every lamp by a door is off.
 - **Realistic moon phases**, as an optional switch. Halloween overrides it — the carved moon
   is the theme's own — and shows the switch off and locked while that theme is showing, without
   overwriting what you chose.

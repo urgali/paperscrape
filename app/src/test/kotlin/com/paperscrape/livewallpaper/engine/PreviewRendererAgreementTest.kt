@@ -281,12 +281,11 @@ class PreviewRendererAgreementTest {
      * the table, built the wallpaper's way, and not the particular stacks any theme's street shows.
      */
     private fun expectedParts(
-        variant: SceneSpace.SceneVariant,
+        family: BuildingFamily,
         tileX: Float,
         depth: Float,
         winter: Boolean,
     ): List<Triple<Int, Float, Float>> {
-        val family = NeighbourhoodTable.FAMILIES.getValue(variant)
         val deal = NeighbourhoodComposer.Deal()
         NeighbourhoodComposer.deal(family, tileX, depth, deal)
         val out = mutableListOf<Triple<Int, Float, Float>>()
@@ -304,44 +303,59 @@ class PreviewRendererAgreementTest {
         return out
     }
 
-    /** The identity each preview slot declares, paired with the family it draws. */
-    private val previewSlots: List<Triple<SceneSpace.SceneVariant, Float, Float>> = buildList {
+    /**
+     * The identity each preview slot declares, paired with a family it may draw: a tower and a house
+     * their own, and each of the card's three rows among the houses any of the six buildings
+     * ([Storefront], v5.13) -- which of them a theme's card draws is the street's first stretch.
+     */
+    private val previewSlots: List<Triple<BuildingFamily, Float, Float>> = buildList {
         for (i in 0 until 4) {
             add(Triple(
-                SceneSpace.SceneVariant.TOWER,
+                NeighbourhoodTable.FAMILIES.getValue(SceneSpace.SceneVariant.TOWER),
                 ThemePreviewScenes.PreviewIdentity.TOWER_X[i],
                 ThemePreviewScenes.PreviewIdentity.TOWER_DEPTH[i],
             ))
         }
-        add(Triple(SceneSpace.SceneVariant.RESTAURANT,
-            ThemePreviewScenes.PreviewIdentity.RESTAURANT_X, ThemePreviewScenes.PreviewIdentity.RESTAURANT_DEPTH))
-        // v5.7: the school. Every theme builds one and no card showed one, which is why it is here
+        // v5.7: the school's row. Every theme builds one and no card showed one, which is why it is here
         // now -- and why its absence from this list would have gone unnoticed the same way, since
         // the assertion below only checks buildings the card actually draws.
-        add(Triple(SceneSpace.SceneVariant.SCHOOL,
-            ThemePreviewScenes.PreviewIdentity.SCHOOL_X, ThemePreviewScenes.PreviewIdentity.SCHOOL_DEPTH))
-        add(Triple(SceneSpace.SceneVariant.BAR,
-            ThemePreviewScenes.PreviewIdentity.BAR_X, ThemePreviewScenes.PreviewIdentity.BAR_DEPTH))
-        add(Triple(SceneSpace.SceneVariant.HOUSE_LARGE,
+        for (row in listOf(
+            ThemePreviewScenes.PreviewIdentity.RESTAURANT_X to ThemePreviewScenes.PreviewIdentity.RESTAURANT_DEPTH,
+            ThemePreviewScenes.PreviewIdentity.SCHOOL_X to ThemePreviewScenes.PreviewIdentity.SCHOOL_DEPTH,
+            ThemePreviewScenes.PreviewIdentity.BAR_X to ThemePreviewScenes.PreviewIdentity.BAR_DEPTH,
+        )) {
+            for (b in Storefront.ALL) add(Triple(b.family, row.first, row.second))
+        }
+        add(Triple(NeighbourhoodTable.FAMILIES.getValue(SceneSpace.SceneVariant.HOUSE_LARGE),
             ThemePreviewScenes.PreviewIdentity.HOUSE_LARGE_X, ThemePreviewScenes.PreviewIdentity.HOUSE_LARGE_DEPTH))
-        add(Triple(SceneSpace.SceneVariant.HOUSE_SMALL,
+        add(Triple(NeighbourhoodTable.FAMILIES.getValue(SceneSpace.SceneVariant.HOUSE_SMALL),
             ThemePreviewScenes.PreviewIdentity.HOUSE_SMALL_X, ThemePreviewScenes.PreviewIdentity.HOUSE_SMALL_DEPTH))
     }
 
+    /** Every family a card building may be drawn as, by name: the houses', the tower's, the six's. */
+    private val drawableFamilies: Map<String, BuildingFamily> =
+        NeighbourhoodTable.FAMILIES.entries.associate { it.key.name to it.value } +
+            Storefront.ALL.associate { it.name to it.family }
+
     /** Every sprite any family of the neighbourhood can place. */
-    private val buildingSprites: Set<Int> = NeighbourhoodTable.FAMILIES.values
+    private val buildingSprites: Set<Int> = drawableFamilies.values
         .flatMap { it.slots }.flatMap { it.options + it.heights }
         .flatMap { piece -> piece.parts.filter { it.res != 0 }.map { it.res } }
         .toSet()
 
     /** The families each building sprite belongs to: what a card building is drawn as, read off its parts. */
-    private val familiesOfSprite: Map<Int, Set<SceneSpace.SceneVariant>> = HashMap<Int, MutableSet<SceneSpace.SceneVariant>>().also { out ->
-        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+    private val familiesOfSprite: Map<Int, Set<String>> = HashMap<Int, MutableSet<String>>().also { out ->
+        for ((name, family) in drawableFamilies) {
             for (piece in family.slots.flatMap { it.options + it.heights }) {
-                for (part in piece.parts) if (part.res != 0) out.getOrPut(part.res) { mutableSetOf() } += variant
+                for (part in piece.parts) if (part.res != 0) out.getOrPut(part.res) { mutableSetOf() } += name
             }
         }
     }
+
+    /** The pair a building drawn as [name] wears: a house's or a tower's, or one of the six's group's (v5.13). */
+    private fun pairOf(c: SceneCustomization, name: String): ObjectVariantConfig =
+        Storefront.ALL.firstOrNull { it.name == name }?.let { c.storefrontColours(it) }
+            ?: c.buildingColoursFor(SceneSpace.SceneVariant.valueOf(name))!!
 
     @Test
     fun `every building the gallery draws is a deal the composer makes for its declared identity`() {
@@ -354,8 +368,8 @@ class PreviewRendererAgreementTest {
                 val parts = item.parts.filter { it.resId in buildingSprites }
                 if (parts.isEmpty()) continue
                 val actual = parts.map { Triple(it.resId, it.ox, it.oy) }
-                val match = previewSlots.any { (variant, tileX, depth) ->
-                    expectedParts(variant, tileX, depth, winter) == actual
+                val match = previewSlots.any { (family, tileX, depth) ->
+                    expectedParts(family, tileX, depth, winter) == actual
                 }
                 assertTrue(
                     "theme ${theme.id}: a preview building's parts are not any deal the composer " +
@@ -379,10 +393,11 @@ class PreviewRendererAgreementTest {
      * could ever be, and the editable colours were not what the card was showing. The wall
      * masks now carry `colorFor` exactly, which is also what makes the card react to an edit.
      *
-     * **The pair of what it is drawn as** (v5.11): a tower the towers' pair, a restaurant, school or
-     * bar the shops', a house the houses' -- the family read off the building's own sprites, since the
-     * card stands its towers at depths the scene keeps for shops. On every built-in the towers' and the
-     * shops' pairs differ, so a building coloured by the wrong one is caught.
+     * **The pair of what it is drawn as** (v5.11; v5.13): a tower the towers' pair, the restaurant, the
+     * bar and the shop the shops', the school and the two stations the public buildings', a house the
+     * houses' -- the family read off the building's own sprites, since the card stands its towers at
+     * depths the scene keeps for the street's places. On every built-in the three groups' pairs differ,
+     * so a building coloured by the wrong one is caught.
      */
     @Test
     fun `a preview building wears one of its category's two colours`() {
@@ -396,10 +411,11 @@ class PreviewRendererAgreementTest {
             // colours exactly as the wallpaper's is at that minute.
             val dayBlend = ThemePreviewScenes.cardPhase(ThemeCatalog.byId(theme.id), night).dayBlend
             assertTrue("${theme.id}: towers and shops share a colour", c.buildings.colorDay1 != c.shops.colorDay1)
+            assertTrue("${theme.id}: shops and public buildings share a colour", c.publics.colorDay1 != c.shops.colorDay1)
             for (item in scene.items) {
                 val drawnAs = item.parts.mapNotNull { familiesOfSprite[it.resId] }.reduceOrNull { a, b -> a intersect b } ?: continue
                 assertEquals("theme ${theme.id}: a card building of no single family: $drawnAs", 1, drawnAs.size)
-                val config = c.buildingColoursFor(drawnAs.single())!!
+                val config = pairOf(c, drawnAs.single())
                 val allowed = setOf(
                     SceneColour.blendArgb(config.colorNight1, config.colorDay1, dayBlend),
                     SceneColour.blendArgb(config.colorNight2, config.colorDay2, dayBlend),
@@ -434,7 +450,7 @@ class PreviewRendererAgreementTest {
      */
     @Test
     fun `every mask the gallery draws is an added blit and every fixed layer is not`() {
-        val masks = NeighbourhoodTable.FAMILIES.values.flatMap { it.slots }.flatMap { it.options + it.heights }
+        val masks = drawableFamilies.values.flatMap { it.slots }.flatMap { it.options + it.heights }
             .flatMap { piece ->
                 piece.parts.filter { it.role == PartRole.WALL_MASK || it.role == PartRole.GLASS_MASK }
             }.map { it.res }.toSet()
@@ -471,8 +487,10 @@ class PreviewRendererAgreementTest {
         )
         assertEquals("the tree's four", 4, sharedByConstant.size)
         assertEquals(
-            // Six since v5.6F: the school joined the two houses, the tower and the two shops.
-            "the six families of the neighbourhood, shared through the table",
+            // Six since v5.6F: the school joined the two houses, the tower and the two shops -- the families
+            // with a row of the size table; the shop and the two stations of v5.13 are three more, in
+            // `NeighbourhoodTable.STOREFRONTS` (`drawableFamilies` above reads both).
+            "the six families with a row of the size table, shared through the table",
             6, NeighbourhoodTable.FAMILIES.size,
         )
         val used = ThemeCatalog.ALL.flatMap { previewParts(it.id) }.map { it.resId }.toSet()

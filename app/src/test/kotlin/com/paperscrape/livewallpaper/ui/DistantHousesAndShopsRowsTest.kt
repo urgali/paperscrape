@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.ui
 
 import com.paperscrape.livewallpaper.engine.DistantHousesConfig
+import com.paperscrape.livewallpaper.engine.StorefrontGroup
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -66,11 +67,20 @@ class DistantHousesAndShopsRowsTest {
     }
 
     @Test
-    fun `the Shops line says what the shops are, and with Buildings off why none stands`() {
-        assertTrue(SettingsUiModel.shopsLine(buildingsVisible = true).contains("Their colours are their own"))
-        val off = SettingsUiModel.shopsLine(buildingsVisible = false)
-        assertTrue(off.startsWith("Off"))
-        assertTrue(off.contains("Show Buildings"))
+    fun `each group's line says which buildings it is, and with Buildings off why none stands and where`() {
+        val shops = SettingsUiModel.storefrontGroupLine(StorefrontGroup.SHOPS, buildingsVisible = true)
+        assertTrue(shops.startsWith("The restaurant, the bar and the shop."))
+        val publics = SettingsUiModel.storefrontGroupLine(StorefrontGroup.PUBLIC, buildingsVisible = true)
+        assertTrue(publics.startsWith("The school, the fire station and the police station."))
+        // The street of v5.13: the six take turns in the places, which is what each page has to say -- with no
+        // number since v5.13B2: a built-in street has five, a street saved before it three, a random one its own.
+        for (line in listOf(shops, publics)) assertTrue(line.contains("take turns in its places as the scenery scrolls"))
+        for (group in StorefrontGroup.values()) {
+            val off = SettingsUiModel.storefrontGroupLine(group, buildingsVisible = false)
+            assertTrue(off.startsWith("Off"))
+            assertTrue(off.contains("Show Buildings"))
+            assertTrue("it says where that switch is", off.contains(SettingsUiModel.TOWERS_PAGE))
+        }
     }
 
     /** The screens use the rules, and say where the colours come from (the maintainer's request). */
@@ -83,14 +93,16 @@ class DistantHousesAndShopsRowsTest {
         assertTrue("the row that says the colours come from Houses", page.contains("title = \"Colours: from Houses\""))
         assertTrue("and takes the user there", page.contains("onClick = onOpenHouses"))
         assertTrue("the row sits under Mountains", world.indexOf("title = \"Mountains\"") < world.indexOf("title = \"Distant houses\""))
-        val cities = world.substring(world.indexOf("private fun CitiesSubScreen("))
-        assertTrue(cities.contains("ShopsSection("))
-        assertTrue(cities.contains("colourLine = BUILDINGS_COLOUR_LINE"))
+        val towers = world.substring(world.indexOf("private fun TowersSubScreen("))
+        assertTrue(towers.contains("colourLine = BUILDINGS_COLOUR_LINE"))
+        val groups = world.substring(world.indexOf("private fun StorefrontGroupSubScreen("))
+        assertTrue(groups.contains("StorefrontGroupSection("))
+        assertTrue("the houses' row opens the houses' page", world.contains("onOpenHouses = { activeSection = \"houses\" }"))
         assertTrue(BUILDINGS_COLOUR_LINE.contains("towers' colours"))
         assertTrue(HOUSES_COLOUR_LINE.contains("distant houses"))
         val sections = File(sourceRoot(), "ui/SceneCategorySections.kt").readText()
-        val shops = sections.substring(sections.indexOf("internal fun ShopsSection("))
-        assertTrue(shops.contains("SettingsUiModel.shopsLine(buildingsVisible)"))
+        val shops = sections.substring(sections.indexOf("internal fun StorefrontGroupSection("))
+        assertTrue(shops.contains("SettingsUiModel.storefrontGroupLine(group, buildingsVisible)"))
         assertTrue(shops.contains("Modifier.clickable(onClick = onGoToBuildings)"))
         assertTrue(shops.contains("prefs.resetCategory(category, forThemeId)"))
     }

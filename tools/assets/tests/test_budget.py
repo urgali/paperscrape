@@ -130,17 +130,24 @@ class BudgetReportTest(unittest.TestCase):
         self.assertIn("SpriteGeometryTest.decodedByteBudget", md)
         self.assertIn(f"{rep['concepts']['mix']['decoded']} B decoded", md)
 
-    def test_the_shipped_perimeter_counts_the_six_families_and_not_the_concept_pngs(self):
+    def test_the_shipped_perimeter_counts_the_nine_families_and_not_the_concept_pngs(self):
         # 46 until v5.6F added the school's four layers, and 50 until v5.8B, when the towers'
         # 26 were added: the prefix list said `skyscraper` and the towers are `tower_*`, so the
         # test's own name ("six families") was the one thing it did not check. The number is
         # pinned rather than derived because the point is that the perimeter is read from the
         # shipped drawable set and not from whatever the concept run happened to draw. 76 until
         # v5.11, which added the tower's two other heights and its door bays (11) and the distant
-        # houses (12, `house_distant_*`: they share the houses' prefix and are counted with them).
+        # houses (12, `house_distant_*`: they share the houses' prefix and are counted with them). 99
+        # until v5.13, which added the shop's four layers, the fire station's eight (its tower is a canvas
+        # of its own) and the police station's four -- and not the police car's stripe and light bar,
+        # which a prefix of `police` counted for a while in that round: a prefix runs to an underscore.
         rep, _, md = self._run({"house_a": (24, 24)})
         perimeter = rep["shipped_perimeter"]
-        self.assertEqual(99, perimeter["files"])
+        self.assertEqual(115, perimeter["files"])
+        self.assertFalse(core.in_perimeter("police_stripe.png"), "the police car is not a building")
+        self.assertFalse(core.in_perimeter("police_lightbar.png"))
+        self.assertTrue(core.in_perimeter("police_station_fx.png"))
+        self.assertTrue(core.in_perimeter("fire_station_tower_mw.png"))
         self.assertIn(f"Shipped perimeter ({perimeter['files']} PNG", md)
         towers = [n for n in (p.stem for p in RUNTIME_DIR.glob("tower_*.png"))]
         self.assertEqual(37, len(towers), "the towers are part of the perimeter")
@@ -166,7 +173,7 @@ class PerimeterAgreementTest(unittest.TestCase):
     """The duplicated selection rule, checked instead of remembered.
 
     `report.budget_perimeter` exists so `validate` can catch a stale `buildings/budget.json`
-    without opening 46 PNGs a second time. It repeats `budget`'s prefix list and its `_q`
+    without opening the perimeter's PNGs a second time. It repeats `budget`'s prefix list and its `_q`
     exclusion, and this is the case that makes the repetition safe: if either side's rule moves,
     the two stop agreeing here before a release ships a report that disagrees with itself.
     """

@@ -32,16 +32,18 @@ SHEET_CELL = 150
 SHEET_LABEL_HEIGHT = 16
 
 
-#: The five name prefixes (the two houses share `house`) `buildings/core.py`'s `budget` counts as its "shipped perimeter",
+#: The eight name prefixes (the two houses share `house`; a prefix is the start of a name up to an underscore,
+#: so `police_station` and not the police car's `police_stripe`) `buildings/core.py`'s
+#: `budget` counts as its "shipped perimeter",
 #: and the suffix it excludes. Duplicated from there rather than imported, because
 #: `buildings/` is a standalone script directory that imports its own modules by bare name and
 #: cannot be imported from inside this package without a `sys.path` edit at call time.
 #: `tests/test_budget.py` asserts the two selections agree on the real tree, so the duplicate
 #: is a checked one rather than a remembered one.
-BUDGET_PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school")
+BUDGET_PERIMETER_PREFIXES = ("house", "tower", "restaurant", "bar", "school", "shop", "fire_station", "police_station")
 BUDGET_PERIMETER_EXCLUDES = "_q"
 
-#: `Shipped perimeter (99 PNG, the six building families and the distant houses): 7229124 B decoded, 7147636 B uploaded ...`
+#: `Shipped perimeter (<n> PNG, the nine building families and the distant houses): <decoded> B decoded, <uploaded> B uploaded ...`
 _BUDGET_MD_PERIMETER = re.compile(
     r"Shipped perimeter \((\d+) PNG[^)]*\): (\d+) B decoded, (\d+) B uploaded"
 )
@@ -62,7 +64,7 @@ def budget_perimeter(measurements: dict[str, "SpriteMeasurement"]) -> dict[str, 
     """
     total = {"files": 0, "decoded": 0, "uploaded_level0": 0}
     for name, m in measurements.items():
-        if name.split("_")[0] not in BUDGET_PERIMETER_PREFIXES:
+        if not any(name.startswith(prefix + "_") for prefix in BUDGET_PERIMETER_PREFIXES):
             continue
         if BUDGET_PERIMETER_EXCLUDES in name:
             continue

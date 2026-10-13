@@ -1,6 +1,7 @@
 package com.paperscrape.livewallpaper.ui
 
 import com.paperscrape.livewallpaper.engine.coverage
+import com.paperscrape.livewallpaper.engine.StorefrontGroup
 import com.paperscrape.livewallpaper.engine.palmsShown
 import com.paperscrape.livewallpaper.location.DeviceLocationAccess
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
@@ -263,7 +264,7 @@ data class DependentSwitchUiState(
  * switch. The stored visibility is kept; raising the slider brings it back, and so does a tap
  * ([amountTap]).
  *
- * Not for the categories that keep something at 0: the buildings (the three shops), the cars (one
+ * Not for the categories that keep something at 0: the buildings (the places among the houses), the cars (one
  * car, `CarSelection`), the people (their night density is a slider of its own) and the mountains
  * (at least one).
  *
@@ -764,28 +765,82 @@ object SettingsUiModel {
         }
 
     /**
-     * The line of the Shops section (v5.11, `AI_PROJECT_RULES.md` 8.7): what the shops are and that
-     * their colours are their own -- or, with *Show Buildings* off, that they are not standing and why,
-     * since the shops stand by that switch and have none of their own.
+     * The line at the top of the Shops page and of the Public buildings page (v5.11, the second group
+     * v5.13; `AI_PROJECT_RULES.md` 8.7): which buildings the group is, that all six of the street take
+     * turns in its places as the scenery scrolls, and that the group's colours are its own -- or, with
+     * *Show Buildings* off, that they are not standing and where that switch is, since they stand by it
+     * and have none of their own.
      */
-    fun shopsLine(buildingsVisible: Boolean): String =
+    fun storefrontGroupLine(group: StorefrontGroup, buildingsVisible: Boolean): String =
         if (buildingsVisible) {
-            "The restaurant, the school and the bar, among the houses. Their colours are their own: " +
-                "each shop randomly uses Color 1 or Color 2, and blends into its night version as it gets dark."
+            "${groupBuildings(group)}. Along the street the six buildings among the houses take turns in its " +
+                "places as the scenery scrolls. Each randomly uses Color 1 or Color 2, and blends into " +
+                "its night version as it gets dark."
         } else {
-            "Off - the shops stand while Show Buildings is on, above. Tap here to go to it; the colours " +
-                "below are kept."
+            "Off - they stand while Show Buildings is on, on the $TOWERS_PAGE page. Tap here to go to it; " +
+                "your choices below are kept."
         }
 
+    /** Who a group of the buildings among the houses is, as its page and its row say it. */
+    fun groupBuildings(group: StorefrontGroup): String = when (group) {
+        StorefrontGroup.SHOPS -> "The restaurant, the bar and the shop"
+        StorefrontGroup.PUBLIC -> "The school, the fire station and the police station"
+    }
+
+    /** The name of the page *Show Buildings* is on since v5.13: the towers'. */
+    const val TOWERS_PAGE = "Towers & offices"
+
     /**
-     * *Shop opening hours* (v5.12, the maintainer's *«vorrei inoltre aggiungere uno slide per orari solo
-     * grattacieli e solo negozi»* of 2026-10-09): on only while there are shops to keep them
-     * (`AI_PROJECT_RULES.md` 8.7). The restaurant, the school and the bar stand while *Show Buildings*
-     * is on, whatever the Towers amount (`SceneCustomization.keepCandidate`), so that switch is the one
-     * thing that stops them; the stored choice is kept, and back the moment it is on.
+     * *Shop opening hours* and *Public building opening hours* (v5.12 and v5.13, the maintainer's
+     * *«vorrei inoltre aggiungere uno slide per orari solo grattacieli e solo negozi»* of 2026-10-09 and
+     * *«il resto accetto i consigliati»* of 2026-10-11): on only while there are buildings of the group to
+     * keep them (`AI_PROJECT_RULES.md` 8.7). The six buildings among the houses stand while *Show
+     * Buildings* is on, whatever the Towers amount (`SceneCustomization.keepCandidate`), and each group
+     * has its turns in the places along every street, so that switch is the one thing that stops them;
+     * the stored choice is kept, and back the moment it is on.
      */
     fun shopHours(stored: Boolean, buildingsVisible: Boolean): DependentSwitchUiState =
         dependentSwitch(stored, available = buildingsVisible)
+
+    /** The public buildings' hours, by [shopHours]' rule. */
+    fun publicHours(stored: Boolean, buildingsVisible: Boolean): DependentSwitchUiState =
+        dependentSwitch(stored, available = buildingsVisible)
+
+    /**
+     * A group's hours as its row in *Landscape* says them (v5.13): "always open", or "open 09:00-20:00".
+     * The same quarter hours the sliders print.
+     */
+    fun hoursSummary(enabled: Boolean, open: Float, close: Float): String =
+        if (!enabled || open == close) "always open" else "open ${clockText(open)}-${clockText(close)}"
+
+    /** The *Towers & offices* row (v5.13): off, or the amount and the hours. */
+    fun towersRowSummary(visible: Boolean, amount: Float, hoursEnabled: Boolean, open: Float, close: Float): String =
+        if (!visible) "Off" else "${(amount * 100).toInt()}%, ${hoursSummary(hoursEnabled && amount > 0f, open, close)}"
+
+    /**
+     * The *Shops* and *Public buildings* rows (v5.13): the group's buildings and hours, or -- *Show
+     * Buildings* off -- that they are off and why.
+     */
+    fun storefrontRowSummary(group: StorefrontGroup, buildingsVisible: Boolean, hoursEnabled: Boolean, open: Float, close: Float): String =
+        if (!buildingsVisible) {
+            "Off - Show Buildings is off"
+        } else {
+            when (group) {
+                StorefrontGroup.SHOPS -> "Restaurant, bar and shop, ${hoursSummary(hoursEnabled, open, close)}"
+                // The hours are the school's; the fire and the police station never close (2026-10-12).
+                StorefrontGroup.PUBLIC -> if (!hoursEnabled || open == close) {
+                    "School, fire and police station, always open"
+                } else {
+                    "School ${hoursSummary(true, open, close)}, fire and police station always open"
+                }
+            }
+        }
+
+    /** A decimal hour as "HH:MM", quantised to the quarter hour the sliders store. */
+    private fun clockText(hour: Float): String {
+        val q = Math.round(hour.coerceIn(0f, 24f) * 4f) / 4f
+        return "%02d:%02d".format(q.toInt() % 24, ((q - q.toInt()) * 60).toInt())
+    }
 
     /**
      * *Tower opening hours* (v5.12): on only while there are towers to keep them -- *Show Buildings* on

@@ -20,17 +20,24 @@ internal enum class WindowBuildingKind {
     SKYSCRAPER,
 
     /**
-     * The school, and the only kind whose windows say anything about *who* is behind them.
+     * The school, and one of the two kinds whose windows say anything about *who* is behind them.
      *
-     * It is street-level glass like the restaurant and the bar, so its hours are [COMMERCIAL]'s:
-     * it keeps business hours, its panes go dark when it closes, and its occupants walk out one at a
-     * time over the first half of the closing fade. A value of its own is about the two rules that read the kind
-     * -- [WindowOccupants.occupantAt] makes its occupants children and [WindowOccupants.rateFor]
-     * gives it [WindowOccupants.SCHOOL_RATE] -- and about keeping the restaurant and the bar out
-     * of both. A flag on [BuildingFamily] would have been a second axis for a question this one
-     * already answers.
+     * It is street-level glass like the restaurant and the bar: it keeps business hours (the public
+     * buildings' since v5.13, `Storefront.group`), its panes go dark when it closes, and its occupants
+     * walk out one at a time over the first half of the closing fade. A value of its own is about the
+     * two rules that read the kind -- [WindowOccupants.occupantAt] makes its occupants children and
+     * [WindowOccupants.rateFor] gives it [WindowOccupants.SCHOOL_RATE] -- and about keeping the
+     * restaurant and the bar out of both. A flag on [BuildingFamily] would have been a second axis for
+     * a question this one already answers.
      */
     SCHOOL,
+
+    /**
+     * The fire station and the police station (v5.13): street-level glass with the shops' rate
+     * ([WindowOccupants.STATION_RATE]), and **adults only**: the v5.13A proposal, accepted with the
+     * maintainer's *«il resto accetto i consigliati»* (2026-10-11), the school's rule turned the other way.
+     */
+    STATION,
 }
 
 /**
@@ -155,12 +162,20 @@ internal object WindowOccupants {
      */
     const val SCHOOL_RATE = 0.60f
 
+    /**
+     * The fire station's and the police station's rate (v5.13): the shops', the decision the maintainer
+     * took with the drawings (*«al tasso dei negozi»*, 2026-10-11) -- street-level glass where one or two
+     * people is a station with somebody on duty.
+     */
+    const val STATION_RATE = COMMERCIAL_RATE
+
     /** The share of windows of a given building kind that get an occupant. */
     fun rateFor(kind: WindowBuildingKind): Float = when (kind) {
         WindowBuildingKind.HOUSE -> HOUSE_RATE
         WindowBuildingKind.COMMERCIAL -> COMMERCIAL_RATE
         WindowBuildingKind.SKYSCRAPER -> SKYSCRAPER_RATE
         WindowBuildingKind.SCHOOL -> SCHOOL_RATE
+        WindowBuildingKind.STATION -> STATION_RATE
     }
 
     /**
@@ -268,11 +283,12 @@ internal object WindowOccupants {
      * the street's direction is not an input here and could not be.
      *
      * **[kind] enters in exactly one place and changes exactly one field.** A
-     * [WindowBuildingKind.SCHOOL] window holds a child; every other kind gets the age its address
-     * gives, which is what the three of them have always got and what keeps a tower, a house, a
-     * restaurant and a bar bitwise identical to their pre-v5.6 selves. Sex and skin are read from
-     * their own channels whatever the kind, so turning a building into a school swaps the age and
-     * leaves the rest of the person standing there -- the same face, one age younger.
+     * [WindowBuildingKind.SCHOOL] window holds a child and a [WindowBuildingKind.STATION] window an
+     * adult (v5.13); every other kind gets the age its address gives, which is what the three of them
+     * have always got and what keeps a tower, a house, a restaurant and a bar bitwise identical to
+     * their pre-v5.6 selves. Sex and skin are read from their own channels whatever the kind, so
+     * turning a building into a school swaps the age and leaves the rest of the person standing there
+     * -- the same face, one age younger.
      *
      * The three-argument overload below is the pre-v5.6 signature, kept for the tests -- nothing in
      * the scene calls it -- because the test that pins "the kinds agree" needs a reading with no
@@ -283,7 +299,11 @@ internal object WindowOccupants {
         val dealtAge =
             if (CandidateNoise.value(seed, addr, CH_AGE) < 0.5f) PersonAge.ADULT else PersonAge.CHILD
         return WindowOccupant(
-            age = if (kind == WindowBuildingKind.SCHOOL) PersonAge.CHILD else dealtAge,
+            age = when (kind) {
+                WindowBuildingKind.SCHOOL -> PersonAge.CHILD
+                WindowBuildingKind.STATION -> PersonAge.ADULT
+                else -> dealtAge
+            },
             sex = if (CandidateNoise.value(seed, addr, CH_SEX) < 0.5f) PersonSex.MALE else PersonSex.FEMALE,
             skinIndex = (CandidateNoise.value(seed, addr, CH_SKIN) * PedestrianPopulation.SKIN_TONE_COUNT)
                 .toInt().coerceIn(0, PedestrianPopulation.SKIN_TONE_COUNT - 1),
@@ -302,7 +322,8 @@ internal object WindowOccupants {
      */
     fun occupantKindIndexAt(seed: Int, buildingSeed: Int, windowIndex: Int, kind: WindowBuildingKind): Int {
         val addr = address(buildingSeed, windowIndex)
-        val adult = kind != WindowBuildingKind.SCHOOL && CandidateNoise.value(seed, addr, CH_AGE) < 0.5f
+        val adult = kind == WindowBuildingKind.STATION ||
+            (kind != WindowBuildingKind.SCHOOL && CandidateNoise.value(seed, addr, CH_AGE) < 0.5f)
         val male = CandidateNoise.value(seed, addr, CH_SEX) < 0.5f
         return when {
             adult && male -> 0

@@ -5,10 +5,12 @@ package com.paperscrape.livewallpaper.engine
  *
  * ### What it governs, and what it does not
  *
- * The shops, the school, the bar and the towers ([WindowBuildingKind.COMMERCIAL],
- * [WindowBuildingKind.SCHOOL] and [WindowBuildingKind.SKYSCRAPER]), in two groups since v5.12, each
- * with its switch and its hours -- the shops' (the restaurant, the school, the bar) and the towers' --
- * a building by what it is drawn as (`SceneCustomization.opennessFor`): inside their hours they behave
+ * Every building that is not a house ([WindowBuildingKind.COMMERCIAL], [WindowBuildingKind.SCHOOL],
+ * [WindowBuildingKind.STATION] and [WindowBuildingKind.SKYSCRAPER]), in three groups since v5.13 (two in
+ * v5.12), each with its switch and its hours -- the towers', the shops' (the restaurant, the bar, the
+ * shop) and the public buildings' (the school's: the fire station and the police station never close,
+ * `Storefront.keepsHours`) -- a building by what it is (`SceneCustomization.opennessFor`): inside their
+ * hours they behave
  * as they always have — occupants at the glass, windows lit at night. Outside them nobody stands at a
  * window and the glass is unlit: the day's glass by day, at night the dark glass of a house's unlit
  * window (`SceneObjectRenderer.businessGlassColor`; until v5.12 it kept the day's pale glass at night).
@@ -21,7 +23,8 @@ package com.paperscrape.livewallpaper.engine
  *
  * The school reaches this by the same rule every non-house does (`kind != HOUSE`), and that is a
  * consequence of giving it a kind rather than a decision taken about schools: at night it is dark
- * and empty like the bar beside it, which is what a school is at night.
+ * and empty like the bar beside it, which is what a school is at night -- with the public buildings'
+ * hours since v5.13; the two stations of that group never close (`Storefront.keepsHours`).
  *
  * ### The clock
  *

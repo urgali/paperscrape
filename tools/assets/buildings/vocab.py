@@ -5,8 +5,8 @@ Each function adds cards to a Group in piece space and, where needed, declares t
 for the containment check. The sizes of the openings DERIVE from what has to fit inside them:
 a bust (49x57 u of canvas, drawn at 0.85*w/60 -> 0.69 w wide, 0.81 w tall) wants an almost
 square pane of about 12 u (= 10-17 px on the BV6600): the houses' storeys 13 x 12 and ground floors
-14 x 13, the shops' 12-16. Since v5.12 the school's upper floor and the corner bar's hold people at
-11 x 11 too -- every window of a floor the same, and a person may stand at any of them -- where a bust
+14 x 13, the shops' 11-16. Since v5.12 the school's upper floor and the corner bar's hold people at
+11 x 11 too, and since v5.13 the upper floors of the shop and the two stations (`civic.py`) -- every window of a floor the same, and a person may stand at any of them -- where a bust
 is drawn 15 % smaller than at 13, the bust being sized by its pane. A grid window hosts nothing and is
 the building's texture (5-9 u), with no frame: at 5-13 px a frame is a line -- the towers' rows, and
 the turret's two 5 x 7; a dormer's pane (5-6 u) hosts nobody either.
@@ -100,7 +100,7 @@ def awning(g: Group, host, x0, x1, y, depth, relief, amp, n=None, colour=RED, ma
 
 
 def sign_plate(g: Group, host, x0, y0, x1, y1, relief, amp, emblem="disc", colour=RED, rests=False, margin=1.0):
-    """The sign: a cream plaque with its shadow and ONE emblem (a disc / a drop): a shape,
+    """The sign: a cream plaque with its shadow and ONE emblem (a disc / a tankard / a bar): a shape,
     not a text -- at 1 px per unit a written name would be unreadable."""
     g.add(chamfered(x0, y0, x1, y1, 0.8), CREAM, relief=relief, amp=amp * 0.6, host=host, margin=margin, rests=rests, label="sign")
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
@@ -112,8 +112,8 @@ def sign_plate(g: Group, host, x0, y0, x1, y1, relief, amp, emblem="disc", colou
         g.add(chamfered(cx - r * 0.9, cy - r, cx + r * 0.6, cy + r, 0.4), YELLOW)
         g.add(rect(cx + r * 0.7, cy - r * 0.5, cx + r * 1.3, cy + r * 0.4), YELLOW)
         g.add(chamfered(cx - r * 0.9, cy - r * 1.35, cx + r * 0.6, cy - r * 0.85, 0.3), CREAM_U)
-    elif emblem == "bar":       # a dark bar: the bar's plaque
-        g.add(rect(x0 + (x1 - x0) * 0.2, cy - 1.0, x1 - (x1 - x0) * 0.2, cy + 1.0), colour)
+    elif emblem == "bar":       # a red bar: the corner bar's plaque, 2.4 units high (v5.13; `civic.DETAIL`)
+        g.add(rect(x0 + (x1 - x0) * 0.2, cy - 1.2, x1 - (x1 - x0) * 0.2, cy + 1.2), colour)
 
 
 def lantern(g: Group, host, x, y, relief, amp, margin=0.5):

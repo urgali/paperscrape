@@ -83,6 +83,25 @@ object RandomSceneGenerator {
         SceneObjectType.BUNNY, SceneObjectType.EASTER_EGG,
     )
 
+    /**
+     * [objects] with at most [StorefrontStreet.RUN] places among the houses (v5.13B2): a building candidate of
+     * the shop band past the fourth, in the order they were rolled, stands on the skyline instead, its depth
+     * scaled into the towers' band. The street never puts a building twice in four places in a row, so a tile
+     * of four places or fewer never shows two alike on a screen; a random theme rolls up to six objects, and five
+     * places in one tile -- about three random themes in a million, the first of them `random:23018`
+     * (`StorefrontStreetTest`) -- is what this rules out rather than leaves to chance. The random sequence is
+     * untouched: everything else about the theme is what it always was.
+     */
+    internal fun atMostFourPlaces(objects: List<StaticSceneObject>): List<StaticSceneObject> {
+        var places = 0
+        return objects.map { o ->
+            if (!StorefrontStreet.isPlace(o)) return@map o
+            places++
+            if (places <= StorefrontStreet.RUN) o
+            else o.copy(depthFraction = o.depthFraction * SceneSpace.BUILDING_TOWER_MAX_DEPTH * 0.999f)
+        }
+    }
+
     fun generateLayout(themeId: String, accentColor: Int): SceneObjectLayout {
         // XOR a constant so the layout's random sequence diverges from the theme's, even though
         // both start from the same seed — avoids the two generators "rhyming" (e.g. always
@@ -105,6 +124,7 @@ object RandomSceneGenerator {
         }
 
         val carCount = rnd.nextInt(0, 3)
+        val placed = atMostFourPlaces(staticObjects)
         val rolled = (0 until carCount).map { index ->
             // Lane, speed and direction are the canonical ones, not rolls of their own. A random
             // lane y put chaos-theme cars on a band of their own that the road was then stretched
@@ -131,6 +151,6 @@ object RandomSceneGenerator {
         val capped = SceneObjectCatalog.capSpecialsToOnePerType(rolled.map { it.type })
         val cars = rolled.mapIndexed { index, car -> car.copy(type = capped[index]) }
 
-        return SceneObjectLayout(staticObjects = staticObjects, cars = cars)
+        return SceneObjectLayout(staticObjects = placed, cars = cars)
     }
 }

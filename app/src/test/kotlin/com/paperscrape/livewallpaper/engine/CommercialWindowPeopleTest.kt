@@ -49,16 +49,18 @@ class CommercialWindowPeopleTest {
      * read: one composer draws all six families, and whether a building asks for occupants is a
      * property of its **pieces** -- a piece that declares windows carries an `OCCUPANTS` part. Since
      * v5.12 the building's total goes into its roster, with the measure of its windows, once, when the
-     * list is built (`giveRosters`), and the composer hands them to every piece's occupants with the
+     * list is built (`giveRoster`), and the composer hands them to every piece's occupants with the
      * building-wide window index. So the source half of this test asks the questions the source can
      * still lose (is the roster dealt over the *building's* windows, or a piece's? does the branch
      * number them building-wide?), and the coverage half is asked of the table, over every deal, which is stronger
-     * than the five function bodies it replaces: a sixth family, or a new piece with a window on
-     * it, is covered the day it is added.
+     * than the five function bodies it replaces: a new family, or a new piece with a window on it, is
+     * covered the day it is added -- every family of the table, the six with a row of the size table
+     * (`NeighbourhoodTable.FAMILIES`) and since v5.13 the shop and the two stations
+     * (`NeighbourhoodTable.STOREFRONTS`, [everyFamily]).
      */
     @Test
     fun `every piece that declares windows asks for its occupants`() {
-        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+        for ((variant, family) in everyFamily) {
             for ((slotIndex, slot) in family.slots.withIndex()) {
                 for (piece in slot.options + slot.heights) {
                     if (piece.windows.isEmpty()) continue
@@ -76,7 +78,7 @@ class CommercialWindowPeopleTest {
     fun `every family has somebody to put somewhere`() {
         // The v4.1 defect in its v5.0 shape: a family all of whose deals have zero windows is a
         // building nobody is ever in, and the restaurant was exactly that for three releases.
-        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+        for ((variant, family) in everyFamily) {
             val counts = windowCounts(family)
             assertTrue("$variant can be dealt with no windows at all: $counts", counts.min() > 0)
         }
@@ -88,7 +90,7 @@ class CommercialWindowPeopleTest {
      * Occupancy is a count dealt across a building's panes, so dealing it over a piece's own two
      * windows instead of the building's four would deal the wrong number and no assertion about
      * [WindowOccupants] would notice; since v5.12 the count reaches the drawing through the building's
-     * roster, made from its whole deal (`giveRosters`). The index the occupants' branch passes has to
+     * roster, made from its whole deal (`giveRoster`). The index the occupants' branch passes has to
      * be the building-wide one for the same reason -- two pieces both numbering their windows from zero
      * would put the same person in both.
      */
@@ -103,9 +105,9 @@ class CommercialWindowPeopleTest {
             branch.contains("placed.firstWindow"),
         )
         // Since v5.12 the total reaches the people through the building's roster and its windows,
-        // both made from the whole building's deal when the list is built (`giveRosters`): the plan is
+        // both made from the whole building's deal when the list is built (`giveRoster`): the plan is
         // dealt over the building's windows, and the layout measures every one of them.
-        val give = text.substringAfter("private fun giveRosters(").substringBefore("\n    private fun ")
+        val give = text.substringAfter("private fun giveRoster(").substringBefore("\n    private fun ")
         assertTrue(
             "the roster must be dealt over the building's total, not a piece's; found:\n$give",
             give.contains("themeSeed, buildingSeed, deal.windowCount, deal.paneCount, people,"),
@@ -168,6 +170,26 @@ class CommercialWindowPeopleTest {
             listOf(8) to listOf(4),
             windowCounts(family(SceneSpace.SceneVariant.SCHOOL)) to peopleCounts(family(SceneSpace.SceneVariant.SCHOOL)),
         )
+        // v5.13: the shop and the two stations, which have no row of the size table of their own.
+        assertEquals(
+            "the shop five, its people over three",
+            listOf(5) to listOf(3),
+            windowCounts(storefront(Storefront.SHOP)) to peopleCounts(storefront(Storefront.SHOP)),
+        )
+        assertEquals(
+            "the fire station four, its people over two",
+            listOf(4) to listOf(2),
+            windowCounts(storefront(Storefront.FIRE_STATION)) to peopleCounts(storefront(Storefront.FIRE_STATION)),
+        )
+        assertEquals(
+            "the police station six, its people over three",
+            listOf(6) to listOf(3),
+            windowCounts(storefront(Storefront.POLICE_STATION)) to peopleCounts(storefront(Storefront.POLICE_STATION)),
+        )
+        assertEquals(
+            "every family of the table is read here: the six with a row and the three of v5.13",
+            9, everyFamily.size,
+        )
     }
 
     /**
@@ -181,7 +203,7 @@ class CommercialWindowPeopleTest {
      */
     @Test
     fun `every declared window is a real opening above the ground`() {
-        for ((variant, family) in NeighbourhoodTable.FAMILIES) {
+        for ((variant, family) in everyFamily) {
             for (slot in family.slots) {
                 for (piece in slot.options + slot.heights) {
                     for (window in piece.windows) {
@@ -284,6 +306,17 @@ class CommercialWindowPeopleTest {
 
     private fun family(variant: SceneSpace.SceneVariant) = NeighbourhoodTable.FAMILIES.getValue(variant)
 
+    private fun storefront(storefront: Storefront) = NeighbourhoodTable.STOREFRONTS.getValue(storefront)
+
+    /**
+     * Every family of the table, named: the six with a row of the size table, and the three of v5.13 that have
+     * none (the shop, the fire station, the police station) -- the restaurant, the school and the bar are the
+     * same families in both maps, read once.
+     */
+    private val everyFamily: List<Pair<String, BuildingFamily>> =
+        (NeighbourhoodTable.FAMILIES.map { (v, f) -> v.name to f } + NeighbourhoodTable.STOREFRONTS.map { (s, f) -> s.name to f })
+            .distinctBy { System.identityHashCode(it.second) }
+
     /** Every distinct number of windows a family can be dealt, ascending. */
     private fun windowCounts(family: BuildingFamily): List<Int> = counts(family) { it.windows.size }
 
@@ -307,7 +340,11 @@ class CommercialWindowPeopleTest {
         return counts.sorted()
     }
 
-    /** Commercial buildings a theme actually renders, and how many occupants they hold. */
+    /**
+     * The places among the houses counted as the restaurant or the bar of their row, dealt at the place,
+     * and how many occupants they would hold -- not the buildings the street deals into them since v5.13,
+     * whose people come from their identities (`WindowPeopleCountTest` counts those).
+     */
     private fun commercialOccupancy(themeId: String): Pair<Int, Int> {
         val theme = ThemeCatalog.byId(themeId)
         val customization = defaultCustomizationFor(themeId)
@@ -326,8 +363,8 @@ class CommercialWindowPeopleTest {
             if (variant != SceneSpace.SceneVariant.BAR && variant != SceneSpace.SceneVariant.RESTAURANT) continue
             // The count this building is actually dealt, from its own position -- not a constant,
             // because a family's deals can differ in how many windows they have -- over the windows
-            // the renderer deals over (`giveRosters`: `deal.peopleWindows`, three for either bar since
-            // v5.12, whose fourth and fifth windows bring nobody).
+            // a building's roster deals over (`giveRoster`: `deal.peopleWindows`, three for either bar
+            // since v5.12, whose fourth and fifth windows bring nobody).
             val deal = NeighbourhoodComposer.Deal()
             NeighbourhoodComposer.deal(family(variant), spec.tileFractionX, spec.depthFraction, deal)
             val windows = deal.peopleWindows

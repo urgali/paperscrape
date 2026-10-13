@@ -307,6 +307,44 @@ class FrameAllocationTest {
         assertEquals("a frame with somebody walking out at closing allocated", 0, hoursObjects)
     }
 
+    /**
+     * **And while the places among the houses come and go** (v5.13B2): a place that leaves the screen comes
+     * back as another copy of the street, with the building the street deals that copy ([StorefrontStreet]),
+     * and a new round deals them all again. Autumn by day with the people at 100 %, swept by the swipe offset
+     * across three tiles of the street -- six screens, so each of the five places leaves the screen and comes
+     * back as another copy three times -- one frame of a fiftieth of a tile each, with a round dealt halfway.
+     * The sweep is drawn once uncounted over the three tiles before, for the first uses; the counted one meets
+     * copies the scene has not drawn yet.
+     */
+    @Test
+    fun aFrameAsThePlacesComeBackAllocatesNothing() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val renderer = PaperRenderer(WIDTH, HEIGHT, context).apply {
+            theme = ThemeCatalog.byId("autumn")
+            sceneCustomization = defaultCustomizationFor("autumn").let { it.copy(people = it.people.copy(visible = true, density = 1f)) }
+            lightningStrikesEnabled = false
+            scrollSpeed = 0f
+            swipeScrollEnabled = true
+        }
+        val noon = SunPositionCalculator.compute(hour24 = 12f)
+        // X = U + (f + c) T, U = -s W p, T = 2W (BuildingRoofSnowTest): one tile of the street is 2 / s of the offset.
+        val tile = 2f / PaperRenderer.HILL_PARALLAX
+        var time = SceneTime(120.0)
+        fun sweep(fromTile: Int) {
+            for (i in 0 until SWEEP_FRAMES) {
+                if (i == SWEEP_FRAMES / 2) renderer.nextStreetRound()
+                renderer.homeScreenOffset = (fromTile + 3f * i / SWEEP_FRAMES) * tile
+                time += FRAME
+                renderer.draw(NothingCanvas, noon, time, FRAME)
+            }
+        }
+        repeat(WARM_UP_FRAMES) { time += FRAME; renderer.draw(NothingCanvas, noon, time, FRAME) }
+        sweep(0)
+        val objects = allocationsDuring { sweep(3) }
+        Log.i(TAG, "places coming back: $objects objects over $SWEEP_FRAMES frames, three tiles of the street and a round")
+        assertEquals("a frame as a place came back as another copy allocated", 0, objects)
+    }
+
     private companion object {
         const val TAG = "FrameAllocationTest"
         const val WIDTH = 720
@@ -316,5 +354,8 @@ class FrameAllocationTest {
         /** Past the traffic's arrival (`SharedGoldenScenes.TRAFFIC_WARM_UP_FRAMES`, 390) and every lazy first use. */
         const val WARM_UP_FRAMES = 420
         const val COUNTED_FRAMES = 150
+
+        /** Three tiles of the street at a fiftieth of a tile a frame. */
+        const val SWEEP_FRAMES = 150
     }
 }

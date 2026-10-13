@@ -19,6 +19,16 @@ object CustomThemeRegistry {
 
     private val current = AtomicReference(CustomThemeData.EMPTY)
     private val generationCounter = java.util.concurrent.atomic.AtomicInteger(0)
+    private val generations = kotlinx.coroutines.flow.MutableStateFlow(0)
+
+    /**
+     * [generation] as it changes (v5.13): what `WallpaperPrefs.settingsFlow` reads the preferences again
+     * on. A theme's stored settings are read against the theme they belong to -- its starting colours,
+     * and how a store written before v5.13 carries its shops' colours to the public buildings -- and a
+     * theme of the user's own is known only once its store has reached this registry, which a separate
+     * collector delivers in no fixed order with the preferences.
+     */
+    val generationFlow: kotlinx.coroutines.flow.StateFlow<Int> get() = generations
 
     /**
      * Publishes [data], and bumps the generation **only if it is different**.
@@ -30,15 +40,17 @@ object CustomThemeRegistry {
      *
      * `CustomThemeData` is a data class, so the comparison is structural -- except that
      * [SceneTheme] compares by id alone, so a saved theme whose colours or display name alone
-     * changed does not bump the generation (its only reader, the object renderer, uses neither)
-     * -- and a second collector delivering the identical document is free. That is the whole
-     * fix: the generation counts *changes*, not deliveries, which is what every reader of it
-     * already assumed.
+     * changed does not bump the generation -- the object renderer uses neither; the other reader since
+     * v5.13, `WallpaperPrefs.settingsFlow` ([generationFlow]), reads a saved theme's sky and hills for
+     * its starting colours, and a saved theme's sky changes only when "Replace with current" puts another
+     * theme in its place, whose layout differs and does bump it -- and a second collector delivering the
+     * identical document is free. That is the whole fix: the generation counts *changes*, not
+     * deliveries, which is what every reader of it already assumed.
      */
     fun update(data: CustomThemeData) {
         val previous = current.getAndSet(data)
         if (previous == data) return
-        generationCounter.incrementAndGet()
+        generations.value = generationCounter.incrementAndGet()
     }
 
     /**

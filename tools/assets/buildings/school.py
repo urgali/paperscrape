@@ -56,7 +56,8 @@ BAYS_GROUND = [(-48, -24), (-30, -24), (17, -24), (35, -24)]
 
 #: The plaque on the facade, and the pencil inside it. 32x17.5 units at 1.163 px per unit (the
 #: depth the proposal round measured at) is 37x20 px, and no part of the pencil is under 2 px:
-#: the eraser, the smallest, is 2.2 units = 2.6 px.
+#: the eraser, the smallest, is 2.4 units -- 2.14 px at the farthest place's smallest (v5.13, `civic.DETAIL`;
+#: `StorefrontDetailTest`).
 PLAQUE = (-16, -48.5, 16, -31)
 EMBLEM_HEIGHT = 12.0
 EMBLEM_CENTRE = (0, -40.5)
@@ -145,12 +146,12 @@ def pencil(g, cx, cy, h):
 
     Three cards and no outline, which is the plaque vocabulary: the emblem is told from the
     restaurant's disc and the bar's tankard by being the one diagonal in the street. Every part is
-    over two on-screen pixels at the depth the school is drawn at -- barrel 3.6 units thick, point
-    3.5 long, eraser 2.2.
+    over two on-screen pixels at every depth the school is drawn at since v5.13, the far place included
+    (`civic.DETAIL`) -- barrel 3.1 units thick, point 3 long, eraser 2.4 (2.2 until v5.13).
     """
     w = 0.26 * h
     length = h * math.sqrt(2) - w
-    point, eraser = max(3.0, 0.25 * h), 2.2
+    point, eraser = max(3.0, 0.25 * h), 2.4
     d = (math.cos(math.pi / 4), -math.sin(math.pi / 4))
     n = (math.cos(math.pi / 4), math.sin(math.pi / 4))
     origin = (cx - d[0] * length / 2, cy - d[1] * length / 2)

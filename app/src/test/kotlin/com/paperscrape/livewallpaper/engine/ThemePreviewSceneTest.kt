@@ -216,6 +216,29 @@ class ThemePreviewSceneTest {
         assertTrue("the city's own houses", scene.contains(R.drawable.house_large_ground_fx))
     }
 
+    /**
+     * **No tower on the card where the wallpaper draws none** (v5.13, inventory I-609, decision 45): with
+     * *Towers* at 0 % no tower of any theme is kept, and the card drew two (four on a city) anyway. Every
+     * built-in theme, the city's skyline included, at 0 % and with *Show Buildings* off; and at the
+     * factory amount the towers the wallpaper keeps are on it.
+     */
+    @Test
+    fun `at Towers 0 percent, or with Show Buildings off, the card draws no tower`() {
+        val towerParts = NeighbourhoodTable.FAMILIES.getValue(SceneSpace.SceneVariant.TOWER).slots
+            .flatMap { it.options + it.heights }
+            .flatMap { piece -> piece.parts.map { it.res } }
+            .filter { it != 0 }
+            .toSet()
+        for (theme in ThemeCatalog.ALL) {
+            val c = defaultCustomizationFor(theme.id)
+            val none = ThemePreviewScenes.forTheme(theme, c.copy(buildings = c.buildings.copy(density = 0f)))
+            assertFalse("${theme.id} at Towers 0 %", none.allSprites().any { it in towerParts })
+            val off = ThemePreviewScenes.forTheme(theme, c.copy(buildings = c.buildings.copy(visible = false)))
+            assertFalse("${theme.id} with Show Buildings off", off.allSprites().any { it in towerParts })
+        }
+        assertTrue("the city at the factory amount", sceneFor("city").allSprites().any { it in towerParts })
+    }
+
     @Test
     fun `sunset shows the wallpaper's own sky an hour before sunset`() {
         // This test used to assert `theme.skyDusk`, the array the wallpaper stopped reading when the

@@ -116,6 +116,14 @@ data class SceneObjectLayout(
      * layout, and for a saved one whatever it was saved with (v5.8C; see [DENSITY_SCHEME_GRID]).
      */
     val densityScheme: Int = DENSITY_SCHEME_FRACTION,
+    /**
+     * A saved street's places among the houses that the loader moved, each to the place as the theme stores
+     * it (v5.13B2, [SceneObjectCatalog.placesClearedOnSavedStreet]); empty where nothing moved. The six
+     * buildings take their identity -- their colours and their people -- from the places as stored
+     * ([StorefrontStreet.identities]), and a save writes them back as stored ([toJson]): moving a place
+     * changes where it stands and nothing else, on this load and on every one after.
+     */
+    val placesAsSaved: Map<StaticSceneObject, StaticSceneObject> = emptyMap(),
 )
 
 /**
@@ -568,21 +576,18 @@ object SceneObjectCatalog {
      *
      * Each population's silhouettes are dealt across its own slots here, at generation, where the
      * seed and the slot index are both in hand -- see [SilhouetteDeal] for why that is the only
-     * place it can happen. The commercial candidates are dealt *after* [singleShopPerVariant],
-     * because that pass is what settles which of them is a tower and which a shop front, and a
-     * building's catalogue follows from that. The shop plan moves only `tileFractionX` and so
-     * cannot disturb a deal.
+     * place it can happen. The building candidates are dealt in [buildingCandidates], *after* the
+     * pass that settles which of them is a tower and which a place among the houses, because a
+     * building's catalogue follows from that. The plan moves only `tileFractionX` and so cannot
+     * disturb a deal.
      */
-    private fun streetBeforeShops(themeId: String, treeType: SceneObjectType): List<StaticSceneObject> {
+    internal fun streetBeforeShops(themeId: String, treeType: SceneObjectType): List<StaticSceneObject> {
         val seed = themeId.hashCode()
         val houses = SilhouetteDeal.dealtAcross(
             generateSplitStaticCandidates(SceneObjectType.HOUSE, seed + 1, 0.28f..0.48f, 0.62f..0.95f),
             seed,
         )
-        return SilhouetteDeal.dealtAcross(
-            singleShopPerVariant(generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, 0.0f..0.80f)),
-            seed,
-        ) +
+        return buildingCandidates(seed) +
             houses +
             generateStaticCandidates(treeType, seed + 5, 0.18f..1.0f) +
             parasolsBeside(houses, seed + 4)
@@ -608,8 +613,11 @@ object SceneObjectCatalog {
     //    scroll, which is MORE than half the tile -- so any two shops of the same storefront
     //    share a frame at some scroll position, wherever they stand. The only layout that never
     //    shows twin storefronts is one restaurant and one bar per tile, so that is what the
-    //    catalogue now emits ([singleShopPerVariant]); the surplus commercial candidates keep
-    //    their slot and their category and become skyline towers instead.
+    //    catalogue emitted ([singleShopPerVariant]); the surplus commercial candidates kept
+    //    their slot and their category and became skyline towers instead. Since v5.13 which
+    //    building stands in a place is the street's, which keeps twins off the screen itself
+    //    ([StorefrontStreet]), and since v5.13B2 two of those surplus candidates are places
+    //    again ([buildingCandidates]).
 
     /** The reference viewport the occlusion geometry is evaluated at: 1080x2340, the OnePlus 6T
      * the rule was first judged on. The overlap *fractions* barely move with aspect ratio, but
@@ -627,7 +635,52 @@ object SceneObjectCatalog {
     private const val TREE_STEP_ASIDE_MARGIN_PX = 4f
 
     /**
-     * Keeps one commercial candidate per storefront and turns the rest into skyline towers.
+     * The building candidates of a generated street, each with its silhouette dealt: **five places among
+     * the houses and five towers** (v5.13B2).
+     *
+     * The maintainer's request of 2026-10-12, shown on the BV6600 mid-round as a street with two towers
+     * fewer and five places: *«Sì, 5 posti, in un giro a parte»*, then *«5 posti prima del sigillo»*. Of
+     * the ten building candidates six stand in the shop band (0.356, 0.444, 0.533, 0.622, 0.711, 0.800 on
+     * every theme); [singleShopPerVariant] keeps three of them as places -- the depth-middle one of each
+     * third, 0.444, 0.622 and 0.800 -- and lays the other three on the skyline at 0.05, 0.15 and 0.25.
+     * **Two of those three come back** ([placesReturned]): the restaurant third's 0.356 and the bar third's
+     * 0.711. The school third's 0.533 stays the tower it was, at 0.15, because it is the middle one of the
+     * three: its tower depth, interleaved over one tower instead of three, is the one it already had. So
+     * every tower left stands where it stood and is the height and the colour it was (both coins read its
+     * position), and its crown is the one it was dealt over the seven tower slots the street had before
+     * (the deal below): the street loses two towers and nothing else on its skyline changes.
+     *
+     * A place's own silhouette is dealt over the five places, each from its row's catalogue
+     * ([SilhouetteDeal.catalogueFor]): what a saved copy of the street keeps. The built-in street does not
+     * read it -- each of the six buildings takes its identity from [StorefrontStreet.identities].
+     */
+    private fun buildingCandidates(seed: Int): List<StaticSceneObject> {
+        val generated = generateStaticCandidates(SceneObjectType.SKYSCRAPER, seed + 2, 0.0f..0.80f)
+        val threePlaces = singleShopPerVariant(generated)
+        // The crowns, dealt over the seven tower slots of the street before the two came back.
+        val crowns = SilhouetteDeal.dealtAcross(threePlaces, seed)
+        val fivePlaces = placesReturned(generated, threePlaces)
+        val places = SilhouetteDeal.dealtAcross(fivePlaces.filter { isShop(it) }, seed)
+        var next = 0
+        return fivePlaces.mapIndexed { i, o -> if (isShop(o)) places[next++] else crowns[i] }
+    }
+
+    /**
+     * [threePlaces] (the street [singleShopPerVariant] makes of [generated]) with two of the candidates it
+     * laid on the skyline standing in the shop band again, where they were generated: every one of them
+     * but the middle one by the order it was laid down in, which keeps the tower depth it was given. See
+     * [buildingCandidates].
+     */
+    private fun placesReturned(generated: List<StaticSceneObject>, threePlaces: List<StaticSceneObject>): List<StaticSceneObject> {
+        val laidOnSkyline = generated.indices.filter { isShop(generated[it]) && !isShop(threePlaces[it]) }
+        val staysTower = laidOnSkyline.getOrNull(laidOnSkyline.size / 2)
+        return threePlaces.mapIndexed { i, o -> if (i in laidOnSkyline && i != staysTower) generated[i] else o }
+    }
+
+    /**
+     * Keeps one commercial candidate per storefront and turns the rest into skyline towers: the street of
+     * three places a building candidate list had until v5.13B2, and since then the first step of
+     * [buildingCandidates], which brings two of the candidates this lays on the skyline back.
      *
      * Of the shop-band candidates (depth >= [SceneSpace.BUILDING_TOWER_MAX_DEPTH]), the
      * depth-middle one of each variant band (see [SceneSpace.RESTAURANT_MAX_DEPTH]) stays a shop
@@ -675,26 +728,29 @@ object SceneObjectCatalog {
      * Half-width of a variant, in its own sprite units, as the occlusion pass models it. The
      * school's and the tree's are measured off the current artwork (see their notes); the palm's
      * is its crown's half-width about the crown's own centre (see its note).
-     * The two houses', the two shops' and the tower's are the wider side of the ink the shipped
-     * pieces draw, over every alternative of every slot (v5.8E, V3-01): 58.7 (small house), 77.1
-     * (large house), 52.7 (restaurant), 38.1 (bar) and 35.9 (tower). Until then they were 48, 75,
+     * The two houses' and the tower's are the wider side of the ink the shipped pieces draw, over
+     * every alternative of every slot (v5.8E, V3-01): 58.7 (small house), 77.1 (large house) and 35.9
+     * (tower), as the restaurant's 52.7 and the bar's 38.1 were until v5.13, when a place among the
+     * houses became as wide as the widest of the six buildings that may stand in it (below). Until
+     * v5.8E they were 48, 75,
      * 34, 34 and 45 -- the restaurant modelled 68 units wide where it draws 104 -- so the pass
      * accepted fronts more covered than it computed: four restaurants at the twelve defaults broke
      * the 40 %/no-trunk rule it believed they kept. With the true widths the restaurant stands clear
-     * only in the first third of the tile on every theme, which is why the shops are now placed by
-     * [planShopPositions] rather than each on its own.
+     * only in the first third of the tile on every theme, which is why the shops were placed by a plan
+     * of the twelve streets together rather than each on its own ([planStreets] since v5.13B2).
      */
     private fun halfWidthUnits(variant: SceneSpace.SceneVariant): Float = when (variant) {
         SceneSpace.SceneVariant.HOUSE_SMALL -> 58.7f
         SceneSpace.SceneVariant.HOUSE_LARGE -> 77.1f
-        SceneSpace.SceneVariant.RESTAURANT -> 52.7f
-        SceneSpace.SceneVariant.BAR -> 38.1f
         SceneSpace.SceneVariant.TOWER -> 35.9f
-        // v5.6F: the school's own ink reaches x -53.7..55.3 of a 110-unit canvas, and the family
-        // draws at 1:1 (72 piece units to 72 variant units), so the wider side governs a
-        // symmetric reach the same way the tree's and the palm's do. It is the widest thing on
-        // the ground after the large house.
-        SceneSpace.SceneVariant.SCHOOL -> 56f
+        // **A place among the houses is as wide as the widest of the six that may stand in it** (v5.13):
+        // the street deals any of them to any place ([StorefrontStreet]), so the reach a place has, as an
+        // occluder and as the front a trunk must not cross, is the widest of their fronts, each at the
+        // place's metre -- the school's 55.3 units since v5.13. Until then each place held one building and
+        // was its width: 52.7 (restaurant), 38.1 (bar), 56 (school). [frontRects] keeps the six apart where
+        // the covered share is measured.
+        SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR ->
+            Storefront.ALL.maxOf { it.halfWidthUnits } * placeMetre(variant)
         // v4.21: 51, not 41. The "Broad Oak" crown is `tree_canopy`'s 101 units of content
         // blitted at -50, so it spans x -50..51 and the wider side governs a symmetric reach.
         SceneSpace.SceneVariant.TREE -> 51f
@@ -711,8 +767,15 @@ object SceneObjectCatalog {
         else -> 0f
     }
 
-    private fun isShop(o: StaticSceneObject) =
+    internal fun isShop(o: StaticSceneObject) =
         o.type == SceneObjectType.SKYSCRAPER && o.depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH
+
+    /**
+     * A place's metre (v5.13): `spriteUnitsTall / unitsTall` of the place's own family, the scale the
+     * renderer draws any building standing in it at -- every piece of the neighbourhood is one metre a unit.
+     */
+    private fun placeMetre(variant: SceneSpace.SceneVariant): Float =
+        variant.spriteUnitsTall / NeighbourhoodTable.FAMILIES.getValue(variant).unitsTall
 
     /**
      * Moves every shop to the nearest position where its front is neither covered past
@@ -816,69 +879,91 @@ object SceneObjectCatalog {
         return out
     }
 
-    // ---- The shop plan (v5.8E, V3-01) --------------------------------------------------------
+    // ---- The plan of the places (v5.8E, V3-01; five places since v5.13B2) --------------------
     //
     // Every built-in street is built on one skeleton: each category lays candidate i at slot
     // (i + 0.5) / 10 and at a depth that grows with i, so on all twelve themes the far objects stand
-    // at the left of the tile and the near trees at the right. A shop placed on its own therefore
-    // lands where every other theme's lands: before this plan the bar stood in one spot on 12 of 12
-    // themes and the school on 8, and with the restaurant's true width 10 of 12 restaurants would
-    // have shared the one clear stretch at the left. The maintainer's condition for the width repair
-    // was that no more themes than before (4) put a shop in the same spot of the street.
+    // at the left of the tile and the near trees, the near houses and their parasols at the right.
+    // Measured on the five places of v5.13B2 against the street alone, every theme's right third is
+    // closed to every place but at a spot or two by a trunk or a pole crossing its front, and the far places have clear
+    // stretches only at the left: a place put where it is clear stands in the first two thirds of the
+    // tile, and five of them leave a third of the tile -- two thirds of a screen -- with no building
+    // among the houses. The proof of v5.13B
+    // put them there and showed 39 fronts of 360 covered beyond the 40 % rule.
     //
-    // So the twelve streets place their shops together. Each shop may stand only where its front is
-    // clear against the street alone (the target tier if any probe reaches it, else the ceiling
-    // tier -- the same two rules as [separateShopFrontages]), a nearer shop never on a deeper one's
-    // front, and among those each theme takes the positions that the fewest other themes' same shop
-    // overlaps, then the ones nearest its generated slots. Themes take turns in [BUILT_IN_STREETS]'s
-    // order until none moves. Nothing else moves: houses, trees and parasols stay where the
-    // generator put them. `ShopFrontVisibilityTest` holds both the rules and the result: every front
-    // inside them, and no more than four themes putting a shop in one spot.
+    // So the plan lays the five places **along the whole tile**, one in each fifth: slots a fifth of
+    // the tile apart, at a phase each street chooses, and each place within 0.04 of its slot, or within 0.06,
+    // 0.08 or 0.10 where no street finds a plan nearer ([SLOT_REACHES]; New Year's needed it): two
+    // neighbouring places 0.13 to 0.31 of the tile apart on the twelve streets (0.26 to 0.62 of a screen). Where a place's
+    // front would be crossed by a trunk or a pole, or covered beyond the rule, the trees and parasols
+    // in the way are moved -- **never their number, their colour, their autumn tone, their kind or whether
+    // they stand at the theme's density**: a tree stands as near its old spot as it can where all of that holds
+    // ([relocated]), a parasol on the other side of its own house. Houses never move. The places that
+    // can stand where they are clear stand there, and a street moves as few trees and parasols as its
+    // places allow (the instruction of v5.13B2: trees and parasols may move, never their number).
+    //
+    // The twelve streets still share out the frontage, the maintainer's condition of 2026-09-26 for the
+    // width repair (row A18): no more than four themes put a place of one row of the size table --
+    // restaurant, school, bar -- in one spot. Themes take turns, each choosing its best against the
+    // others' current choice, until none moves. `StorefrontFrontVisibilityTest` and
+    // `ShopFrontVisibilityTest` hold the rules and the result.
     //
     // **Since v5.10B the plan is computed when the table is generated, not when the app starts.** It
-    // depends on nothing but constants of this code -- the twelve streets' seeds, the shops' widths,
-    // the occluders' boxes -- so it gave the same answer at every start, and it cost ~566 ms on the
-    // BV6600's main thread (v5.10A, the `perf` build: every start of the wallpaper and every cold
-    // start of the settings screen, before the first frame). [ShopPlanTable] holds the answer: where
-    // each theme's shops stand. `ShopPlanTableTest` runs [planShopPositions] on the JVM and fails
-    // when the table is not its output to the bit, and writes the table it should be.
+    // depends on nothing but constants of this code -- the twelve streets' seeds, the buildings' widths,
+    // the occluders' boxes -- so it gives the same answer at every start, and it cost ~566 ms on the
+    // BV6600's main thread when the app computed it (v5.10A). [ShopPlanTable] holds the answer: where
+    // each street's places stand, and where each tree or parasol it moved stands. `ShopPlanTableTest`
+    // runs [planStreets] on the JVM and fails when the table is not its output to the bit, and writes
+    // the table it should be.
 
     /**
-     * Every built-in street with its shops placed: theme id to its static objects. Built once, from
-     * [ShopPlanTable]: the streets as generated, each shop moved to the position the plan gave it.
+     * Every built-in street with its places placed: theme id to its static objects. Built once, from
+     * [ShopPlanTable]: the streets as generated, each place and each tree or parasol the plan moved
+     * where the plan put it.
      */
     private val SHOP_PLAN: Map<String, List<StaticSceneObject>> by lazy { shopPlanFromTable() }
 
     private fun shopPlanFromTable(): Map<String, List<StaticSceneObject>> =
-        BUILT_IN_STREETS.associate { (id, tree) -> id to streetWithShopsAt(streetBeforeShops(id, tree), ShopPlanTable.SHOP_X[id]) }
+        BUILT_IN_STREETS.associate { (id, tree) -> id to streetPlanned(streetBeforeShops(id, tree), ShopPlanTable.planFor(id)) }
 
     /**
-     * [objects] with each shop moved to [x] (deepest first, as [planShopPositions] gives them), or
-     * with its shops parked by [separateShopFrontages] when [x] is null: a theme the plan could not
-     * place, which the table leaves out. How the plan's result has always been applied.
+     * What the plan does to one built-in street: where its places stand, deepest first ([placeX]), and
+     * where each tree or parasol it moved stands now -- [movedIndex] the object's index in the street as
+     * generated ([streetBeforeShops]), [movedX] its new `tileFractionX`.
      */
-    private fun streetWithShopsAt(objects: List<StaticSceneObject>, x: FloatArray?): List<StaticSceneObject> {
-        if (x == null) return separateShopFrontages(objects)
+    internal class StreetPlan(val placeX: FloatArray, val movedIndex: IntArray, val movedX: FloatArray)
+
+    /**
+     * [objects] with the plan applied, or with its places parked by [separateShopFrontages] when [plan] is
+     * null: a street the plan could not place, which the table leaves out.
+     */
+    private fun streetPlanned(objects: List<StaticSceneObject>, plan: StreetPlan?): List<StaticSceneObject> {
+        if (plan == null) return separateShopFrontages(objects)
         val shops = shopIndicesDeepestFirst(objects)
-        check(shops.size == x.size) { "ShopPlanTable has ${x.size} shops for a street with ${shops.size}" }
+        check(shops.size == plan.placeX.size) { "ShopPlanTable has ${plan.placeX.size} places for a street with ${shops.size}" }
         return objects.mapIndexed { i, o ->
             val j = shops.indexOf(i)
-            if (j < 0) o else o.copy(tileFractionX = x[j])
+            val m = plan.movedIndex.indexOf(i)
+            when {
+                j >= 0 -> o.copy(tileFractionX = plan.placeX[j])
+                m >= 0 -> o.copy(tileFractionX = plan.movedX[m])
+                else -> o
+            }
         }
     }
 
-    /** The streets [planShopPositions] would give, applied: what the app drew before the table. For `ShopPlanTableTest`. */
+    /** The streets [planStreets] would give, applied: what the app draws from the table. For `ShopPlanTableTest`. */
     internal fun plannedStreets(): Map<String, List<StaticSceneObject>> {
-        val positions = planShopPositions()
-        return BUILT_IN_STREETS.associate { (id, tree) -> id to streetWithShopsAt(streetBeforeShops(id, tree), positions[id]) }
+        val plans = planStreets()
+        return BUILT_IN_STREETS.associate { (id, tree) -> id to streetPlanned(streetBeforeShops(id, tree), plans[id]) }
     }
 
-    /** The indices of [objects]' shops, deepest first: the order [planShopPositions] places them in. */
+    /** The indices of [objects]' places, deepest first: the order the plan places them in. */
     private fun shopIndicesDeepestFirst(objects: List<StaticSceneObject>): List<Int> =
         objects.indices.filter { isShop(objects[it]) }.sortedBy { objects[it].depthFraction }
 
-    /** A shop's half-width as a share of the tile, at the reference viewport. */
-    private fun halfTile(o: StaticSceneObject): Float =
+    /** A place's half-width as a share of the tile, at the reference viewport: the widest of the six. */
+    internal fun halfTile(o: StaticSceneObject): Float =
         halfWidthUnits(SceneObjectRenderer.variantFor(o)) * SceneObjectRenderer.effectiveScaleFor(o, REF_SCREEN_H) / (REF_SCREEN_W * 2f)
 
     private fun circularGap(a: Float, b: Float): Float {
@@ -886,123 +971,578 @@ object SceneObjectCatalog {
         return minOf(d, 1f - d)
     }
 
-    /** Where [shop] may stand against [street] alone: the target tier if it has any probe, else the ceiling tier. */
-    private fun clearPositions(street: List<StaticSceneObject>, shop: StaticSceneObject): List<Float> {
-        val target = ArrayList<Float>()
-        val ceiling = ArrayList<Float>()
-        // [frontCrossed] and [frontCoverage] over this street, with the street's boxes measured once
-        // rather than at every probe: the street does not move while the shop is probed.
-        val nearer = street.filter { it.depthFraction > shop.depthFraction }
-        val boxes = nearer.flatMap { occluderBoxes(it) }
-        val members = nearer.mapNotNull { verticalMemberBox(it) }
-        for (k in 0 until 100) {
-            val candidate = shop.copy(tileFractionX = k * 0.01f)
-            val f = frontRect(candidate)
-            val cx = (f[0] + f[2]) / 2f
-            if (members.any { m -> val b = wrapBoxToward(m, cx); b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3] }) continue
-            val clipped = ArrayList<FloatArray>()
-            for (box in boxes) {
-                val b = wrapBoxToward(box, cx)
-                val l = maxOf(b[0], f[0]); val t = maxOf(b[1], f[1]); val r = minOf(b[2], f[2]); val bo = minOf(b[3], f[3])
-                if (r > l && bo > t) clipped.add(floatArrayOf(l, t, r, bo))
-            }
-            val covered = if (clipped.isEmpty()) 0f else unionArea(clipped) / ((f[2] - f[0]) * (f[3] - f[1]))
-            if (covered <= SHOP_TARGET_OCCLUSION) target += candidate.tileFractionX
-            else if (covered <= SHOP_MAX_OCCLUSION) ceiling += candidate.tileFractionX
-        }
-        return if (target.isNotEmpty()) target else ceiling
-    }
+    /** The grid the plan places on: a two-hundredth of the tile, 7 px of the BV6600's 1 440. */
+    private const val PLAN_STEPS = 200
 
-    /** Whether the nearer shop's body, standing at its x, overlaps any of the deeper shop's front. */
-    private fun overlapsFront(nearer: StaticSceneObject, deeper: StaticSceneObject): Boolean {
-        val f = frontRect(deeper)
-        val b = wrapBoxToward(frontRect(nearer), (f[0] + f[2]) / 2f)
-        return b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3]
+    /**
+     * The most of a front the plan lets be covered: a point under the rule's [SHOP_MAX_OCCLUSION], so that a
+     * front the plan measures exactly is inside the rule however finely another measurement samples it
+     * (`StorefrontFrontVisibilityTest` samples on a grid, and read 40.2 % on a front planned at 39.9 %).
+     */
+    private const val PLAN_MAX_OCCLUSION = SHOP_MAX_OCCLUSION - 0.01f
+
+    /**
+     * How far from its slot a place may stand, in [PLAN_STEPS]: 0.04 of the tile either side, then wider for
+     * a street whose places cannot all stand that near their slots (New Year's, whose two large houses at
+     * the front close its right third to every place).
+     */
+    private val SLOT_REACHES = intArrayOf(8, 12, 16, 20)
+
+    /** The most streets whose places of one row of the size table may cover one spot: row A18's condition. */
+    private const val MAX_STREETS_A_SPOT = 4
+
+    /**
+     * The tallest screen, height over width, the street is planned for: 21:9 and a little more. A building
+     * is a share of the tile that grows with it, the tile being two screens wide and the scene scaling with
+     * the screen's height.
+     */
+    private const val TALLEST_SCREEN = 2.4f
+
+    /** How far the plan looks for a moved tree's new spot, in steps of [MOVE_STEP] either side: 0.3 of the tile. */
+    private const val MOVE_REACH = 3000
+    private const val MOVE_STEP = 0.0001f
+
+    /**
+     * The period of a candidate's density draw along the tile: [densityFraction] is the fraction of
+     * `x * 7919` and the depth's term, so an object moved by a whole number of these keeps its draw, within
+     * a float's rounding. A moved tree's spot is fine-tuned by them to keep its autumn tone
+     * ([SceneObjectRenderer.fallToneOf]), at most [TONE_REACH] of them either side.
+     */
+    private const val DENSITY_PERIOD = 1f / 7919f
+    private const val TONE_REACH = 200
+
+    /**
+     * How far a moved tree's or parasol's density draw may go from the one it had ([densityFraction]):
+     * at the theme's own density it stands or not as it did, and at any other it does unless the slider
+     * is within this of its draw.
+     */
+    private const val MOVE_DENSITY_SLACK = 0.02
+
+    /** How many of its best solutions a street keeps at each phase and order to answer the others with. */
+    private const val SHORTLIST = 2
+
+    /** How many spots each place tries at each slot: its best, by moves, tier and distance. */
+    private const val SLOT_OPTIONS = 3
+
+    private fun isMovable(o: StaticSceneObject): Boolean =
+        o.type == SceneObjectType.TREE || o.type == SceneObjectType.PALM_TREE || o.type == SceneObjectType.PARASOL
+
+    private fun overlaps(b: FloatArray, f: FloatArray): Boolean = b[2] > f[0] && b[0] < f[2] && b[3] > f[1] && b[1] < f[3]
+
+    /**
+     * Both species a street's tree slots can stand as -- the trees it plants and the palms the Palms
+     * switch puts in their places, or on Beach and Desert the palms they plant and the trees the switch
+     * puts back (decisions 37 and 39): a place is planned clear of both.
+     */
+    private fun speciesOf(street: List<StaticSceneObject>, tree: SceneObjectType): List<List<StaticSceneObject>> {
+        val other = if (tree == SceneObjectType.TREE) SceneObjectType.PALM_TREE else SceneObjectType.TREE
+        return listOf(street, street.map { if (it.type == tree) it.copy(type = other) else it })
     }
 
     /**
-     * The shop plan itself, computed from scratch: for each built-in theme, where its shops stand,
-     * deepest first (the order [shopIndicesDeepestFirst] gives), or null for a theme whose shops the
-     * plan could not all place -- that street then parks them with [separateShopFrontages].
+     * What one object puts in front of a place, for the plan: [occluderBoxes], but a house as tall as it
+     * draws where its own deal stands it above its family's reference height -- a house dealt a storey more
+     * covers more of what stands behind it ([NeighbourhoodComposer.deal], the renderer's deal, by the
+     * silhouette the street dealt it).
+     */
+    private fun planOccluderBoxes(o: StaticSceneObject): List<FloatArray> {
+        if (o.type != SceneObjectType.HOUSE) return occluderBoxes(o)
+        val v = SceneObjectRenderer.variantFor(o)
+        val family = NeighbourhoodTable.FAMILIES.getValue(v)
+        val deal = NeighbourhoodComposer.Deal()
+        NeighbourhoodComposer.deal(family, o, deal)
+        var top = 0f
+        for (i in 0 until deal.size) {
+            val placed = deal[i]
+            for (part in placed.piece.parts) {
+                if (part.res == 0 || part.role == PartRole.SNOW || part.role == PartRole.LAMP || part.role == PartRole.OCCUPANTS) continue
+                top = maxOf(top, -(placed.baseY + part.y))
+            }
+        }
+        val s = SceneObjectRenderer.effectiveScaleFor(o, REF_SCREEN_H)
+        val g = REF_SCREEN_H * SceneSpace.groundYFraction(o.depthFraction)
+        val x = o.tileFractionX * REF_SCREEN_W * 2f
+        val tall = maxOf(v.spriteUnitsTall, top * v.spriteUnitsTall / family.unitsTall)
+        return listOf(floatArrayOf(x - halfWidthUnits(v) * s, g - tall * s, x + halfWidthUnits(v) * s, g))
+    }
+
+    /**
+     * Whether place [place], standing at [x] in [street] (each object where the plan has it), keeps both
+     * rules for all six of its fronts in every species: no trunk or pole across it, at most [limit] covered by
+     * everything nearer -- the other places with the widest of the six in each. [limit] is the plan's
+     * [PLAN_MAX_OCCLUSION], a point inside the rule's [SHOP_MAX_OCCLUSION], unless the caller asks for the rule
+     * itself. [species] is [speciesOf] the street.
+     */
+    private fun placeClear(
+        species: List<List<StaticSceneObject>>,
+        place: Int,
+        x: Float,
+        absent: Set<Int> = emptySet(),
+        limit: Float = PLAN_MAX_OCCLUSION,
+    ): Boolean {
+        for (v in species) {
+            val shop = v[place].copy(tileFractionX = x)
+            val env = frontRect(shop)
+            val cx = (env[0] + env[2]) / 2f
+            val boxes = ArrayList<FloatArray>()
+            for (i in v.indices) {
+                val o = v[i]
+                if (i == place || i in absent || o.depthFraction <= shop.depthFraction) continue
+                val m = verticalMemberBox(o)
+                if (m != null && overlaps(wrapBoxToward(m, cx), env)) return false
+                boxes += planOccluderBoxes(o)
+            }
+            if (frontRects(shop).maxOf { coveredShare(it, boxes) } > limit) return false
+        }
+        return true
+    }
+
+    /**
+     * Place [place] of a street at grid step [k], against the street alone (houses, trees, palms,
+     * parasols; no other place): null where the houses alone cover a front past [PLAN_MAX_OCCLUSION];
+     * otherwise the trees and parasols that would have to move -- every trunk or pole across its front
+     * in either species, then, while a front is covered past [SHOP_TARGET_OCCLUSION], the one covering
+     * most of it -- and whether the front is left in the ceiling tier (covered between the two, nothing
+     * more to move), which [placeSpots] offers too with the trunks alone moved.
+     */
+    private fun spotFor(species: List<List<StaticSceneObject>>, place: Int, k: Int, toTarget: Boolean): Spot? {
+        val x = k / PLAN_STEPS.toFloat()
+        val blockers = java.util.TreeSet<Int>()
+        for (v in species) {
+            val shop = v[place].copy(tileFractionX = x)
+            val env = frontRect(shop)
+            val cx = (env[0] + env[2]) / 2f
+            for (i in v.indices) {
+                val o = v[i]
+                if (!isMovable(o) || o.depthFraction <= shop.depthFraction) continue
+                val m = verticalMemberBox(o) ?: continue
+                if (overlaps(wrapBoxToward(m, cx), env)) blockers += i
+            }
+        }
+        var ceiling = false
+        for (v in species) {
+            val shop = v[place].copy(tileFractionX = x)
+            val fronts = frontRects(shop)
+            val nearer = v.indices.filter { !isShop(v[it]) && v[it].depthFraction > shop.depthFraction }
+            val fixed = nearer.filter { !isMovable(v[it]) }.flatMap { planOccluderBoxes(v[it]) }
+            if (fronts.maxOf { coveredShare(it, fixed) } > PLAN_MAX_OCCLUSION) return null
+            while (true) {
+                val stay = nearer.filter { isMovable(v[it]) && it !in blockers }
+                val boxes = fixed + stay.flatMap { planOccluderBoxes(v[it]) }
+                val worst = fronts.maxBy { coveredShare(it, boxes) }
+                val covered = coveredShare(worst, boxes)
+                if (covered <= SHOP_TARGET_OCCLUSION) break
+                if (!toTarget) {
+                    if (covered <= PLAN_MAX_OCCLUSION) { ceiling = true; break }
+                }
+                val next = stay.maxByOrNull { coveredShare(worst, planOccluderBoxes(v[it])) }
+                if (next == null || coveredShare(worst, planOccluderBoxes(v[next])) == 0f) {
+                    if (covered <= PLAN_MAX_OCCLUSION) { ceiling = true; break }
+                    return null
+                }
+                blockers += next
+            }
+        }
+        return Spot(k, blockers.toIntArray(), ceiling)
+    }
+
+    /** One grid step a place may take: the trees and parasols it moves, and whether it is left in the ceiling tier. */
+    private class Spot(val k: Int, val moves: IntArray, val ceiling: Boolean)
+
+    /** Every way place [place] can stand at each grid step: with the fewest moves, and moved down to the target tier. */
+    private fun placeSpots(species: List<List<StaticSceneObject>>, place: Int): Array<List<Spot>> =
+        Array(PLAN_STEPS) { k ->
+            val few = spotFor(species, place, k, toTarget = false)
+            val clear = spotFor(species, place, k, toTarget = true)
+            listOfNotNull(few, clear.takeIf { it != null && (few == null || !it.moves.contentEquals(few.moves)) })
+        }
+
+    /** One street's solution: its places' grid steps, deepest first, and what it moves and how. */
+    private class Solution(val k: IntArray, val moves: IntArray, val ceilings: Int, val widestGap: Int, val offSlot: Int)
+
+    /**
+     * The plan itself, computed from scratch: for each built-in street, where its places stand and which
+     * trees and parasols move where, or null for a street the plan could not place -- it then parks its
+     * places with [separateShopFrontages]. See the section's comment.
      *
-     * Not called by the app since v5.10B: [SHOP_PLAN] reads [ShopPlanTable], which is this
-     * function's output, and applies it the way this function's result was always applied. Internal
+     * Not called by the app: [SHOP_PLAN] reads [ShopPlanTable], which is this function's output. Internal
      * for `ShopPlanTableTest`, which runs it and compares it with the table to the bit.
      */
-    internal fun planShopPositions(): Map<String, FloatArray?> {
-        class Street(val id: String, val objects: List<StaticSceneObject>, val shops: List<Int>, val clear: List<List<Float>>)
+    internal fun planStreets(): Map<String, StreetPlan?> {
+        class Street(
+            val id: String,
+            val tree: SceneObjectType,
+            val objects: List<StaticSceneObject>,
+            val places: List<Int>,
+            val rows: List<SceneSpace.SceneVariant>,
+            val half: FloatArray,
+            val shortlist: List<Solution>,
+        )
         val streets = BUILT_IN_STREETS.map { (id, tree) ->
             val objects = streetBeforeShops(id, tree)
-            val alone = objects.filterNot { isShop(it) }
-            val shops = shopIndicesDeepestFirst(objects)
-            Street(id, objects, shops, shops.map { clearPositions(alone, objects[it]) })
+            val places = shopIndicesDeepestFirst(objects)
+            val species = speciesOf(objects, tree)
+            val spots = places.map { placeSpots(species, it) }
+            val half = FloatArray(places.size) { halfTile(objects[places[it]]) }
+            // The slots' reach widens only for a street whose places cannot all stand within the narrowest.
+            val shortlist = SLOT_REACHES.asSequence().map { shortlistFor(objects, places, half, spots, it) }.firstOrNull { it.isNotEmpty() }.orEmpty()
+            Street(id, tree, objects, places, places.map { SceneObjectRenderer.variantFor(objects[it]) }, half, shortlist)
         }
         val n = streets.size
-        val kinds = streets.maxOf { it.shops.size }
-        // x[t][j]: where theme t's j-th shop (deepest first) stands; NaN = not placed yet.
-        val x = Array(n) { FloatArray(kinds) { Float.NaN } }
-        // Nothing below depends on x but the position: a shop's half-width and whether a nearer shop's
-        // body reaches down over a deeper one's front are fixed per shop, so they are measured once.
-        val half = Array(n) { t -> FloatArray(streets[t].shops.size) { j -> halfTile(streets[t].objects[streets[t].shops[j]]) } }
-        val stacked = Array(n) { t ->
-            val sh = streets[t].shops.map { streets[t].objects[it].copy(tileFractionX = 0f) }
-            Array(sh.size) { j -> BooleanArray(sh.size) { k -> overlapsFront(sh[j], sh[k]) } }
-        }
-        fun crowd(t: Int, j: Int, at: Float): Int {
-            var c = 0
+        /**
+         * The most streets with a place of [row] over one point of the front from [x] - [half] to [x] + [half],
+         * this one included, with the others' choices [chosen]: the condition of row A18 measured where this
+         * street stands -- the most themes whose fronts of one row all cover one spot of the street.
+         */
+        fun crowd(chosen: Array<Solution?>, t: Int, row: SceneSpace.SceneVariant, x: Float, half: Float): Int {
+            val edges = ArrayList<Pair<Float, Int>>()
             for (u in 0 until n) {
-                if (u == t || j >= streets[u].shops.size || x[u][j].isNaN()) continue
-                if (circularGap(at, x[u][j]) < half[t][j] + half[u][j]) c++
+                if (u == t) continue
+                val s = chosen[u] ?: continue
+                val st = streets[u]
+                for (j in st.places.indices) {
+                    if (st.rows[j] != row) continue
+                    val raw = (s.k[j] / PLAN_STEPS.toFloat() - x).mod(1f)
+                    val dx = if (raw > 0.5f) raw - 1f else raw
+                    val lo = maxOf(dx - st.half[j], -half)
+                    val hi = minOf(dx + st.half[j], half)
+                    if (hi > lo) { edges += lo to 1; edges += hi to -1 }
+                }
             }
-            return c
+            edges.sortWith(compareBy({ it.first }, { it.second }))
+            var depth = 0
+            var most = 0
+            for ((_, d) in edges) { depth += d; most = maxOf(most, depth) }
+            return most + 1
         }
-        /** Whether theme t's nearer shop j at [a] covers any of its deeper shop k's front at [b]. */
-        fun covers(t: Int, j: Int, a: Float, k: Int, b: Float) = stacked[t][j][k] && circularGap(a, b) < half[t][j] + half[t][k]
-        fun moved(t: Int, j: Int, at: Float) = circularGap(at, streets[t].objects[streets[t].shops[j]].tileFractionX)
-        /** Theme t's best (restaurant, school, bar) against everybody else's current choice. */
-        fun bestFor(t: Int): FloatArray? {
+        fun crowdOf(chosen: Array<Solution?>, t: Int, s: Solution): Int =
+            streets[t].places.indices.maxOf { j -> crowd(chosen, t, streets[t].rows[j], s.k[j] / PLAN_STEPS.toFloat(), streets[t].half[j]) }
+        // A solution's moves are tried only when it is about to be chosen, and the answer kept.
+        val plans = Array(n) { HashMap<Solution, StreetPlan?>() }
+        fun planOf(t: Int, s: Solution): StreetPlan? = plans[t].getOrPut(s) {
             val st = streets[t]
-            var best: FloatArray? = null
-            var bestScore = intArrayOf(Int.MAX_VALUE, Int.MAX_VALUE)
-            var bestMove = Float.MAX_VALUE
-            fun extend(j: Int, chosen: FloatArray, crowds: IntArray) {
-                if (j == st.shops.size) {
-                    val score = intArrayOf(crowds.max(), crowds.sum())
-                    val move = chosen.indices.sumOf { moved(t, it, chosen[it]).toDouble() }.toFloat()
-                    if (score[0] < bestScore[0] || (score[0] == bestScore[0] && (score[1] < bestScore[1] ||
-                            (score[1] == bestScore[1] && move < bestMove)))) {
-                        bestScore = score; bestMove = move; best = chosen.copyOf()
+            relocated(st.id, st.tree, st.objects, st.places, FloatArray(st.places.size) { s.k[it] / PLAN_STEPS.toFloat() }, s.moves)
+        }
+        /**
+         * The streets choosing in [order]: each in turn takes the first of its shortlist (best first) whose
+         * trees and parasols can be moved and that puts no spot under more than [MAX_STREETS_A_SPOT] streets'
+         * fronts of one row, or else the least crowded that can be moved; rounds until nobody changes (at most
+         * nine). Who chooses first takes the spots that move the fewest trees, so the plan tries every order
+         * of a few and keeps the one that moves the fewest in all.
+         */
+        fun choose(order: List<Int>): Array<Solution?> {
+            val chosen = arrayOfNulls<Solution>(n)
+            for (round in 0..8) {
+                var changed = 0
+                for (t in order) {
+                    var best: Solution? = null
+                    var bestCrowd = Int.MAX_VALUE
+                    for (s in streets[t].shortlist) {
+                        val crowd = crowdOf(chosen, t, s)
+                        if (crowd >= bestCrowd || planOf(t, s) == null) continue
+                        best = s
+                        bestCrowd = crowd
+                        if (crowd <= MAX_STREETS_A_SPOT) break
                     }
+                    if (best !== chosen[t]) { changed++; chosen[t] = best }
+                }
+                if (changed == 0) break
+            }
+            return chosen
+        }
+        fun cost(chosen: Array<Solution?>): IntArray = intArrayOf(
+            chosen.count { it == null },
+            (0 until n).maxOf { t -> chosen[t]?.let { crowdOf(chosen, t, it) } ?: 0 }.coerceAtLeast(MAX_STREETS_A_SPOT),
+            chosen.sumOf { it?.moves?.size ?: 0 },
+            chosen.sumOf { it?.ceilings ?: 0 },
+        )
+        val forward = (0 until n).toList()
+        val orders = (0 until n).flatMap { r -> listOf(forward.drop(r) + forward.take(r), (forward.drop(r) + forward.take(r)).reversed()) }
+        var best: Array<Solution?>? = null
+        var bestCost: IntArray? = null
+        for (order in orders) {
+            val chosen = choose(order)
+            val c = cost(chosen)
+            val old = bestCost
+            if (old == null || (0 until c.size).firstOrNull { c[it] != old[it] }?.let { c[it] < old[it] } == true) {
+                best = chosen
+                bestCost = c
+            }
+        }
+        return streets.mapIndexed { t, st -> st.id to best!![t]?.let { planOf(t, it) } }.toMap()
+    }
+
+    /**
+     * A street's best solutions, best first: the five slots a fifth of the tile apart at every phase, every
+     * assignment of the places to them, each place within [reach] of its slot, clear of the nearer places'
+     * bodies, and never five of them on one screen ([fiveOnAScreen]). Best: fewest trees and parasols moved,
+     * then fewest fronts left in the ceiling tier, then the narrowest widest gap between two places, then
+     * nearest the slots. [SHORTLIST] of each phase and each order of the places along the tile, so that a
+     * street can answer the others' choices from anywhere along it.
+     */
+    private fun shortlistFor(
+        objects: List<StaticSceneObject>,
+        places: List<Int>,
+        half: FloatArray,
+        spots: List<Array<List<Spot>>>,
+        reach: Int,
+    ): List<Solution> {
+        val p = places.size
+        val slotStep = PLAN_STEPS / p
+        val stacked = Array(p) { j -> BooleanArray(p) { i -> overlapsFrontAt(objects[places[j]], objects[places[i]]) } }
+        val order = Comparator<Solution> { a, b -> if (better(a, b)) -1 else if (better(b, a)) 1 else 0 }
+        val perms = permutations(p)
+        val kept = Array(slotStep * perms.size) { java.util.TreeSet(order) }
+        val chosenK = IntArray(p)
+        val chosenSpot = arrayOfNulls<Spot>(p)
+        // Each place's options at each slot: its [SLOT_OPTIONS] best spots within reach, fewest moves first.
+        val options = Array(p) { j ->
+            Array(PLAN_STEPS) { slot ->
+                (-reach..reach)
+                    .flatMap { d -> spots[j][Math.floorMod(slot + d, PLAN_STEPS)].map { it to kotlin.math.abs(d) } }
+                    .sortedWith(compareBy({ it.first.moves.size }, { if (it.first.ceiling) 1 else 0 }, { it.second }, { it.first.k }))
+                    .take(SLOT_OPTIONS)
+                    .map { it.first }
+            }
+        }
+        for (phase in 0 until slotStep) for ((pi, perm) in perms.withIndex()) {
+            val bucket = kept[phase * perms.size + pi]
+            fun extend(j: Int) {
+                if (j == p) {
+                    if (fiveOnAScreen(chosenK, half)) return
+                    val moves = java.util.TreeSet<Int>()
+                    for (s in chosenSpot) for (m in s!!.moves) moves += m
+                    val sorted = chosenK.sorted()
+                    var widest = 0
+                    for (a in sorted.indices) {
+                        val gap = if (a + 1 < p) sorted[a + 1] - sorted[a] else sorted[0] + PLAN_STEPS - sorted[a]
+                        widest = maxOf(widest, gap)
+                    }
+                    var off = 0
+                    for (i in 0 until p) {
+                        val slot = (phase + perm[i] * slotStep) % PLAN_STEPS
+                        val d = Math.floorMod(chosenK[i] - slot, PLAN_STEPS)
+                        off += minOf(d, PLAN_STEPS - d)
+                    }
+                    bucket += Solution(chosenK.copyOf(), moves.toIntArray(), chosenSpot.count { it!!.ceiling }, widest, off)
+                    if (bucket.size > SHORTLIST) bucket.pollLast()
                     return
                 }
-                // The nearer shops are chosen one at a time, each the least crowded of the probes that
-                // spare every deeper shop already chosen; only the deepest (the restaurant, whose
-                // clear stretches are the narrowest) is searched over all its probes.
-                val options = st.clear[j].filter { at -> (0 until j).none { k -> covers(t, j, at, k, chosen[k]) } }
-                if (options.isEmpty()) return
-                if (j == 0) {
-                    for (at in options) { chosen[0] = at; crowds[0] = crowd(t, 0, at); extend(1, chosen, crowds) }
-                } else {
-                    val at = options.minWith(compareBy<Float>({ crowd(t, j, it) }, { moved(t, j, it) }, { it }))
-                    chosen[j] = at; crowds[j] = crowd(t, j, at); extend(j + 1, chosen, crowds)
+                val slot = phase + perm[j] * slotStep
+                for (spot in options[j][slot % PLAN_STEPS]) {
+                    val k = spot.k
+                    var fits = true
+                    for (i in 0 until j) {
+                        if (chosenK[i] == k) { fits = false; break }
+                        val gap = circularGap(k / PLAN_STEPS.toFloat(), chosenK[i] / PLAN_STEPS.toFloat())
+                        if ((stacked[j][i] || stacked[i][j]) && gap < half[j] + half[i]) { fits = false; break }
+                    }
+                    if (!fits) continue
+                    chosenK[j] = k
+                    chosenSpot[j] = spot
+                    extend(j + 1)
                 }
             }
-            extend(0, FloatArray(st.shops.size), IntArray(st.shops.size))
-            return best
+            extend(0)
         }
-        // First pass in order against the themes already placed, then rounds of best response until
-        // nobody moves (at most eight): each theme in turn re-takes its three shops against all the others.
-        for (round in 0..8) {
-            var changed = 0
-            for (t in 0 until n) {
-                val b = bestFor(t) ?: continue
-                if (b.indices.any { x[t][it] != b[it] }) { changed++; for (j in b.indices) x[t][j] = b[j] }
+        return kept.flatMap { it }.sortedWith(order)
+    }
+
+    /**
+     * Whether a screen can show all of a street's places at once, places at grid steps [k] with half-widths
+     * [half] at the reference viewport: whether some gap between two neighbours, with the two buildings'
+     * widest halves on either side of it, leaves the rest within one screen -- half the tile -- on the
+     * tallest screen the street is planned for ([TALLEST_SCREEN], where a building is the widest share of
+     * the tile). The street never puts the same building twice in four places in a row
+     * ([StorefrontStreet]), so a screen must never show five.
+     */
+    internal fun fiveOnAScreen(k: IntArray, half: FloatArray): Boolean {
+        val stretch = TALLEST_SCREEN / (REF_SCREEN_H / REF_SCREEN_W)
+        val order = k.indices.sortedBy { k[it] }
+        for (a in order.indices) {
+            val left = order[a]
+            val right = order[(a + 1) % order.size]
+            val gap = Math.floorMod(k[right] - k[left], PLAN_STEPS) / PLAN_STEPS.toFloat()
+            // The others, from [right] round to [left], span the tile less this gap.
+            if (1f - gap - (half[left] + half[right]) * stretch < 0.5f) return true
+        }
+        return false
+    }
+
+    /** Whether solution [a] ranks before [b]: fewer moved, fewer in the ceiling tier, narrower widest gap, nearer the slots, then by the grid steps. */
+    private fun better(a: Solution, b: Solution): Boolean {
+        if (a.moves.size != b.moves.size) return a.moves.size < b.moves.size
+        if (a.ceilings != b.ceilings) return a.ceilings < b.ceilings
+        if (a.widestGap != b.widestGap) return a.widestGap < b.widestGap
+        if (a.offSlot != b.offSlot) return a.offSlot < b.offSlot
+        for (i in a.k.indices) if (a.k[i] != b.k[i]) return a.k[i] < b.k[i]
+        for (i in 0 until minOf(a.moves.size, b.moves.size)) if (a.moves[i] != b.moves[i]) return a.moves[i] < b.moves[i]
+        return false
+    }
+
+    /** Whether the nearer place's body, standing where the deeper's front is, would overlap it: a property of the two depths. */
+    private fun overlapsFrontAt(nearer: StaticSceneObject, deeper: StaticSceneObject): Boolean {
+        if (nearer.depthFraction <= deeper.depthFraction) return false
+        val f = frontRect(deeper.copy(tileFractionX = 0f))
+        val b = frontRect(nearer.copy(tileFractionX = 0f))
+        return b[3] > f[1] && b[1] < f[3]
+    }
+
+    private fun permutations(n: Int): List<IntArray> {
+        val out = ArrayList<IntArray>()
+        fun build(prefix: IntArray, used: BooleanArray) {
+            if (prefix.size == n) { out += prefix; return }
+            for (i in 0 until n) if (!used[i]) { used[i] = true; build(prefix + i, used); used[i] = false }
+        }
+        build(IntArray(0), BooleanArray(n))
+        return out
+    }
+
+    /**
+     * The street [id] with its places at [placeX] and the trees and parasols [moves] moved, as a
+     * [StreetPlan], or null where one of them cannot be moved or a place is left outside the rules.
+     *
+     * A tree moves to the nearest spot, either side, a [MOVE_STEP] at a time and at most [MOVE_REACH]
+     * steps, where it is still the tree it was -- it stands at the theme's own density as it did, its
+     * density draw is within [MOVE_DENSITY_SLACK] of its own, it wears the same one of its two colours and,
+     * with the fall colours on, the same autumn tone ([SceneObjectRenderer.fallToneOf]), and it is a fir
+     * under the Christmas layer exactly when it was ([SceneObjectRenderer.isFirSeed]) -- and
+     * where no place is crossed by its trunk or covered past the rule because of it. A parasol moves to the
+     * other side of its own house, at [PARASOL_SIDE_OFFSET] from it give or take a few thousandths so that
+     * it keeps its density and its colour the same way. Then every place is measured again, in both species.
+     */
+    private fun relocated(
+        id: String,
+        tree: SceneObjectType,
+        objects: List<StaticSceneObject>,
+        places: List<Int>,
+        placeX: FloatArray,
+        moves: IntArray,
+    ): StreetPlan? {
+        val c = defaultCustomizationFor(id)
+        val street = objects.toMutableList()
+        for (j in places.indices) street[places[j]] = street[places[j]].copy(tileFractionX = placeX[j])
+        val houses = objects.filter { it.type == SceneObjectType.HOUSE }
+        val parasols = objects.indices.filter { objects[it].type == SceneObjectType.PARASOL }
+        val movedX = FloatArray(moves.size)
+        for ((m, i) in moves.withIndex()) {
+            val o = objects[i]
+            fun sameObject(x: Float, tone: Boolean = false): Boolean {
+                val moved = o.copy(tileFractionX = x)
+                if (c.keepCandidate(moved) != c.keepCandidate(o)) return false
+                if (kotlin.math.abs(densityFraction(moved) - densityFraction(o)) > MOVE_DENSITY_SLACK) return false
+                if (colourCoinOf(moved) != colourCoinOf(o)) return false
+                if (o.type != SceneObjectType.PARASOL &&
+                    SceneObjectRenderer.isFirSeed(SceneObjectRenderer.idleSeedOf(moved)) != SceneObjectRenderer.isFirSeed(SceneObjectRenderer.idleSeedOf(o))
+                ) return false
+                if (tone && o.type != SceneObjectType.PARASOL &&
+                    SceneObjectRenderer.fallToneOf(SceneObjectRenderer.idleSeedOf(moved)) != SceneObjectRenderer.fallToneOf(SceneObjectRenderer.idleSeedOf(o))
+                ) return false
+                return true
             }
-            if (changed == 0) break
+            // The movers not yet placed are left out: each one is placed against the street as it will be.
+            val pending = moves.drop(m + 1).toSet()
+            fun clearOfPlaces(x: Float): Boolean {
+                street[i] = o.copy(tileFractionX = x)
+                val species = speciesOf(street, tree)
+                return places.indices.all { j -> placeClear(species, places[j], placeX[j], pending) }
+            }
+            val found: Float? = if (o.type == SceneObjectType.PARASOL) {
+                val house = houses[parasols.indexOf(i)]
+                val side = if ((o.tileFractionX - house.tileFractionX).mod(1f) < 0.5f) -1f else 1f
+                (0..40).asSequence().flatMap { e -> if (e == 0) sequenceOf(0) else sequenceOf(e, -e) }
+                    .map { e -> (house.tileFractionX + side * (PARASOL_SIDE_OFFSET + e * MOVE_STEP)).mod(1f) }
+                    .firstOrNull { x -> sameObject(x) && clearOfPlaces(x) }
+            } else {
+                (1..MOVE_REACH).asSequence().flatMap { s -> sequenceOf(s, -s) }
+                    .map { s -> (o.tileFractionX + s * MOVE_STEP).mod(1f) }
+                    .firstOrNull { x -> sameObject(x) && clearOfPlaces(x) }
+                    // And its autumn tone (v5.13B2): from there, the nearest spot a whole period of its density
+                    // draw away ([DENSITY_PERIOD]) where it wears the tone it wore too -- within seven thousandths
+                    // of the tile on the twelve streets, under ten pixels of the BV6600.
+                    ?.let { x ->
+                        (0..TONE_REACH).asSequence().flatMap { k -> if (k == 0) sequenceOf(0) else sequenceOf(k, -k) }
+                            .map { k -> (x + k * DENSITY_PERIOD).mod(1f) }
+                            .firstOrNull { y -> sameObject(y, tone = true) && clearOfPlaces(y) }
+                    }
+            }
+            if (found == null) return null
+            street[i] = o.copy(tileFractionX = found)
+            movedX[m] = found
         }
-        return streets.mapIndexed { t, st ->
-            st.id to if (st.shops.indices.any { x[t][it].isNaN() }) null else x[t].copyOf(st.shops.size)
-        }.toMap()
+        val species = speciesOf(street, tree)
+        if (!places.indices.all { j -> placeClear(species, places[j], placeX[j]) }) return null
+        return StreetPlan(placeX, moves.copyOf(), movedX)
+    }
+
+    // ---- The places of a saved street (v5.13B2) -----------------------------------------------
+    //
+    // A saved version of a built-in theme, a theme of the user's own, a theme file and a backup keep the
+    // street as it stood when it was saved: its places where that release planned them, each for the one
+    // building that stood there until v5.13. Since v5.13 any of the six stands in any place, and a wider
+    // building is crossed by a trunk in 25 fronts of 432 on the streets the 5.12 saved (Autumn's, Christmas's
+    // and New Year's near place; Desert's school with its palms switched off) and in one of 432 on those the
+    // 5.13B saved (the same school; `StorefrontFrontVisibilityTest`). The maintainer, asked mid-round with the
+    // count: *«Sposta quel posto (consigliato)»* (2026-10-13) -- the place that is crossed moves, once and only
+    // as far as it must, and nothing else of the theme changes: its buildings keep their colours and people
+    // ([SceneObjectLayout.placesAsSaved]).
+
+    /** How far a saved street's place is moved at most, in [SAVED_PLACE_STEP]s either side: half the tile. */
+    private const val SAVED_PLACE_REACH = 500
+
+    /** A saved street's place moves a thousandth of the tile at a time: 1.4 px of the BV6600. */
+    private const val SAVED_PLACE_STEP = 0.001f
+
+    /**
+     * [objects] -- a saved street, as it was stored -- with each place among the houses where all six
+     * buildings keep both rules, with its trees and with the other species the Palms switch puts in their
+     * places ([placeClear], [SHOP_MAX_OCCLUSION]): a place that already does stays where it is, which is every place of a street
+     * saved since v5.13B2 and almost every one before; one that does not moves to the nearest spot either side,
+     * a [SAVED_PLACE_STEP] at a time, where it does by the plan's own margin ([PLAN_MAX_OCCLUSION]) and where
+     * it stands clear of every other place. The
+     * nearest place first, so a deeper one is measured against the nearer ones where they end up. Nothing else
+     * moves: houses, trees, parasols, towers and decorations stand as they were saved, and so does a place no
+     * spot along the tile clears. The same list back when nothing moves.
+     *
+     * Read on every load of a saved street (`sceneObjectLayoutFromJson`), as the traffic is, and the same street
+     * gives the same places every time. A place it moves remembers where the theme stored it
+     * ([SceneObjectLayout.placesAsSaved]): the six buildings take their colours and people from there, and a
+     * save writes it back there, so the theme as stored never changes.
+     */
+    internal fun placesClearedOnSavedStreet(objects: List<StaticSceneObject>): List<StaticSceneObject> {
+        val places = objects.indices.filter { isShop(objects[it]) }.sortedByDescending { objects[it].depthFraction }
+        if (places.isEmpty()) return objects
+        val plantsPalms = objects.any { it.type == SceneObjectType.PALM_TREE }
+        val street = objects.toMutableList()
+        var moved = false
+        for (i in places) {
+            val species = listOf(
+                street,
+                street.map {
+                    when {
+                        plantsPalms && it.type == SceneObjectType.PALM_TREE -> it.copy(type = SceneObjectType.TREE)
+                        !plantsPalms && it.type == SceneObjectType.TREE -> it.copy(type = SceneObjectType.PALM_TREE)
+                        else -> it
+                    }
+                },
+            )
+            val x0 = street[i].tileFractionX
+            // Inside the rule as it stands: left where it is. Moved: where the plan would put it, a point inside.
+            if (placeClear(species, i, x0, limit = SHOP_MAX_OCCLUSION)) continue
+            val half = halfTile(street[i])
+            val found = (1..SAVED_PLACE_REACH).asSequence()
+                .flatMap { k -> sequenceOf(k, -k) }
+                .map { k -> (x0 + k * SAVED_PLACE_STEP).mod(1f) }
+                .firstOrNull { x ->
+                    places.none { j -> j != i && circularGap(x, street[j].tileFractionX) < half + halfTile(street[j]) } &&
+                        placeClear(species, i, x)
+                }
+            if (found != null) {
+                street[i] = street[i].copy(tileFractionX = found)
+                moved = true
+            }
+        }
+        return if (moved) street else objects
     }
 
     /**
@@ -1143,12 +1683,39 @@ object SceneObjectCatalog {
     }
 
     /** The shop's full drawn front at the reference viewport: (left, top, right, bottom) px. */
-    private fun frontRect(shop: StaticSceneObject): FloatArray {
+    internal fun frontRect(shop: StaticSceneObject): FloatArray {
         val s = SceneObjectRenderer.effectiveScaleFor(shop, REF_SCREEN_H)
         val g = REF_SCREEN_H * SceneSpace.groundYFraction(shop.depthFraction)
         val x = shop.tileFractionX * REF_SCREEN_W * 2f
-        val half = halfWidthUnits(SceneObjectRenderer.variantFor(shop)) * s
-        return floatArrayOf(x - half, g - SceneObjectRenderer.variantFor(shop).spriteUnitsTall * s, x + half, g)
+        val v = SceneObjectRenderer.variantFor(shop)
+        val half = halfWidthUnits(v) * s
+        // A place among the houses: as tall as the tallest of the six at its metre (v5.13; see
+        // [halfWidthUnits] for the width). A trunk crosses this box exactly when it crosses the widest of
+        // the six fronts -- each reaches the ground -- so the crossing rule is the six's, exactly.
+        val tall = if (isShop(shop)) Storefront.ALL.maxOf { it.family.unitsTall } * placeMetre(v) else v.spriteUnitsTall
+        return floatArrayOf(x - half, g - tall * s, x + half, g)
+    }
+
+    /**
+     * The fronts [shop] can show: a place among the houses (v5.13) two per building the street may stand
+     * in it, each its own width at the place's metre ([Storefront.halfWidthUnits]) and as tall as its
+     * family declares and as tall as it draws ([Storefront.inkTallUnits], v5.13B2), so a front that is
+     * clear for one building and covered for another, or clear over its declared height and covered over
+     * its ink, is measured covered; anything else its one [frontRect].
+     */
+    internal fun frontRects(shop: StaticSceneObject): List<FloatArray> {
+        if (!isShop(shop)) return listOf(frontRect(shop))
+        val s = SceneObjectRenderer.effectiveScaleFor(shop, REF_SCREEN_H)
+        val g = REF_SCREEN_H * SceneSpace.groundYFraction(shop.depthFraction)
+        val x = shop.tileFractionX * REF_SCREEN_W * 2f
+        val metre = placeMetre(SceneObjectRenderer.variantFor(shop))
+        return Storefront.ALL.flatMap { b ->
+            val half = b.halfWidthUnits * metre * s
+            listOf(
+                floatArrayOf(x - half, g - b.family.unitsTall * metre * s, x + half, g),
+                floatArrayOf(x - half, g - b.inkTallUnits * metre * s, x + half, g),
+            )
+        }
     }
 
     /**
@@ -1173,7 +1740,7 @@ object SceneObjectCatalog {
      * deliberately strict reading of a shape that narrows above its foot ([verticalMemberBox])
      * and not a claim about where the ink is.
      */
-    private fun occluderBoxes(o: StaticSceneObject): List<FloatArray> {
+    internal fun occluderBoxes(o: StaticSceneObject): List<FloatArray> {
         val v = SceneObjectRenderer.variantFor(o)
         val s = SceneObjectRenderer.effectiveScaleFor(o, REF_SCREEN_H)
         val g = REF_SCREEN_H * SceneSpace.groundYFraction(o.depthFraction)
@@ -1192,9 +1759,12 @@ object SceneObjectCatalog {
                 crownBoxes(SpriteOccluderTable.PARASOL_FAN, x, g, s) +
                     floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
-            SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
-            SceneSpace.SceneVariant.TOWER, SceneSpace.SceneVariant.SCHOOL,
+            SceneSpace.SceneVariant.TOWER,
             -> listOf(floatArrayOf(x - halfWidthUnits(v) * s, g - v.spriteUnitsTall * s, x + halfWidthUnits(v) * s, g))
+            // A place among the houses puts in front the widest and tallest of the six (v5.13): whoever
+            // stands there, nothing larger can.
+            SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR, SceneSpace.SceneVariant.SCHOOL,
+            -> listOf(frontRect(o))
             else -> emptyList()
         }
     }
@@ -1280,7 +1850,7 @@ object SceneObjectCatalog {
     }
 
     /** The trunk or pole alone -- the box whose mere crossing of a front is the defect. */
-    private fun verticalMemberBox(o: StaticSceneObject): FloatArray? {
+    internal fun verticalMemberBox(o: StaticSceneObject): FloatArray? {
         val v = SceneObjectRenderer.variantFor(o)
         val s = SceneObjectRenderer.effectiveScaleFor(o, REF_SCREEN_H)
         val g = REF_SCREEN_H * SceneSpace.groundYFraction(o.depthFraction)
@@ -1303,7 +1873,7 @@ object SceneObjectCatalog {
     }
 
     /** The nearest wrapped copy of [box] relative to a front centred at [cx]. */
-    private fun wrapBoxToward(box: FloatArray, cx: Float): FloatArray {
+    internal fun wrapBoxToward(box: FloatArray, cx: Float): FloatArray {
         val tile = REF_SCREEN_W * 2f
         val boxCx = (box[0] + box[2]) / 2f
         val rawDx = (boxCx - cx).mod(tile)
@@ -1315,19 +1885,28 @@ object SceneObjectCatalog {
     /** The covered share of the shop's whole front: exact area of the union of every nearer
      * occluding box, clipped to the front. Layout-time only -- never on the draw path. */
     private fun frontCoverage(objects: List<StaticSceneObject>, shop: StaticSceneObject): Float {
-        val f = frontRect(shop)
-        val cx = (f[0] + f[2]) / 2f
-        val clipped = ArrayList<FloatArray>()
+        val boxes = ArrayList<FloatArray>()
         for (o in objects) {
             if (o === shop || o.depthFraction <= shop.depthFraction) continue
-            for (box in occluderBoxes(o)) {
-                val b = wrapBoxToward(box, cx)
-                val l = maxOf(b[0], f[0])
-                val t = maxOf(b[1], f[1])
-                val r = minOf(b[2], f[2])
-                val bo = minOf(b[3], f[3])
-                if (r > l && bo > t) clipped.add(floatArrayOf(l, t, r, bo))
-            }
+            boxes.addAll(occluderBoxes(o))
+        }
+        return frontRects(shop).maxOf { f -> coveredShare(f, boxes) }
+    }
+
+    /**
+     * The covered share of the front [f]: exact area of the union of [boxes] (each its nearest wrapped
+     * copy) clipped to it. The worst of a place's fronts is its reading (v5.13, [frontRects]).
+     */
+    internal fun coveredShare(f: FloatArray, boxes: List<FloatArray>): Float {
+        val cx = (f[0] + f[2]) / 2f
+        val clipped = ArrayList<FloatArray>()
+        for (box in boxes) {
+            val b = wrapBoxToward(box, cx)
+            val l = maxOf(b[0], f[0])
+            val t = maxOf(b[1], f[1])
+            val r = minOf(b[2], f[2])
+            val bo = minOf(b[3], f[3])
+            if (r > l && bo > t) clipped.add(floatArrayOf(l, t, r, bo))
         }
         if (clipped.isEmpty()) return 0f
         return unionArea(clipped) / ((f[2] - f[0]) * (f[3] - f[1]))
@@ -1419,7 +1998,7 @@ object SceneObjectCatalog {
      * layout, not a special case in the renderer); Halloween's broadleaf woodland is stripped to
      * bare branches by its flag.
      */
-    private val BUILT_IN_STREETS: List<Pair<String, SceneObjectType>> = listOf(
+    internal val BUILT_IN_STREETS: List<Pair<String, SceneObjectType>> = listOf(
         "sunset" to SceneObjectType.TREE,
         "autumn" to SceneObjectType.TREE,
         "winter" to SceneObjectType.TREE,

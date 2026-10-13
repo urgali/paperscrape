@@ -164,7 +164,9 @@ class SpriteCanvasConventionTest {
         // sprites were redrawn in the same release and none of them was added or removed.
         // 444 in v5.11: the towers' short and tall bodies (3 + 3 + 2 layers), the hall's windows by
         // the door (2), the short body's wide snow cap (1), and the three distant houses (4 each).
-        assertEquals("444 sprites are expected", 444, all.size)
+        // 460 in v5.13: the shop (4 layers), the police station (4) and the fire station, its block and
+        // its hose tower each a piece of canvas of its own (8, inventory I-607).
+        assertEquals("460 sprites are expected", 460, all.size)
         // 216 until v4.21 trimmed `tree_fir_snow` onto its own content, 217 until v4.25 redrew the
         // people on canvases trimmed to their own families: the 166 person sprites went from
         // carrying a margin apiece to reaching an edge, which is why this jumped by 38. 255 until
@@ -207,7 +209,10 @@ class SpriteCanvasConventionTest {
         // windows stand right of the lantern, and the lantern's own pane is now the leftmost glass,
         // inside the margin. The fourteen other layers the windows of v5.12 redrew reach, or do not
         // reach, an edge as they did.
-        assertEquals("229 of them reach a canvas edge", 229, touching)
+        // 242 in v5.13: thirteen of the sixteen new layers reach the canvas they were cut to, as every
+        // piece's do; the fire station's wall mask and the police station's two masks do not -- their
+        // weights stop short of the canvas their fixed art fills (the registration of the exemption above).
+        assertEquals("242 of them reach a canvas edge", 242, touching)
     }
 
     private companion object {
@@ -231,9 +236,9 @@ class SpriteCanvasConventionTest {
          * it is a drift cut to a roof it must land on, which is the same registration.
          */
         // `(.*_)?` and not `.*_`: the school's figure is one piece with no sub-name, so its
-        // layers are `school_fx` and `school_mg` with nothing between -- the only family whose
-        // production name is the piece's own.
-        val NEIGHBOURHOOD_LAYER = Regex("""(house|tower|restaurant|bar|school)_(.*_)?(fx|mw|mg)""")
+        // layers are `school_fx` and `school_mg` with nothing between -- and so are the shop's and the
+        // two stations' since v5.13, whose production names are their pieces' own.
+        val NEIGHBOURHOOD_LAYER = Regex("""(house|tower|restaurant|bar|school|shop|fire_station|police_station)_(.*_)?(fx|mw|mg)""")
 
         /**
          * A v5.6F vehicle sheet: a body's paper, a body's glass, or the appliance's.

@@ -42,13 +42,17 @@ class ShopColoursTest {
         assertEquals(null, builtInTowerColours("custom:1"))
     }
 
-    /** Which pair each building is drawn in: by what it is drawn as, never by the category alone. */
+    /**
+     * Which pair each building is drawn in: by what it is, never by the category alone -- a tower the
+     * towers', and each of the six among the houses its group's (v5.13), in whichever place it stands.
+     */
     @Test
-    fun `a shop wears the shops' pair and a tower the towers'`() {
+    fun `a shop wears the shops' pair, a public building the public buildings' and a tower the towers'`() {
         val c = defaultCustomizationFor("autumn").let {
             it.copy(
                 buildings = it.buildings.copy(colorDay1 = 0xFF010101.toInt(), colorDay2 = 0xFF010101.toInt()),
                 shops = it.shops.copy(colorDay1 = 0xFF020202.toInt(), colorDay2 = 0xFF020202.toInt()),
+                publics = it.publics.copy(colorDay1 = 0xFF030303.toInt(), colorDay2 = 0xFF030303.toInt()),
             )
         }
         for (depth in listOf(0.05f, 0.2f, 0.29f)) {
@@ -56,13 +60,15 @@ class ShopColoursTest {
             assertEquals(0xFF010101.toInt(), c.colorFor(tower, 1f))
         }
         for (depth in listOf(0.356f, 0.444f, 0.62f, 0.8f)) {
-            val shop = StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = depth, tileFractionX = 0.3f)
-            assertEquals(0xFF020202.toInt(), c.colorFor(shop, 1f))
+            val place = StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = depth, tileFractionX = 0.3f)
+            for (b in Storefront.ALL) {
+                val want = if (b.group == StorefrontGroup.SHOPS) 0xFF020202.toInt() else 0xFF030303.toInt()
+                assertEquals("$b at $depth", want, c.storefrontWall(place, b, 1f))
+            }
         }
-        // The card's towers stand at shop depths; asked by the drawing, they are towers.
+        // The card's towers stand at depths the street keeps for its places; asked by the drawing, they are towers.
         val cardTower = StaticSceneObject(SceneObjectType.SKYSCRAPER, depthFraction = 0.66f, tileFractionX = 0.44f)
         assertEquals(0xFF010101.toInt(), c.wallColourFor(cardTower, SceneSpace.SceneVariant.TOWER, 1f))
-        assertEquals(0xFF020202.toInt(), c.wallColourFor(cardTower, SceneSpace.SceneVariant.BAR, 1f))
     }
 
     /**
@@ -109,14 +115,17 @@ class ShopColoursTest {
     }
 
     /**
-     * Both drawings ask by what they draw: the wallpaper by the variant it dispatches on, the card by
-     * the family it stands. Pinned by their source, since no JVM test runs the renderer; the card's
-     * result is `PreviewRendererAgreementTest`'s.
+     * Both drawings ask by what they draw: a house or a tower by the variant it is dispatched on, one of
+     * the six among the houses by what it is (v5.13). Pinned by their source, since no JVM test runs the
+     * renderer; the card's result is `PreviewRendererAgreementTest`'s.
      */
     @Test
     fun `the wallpaper and the card colour a building by what they draw it as`() {
-        assertTrue(source("engine/SceneObjectRenderer.kt").contains("val wallColor = customization.wallColourFor(spec, variant, dayBlend)"))
-        assertTrue(source("engine/ThemePreviewScene.kt").contains("val wall = c.wallColourFor(spec, variant, dayBlend)"))
+        val renderer = source("engine/SceneObjectRenderer.kt")
+        assertTrue(renderer.contains("customization.storefrontWall(spec, storefront, dayBlend)"))
+        assertTrue(renderer.contains("customization.wallColourFor(spec, variant, dayBlend)"))
+        val card = source("engine/ThemePreviewScene.kt")
+        assertTrue(card.contains("if (storefront != null) c.storefrontWall(spec, storefront, dayBlend) else c.wallColourFor(spec, variant, dayBlend)"))
     }
 
     private fun source(path: String): String {

@@ -187,19 +187,23 @@ class RealThemeSilhouetteDistributionTest {
     }
 
     /**
-     * The item-139 repair adds one tower to Christmas and moves nothing else anywhere.
+     * The item-139 repair added one tower to Christmas and moved nothing else anywhere; v5.13B2 made two
+     * of every street's building candidates places among the houses, and the towers that stood on them
+     * went with them.
      *
      * Pinned as counts because "the density keeps one more slot" is only a repair if it is
-     * exactly one, and exactly a tower: at 65 % Christmas stood 4 towers, at 67 % it stands 5, and
-     * every other theme stands what it stood before. A later nudge past the next threshold
-     * (0.6719, a dome) would satisfy the crown test above and still be a different skyline.
+     * exactly one, and exactly a tower: at 65 % Christmas stood 4 towers, at 67 % 5 (v5.7F; 3 since
+     * v5.13B2, below), and every other theme stood what it stood before. A later nudge past the next threshold
+     * (0.6719, a dome) would satisfy the crown test above and still be a different skyline. Until
+     * v5.13B2 the counts were 4, 6, 4, 7, 5, 6, 5, 7, 5, 5, 4, 4 (62): the two candidates that became
+     * places stood 17 of them (`TowerSkylineTest`).
      */
     @Test
-    fun `christmas stands five towers and every other theme the towers it had`() {
+    fun `christmas keeps the density of item 139 and every theme the towers it has`() {
         val keptTowers = mapOf(
-            "sunset" to 4, "autumn" to 6, "winter" to 4, "desert" to 7,
-            "christmas" to 5, "new_year" to 6, "beach" to 5, "city" to 7,
-            "tundra" to 5, "easter" to 5, "halloween" to 4, "spring" to 4,
+            "sunset" to 3, "autumn" to 5, "winter" to 3, "desert" to 5,
+            "christmas" to 3, "new_year" to 4, "beach" to 4, "city" to 5,
+            "tundra" to 4, "easter" to 3, "halloween" to 3, "spring" to 3,
         )
         for (theme in themes) {
             val towers = kept(theme.id, SceneObjectType.SKYSCRAPER)

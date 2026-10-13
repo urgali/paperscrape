@@ -1,10 +1,10 @@
 # The neighbourhood's sprite bytes (written by build_neighbourhood.py --budget)
 
-Shipped perimeter (99 PNG, the six building families and the distant houses): 7308072 B decoded, 7224996 B uploaded (level 0, crop + 1 texel).
+Shipped perimeter (115 PNG, the nine building families and the distant houses): 8998596 B decoded, 8897292 B uploaded (level 0, crop + 1 texel).
 
 No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, over the whole sprite set, which prints its margin -- and this perimeter's share of it -- on every build.
 
-## Concept 1, mix: 99 PNG, 7308072 B decoded, 7224996 B uploaded
+## Concept 1, mix: 115 PNG, 8998596 B decoded, 8897292 B uploaded
 
 | PNG | px | decoded B | uploaded B |
 |---|---|---:|---:|
@@ -20,6 +20,14 @@ No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, 
 | distant_tall_mg_q1 | 18x45 | 3240 | 3240 |
 | distant_tall_mw_q1 | 63x99 | 24948 | 23668 |
 | distant_tall_snow_fx_q1 | 48x45 | 8640 | 8448 |
+| fire_station_fx_q1 | 258x192 | 198144 | 195584 |
+| fire_station_mg_q1 | 216x39 | 33696 | 31820 |
+| fire_station_mw_q1 | 258x192 | 198144 | 195584 |
+| fire_station_snow_fx_q1 | 243x30 | 29160 | 28920 |
+| fire_station_tower_fx_q1 | 63x285 | 71820 | 70432 |
+| fire_station_tower_mg_q1 | 18x84 | 6048 | 5904 |
+| fire_station_tower_mw_q1 | 63x273 | 68796 | 67208 |
+| fire_station_tower_snow_fx_q1 | 54x48 | 10368 | 9936 |
 | k1_ground_house_a_fx_q1 | 186x96 | 71424 | 70680 |
 | k1_ground_house_a_mg_q1 | 45x42 | 7560 | 7216 |
 | k1_ground_house_a_mw_q1 | 186x96 | 71424 | 70680 |
@@ -107,3 +115,11 @@ No ceiling here: the one that counts is `SpriteGeometryTest.decodedByteBudget`, 
 | k2_t_row4_mg_q1 | 129x27 | 13932 | 13312 |
 | k2_t_row5_fx_q1 | 168x27 | 18144 | 17928 |
 | k2_t_row5_mg_q1 | 168x27 | 18144 | 17928 |
+| police_station_fx_q1 | 315x222 | 279720 | 278832 |
+| police_station_mg_q1 | 183x135 | 98820 | 96292 |
+| police_station_mw_q1 | 315x204 | 257040 | 256224 |
+| police_station_snow_fx_q1 | 312x30 | 37440 | 37200 |
+| shop_fx_q1 | 204x177 | 144432 | 144432 |
+| shop_mg_q1 | 159x96 | 61056 | 59408 |
+| shop_mw_q1 | 204x177 | 144432 | 143616 |
+| shop_snow_fx_q1 | 204x63 | 51408 | 50904 |

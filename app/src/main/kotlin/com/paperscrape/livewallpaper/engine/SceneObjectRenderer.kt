@@ -56,10 +56,24 @@ private class StaticRuntime(val spec: StaticSceneObject) {
     var windowLayout: WindowWalk.Layout? = null
 
     /**
-     * Who of a shop, the school, a bar or a tower is in at its hours, and who is walking out or in
+     * Who of a building among the houses or of a tower is in at its hours, and who is walking out or in
      * ([WindowWalk.Doorway]); null for a house, which keeps no hours.
      */
     var doorway: WindowWalk.Doorway? = null
+
+    /**
+     * For a place among the houses (v5.13), its rank across the tile ([StorefrontStreet.places]): which
+     * building stands in it, copy by copy, is the street's ([StorefrontStreet]), and the place draws it.
+     * -1 for everything else.
+     */
+    var place: Int = -1
+
+    /**
+     * For the runtime of one of the six buildings among the houses (v5.13), which one: its [spec] is the
+     * building's identity ([StorefrontStreet.identities]) and its roster, windows and doorway are the
+     * building's, whichever place it stands in. Null for every object of the layout.
+     */
+    var storefront: Storefront? = null
 }
 
 private class CarRuntime(val spec: CarObject, val layoutIndex: Int, val selectionRank: Int) {
@@ -109,6 +123,48 @@ class SceneObjectRenderer(
 
     /** The per-theme seed [CarSelection] reads -- see [themeId] for why it is the id's hash. */
     private val themeSeed = themeId.hashCode()
+
+    /**
+     * The places among the houses (v5.13), in the order they stand across the tile -- five on a
+     * built-in street ([StorefrontStreet.places]). Read when the object list is built, to give each
+     * place its rank; declared above [staticRuntimes] because that list is built at construction.
+     */
+    private val places: List<StaticSceneObject> = StorefrontStreet.places(layout)
+
+    /**
+     * The six buildings among the houses (v5.13), one runtime each, in [Storefront.ALL]'s order: its spec
+     * is the building's identity ([StorefrontStreet.identities]) and its roster, windows and doorway are
+     * the building's own -- worked out once, here, and kept for the life of this renderer, a rebuild of the
+     * object list included, so whoever walks out at the hours goes on walking. A place draws whichever of
+     * them the street deals it ([drawStaticObject]). Null on a layout with no place among the houses.
+     */
+    // The built-in street's own layout only: a saved version of a built-in theme keeps the layout it was saved
+    // with, where the places stand as they stood then -- their identity where the theme stores them, as
+    // before v5.13, a place the loader moved included (v5.13B2); a street saved since v5.13B2 is recognised
+    // by its places and keeps the built-in street's identities ([StorefrontStreet.builtInStreetOf]).
+    private val storefronts: Array<StaticRuntime>? = StorefrontStreet.identities(
+        layout, themeId.takeIf { CustomThemeRegistry.overrideLayoutFor(it) == null },
+    )?.let { identities ->
+        val deal = NeighbourhoodComposer.Deal()
+        Array(Storefront.ALL.size) { k ->
+            val storefront = Storefront.ALL[k]
+            StaticRuntime(identities[k]).also {
+                it.storefront = storefront
+                giveRoster(it, storefront.family, storefront, deal)
+            }
+        }
+    }
+
+    /**
+     * How many times the wallpaper has come back into view since this street was first drawn (v5.13): each
+     * return deals its places a new round ([StorefrontStreet.storefrontAt]), while nothing is on screen.
+     * Counted by [PaperRenderer.nextStreetRound] and handed on when this renderer is rebuilt.
+     */
+    internal var streetRound: Int = 0
+
+    /** Scratch for [StorefrontStreet.storefrontAt] on the draw path: two decks, reused every call. */
+    private val streetDeckA = IntArray(StorefrontStreet.DECK)
+    private val streetDeckB = IntArray(StorefrontStreet.DECK)
 
     /**
      * The active per-category configuration.
@@ -196,37 +252,54 @@ class SceneObjectRenderer(
         // the drawing, the size, the occlusion box and the leaf recorder alike. Which is why flipping
         // it has to rebuild this list -- `staticStructurallyEquals` compares both fields. See
         // [SceneCustomization.palmSpeciesApplied].
-        .map { StaticRuntime(customization.palmSpeciesApplied(it, layoutPlantsPalms)) }
+        .map { spec ->
+            StaticRuntime(customization.palmSpeciesApplied(spec, layoutPlantsPalms)).also { r ->
+                // A place among the houses keeps its rank across the tile: the street deals its building.
+                r.place = places.indexOfFirst { it === spec }
+            }
+        }
         .let(::plantedAndSorted)
         .also(::giveRosters)
 
     /**
-     * Every building its [StaticRuntime.roster] and its [StaticRuntime.windowLayout], once, as the list
-     * is built, and every one that keeps hours its [StaticRuntime.doorway]: state, not a per-frame
-     * computation (`AI_PROJECT_RULES.md` 5.2). The roster and the layout are a function of the
-     * building's spec and the theme's seed alone, so a list rebuilt for another reason gives each
-     * building the ones it had, and the picture does not move; a tower's people stay at their windows
-     * (`moves = false`). The doorway is the one thing that remembers -- who is walking out or in at the
-     * hours ([WindowWalk]) -- and [rebuildStaticRuntimes] hands it on.
+     * Every house and tower its [StaticRuntime.roster] and its [StaticRuntime.windowLayout], once, as the
+     * list is built, and every tower its [StaticRuntime.doorway]: state, not a per-frame computation
+     * (`AI_PROJECT_RULES.md` 5.2). The roster and the layout are a function of the building's spec and
+     * the theme's seed alone, so a list rebuilt for another reason gives each building the ones it had,
+     * and the picture does not move; a tower's people stay at their windows (`moves = false`). The
+     * doorway is the one thing that remembers -- who is walking out or in at the hours ([WindowWalk]) --
+     * and [rebuildStaticRuntimes] hands it on. A place among the houses has none of them: the six
+     * buildings that stand in the places have their own, in [storefronts].
      */
     private fun giveRosters(runtimes: List<StaticRuntime>) {
         val deal = NeighbourhoodComposer.Deal()
         for (r in runtimes) {
             val spec = r.spec
+            if (r.place >= 0) continue
             if (spec.type != SceneObjectType.HOUSE && spec.type != SceneObjectType.SKYSCRAPER) continue
             val family = NeighbourhoodTable.FAMILIES[variantFor(spec)] ?: continue
-            NeighbourhoodComposer.deal(family, spec, deal)
-            val buildingSeed = buildingSeedOf(spec)
-            val people = WindowOccupants.occupantCount(themeSeed, buildingSeed, deal.peopleWindows, family.kind)
-            val house = family.kind == WindowBuildingKind.HOUSE
-            r.roster = WindowRoster.plan(
-                themeSeed, buildingSeed, deal.windowCount, deal.paneCount, people,
-                house = house,
-                moves = family.kind != WindowBuildingKind.SKYSCRAPER,
-            )
-            r.windowLayout = WindowWalk.layoutOf(deal, open = !house)
-            if (!house) r.doorway = WindowWalk.Doorway()
+            giveRoster(r, family, null, deal)
         }
+    }
+
+    /**
+     * [r]'s roster, windows and -- for anything but a house -- doorway, for the building drawn as
+     * [family]: one of the six among the houses when [storefront] is set ([r]'s spec its identity), a
+     * house or a tower otherwise. [deal] is scratch.
+     */
+    private fun giveRoster(r: StaticRuntime, family: BuildingFamily, storefront: Storefront?, deal: NeighbourhoodComposer.Deal) {
+        val spec = r.spec
+        if (storefront != null) dealStorefront(family, storefront, spec, deal) else NeighbourhoodComposer.deal(family, spec, deal)
+        val buildingSeed = buildingSeedOf(spec)
+        val people = WindowOccupants.occupantCount(themeSeed, buildingSeed, deal.peopleWindows, family.kind)
+        val house = family.kind == WindowBuildingKind.HOUSE
+        r.roster = WindowRoster.plan(
+            themeSeed, buildingSeed, deal.windowCount, deal.paneCount, people,
+            house = house,
+            moves = family.kind != WindowBuildingKind.SKYSCRAPER,
+        )
+        r.windowLayout = WindowWalk.layoutOf(deal, open = !house)
+        if (!house) r.doorway = WindowWalk.Doorway()
     }
 
     /**
@@ -327,8 +400,10 @@ class SceneObjectRenderer(
 
     /**
      * This frame's hour of the scene, for the opening hours -- see [BusinessHours] and [draw]'s
-     * `hour24`. A building asks [SceneCustomization.opennessFor] at it, with what it is drawn as: the
-     * shops and the towers keep hours of their own since v5.12, by the rule their colours follow.
+     * `hour24`. A building asks [SceneCustomization.opennessFor] at it: a tower with what it is drawn as,
+     * one of the six among the houses with what it is ([Storefront]) -- the towers, the shops and, since
+     * v5.13, the public buildings keep hours of their own (the two stations never close), by the rule
+     * their colours follow.
      *
      * A field set once per frame rather than a parameter threaded through every building call:
      * the two systems it governs (the glass colour of non-house windows, and who is in at the hours,
@@ -403,13 +478,20 @@ class SceneObjectRenderer(
         internal fun idleSeedOf(spec: StaticSceneObject): Float = (spec.tileFractionX * 97f) % 6.28f
 
         /**
+         * Which of the four autumn tones a tree wears with the fall colours on ([fallLeafColorFor]): a pure
+         * function of its [idleSeedOf], so of its position -- which is why the plan keeps it for every tree it
+         * moves (v5.13B2, `SceneObjectCatalog.relocated`).
+         */
+        internal fun fallToneOf(idleSeed: Float): Int = (kotlin.math.abs(idleSeed * 1000).toInt()) % FALL_LEAF_TREE_PALETTE.size
+
+        /**
          * **One tree in three, decided from the tree's own seed.** Not a count and not a position: a
          * count would need state to distribute, and a position would put the firs on a line. Hashing
          * the seed gives about a third, differently for each theme's layout, and gives the *same*
          * third on every frame -- a wood that reshuffled itself as you watched would be worse than no
          * firs at all.
          */
-        private fun isFirSeed(idleSeed: Float): Boolean {
+        internal fun isFirSeed(idleSeed: Float): Boolean {
             var h = (idleSeed * 100000f).toInt() * 0x9E3779B1.toInt()
             h = h xor (h ushr 16)
             return (h and 0x7FFFFFFF) % 3 == 0
@@ -464,11 +546,12 @@ class SceneObjectRenderer(
                         SceneSpace.SceneVariant.HOUSE_SMALL
                     }
             // A tower belongs on the skyline and a shop front among the houses, so the choice is
-            // made by depth rather than by a hash of the horizontal position — and since rc3 the
-            // choice *among* shops is by depth too (see SceneSpace.RESTAURANT_MAX_DEPTH): the old
+            // made by depth rather than by a hash of the horizontal position — and from rc3 to v5.12
+            // the choice *among* shops was by depth too (see SceneSpace.RESTAURANT_MAX_DEPTH): the old
             // position hash made a shop's identity a function of where its jitter landed it,
-            // which is how rc2 delivered two identical trattorias in one screen. Depth never
-            // changes after generation, so the identity survives the visibility pass's x moves.
+            // which is how rc2 delivered two identical trattorias in one screen. Since v5.13 depth
+            // gives a place among the houses its row of the size table, and which of the six
+            // buildings stands there is the street's ([StorefrontStreet]).
             //
             // v5.6F: three thirds of the shop band instead of two halves. These four arms and the
             // four in `SceneObject.singleShopPerVariant`, `SilhouetteDeal.catalogueFor` and
@@ -511,12 +594,48 @@ class SceneObjectRenderer(
         /**
          * The same, for [spec] drawn at [drawDepth] -- a tower brought forward off the crest
          * ([SceneSpace.towerDrawnDepth]) is as large as the projection makes it where it is drawn.
+         *
+         * **A place among the houses is never drawn smaller than [placeScaleFloor]** (v5.13): any of the
+         * six buildings may stand in it ([StorefrontStreet]), and what says what each is was drawn at 2.4
+         * units or more for the farthest place of the built-in streets, where the floor never binds
+         * (`StorefrontDetailTest`). A random theme puts its places at any depth and rolls their size wider
+         * (`RandomSceneGenerator`), and there one place in sixty came out smaller.
          */
-        fun effectiveScaleFor(spec: StaticSceneObject, drawDepth: Float, screenHeightPx: Float): Float =
-            variantFor(spec).baseScale *
+        fun effectiveScaleFor(spec: StaticSceneObject, drawDepth: Float, screenHeightPx: Float): Float {
+            val variant = variantFor(spec)
+            val drawn = variant.baseScale *
                 spec.scale *
                 SceneSpace.depthScale(drawDepth) *
                 SceneSpace.sceneScale(screenHeightPx)
+            val floor = placeScaleFloor(variant, screenHeightPx)
+            return if (drawn < floor) floor else drawn
+        }
+
+        /**
+         * The smallest scale a place among the houses is drawn at, 0 for anything else (v5.13): one piece
+         * unit of the building standing in it at least [PLACE_UNIT_SCREEN_SHARE] of the screen's height --
+         * on the BV6600's 1 440 px, 2.4 units (the generator's `civic.DETAIL`) are 2 px, the size under
+         * which a drawn detail stops reading. A piece unit is the place's variant units over its family's
+         * height ([drawNeighbourhoodBuilding]'s `scale`).
+         */
+        internal fun placeScaleFloor(variant: SceneSpace.SceneVariant, screenHeightPx: Float): Float = when (variant) {
+            SceneSpace.SceneVariant.RESTAURANT -> screenHeightPx * PLACE_UNIT_SCREEN_SHARE * RESTAURANT_PIECE_UNITS_A_UNIT
+            SceneSpace.SceneVariant.SCHOOL -> screenHeightPx * PLACE_UNIT_SCREEN_SHARE * SCHOOL_PIECE_UNITS_A_UNIT
+            SceneSpace.SceneVariant.BAR -> screenHeightPx * PLACE_UNIT_SCREEN_SHARE * BAR_PIECE_UNITS_A_UNIT
+            else -> 0f
+        }
+
+        /** See [placeScaleFloor]: 2 px for 2.4 units on 1 440, a piece unit 1/1 728 of the screen's height. */
+        internal const val PLACE_UNIT_SCREEN_SHARE = 2f / (2.4f * 1440f)
+
+        // The inverse of each place's variant units a piece unit (`spriteUnitsTall / unitsTall`), for
+        // [placeScaleFloor]: computed once, so the frame's arithmetic looks nothing up.
+        private val RESTAURANT_PIECE_UNITS_A_UNIT = piecesPerVariantUnit(SceneSpace.SceneVariant.RESTAURANT)
+        private val SCHOOL_PIECE_UNITS_A_UNIT = piecesPerVariantUnit(SceneSpace.SceneVariant.SCHOOL)
+        private val BAR_PIECE_UNITS_A_UNIT = piecesPerVariantUnit(SceneSpace.SceneVariant.BAR)
+
+        private fun piecesPerVariantUnit(variant: SceneSpace.SceneVariant): Float =
+            NeighbourhoodTable.FAMILIES.getValue(variant).unitsTall / variant.spriteUnitsTall
 
         // v4.1 removed `PEDESTRIAN_COUNT` and `PEDESTRIAN_THRESHOLD_SALT` from here. The pool size
         // is now [PedestrianPopulation.GROUP_COUNT] -- the same four slots, but each one yields a
@@ -607,6 +726,28 @@ class SceneObjectRenderer(
 
         /** A building's own seed for who stands at its windows: its place along the tile, fixed for life. */
         fun buildingSeedOf(spec: StaticSceneObject): Int = (spec.tileFractionX * 100_003f).toInt()
+
+        /**
+         * The pieces of [storefront] for its [identity] (v5.13), into [into]. The restaurant, the school
+         * and the bar, whose identity is the place they stood in, are dealt as they were -- the bar, the
+         * one of the six with two figures, takes the figure its place was dealt from the bars' catalogue
+         * ([SilhouetteDeal]); every other case has one figure, or an identity no catalogue dealt (a random
+         * theme), and is dealt from its position. Never from the catalogue of the place a building stands
+         * in: a place dealt for the bar's two figures holding a building of one is how the prototype of
+         * v5.13A fell (inventory I-611).
+         */
+        internal fun dealStorefront(
+            family: BuildingFamily,
+            storefront: Storefront,
+            identity: StaticSceneObject,
+            into: NeighbourhoodComposer.Deal,
+        ) {
+            if (storefront.stoodThere && variantFor(identity) == storefront.home) {
+                NeighbourhoodComposer.deal(family, identity, into)
+            } else {
+                NeighbourhoodComposer.deal(family, identity.tileFractionX, identity.depthFraction, into)
+            }
+        }
 
         /**
          * A 22-unit occupant box, read today only by `UnitFrameTest` and `SpriteDrawScaleTest`;
@@ -1336,6 +1477,36 @@ class SceneObjectRenderer(
          */
         fun tileOffsetLimit(x: Float, halfWidth: Float, tileWidth: Float, screenWidth: Float): Int =
             kotlin.math.floor((screenWidth + halfWidth - x) / tileWidth).toInt() + 1
+
+        /** [anchorX] for an object standing at [tileFractionX] of the tile: pure, for the tests of the street. */
+        internal fun anchorXOf(tileFractionX: Float, geom: GroundGeometry): Float {
+            var x = geom.shiftXWrapped + tileFractionX * geom.tileWidth
+            if (x < -geom.tileWidth * 0.5f) x += geom.tileWidth
+            return x
+        }
+
+        /**
+         * The physical copy of the tile that [anchorXOf]'s representative of an object at [tileFractionX]
+         * belongs to (v5.13): the copy drawn at `x + tileIndex * tileWidth` is copy
+         * `representativeCopy + tileIndex`. The same two expressions as [anchorXOf]'s, so the two cannot
+         * disagree about the wrap; and the scroll's whole tiles ([GroundGeometry.scrollTileBias]) taken back
+         * out, so a copy keeps its number while the wrap moves on -- the number [StorefrontStreet] deals a
+         * place's building by, and the number the falling leaves key on ([leafCopyId]) once the wrap is
+         * counted.
+         */
+        internal fun representativeCopy(tileFractionX: Float, geom: GroundGeometry): Int {
+            val wrapped = geom.shiftXWrapped + tileFractionX * geom.tileWidth < -geom.tileWidth * 0.5f
+            return (if (wrapped) 1 else 0) - geom.scrollTileBias
+        }
+
+        /**
+         * The physical copy drawn at `anchorXOf(tileFractionX, geom) + tileIndex * tileWidth` (v5.13): what the
+         * draw loop hands [drawStaticObject] for every copy it draws, and what `StorefrontStreetTest` scrolls
+         * the twelve streets with -- one expression for both, so a copy that comes in from the right is
+         * numbered as the one it becomes when the wrap moves on.
+         */
+        internal fun copyOf(tileFractionX: Float, geom: GroundGeometry, tileIndex: Int): Int =
+            representativeCopy(tileFractionX, geom) + tileIndex
     }
 
     /**
@@ -1621,11 +1792,7 @@ class SceneObjectRenderer(
      * every static object of every frame -- three allocations per object per frame on a path
      * `AI_PROJECT_RULES.md` 5.1 requires to be allocation-free.
      */
-    private fun anchorX(spec: StaticSceneObject, geom: GroundGeometry): Float {
-        var x = geom.shiftXWrapped + spec.tileFractionX * geom.tileWidth
-        if (x < -geom.tileWidth * 0.5f) x += geom.tileWidth
-        return x
-    }
+    private fun anchorX(spec: StaticSceneObject, geom: GroundGeometry): Float = anchorXOf(spec.tileFractionX, geom)
 
     /**
      * Where this frame's canopies are, in screen pixels, for anything that needs to come *off* a
@@ -1902,10 +2069,11 @@ class SceneObjectRenderer(
      *
      * [hour24] is the scene's effective clock hour -- `DayPhase.hour24`, the value that moved the
      * sun this frame, never a clock read of this class's own. It exists for the opening hours:
-     * kept as [frameHour], at which the shops' and the towers' drawing below asks how open each
-     * building is. Defaulted to noon so the many tests that draw a frame directly keep compiling.
-     * It also drives the people's colour clock ([clockSeconds]); with the default customization
-     * (both groups' hours off) only the openness stops depending on it, being constantly 1.
+     * kept as [frameHour], at which the drawing below asks how open each tower and each building among
+     * the houses is ([SceneCustomization.opennessFor]). Defaulted to noon so the many tests that draw a
+     * frame directly keep compiling. It also drives the people's colour clock ([clockSeconds]); with the
+     * default customization (the three groups' hours off) only the openness stops depending on it, being
+     * constantly 1.
      */
     fun draw(canvas: SceneCanvas, geom: GroundGeometry, dayBlend: Float, elapsedSeconds: SceneTime, screenWidth: Float, screenHeight: Float, hour24: Float = 12f) {
         // v4.30: the people's colours are dealt per crossing off this same clock, for the reason
@@ -1931,6 +2099,9 @@ class SceneObjectRenderer(
             val effectiveScale = effectiveScaleFor(r.spec, r.drawDepth, screenHeight)
             val halfWidth = MAX_OBJECT_HALF_WIDTH_UNITS * effectiveScale
             val x = anchorX(r.spec, geom)
+            // Which physical copy of the tile each copy drawn is ([copyOf], v5.13): a place among the houses
+            // draws, in each copy, the building the street deals that copy ([StorefrontStreet]); a copy's
+            // number is the same for as long as it exists.
 
             if (geom.tileWidth <= 0f) {
                 // No tiling period, so there are no copies to step through -- draw the object once
@@ -1940,7 +2111,7 @@ class SceneObjectRenderer(
                 // calling this. The enumeration below divides by tileWidth, so this is a
                 // correctness guard, not an optimisation.
                 if (isHorizontallyVisible(x, halfWidth, screenWidth)) {
-                    drawStaticObject(canvas, r, x, groundY, effectiveScale, dayBlend, elapsedSeconds)
+                    drawStaticObject(canvas, r, x, groundY, effectiveScale, dayBlend, elapsedSeconds, copyOf(r.spec.tileFractionX, geom, 0))
                     recordLeafSource(variantFor(r.spec), leafCopyId(runtimeIndex, 0, geom), x, groundY, effectiveScale)
                 }
                 continue
@@ -1955,7 +2126,7 @@ class SceneObjectRenderer(
             for (tileIndex in firstTile until tileLimit) {
                 val copyX = x + tileIndex * geom.tileWidth
                 if (isHorizontallyVisible(copyX, halfWidth, screenWidth)) {
-                    drawStaticObject(canvas, r, copyX, groundY, effectiveScale, dayBlend, elapsedSeconds)
+                    drawStaticObject(canvas, r, copyX, groundY, effectiveScale, dayBlend, elapsedSeconds, copyOf(r.spec.tileFractionX, geom, tileIndex))
                     recordLeafSource(variantFor(r.spec), leafCopyId(runtimeIndex, tileIndex, geom), x = copyX, groundY = groundY, scale = effectiveScale)
                 }
             }
@@ -2015,6 +2186,16 @@ class SceneObjectRenderer(
             val roster = r.roster ?: continue
             val layout = r.windowLayout ?: continue
             doorway.advance(roster, layout, elapsed, customization.opennessFor(variantFor(r.spec), frameHour), settle)
+        }
+        // The six buildings among the houses (v5.13), every one of them whether a place shows it or not:
+        // a copy that comes in with one has its people where the building's clock and hours say.
+        val buildings = storefronts ?: return
+        for (index in buildings.indices) {
+            val r = buildings[index]
+            val doorway = r.doorway ?: continue
+            val roster = r.roster ?: continue
+            val layout = r.windowLayout ?: continue
+            doorway.advance(roster, layout, elapsed, customization.opennessFor(Storefront.ALL[index], frameHour), settle)
         }
     }
 
@@ -2526,10 +2707,32 @@ class SceneObjectRenderer(
      * [effectiveScale] the extent was derived from, or the object would be culled against one
      * size and drawn at another.
      */
-    private fun drawStaticObject(canvas: SceneCanvas, r: StaticRuntime, x: Float, y: Float, effectiveScale: Float, dayBlend: Float, elapsed: SceneTime) {
+    private fun drawStaticObject(
+        canvas: SceneCanvas,
+        r: StaticRuntime,
+        x: Float,
+        y: Float,
+        effectiveScale: Float,
+        dayBlend: Float,
+        elapsed: SceneTime,
+        copy: Int,
+    ) {
         canvas.save()
         canvas.translate(x, y)
         canvas.scale(effectiveScale, effectiveScale)
+
+        // A place among the houses (v5.13) draws the building the street deals this copy of it, at the
+        // place's own size: which of the six, [StorefrontStreet]; the building's runtime -- identity,
+        // roster, windows, doorway -- is its own, in [storefronts].
+        val buildings = storefronts
+        if (r.place >= 0 && buildings != null) {
+            val storefront = StorefrontStreet.storefrontAt(
+                themeSeed, StorefrontStreet.placeIndex(copy, r.place, places.size), streetRound, streetDeckA, streetDeckB,
+            )
+            drawNeighbourhoodBuilding(canvas, buildings[storefront.ordinal], elapsed, dayBlend, variantFor(r.spec), storefront)
+            canvas.restore()
+            return
+        }
 
         // Dispatched on the same variant the scale was derived from, so an object can never be
         // sized as one drawing and painted as another.
@@ -2664,32 +2867,50 @@ class SceneObjectRenderer(
         elapsed: SceneTime,
         dayBlend: Float,
         variant: SceneSpace.SceneVariant,
+        storefront: Storefront? = null,
     ) {
-        val family = NeighbourhoodTable.FAMILIES[variant] ?: return
+        // The size table's row for this place, and what is drawn in it: the variant's own family, or --
+        // a place among the houses (v5.13) -- the building the street deals it, [r] that building's
+        // runtime (its spec its identity).
+        val placeFamily = NeighbourhoodTable.FAMILIES[variant] ?: return
+        val family = storefront?.family ?: placeFamily
         val spec = r.spec
         // Every wall surface of this building descends from this one value (the glass masks take the
-        // window colours instead, [windowGlassColor] and [unlitWindowGlassColor]): one of the two colours the user can edit for what the building
-        // is drawn as -- the houses', the towers' (Buildings) or, since v5.11, the shops' own
-        // ([buildingColoursFor]). The pieces carry the rest as weights in their own wall mask -- a
-        // roof is the wall towards the ink, a cornice is the wall towards white -- so nothing here
-        // invents a colour. See [NeighbourhoodTable].
-        val wallColor = customization.wallColourFor(spec, variant, dayBlend)
+        // window colours instead, [windowGlassColor] and [unlitWindowGlassColor]): one of the two colours
+        // the user can edit for what the building is -- the houses', the towers' (Buildings) or, for one
+        // of the six among the houses, its group's: the shops' (v5.11) or the public buildings' (v5.13,
+        // [storefrontColours]). The pieces carry the rest as weights in their own wall mask -- a roof is
+        // the wall towards the ink, a cornice is the wall towards white -- so nothing here invents a
+        // colour. See [NeighbourhoodTable].
+        val wallColor = if (storefront != null) {
+            customization.storefrontWall(spec, storefront, dayBlend)
+        } else {
+            customization.wallColourFor(spec, variant, dayBlend)
+        }
         val night = (1f - dayBlend).coerceIn(0f, 1f)
         // A house lights half its windows at night, every one somebody stands at among them
-        // ([WindowRoster]); a business lights them while it is open. `businessOpenness` is the closing fade of this building's group -- the shops' or the
-        // towers' hours, by what it is drawn as -- and at 1 -- the default, the group's switch off --
-        // this is arithmetically `1f - dayBlend`, the expression it always was. See [BusinessHours].
-        // Shut, a business's glass is the dark glass of an unlit window at night ([businessGlassColor],
-        // v5.12) and its lamp is dark: `glassNight` is what the lamp lights on.
-        val businessOpenness = customization.opennessFor(variant, frameHour)
+        // ([WindowRoster]); a business lights them while it is open. `businessOpenness` is the closing
+        // fade of this building's group -- the towers', the shops' or the public buildings' hours, by
+        // what it is -- and at 1 -- the default, the group's switch off -- this is arithmetically
+        // `1f - dayBlend`, the expression it always was. See [BusinessHours]. Shut, a business's glass is
+        // the dark glass of an unlit window at night ([businessGlassColor], v5.12) and its lamp is dark:
+        // `glassNight` is what the lamp lights on.
+        val businessOpenness = if (storefront != null) {
+            customization.opennessFor(storefront, frameHour)
+        } else {
+            customization.opennessFor(variant, frameHour)
+        }
         val glassNight = if (family.kind == WindowBuildingKind.HOUSE) night else night * businessOpenness
         val glassColor = if (family.kind == WindowBuildingKind.HOUSE) windowGlassColor(glassNight) else businessGlassColor(night, businessOpenness)
         // The pieces are drawn in the height the family declares; the variant states what that
         // height is on screen, so an unusual authored size is absorbed here rather than corrected
-        // per asset (AI_PROJECT_RULES 7.3).
-        val scale = variant.spriteUnitsTall / family.unitsTall
+        // per asset (AI_PROJECT_RULES 7.3). **The place's family, not the building's** (v5.13): every
+        // piece of the neighbourhood is drawn at one metre a unit (`core.M_PER_UNIT`), so the scale that
+        // makes the place's own building its size makes any of the six its own size there too -- a fire
+        // station in the restaurant's place is the fire station's height, at the restaurant's depth.
+        val scale = variant.spriteUnitsTall / placeFamily.unitsTall
         val deal = neighbourhoodDeal
-        NeighbourhoodComposer.deal(family, spec, deal)
+        if (storefront != null) dealStorefront(family, storefront, spec, deal) else NeighbourhoodComposer.deal(family, spec, deal)
         // Who is at the windows now, standing or walking, and in a house which are lit ([WindowRoster],
         // [WindowWalk], v5.12): worked out once for the building's frame, from the roster and the
         // windows measured when the list was built and the doorway its hours keep.
@@ -3157,11 +3378,7 @@ class SceneObjectRenderer(
      * every draw. Independent of [dayBlend] on purpose: unlike the normal leaf color, which
      * blends toward a dedicated night variant, autumn leaves stay a flat warm tone day and night,
      * matching how the falling-leaf particles in [PaperRenderer.drawFallingLeaves] work too. */
-    private fun fallLeafColorFor(r: StaticRuntime): Int {
-        val palette = FALL_LEAF_TREE_PALETTE
-        val index = (kotlin.math.abs(r.idleSeed * 1000).toInt()) % palette.size
-        return palette[index]
-    }
+    private fun fallLeafColorFor(r: StaticRuntime): Int = FALL_LEAF_TREE_PALETTE[fallToneOf(r.idleSeed)]
 
     /**
      * The light colours, and the unscaled local positions of the six lights, hoisted out of

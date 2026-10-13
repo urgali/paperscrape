@@ -46,25 +46,31 @@ class BusinessHoursWiringTest {
     }
 
     /**
-     * **Whose hours** (v5.12): the openness a building is drawn with is its own group's -- the shops'
-     * or the towers' -- asked of [SceneCustomization.opennessFor] with what it is drawn as, the rule
-     * its colours follow (`OpeningHoursGroupsTest` holds the rule itself), at the frame's hour; and it
-     * is that openness, not another, the occupants are thinned by.
+     * **Whose hours** (v5.12; three groups since v5.13): the openness a building is drawn with is its
+     * own group's -- the towers', the shops' or the public buildings' -- asked of
+     * [SceneCustomization.opennessFor] with what it is (one of the six among the houses by itself, a
+     * tower by the variant it is drawn as), the rule its colours follow (`OpeningHoursGroupsTest` holds
+     * the rule itself), at the frame's hour; and it is that openness, not another, the occupants are
+     * thinned by.
      */
     @Test
     fun `a building keeps its own group's hours, at the frame's hour`() {
         val body = composer()
         assertTrue(
-            "the openness must be the building's group's, by what it is drawn as",
-            body.contains("val businessOpenness = customization.opennessFor(variant, frameHour)"),
+            "the openness must be the building's group's, by what it is",
+            body.contains("customization.opennessFor(storefront, frameHour)") &&
+                body.contains("customization.opennessFor(variant, frameHour)"),
         )
         // The occupants (v5.12): walked out and in at the hours by the building's doorway, which is
         // moved on once a frame with the same group's openness at the same hour, by the same rule --
         // what it is drawn as -- and handed to the figures the building is drawn with.
+        val doorways = drawSource("advanceDoorways")
         assertTrue(
             "the doorways must be given the same openness",
-            drawSource("advanceDoorways").contains(
+            doorways.contains(
                 "doorway.advance(roster, layout, elapsed, customization.opennessFor(variantFor(r.spec), frameHour), settle)",
+            ) && doorways.contains(
+                "doorway.advance(roster, layout, elapsed, customization.opennessFor(Storefront.ALL[index], frameHour), settle)",
             ),
         )
         assertTrue(
@@ -110,7 +116,10 @@ class BusinessHoursWiringTest {
      */
     @Test
     fun `every commercial occupant goes through the openness and every house occupant does not`() {
-        val give = drawSource("giveRosters")
+        // One function gives every building -- a house, a tower, one of the six among the houses -- its
+        // roster, windows and doorway (v5.13: `giveRosters` hands the houses and towers to it, and the
+        // six are given theirs once, as the renderer is built).
+        val give = drawSource("giveRoster")
         assertTrue(
             "the house test must be the building's kind",
             give.contains("val house = family.kind == WindowBuildingKind.HOUSE"),

@@ -455,8 +455,25 @@ class SpriteGeometryTest {
      * memory beside them: *«Sì, va bene così (consigliato)»* (the question said the drawings'
      * memory limit would rise "a little", about the 1.1 MB by which the set passed 43 MiB; the
      * ceiling itself rises by 2 MiB, because 44 does not hold it).
+     *
+     * ### v5.13 raises it to 47 MiB, for the shop, the fire station and the police station
+     *
+     * The set decodes to **48 001 068 B**, 1 690 524 more than the 5.12's 46 310 544: sixteen PNGs added
+     * -- the shop's four, the police station's four, and the fire station's eight, its block and its
+     * hose tower cut to canvases of their own (drawn as one, the tower made the canvas as tall as itself
+     * over the block's whole width, about 299 KB of air; inventory I-607) -- and the school's fixed layer
+     * redrawn on the same canvas with a 2.4-unit eraser. 45 MiB is 815 148 B short of it; 47 MiB leaves
+     * **1 282 004 B**. The proposal round measured the three buildings at +1 966 032 B before the tower
+     * was cut apart, which is why 47 was asked for; 46 would hold the set as built, with 233 428 B to
+     * spare, and 47 is the figure the maintainer was asked and gave. Every scene draws all six buildings
+     * among the houses over time since v5.13 (the street deals them as it scrolls), so the `Canvas`
+     * path's worst case is now reached by every theme rather than by a walk over all twelve.
+     *
+     * **The maintainer moved this line** on 2026-10-11, with the proposal round's measurements: *«il
+     * resto accetto i consigliati»* to the row that said the drawings' memory would rise as it had twice
+     * before, from 45 to 47 MB and from 18 to 20 MB, at the same consumption.
      */
-    private val decodedByteBudget = 45L * 1024L * 1024L
+    private val decodedByteBudget = 47L * 1024L * 1024L
 
     @Test
     fun `every shipped sprite is authored on the sprite grid`() {

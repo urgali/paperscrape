@@ -16,8 +16,9 @@ import org.junit.Test
  * the delivered rc2 day frame answered with a pub numerically at 40% and visually cut in two by
  * a tree trunk planted over its door -- and with two identical trattorias in the same screen.
  * `SceneObjectCatalog.separateShopFrontages` now measures the union of everything nearer over
- * the shop's ENTIRE front, rejects any trunk or pole across it, and the catalogue emits at most
- * one shop per storefront per tile. This test re-measures all twelve built-in themes.
+ * the shop's ENTIRE front, rejects any trunk or pole across it, and the catalogue then emitted at
+ * most one shop per storefront per tile (five places a tile since v5.13B2, below). This test
+ * re-measures all twelve built-in themes.
  *
  * The 40% ceiling is the acceptance criterion's own number. The measurement is at the reference
  * viewport (1080x2340), which is where every visual judgement in this project is made.
@@ -34,6 +35,15 @@ import org.junit.Test
  * choice, and because the copy that existed could not survive a redraw: v5.1 moved the palm's
  * crown canvas from 40x40 units to 56x48 by hand in two files and nothing would have failed if
  * only one of them had been edited.
+ *
+ * **Since v5.13 a place among the houses holds any of six buildings**, dealt by the street as it scrolls
+ * ([StorefrontStreet]), and this file measures each place with the family of its row of the size table --
+ * the building that stood in that row until then: the restaurant in the two far places, the school in the
+ * middle one, the bar in the two near ones (five places since v5.13B2). `StorefrontFrontVisibilityTest`
+ * measures all six in all five places (the plan is laid out for all six, `SceneObjectCatalog.frontRects`),
+ * and `StorefrontStreetTest` holds the criterion this file's duplication test was written for, now the
+ * street's: never two alike on screen -- the test itself, one building per row per tile, went with v5.13B2,
+ * which put two places in the restaurant's row and two in the bar's.
  */
 class ShopFrontVisibilityTest {
 
@@ -74,7 +84,10 @@ class ShopFrontVisibilityTest {
     // widths (V3-01) on the shops the plan placed. Higher than 0.3125 because the fronts are now as
     // wide as they are drawn -- the old reading divided by a restaurant two thirds its real width --
     // and still inside the criterion, with 2.5 points of margin.
-    private val INK_WORST = 0.375f
+    // v5.13B2: 0.382, easter's school, on five places a street planned along the whole tile (trees and
+    // parasols moved where a place needed it) and with each house as tall as it draws, by the renderer's
+    // deal; inside the criterion, with 1.8 points of margin.
+    private val INK_WORST = 0.3816f
 
     @Test
     fun `no shop front is covered beyond forty percent of its whole area on any built-in theme`() {
@@ -103,8 +116,8 @@ class ShopFrontVisibilityTest {
      * moved before -- the loop would run zero times and this test would report success over
      * nothing, in exactly the shape `BACKLOG_v5_1.md` item 117 describes: a check run where its
      * condition is true by construction. The sibling coverage test above has carried
-     * `shopsChecked >= 2 * themes.size` since it was written, and the duplication test below is
-     * guarded by its `byVariant.keys` equality, which an empty selection fails. This method was
+     * `shopsChecked >= 2 * themes.size` since it was written, and the duplication test that stood below,
+     * guarded by its `byVariant.keys` equality, went with v5.13B2 (see the class comment). This method was
      * the one with nothing, and a guard in a neighbouring method guards nothing.
      */
     @Test
@@ -129,7 +142,7 @@ class ShopFrontVisibilityTest {
                 )
             }
         }
-        assertEquals("this test asserted over no shop at all", 3 * themes.size, shopsChecked)
+        assertEquals("this test asserted over no shop at all", 5 * themes.size, shopsChecked)
     }
 
     /**
@@ -139,8 +152,8 @@ class ShopFrontVisibilityTest {
      * Measured with this class's own model rather than the one that placed it, which is the point
      * of the model being written twice. The streets are the twelve built-ins as saved at their
      * defaults (`keepCandidate`-filtered, which is what a saved theme stores) with their school
-     * taken out -- a street with a restaurant, a bar and no school, the shape every theme saved
-     * before v5.6 has.
+     * taken out -- since v5.13B2 four places, two in the restaurant's row and two in the bar's, and no
+     * school; a theme saved before v5.6 has one of each of those two rows and no school.
      */
     @Test
     fun `a school added to a saved street clears its own front and leaves the saved shops as they were`() {
@@ -171,57 +184,6 @@ class ShopFrontVisibilityTest {
             }
         }
         assertEquals("this test asserted over no street at all", themes.size, added)
-    }
-
-    /**
-     * The rc3 duplication criterion: two commercial buildings of the same storefront never share
-     * a screen width. The wallpaper auto-scrolls through the whole tile, so this must hold for
-     * EVERY window position, and an object is on screen for screenWidth + its own width of
-     * scroll -- more than half the two-screen tile -- which is why the only layout that can pass
-     * is one shop per storefront per tile. Both statements are asserted: the cardinality on the
-     * catalogue's output, and the criterion itself by sweeping the window across the tile with
-     * partial visibility counted.
-     */
-    @Test
-    fun `no two shops of the same storefront ever share a screen width on any built-in theme`() {
-        for (themeId in themes) {
-            val shops = SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt())
-                .staticObjects.filter { isShop(it) }
-            val byVariant = shops.groupBy { SceneObjectRenderer.variantFor(it) }
-            for ((variant, list) in byVariant) {
-                assertTrue("$themeId: ${list.size} ${variant}s in one tile", list.size <= 1)
-            }
-            assertEquals(
-                // v5.6F: three, not two. The school is the third storefront and the shop band is
-                // three equal thirds, so every theme offers one of each -- which is the other
-                // half of "no two of the same storefront share a screen": a band nobody keeps a
-                // shop in is a storefront no theme ever draws, and that failure looks exactly
-                // like success from a census.
-                "$themeId: the street should offer all three storefronts",
-                setOf(
-                    SceneSpace.SceneVariant.RESTAURANT,
-                    SceneSpace.SceneVariant.SCHOOL,
-                    SceneSpace.SceneVariant.BAR,
-                ),
-                byVariant.keys,
-            )
-            // The criterion as stated, swept: at every 4-px window start, the shops of one
-            // storefront visible in [t, t + screenW] -- partially counts -- number at most one.
-            var t = 0f
-            while (t < tile) {
-                for ((variant, list) in byVariant) {
-                    val visible = list.count { shop ->
-                        val half = halfWidthPx(shop)
-                        val x = shop.tileFractionX * tile
-                        val rawDx = (x - (t + refW / 2f)).mod(tile)
-                        val dx = if (rawDx > tile / 2f) rawDx - tile else rawDx
-                        kotlin.math.abs(dx) < refW / 2f + half
-                    }
-                    assertTrue("$themeId: $visible ${variant}s visible at window $t", visible <= 1)
-                }
-                t += 4f
-            }
-        }
     }
 
     /**
@@ -276,7 +238,7 @@ class ShopFrontVisibilityTest {
                 }
             }
         }
-        assertEquals("this test asserted over no shop at all", 3 * themes.size, shopsChecked)
+        assertEquals("this test asserted over no shop at all", 5 * themes.size, shopsChecked)
         assertTrue(
             "measured on ink, these shop fronts are over the criterion: $overCeiling",
             overCeiling.isEmpty(),
@@ -326,23 +288,25 @@ class ShopFrontVisibilityTest {
             }
         }
         println("PALMS_SHOP_FRONTS worst on ink with palms: ${"%.3f".format(worst)} at $worstShop, $shopsChecked shops")
-        assertEquals("this test asserted over no shop at all", 3 * 10, shopsChecked)
+        assertEquals("this test asserted over no shop at all", 5 * 10, shopsChecked)
         assertTrue("with palms in place of the trees: $failures", failures.isEmpty())
     }
 
     /**
      * The drawn extent of one building instance's own deal, in the variant's units.
      *
-     * The deal is a pure function of `(tileFractionX, depthFraction)` — see
-     * [NeighbourhoodComposer.deal] — so this is the building that will actually be blitted at
-     * this spot, not a family average. Snow, porch lamps and window occupants are excluded on the
-     * same reading `BuildingHeightDeclarationTest` uses: a drift is weather, not building.
+     * The deal is the renderer's -- [NeighbourhoodComposer.deal] of the object, which reads the silhouette
+     * the street dealt it ([SilhouetteDeal], since v5.5) -- so this is the building that will actually be
+     * blitted at this spot, not a family average. Until v5.13B2 this read the deal by position, which since
+     * v5.5 is what only an undealt object draws: a house dealt a storey more stood here a storey lower than
+     * it draws. Snow, porch lamps and window occupants are excluded on the same reading
+     * `BuildingHeightDeclarationTest` uses: a drift is weather, not building.
      */
     private fun drawnUnits(o: StaticSceneObject): Float {
         val v = SceneObjectRenderer.variantFor(o)
         val f = NeighbourhoodTable.FAMILIES[v] ?: return v.spriteUnitsTall
         val deal = NeighbourhoodComposer.Deal()
-        NeighbourhoodComposer.deal(f, o.tileFractionX, o.depthFraction, deal)
+        NeighbourhoodComposer.deal(f, o, deal)
         var top = 0f
         for (i in 0 until deal.size) {
             val placed = deal[i]
@@ -413,7 +377,10 @@ class ShopFrontVisibilityTest {
     }
 
     /** Everything one nearer object puts in front of a shop: bodies, crowns, trunks, canopies,
-     * poles -- the whole silhouette, boxed. Same artwork measurements as the renderer's blits. */
+     * poles -- the whole silhouette, boxed. Same artwork measurements as the renderer's blits. A place
+     * among the houses is boxed as the building of its row, the school's row included (v5.13C; before, a
+     * nearer place of that row covered nothing here); the envelope of all six buildings in every place is
+     * `StorefrontFrontVisibilityTest`'s. */
     private fun occluderBoxes(o: StaticSceneObject, onInk: Boolean = false): List<FloatArray> {
         val v = SceneObjectRenderer.variantFor(o)
         val s = SceneObjectRenderer.effectiveScaleFor(o, refH)
@@ -432,7 +399,7 @@ class ShopFrontVisibilityTest {
                 crowns(SpriteOccluderTable.PARASOL_FAN, x, g, s) +
                     floatArrayOf(x - 2.5f * s, g - 50f * s, x + 2.5f * s, g)
             SceneSpace.SceneVariant.HOUSE_SMALL, SceneSpace.SceneVariant.HOUSE_LARGE,
-            SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.BAR,
+            SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR,
             SceneSpace.SceneVariant.TOWER,
             -> listOf(
                 floatArrayOf(
@@ -539,8 +506,9 @@ class ShopFrontVisibilityTest {
     /**
      * The condition the maintainer set for the width repair (V3-01, 2026-09-26): **no more built-in
      * themes than before may put a shop in the same spot of the street -- at most four.** "The same
-     * spot" is one point of the tile that the most themes' fronts of that storefront all cover, at
-     * the reference viewport and at the drawn width measured above. Before the plan the counts were
+     * spot" is one point of the tile that the most themes' fronts of one row of the size table all cover,
+     * at the reference viewport and at the drawn width measured above; a theme with two places in a row
+     * (v5.13B2: two in the restaurant's, two in the bar's) counts once. Before the plan the counts were
      * restaurant 4, school 8, bar 12 (the bar stood in one spot on every theme); with the true widths
      * and no plan, 10, 7 and 12.
      */
@@ -550,9 +518,9 @@ class ShopFrontVisibilityTest {
             SceneObjectCatalog.layoutFor(themeId, 0xFF8899AA.toInt()).staticObjects.filter { isShop(it) }
                 .map { Triple(SceneObjectRenderer.variantFor(it), themeId, it.tileFractionX to halfWidthPx(it) / tile) }
         }
-        for (variant in listOf(SceneSpace.SceneVariant.RESTAURANT, SceneSpace.SceneVariant.SCHOOL, SceneSpace.SceneVariant.BAR)) {
+        for ((variant, perTheme) in listOf(SceneSpace.SceneVariant.RESTAURANT to 2, SceneSpace.SceneVariant.SCHOOL to 1, SceneSpace.SceneVariant.BAR to 2)) {
             val mine = fronts.filter { it.first == variant }
-            assertEquals("one $variant per theme", themes.size, mine.size)
+            assertEquals("$perTheme $variant places a theme", perTheme * themes.size, mine.size)
             var worst = 0
             var where = ""
             for (k in 0 until 2000) {
@@ -560,12 +528,13 @@ class ShopFrontVisibilityTest {
                 val over = mine.filter { (_, _, xw) ->
                     val d = (p - xw.first).mod(1f)
                     minOf(d, 1f - d) < xw.second
-                }
+                }.map { it.second }.toSet()
                 if (over.size > worst) {
                     worst = over.size
-                    where = "at %.3f: ".format(p) + over.joinToString { it.second }
+                    where = "at %.3f: ".format(p) + over.joinToString()
                 }
             }
+            println("SHOP_SPOTS the most themes with a $variant place over one spot: $worst ($where)")
             assertTrue("$worst themes put the $variant in one spot ($where)", worst <= 4)
         }
     }

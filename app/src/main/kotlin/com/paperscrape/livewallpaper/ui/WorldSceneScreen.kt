@@ -10,23 +10,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.SwipeLeft
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Cottage
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Filter
 import androidx.compose.material.icons.outlined.FilterDrama
 import androidx.compose.material.icons.outlined.Flare
+import androidx.compose.material.icons.outlined.House
 import androidx.compose.material.icons.outlined.Landscape
-import androidx.compose.material.icons.outlined.LocationCity
 import androidx.compose.material.icons.outlined.Park
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Terrain
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Waves
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import com.paperscrape.livewallpaper.engine.SceneTheme
@@ -42,13 +43,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.engine.CustomThemeData
 import com.paperscrape.livewallpaper.engine.LakeConfig
 import com.paperscrape.livewallpaper.engine.PaperRenderer
 import com.paperscrape.livewallpaper.engine.PrecipitationType
 import com.paperscrape.livewallpaper.engine.SceneCustomization
+import com.paperscrape.livewallpaper.engine.StorefrontGroup
 import com.paperscrape.livewallpaper.engine.WallpaperEngineCensus
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
 import com.paperscrape.livewallpaper.engine.sunCloudHeightForFraction
@@ -68,8 +69,9 @@ import kotlinx.coroutines.launch
  * releases have added to them (automatic colour modes, business hours, night densities, the
  * lake-gated boat controls). What changed: they are grouped the way the scene is built (sky,
  * landscape, things that move) instead of listed in arrival order with a divider after each row;
- * most rows report their own state (Sky, Cities, Hills and Mountains describe their contents
- * instead), so the scene is readable without opening fifteen screens; and the four
+ * most rows report their own state (Sky, Hills and Mountains describe their contents instead; since
+ * v5.13 the four rows of the buildings -- Houses, Towers & offices, Shops, Public buildings -- took the
+ * Cities row's place), so the scene is readable without opening fifteen screens; and the four
  * scrolling controls that used to sit between the weather settings and the version number on the
  * home screen now live here, under Motion, labelled as what they are -- global, not per-theme.
  */
@@ -206,11 +208,43 @@ internal fun WorldSceneScreen(
 
         SettingsSectionHeader("Landscape")
         SettingsGroup {
+            // **The buildings in four rows** (v5.13, menu G2; the maintainer's *«il resto accetto i
+            // consigliati»* of 2026-10-11): the houses, the towers, the shops and the public buildings,
+            // each a page of its own one tap from here -- the opening hours of the public buildings three
+            // taps from the settings' first page. Until v5.13 one row, Cities, led to a page that held
+            // houses, towers and shops one after another.
             SettingsNavigationRow(
-                title = "Cities",
-                supporting = "Houses, towers and shops",
-                icon = Icons.Outlined.LocationCity,
-                onClick = { activeSection = "cities" },
+                title = "Houses",
+                supporting = amountSummary(customization.houses.visible, customization.houses.density),
+                icon = Icons.Outlined.House,
+                onClick = { activeSection = "houses" },
+            )
+            SettingsNavigationRow(
+                title = SettingsUiModel.TOWERS_PAGE,
+                supporting = SettingsUiModel.towersRowSummary(
+                    customization.buildings.visible, customization.buildings.density,
+                    customization.towerHoursEnabled, customization.towerOpenHour, customization.towerCloseHour,
+                ),
+                icon = Icons.Outlined.Apartment,
+                onClick = { activeSection = "towers" },
+            )
+            SettingsNavigationRow(
+                title = storefrontGroupTitle(StorefrontGroup.SHOPS),
+                supporting = SettingsUiModel.storefrontRowSummary(
+                    StorefrontGroup.SHOPS, customization.buildings.visible,
+                    customization.shopHoursEnabled, customization.shopOpenHour, customization.shopCloseHour,
+                ),
+                icon = Icons.Outlined.Storefront,
+                onClick = { activeSection = "shops" },
+            )
+            SettingsNavigationRow(
+                title = storefrontGroupTitle(StorefrontGroup.PUBLIC),
+                supporting = SettingsUiModel.storefrontRowSummary(
+                    StorefrontGroup.PUBLIC, customization.buildings.visible,
+                    customization.publicHoursEnabled, customization.publicOpenHour, customization.publicCloseHour,
+                ),
+                icon = Icons.Outlined.AccountBalance,
+                onClick = { activeSection = "publics" },
             )
             SettingsNavigationRow(
                 title = "Hills",
@@ -262,9 +296,10 @@ internal fun WorldSceneScreen(
                 // the fifteen did before this one; with it, eleven do. Lake is the row that
                 // mattered: with the lake off, the screen below it shows four boat-and-dolphin
                 // controls, so a row that only said "Water, sailboats and dolphins" was the reason
-                // that screen read as broken. Sky, Cities, Hills and Mountains are deliberately
-                // left as they are -- none of them has a single on/off to report, and inventing
-                // one would be worse than a description.
+                // that screen read as broken. Sky, Hills and Mountains are deliberately left as they
+                // are -- none of them has a single on/off to report, and inventing one would be worse
+                // than a description (the Cities row, the fourth of them, is the four rows of the
+                // buildings since v5.13, each reporting its own).
                 supporting = lakeRowSummary(customization.lake),
                 icon = Icons.Outlined.Waves,
                 onClick = { activeSection = "lake" },
@@ -422,13 +457,18 @@ internal fun WorldSceneScreen(
         "clouds" -> CloudsSubScreen(customization, forThemeId, prefs, scope, liveWeatherDriving) { activeSection = null }
         "precipitation" -> PrecipitationSubScreen(customization, forThemeId, prefs, scope, liveWeatherDriving) { activeSection = null }
         "rainbow" -> RainbowSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
-        "cities" -> CitiesSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
+        "houses" -> HousesSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
+        "towers" -> TowersSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
+        "shops" -> StorefrontGroupSubScreen(StorefrontGroup.SHOPS, customization, forThemeId, prefs, scope,
+            onGoToTowers = { activeSection = "towers" }) { activeSection = null }
+        "publics" -> StorefrontGroupSubScreen(StorefrontGroup.PUBLIC, customization, forThemeId, prefs, scope,
+            onGoToTowers = { activeSection = "towers" }) { activeSection = null }
         "hills" -> HillsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "mountains" -> MountainsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
         "distanthouses" -> DistantHousesSubScreen(
             customization, forThemeId, prefs, scope,
             onOpenMountains = { activeSection = "mountains" },
-            onOpenHouses = { activeSection = "cities" },
+            onOpenHouses = { activeSection = "houses" },
         ) { activeSection = null }
         "trees" -> TreesSubScreen(customization, themeHasPalms, palmsOnlyFirs, forThemeId, prefs, scope) { activeSection = null }
         "parasols" -> ParasolsSubScreen(customization, forThemeId, prefs, scope) { activeSection = null }
@@ -452,19 +492,20 @@ private fun densitySummary(visible: Boolean, density: Float): String =
  * The line under the buildings' slider (v5.10E, inventory I-216): what it thins, and what stays.
  */
 internal const val BUILDINGS_DENSITY_LINE =
-    "Thins out the towers behind the houses. The shops among the houses always stay while Show " +
-        "Buildings is on."
+    "Thins out the towers behind the houses. The shops and the public buildings among the houses always " +
+        "stay while Show Buildings is on."
 
-/** The line over the Buildings colours (v5.11): they are the towers' -- the shops have their own. */
-internal const val BUILDINGS_COLOUR_LINE =
-    "These are the towers' colours - the shops have their own, below. Each tower randomly uses Color 1 " +
-        "or Color 2, and blends into its night version as it gets dark."
+/** What *Show Buildings* shows and hides (v5.13): every building that is not a house, the three groups. */
+internal const val BUILDINGS_SWITCH_LINE =
+    "All the buildings that are not houses: the towers, the shops and the public buildings"
 
 /**
- * How far down the Buildings section a tap on the Shops line brings into view, in pixels: the title
- * and the *Show Buildings* row below it, with room to spare at any density the app runs at.
+ * The line over the Buildings colours (v5.11): they are the towers' -- the shops and the public buildings
+ * have their own, on their pages.
  */
-private const val BUILDINGS_SWITCH_REACH_PX = 480f
+internal const val BUILDINGS_COLOUR_LINE =
+    "These are the towers' colours - the shops and the public buildings have their own, on their pages. " +
+        "Each tower randomly uses Color 1 or Color 2, and blends into its night version as it gets dark."
 
 /** The line over the Houses colours (v5.11): the distant houses on the mountains wear them too. */
 internal const val HOUSES_COLOUR_LINE =
@@ -868,71 +909,112 @@ private fun RainbowSubScreen(customization: SceneCustomization, forThemeId: Stri
 }
 
 @Composable
-private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
+private fun HousesSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
     var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
-    val buildingsSwitch = remember { BringIntoViewRequester() }
-    SettingsFormSubScreen("Cities", onBack) {
+    SettingsFormSubScreen("Houses", onBack) {
         ObjectCategorySection(
             title = "Houses", config = customization.houses, category = ObjectCategory.HOUSES,
-            forThemeId = forThemeId, prefs = prefs, scope = scope, noneAtZero = true,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, noneAtZero = true, showTitle = false,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
             colourLine = HOUSES_COLOUR_LINE,
         )
-        // **The slider thins the towers only** (v5.10E, inventory I-216): the shops among the houses
-        // stand whatever it says (`SceneCustomization.keepCandidate` keeps every building candidate
-        // below `SceneSpace.BUILDING_TOWER_MAX_DEPTH`'s line), so "Density: 0%" left them all there.
-        // It is called what it moves, and the line under it says what stays. **And its colours are the
-        // towers'** since v5.11: the shops have their own, below.
-        Column(modifier = Modifier.bringIntoViewRequester(buildingsSwitch)) {
-            ObjectCategorySection(
-                title = "Buildings", config = customization.buildings, category = ObjectCategory.BUILDINGS,
-                forThemeId = forThemeId, prefs = prefs, scope = scope,
-                onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
-                densityLabel = "Towers",
-                afterDensity = {
-                    Text(
-                        BUILDINGS_DENSITY_LINE,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    // The towers' own opening hours (v5.12), under the amount of what keeps them.
-                    OpeningHoursGroup(
-                        title = "Tower opening hours",
-                        line = TOWER_HOURS_LINE,
-                        lockedLine = TOWER_HOURS_LOCKED_LINE,
-                        state = SettingsUiModel.towerHours(
-                            customization.towerHoursEnabled, customization.buildings.visible, customization.buildings.density,
-                        ),
-                        openHour = customization.towerOpenHour,
-                        closeHour = customization.towerCloseHour,
-                        onEnabled = { scope.launch { prefs.setTowerHoursEnabled(it, forThemeId) } },
-                        onOpen = { scope.launch { prefs.setTowerOpenHour(it, forThemeId) } },
-                        onClose = { scope.launch { prefs.setTowerCloseHour(it, forThemeId) } },
-                    )
-                },
-                colourLine = BUILDINGS_COLOUR_LINE,
-            )
-        }
-        ShopsSection(
-            config = customization.shops,
+    }
+    editingTarget?.let { target ->
+        ColorPickerDialog(title = target.label, initialColor = target.color,
+            onConfirm = { c -> target.onChange(c); editingTarget = null }, onDismiss = { editingTarget = null })
+    }
+}
+
+/**
+ * The towers' page (v5.13; until then the Buildings section of the Cities page): *Show Buildings*, which
+ * shows or hides every building that is not a house -- the towers and the six buildings among the
+ * houses, one candidate pool -- the Towers amount, the towers' opening hours and their colours.
+ */
+@Composable
+private fun TowersSubScreen(customization: SceneCustomization, forThemeId: String, prefs: WallpaperPrefs, scope: CoroutineScope, onBack: () -> Unit) {
+    var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
+    SettingsFormSubScreen(SettingsUiModel.TOWERS_PAGE, onBack) {
+        // **The slider thins the towers only** (v5.10E, inventory I-216): the buildings among the houses
+        // stand whatever it says (`SceneCustomization.keepCandidate` keeps every building candidate below
+        // `SceneSpace.BUILDING_TOWER_MAX_DEPTH`'s line), so "Density: 0%" left them all there. It is
+        // called what it moves, and the line under it says what stays. **And its colours are the
+        // towers'** since v5.11: the shops and the public buildings have their own pages.
+        ObjectCategorySection(
+            title = "Buildings", config = customization.buildings, category = ObjectCategory.BUILDINGS,
+            forThemeId = forThemeId, prefs = prefs, scope = scope, showTitle = false,
+            switchSubtitle = BUILDINGS_SWITCH_LINE,
+            onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
+            densityLabel = "Towers",
+            afterDensity = {
+                Text(
+                    BUILDINGS_DENSITY_LINE,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                // The towers' own opening hours (v5.12), under the amount of what keeps them.
+                OpeningHoursGroup(
+                    title = "Tower opening hours",
+                    line = TOWER_HOURS_LINE,
+                    lockedLine = TOWER_HOURS_LOCKED_LINE,
+                    state = SettingsUiModel.towerHours(
+                        customization.towerHoursEnabled, customization.buildings.visible, customization.buildings.density,
+                    ),
+                    openHour = customization.towerOpenHour,
+                    closeHour = customization.towerCloseHour,
+                    onEnabled = { scope.launch { prefs.setTowerHoursEnabled(it, forThemeId) } },
+                    onOpen = { scope.launch { prefs.setTowerOpenHour(it, forThemeId) } },
+                    onClose = { scope.launch { prefs.setTowerCloseHour(it, forThemeId) } },
+                )
+            },
+            colourLine = BUILDINGS_COLOUR_LINE,
+        )
+    }
+    editingTarget?.let { target ->
+        ColorPickerDialog(title = target.label, initialColor = target.color,
+            onConfirm = { c -> target.onChange(c); editingTarget = null }, onDismiss = { editingTarget = null })
+    }
+}
+
+/**
+ * The page of the shops or of the public buildings (v5.13): [StorefrontGroupSection] -- the line, the
+ * group's opening hours, its colours and its reset. With *Show Buildings* off the line says so and a tap
+ * opens the *Towers & offices* page, where that switch is ([onGoToTowers]).
+ */
+@Composable
+private fun StorefrontGroupSubScreen(
+    group: StorefrontGroup,
+    customization: SceneCustomization,
+    forThemeId: String,
+    prefs: WallpaperPrefs,
+    scope: CoroutineScope,
+    onGoToTowers: () -> Unit,
+    onBack: () -> Unit,
+) {
+    var editingTarget by remember { mutableStateOf<ColorEditTarget?>(null) }
+    val shops = group == StorefrontGroup.SHOPS
+    SettingsFormSubScreen(storefrontGroupTitle(group), onBack) {
+        StorefrontGroupSection(
+            group = group,
+            config = if (shops) customization.shops else customization.publics,
             buildingsVisible = customization.buildings.visible,
             forThemeId = forThemeId, prefs = prefs, scope = scope,
             onEditColor = { label, color, onChange -> editingTarget = ColorEditTarget(label, color, onChange) },
-            // The top of the section -- its title and *Show Buildings* -- not the whole of it: the
-            // section is taller than the screen, and brought into view whole it showed its colours
-            // with the switch just above the edge (seen on the BV6600).
-            onGoToBuildings = { scope.launch { buildingsSwitch.bringIntoView(Rect(0f, 0f, 1f, BUILDINGS_SWITCH_REACH_PX)) } },
+            onGoToBuildings = onGoToTowers,
             openingHours = {
                 OpeningHoursGroup(
-                    title = "Shop opening hours",
-                    line = SHOP_HOURS_LINE,
-                    lockedLine = SHOP_HOURS_LOCKED_LINE,
-                    state = SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible),
-                    openHour = customization.shopOpenHour,
-                    closeHour = customization.shopCloseHour,
-                    onEnabled = { scope.launch { prefs.setShopHoursEnabled(it, forThemeId) } },
-                    onOpen = { scope.launch { prefs.setShopOpenHour(it, forThemeId) } },
-                    onClose = { scope.launch { prefs.setShopCloseHour(it, forThemeId) } },
+                    title = if (shops) "Shop opening hours" else "Public building opening hours",
+                    line = if (shops) SHOP_HOURS_LINE else PUBLIC_HOURS_LINE,
+                    lockedLine = STOREFRONT_HOURS_LOCKED_LINE,
+                    state = if (shops) {
+                        SettingsUiModel.shopHours(customization.shopHoursEnabled, customization.buildings.visible)
+                    } else {
+                        SettingsUiModel.publicHours(customization.publicHoursEnabled, customization.buildings.visible)
+                    },
+                    openHour = if (shops) customization.shopOpenHour else customization.publicOpenHour,
+                    closeHour = if (shops) customization.shopCloseHour else customization.publicCloseHour,
+                    onEnabled = { scope.launch { if (shops) prefs.setShopHoursEnabled(it, forThemeId) else prefs.setPublicHoursEnabled(it, forThemeId) } },
+                    onOpen = { scope.launch { if (shops) prefs.setShopOpenHour(it, forThemeId) else prefs.setPublicOpenHour(it, forThemeId) } },
+                    onClose = { scope.launch { if (shops) prefs.setShopCloseHour(it, forThemeId) else prefs.setPublicCloseHour(it, forThemeId) } },
                 )
             },
         )
@@ -946,12 +1028,14 @@ private fun CitiesSubScreen(customization: SceneCustomization, forThemeId: Strin
 /**
  * One group of opening hours (v5.12): its switch and, while it is on, its two hours. Two groups since
  * the maintainer's *«vorrei inoltre aggiungere uno slide per orari solo grattacieli e solo negozi, al
- * momento è globale per grattacieli e negozi»* (2026-10-09): the towers', in Buildings, and the shops'
- * -- the restaurant, the school and the bar -- in Shops, each reset with its own page.
+ * momento è globale per grattacieli e negozi»* (2026-10-09), three since his *«il resto accetto i
+ * consigliati»* of 2026-10-11: the towers', the shops' -- the restaurant, the bar and the shop -- and the
+ * public buildings' -- the school's; the fire and the police station never close -- each on a page
+ * and reset with it.
  *
  * The switch reads on only while there is a building of its group to keep the hours
- * ([SettingsUiModel.towerHours], [SettingsUiModel.shopHours]; `AI_PROJECT_RULES.md` 8.7); locked, it
- * says what is missing, and the stored choice and hours are kept.
+ * ([SettingsUiModel.towerHours], [SettingsUiModel.shopHours], [SettingsUiModel.publicHours];
+ * `AI_PROJECT_RULES.md` 8.7); locked, it says what is missing, and the stored choice and hours are kept.
  */
 @Composable
 private fun OpeningHoursGroup(
@@ -1005,11 +1089,20 @@ private const val TOWER_HOURS_LOCKED_LINE =
 
 /** The shops' group's line, with its switch interactive. */
 private const val SHOP_HOURS_LINE =
-    "The restaurant, the school and the bar keep opening hours: outside them nobody stands at their " +
+    "The restaurant, the bar and the shop keep opening hours: outside them nobody stands at their " +
         "windows and the glass stays dark, even at night. Houses are homes and keep no hours."
 
-/** The shops' group's line while there is no shop to keep the hours. */
-private const val SHOP_HOURS_LOCKED_LINE = "Needs Show Buildings on, above; your choice is kept until then."
+/**
+ * The public buildings' group's line, with its switch interactive (v5.13): the hours are the school's, the
+ * fire and the police station never close (the maintainer, 2026-10-12: *«la pagina deve dirlo»*).
+ */
+private const val PUBLIC_HOURS_LINE =
+    "These hours are the school's: outside them nobody stands at its windows and the glass stays dark, " +
+        "even at night. The fire station and the police station never close. Houses are homes and keep no hours."
+
+/** The shops' or the public buildings' line while no building of the group stands to keep the hours. */
+private const val STOREFRONT_HOURS_LOCKED_LINE =
+    "Needs Show Buildings on, on the ${SettingsUiModel.TOWERS_PAGE} page; your choice is kept until then."
 
 /** Under each group's two hours. */
 private const val HOURS_CLOCK_LINE =

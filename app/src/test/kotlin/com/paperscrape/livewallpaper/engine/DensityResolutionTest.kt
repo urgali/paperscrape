@@ -83,10 +83,12 @@ class DensityResolutionTest {
      * this, [keepCandidate] could go back to the grid and every test above would still pass, since
      * they read [densityFraction] directly: mutation M4 of v5.8C did exactly that and stayed green.
      * Pinned twice: object for object against the fraction, and as the count it gives at the
-     * twelve defaults (324 on the grid, 319 on the fraction, measured v5.8C).
+     * twelve defaults (324 on the grid, 319 on the fraction, measured v5.8C; 326 since v5.13B2, which put
+     * two more places on each street -- 24, never thinned -- where 17 towers stood, and moved trees and
+     * parasols only where each still stands at its theme's density as it did).
      */
     @Test
-    fun `keepCandidate reads the fraction, and the defaults stand 319 objects`() {
+    fun `keepCandidate reads the fraction, and the defaults stand 326 objects`() {
         var standing = 0
         for (theme in ThemeCatalog.ALL) {
             val c = defaultCustomizationFor(theme.id)
@@ -99,7 +101,7 @@ class DensityResolutionTest {
                 assertEquals("${theme.id}: $spec", densityFraction(spec) < configDensity(c, spec.type).toDouble(), kept)
             }
         }
-        assertEquals("objects standing at the twelve defaults", 319, standing)
+        assertEquals("objects standing at the twelve defaults", 326, standing)
     }
 
     @Test

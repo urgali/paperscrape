@@ -9,6 +9,7 @@ import com.paperscrape.livewallpaper.engine.CustomThemeEntry
 import com.paperscrape.livewallpaper.engine.SceneCustomization
 import com.paperscrape.livewallpaper.engine.customThemeEntryFromJson
 import com.paperscrape.livewallpaper.engine.sceneCustomizationFromJson
+import com.paperscrape.livewallpaper.engine.themeKnownAs
 import com.paperscrape.livewallpaper.engine.toJson
 import com.paperscrape.livewallpaper.engine.toJsonString
 import com.paperscrape.livewallpaper.location.DeviceLocationKind
@@ -294,19 +295,12 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
         ?: return BackupParseResult.Failed(BackupImportError.Malformed("settings"))
 
     val customizations = HashMap<String, SceneCustomization>()
+    // Read once the backup's own themes are, below: a customization written before v5.13 reads its public
+    // buildings' colours against the theme it belongs to (`publicsCarriedOver`), which may be one of them.
+    val customizationEntries = LinkedHashMap<String, JSONObject>()
     root.optJSONObject("themeCustomizations")?.let { obj ->
         for (id in obj.keys()) {
-            val entry = obj.optJSONObject(id)
-                ?: return BackupParseResult.Failed(BackupImportError.Malformed("themeCustomizations.$id"))
-            // `runCatching` for the same reason as the two blocks below, and it was missing here
-            // until v5.3 -- the one unguarded call in either parser, and it happened to be the one
-            // that reached the four `getInt`s of `objectVariantConfigFromJson`. Two independent
-            // oversights lining up is what turned a wrong colour into a closed settings screen
-            // (v5.3B audit, S2). The colours are `optInt` now; what it still catches today is a
-            // `birds.colors` entry that is not an object (`getJSONObject` in
-            // `sceneCustomizationFromJson`), and it is here so the next reader who adds a throwing
-            // accessor downstream gets a refused document instead of a vanished app.
-            customizations[id] = runCatching { sceneCustomizationFromJson(entry) }.getOrNull()
+            customizationEntries[id] = obj.optJSONObject(id)
                 ?: return BackupParseResult.Failed(BackupImportError.Malformed("themeCustomizations.$id"))
         }
     }
@@ -341,6 +335,20 @@ fun parseAppBackup(raw: String?, defaults: WallpaperSettings = WallpaperSettings
                 ?: return BackupParseResult.Failed(BackupImportError.Malformed("customThemes[$i]"))
             customThemes.add(parsed)
         }
+    }
+
+    for ((id, entry) in customizationEntries) {
+        val theme = overrides[id]?.theme ?: customThemes.firstOrNull { it.id == id }?.theme ?: themeKnownAs(id)
+        // `runCatching` for the same reason as the two blocks above, and it was missing here
+        // until v5.3 -- the one unguarded call in either parser, and it happened to be the one
+        // that reached the four `getInt`s of `objectVariantConfigFromJson`. Two independent
+        // oversights lining up is what turned a wrong colour into a closed settings screen
+        // (v5.3B audit, S2). The colours are `optInt` now; what it still catches today is a
+        // `birds.colors` entry that is not an object (`getJSONObject` in
+        // `sceneCustomizationFromJson`), and it is here so the next reader who adds a throwing
+        // accessor downstream gets a refused document instead of a vanished app.
+        customizations[id] = runCatching { sceneCustomizationFromJson(entry, theme) }.getOrNull()
+            ?: return BackupParseResult.Failed(BackupImportError.Malformed("themeCustomizations.$id"))
     }
 
     return BackupParseResult.Ok(

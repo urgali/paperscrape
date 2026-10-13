@@ -241,6 +241,19 @@ class SpriteDrawScaleTest {
             "bar_signboard_fx", "bar_signboard_mg", "bar_signboard_mw",
             "bar_signboard_snow_fx",
         )
+        // v5.13: the shop and the two stations. Each of the six buildings among the houses can stand in
+        // each of the places, drawn at that place's metre ([SceneObjectRenderer]'s
+        // `variant.spriteUnitsTall / placeFamily.unitsTall`) -- one metre a unit for every piece, so the
+        // same px per unit in all three rows of the size table -- and [staticPath] takes the nearest depth
+        // any object stands at: the place a path is declared under cannot change the level it resolves to.
+        // Under the bar's, the nearest row (0.800 deep, the nearest place of the five since v5.13B2 too).
+        neighbourhood(
+            "shop, fire station, police station", SceneSpace.SceneVariant.BAR,
+            "shop_fx", "shop_mg", "shop_mw", "shop_snow_fx",
+            "fire_station_fx", "fire_station_mg", "fire_station_mw", "fire_station_snow_fx",
+            "fire_station_tower_fx", "fire_station_tower_mg", "fire_station_tower_mw", "fire_station_tower_snow_fx",
+            "police_station_fx", "police_station_mg", "police_station_mw", "police_station_snow_fx",
+        )
         put(
             staticPath("snowman", SceneSpace.SceneVariant.SNOWMAN),
             "snowman_body", "snowman_nose", "snowman_scarf",
@@ -937,8 +950,24 @@ class SpriteDrawScaleTest {
      *
      * *The decision, again the maintainer's*: *«Sì, va bene così (consigliato)»*, 2026-10-07, asked
      * with the photographs.
+     *
+     * ### v5.13 raises it to 20 MiB, for the shop, the fire station and the police station
+     *
+     * The set uploads **20 242 744 B** at the reference 1080x2340, 1 672 296 more than the 5.12's
+     * 18 570 448; 20 MiB leaves **728 776 B**, and 19 would be 319 800 short. The three buildings are
+     * facades, ink to their edges, and their sixteen PNGs are charged here at the scale of the nearest
+     * of the places among the houses -- any of the six buildings can stand in any of them since v5.13, at
+     * one metre a unit -- so this is the upper bound it has always been. The fire station's
+     * tower on a canvas of its own (inventory I-607) costs this ceiling nothing it would not have cost
+     * as one canvas: a border is cropped here either way. What the device holds is measured where it
+     * always was, on the one 2048x2048 atlas page (`GlAtlasOccupancyTest`), now with every scene drawing
+     * all six buildings over time.
+     *
+     * *The decision, the maintainer's*: *«il resto accetto i consigliati»*, 2026-10-11, to the row that
+     * said this ceiling would go from 18 to 20 MB and the decoded one from 45 to 47, at the same
+     * consumption, with the proposal round's measurements.
      */
-    private val uploadedTexelBudget = 18L * 1024L * 1024L
+    private val uploadedTexelBudget = 20L * 1024L * 1024L
 
     @Test
     fun `the shipped sprite set stays inside the texture memory it uploads`() {

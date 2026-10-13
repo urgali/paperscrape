@@ -756,9 +756,10 @@ object SceneSpace {
      * happened to land it on: nothing stopped every shop in a scene from hashing to the same
      * storefront, and the rc2 frames delivered exactly that — two identical trattorias in one
      * screen. Depth is the property that already decides what a building *is* (tower vs shop,
-     * [BUILDING_TOWER_MAX_DEPTH]), it never changes after generation, and the catalogue keeps at
-     * most one shop per band ([SceneObjectCatalog] `singleShopPerVariant`), so it also decides
-     * *which* shop — stably, whatever the visibility pass does to x.
+     * [BUILDING_TOWER_MAX_DEPTH]), it never changes after generation, and the catalogue then kept at
+     * most one shop per band ([SceneObjectCatalog] `singleShopPerVariant`), so it also decided
+     * *which* shop — stably, whatever the visibility pass does to x. Since v5.13 the street deals the
+     * building a place draws ([StorefrontStreet]), and depth decides the place's row of the size table.
      *
      * ### Why three equal thirds, and not the 0.55 this replaces (v5.6F)
      *
@@ -784,10 +785,12 @@ object SceneSpace {
      */
     private const val SHOP_BAND_THIRD = (SHOP_BAND_MAX_DEPTH - BUILDING_TOWER_MAX_DEPTH) / 3f
 
-    /** Below this a shop is the restaurant: the first third of the band. */
+    /** Below this a place among the houses is in the restaurant's row of the size table: the first third
+     * of the band (which of the six buildings stands there is [StorefrontStreet]'s, v5.13). */
     const val RESTAURANT_MAX_DEPTH = BUILDING_TOWER_MAX_DEPTH + SHOP_BAND_THIRD
 
-    /** Below this, and above [RESTAURANT_MAX_DEPTH], a shop is the school. Above it, the bar. */
+    /** Below this, and above [RESTAURANT_MAX_DEPTH], a place is in the school's row of the size table;
+     * above it, in the bar's. */
     const val SCHOOL_MAX_DEPTH = BUILDING_TOWER_MAX_DEPTH + 2f * SHOP_BAND_THIRD
 
     /*

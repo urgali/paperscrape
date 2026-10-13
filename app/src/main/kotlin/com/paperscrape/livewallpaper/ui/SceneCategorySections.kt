@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.paperscrape.livewallpaper.engine.MountainLayerConfig
 import com.paperscrape.livewallpaper.engine.ObjectVariantConfig
+import com.paperscrape.livewallpaper.engine.StorefrontGroup
 import com.paperscrape.livewallpaper.engine.defaultCustomizationFor
 import com.paperscrape.livewallpaper.prefs.ObjectCategory
 import com.paperscrape.livewallpaper.prefs.WallpaperPrefs
@@ -51,6 +52,7 @@ internal fun defaultDensityOf(category: ObjectCategory, forThemeId: String): Flo
         ObjectCategory.HOUSES -> d.houses
         ObjectCategory.BUILDINGS -> d.buildings
         ObjectCategory.SHOPS -> d.shops
+        ObjectCategory.PUBLICS -> d.publics
         ObjectCategory.CARS -> d.cars
         ObjectCategory.PARASOLS -> d.parasols
         ObjectCategory.TREES -> d.trees
@@ -111,7 +113,7 @@ internal fun ObjectCategorySection(
     /**
      * Whether at 0 % density the wallpaper draws none of this category -- houses, trees, parasols, the
      * six decorations -- so the switch reads off there and says so (v5.10C, row 8). Not the
-     * buildings, whose three shops stay at 0 %, nor the cars, one of which does.
+     * buildings, whose places among the houses stay at 0 %, nor the cars, one of which does.
      */
     noneAtZero: Boolean = false,
     /** Rendered directly under the density slider -- the cars put their night twin here, so the
@@ -198,17 +200,22 @@ internal fun ObjectCategorySection(
 }
 
 /**
- * The shops' colours (v5.11, inventory I-403; the maintainer's *«voglio che i negozi abbiano colore a
- * se, aggiungiamolo»* of 2026-10-06): the restaurant, the school and the bar.
+ * The page of one group of the buildings among the houses (v5.13): the shops -- the restaurant, the bar
+ * and the shop (v5.11, inventory I-403; the maintainer's *«voglio che i negozi abbiano colore a se,
+ * aggiungiamolo»* of 2026-10-06) -- or the public buildings -- the school, the fire station and the
+ * police station (v5.13, the maintainer's *«il resto accetto i consigliati»* of 2026-10-11 to the menu
+ * G2: four rows in *Landscape*, each with its page).
  *
- * **Colours, opening hours and a reset.** Whether the shops stand is *Show Buildings*' (one candidate
- * pool), so there is no *Show* switch and no amount here; with *Show Buildings* off the line says so and
- * a tap on it goes to that switch ([onGoToBuildings], `AI_PROJECT_RULES.md` 8.7), the colours staying
- * editable as every category's do while its switch is off. Since v5.12 the shops keep opening hours of
- * their own ([openingHours]), which "Reset Shops to default" puts back with the colours.
+ * **A line, the group's opening hours, its colours and a reset.** Whether the buildings stand is *Show
+ * Buildings*' (one candidate pool, on the *Towers & offices* page), so there is no *Show* switch and no
+ * amount here; with *Show Buildings* off the line says so and a tap on it goes to that page
+ * ([onGoToBuildings], `AI_PROJECT_RULES.md` 8.7), the colours staying editable as every category's do
+ * while its switch is off. "Reset Shops to default" and "Reset Public buildings to default" each put
+ * back their own group's colours and hours ([WallpaperPrefs.resetCategory]).
  */
 @Composable
-internal fun ShopsSection(
+internal fun StorefrontGroupSection(
+    group: StorefrontGroup,
     config: ObjectVariantConfig,
     buildingsVisible: Boolean,
     forThemeId: String,
@@ -216,14 +223,14 @@ internal fun ShopsSection(
     scope: CoroutineScope,
     onEditColor: (label: String, color: Int, onChange: (Int) -> Unit) -> Unit,
     onGoToBuildings: () -> Unit,
-    /** The shops' opening hours (v5.12), between the line and the colours, as the towers' are in Buildings. */
+    /** The group's opening hours, between the line and the colours, as the towers' are on theirs. */
     openingHours: @Composable () -> Unit = {},
 ) {
-    val category = ObjectCategory.SHOPS
+    val category = if (group == StorefrontGroup.SHOPS) ObjectCategory.SHOPS else ObjectCategory.PUBLICS
+    val title = storefrontGroupTitle(group)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle("Shops")
         Text(
-            SettingsUiModel.shopsLine(buildingsVisible),
+            SettingsUiModel.storefrontGroupLine(group, buildingsVisible),
             style = MaterialTheme.typography.bodySmall,
             color = if (buildingsVisible) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
             modifier = if (buildingsVisible) Modifier else Modifier.clickable(onClick = onGoToBuildings),
@@ -232,24 +239,30 @@ internal fun ShopsSection(
         DayNightColorPair(
             dayLabel = "Day Color 1", nightLabel = "Night Color 1",
             dayColor = config.colorDay1, nightColor = config.colorNight1, mode = config.autoMode1,
-            onEditDay = { onEditColor("Shops - Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c, forThemeId) } } },
-            onEditNight = { onEditColor("Shops - Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c, forThemeId) } } },
+            onEditDay = { onEditColor("$title - Day Color 1", config.colorDay1) { c -> scope.launch { prefs.setCategoryColorDay1(category, c, forThemeId) } } },
+            onEditNight = { onEditColor("$title - Night Color 1", config.colorNight1) { c -> scope.launch { prefs.setCategoryColorNight1(category, c, forThemeId) } } },
             onModeChange = { scope.launch { prefs.setCategoryAutoMode1(category, it, forThemeId) } },
         )
         DayNightColorPair(
             dayLabel = "Day Color 2", nightLabel = "Night Color 2",
             dayColor = config.colorDay2, nightColor = config.colorNight2, mode = config.autoMode2,
-            onEditDay = { onEditColor("Shops - Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c, forThemeId) } } },
-            onEditNight = { onEditColor("Shops - Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c, forThemeId) } } },
+            onEditDay = { onEditColor("$title - Day Color 2", config.colorDay2) { c -> scope.launch { prefs.setCategoryColorDay2(category, c, forThemeId) } } },
+            onEditNight = { onEditColor("$title - Night Color 2", config.colorNight2) { c -> scope.launch { prefs.setCategoryColorNight2(category, c, forThemeId) } } },
             onModeChange = { scope.launch { prefs.setCategoryAutoMode2(category, it, forThemeId) } },
         )
         OutlinedButton(
             onClick = { scope.launch { prefs.resetCategory(category, forThemeId) } },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Reset Shops to default")
+            Text("Reset $title to default")
         }
     }
+}
+
+/** A group's name, as its row, its page and its reset button say it. */
+internal fun storefrontGroupTitle(group: StorefrontGroup): String = when (group) {
+    StorefrontGroup.SHOPS -> "Shops"
+    StorefrontGroup.PUBLIC -> "Public buildings"
 }
 
 /** Visibility, day/night colour and density for one of the two mountain layers. */

@@ -189,10 +189,12 @@ object ThemePreviewScenes {
     /**
      * The depth rows the card's street is built on, far to near.
      *
-     * v5.7 replaced four reading bands with an order taken from the scene's. `SceneSpace` deals the
-     * shops by `depthFraction` at fixed depths -- the restaurant at 0.4444, the school at 0.6222
-     * and the bar at 0.8000, each the single value `SceneObjectCatalog` emits in all twelve
-     * built-ins, measured, not chosen here -- with the towers on the skyline (0.00-0.27); the
+     * v5.7 replaced four reading bands with an order taken from the scene's. `SceneSpace` gives each
+     * place among the houses its row of the size table by `depthFraction` -- the card's rows stand at
+     * 0.4444, 0.6222 and 0.8000, the nearer place of each row on all twelve built-ins (since v5.13B2 the
+     * restaurant's and the bar's rows also hold 0.3556 and 0.7111, and which of the six buildings stands
+     * in a place is the street's, [StorefrontStreet]), measured, not chosen here -- with the towers on
+     * the skyline (0.00-0.27); the
      * houses of both families stand in two bands (0.28-0.48 and 0.62-0.95), so the card's two
      * house rows are a choice, not the scene's order. A row is a ground line rather than a band:
      * an object on a nearer row is appended later and is therefore drawn in front, which is the
@@ -341,10 +343,11 @@ object ThemePreviewScenes {
         val phase = cardPhase(theme, night)
         val dayBlend = phase.dayBlend
         // The card's hour, at which each building is as open as the wallpaper's own [BusinessHours]
-        // rule makes it -- by its group, the shops' or the towers' hours (v5.12), by what it is drawn
-        // as ([SceneCustomization.opennessFor]): 1 with a group's switch off, which is the default, so
-        // only a user who turns opening hours on sees a night card's shops or towers go dark as the
-        // wallpaper's do (v5.9G, I-38).
+        // rule makes it -- by its group's hours, the towers', the shops' or the public buildings' (v5.13;
+        // the fire and the police station never close), a tower by what it is drawn as and a building
+        // among the houses by what it is ([SceneCustomization.opennessFor]): 1 with a group's switch off,
+        // which is the default, so only a user who turns opening hours on sees a night card's buildings go
+        // dark as the wallpaper's do (v5.9G, I-38).
         val hour = cardHour(theme, night)
         // The theme's seed for who stands at a house's windows, the wallpaper's own (`themeId.hashCode()`
         // in `SceneObjectRenderer`): which of a house's windows the card lights at night follows it.
@@ -457,9 +460,22 @@ object ThemePreviewScenes {
             x, y, fit, SceneSpace.SceneVariant.TOWER, SceneObjectType.SKYSCRAPER,
             PreviewIdentity.TOWER_X[index], PreviewIdentity.TOWER_DEPTH[index], c, dayBlend, winter, hour, seed,
         )
+        // The three buildings among the houses (v5.13): three of the five places of the street's first copy, in
+        // its first round, one in each row of the size table ([StorefrontStreet.firstStretch], [StorefrontStreet.cardPlaceOf]).
+        // A street holds six, and the other three come by as the wallpaper scrolls: what the card leaves
+        // out (DESIGN_NOTES.md §9).
+        val storefronts = StorefrontStreet.firstStretch(seed, StorefrontStreet.places(layout))
+        // **No tower the wallpaper does not draw** (v5.13, inventory I-609): with *Towers* at an amount
+        // that keeps none of the layout's towers the card drew two, against decision 45 ("the gallery
+        // card draws at 0 % nothing the wallpaper does not"). Asked of the wallpaper's own rule.
+        val towersDrawn = c.buildings.visible && layout.staticObjects.any {
+            it.type == SceneObjectType.SKYSCRAPER && !StorefrontStreet.isPlace(it) && c.keepCandidate(it, layout.densityScheme)
+        }
 
         if (c.buildings.visible) {
-            if (cityLike) {
+            if (!towersDrawn) {
+                // The street's buildings stand; no tower does.
+            } else if (cityLike) {
                 // A city's skyline is what it is for, so it keeps all four towers.
                 for ((index, x) in listOf(40f, 108f, 176f, 250f).withIndex()) {
                     items += tower(x, ROW_TOWERS, if (index % 2 == 0) 0.44f else 0.42f, index)
@@ -472,7 +488,8 @@ object ThemePreviewScenes {
             }
             items += buildingItem(128f, ROW_RESTAURANT, 0.38f,
                 SceneSpace.SceneVariant.RESTAURANT, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, hour, seed)
+                PreviewIdentity.RESTAURANT_X, PreviewIdentity.RESTAURANT_DEPTH, c, dayBlend, winter, hour, seed,
+                storefronts[0])
         }
         if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(80f, ROW_HOUSE_LARGE, 0.40f,
@@ -482,7 +499,8 @@ object ThemePreviewScenes {
         if (c.buildings.visible) {
             items += buildingItem(176f, ROW_SCHOOL, 0.40f,
                 SceneSpace.SceneVariant.SCHOOL, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, winter, hour, seed)
+                PreviewIdentity.SCHOOL_X, PreviewIdentity.SCHOOL_DEPTH, c, dayBlend, winter, hour, seed,
+                storefronts[1])
         }
         if (drawn(c.houses.visible, c.houses.density)) {
             items += buildingItem(236f, ROW_HOUSE_SMALL, 0.40f,
@@ -492,7 +510,8 @@ object ThemePreviewScenes {
         if (c.buildings.visible) {
             items += buildingItem(300f, ROW_BAR, 0.42f,
                 SceneSpace.SceneVariant.BAR, SceneObjectType.SKYSCRAPER,
-                PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, dayBlend, winter, hour, seed)
+                PreviewIdentity.BAR_X, PreviewIdentity.BAR_DEPTH, c, dayBlend, winter, hour, seed,
+                storefronts[2])
         }
 
         // --- trees ------------------------------------------------------------------------------
@@ -929,16 +948,17 @@ object ThemePreviewScenes {
      * They are **positions, dealt for a picture**. The paragraph that stood here said they were
      * "positions buildings of their family really occupy in a built-in layout (the restaurant's
      * and the bar's are the ones `SceneObjectCatalog` emits per tile)", and a census of all twelve
-     * built-ins says otherwise: the catalogue emits the restaurant at depth **0.4444** and the bar
-     * at **0.8000**, in every theme, and its towers never go past **0.2667**. So five of the nine
-     * depths below -- the restaurant's, the bar's and three of the four towers' -- are positions no
-     * building of that family stands at. Nothing is wrong with the *card* that follows from them
+     * built-ins said otherwise: the catalogue emitted the restaurant at depth **0.4444** and the bar
+     * at **0.8000** in every theme (since v5.13B2 the restaurant's row also stands a place at 0.3556
+     * and the bar's at 0.7111), and its towers never go past **0.2667**. So five of the nine depths
+     * below were positions no building of that family stood at; since v5.13B2 the bar's 0.7111 is the
+     * far place of the bar's row, and four still are -- the restaurant's and three of the four towers'. Nothing is wrong with the *card* that follows from them
      * (a dealt silhouette is a real silhouette wherever the hash lands), but the derivation was
      * not what it claimed, and a future edit "restoring" them to the catalogue would move every
      * shop on every card. They stay as they are, by the maintainer's decision of 2026-09-22 (the
      * cards' direction D1); this comment only stops the sentence being false.
      *
-     * [SCHOOL_DEPTH] is the exception, and is measured: the catalogue puts the school at 0.6222
+     * [SCHOOL_DEPTH] is the exception, and is measured: the catalogue puts the school's row at 0.6222
      * in all twelve, so the card can stand it exactly where the scene does. Its x is the one
      * Tundra's school gets, picked the same way the other nine were.
      */
@@ -999,8 +1019,11 @@ object ThemePreviewScenes {
         snow: Boolean,
         hour: Float,
         seed: Int,
+        storefront: Storefront? = null,
     ): List<PreviewSprite> {
-        val family = NeighbourhoodTable.FAMILIES[variant] ?: return emptyList()
+        // A row among the houses draws the building the street's first stretch stands in it (v5.13),
+        // at the row's own size ([neighbourhoodScale]), in its group's colours and hours.
+        val family = storefront?.family ?: NeighbourhoodTable.FAMILIES[variant] ?: return emptyList()
         // The real object, so the real coin: which of the two colours this building wears is
         // `variantIndexFor`'s answer about this very position, not a choice the preview makes. The
         // preview used to invent its own blends here -- a tower 15 % towards white, a restaurant
@@ -1010,13 +1033,13 @@ object ThemePreviewScenes {
         // depths the scene keeps for shops ([PreviewIdentity]), so asking by the object's depth would
         // paint them in the shops' colours. The card names the drawing, and the drawing names the pair.
         val spec = StaticSceneObject(type, depthFraction = depth, tileFractionX = tileX)
-        val wall = c.wallColourFor(spec, variant, dayBlend)
+        val wall = if (storefront != null) c.storefrontWall(spec, storefront, dayBlend) else c.wallColourFor(spec, variant, dayBlend)
         // `SceneObjectRenderer.drawNeighbourhoodBuilding`'s glass: a house's windows lit by the night
         // alone, a business's by the night and its opening hours at the card's hour. Until v5.9G the
         // card lit every building by the night alone, so with opening hours on a midnight card's
         // shops and towers glowed where the wallpaper's are dark.
         val night = 1f - dayBlend
-        val openness = c.opennessFor(variant, hour)
+        val openness = if (storefront != null) c.opennessFor(storefront, hour) else c.opennessFor(variant, hour)
         val glass = if (family.kind == WindowBuildingKind.HOUSE) {
             SceneObjectRenderer.windowGlassColor(night)
         } else {
@@ -1094,9 +1117,10 @@ object ThemePreviewScenes {
         snow: Boolean,
         hour: Float,
         seed: Int,
+        storefront: Storefront? = null,
     ): PreviewItem = PreviewItem(
         x, y, neighbourhoodScale(variant, fit),
-        neighbourhood(variant, type, tileX, depth, c, dayBlend, snow, hour, seed),
+        neighbourhood(variant, type, tileX, depth, c, dayBlend, snow, hour, seed, storefront),
     )
 
     /**

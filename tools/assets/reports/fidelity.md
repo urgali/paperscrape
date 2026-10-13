@@ -33,46 +33,50 @@ list of rows saying so one at a time is the same evidence, at two hundred times 
 column of the table that would appear here is zero by definition. It is listed in
 `fidelity.json` if you need to see it.
 
-## Sprites with no recoverable source (340)
+## Sprites with no recoverable source (356)
 
 These ship today and cannot be regenerated from an SVG. The names are listed so the gap is
 a recorded state of the project rather than an omission from a report; the reason is
 written once per group, because it is the same reason.
 
-### `tools/assets/buildings/build_neighbourhood.py` -- 99 sprites
+### `tools/assets/buildings/build_neighbourhood.py` -- 115 sprites
 
 Written by tools/assets/buildings/build_neighbourhood.py, which draws the piece and decomposes it into the fixed layer and the weight masks the engine sums at the blit. Re-run that script to regenerate it, not `render`: it has no SVG of its own and cannot have one.
 
 `bar_chamfer_fx`, `bar_chamfer_mg`, `bar_chamfer_mw`, `bar_chamfer_snow_fx`, `bar_signboard_fx`,
-`bar_signboard_mg`, `bar_signboard_mw`, `bar_signboard_snow_fx`, `house_distant_chalet_fx`,
-`house_distant_chalet_mg`, `house_distant_chalet_mw`, `house_distant_chalet_snow_fx`,
-`house_distant_cottage_fx`, `house_distant_cottage_mg`, `house_distant_cottage_mw`,
-`house_distant_cottage_snow_fx`, `house_distant_tall_fx`, `house_distant_tall_mg`,
-`house_distant_tall_mw`, `house_distant_tall_snow_fx`, `house_large_ground_fx`,
-`house_large_ground_mg`, `house_large_ground_mw`, `house_large_roof_gable_fx`,
-`house_large_roof_gable_mg`, `house_large_roof_gable_mw`, `house_large_roof_gable_snow_fx`,
-`house_large_roof_mansard_fx`, `house_large_roof_mansard_mg`, `house_large_roof_mansard_mw`,
-`house_large_roof_mansard_snow_fx`, `house_large_roof_turret_gable_fx`,
-`house_large_roof_turret_gable_mw`, `house_large_roof_turret_gable_snow_fx`,
-`house_large_roof_turret_tower_fx`, `house_large_roof_turret_tower_mg`,
-`house_large_roof_turret_tower_mw`, `house_large_roof_turret_tower_snow_fx`,
-`house_large_storey_fx`, `house_large_storey_mg`, `house_large_storey_mw`,
-`house_small_ground_fx`, `house_small_ground_mg`, `house_small_ground_mw`,
-`house_small_roof_gable_fx`, `house_small_roof_gable_mw`, `house_small_roof_gable_snow_fx`,
-`house_small_roof_mansard_fx`, `house_small_roof_mansard_mg`, `house_small_roof_mansard_mw`,
-`house_small_roof_mansard_snow_fx`, `house_small_storey_fx`, `house_small_storey_mg`,
-`house_small_storey_mw`, `restaurant_pavilion_fx`, `restaurant_pavilion_mg`,
-`restaurant_pavilion_mw`, `restaurant_pavilion_snow_fx`, `school_fx`, `school_mg`, `school_mw`,
-`school_snow_fx`, `tower_bay_door_fx`, `tower_bay_door_mg`, `tower_bay_fx`, `tower_bay_mg`,
-`tower_crown_dome_fx`, `tower_crown_dome_mw`, `tower_crown_dome_snow_fx`,
-`tower_crown_spire_fx`, `tower_crown_spire_mw`, `tower_crown_spire_snow_fx`,
-`tower_row_tier1_fx`, `tower_row_tier1_mg`, `tower_row_tier2_fx`, `tower_row_tier2_mg`,
-`tower_row_tier3_fx`, `tower_row_tier3_mg`, `tower_snow_left1_fx`, `tower_snow_left2_fx`,
-`tower_snow_right1_fx`, `tower_snow_right2_fx`, `tower_snow_top_fx`, `tower_snow_top_wide_fx`,
-`tower_tier1_fx`, `tower_tier1_mg`, `tower_tier1_mw`, `tower_tier1_short_fx`,
-`tower_tier1_short_mg`, `tower_tier1_short_mw`, `tower_tier1_tall_fx`, `tower_tier1_tall_mg`,
-`tower_tier1_tall_mw`, `tower_tier2_fx`, `tower_tier2_mw`, `tower_tier2_tall_fx`,
-`tower_tier2_tall_mw`, `tower_tier3_fx`, `tower_tier3_mw`
+`bar_signboard_mg`, `bar_signboard_mw`, `bar_signboard_snow_fx`, `fire_station_fx`,
+`fire_station_mg`, `fire_station_mw`, `fire_station_snow_fx`, `fire_station_tower_fx`,
+`fire_station_tower_mg`, `fire_station_tower_mw`, `fire_station_tower_snow_fx`,
+`house_distant_chalet_fx`, `house_distant_chalet_mg`, `house_distant_chalet_mw`,
+`house_distant_chalet_snow_fx`, `house_distant_cottage_fx`, `house_distant_cottage_mg`,
+`house_distant_cottage_mw`, `house_distant_cottage_snow_fx`, `house_distant_tall_fx`,
+`house_distant_tall_mg`, `house_distant_tall_mw`, `house_distant_tall_snow_fx`,
+`house_large_ground_fx`, `house_large_ground_mg`, `house_large_ground_mw`,
+`house_large_roof_gable_fx`, `house_large_roof_gable_mg`, `house_large_roof_gable_mw`,
+`house_large_roof_gable_snow_fx`, `house_large_roof_mansard_fx`, `house_large_roof_mansard_mg`,
+`house_large_roof_mansard_mw`, `house_large_roof_mansard_snow_fx`,
+`house_large_roof_turret_gable_fx`, `house_large_roof_turret_gable_mw`,
+`house_large_roof_turret_gable_snow_fx`, `house_large_roof_turret_tower_fx`,
+`house_large_roof_turret_tower_mg`, `house_large_roof_turret_tower_mw`,
+`house_large_roof_turret_tower_snow_fx`, `house_large_storey_fx`, `house_large_storey_mg`,
+`house_large_storey_mw`, `house_small_ground_fx`, `house_small_ground_mg`,
+`house_small_ground_mw`, `house_small_roof_gable_fx`, `house_small_roof_gable_mw`,
+`house_small_roof_gable_snow_fx`, `house_small_roof_mansard_fx`, `house_small_roof_mansard_mg`,
+`house_small_roof_mansard_mw`, `house_small_roof_mansard_snow_fx`, `house_small_storey_fx`,
+`house_small_storey_mg`, `house_small_storey_mw`, `police_station_fx`, `police_station_mg`,
+`police_station_mw`, `police_station_snow_fx`, `restaurant_pavilion_fx`,
+`restaurant_pavilion_mg`, `restaurant_pavilion_mw`, `restaurant_pavilion_snow_fx`, `school_fx`,
+`school_mg`, `school_mw`, `school_snow_fx`, `shop_fx`, `shop_mg`, `shop_mw`, `shop_snow_fx`,
+`tower_bay_door_fx`, `tower_bay_door_mg`, `tower_bay_fx`, `tower_bay_mg`, `tower_crown_dome_fx`,
+`tower_crown_dome_mw`, `tower_crown_dome_snow_fx`, `tower_crown_spire_fx`,
+`tower_crown_spire_mw`, `tower_crown_spire_snow_fx`, `tower_row_tier1_fx`, `tower_row_tier1_mg`,
+`tower_row_tier2_fx`, `tower_row_tier2_mg`, `tower_row_tier3_fx`, `tower_row_tier3_mg`,
+`tower_snow_left1_fx`, `tower_snow_left2_fx`, `tower_snow_right1_fx`, `tower_snow_right2_fx`,
+`tower_snow_top_fx`, `tower_snow_top_wide_fx`, `tower_tier1_fx`, `tower_tier1_mg`,
+`tower_tier1_mw`, `tower_tier1_short_fx`, `tower_tier1_short_mg`, `tower_tier1_short_mw`,
+`tower_tier1_tall_fx`, `tower_tier1_tall_mg`, `tower_tier1_tall_mw`, `tower_tier2_fx`,
+`tower_tier2_mw`, `tower_tier2_tall_fx`, `tower_tier2_tall_mw`, `tower_tier3_fx`,
+`tower_tier3_mw`
 
 ### `tools/generate_people_layers.py` -- 241 sprites
 

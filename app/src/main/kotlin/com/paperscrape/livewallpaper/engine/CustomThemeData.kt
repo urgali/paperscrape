@@ -254,7 +254,8 @@ fun carObjectFromJson(json: JSONObject): CarObject = CarObject(
 )
 
 fun SceneObjectLayout.toJson(): JSONObject = JSONObject().apply {
-    put("staticObjects", JSONArray(staticObjects.map { it.toJson() }))
+    // A place the loader moved is written where the theme stored it (v5.13B2, [SceneObjectLayout.placesAsSaved]).
+    put("staticObjects", JSONArray(staticObjects.map { (placesAsSaved[it] ?: it).toJson() }))
     put("cars", JSONArray(cars.map { it.toJson() }))
     // Which density rule thinned these objects (v5.8C). Additive: a payload without it was
     // written before the key existed, by an app that thinned with the grid.
@@ -274,8 +275,13 @@ fun sceneObjectLayoutFromJson(json: JSONObject): SceneObjectLayout {
     // this in a schema migration only ever fixes the payloads written before the
     // migration -- see SceneObjectCatalog.canonicaliseTraffic for why that is not
     // enough.
+    // Each place where all six buildings keep their fronts clear (v5.13B2): a saved street's places were
+    // planned for the one building each held until v5.13. On every load, as the traffic below -- see
+    // SceneObjectCatalog.placesClearedOnSavedStreet -- and a place moved remembers where it was stored.
+    val cleared = SceneObjectCatalog.placesClearedOnSavedStreet(staticObjects)
     return SceneObjectLayout(
-        staticObjects = staticObjects,
+        staticObjects = cleared,
+        placesAsSaved = cleared.indices.filter { cleared[it] != staticObjects[it] }.associate { cleared[it] to staticObjects[it] },
         cars = SceneObjectCatalog.canonicaliseTraffic(cars),
         // Absent means a layout saved before v5.8C, thinned by the grid: kept on it so it keeps
         // every object it stored. See [DENSITY_SCHEME_GRID].
@@ -330,6 +336,10 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     // The shops' own colours (v5.11). A payload without them is read with the Buildings colours
     // beside it, which is what its shops were drawn in -- see `sceneCustomizationFromJson`.
     put("shops", shops.toJson())
+    // The public buildings' own colours (v5.13). A payload without them is read by
+    // `publicsCarriedOver`: the shops' colours where they were changed by hand, the theme's new pair
+    // where they were not -- see `sceneCustomizationFromJson`.
+    put("publics", publics.toJson())
     put("cars", cars.toJson())
     put("parasols", parasols.toJson())
     put("people", people.toJson())
@@ -342,7 +352,7 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     // before v4.22 has no such key, and reading falls back to that theme's own daytime car
     // density -- the upgrade rule PeopleDensity.resolveNightDensity states, applied to a payload.
     put("carsNightDensity", carsNightDensity.toDouble())
-    // The opening hours (v4.22), in two groups since v5.12: the shops' and the towers'. Absent from
+    // The opening hours (v4.22), in groups since v5.12 (three since v5.13, the public buildings'). Absent from
     // every payload before v4.22, where reading falls back to the defaults, whose switch-off state
     // renders identically to the feature not existing; a payload written from v4.22 to v5.11 holds
     // one setting for both, which `sceneCustomizationFromJson` reads into each.
@@ -352,6 +362,11 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("towerHoursEnabled", towerHoursEnabled)
     put("towerOpenHour", towerOpenHour.toDouble())
     put("towerCloseHour", towerCloseHour.toDouble())
+    // The third group, the public buildings (v5.13). A payload written before has none, and its
+    // public buildings read the shops' hours, which held for the school until then.
+    put("publicHoursEnabled", publicHoursEnabled)
+    put("publicOpenHour", publicOpenHour.toDouble())
+    put("publicCloseHour", publicCloseHour.toDouble())
     // And the one setting of before, still written -- as the shops' -- so the shape stays additive
     // ([CUSTOM_THEME_SCHEMA_VERSION]: no field removed, no bump) and a build before v5.12 reading this
     // payload reads hours it knows (`AI_PROJECT_RULES.md` 9.4, best effort): for the shops as stored,
@@ -453,10 +468,20 @@ fun SceneCustomization.toJson(): JSONObject = JSONObject().apply {
     put("santaEnabled", santaEnabled)
 }
 
-fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
+/**
+ * A [SceneCustomization] read back from [json] -- a theme's archived edit, a saved theme, a theme file,
+ * a backup -- best effort, field by field ([CUSTOM_THEME_SCHEMA_VERSION]). [theme] is the theme the
+ * payload belongs to, when the caller knows it: a payload written before v5.13 has no public buildings'
+ * colours, and they are read against that theme's starting ones ([publicsCarriedOver]).
+ */
+fun sceneCustomizationFromJson(json: JSONObject?, theme: SceneTheme? = null): SceneCustomization {
     val defaults = SceneCustomization.DEFAULT
     if (json == null) return defaults
     val buildings = json.optJSONObject("buildings")?.let { objectVariantConfigFromJson(it, defaults.buildings) } ?: defaults.buildings
+    val shops = json.optJSONObject("shops")?.let { objectVariantConfigFromJson(it, buildings) } ?: buildings
+    val shopHoursEnabled = json.optBoolean("shopHoursEnabled", json.optBoolean("businessHoursEnabled", defaults.shopHoursEnabled))
+    val shopOpenHour = json.optFinite("shopOpenHour", json.optFinite("businessOpenHour", defaults.shopOpenHour))
+    val shopCloseHour = json.optFinite("shopCloseHour", json.optFinite("businessCloseHour", defaults.shopCloseHour))
     return SceneCustomization(
         houses = json.optJSONObject("houses")?.let { objectVariantConfigFromJson(it, defaults.houses) } ?: defaults.houses,
         buildings = buildings,
@@ -466,7 +491,13 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // v5.11 keeps the look it had -- and a field missing from a shops block written since falls
         // back the same way. Visibility and density come with them and are read by nothing
         // (`SceneCustomization.shops`).
-        shops = json.optJSONObject("shops")?.let { objectVariantConfigFromJson(it, buildings) } ?: buildings,
+        shops = shops,
+        // **A payload written before v5.13 has no public buildings, and its school wore the shops'
+        // colours.** Whoever had changed those by hand finds them on the school and the two stations
+        // too; whoever had not gets the theme's new pair ([publicsCarriedOver], the maintainer's *«il
+        // resto accetto i consigliati»* of 2026-10-11). Without a theme to compare against, the shops'.
+        publics = json.optJSONObject("publics")?.let { objectVariantConfigFromJson(it, shops) }
+            ?: publicsCarriedOver(shops, theme),
         cars = json.optJSONObject("cars")?.let { objectVariantConfigFromJson(it, defaults.cars) } ?: defaults.cars,
         parasols = json.optJSONObject("parasols")?.let { objectVariantConfigFromJson(it, defaults.parasols) } ?: defaults.parasols,
         // Absent from every payload written before v76.12, which is why it falls back to the
@@ -489,12 +520,18 @@ fun sceneCustomizationFromJson(json: JSONObject?): SceneCustomization {
         // `businessHours*` alone, the setting that held for the shops and the towers alike, and each
         // group reads it where it has no field of its own -- a theme saved, archived, backed up or
         // shared before v5.12 opens and closes as it did. A payload written since has both groups'.
-        shopHoursEnabled = json.optBoolean("shopHoursEnabled", json.optBoolean("businessHoursEnabled", defaults.shopHoursEnabled)),
-        shopOpenHour = json.optFinite("shopOpenHour", json.optFinite("businessOpenHour", defaults.shopOpenHour)),
-        shopCloseHour = json.optFinite("shopCloseHour", json.optFinite("businessCloseHour", defaults.shopCloseHour)),
+        shopHoursEnabled = shopHoursEnabled,
+        shopOpenHour = shopOpenHour,
+        shopCloseHour = shopCloseHour,
         towerHoursEnabled = json.optBoolean("towerHoursEnabled", json.optBoolean("businessHoursEnabled", defaults.towerHoursEnabled)),
         towerOpenHour = json.optFinite("towerOpenHour", json.optFinite("businessOpenHour", defaults.towerOpenHour)),
         towerCloseHour = json.optFinite("towerCloseHour", json.optFinite("businessCloseHour", defaults.towerCloseHour)),
+        // **Three groups since v5.13**: a payload written before has no public buildings' hours, and
+        // the school kept the shops' -- so whoever had the shops' hours on finds them on in both, at
+        // the same hours (the maintainer's *«il resto accetto i consigliati»* of 2026-10-11).
+        publicHoursEnabled = json.optBoolean("publicHoursEnabled", shopHoursEnabled),
+        publicOpenHour = json.optFinite("publicOpenHour", shopOpenHour),
+        publicCloseHour = json.optFinite("publicCloseHour", shopCloseHour),
         trees = json.optJSONObject("trees")?.let { objectVariantConfigFromJson(it, defaults.trees) } ?: defaults.trees,
         // Seasonal decorations ARE part of a saved custom theme's JSON now -- per-theme editable
         // and saveable exactly like the structural categories above (see the ObjectCategory doc
@@ -684,7 +721,7 @@ fun customThemeEntryFromJson(json: JSONObject): CustomThemeEntry {
         // `name` alone and left the theme's copy behind.
         theme = sceneThemeFromJson(json.getJSONObject("theme")).copy(displayName = name),
         layout = sceneObjectLayoutFromJson(json.getJSONObject("layout")),
-        customization = sceneCustomizationFromJson(json.optJSONObject("customization")),
+        customization = sceneCustomizationFromJson(json.optJSONObject("customization"), sceneThemeFromJson(json.getJSONObject("theme"))),
     )
 }
 
@@ -887,7 +924,9 @@ internal fun addMissingSchool(objects: JSONArray?) {
  * Keeps one commercial building per storefront variant and moves the rest to tower depths.
  *
  * The same rule and the same arithmetic as [SceneObjectCatalog.singleShopPerVariant], applied to a
- * stored layout instead of a generated one: of the shop-band candidates
+ * stored layout instead of a generated one -- the one-shot repair of a payload older than schema 4, and
+ * nothing else (a street saved since v5.13B2, five places with two in the restaurant's third and two in
+ * the bar's, is written at schema 5 and never read by it). Of the shop-band candidates
  * (`depthFraction >= SceneSpace.BUILDING_TOWER_MAX_DEPTH`), the depth-middle one of each of the
  * three bands (see [SceneSpace.RESTAURANT_MAX_DEPTH]) stays a shop, and every other one keeps its
  * slot, its x and its size and takes a tower depth interleaved across the tower band.
@@ -897,8 +936,8 @@ internal fun addMissingSchool(objects: JSONArray?) {
  * written out as two `filter` calls rather than read from a table, so adding a storefront leaves
  * this migration keeping one shop per *half*-band -- which, on a payload that carries two
  * candidates in the same new third, is two identical schools in one frame, the exact defect this
- * function exists to remove. No layout this app has ever generated can produce that (a generated
- * shop stands at 0.444 or 0.711, which are in different thirds), so it is a hole rather than a
+ * function exists to remove. No layout this app generated before v5.13B2 could produce that (a generated
+ * shop stood at 0.444 or 0.711, which are in different thirds), so it is a hole rather than a
  * bug; it is closed because "the same rule and the same arithmetic" above is a claim, not a hope.
  *
  * Only `depthFraction` moves, and only for the surplus. A shop's depth *is* what makes it a shop

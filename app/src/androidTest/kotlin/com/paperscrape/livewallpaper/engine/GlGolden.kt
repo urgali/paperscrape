@@ -204,6 +204,26 @@ object GlGolden {
     }
 
     /**
+     * The draw calls of one frame of [scene] at each swipe offset of [offsets], in turn, in one context
+     * (v5.13B2): the street swept across its copies, so the places leave the screen and come back with
+     * other buildings. The scene's clock stands still; only the offset moves.
+     */
+    fun countDrawCallsAcross(scene: GoldenScene, offsets: FloatArray): IntArray = withContext { gl ->
+        val renderer = PaperRenderer(WIDTH, HEIGHT, instrumentation.targetContext)
+        scene.configure(renderer)
+        renderer.swipeScrollEnabled = true
+        val clock = SceneTime(scene.sceneSeconds)
+        IntArray(offsets.size) { i ->
+            renderer.homeScreenOffset = offsets[i]
+            gl.beginFrame()
+            renderer.draw(gl, scene.dayPhase, clock, 0f)
+            gl.endFrame()
+            GLES20.glFinish()
+            gl.drawCalls
+        }
+    }
+
+    /**
      * One frame of [draw] on the GPU backend, read back: for a test that sets one operation on both
      * backends side by side (`ClippedSpriteAgreementTest`). The frame starts cleared to opaque black,
      * as every frame of the wallpaper does ([GlSceneTarget.beginFrame]), in the same pbuffer context

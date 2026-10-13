@@ -11,8 +11,8 @@ import org.junit.Test
  * maintainer's *«le persone devono "camminare" e uscire dalla visuale finestre, non sparire»* and *«va
  * fatto anche per la chiusura, non solo per finestre accese/spente»*, 2026-10-09; [WindowWalk]).
  *
- * Asked of every building of the twelve built-in streets -- the houses, the shops, the schools, the bars
- * and the towers -- frame by frame at thirty frames a second, across the roster's changes and across a
+ * Asked of every building of the twelve built-in streets -- the houses, the towers and the six buildings
+ * among the houses (the restaurant, the bar, the shop, the school, the fire and the police station) -- frame by frame at thirty frames a second, across the roster's changes and across a
  * closing and an opening, by the rule the renderer draws with (`SceneObjectRenderer.drawWindowPeople`):
  * a person standing still is drawn whole at their window, a walker only where their bust overlaps a pane
  * they may be seen through, cut to it. What is measured is **how much of each person is in sight**, the
@@ -29,16 +29,29 @@ class WindowWalkTest {
         val layout: WindowWalk.Layout,
     )
 
-    /** Every building of the twelve streets, its roster and its windows as `SceneObjectRenderer.giveRosters` makes them. */
+    /**
+     * Every house and tower of the twelve streets, its roster and its windows as `SceneObjectRenderer.giveRoster`
+     * makes them, and the six buildings among the houses of every street as the renderer has made them since
+     * v5.13 (`SceneObjectRenderer.storefronts`: each from its identity, dealt by `dealStorefront`); a place
+     * itself has no roster.
+     */
     private val buildings: List<Building> by lazy {
         val out = mutableListOf<Building>()
         for (theme in ThemeCatalog.ALL) {
             val seed = theme.id.hashCode()
-            for (spec in SceneObjectCatalog.layoutFor(theme.id, theme.accentColor).staticObjects) {
-                if (spec.type != SceneObjectType.HOUSE && spec.type != SceneObjectType.SKYSCRAPER) continue
-                val family = NeighbourhoodTable.FAMILIES[SceneObjectRenderer.variantFor(spec)] ?: continue
+            val layout = SceneObjectCatalog.layoutFor(theme.id, theme.accentColor)
+            val identities = StorefrontStreet.identities(layout, theme.id)!!
+            val dealt = layout.staticObjects.filter {
+                (it.type == SceneObjectType.HOUSE || it.type == SceneObjectType.SKYSCRAPER) && !StorefrontStreet.isPlace(it)
+            }.mapNotNull { spec -> NeighbourhoodTable.FAMILIES[SceneObjectRenderer.variantFor(spec)]?.let { Triple(spec, it, null as Storefront?) } } +
+                Storefront.ALL.mapIndexed { k, storefront -> Triple(identities[k], storefront.family, storefront) }
+            for ((spec, family, storefront) in dealt) {
                 val deal = NeighbourhoodComposer.Deal()
-                NeighbourhoodComposer.deal(family, spec, deal)
+                if (storefront != null) {
+                    SceneObjectRenderer.dealStorefront(family, storefront, spec, deal)
+                } else {
+                    NeighbourhoodComposer.deal(family, spec, deal)
+                }
                 val buildingSeed = SceneObjectRenderer.buildingSeedOf(spec)
                 val people = WindowOccupants.occupantCount(seed, buildingSeed, deal.peopleWindows, family.kind)
                 val house = family.kind == WindowBuildingKind.HOUSE
@@ -104,11 +117,14 @@ class WindowWalkTest {
     }
 
     @Test
-    fun `the streets give houses, shops, schools, bars and towers to walk in`() {
+    fun `the streets give houses, shops, schools, stations and towers to walk in`() {
         val kinds = buildings.groupingBy { it.kind }.eachCount()
+        val streets = ThemeCatalog.ALL.size
         assertTrue("$kinds", (kinds[WindowBuildingKind.HOUSE] ?: 0) > 60)
-        assertTrue("$kinds", (kinds[WindowBuildingKind.COMMERCIAL] ?: 0) >= 24)
-        assertTrue("$kinds", (kinds[WindowBuildingKind.SCHOOL] ?: 0) >= 6)
+        // The six among the houses of every street: the restaurant, the bar and the shop, the school, the two stations.
+        assertEquals("$kinds", 3 * streets, kinds[WindowBuildingKind.COMMERCIAL] ?: 0)
+        assertEquals("$kinds", streets, kinds[WindowBuildingKind.SCHOOL] ?: 0)
+        assertEquals("$kinds", 2 * streets, kinds[WindowBuildingKind.STATION] ?: 0)
         assertTrue("$kinds", (kinds[WindowBuildingKind.SKYSCRAPER] ?: 0) >= 24)
     }
 

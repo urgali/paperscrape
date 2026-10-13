@@ -119,6 +119,25 @@ class GlDrawCallTest {
      * survive a person alternating with a vehicle, a building and a tree -- which is the case a
      * scene of nothing but pedestrians would not exercise.
      */
+    /**
+     * **And while the places among the houses come and go** (v5.13B2): each crowded scene swept by the swipe
+     * offset across three tiles of the street, sixty frames, so each of the five places leaves the screen
+     * and comes back as another copy, with the building the street deals that copy, three times -- every
+     * frame one draw.
+     */
+    @Test
+    fun aFrameAsThePlacesComeBackIsStillASingleDrawCall() {
+        val tile = 2f / PaperRenderer.HILL_PARALLAX
+        val offsets = FloatArray(60) { 3f * tile * it / 60 }
+        val seen = mutableListOf<String>()
+        for (scene in crowded()) {
+            val calls = GlGolden.countDrawCallsAcross(scene, offsets)
+            seen += "${scene.name}: ${calls.min()}..${calls.max()} draws over ${calls.size} frames"
+            assertTrue("${scene.name} swept across the street: ${calls.toList()}", calls.all { it == 1 })
+        }
+        println("GlDrawCallTest sweep: " + seen.joinToString(" | "))
+    }
+
     private fun crowded() = listOf("city", "spring", "winter").map { theme ->
         GoldenScene(
             name = "crowd-$theme",

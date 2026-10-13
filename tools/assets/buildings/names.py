@@ -58,6 +58,11 @@ PREFIXES: dict[str, str] = {
     "distant_cottage": "house_distant_cottage",
     "distant_chalet": "house_distant_chalet",
     "distant_tall": "house_distant_tall",
+    # The shop and the two stations (v5.13, `civic.py`): English group names from the start, each its
+    # own production name.
+    "shop": "shop",
+    "fire_station": "fire_station",
+    "police_station": "police_station",
     "k1_roof_turret_b": "house_large_roof_turret",
     "k2_t_gradini": "tower_body",
 }
